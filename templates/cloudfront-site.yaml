@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: ACFS3 - CloudFront with Header Security and site content
+Description: SlideRule Web-Client based on ACFS3 - CloudFront with Header Security and site content
 Transform: 'AWS::Serverless-2016-10-31'
 
 Parameters:
@@ -151,7 +151,7 @@ Resources:
             Override: true
             Preload: true
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
+            ContentSecurityPolicy: "default-src 'none'; img-src 'self' https://tile.openstreetmap.org; script-src 'self'; style-src 'self'; object-src 'none'"
             Override: true
           ContentTypeOptions:
             Override: true

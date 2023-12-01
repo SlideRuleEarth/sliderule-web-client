@@ -79,7 +79,7 @@ Resources:
   CopyFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../www
+      CodeUri: ../web-client/dist
       Environment:
         Variables:
           BUCKET: !Ref S3BucketRoot

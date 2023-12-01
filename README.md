@@ -14,7 +14,7 @@ make package-and-deploy
 To update the content of the website sync the www directory with the current web-client-stack-customresourcestack-s3bucketroot[unique-id] bucket:
 e.g.
 ```
-aws s3 sync www/ s3://web-client-stack-customresourcestack-s3bucketroot-1exsbbvzf84py/
+aws s3 sync web-client/dist/ s3://web-client-stack-customresourcestack-s3bucketroot-1exsbbvzf84py/
 ``` 
 
 To invalidate the CloudFront cache use with the appropriate distribution-id:
