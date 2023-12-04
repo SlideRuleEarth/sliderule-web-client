@@ -80,7 +80,7 @@ build: ## This is run to build the web client and update the dist folder
 	npm run build
 
 run: ## This is run to run the web client locally
-	cd source/web-client && npm start
+	cd web-client && npm start
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"

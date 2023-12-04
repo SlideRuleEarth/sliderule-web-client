@@ -151,7 +151,7 @@ Resources:
             Override: true
             Preload: true
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'none'; img-src 'self' https://tile.openstreetmap.org; script-src 'self'; style-src 'self'; object-src 'none'"
+            ContentSecurityPolicy: "default-src 'none'; img-src 'self' https://tile.openstreetmap.org https://openlayers.org; script-src 'self'; style-src 'self'; object-src 'none'"
             Override: true
           ContentTypeOptions:
             Override: true
