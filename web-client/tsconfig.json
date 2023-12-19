@@ -1,5 +1,13 @@
 {
   "files": [],
+  "typeRoots": [
+    "./node_modules/@types",
+    // Your other type root paths
+  ],
+  "baseUrl": ".",
+  "paths": {
+    "vue-shim": ["./vue-shim.d.ts"]
+  },  
   "references": [
     {
       "path": "./tsconfig.node.json"

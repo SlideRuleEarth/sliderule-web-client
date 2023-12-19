@@ -1,22 +1,51 @@
-<script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+<script setup>
+import {useToast} from "primevue/usetoast";
+import Toast from 'primevue/toast';
+import SrAppBar from "./components/SrAppBar.vue";
+import router from './router';
+
+
+const toast = useToast();
+
+const logoClick = () => {
+  // console.log('logoClick');
+  toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: 3000 });
+  router.push('/');
+};
+
+const searchButtonClick = (value) => {
+  console.log('searchButtonClick',value);
+  toast.add({ severity: 'info', summary: 'Search Button', detail: 'Search button was pushed', life: 3000 });
+};
+
+const toolButtonClick = () => {
+  // console.log('toolButtonClick');
+  toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed', life: 3000 });
+};
+
+const popularButtonClick = () => {
+  // console.log('popularButtonClick');
+  toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: 3000 });
+};
+
+const aboutButtonClick = () => {
+  // console.log('aboutButtonClick');
+  toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed', life: 3000 });
+  router.push('/about');
+};
 </script>
 
 <template>
+  <Toast />
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
+    <SrAppBar 
+      @logoClick="logoClick"
+      @searchButtonClick="searchButtonClick"
+      @toolButtonClick="toolButtonClick"
+      @popularButtonClick="popularButtonClick"
+      @aboutButtonClick="aboutButtonClick"
+    />
   </header>
-
   <RouterView />
 </template>
 
@@ -26,60 +55,4 @@ header {
   max-height: 100vh;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
 </style>
