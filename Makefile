@@ -59,11 +59,8 @@ cold-start-sliderule-webclient: ## This is run once to create the S3 bucket and 
 prepare-template: ## This is run to package an updated template for the web client 
 	aws cloudformation package --region us-east-1 --template-file templates/main.yaml --s3-bucket testsliderule-web-client --output-template-file packaged.template 
 
-npm-create-dist: ## This is run to create the dist folder for the web client
-	cd web-client && npm run build
-
 deploy: ## This is run to deploy the stack from the dist folder NOTE: Now you can use update to upload the dist directly to S3 
-	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=Z1039660300QJ4GJRI5NT
+	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=$(DISTRIBUTION_ID)
 
 # TBD update this to be domain specific
 live-update: ## This is run to update the stack using the dist folder 
@@ -77,7 +74,7 @@ describe-stacks: ## This is run to describe the stack
 	aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1
 
 build: ## This is run to build the web client and update the dist folder
-	npm run build
+	cd web-client && npm run build
 
 run: ## This is run to run the web client locally
 	cd web-client && npm start
