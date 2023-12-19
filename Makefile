@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
-DISTRIBUTION_ID := $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.testsliderule.org'].Id" --output text)
-S3_BUCKET_ROOT := $(shell aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='S3BucketRoot'].OutputValue" --output text)
+DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.testsliderule.org'].Id" --output text)
+S3_BUCKET_ROOT = $(shell aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='S3BucketRoot'].OutputValue" --output text)
 
 pre-deploy:
 ifndef TEMP_BUCKET
