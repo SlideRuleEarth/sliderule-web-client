@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.testsliderule.org'].Id" --output text)
 S3_BUCKET_ROOT = $(shell aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='S3BucketRoot'].OutputValue" --output text)
+HOSTED_ZONE_ID = $(shell aws route53 list-hosted-zones --query "HostedZones[?Name=='testsliderule.org.'].Id"  --output text | sed 's|.*/||')
 
 pre-deploy:
 ifndef TEMP_BUCKET
@@ -60,11 +61,11 @@ prepare-template: ## This is run to package an updated template for the web clie
 	aws cloudformation package --region us-east-1 --template-file templates/main.yaml --s3-bucket testsliderule-web-client --output-template-file packaged.template 
 
 deploy: ## This is run to deploy the stack from the dist folder NOTE: Now you can use update to upload the dist directly to S3 
-	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=$(DISTRIBUTION_ID)
+	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=$(HOSTED_ZONE_ID)
 
 # TBD update this to be domain specific
 live-update: ## This is run to update the stack using the dist folder 
-	aws s3 sync web-client/dist/ s3://$(S3_BUCKET_ROOT)
+	aws s3 sync web-client/dist/ s3://$(S3_BUCKET_ROOT) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 delete-stack: ## This is run to delete the stack
@@ -72,6 +73,9 @@ delete-stack: ## This is run to delete the stack
 
 describe-stacks: ## This is run to describe the stack 
 	aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1
+
+describe-stack-events: ## This is run to describe the stack events leading to a failure
+	aws cloudformation describe-stack-events --stack-name web-client-stack --region us-east-1
 
 build: ## This is run to build the web client and update the dist folder
 	cd web-client && npm run build
@@ -87,3 +91,4 @@ help: ## That's me!
 	@grep -E '^[a-zA-Z_-].+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo DISTRIBUTION_ID:$(DISTRIBUTION_ID)	
 	@echo S3_BUCKET_ROOT:$(S3_BUCKET_ROOT)
+	@echo HOSTED_ZONE_ID:$(HOSTED_ZONE_ID)
