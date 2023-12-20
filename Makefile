@@ -57,14 +57,14 @@ cold-start-sliderule-webclient: ## This is run once to create the S3 bucket and 
 	make package-static
 	aws s3 mb s3://testsliderule-web-client --region us-east-1
 
-prepare-template: ## This is run to package an updated template for the web client 
+prepare-template: build ## This is run to package an updated template for the web client 
 	aws cloudformation package --region us-east-1 --template-file templates/main.yaml --s3-bucket testsliderule-web-client --output-template-file packaged.template 
 
-deploy: ## This is run to deploy the stack from the dist folder NOTE: Now you can use update to upload the dist directly to S3 
+deploy: prepare-template ## This is run to deploy the stack from the dist folder NOTE: Now you can use update to upload the dist directly to S3 
 	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=$(HOSTED_ZONE_ID)
 
 # TBD update this to be domain specific
-live-update: ## This is run to update the stack using the dist folder 
+live-update: build ## Only use this for extremely trivial changes to the web client for testing. NOT to be used for production
 	aws s3 sync web-client/dist/ s3://$(S3_BUCKET_ROOT) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
@@ -80,7 +80,7 @@ describe-stack-events: ## This is run to describe the stack events leading to a 
 build: ## This is run to build the web client and update the dist folder
 	cd web-client && npm run build
 
-build-with-maps: ## This is run to build the web client and update the dist folder
+build-with-maps: ## This is run to build the web client and update the dist folder with src map files
 	cd web-client && npm run build_with_maps
 
 run: ## This is run to run the web client locally for development
