@@ -26,7 +26,7 @@
     </ul>
 </template>
   
-<script setup>
+<script setup lang="ts">
     import { ref } from "vue";
 
     const center = ref([-95, 35]);
@@ -39,15 +39,15 @@
     const currentRotation = ref(rotation.value);
     const currentResolution = ref(0);
 
-    function resolutionChanged(event) {
-    currentResolution.value = event.target.getResolution();
-    currentZoom.value = event.target.getZoom();
+    function resolutionChanged(event: any) {
+      currentResolution.value = event.target.getResolution();
+      currentZoom.value = event.target.getZoom();
     }
-    function centerChanged(event) {
-    currentCenter.value = event.target.getCenter();
+    function centerChanged(event: any) {
+      currentCenter.value = event.target.getCenter();
     }
-    function rotationChanged(event) {
-    currentRotation.value = event.target.getRotation();
+    function rotationChanged(event: any) {
+      currentRotation.value = event.target.getRotation();
     }
 </script>
 <style scoped>

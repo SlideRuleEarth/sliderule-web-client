@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useRouter } from 'vue-router';
 import SrModeSelect from "@/components/SrModeSelect.vue";
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';

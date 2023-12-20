@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {useToast} from "primevue/usetoast";
 import Toast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
@@ -13,8 +13,8 @@ const logoClick = () => {
   router.push('/');
 };
 
-const searchButtonClick = (value) => {
-  console.log('searchButtonClick',value);
+const searchButtonClick = (inputValue: number) => {
+  console.log('searchButtonClick',inputValue);
   toast.add({ severity: 'info', summary: 'Search Button', detail: 'Search button was pushed', life: 3000 });
 };
 

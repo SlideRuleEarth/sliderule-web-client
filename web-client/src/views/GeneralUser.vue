@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import SrSideBar from "@/components/SrSideBar.vue";
 import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
 import SrMap from "@/components/SrMap.vue";
