@@ -80,8 +80,12 @@ describe-stack-events: ## This is run to describe the stack events leading to a 
 build: ## This is run to build the web client and update the dist folder
 	cd web-client && npm run build
 
-run: ## This is run to run the web client locally
+run: ## This is run to run the web client locally for development
 	cd web-client && npm run dev
+
+preview: ## This is run to preview the web client production build locally for development
+	cd web-client && npm run preview
+
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
