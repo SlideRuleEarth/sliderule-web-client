@@ -80,6 +80,9 @@ describe-stack-events: ## This is run to describe the stack events leading to a 
 build: ## This is run to build the web client and update the dist folder
 	cd web-client && npm run build
 
+build-with-maps: ## This is run to build the web client and update the dist folder
+	cd web-client && npm run build_with_maps
+
 run: ## This is run to run the web client locally for development
 	cd web-client && npm run dev
 

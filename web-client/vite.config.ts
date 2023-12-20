@@ -14,6 +14,6 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: true, // Enable source maps for production build
+    sourcemap: process.env.VITE_BUILD_SOURCEMAP === 'true' // conditionally Enable source maps for production build
   }
 })
