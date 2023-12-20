@@ -20,11 +20,11 @@ app.use(OpenLayersMap /* options */);
 app.use(createPinia())
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
-// app.use(PrimeVue, {
-//     csp: {
-//         nonce: 'nonce-...'
-//     }
-// });
+app.use(PrimeVue, {
+    csp: {
+        nonce: 'nonce-SR-test-nonce'
+    }
+});
 app.use(ToastService);
 app.use(router)
 app.component('menu-bar', Menubar)
