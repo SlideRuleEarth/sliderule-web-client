@@ -7,7 +7,7 @@ The following diagram shows an overview of how the solution works:
 
 ![Architecture](./docs/images/cf-secure-static-site-architecture.png)
 
-1. The viewer requests the website at www.example.com.
+1. The viewer requests the website at e.g. client.slideruleearth.io
 2. If the requested object is cached, CloudFront returns the object from its cache to the viewer.
 3. If the object is not in CloudFront’s cache, CloudFront requests the object from the origin (an S3 bucket).
 4. S3 returns the object to CloudFront
