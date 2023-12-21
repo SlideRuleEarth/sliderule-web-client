@@ -4,29 +4,12 @@ DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "Distributio
 S3_BUCKET_ROOT = $(shell aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='S3BucketRoot'].OutputValue" --output text)
 HOSTED_ZONE_ID = $(shell aws route53 list-hosted-zones --query "HostedZones[?Name=='testsliderule.org.'].Id"  --output text | sed 's|.*/||')
 
-pre-deploy:
-ifndef TEMP_BUCKET
-	$(error TEMP_BUCKET is undefined)
-endif
-ifndef ADMIN_EMAIL
-	$(error ADMIN_EMAIL is undefined)
-endif
-ifndef SUBNETS
-	$(error SUBNETS is undefined)
-endif
-ifndef SEC_GROUPS
-	$(error SEC_GROUPS is undefined)
-endif
 
-pre-run:
-ifndef ROLE_NAME
-	$(error ROLE_NAME is undefined)
-endif
+clean: # This is run to clean up the web client dependencies
+	rm -rf *.zip web-client/dist web-client/node_modules
 
-setup-predeploy:
-	virtualenv venv
-	source venv/bin/activate
-	pip install cfn-flip==1.2.2
+reinstall: clean ## This is run to reinstall the web client dependencies
+	cd web-client && npm install
 
 clean:
 	rm -rf *.zip source/witch/nodejs/node_modules/
