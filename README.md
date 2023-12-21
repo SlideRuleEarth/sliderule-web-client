@@ -1,7 +1,7 @@
 # Sliderule Web Client
 This project started with a copy of the v0.11 of [https://github.com/aws-samples/amazon-cloudfront-secure-static-site](https://github.com/aws-samples/amazon-cloudfront-secure-static-site).
 
-The Sliderule specific web client code is located in the www directory.
+The Sliderule specific web client code is located in the ./web-client/dist directory.
 
 The following diagram shows an overview of how the solution works:
 
@@ -13,19 +13,19 @@ The following diagram shows an overview of how the solution works:
 4. S3 returns the object to CloudFront
 5. CloudFront caches the object.
 6. The object is returned to the viewer. Subsequent responses for the object are served from the CloudFront cache.
-This was used to create and deploy our sliderule-web-client:
+
+
+This was used to create our sliderule-web-client for the first time (ONE TIME ONLY) to create helper functions in witch:
 ```
-make cold-start-sliderule-webclient
-make package-and-deploy
+make cold-start-sliderule-web-client
 ```
 
-To update the content of the website sync the www directory with the current web-client-stack-customresourcestack-s3bucketroot[unique-id] bucket:
-e.g.
+This was used to build and deploy changes to web-client (our single page app) :
 ```
-aws s3 sync web-client/dist/ s3://web-client-stack-customresourcestack-s3bucketroot-1exsbbvzf84py/
+make deploy
+```
+
+To update trivial changes to the website for development (Not for production)
+```
+make live-update
 ``` 
-
-To invalidate the CloudFront cache use with the appropriate distribution-id:
-```
-aws cloudfront create-invalidation --distribution-id EXAMPLE1234 --paths "/*"
-```

@@ -26,8 +26,7 @@ package:
 build-static:
 	cd source/witch/ && npm install --prefix nodejs mime-types && cp witch.js nodejs/node_modules/
 
-package-static:
-	make build-static
+package-static: build-static
 	cd source/witch && zip -r ../../witch.zip nodejs
 
 ####################################################################################################
@@ -36,8 +35,7 @@ package-static:
 #
 ####################################################################################################
 
-cold-start-sliderule-webclient: ## This is run once to create the S3 bucket and initial generic template
-	make package-static
+cold-start-sliderule-web-client: package-static ## This is run once to create the S3 bucket and initial generic template
 	aws s3 mb s3://testsliderule-web-client --region us-east-1
 
 prepare-template: build ## This is run to package an updated template for the web client 
