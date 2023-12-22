@@ -10,41 +10,41 @@ DOMAIN ?=
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.$(DOMAIN)'].Id" --output text)
 
-clean: # This is run to clean up the web client dependencies 
+clean: # Clean up the web client dependencies 
 	rm -rf *.zip web-client/dist web-client/node_modules
 
-reinstall: clean ## This is run to reinstall the web client dependencies
+reinstall: clean ## Reinstall the web client dependencies
 	cd web-client && npm install
 
-live-update: build # This is run to update the web client in the S3 bucket and invalidate the CloudFront cache
+live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
 	aws s3 sync web-client/dist/ s3://client.$(DOMAIN) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
-build: ## This is run to build the web client and update the dist folder
+build: ## Build the web client and update the dist folder
 	cd web-client && npm run build
 
-build-with-maps: ## This is run to build the web client and update the dist folder with src map files
+build-with-maps: ## Build the web client and update the dist folder with src map files
 	cd web-client && npm run build_with_maps
 
-run: ## This is run to run the web client locally for development
+run: ## Run the web client locally for development
 	cd web-client && npm run dev
 
-preview: ## This is run to preview the web client production build locally for development
+preview: ## Preview the web client production build locally for development
 	cd web-client && npm run preview
 
-deploy: # This is run to deploy the web client to the S3 bucket
+deploy: # Deploy the web client to the S3 bucket
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
 	terraform apply -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT) 
 
-destroy: # This is run to destroy the web client 
+destroy: # Destroy the web client 
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
 	terraform destroy -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT)
 
-deploy-to-testsliderule:
+deploy-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=testsliderule.org && \
 	make live-update DOMAIN=testsliderule.org
 
-destroy-testsliderule:
+destroy-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=testsliderule.org 
 
 help: ## That's me!
