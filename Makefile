@@ -1,62 +1,24 @@
-SHELL := /bin/bash
-
-DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.testsliderule.org'].Id" --output text)
-S3_BUCKET_ROOT = $(shell aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='S3BucketRoot'].OutputValue" --output text)
-HOSTED_ZONE_ID = $(shell aws route53 list-hosted-zones --query "HostedZones[?Name=='testsliderule.org.'].Id"  --output text | sed 's|.*/||')
-
-
-clean: # This is run to clean up the web client dependencies
-	rm -rf *.zip web-client/dist web-client/node_modules
-
-reinstall: clean ## This is run to reinstall the web client dependencies
-	cd web-client && npm install
-
-clean:
-	rm -rf *.zip source/witch/nodejs/node_modules/
-
-test-cfn:
-	cfn_nag templates/*.yaml --blacklist-path ci/cfn_nag_blacklist.yaml
-
-version:
-	@echo $(shell cfn-flip templates/main.yaml | python -c 'import sys, json; print(json.load(sys.stdin)["Mappings"]["Solution"]["Constants"]["Version"])')
-
-package:
-	zip -r packaged.zip templates backend cfn-publish.config build.zip -x **/__pycache* -x *settings.js
-
-build-static:
-	cd source/witch/ && npm install --prefix nodejs mime-types && cp witch.js nodejs/node_modules/
-
-package-static: build-static
-	cd source/witch && zip -r ../../witch.zip nodejs
-
 ####################################################################################################
 #
 # SlideRule Web-Client specific targets are located here
 #
 ####################################################################################################
 
-cold-start-sliderule-web-client: package-static ## This is run once to create the S3 bucket and initial generic template
-	aws s3 mb s3://testsliderule-web-client --region us-east-1
+SHELL := /bin/bash
+ROOT = $(shell pwd)
+DOMAIN ?= 
+DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
+DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.$(DOMAIN)'].Id" --output text)
 
-prepare-template: build ## This is run to package an updated template for the web client 
-	aws cloudformation package --region us-east-1 --template-file templates/main.yaml --s3-bucket testsliderule-web-client --output-template-file packaged.template 
+clean: # This is run to clean up the web client dependencies 
+	rm -rf *.zip web-client/dist web-client/node_modules
 
-deploy: prepare-template ## This is run to deploy the stack from the dist folder NOTE: Now you can use update to upload the dist directly to S3 
-	aws cloudformation deploy --region us-east-1 --stack-name web-client-stack --template-file packaged.template --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides DomainName=testsliderule.org SubDomain=client HostedZoneId=$(HOSTED_ZONE_ID)
+reinstall: clean ## This is run to reinstall the web client dependencies
+	cd web-client && npm install
 
-# TBD update this to be domain specific
-live-update: build ## Only use this for extremely trivial changes to the web client for testing. NOT to be used for production
-	aws s3 sync web-client/dist/ s3://$(S3_BUCKET_ROOT) --delete
+live-update: build # This is run to update the web client in the S3 bucket and invalidate the CloudFront cache
+	aws s3 sync web-client/dist/ s3://client.$(DOMAIN) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
-
-delete-stack: ## This is run to delete the stack
-	aws cloudformation delete-stack --stack-name web-client-stack --region us-east-1
-
-describe-stacks: ## This is run to describe the stack 
-	aws cloudformation describe-stacks --stack-name web-client-stack --region us-east-1
-
-describe-stack-events: ## This is run to describe the stack events leading to a failure
-	aws cloudformation describe-stack-events --stack-name web-client-stack --region us-east-1
 
 build: ## This is run to build the web client and update the dist folder
 	cd web-client && npm run build
@@ -70,6 +32,20 @@ run: ## This is run to run the web client locally for development
 preview: ## This is run to preview the web client production build locally for development
 	cd web-client && npm run preview
 
+deploy: # This is run to deploy the web client to the S3 bucket
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform apply -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT) 
+
+destroy: # This is run to destroy the web client 
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform destroy -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT)
+
+deploy-to-testsliderule:
+	make deploy DOMAIN=testsliderule.org && \
+	make live-update DOMAIN=testsliderule.org
+
+destroy-testsliderule:
+	make destroy DOMAIN=testsliderule.org 
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
@@ -77,6 +53,6 @@ help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
 	@printf "\033[37m%-30s\033[0m %s\n" "#----target--------------------description------------------------------------------------"
 	@grep -E '^[a-zA-Z_-].+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	@echo DISTRIBUTION_ID:$(DISTRIBUTION_ID)	
-	@echo S3_BUCKET_ROOT:$(S3_BUCKET_ROOT)
-	@echo HOSTED_ZONE_ID:$(HOSTED_ZONE_ID)
+	@echo DOMAIN: $(DOMAIN)	
+	@echo DOMAIN_ROOT: $(DOMAIN_ROOT)
+	@echo DISTRIBUTION_ID: $(DISTRIBUTION_ID)
