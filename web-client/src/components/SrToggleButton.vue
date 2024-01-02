@@ -52,14 +52,18 @@
     };
 </script>
 <style scoped>
-    .toggle-on{
+    div {
+        display: flex;
+        align-items: center; /* Aligns children vertically in the center */
+    }
+    .toggle-on {
         background-color: var(--primary-color);
     }
-    .toggle-off{
-        background-color:var(--surface-d);
+    .toggle-off {
+        background-color: var(--surface-d);
     }
     .toggle-wrapper {
-        display: inline-block;
+        display: inline-flex; /* Changed to inline-flex */
         position: relative;
         cursor: pointer;
         width: 32px;
@@ -70,7 +74,7 @@
         outline: 0;
     }
     .toggle-background {
-        display: inline-block;
+        display: block; /* Changed to block for proper flex alignment */
         border-radius: 9999px;
         height: 100%;
         width: 100%;
@@ -85,15 +89,12 @@
         bottom: 2px;
         background-color: #ffffff;
         border-radius: 9999px;
-        box-shadow:  0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         transition: transform .4s ease;
     }
-    .toggle-label{
+    .toggle-label {
         display: inline-block;
-        position: relative;
         margin-right: 10px;
-        align-content: center;
-        align-self: center;
         font-size: 14px;
         font-weight: 500;
         color: var(--text-color);
