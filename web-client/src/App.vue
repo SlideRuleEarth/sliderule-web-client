@@ -3,6 +3,8 @@ import {useToast} from "primevue/usetoast";
 import Toast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
 import router from './router';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+const advancedModeStore = useAdvancedModeStore();
 
 
 const toast = useToast();
@@ -21,6 +23,8 @@ const searchButtonClick = (inputValue: number) => {
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
   toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed', life: 3000 });
+  advancedModeStore.advanced = true;
+  router.push('/advanced-user');
 };
 
 const popularButtonClick = () => {

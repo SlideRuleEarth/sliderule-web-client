@@ -16,7 +16,7 @@ clean: # Clean up the web client dependencies
 reinstall: clean ## Reinstall the web client dependencies
 	cd web-client && npm install
 
-live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
+live-update: build ## Update the web client in the S3 bucket and invalidate the CloudFront cache
 	aws s3 sync web-client/dist/ s3://client.$(DOMAIN) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
