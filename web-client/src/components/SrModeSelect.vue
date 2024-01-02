@@ -3,7 +3,7 @@ import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 import SrToggleButton from './SrToggleButton.vue';
 const emits = defineEmits(['advancedClick']);
 const advancedModeStore = useAdvancedModeStore();
-
+const toggleLabel = 'Advanced Mode';
 // Handle the toggle state change
 const handleToggle = (newValue: boolean) => {
     advancedModeStore.advanced = newValue;
@@ -15,6 +15,6 @@ const handleToggle = (newValue: boolean) => {
 
 <template>
     <div class="container">
-        <SrToggleButton :value="advancedModeStore.advanced" @input="handleToggle" />
+        <SrToggleButton :value="advancedModeStore.advanced" :label="toggleLabel" @input="handleToggle" />
     </div>
 </template>

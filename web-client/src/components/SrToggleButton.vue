@@ -1,5 +1,6 @@
 <template>
     <div>
+        <span class="toggle-label"> {{ label }}</span>
         <span
             class="toggle-wrapper"
             role="checkbox"
@@ -15,7 +16,7 @@
             <span  
             class="toggle-indicator"  
             :style="indicatorStyles"   
-            />  
+            /> 
         </span>
     </div>
 </template>
@@ -26,6 +27,10 @@
             value:{
                 type: Boolean,
                 required: true
+            },
+            label: {
+                type: String,
+                default: ''
             }
         },
         computed: {
@@ -82,5 +87,15 @@
         border-radius: 9999px;
         box-shadow:  0 2px 4px rgba(0, 0, 0, 0.1);
         transition: transform .4s ease;
+    }
+    .toggle-label{
+        display: inline-block;
+        position: relative;
+        margin-right: 10px;
+        align-content: center;
+        align-self: center;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-color);
     }
 </style>
