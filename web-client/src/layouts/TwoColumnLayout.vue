@@ -13,22 +13,22 @@
 </template>
 
 <style scoped>
-.two-column-layout {
-  display: flex;
-  @media (max-width: 768px) {
-    flex-direction: column;
+  .two-column-layout {
+    display: flex;
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
   }
-}
-header {
-  flex-basis: 20%;
-  margin-top: 0.5rem;
-  bottom: 0;
-}
+  sidebar-header {
+    flex-basis: 20%;
+    margin-top: 0.5rem;
+    bottom: 0;
+  }
 
-main {
-  flex-basis: 80%;
-  margin-top: 0.5rem;
-  padding: 1 rem;
-  border-radius: 2rem;
-}
+  main {
+    flex-basis: 80%;
+    margin-top: 0.5rem;
+    padding: 1 rem;
+    border-radius: 2rem;
+  }
 </style>

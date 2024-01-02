@@ -13,23 +13,29 @@ const advancedClick = () => {
         router.push('/general-user');
     }
 };
+
 </script>
 
 <template>
     <div class="sr-sidebar-header">
-        <SrModeSelect 
-            @advancedClick="advancedClick"
-        /> 
+        <SrModeSelect  @advancedClick="advancedClick" /> 
         <slot name = "sr-sidebar-header"></slot>
     </div>
     <div class="sr-sidebar-body">
         <slot name = "sr-sidebar-body"></slot>
     </div>
     <div class="sr-sidebar-footer">
+        <slot name = "sr-sidebar-footer"></slot>
     </div>
 </template>
 
 <style scoped>
+    .sr-sidebar-header {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin: 1rem;
+    }
     .sr-sidebar-body {
         display: flex;
         justify-content: center;
