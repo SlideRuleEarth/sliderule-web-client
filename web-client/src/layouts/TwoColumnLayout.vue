@@ -3,9 +3,9 @@
 
 <template>
   <div class="two-column-layout">
-    <sidebar-col>
+    <div>
       <slot name = "sidebar-col"></slot>
-    </sidebar-col>
+    </div>
     <main>
       <slot name = "main"></slot>
     </main>

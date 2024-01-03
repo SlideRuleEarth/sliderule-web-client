@@ -1,11 +1,14 @@
 <template>
   <form class="select-src">
-    <select v-model="selectedLayer" class="select-default">
+    <select v-model="mapParamsStore.selectedLayer" class="select-default">
+      <option value="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}">
+        Esri-World-Topo
+      </option>
       <option value="https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png">
-        OSM
+        OpenStreet
       </option>
       <option value="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}">
-        GOOGLE
+        Google
       </option>
     </select>
   </form>
@@ -16,55 +19,46 @@
     >
       <ol-view
         ref="view"
-        :center="center"
-        :rotation="rotation"
-        :zoom="zoom"
-        :projection="projection"
+        :center="mapParamsStore.center"
+        :projection="mapParamsStore.projection"
+        :zoom="mapParamsStore.zoom"
+        :rotation="mapParamsStore.rotation"
+        :resolution="mapParamsStore.resolution"
         @change:center="centerChanged"
         @change:resolution="resolutionChanged"
         @change:rotation="rotationChanged"
       />
   
       <ol-tile-layer>
-        <ol-source-xyz :url="selectedLayer" />
+        <ol-source-xyz :url="mapParamsStore.selectedLayer" />
       </ol-tile-layer>
   
       <ol-rotate-control></ol-rotate-control>
     </ol-map>
   
     <ul>
-      <li>center : {{ currentCenter }}</li>
-      <li>projection : {{ projection }}</li>
-      <li>resolution : {{ currentResolution }}</li>
-      <li>zoom : {{ currentZoom }}</li>
-      <li>rotation : {{ currentRotation }}</li>
+      <li>center : {{ mapParamsStore.center }}</li>
+      <li>projection : {{ mapParamsStore.projection }}</li>
+      <li>zoom : {{ mapParamsStore.zoom }}</li>
+      <li>rotation : {{ mapParamsStore.rotation }}</li>
+      <li>resolution : {{ mapParamsStore.resolution }}</li>
     </ul>
 </template>
   
 <script setup lang="ts">
-    import { ref } from "vue";
 
-    const center = ref([-95, 35]);
-    const projection = ref("EPSG:4326");
-    const zoom = ref(5);
-    const rotation = ref(0);
-    const selectedLayer = ref("https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png");
-
-    const currentCenter = ref(center.value);
-    const currentZoom = ref(zoom.value);
-    const currentRotation = ref(rotation.value);
-    const currentResolution = ref(0);
-
-    function resolutionChanged(event: any) {
-      currentResolution.value = event.target.getResolution();
-      currentZoom.value = event.target.getZoom();
-    }
-    function centerChanged(event: any) {
-      currentCenter.value = event.target.getCenter();
-    }
-    function rotationChanged(event: any) {
-      currentRotation.value = event.target.getRotation();
-    }
+  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  const mapParamsStore = useMapParamsStore();
+  function resolutionChanged(event: any) {
+    mapParamsStore.setResolution(event.target.getResolution());
+    mapParamsStore.setZoom(event.target.getZoom());
+  }
+  function centerChanged(event: any) {
+    mapParamsStore.setCenter(event.target.getCenter());
+  }
+  function rotationChanged(event: any) {
+    mapParamsStore.setRotation(event.target.getRotation());
+  }
 </script>
 <style scoped>
 .select-src {
