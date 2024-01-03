@@ -18,7 +18,6 @@ const advancedClick = () => {
 
 <template>
     <div class="sr-sidebar-header">
-        <SrModeSelect  @advancedClick="advancedClick" /> 
         <slot name = "sr-sidebar-header"></slot>
     </div>
     <div class="sr-sidebar-body">
@@ -26,6 +25,7 @@ const advancedClick = () => {
     </div>
     <div class="sr-sidebar-footer">
         <slot name = "sr-sidebar-footer"></slot>
+        <SrModeSelect  @advancedClick="advancedClick" /> 
     </div>
 </template>
 
@@ -38,13 +38,17 @@ const advancedClick = () => {
     }
     .sr-sidebar-body {
         display: flex;
+        min-height: 80vh;
+        min-width: 15vw;
         justify-content: center;
         align-items: flex-start;
         margin: 1rem;
     }
     .sr-sidebar-footer {
         display: flex;
-        justify-content: center;
-        align-items:flex-end
+        justify-content: right;
+        align-items:flex-end;
+        margin: 1rem;
+        border-top: 2px solid var(--surface-d);
     }
 </style>

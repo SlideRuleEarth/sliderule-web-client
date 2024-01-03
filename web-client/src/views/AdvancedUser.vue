@@ -18,13 +18,13 @@ const formattedValue = computed({
 <template>
     <div class="advanced-user">
         <TwoColumnLayout>
-            <template v-slot:header>
+            <template v-slot:sidebar-col>
                 <SrSideBar>
                     <template v-slot:sr-sidebar-body>
                         <div class="card flex justify-content-center">
                             <div class="w-14rem">
-                                <InputText v-model="formattedValue" class="w-full" :style="{ 'margin-bottom': '10px'}"/>
-                                <Slider v-model="sliderValue" class="w-full" />
+                                <InputText v-model="formattedValue"  :style="{ 'margin-bottom': '5%'}"/>
+                                <Slider v-model="sliderValue" />
                             </div>
                         </div>
                     </template>

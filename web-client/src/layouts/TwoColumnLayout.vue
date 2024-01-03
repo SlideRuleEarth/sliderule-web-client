@@ -3,9 +3,9 @@
 
 <template>
   <div class="two-column-layout">
-    <header>
-      <slot name = "header"></slot>
-    </header>
+    <sidebar-col>
+      <slot name = "sidebar-col"></slot>
+    </sidebar-col>
     <main>
       <slot name = "main"></slot>
     </main>
@@ -15,14 +15,15 @@
 <style scoped>
   .two-column-layout {
     display: flex;
+    min-height: 90vh;
     @media (max-width: 768px) {
       flex-direction: column;
     }
   }
-  sidebar-header {
+  .sidebar-col {
     flex-basis: 20%;
     margin-top: 0.5rem;
-    bottom: 0;
+    bottom: 0.5rem;
   }
 
   main {

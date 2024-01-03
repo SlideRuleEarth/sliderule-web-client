@@ -7,7 +7,7 @@ import SrMap from "@/components/SrMap.vue";
 <template>
     <div class="general-user">
         <TwoColumnLayout>
-            <template v-slot:header>
+            <template v-slot:sidebar-col>
                 <SrSideBar />
             </template>
             <template v-slot:main>

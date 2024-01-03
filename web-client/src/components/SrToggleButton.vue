@@ -66,8 +66,8 @@
         display: inline-flex;
         position: relative;
         cursor: pointer;
-        width: 2rem; /* Updated */
-        height: 1.125rem; /* Updated */
+        width: 2rem; 
+        height: 1.125rem; 
         border-radius: 9999px;
     }
     .toggle-wrapper:focus {
@@ -78,25 +78,26 @@
         border-radius: 9999px;
         height: 100%;
         width: 100%;
-        box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); /* Updated */
+        box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); 
         transition: background-color .4s ease;
     }
     .toggle-indicator {
         position: absolute;
-        height: 0.875rem; /* Updated */
-        width: 0.875rem; /* Updated */
-        left: 0.125rem; /* Updated */
-        bottom: 0.125rem; /* Updated */
+        height: 0.875rem; 
+        width: 0.875rem; 
+        left: 0.125rem; 
+        bottom: 0.125rem; 
         background-color: #ffffff;
         border-radius: 9999px;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); /* Updated */
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); 
         transition: transform .4s ease;
     }
     .toggle-label {
-        display: inline-block;
-        margin-right: 0.625rem; /* Updated */
-        font-size: 0.875rem; /* Updated */
+        display: inline-flex;
+        margin-right: 0.625rem; 
+        font-size: 0.875rem; 
         font-weight: 500;
         color: var(--text-color);
+        align-content: left;
     }
 </style>

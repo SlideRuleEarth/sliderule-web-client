@@ -14,7 +14,16 @@ const handleToggle = (newValue: boolean) => {
 </script>
 
 <template>
-    <div class="container">
+    <div class="mode-box">
         <SrToggleButton :value="advancedModeStore.advanced" :label="toggleLabel" @input="handleToggle" />
     </div>
 </template>
+
+<style scoped>
+    .mode-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 1rem;
+    }
+</style>
