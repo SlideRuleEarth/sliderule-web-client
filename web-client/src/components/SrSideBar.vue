@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import SrModeSelect from "@/components/SrModeSelect.vue";
-import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 const router = useRouter();
 const advancedModeStore = useAdvancedModeStore();
 

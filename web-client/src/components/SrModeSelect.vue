@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import SrToggleButton from './SrToggleButton.vue';
 const emits = defineEmits(['advancedClick']);
 const advancedModeStore = useAdvancedModeStore();

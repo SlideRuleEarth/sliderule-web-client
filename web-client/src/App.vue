@@ -2,8 +2,8 @@
 import {useToast} from "primevue/usetoast";
 import Toast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
-import router from './router';
-import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+import router from './router/index.js';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 const advancedModeStore = useAdvancedModeStore();
 
 
