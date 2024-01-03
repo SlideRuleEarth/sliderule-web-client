@@ -60,37 +60,38 @@ const handleAboutButtonClick = () => {
         height: 50px; /* Adjust as needed */
     }
     .responsive-input {
-    width: 100%; /* Full width on smaller screens */
+        width: 100%; /* Full width on smaller screens */
+        min-width: 21rem;
     }
 
     @media (min-width: 600px) { /* Adjust the breakpoint as needed */
-    .responsive-input {
-        width: 300px; /* Fixed width on larger screens */
-    }
+        .responsive-input {
+            width: 300px; /* Fixed width on larger screens */
+        }
     }
 
     @media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+        .container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
 
-    .right-content {
-        width: 100%;
-        justify-content: flex-end; /* Align items to the end (right) */
-        margin-top: 10px;
-    }
+        .right-content {
+            width: 100%;
+            justify-content: flex-end; /* Align items to the end (right) */
+            margin-top: 10px;
+        }
     }
 
     @media (max-width: 480px) {
-    .logo {
-        height: 40px;
-    }
+        .logo {
+            height: 40px;
+        }
 
-    .right-content {
-        flex-direction: column;
-        align-items: flex-end; /* Align items to the end (right) */
-    }
+        .right-content {
+            flex-direction: column;
+            align-items: flex-end; /* Align items to the end (right) */
+        }
     }
 
 </style>
