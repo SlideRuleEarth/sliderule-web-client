@@ -30,7 +30,7 @@
       />
   
       <ol-tile-layer>
-        <ol-source-xyz :url="mapParamsStore.selectedLayer" />
+        <ol-source-xyz :url="mapParamsStore.selectedLayer" minResolution="0.000002"/>
       </ol-tile-layer>
   
       <ol-rotate-control></ol-rotate-control>
@@ -41,16 +41,21 @@
       <li>projection : {{ mapParamsStore.projection }}</li>
       <li>zoom : {{ mapParamsStore.zoom }}</li>
       <li>rotation : {{ mapParamsStore.rotation }}</li>
-      <li>resolution : {{ mapParamsStore.resolution }}</li>
     </ul>
 </template>
   
 <script setup lang="ts">
 
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+
   const mapParamsStore = useMapParamsStore();
+
   function resolutionChanged(event: any) {
-    mapParamsStore.setResolution(event.target.getResolution());
+    if (event.target.getZoom() < 0.000002) {
+      mapParamsStore.setZoom(0.000002);
+    } else {
+      mapParamsStore.setZoom(event.target.getZoom());
+    }
     mapParamsStore.setZoom(event.target.getZoom());
   }
   function centerChanged(event: any) {
