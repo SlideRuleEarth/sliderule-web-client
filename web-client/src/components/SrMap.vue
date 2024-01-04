@@ -23,7 +23,6 @@
         :projection="mapParamsStore.projection"
         :zoom="mapParamsStore.zoom"
         :rotation="mapParamsStore.rotation"
-        :resolution="mapParamsStore.resolution"
         @change:center="centerChanged"
         @change:resolution="resolutionChanged"
         @change:rotation="rotationChanged"
