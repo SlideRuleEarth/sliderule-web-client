@@ -7,7 +7,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     projection: ref("EPSG:4326"),
     zoom: ref(12),
     rotation: ref(0),
-    selectedLayer: ref("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}")
+    selectedLayer: ref("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"),
+    drawEnabled: ref(false),
+    drawType: ref('Polygon'),
   }),
   actions:{
     resetMap() {
