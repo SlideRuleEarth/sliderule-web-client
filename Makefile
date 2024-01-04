@@ -11,7 +11,7 @@ DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.$(DOMAIN)'].Id" --output text)
 
 clean: # Clean up the web client dependencies 
-	rm -rf *.zip web-client/dist web-client/node_modules
+	rm -rf *.zip web-client/dist web-client/node_modules web-client/package-lock.json
 
 reinstall: clean ## Reinstall the web client dependencies
 	cd web-client && npm install
@@ -22,6 +22,9 @@ live-update: build ## Update the web client in the S3 bucket and invalidate the 
 
 build: ## Build the web client and update the dist folder
 	cd web-client && npm run build
+
+type-check: ## Build the web client and update the dist folder
+	cd web-client && npm run type-check
 
 build-with-maps: ## Build the web client and update the dist folder with src map files
 	cd web-client && npm run build_with_maps
