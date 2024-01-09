@@ -24,7 +24,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' https://tile.openstreetmap.org https://openlayers.org; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline'; object-src 'none'; font-src 'self';"
+      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' https://tile.openstreetmap.org https://openlayers.org https://server.arcgisonline.com; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline'; object-src 'none'; font-src 'self';"
       override                = true
     }
   }
