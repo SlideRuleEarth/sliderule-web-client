@@ -1,3 +1,79 @@
+  
+<script setup lang="ts">
+  import { useWmsCap } from "@/composables/useWmsCap.js"; 
+  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  import { ref, watch, onMounted } from "vue";
+  import type Map from "ol/Map.js";
+
+  const {cap} = useWmsCap();
+  const mapRef = ref<{ map: Map }>();
+  const mapParamsStore = useMapParamsStore();
+  //const ahocevarLayer = ref(null);
+  //const layerOpacity = ref(0.1);
+  //const layerVisible = ref(true);
+  const controls = ref([]);
+  const selectedBaseLayer = ref(mapParamsStore.baseLayer);
+
+  const baseLayers = ref([
+    {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      title: "Esri-World-Topo"
+    },
+    {
+      url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      title: "OpenStreet"
+    },
+    {
+      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+      title: "Google"
+    }
+  ]);
+
+  function resolutionChanged(event: any) {
+    if (event.target.getZoom() < 0.000002) {
+      mapParamsStore.setZoom(0.000002);
+    } else {
+      mapParamsStore.setZoom(event.target.getZoom());
+    }
+    mapParamsStore.setZoom(event.target.getZoom());
+  }
+  function centerChanged(event: any) {
+    mapParamsStore.setCenter(event.target.getCenter());
+  }
+  function rotationChanged(event: any) {
+    mapParamsStore.setRotation(event.target.getRotation());
+  }
+
+  const handleEvent = (event: any) => {
+    console.log(event);
+  };
+  const drawstart = (event: any) => {
+    console.log(event);
+  };
+
+  const drawend = (event: any) => {
+    console.log(event);
+  };
+
+  onMounted(() => {
+    // mapParamsStore.addLayer(ahocevarLayer.value.tileLayer);
+    // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
+    const map: Map | undefined = mapRef.value?.map;
+
+    if (map) {
+      map.addControl(cap)
+      console.log(map);
+    } else {
+      console.log("map is null");
+    }
+    console.log(mapParamsStore.layerList);
+  });
+
+  watch(selectedBaseLayer, (newLayer) => {
+    mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
+  });
+
+</script>
 <template>
   <form class="select-src">
     <select v-model="selectedBaseLayer" class="select-default">
@@ -98,81 +174,7 @@
     <li>rotation : {{ mapParamsStore.rotation }}</li>
   </ul>
 </template>
-  
-<script setup lang="ts">
-  import { useWmsCap } from "@/composables/useWmsCap.js"; 
-  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
-  import { ref, watch, onMounted } from "vue";
-  import type Map from "ol/Map.js";
 
-  const {cap} = useWmsCap();
-  const mapRef = ref<{ map: Map }>();
-  const mapParamsStore = useMapParamsStore();
-  //const ahocevarLayer = ref(null);
-  //const layerOpacity = ref(0.1);
-  //const layerVisible = ref(true);
-  const controls = ref([]);
-  const baseLayers = ref([
-    {
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-      title: "Esri-World-Topo"
-    },
-    {
-      url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      title: "OpenStreet"
-    },
-    {
-      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-      title: "Google"
-    }
-  ]);
-  const selectedBaseLayer = ref(mapParamsStore.baseLayer);
-
-  function resolutionChanged(event: any) {
-    if (event.target.getZoom() < 0.000002) {
-      mapParamsStore.setZoom(0.000002);
-    } else {
-      mapParamsStore.setZoom(event.target.getZoom());
-    }
-    mapParamsStore.setZoom(event.target.getZoom());
-  }
-  function centerChanged(event: any) {
-    mapParamsStore.setCenter(event.target.getCenter());
-  }
-  function rotationChanged(event: any) {
-    mapParamsStore.setRotation(event.target.getRotation());
-  }
-
-  const handleEvent = (event: any) => {
-    console.log(event);
-  };
-  const drawstart = (event: any) => {
-    console.log(event);
-  };
-
-  const drawend = (event: any) => {
-    console.log(event);
-  };
-
-  onMounted(() => {
-    // mapParamsStore.addLayer(ahocevarLayer.value.tileLayer);
-    // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
-    const map: Map | undefined = mapRef.value?.map;
-
-    if (map) {
-      map.addControl(cap)
-      console.log(map);
-    } else {
-      console.log("map is null");
-    }
-    console.log(mapParamsStore.layerList);
-  });
-
-  watch(selectedBaseLayer, (newLayer) => {
-    mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
-  });
-
-</script>
 <style scoped>
 .select-src {
   margin-bottom: 0.25rem;
