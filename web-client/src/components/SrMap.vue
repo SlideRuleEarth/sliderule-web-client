@@ -62,7 +62,7 @@
 
     if (map) {
       map.addControl(cap)
-      console.log(map);
+      console.log('add capabilities control to map');
     } else {
       console.log("map is null");
     }
@@ -99,7 +99,7 @@
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
     style="height: 800px; border-radius: 15px; overflow: hidden;"
-    :controls=controls
+    :controls="controls"
   >
     <ol-view
       ref="view"
@@ -178,5 +178,8 @@
 <style scoped>
 .select-src {
   margin-bottom: 0.25rem;
-} 
+}
+::v-deep .ol-mouse-position {
+  color: rgba(250, 1, 1, 0.5);
+}
 </style>

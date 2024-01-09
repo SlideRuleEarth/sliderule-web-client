@@ -41,11 +41,13 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.zoom = z;
     },
     addLayer(l: TileLayer<OSM> | TileLayer<XYZ>) {
+      console.log('addLayer', l);
       this.layerList.push(l);
     },
     setBaseLayer(url: string, title: string) {
       this.baseLayer.url = url;
       this.baseLayer.title = title;
+      console.log('setBaseLayer', this.baseLayer);
     }
   },
 });
