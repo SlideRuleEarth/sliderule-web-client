@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';

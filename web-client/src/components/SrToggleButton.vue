@@ -4,7 +4,7 @@
         <span
             class="toggle-wrapper"
             role="checkbox"
-            :aria-checked="value.toString()"
+            :aria-checked="value ? 'true' : 'false'"
             tabindex="0"
             @click="toggle"
             @keydown.space.prevent="toggle"
@@ -21,7 +21,7 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
     export default {
         props: {
             value:{
