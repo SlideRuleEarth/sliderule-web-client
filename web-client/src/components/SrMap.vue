@@ -106,7 +106,7 @@
   import type Map from "ol/Map.js";
 
   const {cap} = useWmsCap();
-  const mapRef = ref<{ map: Map }>(null);
+  const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   //const ahocevarLayer = ref(null);
   //const layerOpacity = ref(0.1);
@@ -157,7 +157,7 @@
   onMounted(() => {
     // mapParamsStore.addLayer(ahocevarLayer.value.tileLayer);
     // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
-    const map: Map = mapRef.value?.map;
+    const map: Map | undefined = mapRef.value?.map;
 
     if (map) {
       map.addControl(cap)
