@@ -179,7 +179,7 @@
 .select-src {
   margin-bottom: 0.25rem;
 }
-::v-deep .ol-mouse-position {
-  color: rgba(250, 1, 1, 0.5);
+::v-deep(.ol-mouse-position) {
+  color: var(--primary-color);
 }
 </style>
