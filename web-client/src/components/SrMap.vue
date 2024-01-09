@@ -4,7 +4,9 @@
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref, watch, onMounted } from "vue";
   import type Map from "ol/Map.js";
+  import {createStringXY} from 'ol/coordinate';
 
+  const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
@@ -139,7 +141,11 @@
       />
     </ol-tile-layer> -->
 
-    <ol-mouseposition-control />
+    <ol-zoom-control  />
+    <ol-mouseposition-control 
+      :coordinateFormat="stringifyFunc"
+    />
+
     <ol-scaleline-control />
     <ol-vector-layer>
       <ol-source-vector :projection="mapParamsStore.projection">
@@ -182,4 +188,23 @@
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
 }
+
+::v-deep(.ol-zoom.ol-unselectable.ol-control) {
+  border-radius: 8px;
+}
+
+::v-deep(.ol-zoom-in) {
+  border-radius: 8px;
+  background-color: black;
+  border-bottom: 1px var(--primary-color);
+  color: var(--white);
+
+}
+
+::v-deep(.ol-zoom-out) {
+  border-radius: 8px;
+  background-color: black;
+  color: var(--white);
+}
+
 </style>
