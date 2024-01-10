@@ -170,7 +170,7 @@
         </ol-style-circle>
       </ol-style>
     </ol-vector-layer>
-    <ol-rotate-control></ol-rotate-control>
+    <!-- <ol-rotate-control></ol-rotate-control> -->
   </ol-map>
 
   <ul>
@@ -185,26 +185,61 @@
 .select-src {
   margin-bottom: 0.25rem;
 }
+
+
+::v-deep(.ol-control .ol-unselectable .ol-zoom ) {
+  border-radius: 8px;
+}
+
+::v-deep(.ol-zoom){
+  top: 10px; 
+  right: 10px; /* right align -- override the default */
+  left: auto;  /* Override the default positioning */
+}
+
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
+  top: 10px; 
+  right: auto; /* Override the default positioning */
+  left: 50%; /* Center align */
+  transform: translateX(-50%); /* Adjust for the element's width */
+
 }
 
-::v-deep(.ol-zoom.ol-unselectable.ol-control) {
-  border-radius: 8px;
-}
-
-::v-deep(.ol-zoom-in) {
-  border-radius: 8px;
+::v-deep(.ol-zoom) {
   background-color: black;
-  border-bottom: 1px var(--primary-color);
-  color: var(--white);
-
+  border-radius: 5px;
+  margin: auto;
 }
 
-::v-deep(.ol-zoom-out) {
-  border-radius: 8px;
+::v-deep(.ol-zoom .ol-zoom-in) {
+  margin: 1px;
+  border-radius: 5px;
   background-color: black;
-  color: var(--white);
+  border-bottom: 1px var(--ol-font-color);
+  color: var(--ol-font-color);
+  font-weight: normal;
+}
+
+::v-deep(.ol-zoom .ol-zoom-out) {
+  margin: 1px;
+  border-radius: 5px;
+  background-color: black;
+  color: var(--ol-font-color);
+  font-weight: normal;
+}
+
+::v-deep(.ol-overlaycontainer-stopevent) {
+  position: relative;
+  display: flex !important;
+  flex-direction: column; /* Stack children vertically */
+  justify-content: flex-start; /* Align children to the top */
+  align-items: flex-end; /* Align children to the right */
+  height: 100%; /* Ensure the container has height */
+  background-color: var(--white);
+  border-radius: 8px;
+  padding: 0.25rem;
+  border: 1px solid var(--primary-color);
 }
 
 </style>

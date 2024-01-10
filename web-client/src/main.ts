@@ -9,13 +9,16 @@ import ToastService from 'primevue/toastservice';
 import Ripple from 'primevue/ripple';
 import App from './App.vue'
 import router from './router'
-
-import OpenLayersMap from "vue3-openlayers";
 import StyleClass from 'primevue/styleclass';
-
+import OpenLayersMap, {
+    type Vue3OpenlayersGlobalOptions,
+  } from "vue3-openlayers";
 
 const app = createApp(App)
-app.use(OpenLayersMap /* options */);
+const options: Vue3OpenlayersGlobalOptions = {
+    debug: true,
+  };
+app.use(OpenLayersMap, options );
 app.use(createPinia())
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
