@@ -114,14 +114,15 @@
       @change:rotation="rotationChanged"
     />
 
-    <!-- <ol-layerswitcher-control 
+    <ol-layerswitcher-control 
       :selection="true"
       :displayInLayerSwitcher="true"
       :show_progress="true"
-      :mouseover="true"
+      :mouseover="false"
       :reordering="true"
       :trash="false"
-    /> -->
+      :extent="true"
+    />
 
     <ol-tile-layer ref="base" title="base layer">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
@@ -186,16 +187,43 @@
   margin-bottom: 0.25rem;
 }
 
+::v-deep(.ol-overlaycontainer-stopevent) {
+  position: relative;
+  display: flex !important;
+  flex-direction: column; /* Stack children vertically */
+  justify-content: flex-start; /* Align children to the top */
+  align-items: flex-end; /* Align children to the right */
+  height: 100%; /* Ensure the container has height */
+  background-color: var(--white);
+  border-radius: 8px;
+  padding: 0.25rem;
+  border: 1px solid var(--primary-color);
+}
 
 
-::v-deep( .ol-control.ol-wmscapabilities  ) {
-  top: auto;
-  bottom: .5em;
-  right: .5em;
+::v-deep( .ol-control.ol-layerswitcher ){
+  top: 2.5rem;
+  bottom: auto;
+  left: 0.5em;
+  right: auto;
+  background-color: transparent;
+  border-radius: var(--border-radius);
+  border: 1px ;
+
+}
+
+::v-deep( .ol-control.ol-layerswitcher button ){
+  background-color: transparent;
   border-radius: var(--border-radius);
 }
 
-::v-deep(.ol-ext-dialog){
+::v-deep(.ol-control.ol-layerswitcher .panel-container){
+  background-color: var(--primary-200);
+  color: white;
+  border-radius: var(--border-radius);
+}
+
+::v-deep(.panel-container.ol-ext-dialog){
   background-color: transparent;
 }
 
@@ -211,36 +239,42 @@
   background-color: var(--primary-600);
 }
 
+::v-deep( .ol-control.ol-wmscapabilities  ) {
+  top: 0.5rem;
+  bottom: auto;
+  left: 0.5em;
+  right: auto;
+  border-radius: var(--border-radius);
+  background-color: transparent;
+  padding: 0.45rem;
+}
 ::v-deep(.ol-wmscapabilities .ol-url button){
   color: white;
   border-radius: var(--border-radius);
   background-color: var(--primary-400);
 }
 
-
 ::v-deep(.ol-wmscapabilities .ol-url option){
   color: white;
   background-color: var(--primary-400);
 }
+
 ::v-deep(.ol-zoom){
-  top: 0.5em; 
-  right: .5em; /* right align -- override the default */
+  top: 00.5em; 
+  right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
+  background-color: black;
+  border-radius: 5px;
+  margin: auto;
 }
 
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
-  top: .5em; 
+  top: 0.5em; 
   right: auto; /* Override the default positioning */
   left: 50%; /* Center align */
   transform: translateX(-50%); /* Adjust for the element's width */
 
-}
-
-::v-deep(.ol-zoom) {
-  background-color: black;
-  border-radius: 5px;
-  margin: auto;
 }
 
 ::v-deep(.ol-zoom .ol-zoom-in) {
@@ -261,17 +295,5 @@
   font-weight: normal;
 }
 
-::v-deep(.ol-overlaycontainer-stopevent) {
-  position: relative;
-  display: flex !important;
-  flex-direction: column; /* Stack children vertically */
-  justify-content: flex-start; /* Align children to the top */
-  align-items: flex-end; /* Align children to the right */
-  height: 100%; /* Ensure the container has height */
-  background-color: var(--white);
-  border-radius: 8px;
-  padding: 0.25rem;
-  border: 1px solid var(--primary-color);
-}
 
 </style>
