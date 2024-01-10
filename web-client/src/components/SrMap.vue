@@ -192,12 +192,11 @@
   top: auto;
   bottom: .5em;
   right: .5em;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
 }
 
 ::v-deep(.ol-ext-dialog){
-  background-color: var(--primary-200);
-  
+  background-color: transparent;
 }
 
 ::v-deep(.ol-ext-dialog .ol-closebox.ol-title){
@@ -207,9 +206,6 @@
   border-radius: var(--border-radius);
 }
 
-::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url ){
-  background-color: var(--primary-200);
-}
 ::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
   color: white;
   background-color: var(--primary-600);
@@ -217,9 +213,15 @@
 
 ::v-deep(.ol-wmscapabilities .ol-url button){
   color: white;
-  background-color: var(--primary-600);
+  border-radius: var(--border-radius);
+  background-color: var(--primary-400);
 }
 
+
+::v-deep(.ol-wmscapabilities .ol-url option){
+  color: white;
+  background-color: var(--primary-400);
+}
 ::v-deep(.ol-zoom){
   top: 0.5em; 
   right: .5em; /* right align -- override the default */
