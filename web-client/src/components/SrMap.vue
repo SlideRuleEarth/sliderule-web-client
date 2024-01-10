@@ -5,14 +5,12 @@
   import { ref, watch, onMounted } from "vue";
   import type Map from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
+  import SrDrawButtonBox from "@/components/SrDrawButtonBox.vue";
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
-  //const ahocevarLayer = ref(null);
-  //const layerOpacity = ref(0.1);
-  //const layerVisible = ref(true);
   const controls = ref([]);
   const selectedBaseLayer = ref(mapParamsStore.baseLayer);
 
@@ -84,6 +82,10 @@
       </option>
     </select>
   </form>
+  <div>
+    <sr-draw-button-box label="test"/>
+
+  </div>
   <form>
     <fieldset>
       <label for="checkbox">Draw Mode Enabled</label>
@@ -123,24 +125,10 @@
       :trash="false"
       :extent="true"
     />
-
+    <!-- <sr-radio-button /> -->
     <ol-tile-layer ref="base" title="base layer">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
-
-    <!-- <ol-tile-layer ref="ahocevarLayer" title="Ahocevar"
-      :zIndex="1001"
-      :opacity="layerOpacity"
-      :visible="layerVisible"
-    >
-      <ol-source-tile-wms 
-        url="https://ahocevar.com/geoserver/wms"
-        :extent="[-13884991, 2870341, -7455066, 6338219]"
-        layers="topp:states"
-        serverType="geoserver"
-        :transition="0"
-      />
-    </ol-tile-layer> -->
 
     <ol-zoom-control  />
     <ol-mouseposition-control 
@@ -218,8 +206,8 @@
 }
 
 ::v-deep(.ol-control.ol-layerswitcher .panel-container){
-  background-color: var(--primary-200);
-  color: white;
+  background-color: var(--primary-100);
+  color: var(--primary-color);
   border-radius: var(--border-radius);
 }
 
