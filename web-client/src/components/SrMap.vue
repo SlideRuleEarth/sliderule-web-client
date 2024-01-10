@@ -187,19 +187,48 @@
 }
 
 
-::v-deep(.ol-control .ol-unselectable .ol-zoom ) {
+
+::v-deep( .ol-control.ol-wmscapabilities  ) {
+  top: auto;
+  bottom: .5em;
+  right: .5em;
   border-radius: 8px;
 }
 
+::v-deep(.ol-ext-dialog){
+  background-color: var(--primary-200);
+  
+}
+
+::v-deep(.ol-ext-dialog .ol-closebox.ol-title){
+  color: var(--text-color);
+  background-color: var(--primary-300);
+  font-family: var(--font-family);
+  border-radius: var(--border-radius);
+}
+
+::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url ){
+  background-color: var(--primary-200);
+}
+::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
+  color: white;
+  background-color: var(--primary-600);
+}
+
+::v-deep(.ol-wmscapabilities .ol-url button){
+  color: white;
+  background-color: var(--primary-600);
+}
+
 ::v-deep(.ol-zoom){
-  top: 10px; 
-  right: 10px; /* right align -- override the default */
+  top: 0.5em; 
+  right: .5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
 }
 
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
-  top: 10px; 
+  top: .5em; 
   right: auto; /* Override the default positioning */
   left: 50%; /* Center align */
   transform: translateX(-50%); /* Adjust for the element's width */
@@ -213,16 +242,17 @@
 }
 
 ::v-deep(.ol-zoom .ol-zoom-in) {
-  margin: 1px;
+  margin: 2px;
   border-radius: 5px;
   background-color: black;
-  border-bottom: 1px var(--ol-font-color);
+  border-bottom: 1px;
+  border-bottom-color: white;
   color: var(--ol-font-color);
   font-weight: normal;
 }
 
 ::v-deep(.ol-zoom .ol-zoom-out) {
-  margin: 1px;
+  margin: 2px;
   border-radius: 5px;
   background-color: black;
   color: var(--ol-font-color);
