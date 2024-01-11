@@ -48,6 +48,7 @@
 <style scoped>
   .radio-button-label {
     display: flex; /* Aligns children (input and icon) in a row */
+    flex-direction: column; /* Stack children vertically */
     align-items: center; /* Centers children vertically */
     justify-content: center; /* Centers children horizontally */
   }
