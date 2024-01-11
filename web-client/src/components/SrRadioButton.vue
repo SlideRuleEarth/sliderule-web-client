@@ -46,22 +46,30 @@
   };
 </script>
 <style scoped>
-    /* Visually hide the radio input but keep it accessible */
-    input[type='radio'] {
-        margin: 0.25rem;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        position: absolute;
-    }
+  .radio-button-label {
+    display: flex; /* Aligns children (input and icon) in a row */
+    align-items: center; /* Centers children vertically */
+    justify-content: center; /* Centers children horizontally */
+  }
+  /* Visually hide the radio input but keep it accessible */
+  input[type='radio'] {
+      margin: 0;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+  }
   /* Style for the icon  */
   .material-icons {
     cursor: pointer;
-    font-weight:100
+    font-weight:100;
+    margin: 0;
+    padding: 0;
   }
   /* Style for the icon when the radio button is selected */
   input[type="radio"]:checked + .material-icons {
     /* Styles to highlight the active state, e.g., change color or add a border */
     color: blue;
     border: var(--border-width) solid var(--primary-color); 
-  }</style>
+  }
+</style>
