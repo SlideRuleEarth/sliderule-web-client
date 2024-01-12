@@ -26,16 +26,13 @@
   });
 
 </script>
-<style scoped>
-.sr-draw-button {
-    border: 1px solid #ccc; /* thin, solid, grey border */
-}
-</style>
+
 <style scoped>
 .sr-draw-button-box {
-    display: flex; /* Aligns children (input and icon) in a row */
-    flex-direction: column; /* Stack children vertically */
-    align-items: center; /* Centers children vertically */
-    justify-content: center; /* Centers children horizontally */
+  display: flex; /* Aligns children (input and icon) in a row */
+  flex-direction: column; /* Stack children vertically */
+  align-items: center; /* Centers children vertically */
+  justify-content: center; /* Centers children horizontally */
+  margin: 2px;
 }
 </style>

@@ -5,7 +5,6 @@
   import { ref, watch, onMounted } from "vue";
   import type Map from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
-  import SrDrawButtonBox from "@/components/SrDrawButtonBox.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
 
   const stringifyFunc = createStringXY(4);
@@ -95,9 +94,6 @@
       </option>
     </select>
   </form>
-  <div>
-    <SrDrawButtonBox label="test"/>
-  </div>
   <form>
     <fieldset>
       <label for="checkbox">Draw Mode Enabled</label>
@@ -137,7 +133,6 @@
       :trash="false"
       :extent="true"
     />
-    <!-- <sr-radio-button /> -->
     <ol-tile-layer ref="base" title="base layer">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
@@ -271,13 +266,17 @@
   margin: auto;
 }
 
-::v-deep(.draw-control){
+::v-deep(.sr-draw-control){
   top: 4.0em; 
   right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: var(--border-radius);
   margin: auto;  
+}
+
+::v-deep(.sr-draw-button-box){
+  border:1px solid transparent; /* override */
 }
 
 ::v-deep(.ol-mouse-position) {

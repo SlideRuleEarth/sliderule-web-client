@@ -13,7 +13,6 @@ import StyleClass from 'primevue/styleclass';
 import OpenLayersMap, {
     type Vue3OpenlayersGlobalOptions,
   } from "vue3-openlayers";
-import RadioButton from 'primevue/radiobutton';
 
 const app = createApp(App)
 const options: Vue3OpenlayersGlobalOptions = {
@@ -31,5 +30,4 @@ app.use(PrimeVue, {
 app.use(ToastService);
 app.use(router)
 app.component('menu-bar', Menubar)
-app.component('radio-button', RadioButton)
 app.mount('#app')

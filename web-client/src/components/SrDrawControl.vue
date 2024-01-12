@@ -6,8 +6,6 @@
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
 import SrDrawButtonBox from './SrDrawButtonBox.vue';
-import { InstanceType } from 'vue';
-
 
 const emit = defineEmits(['drawControlCreated']);
 
@@ -19,7 +17,7 @@ const handleDrawButtonBoxCreated = (picked: any) => {
 onMounted(() => {
   console.log("SrDrawControl onMounted");
   const element = document.createElement('div');
-  element.className = 'draw-control ol-unselectable ol-control';
+  element.className = 'sr-draw-control ol-unselectable ol-control';
   if(drawButtonBox.value == null){
     console.log("Error:drawButtonBox is null");
   } else {
@@ -33,12 +31,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.draw-control button {
-  background-color: white;
-  border: none;
-  
-  border-radius: var(--border-radius);
-  cursor: pointer;
-}
-</style>
