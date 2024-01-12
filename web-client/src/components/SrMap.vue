@@ -61,26 +61,27 @@
     // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
     const map = mapRef.value?.map;
     if(map){
-      //provide('theMap', map); // provide map to all children
-      console.log(mapRef)
-      console.log(map);
-      map.addControl(cap)
+      if(cap){
+        map.addControl(cap);
+      } else {
+        console.log("Error:cap is null");
+      }
     } else {
-      console.log("map is null");
+      console.log("Error:map is null");
     }
-    console.log(mapParamsStore.layerList);
+    //console.log(mapParamsStore.layerList);
   });
 
-  const handleCustomControlCreated = (customControl: any) => {
-    console.log(customControl);
+  const handleDrawControlCreated = (drawControl: any) => {
+    //console.log(drawControl);
     const map = mapRef.value?.map;
     if(map){
-      map.addControl(customControl);
+      map.addControl(drawControl);
     } else {
-      console.log("map is null");
+      console.log("Error:map is null");
     }
   };
-  
+
   watch(selectedBaseLayer, (newLayer) => {
     mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
   });
@@ -148,7 +149,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl @customControlCreated="handleCustomControlCreated" />
+    <SrDrawControl @customControlCreated="handleDrawControlCreated" />
 
     <ol-vector-layer>
       <ol-source-vector :projection="mapParamsStore.projection">
@@ -201,6 +202,7 @@
   padding: 0.25rem;
   border: 1px solid var(--primary-color);
 }
+
 
 
 ::v-deep( .ol-control.ol-layerswitcher ){
@@ -262,12 +264,21 @@
 }
 
 ::v-deep(.ol-zoom){
-  top: 00.5em; 
+  top: 0.5em; 
   right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: 5px;
   margin: auto;
+}
+
+::v-deep(.draw-control){
+  top: 4.0em; 
+  right: 0.5em; /* right align -- override the default */
+  left: auto;  /* Override the default positioning */
+  background-color: black;
+  border-radius: 5px;
+  margin: auto;  
 }
 
 ::v-deep(.ol-mouse-position) {

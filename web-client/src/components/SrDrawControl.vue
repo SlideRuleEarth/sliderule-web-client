@@ -1,23 +1,21 @@
 <template>
-  <button ref="el" @click="handleClick">Custom Control</button>
+  <DrawButtonBox />
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
+import DrawButtonBox from './SrDrawButtonBox.vue';
 
 
 const emit = defineEmits(['customControlCreated']);
 
 const el = ref(null);
-const handleClick = () => {
-  console.log('Custom control clicked');
-};
 
 onMounted(() => {
   if(el.value) {
     const element = document.createElement('div');
-    element.className = 'custom-control ol-unselectable ol-control';
+    element.className = 'draw-control ol-unselectable ol-control';
     element.appendChild(el.value);
 
     const customControl = new Control({ element });
@@ -29,12 +27,12 @@ onMounted(() => {
 });
 </script>
 
-<style>
-.custom-control button {
+<style scoped>
+.draw-control button {
   background-color: white;
   border: none;
-  padding: 10px 15px;
-  border-radius: 4px;
+  
+  border-radius: var(--border-radius);
   cursor: pointer;
 }
 </style>
