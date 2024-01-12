@@ -6,6 +6,7 @@
   import type Map from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawButtonBox from "@/components/SrDrawButtonBox.vue";
+  import SrDrawControl from "@/components/SrDrawControl.vue";
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
@@ -58,17 +59,28 @@
   onMounted(() => {
     // mapParamsStore.addLayer(ahocevarLayer.value.tileLayer);
     // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
-    const map: Map | undefined = mapRef.value?.map;
-
-    if (map) {
+    const map = mapRef.value?.map;
+    if(map){
+      //provide('theMap', map); // provide map to all children
+      console.log(mapRef)
+      console.log(map);
       map.addControl(cap)
-      console.log('add capabilities control to map');
     } else {
       console.log("map is null");
     }
     console.log(mapParamsStore.layerList);
   });
 
+  const handleCustomControlCreated = (customControl: any) => {
+    console.log(customControl);
+    const map = mapRef.value?.map;
+    if(map){
+      map.addControl(customControl);
+    } else {
+      console.log("map is null");
+    }
+  };
+  
   watch(selectedBaseLayer, (newLayer) => {
     mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
   });
@@ -83,8 +95,7 @@
     </select>
   </form>
   <div>
-    <sr-draw-button-box label="test"/>
-
+    <SrDrawButtonBox label="test"/>
   </div>
   <form>
     <fieldset>
@@ -131,11 +142,14 @@
     </ol-tile-layer>
 
     <ol-zoom-control  />
+    
     <ol-mouseposition-control 
       :coordinateFormat="stringifyFunc"
     />
 
     <ol-scaleline-control />
+    <SrDrawControl @customControlCreated="handleCustomControlCreated" />
+
     <ol-vector-layer>
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
