@@ -4,13 +4,13 @@
     class="sr-draw-button"
       v-model="picked"
       value="Polygon"
-      icon="polyline"
+      :icon="polygonIcon"
     />
     <SrRadioButton
     class="sr-draw-button"
     v-model="picked"
     value="Box"
-    icon="check_box_outline_blank"
+    :icon="rectangleIcon"
     />
 </div>
 </template>
@@ -24,6 +24,14 @@
     console.log("SrDrawButtonBox onMounted");
     emit('drawButtonBoxCreated', picked);
   });
+  const polygonIcon = `<svg width="50%" height="50%" viewBox="0 0 100 100">
+  <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="white" stroke-width="8" />
+</svg>
+`;
+
+  const rectangleIcon = `<svg width="50%" height="50%" viewBox="0 0 100 50">
+  <rect width="100" height="50" fill="none" stroke="white" stroke-width="8" />
+</svg>`;
 
 </script>
 

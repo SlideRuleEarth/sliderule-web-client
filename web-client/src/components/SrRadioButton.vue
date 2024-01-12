@@ -7,7 +7,7 @@
         @change="handleChange"
         class="radio-input"
       >
-      <i class="material-icons">{{ icon }}</i>
+      <span v-html="icon" class="icon-svg"></span>
     </label>
 </template>
   
@@ -62,11 +62,12 @@
       position: absolute;
   }
   /* Style for the icon  */
-  .material-icons {
-    cursor: pointer;
-    margin: 0;
-    padding: 0;
-    border-radius: var(--border-radius);
+  .icon-svg {
+    display: flex; /* or other display types as needed */
+    align-items: center; /* Centers children vertically */
+    justify-content: center; /* Centers children horizontally */
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
   }
   /* Style for the icon when the radio button is selected */
   input[type="radio"]:checked + .material-icons {

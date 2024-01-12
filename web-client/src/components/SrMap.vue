@@ -107,6 +107,7 @@
       </select>
     </fieldset>
   </form>
+
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
