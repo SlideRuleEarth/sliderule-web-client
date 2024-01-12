@@ -66,10 +66,12 @@
     cursor: pointer;
     margin: 0;
     padding: 0;
+    border-radius: var(--border-radius);
   }
   /* Style for the icon when the radio button is selected */
   input[type="radio"]:checked + .material-icons {
     /* Styles to highlight the active state, e.g., change color or add a border */
     border: 1px solid var(--primary-color);
+    border-radius: var(--border-radius);
   }
 </style>
