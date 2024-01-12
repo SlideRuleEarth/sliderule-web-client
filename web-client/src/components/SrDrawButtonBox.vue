@@ -1,5 +1,5 @@
 <template>
-<div class="draw-button-box">
+<div class="sr-draw-button-box">
     <SrRadioButton
     class="sr-draw-button"
       v-model="picked"
@@ -16,9 +16,15 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { onMounted, ref } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
   const picked = ref('Polygon');
+  const emit = defineEmits(['drawButtonBoxCreated']);
+  onMounted(() => {
+    console.log("SrDrawButtonBox onMounted");
+    emit('drawButtonBoxCreated', picked);
+  });
+
 </script>
 <style scoped>
 .sr-draw-button {
@@ -26,7 +32,7 @@
 }
 </style>
 <style scoped>
-.draw-button-box {
+.sr-draw-button-box {
     display: flex; /* Aligns children (input and icon) in a row */
     flex-direction: column; /* Stack children vertically */
     align-items: center; /* Centers children vertically */

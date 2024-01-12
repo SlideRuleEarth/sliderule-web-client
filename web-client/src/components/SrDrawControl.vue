@@ -1,29 +1,35 @@
 <template>
-  <DrawButtonBox />
+  <SrDrawButtonBox ref="drawButtonBox" @drawButtonBoxCreated="handleDrawButtonBoxCreated"/>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
-import DrawButtonBox from './SrDrawButtonBox.vue';
+import SrDrawButtonBox from './SrDrawButtonBox.vue';
+import { InstanceType } from 'vue';
 
 
-const emit = defineEmits(['customControlCreated']);
+const emit = defineEmits(['drawControlCreated']);
 
-const el = ref(null);
+const drawButtonBox = ref<InstanceType<typeof SrDrawButtonBox> | null>(null);
+const handleDrawButtonBoxCreated = (picked: any) => {
+  console.log("handleDrawButtonBoxCreated: " + picked.value);
+};
 
 onMounted(() => {
-  if(el.value) {
-    const element = document.createElement('div');
-    element.className = 'draw-control ol-unselectable ol-control';
-    element.appendChild(el.value);
-
-    const customControl = new Control({ element });
-    emit('customControlCreated', customControl);
-
+  console.log("SrDrawControl onMounted");
+  const element = document.createElement('div');
+  element.className = 'draw-control ol-unselectable ol-control';
+  if(drawButtonBox.value == null){
+    console.log("Error:drawButtonBox is null");
   } else {
-    console.error('el is undefined');
+    console.log("drawButtonBox is not null");
+    element.appendChild(drawButtonBox.value.$el);
   }
+
+  const customControl = new Control({ element });
+  emit('drawControlCreated', customControl);
+
 });
 </script>
 

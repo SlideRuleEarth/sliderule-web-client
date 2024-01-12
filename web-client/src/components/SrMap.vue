@@ -149,7 +149,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl @customControlCreated="handleDrawControlCreated" />
+    <SrDrawControl @drawControlCreated="handleDrawControlCreated" />
 
     <ol-vector-layer>
       <ol-source-vector :projection="mapParamsStore.projection">
@@ -203,14 +203,12 @@
   border: 1px solid var(--primary-color);
 }
 
-
-
 ::v-deep( .ol-control.ol-layerswitcher ){
   top: 2.5rem;
   bottom: auto;
   left: 0.5em;
   right: auto;
-  background-color: transparent;
+  background-color: black;
   border-radius: var(--border-radius);
   border: 1px ;
 
@@ -248,9 +246,10 @@
   bottom: auto;
   left: 0.5em;
   right: auto;
+  background-color: black;
   border-radius: var(--border-radius);
-  background-color: transparent;
-  padding: 0.45rem;
+  padding: 0.475rem;
+  border: 1px ;
 }
 ::v-deep(.ol-wmscapabilities .ol-url button){
   color: white;
@@ -277,7 +276,7 @@
   right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   margin: auto;  
 }
 

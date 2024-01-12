@@ -51,6 +51,7 @@
     flex-direction: column; /* Stack children vertically */
     align-items: center; /* Centers children vertically */
     justify-content: center; /* Centers children horizontally */
+    margin: 10px;
   }
   /* Visually hide the radio input but keep it accessible */
   input[type='radio'] {
@@ -63,14 +64,13 @@
   /* Style for the icon  */
   .material-icons {
     cursor: pointer;
-    font-weight:100;
     margin: 0;
     padding: 0;
   }
   /* Style for the icon when the radio button is selected */
   input[type="radio"]:checked + .material-icons {
     /* Styles to highlight the active state, e.g., change color or add a border */
-    color: blue;
-    border: var(--border-width) solid var(--primary-color); 
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
   }
 </style>
