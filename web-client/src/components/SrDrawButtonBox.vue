@@ -25,12 +25,12 @@
     emit('drawButtonBoxCreated', picked);
   });
   const polygonIcon = `<svg width="50%" height="50%" viewBox="0 0 100 100">
-  <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="white" stroke-width="8" />
+  <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="white" stroke-width="15" />
 </svg>
 `;
 
   const rectangleIcon = `<svg width="50%" height="50%" viewBox="0 0 100 50">
-  <rect width="100" height="50" fill="none" stroke="white" stroke-width="8" />
+  <rect width="100" height="50" fill="none" stroke="white" stroke-width="15" />
 </svg>`;
 
 </script>
@@ -41,6 +41,5 @@
   flex-direction: column; /* Stack children vertically */
   align-items: center; /* Centers children vertically */
   justify-content: center; /* Centers children horizontally */
-  margin: 2px;
-}
+  margin: 1px;}
 </style>
