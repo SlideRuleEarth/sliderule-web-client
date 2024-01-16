@@ -37,18 +37,21 @@ import { computed, defineProps } from 'vue';
   const isChecked = computed(() => {
     return props.modelValue === props.value;
   });
+
   const handleChange = (event: Event) => {
     console.log(event);
+    console.log(event.type);
     try{
       const target = event.target as HTMLInputElement;
       if (target) {
-        //console.log(target.value);
+        console.log(target.value);
         emit('update:modelValue', target.value);
       }
     } catch (error) {
       console.log(error);
     }
   };
+
 </script>
 <style scoped>
   .radio-button-label {

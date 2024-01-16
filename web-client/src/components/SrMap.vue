@@ -295,6 +295,7 @@
 }
 
 ::v-deep(.ol-zoom .ol-zoom-out) {
+  position: relative;
   margin: 2px;
   border-radius: var(--border-radius);
   background-color: black;
@@ -302,5 +303,13 @@
   font-weight: normal;
 }
 
+::v-deep(.ol-zoom .ol-zoom-out):before {
+  content: '';
+  position: absolute;
+  top: 0px;
+  left: 25%; /* Adjust this value to control where the border starts */
+  right: 25%; /* Adjust this value to control where the border ends */
+  border-top: 1px dashed rgb(200, 200, 200);
+}
 
 </style>

@@ -8,6 +8,7 @@
       aria-label="Select Polygon"
       tooltip-text="Draw a Polygon"
     />
+    <span class="sr-button-box-divider"></span>
     <SrRadioButton
     class="sr-draw-button"
     v-model="picked"
@@ -23,7 +24,7 @@
   import { onMounted, ref, computed } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
 
-  const picked = ref('Polygon');
+  const picked = ref('undefined');
   const emit = defineEmits(['drawButtonBoxCreated']);
 
   onMounted(() => {
@@ -60,5 +61,10 @@ const getRectangleIcon = computed(() => {
   justify-content: center; /* Centers children horizontally */
   margin: 0px;
 }
-
+.sr-button-box-divider {
+  margin: 0.125em;
+  padding: 0px;
+  border-top: 1px dashed rgb(200, 200, 200);
+  width: 50%;
+}
 </style>
