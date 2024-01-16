@@ -5,12 +5,16 @@
       v-model="picked"
       value="Polygon"
       :icon="getPolygonIcon"
+      aria-label="Select Polygon"
+      tooltip-text="Draw a Polygon"
     />
     <SrRadioButton
     class="sr-draw-button"
     v-model="picked"
     value="Box"
     :icon="getRectangleIcon"
+    aria-label="Select Rectangle"
+    tooltip-text="Draw a Rectangle"
     />
 </div>
 </template>
@@ -35,15 +39,15 @@
 
   const getPolygonIcon = computed(() => {
   console.log("getPolygonIcon", picked.value)
-  return `<svg width="50%" height="50%" viewBox="0 0 100 100">
-    <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="15" />
+  return `<svg width="65%" height="65%" viewBox="0 0 100 100">
+    <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;
 });
 
 const getRectangleIcon = computed(() => {
   console.log("getRectangleIcon", picked.value)
-  return `<svg width="50%" height="50%" viewBox="0 0 100 50">
-    <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="15" />
+  return `<svg width="65%" height="65%" viewBox="0 0 100 50">
+    <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;
 });
 </script>
@@ -56,13 +60,5 @@ const getRectangleIcon = computed(() => {
   justify-content: center; /* Centers children horizontally */
   margin: 0px;
 }
-
-.selected {
-  stroke: --var(primary-color); 
-}
-
-.default {
-  stroke: white;
-} 
 
 </style>

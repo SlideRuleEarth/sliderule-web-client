@@ -1,29 +1,34 @@
 <template>
-    <label class="radio-button-label">
+    <label class="radio-button-label" :title="tooltipText">
       <input
         type="radio"
         :value="value"
         :checked="isChecked"
         @change="handleChange"
         class="radio-input"
+        :aria-label="ariaLabel"
       >
       <span v-html="icon" class="icon-svg"></span>
     </label>
 </template>
   
 <script setup lang="ts">
-  import { computed, defineProps } from 'vue';
+import { computed, defineProps } from 'vue';
 
   const props = withDefaults(
     defineProps<{
       value?: string
       modelValue?: string
       icon?: string
+      ariaLabel?: string
+      tooltipText?: string 
     }>(),
     {
       value: undefined,
       modelValue: '',
-      icon: ''
+      icon: '',
+      ariaLabel: '',
+      tooltipText: 'Draw',
     },
   );
   
