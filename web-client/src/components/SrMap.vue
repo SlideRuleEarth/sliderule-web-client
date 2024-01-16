@@ -269,8 +269,8 @@
 }
 
 ::v-deep(.sr-draw-control){
-  top: 5.0em; 
-  right: 0.5em; /* right align -- override the default */
+  top: 5.5em; 
+  right: 0.55em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: var(--border-radius);
