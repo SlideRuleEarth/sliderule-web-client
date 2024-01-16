@@ -1,11 +1,17 @@
 <template>
-  <SrDrawButtonBox ref="drawButtonBox" @drawButtonBoxCreated="handleDrawButtonBoxCreated"/>
+  <SrDrawButtonBox ref="drawButtonBox" 
+  @drawButtonBoxCreated="handleDrawButtonBoxCreated" 
+  @pickedChanged="handlePickedChange"
+/>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
 import SrDrawButtonBox from './SrDrawButtonBox.vue';
+import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+
+const mapParamsStore = useMapParamsStore();
 
 const emit = defineEmits(['drawControlCreated']);
 
@@ -15,7 +21,7 @@ const handleDrawButtonBoxCreated = (picked: any) => {
 };
 
 onMounted(() => {
-  console.log("SrDrawControl onMounted");
+  //console.log("SrDrawControl onMounted");
   const element = document.createElement('div');
   element.className = 'sr-draw-control ol-unselectable ol-control';
   if(drawButtonBox.value == null){
@@ -29,5 +35,11 @@ onMounted(() => {
   emit('drawControlCreated', customControl);
 
 });
+
+const handlePickedChange = (newPickedValue) => {
+    console.log("Picked value changed: " + newPickedValue);
+    mapParamsStore.drawEnabled = true
+    // Handle the change as needed
+};
 </script>
 

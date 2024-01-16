@@ -99,15 +99,10 @@
       <label for="checkbox">Draw Mode Enabled</label>
       <input type="checkbox" id="checkbox" v-model="mapParamsStore.drawEnabled" />
     </fieldset>
-    <fieldset>
-      <label for="type">Geometry Type</label>
-      <select id="type" class="select-default" v-model="mapParamsStore.drawType">
-        <option value="Polygon">Polygon</option>
-        <option value="Circle">Circle</option>
-      </select>
-    </fieldset>
   </form>
-
+  <div>
+    <span>Draw Type:{{ mapParamsStore.drawType }}</span>
+  </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
@@ -240,7 +235,7 @@
 ::v-deep( .ol-control.ol-wmscapabilities  ) {
   top: 0.5rem;
   bottom: auto;
-  left: 0.5em;
+  left: 0.5rem;
   right: auto;
   background-color: black;
   border-radius: var(--border-radius);
@@ -259,18 +254,18 @@
 }
 
 ::v-deep(.ol-zoom){
-  top: 0.5em; 
-  right: 0.5em; /* right align -- override the default */
+  top: 0.5rem; 
+  right: 0.5rem; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: var(--border-radius);
   margin: auto;
-  font-size: 1.25em;
+  font-size: 1.25rem;
 }
 
 ::v-deep(.sr-draw-control){
-  top: 5.5em; 
-  right: 0.55em; /* right align -- override the default */
+  top: 5.5rem; 
+  right: 0.55rem; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: var(--border-radius);
@@ -279,7 +274,7 @@
 
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
-  top: 0.5em; 
+  top: 0.5rem; 
   right: auto; /* Override the default positioning */
   left: 50%; /* Center align */
   transform: translateX(-50%); /* Adjust for the element's width */

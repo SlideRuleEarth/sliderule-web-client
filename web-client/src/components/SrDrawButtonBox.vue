@@ -21,15 +21,27 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, computed } from 'vue'
+  import { onMounted, ref, computed, watch } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
+  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 
-  const picked = ref('undefined');
-  const emit = defineEmits(['drawButtonBoxCreated']);
-
+  const mapParamsStore = useMapParamsStore();
+  const picked = ref(mapParamsStore.drawType);
+  const emit = defineEmits(['drawButtonBoxCreated', 'pickedChanged']);
+  
   onMounted(() => {
-    console.log("SrDrawButtonBox onMounted");
+    //console.log("SrDrawButtonBox onMounted");
     emit('drawButtonBoxCreated', picked);
+  });
+
+  watch(picked, (newValue) => {
+    console.log("SrDrawButtonBox picked changed:", newValue);
+    emit('pickedChanged', newValue);
+    if (newValue === 'Box'){
+      console.log("SrDrawButtonBox picked changed to Box HACKED TO CIRCLE!!!");
+      newValue = 'Circle';
+    }
+    mapParamsStore.drawType = newValue;
   });
 
   const getCssVariable = (variable) => {
@@ -39,18 +51,19 @@
   const primaryColor = getCssVariable('--primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
 
   const getPolygonIcon = computed(() => {
-  console.log("getPolygonIcon", picked.value)
+  console.log("getPolygonIcon picked:", picked.value)
   return `<svg width="65%" height="65%" viewBox="0 0 100 100">
     <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;
 });
 
 const getRectangleIcon = computed(() => {
-  console.log("getRectangleIcon", picked.value)
+  console.log("getRectangleIcon picked:", picked.value)
   return `<svg width="65%" height="65%" viewBox="0 0 100 50">
     <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;
 });
+
 </script>
 
 <style scoped>
