@@ -4,35 +4,48 @@
     class="sr-draw-button"
       v-model="picked"
       value="Polygon"
-      :icon="polygonIcon"
+      :icon="getPolygonIcon"
     />
     <SrRadioButton
     class="sr-draw-button"
     v-model="picked"
     value="Box"
-    :icon="rectangleIcon"
+    :icon="getRectangleIcon"
     />
 </div>
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue'
+  import { onMounted, ref, computed } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
+
   const picked = ref('Polygon');
   const emit = defineEmits(['drawButtonBoxCreated']);
+
   onMounted(() => {
     console.log("SrDrawButtonBox onMounted");
     emit('drawButtonBoxCreated', picked);
   });
-  const polygonIcon = `<svg width="50%" height="50%" viewBox="0 0 100 100">
-  <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="white" stroke-width="15" />
-</svg>
-`;
 
-  const rectangleIcon = `<svg width="50%" height="50%" viewBox="0 0 100 50">
-  <rect width="100" height="50" fill="none" stroke="white" stroke-width="15" />
-</svg>`;
+  const getCssVariable = (variable) => {
+    return getComputedStyle(document.documentElement).getPropertyValue(variable);
+  };
 
+  const primaryColor = getCssVariable('--primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
+
+  const getPolygonIcon = computed(() => {
+  console.log("getPolygonIcon", picked.value)
+  return `<svg width="50%" height="50%" viewBox="0 0 100 100">
+    <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="15" />
+  </svg>`;
+});
+
+const getRectangleIcon = computed(() => {
+  console.log("getRectangleIcon", picked.value)
+  return `<svg width="50%" height="50%" viewBox="0 0 100 50">
+    <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="15" />
+  </svg>`;
+});
 </script>
 
 <style scoped>
@@ -41,5 +54,15 @@
   flex-direction: column; /* Stack children vertically */
   align-items: center; /* Centers children vertically */
   justify-content: center; /* Centers children horizontally */
-  margin: 1px;}
+  margin: 0px;
+}
+
+.selected {
+  stroke: --var(primary-color); 
+}
+
+.default {
+  stroke: white;
+} 
+
 </style>

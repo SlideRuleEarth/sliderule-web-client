@@ -263,22 +263,19 @@
   right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   margin: auto;
+  font-size: 1.25em;
 }
 
 ::v-deep(.sr-draw-control){
-  top: 4.0em; 
+  top: 5.0em; 
   right: 0.5em; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
   border-radius: var(--border-radius);
-  margin: auto;  
 }
 
-::v-deep(.sr-draw-button-box){
-  border:1px solid transparent; /* override */
-}
 
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
@@ -291,17 +288,15 @@
 
 ::v-deep(.ol-zoom .ol-zoom-in) {
   margin: 2px;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   background-color: black;
-  border-bottom: 1px;
-  border-bottom-color: white;
   color: var(--ol-font-color);
   font-weight: normal;
 }
 
 ::v-deep(.ol-zoom .ol-zoom-out) {
   margin: 2px;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   background-color: black;
   color: var(--ol-font-color);
   font-weight: normal;

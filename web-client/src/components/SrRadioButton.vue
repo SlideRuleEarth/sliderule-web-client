@@ -33,7 +33,7 @@
     return props.modelValue === props.value;
   });
   const handleChange = (event: Event) => {
-    //console.log(event);
+    console.log(event);
     try{
       const target = event.target as HTMLInputElement;
       if (target) {
@@ -47,11 +47,11 @@
 </script>
 <style scoped>
   .radio-button-label {
+    margin: 1px;
     display: flex; /* Aligns children (input and icon) in a row */
     flex-direction: column; /* Stack children vertically */
     align-items: center; /* Centers children vertically */
     justify-content: center; /* Centers children horizontally */
-    margin: 1px;
   }
   /* Visually hide the radio input but keep it accessible */
   input[type='radio'] {
@@ -63,16 +63,13 @@
   }
   /* Style for the icon  */
   .icon-svg {
+    margin: 2px;
     display: flex; /* or other display types as needed */
     align-items: center; /* Centers children vertically */
     justify-content: center; /* Centers children horizontally */
-    width: 20px; /* Adjust as needed */
-    height: 20px; /* Adjust as needed */
+    width: 1.6em; /* Adjust as needed */
+    height: 1.6em; /* Adjust as needed */
   }
   /* Style for the icon when the radio button is selected */
-  input[type="radio"]:checked + .material-icons {
-    /* Styles to highlight the active state, e.g., change color or add a border */
-    border: 1px solid var(--primary-color);
-    border-radius: var(--border-radius);
-  }
+
 </style>
