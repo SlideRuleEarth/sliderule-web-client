@@ -1,23 +1,31 @@
 <template>
 <div class="sr-draw-button-box">
-    <SrRadioButton
-    class="sr-draw-button"
-      v-model="picked"
-      value="Polygon"
-      :icon="getPolygonIcon"
-      aria-label="Select Polygon"
-      tooltip-text="Draw a Polygon"
-    />
-    <span class="sr-button-box-divider"></span>
-    <SrRadioButton
-    class="sr-draw-button"
-    v-model="picked"
-    value="Box"
-    :icon="getRectangleIcon"
-    aria-label="Select Rectangle"
-    tooltip-text="Draw a Rectangle"
-    />
-</div>
+      <SrRadioButton
+        class="sr-draw-poly-button"
+        v-model="picked"
+        value="Polygon"
+        :icon="getPolygonIcon"
+        aria-label="Select Polygon"
+        tooltipText="Draw a Polygon"
+      />
+      <span class="sr-button-box-divider"></span>
+      <SrRadioButton
+        class="sr-draw-box-button"
+        v-model="picked"
+        value="Box"
+        :icon="getRectangleIcon"
+        aria-label="Select Rectangle"
+        tooltipText="Draw a Rectangle"
+      />
+      <SrRadioButton
+        class="sr-draw-trashcan-button"
+        v-model="picked"
+        value="TrashCan"
+        :icon="getTrashCanIcon"
+        aria-label="Select TrashCan"
+        tooltipText="Delete drawn features"
+      />
+</div> 
 </template>
 
 <script setup lang="ts">
@@ -41,6 +49,11 @@
       console.log("SrDrawButtonBox picked changed to Box HACKED TO CIRCLE!!!");
       newValue = 'Circle';
     }
+    if (newValue === 'TrashCan'){
+      console.log("SrDrawButtonBox picked changed to TrashCan HACKED TO None!!!");
+      newValue = 'TrashCan';
+      mapParamsStore.drawEnabled = false;
+    } 
     mapParamsStore.drawType = newValue;
   });
 
@@ -51,18 +64,25 @@
   const primaryColor = getCssVariable('--primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
 
   const getPolygonIcon = computed(() => {
-  //console.log("getPolygonIcon picked:", picked.value)
-  return `<svg width="65%" height="65%" viewBox="0 0 100 100">
-    <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
-  </svg>`;
-});
+    //console.log("getPolygonIcon picked:", picked.value)
+    return `<svg width="65%" height="65%" viewBox="0 0 100 100">
+      <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
+    </svg>`;
+  });
 
-const getRectangleIcon = computed(() => {
-  //console.log("getRectangleIcon picked:", picked.value)
-  return `<svg width="65%" height="65%" viewBox="0 0 100 50">
-    <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
+  const getRectangleIcon = computed(() => {
+    //console.log("getRectangleIcon picked:", picked.value)
+    return `<svg width="65%" height="65%" viewBox="0 0 100 50">
+      <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
+    </svg>`;
+  });
+
+  const getTrashCanIcon = computed(() => {
+    return `<svg width="65%" height="65%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M5 6.77273H9.2M19 6.77273H14.8M9.2 6.77273V5.5C9.2 4.94772 9.64772 4.5 10.2 4.5H13.8C14.3523 4.5 14.8 4.94772 14.8 5.5V6.77273M9.2 6.77273H14.8M6.4 8.59091V15.8636C6.4 17.5778 6.4 18.4349 6.94673 18.9675C7.49347 19.5 8.37342 19.5 10.1333 19.5H13.8667C15.6266 19.5 16.5065 19.5 17.0533 18.9675C17.6 18.4349 17.6 17.5778 17.6 15.8636V8.59091M9.2 10.4091V15.8636M12 10.4091V15.8636M14.8 10.4091V15.8636" stroke="${picked.value === 'TrashCan' ? primaryColor : 'white'}"  stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
-});
+  });
+
 
 </script>
 
@@ -80,4 +100,5 @@ const getRectangleIcon = computed(() => {
   border-top: 1px dashed rgb(200, 200, 200);
   width: 50%;
 }
+
 </style>

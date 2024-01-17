@@ -14,7 +14,6 @@
   
 <script setup lang="ts">
 import { computed, defineProps } from 'vue';
-
   const props = withDefaults(
     defineProps<{
       value?: string
@@ -32,6 +31,7 @@ import { computed, defineProps } from 'vue';
     },
   );
   
+  console.log("SrRadioButton.vue tooltipText:", props.tooltipText);
   const emit = defineEmits(['update:modelValue']);
 
   const isChecked = computed(() => {
