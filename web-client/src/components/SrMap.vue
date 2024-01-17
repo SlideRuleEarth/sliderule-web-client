@@ -201,6 +201,13 @@
   background-color: transparent;
   border-radius: var(--border-radius);
 }
+::v-deep( .ol-control.ol-layerswitcher > button::before ){
+  border-radius: var(--border-radius);
+}
+
+::v-deep( .ol-control.ol-layerswitcher > button::after ){
+  border-radius: var(--border-radius);
+}
 
 ::v-deep( .panel-container .ol-layerswitcher-buttons ){
   background-color: transparent;
