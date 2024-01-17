@@ -6,13 +6,16 @@
     import Button from 'primevue/button';
     import { ref } from 'vue';
     import { watchDebounced } from '@vueuse/core'
+    import {useToast} from "primevue/usetoast";
 
+    const toast = useToast();
 
     const stepValue = ref(10);
     // Function that is called when stepValue changes
-    const onStepValueChange = (newValue, oldValue) => {
+    //const onStepValueChange = (newValue, oldValue) => {
+    const onStepValueChange = (newValue) => {
         stepValue.value =newValue;
-        console.log(`Step value changed from ${oldValue} to ${newValue}`,stepValue.value);
+        //console.log(`Step value changed from ${oldValue} to ${newValue}`,stepValue.value);
     };
 
     // Watcher for stepValue
@@ -21,6 +24,10 @@
         onStepValueChange,
         { debounce: 500, maxWait: 1000 },
     );
+    const runSlideRuleClicked = () => {
+        // console.log('logoClick');
+        toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
+    };
 </script>
 
 <template>
@@ -40,7 +47,7 @@
                                 />
                             </div>  
                             <div class="run-sr-button" >
-                                <Button label="Run SlideRule"></Button>
+                                <Button label="Run SlideRule" @click="runSlideRuleClicked"></Button>
                             </div>
                         </div>
                     </template>

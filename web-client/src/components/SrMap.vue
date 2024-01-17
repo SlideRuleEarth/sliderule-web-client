@@ -134,7 +134,7 @@
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" />
 
-    <ol-vector-layer>
+    <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
           v-if="mapParamsStore.drawEnabled"
@@ -160,12 +160,6 @@
     <!-- <ol-rotate-control></ol-rotate-control> -->
   </ol-map>
 
-  <ul>
-    <li>center : {{ mapParamsStore.center }}</li>
-    <li>projection : {{ mapParamsStore.projection }}</li>
-    <li>zoom : {{ mapParamsStore.zoom }}</li>
-    <li>rotation : {{ mapParamsStore.rotation }}</li>
-  </ul>
 </template>
 
 <style scoped>

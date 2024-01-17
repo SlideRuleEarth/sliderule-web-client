@@ -51,15 +51,16 @@
     // Initialize sliderStepSize as a ref with a default value
     onMounted(() => {
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
-        console.log('The Slider Step Size:', sliderStepSize.value);
+        //console.log('The Slider Step Size:', sliderStepSize.value);
     });
 
     const emit = defineEmits(['update:modelValue']);
 
     const innerValue = ref(props.modelValue);
 
-    const modelValueChanged = (newValue, oldValue) => {
-        console.log(`Model value changed from ${oldValue} to ${newValue}`);
+    //const modelValueChanged = (newValue, oldValue) => {
+    const modelValueChanged = (newValue) => {
+        //console.log(`Model value changed from ${oldValue} to ${newValue}`);
         innerValue.value = newValue;
     };
     watchDebounced(modelValueComputed, 
@@ -67,8 +68,9 @@
         { debounce: 500, maxWait: 1000 },
     );
 
-    const onInnerValueChange = (newValue, oldValue) => {
-        console.log(`Inner value changed from ${oldValue} to ${newValue}`);
+    //const onInnerValueChange = (newValue, oldValue) => {
+    const onInnerValueChange = (newValue) => {
+        //console.log(`Inner value changed from ${oldValue} to ${newValue}`);
         emit('update:modelValue', newValue);
     };
     watchDebounced(innerValue, 
