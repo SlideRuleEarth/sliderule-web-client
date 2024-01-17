@@ -39,12 +39,12 @@ import { computed, defineProps } from 'vue';
   });
 
   const handleChange = (event: Event) => {
-    console.log(event);
-    console.log(event.type);
+    //console.log(event);
+    //console.log(event.type);
     try{
       const target = event.target as HTMLInputElement;
       if (target) {
-        console.log(target.value);
+        //console.log(target.value);
         emit('update:modelValue', target.value);
       }
     } catch (error) {

@@ -35,7 +35,7 @@
   });
 
   watch(picked, (newValue) => {
-    console.log("SrDrawButtonBox picked changed:", newValue);
+    //console.log("SrDrawButtonBox picked changed:", newValue);
     emit('pickedChanged', newValue);
     if (newValue === 'Box'){
       console.log("SrDrawButtonBox picked changed to Box HACKED TO CIRCLE!!!");
@@ -51,14 +51,14 @@
   const primaryColor = getCssVariable('--primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
 
   const getPolygonIcon = computed(() => {
-  console.log("getPolygonIcon picked:", picked.value)
+  //console.log("getPolygonIcon picked:", picked.value)
   return `<svg width="65%" height="65%" viewBox="0 0 100 100">
     <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;
 });
 
 const getRectangleIcon = computed(() => {
-  console.log("getRectangleIcon picked:", picked.value)
+  //console.log("getRectangleIcon picked:", picked.value)
   return `<svg width="65%" height="65%" viewBox="0 0 100 50">
     <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
   </svg>`;

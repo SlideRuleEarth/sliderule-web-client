@@ -17,7 +17,8 @@ const emit = defineEmits(['drawControlCreated']);
 
 const drawButtonBox = ref<InstanceType<typeof SrDrawButtonBox> | null>(null);
 const handleDrawButtonBoxCreated = (picked: any) => {
-  console.log("handleDrawButtonBoxCreated: " + picked.value);
+  //.log("handleDrawButtonBoxCreated: " + picked.value);
+  
 };
 
 onMounted(() => {
@@ -27,7 +28,7 @@ onMounted(() => {
   if(drawButtonBox.value == null){
     console.log("Error:drawButtonBox is null");
   } else {
-    console.log("drawButtonBox is not null");
+    //console.log("drawButtonBox is not null");
     element.appendChild(drawButtonBox.value.$el);
   }
 
@@ -37,8 +38,9 @@ onMounted(() => {
 });
 
 const handlePickedChange = (newPickedValue) => {
-    console.log("Picked value changed: " + newPickedValue);
+    //console.log("Picked value changed: " + newPickedValue);
     mapParamsStore.drawEnabled = true
+    mapParamsStore.drawType = newPickedValue;
     // Handle the change as needed
 };
 </script>

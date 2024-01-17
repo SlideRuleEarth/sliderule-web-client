@@ -94,15 +94,7 @@
       </option>
     </select>
   </form>
-  <form>
-    <fieldset>
-      <label for="checkbox">Draw Mode Enabled</label>
-      <input type="checkbox" id="checkbox" v-model="mapParamsStore.drawEnabled" />
-    </fieldset>
-  </form>
-  <div>
-    <span>Draw Type:{{ mapParamsStore.drawType }}</span>
-  </div>
+
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
@@ -210,12 +202,43 @@
   border-radius: var(--border-radius);
 }
 
+::v-deep( .panel-container .ol-layerswitcher-buttons ){
+  background-color: transparent;
+}
+::v-deep( .layerup.ol-noscroll){
+  border-radius: 3px;
+  background-color: var(--primary-color);
+}
 ::v-deep(.ol-control.ol-layerswitcher .panel-container){
   background-color: var(--primary-100);
   color: var(--primary-color);
   border-radius: var(--border-radius);
 }
 
+/* ::v-deep(.ol-control.ol-layerswitcher .panel-container .ul.panel){
+  background-color: red;
+  color: red;
+  border-radius: var(--border-radius);
+} */
+::v-deep(.ol-layerswitcher label){
+  background-color: transparent;
+  color: var(--primary-color);
+  font-weight: bold;
+  font-family: var(--font-family);
+  border-radius: var(--border-radius);
+} 
+
+::v-deep(.ol-layerswitcher .panel .li-content > label::before){
+  border-radius: 2px;
+  border-color: var(--primary-color);
+  border-width: 2px;
+} 
+
+/* ::v-deep(.ol-layerswitcher .panel-container .li-content > label::after){
+  border-width: 1px;
+  background-color: var(--primary-color);
+
+}  */
 ::v-deep(.panel-container.ol-ext-dialog){
   background-color: transparent;
 }

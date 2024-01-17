@@ -47,7 +47,7 @@
     // Initialize stepSize as a ref with a default value
     onMounted(() => {
         stepSize.value = Math.pow(10, -props.decimalPlaces);
-        console.log('The Step Size:', stepSize.value);
+        //console.log('The Step Size:', stepSize.value);
     });
 
     const emit = defineEmits(['update:modelValue']);
