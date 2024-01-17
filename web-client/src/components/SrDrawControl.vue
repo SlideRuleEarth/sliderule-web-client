@@ -1,6 +1,5 @@
 <template>
   <SrDrawButtonBox ref="drawButtonBox" 
-  @drawButtonBoxCreated="handleDrawButtonBoxCreated" 
   @pickedChanged="handlePickedChange"
 />
 </template>
@@ -16,10 +15,6 @@ const mapParamsStore = useMapParamsStore();
 const emit = defineEmits(['drawControlCreated']);
 
 const drawButtonBox = ref<InstanceType<typeof SrDrawButtonBox> | null>(null);
-const handleDrawButtonBoxCreated = (picked: any) => {
-  //.log("handleDrawButtonBoxCreated: " + picked.value);
-  
-};
 
 onMounted(() => {
   //console.log("SrDrawControl onMounted");

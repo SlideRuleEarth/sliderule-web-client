@@ -15,6 +15,8 @@
     import InputText from 'primevue/inputtext';
     import Slider from 'primevue/slider';
     import { defineProps, defineEmits } from 'vue';
+    import { watchDebounced } from '@vueuse/core'
+    import { useDebounceFn } from '@vueuse/core';
 
     const toast = useToast();
 
@@ -40,36 +42,53 @@
         default: 0 // Default to 0 decimal places
     }
     });
+    const modelValueComputed = computed(() => props.modelValue);
+
 
     // Compute the step size based on decimalPlaces
-    const stepSize = ref(Math.pow(10, -props.decimalPlaces));
+    const sliderStepSize = ref(Math.pow(10, -props.decimalPlaces));
 
-    // Initialize stepSize as a ref with a default value
+    // Initialize sliderStepSize as a ref with a default value
     onMounted(() => {
-        stepSize.value = Math.pow(10, -props.decimalPlaces);
-        //console.log('The Step Size:', stepSize.value);
+        sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
+        console.log('The Slider Step Size:', sliderStepSize.value);
     });
 
     const emit = defineEmits(['update:modelValue']);
 
     const innerValue = ref(props.modelValue);
 
-    watch(() => props.modelValue, (newValue) => {
+    const modelValueChanged = (newValue, oldValue) => {
+        console.log(`Model value changed from ${oldValue} to ${newValue}`);
         innerValue.value = newValue;
-    });
+    };
+    watchDebounced(modelValueComputed, 
+        modelValueChanged,
+        { debounce: 500, maxWait: 1000 },
+    );
 
-    watch(innerValue, (newValue) => {
+    const onInnerValueChange = (newValue, oldValue) => {
+        console.log(`Inner value changed from ${oldValue} to ${newValue}`);
         emit('update:modelValue', newValue);
-    });
+    };
+    watchDebounced(innerValue, 
+        onInnerValueChange,
+        { debounce: 500, maxWait: 1000 },
+    );
 
-    watch(stepSize, (newValue) => {
-        console.log('Updated Step Size:', newValue);
+
+    watch(sliderStepSize, (newValue) => {
+        console.log('Updated Slider Step Size:', newValue);
     });
 
     watch(() => props.decimalPlaces, (newDecimalPlaces) => {
-        stepSize.value = Math.pow(10, -newDecimalPlaces);
-        console.log('Updated Step Size:', stepSize.value);
+        sliderStepSize.value = Math.pow(10, -newDecimalPlaces);
+        console.log('Updated Slider Step Size:', sliderStepSize.value);
     });
+
+    const updateInnerValue = useDebounceFn((newValue) => {
+        innerValue.value = newValue;
+    }, 500, {maxWait: 1000}); // Adjust the debounce time (500ms) as needed
 
     const formattedValue = computed({
         get: () => innerValue.value.toFixed(props.decimalPlaces),
@@ -92,8 +111,8 @@
                 numericValue = Math.min(Math.max(numericValue, props.min), props.max);
             }
 
-            // Update the innerValue
-            innerValue.value = numericValue;
+            // Use the debounced method to update innerValue
+            updateInnerValue(numericValue);
         }
     });
     

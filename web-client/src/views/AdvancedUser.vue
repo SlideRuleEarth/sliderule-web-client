@@ -3,20 +3,24 @@
     import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
     import SrMap from "@/components/SrMap.vue";
     import SrSliderInput from "@/components/SrSliderInput.vue";
-    import InputText from 'primevue/inputtext';
-    import Slider from 'primevue/slider';
     import Button from 'primevue/button';
-    import { ref,computed } from 'vue';
+    import { ref } from 'vue';
+    import { watchDebounced } from '@vueuse/core'
 
-    const sliderValue = ref(50);
-    const formattedValue = computed({
-        get: () => sliderValue.value.toFixed(0), // Convert number to string with 2 decimal places
-        set: (newValue) => {
-            sliderValue.value = parseFloat(newValue) || 0; // Parse the input back to a number
-        }
-    });
 
     const stepValue = ref(10);
+    // Function that is called when stepValue changes
+    const onStepValueChange = (newValue, oldValue) => {
+        stepValue.value =newValue;
+        console.log(`Step value changed from ${oldValue} to ${newValue}`,stepValue.value);
+    };
+
+    // Watcher for stepValue
+    watchDebounced(
+        stepValue,
+        onStepValueChange,
+        { debounce: 500, maxWait: 1000 },
+    );
 </script>
 
 <template>
@@ -26,11 +30,6 @@
                 <SrSideBar>
                     <template v-slot:sr-sidebar-body>
                         <div class="card flex justify-content-center">
-                            <div >
-                                <InputText v-model="formattedValue"  :style="{ 'margin-bottom': '5%'}"/>
-                                <Slider v-model="sliderValue" />
-                                <p>Selected Value: {{ sliderValue }}</p>
-                            </div>
                             <div class="card flex justify-content-center">
                                 <SrSliderInput
                                     v-model="stepValue"
