@@ -6,6 +6,11 @@
   import type Map from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
+  import {useToast} from "primevue/usetoast";
+  import VectorLayer from 'ol/layer/Vector';
+  import VectorSource from 'ol/source/Vector';
+  import Geometry from 'ol/geom/Geometry';
+  import Feature from 'ol/Feature';
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
@@ -13,6 +18,7 @@
   const mapParamsStore = useMapParamsStore();
   const controls = ref([]);
   const selectedBaseLayer = ref(mapParamsStore.baseLayer);
+  const toast = useToast();
 
   const baseLayers = ref([
     {
@@ -48,11 +54,30 @@
     console.log(event);
   };
   const drawstart = (event: any) => {
-    console.log(event);
+    console.log("drawstart:",event);
   };
 
   const drawend = (event: any) => {
-    console.log(event);
+    console.log("drawend:",event);
+  };
+
+  const handlePickedChanged = (newPickedValue: string) => {
+    console.log("Draw Picked value changed: " + newPickedValue);
+    if (newPickedValue === 'TrashCan'){
+      console.log("Clearing drawing layer");
+      // Access the vector layer's source and clear it
+      const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('title') === 'drawing layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+      if (vectorLayer) {
+        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
+
+        const vectorSource = vectorLayer.getSource();
+        if(vectorSource){
+          vectorSource.clear();
+        } else {
+          console.log("Error:vectorSource is null");
+        }
+      }
+    }
   };
 
   onMounted(() => {
@@ -132,7 +157,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl @drawControlCreated="handleDrawControlCreated" />
+    <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
 
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
@@ -157,7 +182,6 @@
         </ol-style-circle>
       </ol-style>
     </ol-vector-layer>
-    <!-- <ol-rotate-control></ol-rotate-control> -->
   </ol-map>
 
 </template>
