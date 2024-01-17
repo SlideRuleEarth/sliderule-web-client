@@ -31,7 +31,7 @@ import { computed, defineProps } from 'vue';
     },
   );
   
-  console.log("SrRadioButton.vue tooltipText:", props.tooltipText);
+  //console.log("SrRadioButton.vue tooltipText:", props.tooltipText);
   const emit = defineEmits(['update:modelValue']);
 
   const isChecked = computed(() => {

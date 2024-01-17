@@ -15,7 +15,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       title: "World Topo Map" 
     }),
     drawEnabled: ref(false),
-    drawType: ref('Polygon'),
+    drawType: ref('undefined'),
     layerList: ref<AnyTileLayer[]>([])
   }),
   actions:{
@@ -29,7 +29,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
         title: "World Topo Map"
       }
       this.drawEnabled = false;
-      this.drawType = 'Polygon';
+      this.drawType = 'undefined';
     },
     setCenter(c:number[]) {
       this.center = c;
