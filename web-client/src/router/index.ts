@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import GeneralUser from '../views/GeneralUser.vue'
 import AdvancedUser from '../views/AdvancedUser.vue'
+import NotFoundComponent from '../components/NotFoundComponent.vue'  // 404
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,7 +28,12 @@ const router = createRouter({
       path: '/advanced-user',
       name: 'advanced-user',
       component: AdvancedUser
-    }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: NotFoundComponent
+    }  
   ]
 })
 

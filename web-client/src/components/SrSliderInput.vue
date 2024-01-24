@@ -14,7 +14,6 @@
     import { ref, watch, computed,onMounted } from 'vue';
     import InputText from 'primevue/inputtext';
     import Slider from 'primevue/slider';
-    import { defineProps, defineEmits } from 'vue';
     import { watchDebounced } from '@vueuse/core'
     import { useDebounceFn } from '@vueuse/core';
 

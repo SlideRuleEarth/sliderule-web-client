@@ -4,13 +4,23 @@
     import SrMap from "@/components/SrMap.vue";
     import SrSliderInput from "@/components/SrSliderInput.vue";
     import Button from 'primevue/button';
-    import { ref } from 'vue';
+    import { onMounted, ref } from 'vue';
     import { watchDebounced } from '@vueuse/core'
     import {useToast} from "primevue/usetoast";
+    import { atl06p } from '@/sliderule/icesat2.js';
+    import { init } from '@/sliderule/core.js';
+
 
     const toast = useToast();
 
     const stepValue = ref(10);
+
+    onMounted(() => {
+        console.log('AdvancedUser onMounted');
+        init({});
+    });
+
+
     // Function that is called when stepValue changes
     //const onStepValueChange = (newValue, oldValue) => {
     const onStepValueChange = (newValue) => {
@@ -27,6 +37,20 @@
     const runSlideRuleClicked = () => {
         // console.log('logoClick');
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
+        console.log("typeof atl06p:",typeof atl06p);
+        console.log("atl06p:", atl06p);
+        atl06p(
+            { "cnf": "atl03_high",
+            "ats": 20.0,
+            "cnt": 10,
+            "len": 40.0,
+            "res": 20.0,
+            "maxi": 1 }, 
+            ["ATL03_20181019065445_03150111_005_01.h5"]
+        ).then(
+            result => console.log('Results = ', result.length, result[0]),
+            error => console.error('Error = ', error)
+        );    
     };
 </script>
 

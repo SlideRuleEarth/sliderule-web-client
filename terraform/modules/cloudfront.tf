@@ -24,7 +24,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' https://tile.openstreetmap.org https://openlayers.org https://server.arcgisonline.com; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com;"
+      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://tile.openstreetmap.org https://openlayers.org https://server.arcgisonline.com; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.testsliderule.org;"
       override                = true
     }
   }
@@ -81,6 +81,20 @@ resource "aws_cloudfront_distribution" "my_cloudfront" {
     acm_certificate_arn = aws_acm_certificate.mysite.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1"
+  }
+
+  custom_error_response {
+    error_caching_min_ttl = 0
+    error_code            = 404
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
+  
+  custom_error_response {
+    error_caching_min_ttl = 0
+    error_code            = 403
+    response_code         = 200
+    response_page_path    = "/index.html"
   }
 
 }
