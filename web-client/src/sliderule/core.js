@@ -389,6 +389,7 @@ async function fetchAndProcessStream(url, options, callbacks={}) {
             binaryData.set(value, position);
             position += value.length;
         }
+        //return results;
         return binaryData;
 
       } else if (contentType == 'application/json' || contentType == 'text/plain') {

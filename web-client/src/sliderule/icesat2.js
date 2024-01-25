@@ -92,7 +92,7 @@ export function atl06p(parm, resources, callbacks = null){
         "parms": parm
     };
     if (callbacks != null) {
-        console.log("atl06p calling source with rqst: ", rqst);
+        console.log("atl06p calling source using callbacks with rqst: ", rqst);
         return core.source('atl06p', rqst, true, callbacks);
     } else {
         let emitter = mitt();
@@ -112,6 +112,7 @@ export function atl06p(parm, resources, callbacks = null){
             console.log("atl06p Promise calling source with rqst: ", rqst);
             const onComplete = () => {
                 console.log("atl06p Promise onComplete...");
+                resolve(recs.flat(1));
                 emitter.off('complete', onComplete); // Remove the event listener after it's called
             };
             const onError = (error) => {
@@ -119,15 +120,11 @@ export function atl06p(parm, resources, callbacks = null){
             };
             emitter.on('complete', onComplete);
             emitter.on('error', onError); // Listen for error events
-            core.source('atl06p',rqst, true,callbacks).then(
+            core.source('atl06p',rqst, true, callbacks).then(
                 result => {
                     console.log("atl06p Promise source returned result: ", result);
-                    total_recs = result["atl06rec"] ?? 0;
-                    console.log("atl06p Promise source returned total_recs: ", total_recs);
                     console.log("atl06p Promise source returned recs.length: ", recs.length);
-                    if (recs.length == total_recs) {
-                        emitter.emit('complete');
-                    }
+                    emitter.emit('complete');
                 }
             ).catch(error =>{
                 console.log("atl06p Promise catch error...", error);

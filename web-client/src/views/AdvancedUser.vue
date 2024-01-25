@@ -56,7 +56,7 @@
                 severity: 'success', // Use 'success' severity for successful operations
                 summary: 'Success', // A short summary of the outcome
                 detail: 'RunSlideRule completed successfully.', // A more detailed success message
-                life: 5000 // Adjust the duration as needed
+                life: 10000 // Adjust the duration as needed
             });
         })
         .catch((error => {
