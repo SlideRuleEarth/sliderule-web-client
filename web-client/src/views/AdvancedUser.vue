@@ -37,8 +37,8 @@
     const runSlideRuleClicked = () => {
         // console.log('logoClick');
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
-        console.log("typeof atl06p:",typeof atl06p);
-        console.log("atl06p:", atl06p);
+        console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
+        console.log("runSlideRuleClicked atl06p:", atl06p);
         atl06p(
             { "cnf": "atl03_high",
             "ats": 20.0,
@@ -46,11 +46,31 @@
             "len": 40.0,
             "res": 20.0,
             "maxi": 1 }, 
-            ["ATL03_20181019065445_03150111_005_01.h5"]
-        ).then(
-            result => console.log('Results = ', result.length, result[0]),
-            error => console.error('Error = ', error)
-        );    
+            ["ATL03_20181019065445_03150111_005_01.h5"])
+        .then(result => {
+            // Log the result to the console
+            console.log('runSlideRuleClicked Results = ', result.length, result[0]);
+
+            // Display a toast message indicating successful completion
+            toast.add({
+                severity: 'success', // Use 'success' severity for successful operations
+                summary: 'Success', // A short summary of the outcome
+                detail: 'RunSlideRule completed successfully.', // A more detailed success message
+                life: 5000 // Adjust the duration as needed
+            });
+        })
+        .catch((error => {
+            // Log the error to the console
+            console.error('runSlideRuleClicked Error = ', error);
+
+            // Display a toast message indicating the error
+            toast.add({
+                severity: 'error', // Use 'error' severity for error messages
+                summary: 'Error', // A short summary of the error
+                detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                life: 5000 // Adjust the duration as needed
+            });
+        }));
     };
 </script>
 

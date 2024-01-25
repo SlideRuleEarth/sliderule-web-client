@@ -29,6 +29,7 @@
 
 import mitt from 'mitt';
 import {core} from '../sliderule/index.js';
+import { error } from 'console';
 //------------------------------------
 // File Data
 //------------------------------------
@@ -95,7 +96,6 @@ export function atl06p(parm, resources, callbacks = null){
         return core.source('atl06p', rqst, true, callbacks);
     } else {
         let emitter = mitt();
-
         let total_recs = null;
         let recs = [];
         callbacks = {
@@ -103,25 +103,36 @@ export function atl06p(parm, resources, callbacks = null){
                 console.log("atl06p cb...");
                 recs.push(result["elevation"]);
                 if (total_recs != null && recs.length == total_recs) {
+                    console.log("atl06p emitting complete...");
                     emitter.emit('complete');
                 }
             },
         };
-        return new Promise(resolve => {
-            console.log("atl06p calling source with rqst: ", rqst);
-            core.source('atl06p', rqst, true, callbacks).then(
+        return new Promise((resolve,reject) => {
+            console.log("atl06p Promise calling source with rqst: ", rqst);
+            const onComplete = () => {
+                console.log("atl06p Promise onComplete...");
+                emitter.off('complete', onComplete); // Remove the event listener after it's called
+            };
+            const onError = (error) => {
+                emitter.off('error', onError); // Cleanup after error handling
+            };
+            emitter.on('complete', onComplete);
+            emitter.on('error', onError); // Listen for error events
+            core.source('atl06p',rqst, true,callbacks).then(
                 result => {
-                    const onComplete = () => {
-                        resolve(recs.flat(1));
-                        emitter.off('complete', onComplete); // Remove the event listener after it's called
-                    };
-                    emitter.on('complete', onComplete);
+                    console.log("atl06p Promise source returned result: ", result);
                     total_recs = result["atl06rec"] ?? 0;
+                    console.log("atl06p Promise source returned total_recs: ", total_recs);
+                    console.log("atl06p Promise source returned recs.length: ", recs.length);
                     if (recs.length == total_recs) {
                         emitter.emit('complete');
                     }
                 }
-            );
+            ).catch(error =>{
+                console.log("atl06p Promise catch error...", error);
+                reject("atl06p Promise Error in request: " + error);
+            });
         });
     }
 };
