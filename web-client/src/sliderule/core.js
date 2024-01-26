@@ -251,136 +251,143 @@ async function decodeRecord(rec_type, buffer, offset, rec_size) {
   return rec_obj;
 }
 
-async function fetchAndProcessStream(url, options, callbacks={}) {
+async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
   try {
-      console.log('fetchAndProcessStream url:', url);
-      console.log('fetchAndProcessStream options:', options);
-      console.log('fetchAndProcessStream callbacks:', callbacks);
+      //console.log('fetchAndProcessResult url:', url);
+      //console.log('fetchAndProcessResult options:', options);
+      //console.log('fetchAndProcessResult callbacks:', callbacks);
       // Fetch the resource
       const response = await fetch(url, options);
-      console.log('fetchAndProcessStream response:', response);
+      //console.log('fetchAndProcessResult response:', response);
       // Check if the response is ok (status in the range 200-299)
       if (!response.ok) {
-          throw new Error(`fetchAndProcessStream HTTP error! status: ${response.status}`);
+          throw new Error(`fetchAndProcessResult HTTP error! status: ${response.status}`);
       }
 
       // Examine the headers from the response
       // for (const [key, value] of response.headers.entries()) {
-      //     console.log(`fetchAndProcessStream header: ${key}: ${value}`);
+      //     console.log(`fetchAndProcessResult header: ${key}: ${value}`);
       // }
       const contentType = response.headers.get('content-type');
+      if (contentType == 'application/octet-stream') {
+        // Get the reader from the response stream
+        const reader = response.body.getReader();
 
-      // Get the reader from the response stream
-      const reader = response.body.getReader();
+        // Process the stream
+        let receivedLength = 0; // length of the received  data
+        let chunks = []; // array to store received  chunks
+        const REC_HDR_SIZE = 8;
+        const REC_VERSION = 2;
+        let results = {};
+        let total_bytes_read = null;
+        let bytes_read = 0;
+        let bytes_processed = 0;
+        let bytes_to_process = 0;
+        let got_header = false;
+        let rec_size = 0;
+        let rec_type_size = 0;
+        let loop_done = false;
+        let empty_chunks = 0;
+        let recs_cnt = {}
 
-      // Process the stream
-      let receivedLength = 0; // length of the received  data
-      let chunks = []; // array to store received  chunks
-      const REC_HDR_SIZE = 8;
-      const REC_VERSION = 2;
-      let results = {};
-      let total_bytes_read = null;
-      let bytes_read = 0;
-      let bytes_processed = 0;
-      let bytes_to_process = 0;
-      let got_header = false;
-      let rec_size = 0;
-      let rec_type_size = 0;
-      let loop_done = false;
-      let empty_chunks = 0;
-      while (loop_done === false) {
-        const { done, value } = await reader.read();
-        //console.log('fetchAndProcessStream done:', done);
-        //console.log('fetchAndProcessStream value:', value);
-        if (done) {
-          loop_done = true;
-          // The stream has been read completely
-          total_bytes_read = bytes_read;
-          results["bytes_read"] = total_bytes_read;
-          results["bytes_processed"] = bytes_processed;
-          console.log('fetchAndProcessStream read returned done: results:', results);
-          //resolve(results);
-          break;
-        }
-        if (value) {
-          //console.log(`fetchAndProcessStream Received ${value.length} bytes of data`);
-          chunks.push(value);
-          receivedLength += value.length;
+        while (loop_done === false) {
+          const { done, value } = await reader.read();
+          //console.log('fetchAndProcessResult done:', done);
+          //console.log('fetchAndProcessResult value:', value);
+          if (value) {
+            //console.log(`fetchAndProcessResult Received ${value.length} bytes of data`);
+            chunks.push(value);
+            receivedLength += value.length;
 
-          if (contentType == 'application/octet-stream') {
-            bytes_read += value.length;
-            bytes_to_process += value.length;
-            while (bytes_to_process > 0) {
-              // State: Accumulating Header
-              if (!got_header && bytes_to_process > REC_HDR_SIZE) {
-                // Process header
-                got_header = true;
-                bytes_processed += REC_HDR_SIZE;
-                bytes_to_process -= REC_HDR_SIZE;
-                let buffer = Buffer.concat(chunks);
-                // Get header info
-                let rec_version = buffer.readUInt16BE(0);
-                rec_type_size = buffer.readUInt16BE(2);
-                let rec_data_size = buffer.readUInt32BE(4);
-                if (rec_version != REC_VERSION) {
-                  throw new Error(`fetchAndProcessStream invalid record format: ${rec_version}`);
-                }
-                // Set record attributes
-                rec_size = rec_type_size + rec_data_size;
-                chunks = [buffer.subarray(REC_HDR_SIZE)];
-              }
-              // State: Accumulating Record
-              else if (got_header && bytes_to_process >= rec_size) {
-                // Process record
-                got_header = false;
-                bytes_to_process -= rec_size;
-                bytes_processed += rec_size;
-                let buffer = Buffer.concat(chunks);
-                let rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
-                decodeRecord(rec_type, buffer, rec_type_size, rec_size).then(
-                  result => {
-                    if (rec_type in callbacks) {
-                      callbacks[rec_type](result);
-                    }
+            if (contentType == 'application/octet-stream') {
+              bytes_read += value.length;
+              bytes_to_process += value.length;
+              while (bytes_to_process > 0) {
+                // State: Accumulating Header
+                if (!got_header && bytes_to_process > REC_HDR_SIZE) {
+                  // Process header
+                  got_header = true;
+                  bytes_processed += REC_HDR_SIZE;
+                  bytes_to_process -= REC_HDR_SIZE;
+                  let buffer = Buffer.concat(chunks);
+                  // Get header info
+                  let rec_version = buffer.readUInt16BE(0);
+                  rec_type_size = buffer.readUInt16BE(2);
+                  let rec_data_size = buffer.readUInt32BE(4);
+                  if (rec_version != REC_VERSION) {
+                    throw new Error(`fetchAndProcessResult invalid record format: ${rec_version}`);
                   }
-                );
-                // Update stats
-                if (!(rec_type in results)) {
-                  results[rec_type] = 0;
+                  // Set record attributes
+                  rec_size = rec_type_size + rec_data_size;
+                  chunks = [buffer.subarray(REC_HDR_SIZE)];
                 }
-                results[rec_type]++;
-                // Check if complete
-                if ((total_bytes_read != null) && (bytes_processed == total_bytes_read)) {
-                  results["bytes_processed"] = bytes_processed;
-                  console.log('bytes_processed == total_bytes_read results:', results);
-                  //resolve(results);
+                // State: Accumulating Record
+                else if (got_header && bytes_to_process >= rec_size) {
+                  // Process record
+                  got_header = false;
+                  bytes_to_process -= rec_size;
+                  bytes_processed += rec_size;
+                  let buffer = Buffer.concat(chunks);
+                  let rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
+                  decodeRecord(rec_type, buffer, rec_type_size, rec_size).then(
+                    result => {
+                      if (rec_type in callbacks) {
+                        callbacks[rec_type](result);
+                        if (!(rec_type in recs_cnt)) {
+                          recs_cnt[rec_type] = 1;
+                          console.log('result:', result)
+                        } else {
+                          recs_cnt[rec_type]++;
+                        }              
+                      }
+                    }
+                  );
+                  // Update stats
+                  if (!(rec_type in results)) {
+                    results[rec_type] = 0;
+                  }
+                  results[rec_type]++;
+                  // Check if complete
+                  if ((total_bytes_read != null) && (bytes_processed == total_bytes_read)) {
+                    results["bytes_processed"] = bytes_processed;
+                    console.log('bytes_processed == total_bytes_read results:', results);
+                    //resolve(results);
+                    loop_done = true;
+                    break;
+                  }
+                  // Restore unused bytes that have been read
+                  if(bytes_to_process > 0) {
+                    chunks = [buffer.subarray(rec_size)];
+                  }
+                  else {
+                    chunks = [];
+                  }
+                }
+                // State: Need More Data
+                else {
                   break;
                 }
-                // Restore unused bytes that have been read
-                if(bytes_to_process > 0) {
-                  chunks = [buffer.subarray(rec_size)];
-                }
-                else {
-                  chunks = [];
-                }
               }
-              // State: Need More Data
-              else {
-                break;
-              }
+            } 
+          } else {
+            empty_chunks++;
+            console.log('empty_chunks:', empty_chunks);
+            if (empty_chunks > 10) {
+              loop_done = true;
+              console.log('fetchAndProcessResult empty_chunks > 10? Done! ');
+              break;
             }
           } 
-        } else {
-          empty_chunks++;
-          console.log('empty_chunks:', empty_chunks);
-          if (empty_chunks > 10) {
-            loop_done = true;
-            console.log('fetchAndProcessStream empty_chunks > 10? Done! ');
+          if (done) {
+            // The stream has been read completely
+            total_bytes_read = bytes_read;
+            results["bytes_read"] = total_bytes_read;
+            results["bytes_processed"] = bytes_processed;
+            console.log('fetchAndProcessResult read returned done: results:', results);
+            //resolve(results);
             break;
           }
-        } 
-      }
-      if (contentType == 'application/octet-stream') {
+        }
 
         // Combine chunks into a single Uint8Array
         let binaryData = new Uint8Array(receivedLength);
@@ -389,25 +396,20 @@ async function fetchAndProcessStream(url, options, callbacks={}) {
             binaryData.set(value, position);
             position += value.length;
         }
-        //return results;
+        console.log("fetchAndProcessResult final recs_cnt:", recs_cnt);
         return binaryData;
 
-      } else if (contentType == 'application/json' || contentType == 'text/plain') {
-        let buffer = Buffer.concat(chunks);
-        let jsonData = JSON.parse(buffer);
-        return jsonData;
-      }
+    } else if (contentType == 'application/json' || contentType == 'text/plain') {
+      const data = await response.json();
+      //console.log('fetchAndProcessResult returning json data:', data);
+      return data;
+    }
   } catch (error) {
       // Handle any errors
-      console.error('fetchAndProcessStream Error fetching or processing stream:', error);
+      console.error('fetchAndProcessResult Error fetching or processing stream:', error);
       throw error; // Re-throw the error if you want to handle it further up the call stack
   }
 }
-
-// Example usage
-// fetchAndProcessStream('https://example.com/some-binary-data')
-//   .then(data => console.log('Received binary data:', data))
-//   .catch(error => console.error('Failed to fetch or process stream:', error));
 
 //------------------------------------
 // Exported Functions
@@ -423,48 +425,42 @@ export function init(config) {
 //
 // Source Endpoint
 //
-// export function source(api, parm=null, stream=false, callbacks={}) {
-//   // Setup Request Options
-//   const options = {
-//     host: sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain,
-//     path: '/source/' + api,
-//     method: stream && 'POST' || 'GET',
-//   };
-//   // Build Body
-//   let body = null;
-//   if (parm != null) {
-//     body = JSON.stringify(parm);
-//     options["headers"] = {'Content-Type': 'application/json', 'Content-Length': body.length};
-//   }
-//   // Make API Request
-//   return httpRequest(options, body, callbacks);
-// }
-export function source(api, parm=null, stream=false, callbacks={}) {
+export async function source(api, parm=null, stream=false, callbacks={}) {
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
   const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
   const api_path = 'source/'+ api;
   const url = 'https://' + host + '/' + api_path;
-  console.log('source url:', url);
+  //console.log('source url:', url);
   // Setup Request Options
-  // When stream is true, options.method will be 'POST'.
-  // When stream is false, options.method will be 'GET'.
   let body = null;
   let options = null;
-  let method = 'POST';
+  //let method = 'POST';
   options = {
-    method: method,
+    //method: method,
+    method: 'POST',
   };
   if (parm != null) {
     body = JSON.stringify(parm);
     options.headers = {
       'Content-Type': 'application/json', 
-      'Content-Length': Buffer.byteLength(body)
+      'Content-Length': Buffer.byteLength(body),
+      'x-sliderule-streaming': stream && 1 || 0
     };
     options.body = body;
   }
   // Make API Request
-  return fetchAndProcessStream(url, options, callbacks);
+  // Await the fetchAndProcessResult call
+  let result;
+  try {
+      result = await fetchAndProcessResult(url, options, callbacks, stream);
+  } catch (error) {
+      console.error('Error in fetchAndProcessResult:', error);
+      throw error; // Rethrow or handle as needed
+  }
+  
+
+  return result;
 }
 
 

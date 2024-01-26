@@ -38,7 +38,7 @@
         // console.log('logoClick');
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
-        console.log("runSlideRuleClicked atl06p:", atl06p);
+        //console.log("runSlideRuleClicked atl06p:", atl06p);
         atl06p(
             { "cnf": "atl03_high",
             "ats": 20.0,
