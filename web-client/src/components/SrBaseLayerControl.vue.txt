@@ -1,0 +1,59 @@
+<template>
+  <form class="select-src">
+    <select v-model="mapParamsStore.baseLayer" class="select-default">
+      <option v-for="layer in baseLayers" :value="layer" :key="layer.title">
+        {{ layer.title }}
+      </option>
+    </select>
+  </form>
+</template>
+  
+<script setup lang="ts">
+  import { onMounted, ref } from 'vue';
+  import { Control } from 'ol/control';
+  import SrBaseLayerControl from './SrBaseLayerControl.vue';
+  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  
+  const mapParamsStore = useMapParamsStore();
+  
+  const emit = defineEmits(['selectControlCreated']);
+
+
+  const baseLayers = ref([
+    {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      title: "Esri-World-Topo"
+    },
+    {
+      url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      title: "OpenStreet"
+    },
+    {
+      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+      title: "Google"
+    }
+  ]);
+
+  watch(selectedBaseLayer, (newLayer) => {
+    mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
+  });  
+  
+  onMounted(() => {
+    //console.log("SrDrawControl onMounted");
+    const element = document.createElement('div');
+    element.className = 'sr-draw-control ol-unselectable ol-control';
+    if(drawButtonBox.value == null){
+      console.log("Error:drawButtonBox is null");
+    } else {
+      //console.log("drawButtonBox is not null");
+      element.appendChild(drawButtonBox.value.$el);
+    }
+  
+    const customControl = new Control({ element });
+    emit('drawControlCreated', customControl);
+  
+  });
+  
+</script>
+  
+  

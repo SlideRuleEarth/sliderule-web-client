@@ -2,7 +2,7 @@
 <script setup lang="ts">
   import { useWmsCap } from "@/composables/useWmsCap.js"; 
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
-  import { ref, watch, onMounted } from "vue";
+  import { ref, onMounted } from "vue";
   import type Map from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
@@ -11,13 +11,13 @@
   import VectorSource from 'ol/source/Vector';
   import Geometry from 'ol/geom/Geometry';
   import Feature from 'ol/Feature';
+  //  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const controls = ref([]);
-  const selectedBaseLayer = ref(mapParamsStore.baseLayer);
   const toast = useToast();
 
   const baseLayers = ref([
@@ -34,6 +34,9 @@
       title: "Google"
     }
   ]);
+
+  //console.log('Base Layer:', mapParamsStore.baseLayer);
+  //console.log('Available Base Layers:', baseLayers.value);
 
   function resolutionChanged(event: any) {
     if (event.target.getZoom() < 0.000002) {
@@ -93,7 +96,11 @@
     } else {
       console.log("Error:map is null");
     }
-    //console.log(mapParamsStore.layerList);
+    //console.log("SrMap onMounted:", mapParamsStore.baseLayer.title);
+    if (!mapParamsStore.baseLayer) {
+      // Set default base layer if not already set
+      mapParamsStore.baseLayer = baseLayers.value[0];
+    }
   });
 
   const handleDrawControlCreated = (drawControl: any) => {
@@ -106,15 +113,20 @@
     }
   };
 
-  watch(selectedBaseLayer, (newLayer) => {
-    mapParamsStore.setBaseLayer(newLayer.url, newLayer.title);
-  });
-
+  function updateBaseLayer(selectedTitle: string) {
+    //console.log("updateBaseLayer:", selectedTitle);
+    const layer = baseLayers.value.find(layer => layer.title === selectedTitle);
+    //console.log("updateBaseLayer layer:", layer);
+    if (layer) {
+      mapParamsStore.setBaseLayer(layer);
+    }
+  }
 </script>
+
 <template>
   <form class="select-src">
-    <select v-model="selectedBaseLayer" class="select-default">
-      <option v-for="layer in baseLayers" :value="layer" :key="layer.title">
+    <select @change="updateBaseLayer(($event.target as HTMLInputElement).value)" class="select-default">
+      <option v-for="layer in baseLayers" :value="layer.title" :key="layer.title">
         {{ layer.title }}
       </option>
     </select>
@@ -158,7 +170,7 @@
 
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
-
+    <!-- <SrBaseLayerControl @selectControlCreated="handleBaseLayerControlCreated" /> -->
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw

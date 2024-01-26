@@ -3,20 +3,23 @@ import { ref } from 'vue';
 import { OSM, XYZ } from 'ol/source';
 import TileLayer from 'ol/layer/Tile.js';
 type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
-
+interface BaseLayer {
+  title: string;
+  url: string;
+}
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
-    center: ref([-108, 39]),
-    projection: ref("EPSG:4326"),
-    zoom: ref(12),
-    rotation: ref(0),
-    baseLayer: ref({ 
+    center: [-108, 39],
+    projection: "EPSG:4326",
+    zoom: 12,
+    rotation: 0,
+    baseLayer: { 
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", 
       title: "World Topo Map" 
-    }),
-    drawEnabled: ref(false),
-    drawType: ref('undefined'),
-    layerList: ref<AnyTileLayer[]>([])
+    } as BaseLayer,
+    drawEnabled: false,
+    drawType: 'undefined',
+    layerList: <AnyTileLayer[]>([])
   }),
   actions:{
     resetMap() {
@@ -44,10 +47,8 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       console.log('addLayer', l);
       this.layerList.push(l);
     },
-    setBaseLayer(url: string, title: string) {
-      this.baseLayer.url = url;
-      this.baseLayer.title = title;
-      console.log('setBaseLayer', this.baseLayer);
+    setBaseLayer(layer: BaseLayer) {
+      this.baseLayer = layer;
     }
   },
 });
