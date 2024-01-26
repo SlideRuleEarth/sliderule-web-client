@@ -170,9 +170,6 @@
 </template>
 
 <style scoped>
-.select-src {
-  margin-bottom: 0.25rem;
-}
 
 ::v-deep(.ol-overlaycontainer-stopevent) {
   position: relative;
@@ -268,6 +265,13 @@
   bottom: auto;
   left: 0.5rem;
   right: auto;
+  background-color: transparent;
+  border-radius: var(--border-radius);
+  color: white; 
+}
+
+::v-deep( .ol-control.sr-base-layer-control .select-src select ){
+  color: white;
   background-color: black;
   border-radius: var(--border-radius);
 }
