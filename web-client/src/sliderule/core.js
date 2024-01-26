@@ -335,7 +335,7 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
                         callbacks[rec_type](result);
                         if (!(rec_type in recs_cnt)) {
                           recs_cnt[rec_type] = 1;
-                          console.log('result:', result)
+                          //console.log('result:', result)
                         } else {
                           recs_cnt[rec_type]++;
                         }              

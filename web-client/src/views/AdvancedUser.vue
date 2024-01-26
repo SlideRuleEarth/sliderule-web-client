@@ -9,14 +9,18 @@
     import {useToast} from "primevue/usetoast";
     import { atl06p } from '@/sliderule/icesat2.js';
     import { init } from '@/sliderule/core.js';
+    import ProgressSpinner from 'primevue/progressspinner';
+    import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
+    const advancedModeStore = useAdvancedModeStore();
 
     const toast = useToast();
 
     const stepValue = ref(10);
+    const isLoading = ref(false);
 
     onMounted(() => {
-        console.log('AdvancedUser onMounted');
+        advancedModeStore.advanced = true;
         init({});
     });
 
@@ -39,6 +43,7 @@
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
+        isLoading.value = true; 
         atl06p(
             { "cnf": "atl03_high",
             "ats": 20.0,
@@ -70,7 +75,10 @@
                 detail: 'An error occurred while running SlideRule.', // A more detailed error message
                 life: 5000 // Adjust the duration as needed
             });
-        }));
+        }))
+        .finally(() => {
+            isLoading.value = false;
+        });
     };
 </script>
 
@@ -93,6 +101,9 @@
                             <div class="run-sr-button" >
                                 <Button label="Run SlideRule" @click="runSlideRuleClicked"></Button>
                             </div>
+                            <div class="run-sr-progress-spinner">
+                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" />
+                            </div>
                         </div>
                     </template>
                 </SrSideBar>
@@ -111,6 +122,13 @@
         flex-direction: column;
     }
     .run-sr-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        margin: 2rem;
+    }
+    .run-sr-progress-spinner {
         display: flex;
         align-items: center;
         justify-content: center;

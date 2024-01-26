@@ -2,6 +2,15 @@
 import SrSideBar from "@/components/SrSideBar.vue";
 import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
 import SrMap from "@/components/SrMap.vue";
+import { onMounted } from 'vue';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
+
+const advancedModeStore = useAdvancedModeStore();
+
+onMounted(() => {
+    advancedModeStore.advanced = false;
+});
+
 </script>
 
 <template>
