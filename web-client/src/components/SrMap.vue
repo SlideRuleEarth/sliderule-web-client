@@ -11,7 +11,7 @@
   import VectorSource from 'ol/source/Vector';
   import Geometry from 'ol/geom/Geometry';
   import Feature from 'ol/Feature';
-  //  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
+  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
@@ -19,24 +19,6 @@
   const mapParamsStore = useMapParamsStore();
   const controls = ref([]);
   const toast = useToast();
-
-  const baseLayers = ref([
-    {
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-      title: "Esri-World-Topo"
-    },
-    {
-      url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      title: "OpenStreet"
-    },
-    {
-      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-      title: "Google"
-    }
-  ]);
-
-  //console.log('Base Layer:', mapParamsStore.baseLayer);
-  //console.log('Available Base Layers:', baseLayers.value);
 
   function resolutionChanged(event: any) {
     if (event.target.getZoom() < 0.000002) {
@@ -84,8 +66,6 @@
   };
 
   onMounted(() => {
-    // mapParamsStore.addLayer(ahocevarLayer.value.tileLayer);
-    // mapParamsStore.addLayer(glimsLayer.value.tileLayer);
     const map = mapRef.value?.map;
     if(map){
       if(cap){
@@ -96,11 +76,7 @@
     } else {
       console.log("Error:map is null");
     }
-    //console.log("SrMap onMounted:", mapParamsStore.baseLayer.title);
-    if (!mapParamsStore.baseLayer) {
-      // Set default base layer if not already set
-      mapParamsStore.baseLayer = baseLayers.value[0];
-    }
+  
   });
 
   const handleDrawControlCreated = (drawControl: any) => {
@@ -112,25 +88,20 @@
       console.log("Error:map is null");
     }
   };
-
-  function updateBaseLayer(selectedTitle: string) {
-    //console.log("updateBaseLayer:", selectedTitle);
-    const layer = baseLayers.value.find(layer => layer.title === selectedTitle);
-    //console.log("updateBaseLayer layer:", layer);
-    if (layer) {
-      mapParamsStore.setBaseLayer(layer);
+  const handleBaseLayerControlCreated = (baseLayerControl: any) => {
+    //console.log(baseLayerControl);
+    const map = mapRef.value?.map;
+    if(map){
+      //console.log("adding baseLayerControl");
+      map.addControl(baseLayerControl);
+    } else {
+      console.log("Error:map is null");
     }
-  }
+  };
+
 </script>
 
 <template>
-  <form class="select-src">
-    <select @change="updateBaseLayer(($event.target as HTMLInputElement).value)" class="select-default">
-      <option v-for="layer in baseLayers" :value="layer.title" :key="layer.title">
-        {{ layer.title }}
-      </option>
-    </select>
-  </form>
 
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
@@ -170,7 +141,7 @@
 
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
-    <!-- <SrBaseLayerControl @selectControlCreated="handleBaseLayerControlCreated" /> -->
+    <SrBaseLayerControl @baseLayerControlCreated="handleBaseLayerControlCreated" />
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
@@ -217,7 +188,7 @@
 }
 
 ::v-deep( .ol-control.ol-layerswitcher ){
-  top: 2.5rem;
+  top: 5.5rem;
   bottom: auto;
   left: 0.5em;
   right: auto;
@@ -242,7 +213,7 @@
 ::v-deep( .panel-container .ol-layerswitcher-buttons ){
   background-color: transparent;
 }
-::v-deep( .layerup.ol-noscroll){
+::v-deep(.layerup.ol-noscroll){
   border-radius: 3px;
   background-color: var(--primary-color);
 }
@@ -292,8 +263,17 @@
   background-color: var(--primary-600);
 }
 
-::v-deep( .ol-control.ol-wmscapabilities  ) {
+::v-deep( .ol-control.sr-base-layer-control ){
   top: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  right: auto;
+  background-color: black;
+  border-radius: var(--border-radius);
+}
+
+::v-deep( .ol-control.ol-wmscapabilities  ) {
+  top: 2.5rem;
   bottom: auto;
   left: 0.5rem;
   right: auto;
@@ -330,7 +310,6 @@
   background-color: black;
   border-radius: var(--border-radius);
 }
-
 
 ::v-deep(.ol-mouse-position) {
   color: var(--primary-color);
