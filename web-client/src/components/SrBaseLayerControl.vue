@@ -2,25 +2,15 @@
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref,onMounted } from "vue";
   import { Control } from 'ol/control';
-  
-  const baseLayerControlElement = ref(null);
-  const mapParamsStore = useMapParamsStore();
-  const baseLayers = ref([
-    {
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-      title: "Esri-World-Topo"
-    },
-    {
-      url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      title: "OpenStreet"
-    },
-    {
-      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-      title: "Google"
-    }
-  ]);
+  import { baseLayers } from '@/composables/SrBaseLayers.js';
 
-  const emit = defineEmits(['baseLayerControlCreated', 'baseLayerChanged']);
+
+
+  const baseLayerControlElement = ref(null);
+
+  const mapParamsStore = useMapParamsStore();
+
+  const emit = defineEmits(['baseLayerControlCreated', 'updateBaseLayer']);
 
   onMounted(() => {
     //console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
@@ -35,27 +25,44 @@
     }
   });
   
-
   function updateBaseLayer(selectedTitle: string) {
-    //console.log("updateBaseLayer:", selectedTitle);
+    console.log("updateBaseLayer:", selectedTitle);
     const layer = baseLayers.value.find(layer => layer.title === selectedTitle);
     //console.log("updateBaseLayer layer:", layer);
     if (layer) {
       mapParamsStore.setBaseLayer(layer);
-      //emit('baseLayerChanged', layer.title);
+      emit('updateBaseLayer', layer);
+      console.log("updateBaseLayer mapParamsStore.baseLayer:", mapParamsStore.baseLayer);
     }
   }
 </script>
 
 <template>
   <div ref="baseLayerControlElement" class="sr-base-layer-control ol-unselectable ol-control">
-    <form class="select-src">
+    <form class="select-baselayer">
       <select @change="updateBaseLayer(($event.target as HTMLInputElement).value)" class="select-default">
         <option v-for="layer in baseLayers" :value="layer.title" :key="layer.title">
           {{ layer.title }}
         </option>
       </select>
+      <span class="sr-base-layer-control-attribution">{{ mapParamsStore.baseLayer.attribution }}</span>
     </form>
   </div>
 
 </template>
+
+<style scoped>
+
+  .ol-control.sr-base-layer-control .select-src select {
+    color: var(--primary-color);
+    background-color: black;
+    border-radius: var(--border-radius);
+  }
+
+  .sr-base-layer-control-attribution {
+    color: var(--primary-color); 
+    margin: 0.5em;
+    padding: 0.5em;
+    background-color:transparent;
+  }
+</style>

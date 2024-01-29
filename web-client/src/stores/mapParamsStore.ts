@@ -1,36 +1,34 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import { OSM, XYZ } from 'ol/source';
+import { Map } from 'ol';
 import TileLayer from 'ol/layer/Tile.js';
+import type { SrBaseLayer } from '@/composables/SrBaseLayers.js';
+import { baseLayers } from '@/composables/SrBaseLayers.js';
 type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
-interface BaseLayer {
-  title: string;
-  url: string;
-}
+
+
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
+    map: null as Map | null,
     center: [-108, 39],
     projection: "EPSG:4326",
     zoom: 12,
     rotation: 0,
-    baseLayer: { 
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", 
-      title: "World Topo Map" 
-    } as BaseLayer,
+    baseLayer: baseLayers.value[0] as SrBaseLayer,
     drawEnabled: false,
     drawType: 'undefined',
     layerList: <AnyTileLayer[]>([])
   }),
   actions:{
+    setMap(newMap: Map) {
+      this.map = newMap;
+    },
     resetMap() {
       this.center = [-108, 39];
       this.projection = 'EPSG:4326';
       this.zoom = 12;
       this.rotation = 0;
-      this.baseLayer= {
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-        title: "World Topo Map"
-      }
+      this.baseLayer=baseLayers.value[0] as SrBaseLayer,
       this.drawEnabled = false;
       this.drawType = 'undefined';
     },
@@ -47,7 +45,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       console.log('addLayer', l);
       this.layerList.push(l);
     },
-    setBaseLayer(layer: BaseLayer) {
+    setBaseLayer(layer: SrBaseLayer) {
       this.baseLayer = layer;
     }
   },

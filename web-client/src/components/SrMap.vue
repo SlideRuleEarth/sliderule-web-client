@@ -267,14 +267,10 @@
   right: auto;
   background-color: transparent;
   border-radius: var(--border-radius);
-  color: white; 
+  color: white;
+  max-width: 30rem; 
 }
 
-::v-deep( .ol-control.sr-base-layer-control .select-src select ){
-  color: white;
-  background-color: black;
-  border-radius: var(--border-radius);
-}
 
 ::v-deep( .ol-control.ol-wmscapabilities  ) {
   top: 2.5rem;
@@ -316,12 +312,12 @@
 }
 
 ::v-deep(.ol-mouse-position) {
-  color: var(--primary-color);
-  top: 0.5rem; 
-  right: auto; /* Override the default positioning */
-  left: 50%; /* Center align */
+  bottom: 0.5rem; /* Position from the bottom */
+  left: 50%; /* Center align horizontally */
+  right: auto; /* Reset right positioning */
+  top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
-
+  color: var(--primary-color);
 }
 
 ::v-deep(.ol-zoom .ol-zoom-in) {
