@@ -53,8 +53,8 @@
 
 <style scoped>
 
-  .ol-control.sr-base-layer-control .select-src select {
-    color: var(--primary-color);
+  .ol-control.sr-base-layer-control .select-baselayer select {
+    color: white;
     background-color: black;
     border-radius: var(--border-radius);
   }

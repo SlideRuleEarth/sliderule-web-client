@@ -4,6 +4,9 @@ import { Map } from 'ol';
 import TileLayer from 'ol/layer/Tile.js';
 import type { SrBaseLayer } from '@/composables/SrBaseLayers.js';
 import { baseLayers } from '@/composables/SrBaseLayers.js';
+import type { SrProjection } from '@/composables/SrProjections';
+import { projections } from '@/composables/SrProjections';
+
 type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
 
 
@@ -11,7 +14,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
     map: null as Map | null,
     center: [-108, 39],
-    projection: "EPSG:4326",
+    projection: projections.value[0] as SrProjection,
     zoom: 12,
     rotation: 0,
     baseLayer: baseLayers.value[0] as SrBaseLayer,
@@ -24,8 +27,8 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.map = newMap;
     },
     resetMap() {
-      this.center = [-108, 39];
-      this.projection = 'EPSG:4326';
+      this.projection = projections.value[0] as SrProjection;
+      this.center = projections.value[0].default_center;
       this.zoom = 12;
       this.rotation = 0;
       this.baseLayer=baseLayers.value[0] as SrBaseLayer,
@@ -47,6 +50,11 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     setBaseLayer(layer: SrBaseLayer) {
       this.baseLayer = layer;
-    }
+    },
+    setProjection(proj: SrProjection) {
+      this.projection = proj;
+      this.center = proj.default_center;
+      this.zoom = proj.default_zoom || 12;
+    },
   },
 });

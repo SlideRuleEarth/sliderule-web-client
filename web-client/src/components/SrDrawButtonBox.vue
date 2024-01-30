@@ -1,6 +1,7 @@
 <template>
 <div class="sr-draw-button-box">
       <SrRadioButton
+        name="drawButtonBoxPoly"
         class="sr-draw-poly-button"
         v-model="picked"
         value="Polygon"
@@ -10,6 +11,7 @@
       />
       <span class="sr-button-box-divider"></span>
       <SrRadioButton
+        name="drawButtonBoxBox"
         class="sr-draw-box-button"
         v-model="picked"
         value="Box"
@@ -18,6 +20,7 @@
         tooltipText="Draw a Rectangle"
       />
       <SrRadioButton
+        name="drawButtonBoxTrashCan"
         class="sr-draw-trashcan-button"
         v-model="picked"
         value="TrashCan"

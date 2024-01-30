@@ -4,6 +4,7 @@
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref, onMounted } from "vue";
   import type Map from "ol/Map.js";
+  import View from "ol/View.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import {useToast} from "primevue/usetoast";
@@ -12,6 +13,11 @@
   import Geometry from 'ol/geom/Geometry';
   import Feature from 'ol/Feature';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
+  import SrProjectionControl from "./SrProjectionControl.vue";
+  import { SrProjection } from "@/composables/SrProjections";
+  import {get as getProjection, getTransform} from 'ol/proj.js';
+  import {applyTransform} from 'ol/extent.js';
+
 
   const stringifyFunc = createStringXY(4);
   const {cap} = useWmsCap();
@@ -19,21 +25,6 @@
   const mapParamsStore = useMapParamsStore();
   const controls = ref([]);
   const toast = useToast();
-
-  function resolutionChanged(event: any) {
-    if (event.target.getZoom() < 0.000002) {
-      mapParamsStore.setZoom(0.000002);
-    } else {
-      mapParamsStore.setZoom(event.target.getZoom());
-    }
-    mapParamsStore.setZoom(event.target.getZoom());
-  }
-  function centerChanged(event: any) {
-    mapParamsStore.setCenter(event.target.getCenter());
-  }
-  function rotationChanged(event: any) {
-    mapParamsStore.setRotation(event.target.getRotation());
-  }
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -76,7 +67,6 @@
     } else {
       console.log("Error:map is null");
     }
-  
   });
 
   const handleDrawControlCreated = (drawControl: any) => {
@@ -88,6 +78,7 @@
       console.log("Error:map is null");
     }
   };
+
   const handleBaseLayerControlCreated = (baseLayerControl: any) => {
     //console.log(baseLayerControl);
     const map = mapRef.value?.map;
@@ -99,6 +90,56 @@
     }
   };
 
+  const handleProjectionControlCreated = (projectionControl: any) => {
+    //console.log(projectionControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding projectionControl");
+      map.addControl(projectionControl);
+    } else {
+      console.log("Error:map is null");
+    }
+  };
+
+  const handleUpdateProjection = (projection: SrProjection) => {
+    console.log("Map handleUpdateProjection:",projection);
+    const oldProj = getProjection(mapParamsStore.projection.name);
+
+    const newProj = getProjection(projection.name);
+    if (newProj && oldProj) {
+
+      const fromLonLat = getTransform('EPSG:4326', newProj);
+      //const fromLonLat = getTransform(oldProj, newProj);
+      if (projection.bbox){
+        let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
+        newProj.setWorldExtent(worldExtent);
+        // approximate calculation of projection extent,
+        // checking if the world extent crosses the dateline
+        if (projection.bbox[1] > projection.bbox[3]) {
+          worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
+        }
+        const extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
+        newProj.setExtent(extent);
+        const newView = new View({
+            projection: newProj,
+        });
+        const map = mapRef.value?.map;
+        if(map){
+          map.setView(newView);
+          newView.fit(extent);
+          console.log("Map handleUpdateProjection newView:",newView);
+        } else {
+          console.log("Error:map is null");
+        }
+      } else {
+        console.log("Error: invalid projection bbox:",projection.bbox);
+      }
+    } else {
+      console.log("Error: invalid projection name:",projection.name);
+    }
+    mapParamsStore.projection = projection;
+};
+
 </script>
 
 <template>
@@ -109,17 +150,6 @@
     style="height: 800px; border-radius: 15px; overflow: hidden;"
     :controls="controls"
   >
-    <ol-view
-      ref="view"
-      :center="mapParamsStore.center"
-      :projection="mapParamsStore.projection"
-      :zoom="mapParamsStore.zoom"
-      :rotation="mapParamsStore.rotation"
-      @change:center="centerChanged"
-      @change:resolution="resolutionChanged"
-      @change:rotation="rotationChanged"
-    />
-
     <ol-layerswitcher-control 
       :selection="true"
       :displayInLayerSwitcher="true"
@@ -129,7 +159,7 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref="base" title="base layer">
+    <ol-tile-layer ref="base" :title="mapParamsStore.baseLayer.title">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
 
@@ -141,6 +171,7 @@
 
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
+    <SrProjectionControl @projectionControlCreated="handleProjectionControlCreated" @updateProjection="handleUpdateProjection"/>
     <SrBaseLayerControl @baseLayerControlCreated="handleBaseLayerControlCreated" />
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
@@ -255,12 +286,7 @@
   border-radius: var(--border-radius);
 }
 
-::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
-  color: white;
-  background-color: var(--primary-600);
-}
-
-::v-deep( .ol-control.sr-base-layer-control ){
+::v-deep( .ol-control.sr-projection-control ){
   top: 0.5rem;
   bottom: auto;
   left: 0.5rem;
@@ -271,9 +297,23 @@
   max-width: 30rem; 
 }
 
+::v-deep( .ol-control.sr-base-layer-control ){
+  top: 0.5rem;
+  bottom: auto;
+  right: auto;
+  left: 17.5rem;
+  background-color: transparent;
+  border-radius: var(--border-radius);
+  color: white;
+  max-width: 30rem; 
+}
+::v-deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
+  color: white;
+  background-color: var(--primary-600);
+}
 
 ::v-deep( .ol-control.ol-wmscapabilities  ) {
-  top: 2.5rem;
+  top: 8.5rem;
   bottom: auto;
   left: 0.5rem;
   right: auto;
