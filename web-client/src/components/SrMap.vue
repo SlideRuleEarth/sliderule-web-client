@@ -94,7 +94,7 @@
     //console.log(projectionControl);
     const map = mapRef.value?.map;
     if(map){
-      console.log("adding projectionControl");
+      //console.log("adding projectionControl");
       map.addControl(projectionControl);
     } else {
       console.log("Error:map is null");
@@ -102,7 +102,7 @@
   };
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    console.log("Map handleUpdateProjection:",projection);
+    //console.log("Map handleUpdateProjection:",projection);
     const oldProj = getProjection(mapParamsStore.projection.name);
 
     const newProj = getProjection(projection.name);
@@ -127,7 +127,7 @@
         if(map){
           map.setView(newView);
           newView.fit(extent);
-          console.log("Map handleUpdateProjection newView:",newView);
+          //console.log("Map handleUpdateProjection newView:",newView);
         } else {
           console.log("Error:map is null");
         }

@@ -20,7 +20,7 @@
         //console.log("SrProjectionControl onMounted customControl:", customControl);
         }
         projections.value.forEach(projection => {
-            console.log(`Title: ${projection.title}, Name: ${projection.name}`);
+            //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
@@ -32,13 +32,13 @@
     });
     
     function updateProjection(selectedLabel: string) {
-        console.log("updateProjection:", selectedLabel);
+        //console.log("updateProjection:", selectedLabel);
         const projection = projections.value.find(projection => projection.label === selectedLabel);
         //console.log("updateProjection layer:", layer);
         if (projection) {
             mapParamsStore.setProjection(projection);
             emit('updateProjection', projection);
-            console.log("updateProjection mapParamsStore.projection:", mapParamsStore.projection);
+            //console.log("updateProjection mapParamsStore.projection:", mapParamsStore.projection);
         }
     }
 </script>
