@@ -1,7 +1,7 @@
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 
 export function useWmsCap() {
-    const cap = new ol_control_WMSCapabilities({
+    const wms_capabilities_cntrl= new ol_control_WMSCapabilities({
         srs: ['EPSG:2154'],
         cors: true,
         optional: 'token',
@@ -11,5 +11,5 @@ export function useWmsCap() {
         },
         trace: true
     });
-    return { cap };
+    return { wms_capabilities_cntrl};
 }

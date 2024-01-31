@@ -25,6 +25,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
   actions:{
     setMap(newMap: Map) {
       this.map = newMap;
+      console.log('setMap', this.map);
     },
     resetMap() {
       this.projection = projections.value[0] as SrProjection;

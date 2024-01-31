@@ -20,7 +20,7 @@
 
 
   const stringifyFunc = createStringXY(4);
-  const {cap} = useWmsCap();
+  const {wms_capabilities_cntrl} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const controls = ref([]);
@@ -57,12 +57,16 @@
   };
 
   onMounted(() => {
-    const map = mapRef.value?.map;
-    if(map){
-      if(cap){
-        map.addControl(cap);
+    if (mapRef.value?.map) {
+      mapParamsStore.setMap(mapRef.value?.map);
+      if(mapParamsStore.map){
+        if(wms_capabilities_cntrl){
+          mapParamsStore.map.addControl(wms_capabilities_cntrl);
+        } else {
+          console.log("Error:wms_capabilities_cntrl null");
+        }
       } else {
-        console.log("Error:cap is null");
+        console.log("Error:map is null");
       }
     } else {
       console.log("Error:map is null");

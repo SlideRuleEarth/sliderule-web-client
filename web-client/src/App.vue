@@ -33,7 +33,7 @@ const popularButtonClick = () => {
 };
 
 const aboutButtonClick = () => {
-  // console.log('aboutButtonClick');
+  // console.log('about-button-click');
   toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed', life: 3000 });
   router.push('/about');
 };
@@ -43,11 +43,11 @@ const aboutButtonClick = () => {
   <Toast />
   <header>
     <SrAppBar 
-      @logoClick="logoClick"
-      @searchButtonClick="searchButtonClick"
-      @toolButtonClick="toolButtonClick"
-      @popularButtonClick="popularButtonClick"
-      @aboutButtonClick="aboutButtonClick"
+      @logo-click="logoClick"
+      @search-button-click="searchButtonClick"
+      @tool-button-click="toolButtonClick"
+      @popular-button-click="popularButtonClick"
+      @about-button-click="aboutButtonClick"
     />
   </header>
   <RouterView />

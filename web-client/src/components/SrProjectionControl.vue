@@ -49,7 +49,6 @@
       <select @change="updateProjection(($event.target as HTMLInputElement).value)" class="select-default-projection">
         <option v-for="projection in projections" :value="projection.label" :key="projection.label">
           {{ projection.label }}
-
         </option>
       </select>
     </form>

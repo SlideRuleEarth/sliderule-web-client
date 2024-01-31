@@ -4,22 +4,22 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 
 const searchText = ref('');
-const emits = defineEmits(['logoClick','searchButtonClick','toolButtonClick','popularButtonClick','aboutButtonClick']);
+const emit = defineEmits(['logo-click','search-button-click','tool-button-click','popular-button-click','about-button-click']);
 
 const handleLogoClick = () => {
-  emits('logoClick');
+  emit('logo-click');
 };
 const handleSearchButtonClick = () => {
-  emits('searchButtonClick',searchText.value);
+  emit('search-button-click',searchText.value);
 };
 const handleToolButtonClick = () => {
-  emits('toolButtonClick');
+  emit('tool-button-click');
 };
 const handlePopularButtonClick = () => {
-  emits('popularButtonClick');
+  emit('popular-button-click');
 };
 const handleAboutButtonClick = () => {
-  emits('aboutButtonClick');
+  emit('about-button-click');
 };
 
 </script>
