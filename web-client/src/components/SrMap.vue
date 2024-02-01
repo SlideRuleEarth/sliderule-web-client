@@ -20,7 +20,9 @@
   import 'ol/ol.css'; 
   import 'ol-geocoder/dist/ol-geocoder.min.css';
   import { useMapStore } from "@/stores/mapStore";
-
+  import { useGeoCoderStore } from '@/stores/geoCoderStore';
+  
+  const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
   const {wms_capabilities_cntrl} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
@@ -61,26 +63,60 @@
     }
   };
 
-
-
+  // Define a function to handle the addresschosen event
+  function onAddressChosen(evt: any) {
+    //console.log(evt);
+    // Zoom to the selected location
+    const map = mapStore.getMap();
+    if(map){
+        const view = map.getView();
+        if (view) {
+            view.animate({
+                center: evt.coordinate,
+                duration: 1000,
+                zoom: 10,
+            });
+        } else {
+            console.error('View is not defined');
+        }
+    } else {
+        console.error('Map is not defined');
+    }
+  }
 
   onMounted(() => {
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
+      const map = mapStore.getMap();
+      if(map){
+        if(wms_capabilities_cntrl){
+          map.addControl(wms_capabilities_cntrl);
+        } else {
+          console.log("Error:wms_capabilities_cntrl null");
+        }
+        if(!geoCoderStore.isInitialized()){
+          console.log("Initializing geocoder");
+          geoCoderStore.initGeocoder({
+            provider: 'osm',
+            lang: 'en',
+            placeholder: 'Search for ...',
+            targetType: 'glass-button',
+            limit: 5,
+            keepOpen: false,
+          });
+        }
+        const geocoder = geoCoderStore.getGeocoder()
 
-      const map = mapRef.value.map;
-      if(wms_capabilities_cntrl){
-        map.addControl(wms_capabilities_cntrl);
+        if(geocoder){       
+          map.addControl(geocoder);
+          geocoder.on('addresschosen', onAddressChosen); 
+        } else {
+          console.log("Error:geocoder is null?");
+        }
       } else {
-        console.log("Error:wms_capabilities_cntrl null");
-      }
-
-      //map.addControl(geocoder);
-
-
-    } else {
-      console.log("Error:map is null");
-    } 
+        console.log("Error:map is null");
+      } 
+    }
   });
 
   const handleDrawControlCreated = (drawControl: any) => {
@@ -136,6 +172,7 @@
         newProj.setExtent(extent);
         const newView = new View({
             projection: newProj,
+            constrainResolution: true,
         });
         const map = mapRef.value?.map;
         if(map){

@@ -1,11 +1,7 @@
 <script setup lang="ts">
 
     import Button from 'primevue/button';
-    import { onMounted, ref, Ref } from 'vue';
-    import { useMapStore } from '@/stores/mapStore';
-    import Geocoder from 'ol-geocoder';
-
-    const mapStore = useMapStore();
+    import { Ref,ref } from 'vue';
 
     const geocoderContainer: Ref<HTMLElement | null> = ref(null);
 
@@ -24,51 +20,13 @@
     emit('about-button-click');
     };
 
-    // Define a function to handle the addresschosen event
-    function onAddressChosen(evt: any) {
-        //console.log(evt);
-        // Zoom to the selected location
-        const map = mapStore.getMap();
-        if(map){
-            const view = map.getView();
-            if (view) {
-                view.animate({
-                    center: evt.coordinate,
-                    duration: 1000,
-                    zoom: 10,
-                });
-            } else {
-                console.error('View is not defined');
-            }
-        } else {
-            console.error('Map is not defined');
-        }
-    }
-    onMounted(() => {
-        // Initialize ol-geocoder
-        const geocoder = new Geocoder('nominatim', {
-        provider: 'osm',
-        lang: 'en',
-        placeholder: 'Search for ...',
-        targetType: 'glass-button',
-        limit: 5,
-        keepOpen: false,
-        });    
-        // Listen to geocoder events, e.g., address chosen
-        geocoder.on('addresschosen', onAddressChosen);
-
-        if (geocoderContainer.value) {
-            geocoderContainer.value.appendChild(geocoder.element);
-        }
-    });
-
 </script>
 
 <template>
     <div class="container">
         <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
         <div class="center-content">
-            <div ref="geocoderContainer">
+            <div ref="geocoderContainer" class="geocoder">
             </div>
         </div>
         <div class="right-content">
@@ -91,6 +49,16 @@
         align-items: center;
     }
     
+    .ol-geocoder {
+        display: flex;
+        align-items: center;
+        background-color: red;        
+    }
+
+    .gcd-gl-container {
+        width: 100%;
+    }
+
     .right-content {
         display: flex;
         align-items: right;
