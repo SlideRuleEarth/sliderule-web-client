@@ -50,7 +50,12 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     setProjection(proj: SrProjection) {
       this.projection = proj;
       this.center = proj.default_center;
+      //console.log('proj.default_zoom:', proj.default_zoom);
       this.zoom = proj.default_zoom || 12;
+      //console.log('this.zoom:', this.zoom);
     },
+    getZoom() {
+      return this.zoom;
+    }
   },
 });

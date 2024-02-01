@@ -28,6 +28,7 @@
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
+  const currentZoom = ref(0); // Define a reactive reference for the current zoom level
 
   const controls = ref([]);
   const toast = useToast();
@@ -83,6 +84,13 @@
         console.error('Map is not defined');
     }
   }
+  function onResolutionChange(){
+    //console.log("onResolutionChange:",event);
+    const newZoom = mapRef.value?.map.getView().getZoom();
+    if (newZoom !== undefined) {
+      currentZoom.value = newZoom;
+    }     
+  };
 
   onMounted(() => {
     if (mapRef.value?.map) {
@@ -95,7 +103,7 @@
           console.log("Error:wms_capabilities_cntrl null");
         }
         if(!geoCoderStore.isInitialized()){
-          console.log("Initializing geocoder");
+          //console.log("Initializing geocoder");
           geoCoderStore.initGeoCoder({
             provider: 'osm',
             lang: 'en',
@@ -114,6 +122,12 @@
         } else {
           console.log("Error:geocoder is null?");
         }
+        const initialZoom = map.getView().getZoom();
+        if (initialZoom !== undefined) {
+          currentZoom.value = initialZoom;
+        }
+        // Watch for changes in the zoom level
+        map.getView().on('change:resolution', onResolutionChange);
       } else {
         console.log("Error:map is null");
       } 
@@ -180,6 +194,15 @@
           map.setView(newView);
           newView.fit(extent);
           //console.log("Map handleUpdateProjection newView:",newView);
+          // Watch for changes in the zoom level
+
+          map.getView().on('change:resolution', onResolutionChange);
+          let z = projection.default_zoom 
+          if (z !== undefined){
+            map.getView().setZoom(z);
+          } else {
+            console.log("Error:default_zoom is undefined");
+          }
         } else {
           console.log("Error:map is null");
         }
@@ -195,7 +218,9 @@
 </script>
 
 <template>
-
+  <div class="current-zoom">
+    {{  currentZoom }}
+  </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
@@ -454,4 +479,18 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
+.current-zoom {
+  position: absolute;
+  top: 2.25rem;
+  right: 1.5rem;
+  background-color: transparent;
+  color: var(--primary-color);
+  border-radius: var(--border-radius);
+  border-color: white;
+  padding: 0.0rem;
+  margin-top: 6px;
+  margin-bottom: -2px;
+
+  font-size: 0.75rem;
+}
 </style>
