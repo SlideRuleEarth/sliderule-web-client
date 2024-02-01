@@ -3,7 +3,7 @@
     import Button from 'primevue/button';
     import { Ref,ref } from 'vue';
 
-    const geocoderContainer: Ref<HTMLElement | null> = ref(null);
+    const geoCoderContainer: Ref<HTMLElement | null> = ref(null);
 
     const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','about-button-click']);
 
@@ -26,7 +26,7 @@
     <div class="container">
         <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
         <div class="center-content">
-            <div ref="geocoderContainer" class="geocoder">
+            <div ref="geoCoderContainer" class="geocoder">
             </div>
         </div>
         <div class="right-content">

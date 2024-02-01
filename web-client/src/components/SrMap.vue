@@ -96,16 +96,17 @@
         }
         if(!geoCoderStore.isInitialized()){
           console.log("Initializing geocoder");
-          geoCoderStore.initGeocoder({
+          geoCoderStore.initGeoCoder({
             provider: 'osm',
             lang: 'en',
             placeholder: 'Search for ...',
             targetType: 'glass-button',
             limit: 5,
             keepOpen: false,
+            //target: 'geoCoderContainer'
           });
         }
-        const geocoder = geoCoderStore.getGeocoder()
+        const geocoder = geoCoderStore.getGeoCoder()
 
         if(geocoder){       
           map.addControl(geocoder);
@@ -267,11 +268,11 @@
 }
 
 ::v-deep( .ol-control.ol-layerswitcher ){
-  top: 5.5rem;
+  top: 0.25rem;
   bottom: auto;
-  left: 0.5em;
+  left: 4.55em;
   right: auto;
-  background-color: black;
+  background-color: transparent;
   border-radius: var(--border-radius);
   border: 1px ;
 
@@ -337,10 +338,26 @@
   border-radius: var(--border-radius);
 }
 
-::v-deep( .ol-control.sr-projection-control ){
+::v-deep(.ol-geocoder){
   top: 0.5rem;
   bottom: auto;
   left: 0.5rem;
+  right: auto;
+  background-color: black;
+  border-radius: var(--border-radius);
+  color: white;
+  max-width: 30rem; 
+}
+
+::v-deep(.gcd-gl-control){
+  background-color: transparent;
+  border-radius: var(--border-radius);
+}
+
+::v-deep( .ol-control.sr-projection-control ){
+  top: 0.55rem;
+  bottom: auto;
+  left: 7.0rem;
   right: auto;
   background-color: transparent;
   border-radius: var(--border-radius);
@@ -349,10 +366,10 @@
 }
 
 ::v-deep( .ol-control.sr-base-layer-control ){
-  top: 0.5rem;
+  top: 0.55rem;
   bottom: auto;
   right: auto;
-  left: 17.5rem;
+  left: 11.5rem;
   background-color: transparent;
   border-radius: var(--border-radius);
   color: white;
@@ -364,13 +381,13 @@
 }
 
 ::v-deep( .ol-control.ol-wmscapabilities  ) {
-  top: 8.5rem;
+  top: 0.5rem;
   bottom: auto;
-  left: 0.5rem;
+  left: 3.0rem;
   right: auto;
-  background-color: black;
+  background-color: transparent;
   border-radius: var(--border-radius);
-  padding: 0.475rem;
+  padding: 0.125rem;
   border: 1px ;
 }
 ::v-deep(.ol-wmscapabilities .ol-url button){

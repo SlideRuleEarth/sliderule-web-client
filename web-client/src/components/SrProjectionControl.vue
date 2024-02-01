@@ -5,6 +5,7 @@
     import { projections } from '@/composables/SrProjections.js';
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
+    import SrProjectionButtonBox from "./SrProjectionButtonBox.vue";
 
     const projectionControlElement = ref(null);
 
@@ -15,9 +16,9 @@
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         if (projectionControlElement.value) {
-        const customControl = new Control({ element: projectionControlElement.value });
-        emit('projectionControlCreated', customControl);
-        //console.log("SrProjectionControl onMounted customControl:", customControl);
+          const customControl = new Control({ element: projectionControlElement.value });
+          emit('projectionControlCreated', customControl);
+          //console.log("SrProjectionControl onMounted customControl:", customControl);
         }
         projections.value.forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -52,6 +53,7 @@
         </option>
       </select>
     </form>
+    <!-- <SrProjectionButtonBox /> -->
   </div>
 
 </template>
@@ -64,10 +66,12 @@
     border-radius: var(--border-radius);
   }
 
-  .sr-projection-control-attribution {
-    color: var(--primary-color); 
-    margin: 0.5em;
-    padding: 0.5em;
-    background-color:transparent;
+  .sr-projection-control .sr-projection-button-box {
+    display: flex; /* Aligns children (input and icon) in a row */
+    flex-direction: row; /* Stack children horizonally */
+    align-items: center; /* Centers children vertically */
+    justify-content: center; /* Centers children horizontally */
+    margin: 0px;
   }
+  
 </style>

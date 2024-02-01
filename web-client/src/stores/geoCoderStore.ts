@@ -9,12 +9,12 @@ export const useGeoCoderStore = defineStore('geocoder', {
   }),
   actions: {
     // Method to initialize and set the geocoder instance
-    initGeocoder(options:any) {
+    initGeoCoder(options:any) {
       // @ts-ignore
       this.geocoder = new Geocoder('nominatim', options);
     },
     // Method to get the geocoder instance
-    getGeocoder() {
+    getGeoCoder() {
       return this.geocoder;
     },
     isInitialized() {
