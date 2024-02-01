@@ -1,26 +1,66 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
 
-const searchText = ref('');
-const emit = defineEmits(['logo-click','search-button-click','tool-button-click','popular-button-click','about-button-click']);
+    import Button from 'primevue/button';
+    import { onMounted, ref, Ref } from 'vue';
+    import { useMapStore } from '@/stores/mapStore';
+    import Geocoder from 'ol-geocoder';
 
-const handleLogoClick = () => {
-  emit('logo-click');
-};
-const handleSearchButtonClick = () => {
-  emit('search-button-click',searchText.value);
-};
-const handleToolButtonClick = () => {
-  emit('tool-button-click');
-};
-const handlePopularButtonClick = () => {
-  emit('popular-button-click');
-};
-const handleAboutButtonClick = () => {
-  emit('about-button-click');
-};
+    const mapStore = useMapStore();
+
+    const geocoderContainer: Ref<HTMLElement | null> = ref(null);
+
+    const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','about-button-click']);
+
+    const handleLogoClick = () => {
+    emit('logo-click');
+    };
+    const handleToolButtonClick = () => {
+    emit('tool-button-click');
+    };
+    const handlePopularButtonClick = () => {
+    emit('popular-button-click');
+    };
+    const handleAboutButtonClick = () => {
+    emit('about-button-click');
+    };
+
+    // Define a function to handle the addresschosen event
+    function onAddressChosen(evt: any) {
+        //console.log(evt);
+        // Zoom to the selected location
+        const map = mapStore.getMap();
+        if(map){
+            const view = map.getView();
+            if (view) {
+                view.animate({
+                    center: evt.coordinate,
+                    duration: 1000,
+                    zoom: 10,
+                });
+            } else {
+                console.error('View is not defined');
+            }
+        } else {
+            console.error('Map is not defined');
+        }
+    }
+    onMounted(() => {
+        // Initialize ol-geocoder
+        const geocoder = new Geocoder('nominatim', {
+        provider: 'osm',
+        lang: 'en',
+        placeholder: 'Search for ...',
+        targetType: 'glass-button',
+        limit: 5,
+        keepOpen: false,
+        });    
+        // Listen to geocoder events, e.g., address chosen
+        geocoder.on('addresschosen', onAddressChosen);
+
+        if (geocoderContainer.value) {
+            geocoderContainer.value.appendChild(geocoder.element);
+        }
+    });
 
 </script>
 
@@ -28,8 +68,8 @@ const handleAboutButtonClick = () => {
     <div class="container">
         <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
         <div class="center-content">
-            <Button icon="pi pi-search" class="p-button-rounded p-button-text" @click="handleSearchButtonClick" />
-            <InputText v-model="searchText" placeholder="Search Location, coordinates and more" class="responsive-input" />
+            <div ref="geocoderContainer">
+            </div>
         </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick" />
@@ -37,7 +77,7 @@ const handleAboutButtonClick = () => {
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick" />
         </div>
     </div>
-  </template>
+</template>
   
 <style scoped>
     .container {

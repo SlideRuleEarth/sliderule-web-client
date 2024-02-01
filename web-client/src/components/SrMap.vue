@@ -17,12 +17,16 @@
   import { SrProjection } from "@/composables/SrProjections";
   import {get as getProjection, getTransform} from 'ol/proj.js';
   import {applyTransform} from 'ol/extent.js';
-
+  import 'ol/ol.css'; 
+  import 'ol-geocoder/dist/ol-geocoder.min.css';
+  import { useMapStore } from "@/stores/mapStore";
 
   const stringifyFunc = createStringXY(4);
   const {wms_capabilities_cntrl} = useWmsCap();
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
+  const mapStore = useMapStore();
+
   const controls = ref([]);
   const toast = useToast();
 
@@ -43,6 +47,7 @@
       console.log("Clearing drawing layer");
       // Access the vector layer's source and clear it
       const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('title') === 'drawing layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+      console.log("vectorLayer:",vectorLayer);  
       if (vectorLayer) {
         toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
 
@@ -56,21 +61,26 @@
     }
   };
 
+
+
+
   onMounted(() => {
     if (mapRef.value?.map) {
-      mapParamsStore.setMap(mapRef.value?.map);
-      if(mapParamsStore.map){
-        if(wms_capabilities_cntrl){
-          mapParamsStore.map.addControl(wms_capabilities_cntrl);
-        } else {
-          console.log("Error:wms_capabilities_cntrl null");
-        }
+      mapStore.setMap(mapRef.value?.map);
+
+      const map = mapRef.value.map;
+      if(wms_capabilities_cntrl){
+        map.addControl(wms_capabilities_cntrl);
       } else {
-        console.log("Error:map is null");
+        console.log("Error:wms_capabilities_cntrl null");
       }
+
+      //map.addControl(geocoder);
+
+
     } else {
       console.log("Error:map is null");
-    }
+    } 
   });
 
   const handleDrawControlCreated = (drawControl: any) => {

@@ -12,7 +12,6 @@ type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
-    map: null as Map | null,
     center: [-108, 39],
     projection: projections.value[0] as SrProjection,
     zoom: 12,
@@ -23,10 +22,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     layerList: <AnyTileLayer[]>([])
   }),
   actions:{
-    setMap(newMap: Map) {
-      this.map = newMap;
-      console.log('setMap', this.map);
-    },
     resetMap() {
       this.projection = projections.value[0] as SrProjection;
       this.center = projections.value[0].default_center;
