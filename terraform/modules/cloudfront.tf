@@ -24,7 +24,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://server.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net ; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.testsliderule.org https://nominatim.openstreetmap.org;"
+      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://server.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov ; script-src 'self'; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.testsliderule.org https://nominatim.openstreetmap.org https://www.opengis.net https://worldwind25.arc.nasa.gov ;"
       override                = true
     }
   }
