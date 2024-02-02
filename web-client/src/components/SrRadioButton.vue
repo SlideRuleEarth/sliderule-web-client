@@ -6,10 +6,11 @@
         :checked="isChecked"
         @change="handleChange"
         class="radio-input"
+        :name="tooltipText"
         :aria-label="ariaLabel"
       >
       <!-- If icon is present, render it -->
-      <span v-if="icon" v-html="icon" class="icon-svg"></span>
+      <span v-if="icon" v-html="icon" class="icon-svg" name="icon-svg"></span>
       <!-- If icon is not present, display value instead -->
       <span v-else class="icon-svg">{{ value }}</span>
     </label>
