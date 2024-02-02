@@ -17,6 +17,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     zoom: 12,
     rotation: 0,
     baseLayer: baseLayers.value[0] as SrBaseLayer,
+    tile_title: baseLayers.value[0].title,
     drawEnabled: false,
     drawType: 'undefined',
     layerList: <AnyTileLayer[]>([])
@@ -28,6 +29,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.zoom = 12;
       this.rotation = 0;
       this.baseLayer=baseLayers.value[0] as SrBaseLayer,
+      this.tile_title = baseLayers.value[0].title,
       this.drawEnabled = false;
       this.drawType = 'undefined';
     },
@@ -46,6 +48,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     setBaseLayer(layer: SrBaseLayer) {
       this.baseLayer = layer;
+      this.tile_title = layer.title;
     },
     setProjection(proj: SrProjection) {
       this.projection = proj;

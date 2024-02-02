@@ -167,7 +167,7 @@
   };
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    //console.log("Map handleUpdateProjection:",projection);
+    console.log("Map handleUpdateProjection:",projection);
     const oldProj = getProjection(mapParamsStore.projection.name);
 
     const newProj = getProjection(projection.name);
@@ -203,6 +203,18 @@
           } else {
             console.log("Error:default_zoom is undefined");
           }
+          let min_z = projection.min_zoom 
+          if (min_z !== undefined){
+            map.getView().setMinZoom(min_z);
+          } else {
+            console.log("Error:min_zoom is undefined");
+          }
+          let max_z = projection.max_zoom 
+          if (max_z !== undefined){
+            map.getView().setMaxZoom(max_z);
+          } else {
+            console.log("Error:max_zoom is undefined");
+          }
         } else {
           console.log("Error:map is null");
         }
@@ -236,7 +248,7 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref="base" :title="mapParamsStore.baseLayer.title">
+    <ol-tile-layer ref="base" :title="mapParamsStore.tile_title">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
 
