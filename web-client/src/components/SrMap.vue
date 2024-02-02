@@ -289,6 +289,7 @@
 
 </template>
 
+
 <style scoped>
 
 ::v-deep(.ol-overlaycontainer-stopevent) {
@@ -305,9 +306,9 @@
 }
 
 ::v-deep( .ol-control.ol-layerswitcher ){
-  top: 0.25rem;
+  top: 6.25rem;
   bottom: auto;
-  left: 4.55em;
+  left: 0.0rem;
   right: auto;
   background-color: transparent;
   border-radius: var(--border-radius);
@@ -376,11 +377,11 @@
 }
 
 ::v-deep(.ol-geocoder){
-  top: 0.5rem;
+  top: 2.5rem;
   bottom: auto;
   left: 0.5rem;
   right: auto;
-  background-color: black;
+  background-color: transparent;
   border-radius: var(--border-radius);
   color: white;
   max-width: 30rem; 
@@ -394,7 +395,7 @@
 ::v-deep( .ol-control.sr-projection-control ){
   top: 0.55rem;
   bottom: auto;
-  left: 7.0rem;
+  left: 0.5rem;
   right: auto;
   background-color: transparent;
   border-radius: var(--border-radius);
@@ -406,7 +407,7 @@
   top: 0.55rem;
   bottom: auto;
   right: auto;
-  left: 11.5rem;
+  left: 5.5rem;
   background-color: transparent;
   border-radius: var(--border-radius);
   color: white;
@@ -418,9 +419,9 @@
 }
 
 ::v-deep( .ol-control.ol-wmscapabilities  ) {
-  top: 0.5rem;
+  top: 4.5rem;
   bottom: auto;
-  left: 3.0rem;
+  left: 0.5rem;
   right: auto;
   background-color: transparent;
   border-radius: var(--border-radius);
