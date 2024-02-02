@@ -39,8 +39,8 @@
 
 <template>
   <div ref="baseLayerControlElement" class="sr-base-layer-control ol-unselectable ol-control">
-    <form class="select-baselayer">
-      <select @change="updateBaseLayer(($event.target as HTMLInputElement).value)" class="select-default">
+    <form class="select-baselayer" name="sr-select-baselayer-form">
+      <select @change="updateBaseLayer(($event.target as HTMLInputElement).value)" class="select-default" name="sr-select-baselayer-menu">
         <option v-for="layer in baseLayers" :value="layer.title" :key="layer.title">
           {{ layer.title }}
         </option>
