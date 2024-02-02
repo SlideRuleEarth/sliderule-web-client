@@ -5,7 +5,7 @@
     import { projections } from '@/composables/SrProjections.js';
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
-    import SrProjectionButtonBox from "./SrProjectionButtonBox.vue";
+    //import SrProjectionButtonBox from "./SrProjectionButtonBox.vue";
 
     const projectionControlElement = ref(null);
 
@@ -46,8 +46,8 @@
 
 <template>
   <div ref="projectionControlElement" class="sr-projection-control ol-unselectable ol-control">
-    <form class="select-projection" name="select-proj">
-      <select @change="updateProjection(($event.target as HTMLInputElement).value)" class="select-default-projection">
+    <form class="select-projection" name="select-proj-form">
+      <select @change="updateProjection(($event.target as HTMLInputElement).value)" class="sel-proj-menu" name="sr-proj-sel-menu">
         <option v-for="projection in projections" :value="projection.label" :key="projection.label">
           {{ projection.label }}
         </option>
