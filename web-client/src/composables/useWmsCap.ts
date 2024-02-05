@@ -6,8 +6,8 @@ export function useWmsCap() {
         cors: true,
         optional: 'token',
         services: {
-            'BRGM': 'https://geoservices.brgm.fr/geologie',
-            'OSM': 'https://wms.openstreetmap.fr/wms',
+            'Nasa WorldWind': 'https://worldwind25.arc.nasa.gov/wms',
+            'USGS': 'https://www.opengis.net/wms',
         },
         trace: true
     });

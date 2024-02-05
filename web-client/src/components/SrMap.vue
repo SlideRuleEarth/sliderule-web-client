@@ -25,6 +25,8 @@
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
   const {wms_capabilities_cntrl} = useWmsCap();
+  import Permalink from "ol-ext/control/Permalink";
+  import BaseEvent from "ol/events/Event";
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
@@ -99,6 +101,17 @@
       if(map){
         if(wms_capabilities_cntrl){
           map.addControl(wms_capabilities_cntrl);
+          var plink = new Permalink({ visible: false, localStorage: 'position' });
+          map.addControl(plink);
+          let et:any = 'load';
+          wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
+            const e = event as any;
+            map.addLayer(e.layer);
+            e.layer.set('legend', e.options.data.legend);
+            plink.setUrlParam('url', e.options.source.url);
+            plink.setUrlParam('layer', e.options.source.params.LAYERS);
+          });
+
         } else {
           console.log("Error:wms_capabilities_cntrl null");
         }
@@ -248,7 +261,7 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref="base" :title="mapParamsStore.tile_title">
+    <ol-tile-layer ref="base" title="base layer">
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
 
