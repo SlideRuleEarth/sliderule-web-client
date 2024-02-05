@@ -180,7 +180,7 @@
   };
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    console.log("Map handleUpdateProjection:",projection);
+    //console.log("Map handleUpdateProjection:",projection);
     const oldProj = getProjection(mapParamsStore.projection.name);
 
     const newProj = getProjection(projection.name);
