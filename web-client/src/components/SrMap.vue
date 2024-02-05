@@ -180,14 +180,14 @@
   };
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    console.log("Map handleUpdateProjection:",projection);
     const oldProj = getProjection(mapParamsStore.projection.name);
     const newProj = getProjection(projection.name);
+    //console.log("oldProj:",oldProj);
+    //console.log("newProj:",newProj);
     if (newProj && oldProj) {
 
-      //const fromLonLat = getTransform('EPSG:4326', newProj);
       //const fromLonLat = getTransform(oldProj, newProj);
-      console.log("newProj:",newProj);
+      //console.log("newProj:",newProj);
       let extent = newProj.getExtent();
       const fromLonLat = getTransform('EPSG:4326', newProj);
       if (projection.bbox){

@@ -25,10 +25,6 @@
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
-
-        if (!mapParamsStore.projection) {
-            mapParamsStore.projection = projections.value[0];
-        }
         updateProjection(mapParamsStore.projection.label);
     });
     
