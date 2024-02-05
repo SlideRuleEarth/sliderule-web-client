@@ -37,7 +37,7 @@
         const projection = projections.value.find(projection => projection.label === selectedLabel);
         //console.log("updateProjection layer:", layer);
         if (projection) {
-            mapParamsStore.setProjection(projection);
+            //mapParamsStore.setProjection(projection);
             emit('updateProjection', projection);
             //console.log("updateProjection mapParamsStore.projection:", mapParamsStore.projection);
         }

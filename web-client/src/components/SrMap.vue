@@ -180,23 +180,27 @@
   };
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    //console.log("Map handleUpdateProjection:",projection);
+    console.log("Map handleUpdateProjection:",projection);
     const oldProj = getProjection(mapParamsStore.projection.name);
-
     const newProj = getProjection(projection.name);
     if (newProj && oldProj) {
 
-      const fromLonLat = getTransform('EPSG:4326', newProj);
+      //const fromLonLat = getTransform('EPSG:4326', newProj);
       //const fromLonLat = getTransform(oldProj, newProj);
+      console.log("newProj:",newProj);
+      let extent = newProj.getExtent();
+      const fromLonLat = getTransform('EPSG:4326', newProj);
       if (projection.bbox){
-        let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
-        newProj.setWorldExtent(worldExtent);
-        // approximate calculation of projection extent,
-        // checking if the world extent crosses the dateline
-        if (projection.bbox[1] > projection.bbox[3]) {
-          worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
+        if ((projection.name == 'EPSG:5936') || (projection.name == 'EPSG:3031')){
+          let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
+          newProj.setWorldExtent(worldExtent);
+          // approximate calculation of projection extent,
+          // checking if the world extent crosses the dateline
+          if (projection.bbox[1] > projection.bbox[3]) {
+            worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
+          }
+          extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
         }
-        const extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
         newProj.setExtent(extent);
         const newView = new View({
             projection: newProj,
