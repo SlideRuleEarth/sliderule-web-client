@@ -21,16 +21,25 @@
   import 'ol-geocoder/dist/ol-geocoder.min.css';
   import { useMapStore } from "@/stores/mapStore";
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
-  
+  import XYZ from 'ol/source/XYZ.js';
+  import Layer from 'ol/layer/Layer.js';
+  import TileLayer from 'ol/layer/Tile.js';
+  import Permalink from "ol-ext/control/Permalink";
+  import BaseEvent from "ol/events/Event";
+  import { SrBaseLayer } from "@/composables/SrBaseLayers";
+
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
   const {wms_capabilities_cntrl} = useWmsCap();
-  import Permalink from "ol-ext/control/Permalink";
-  import BaseEvent from "ol/events/Event";
+
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const currentZoom = ref(0); // Define a reactive reference for the current zoom level
+  const currentCenter = ref([0, 0]); // Define a reactive reference for the current center
+  const currentRotation = ref(0); // Define a reactive reference for the current rotation
+  const currentProjection = ref(''); // Define a reactive reference for the current projection
+  const currentExtent = ref([0, 0, 0, 0]); // Define a reactive reference for the current extent
 
   const controls = ref([]);
   const toast = useToast();
@@ -86,12 +95,32 @@
         console.error('Map is not defined');
     }
   }
-  function onResolutionChange(){
-    //console.log("onResolutionChange:",event);
+  function updateCurrentParms(){
     const newZoom = mapRef.value?.map.getView().getZoom();
     if (newZoom !== undefined) {
       currentZoom.value = newZoom;
-    }     
+    }
+    const newCenter = mapRef.value?.map.getView().getCenter();
+    if (newCenter !== undefined) {
+      currentCenter.value = newCenter;
+    }
+    const newRotation = mapRef.value?.map.getView().getRotation();
+    if (newRotation !== undefined) {
+      currentRotation.value = newRotation;
+    }
+    const newProjection = mapRef.value?.map.getView().getProjection().getCode();
+    if (newProjection !== undefined) {
+      currentProjection.value = newProjection;
+    }
+    const newExtent = mapRef.value?.map.getView().calculateExtent();
+    if (newExtent !== undefined) {
+      currentExtent.value = newExtent;
+    }
+  }
+
+  function onResolutionChange(){
+    //console.log("onResolutionChange:",event);
+    updateCurrentParms();
   };
 
   onMounted(() => {
@@ -179,19 +208,17 @@
     }
   };
 
-  const handleUpdateProjection = (projection: SrProjection) => {
+  const updateProjection = (projection: SrProjection) => {
     const oldProj = getProjection(mapParamsStore.projection.name);
     const newProj = getProjection(projection.name);
     //console.log("oldProj:",oldProj);
-    //console.log("newProj:",newProj);
+    console.log("updateProjection newProj:",newProj);
     if (newProj && oldProj) {
-
-      //const fromLonLat = getTransform(oldProj, newProj);
-      //console.log("newProj:",newProj);
       let extent = newProj.getExtent();
       const fromLonLat = getTransform('EPSG:4326', newProj);
       if (projection.bbox){
         if ((projection.name == 'EPSG:5936') || (projection.name == 'EPSG:3031')){
+          console.log("projection.bbox:",projection.bbox);
           let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
           newProj.setWorldExtent(worldExtent);
           // approximate calculation of projection extent,
@@ -199,7 +226,9 @@
           if (projection.bbox[1] > projection.bbox[3]) {
             worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
           }
+          console.log("worldExtent:",worldExtent);
           extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
+          console.log("extent:",extent);
         }
         newProj.setExtent(extent);
         const newView = new View({
@@ -210,7 +239,6 @@
         if(map){
           map.setView(newView);
           newView.fit(extent);
-          //console.log("Map handleUpdateProjection newView:",newView);
           // Watch for changes in the zoom level
 
           map.getView().on('change:resolution', onResolutionChange);
@@ -242,7 +270,40 @@
       console.log("Error: invalid projection name:",projection.name);
     }
     mapParamsStore.projection = projection;
-};
+    updateCurrentParms();
+  };
+
+  const handleUpdateProjection = (projection: SrProjection) => {
+    console.log("handleUpdateProjection:",projection);
+    updateProjection(projection);
+  };
+
+  const handleUpdateBaseLayer = (baseLayer: SrBaseLayer) => {
+    console.log("handleUpdateBaseLayer:",baseLayer);
+    const oldBaseLayer = mapParamsStore.baseLayer;
+    mapParamsStore.baseLayer = baseLayer;
+    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+      console.log("layer:",layer)
+      console.log("layer.get('title'):",layer.get('title'));
+      console.log("oldBaseLayer.title:",oldBaseLayer.title)
+      if(layer){
+        if (layer.get('title') === oldBaseLayer.title) {
+          console.log("adding layer:",baseLayer.title);
+          //mapRef.value?.map.removeLayer(layer);
+          mapRef.value?.map.addLayer(new TileLayer({
+            source: new XYZ({
+              url: baseLayer.url,
+            }),
+            title: baseLayer.title
+          }));
+        }
+      } else {
+        console.log("Error:layer is null");
+      }
+    });
+    updateProjection(mapParamsStore.projection);
+  };
+ 
 
 </script>
 
@@ -265,7 +326,7 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref="base" title="base layer">
+    <ol-tile-layer ref=mapParamsStore.baseLayer :title=mapParamsStore.tile_title>
       <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
     </ol-tile-layer>
 
@@ -278,7 +339,7 @@
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
     <SrProjectionControl @projectionControlCreated="handleProjectionControlCreated" @updateProjection="handleUpdateProjection"/>
-    <SrBaseLayerControl @baseLayerControlCreated="handleBaseLayerControlCreated" />
+    <SrBaseLayerControl @baseLayerControlCreated="handleBaseLayerControlCreated" @updateBaseLayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
@@ -303,6 +364,13 @@
       </ol-style>
     </ol-vector-layer>
   </ol-map>
+  <div class="current-view">
+    <span>currentZoom: {{  currentZoom }} </span><br>
+    <span>currentCenter: {{  currentCenter }}</span><br>
+    <span>currentRotation: {{  currentRotation }}</span><br>
+    <span>currentProjection: {{  currentProjection }}</span><br>
+    <span>currentExtent: {{  currentExtent }}</span>
+  </div>
 
 </template>
 

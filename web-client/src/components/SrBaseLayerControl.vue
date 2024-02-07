@@ -30,7 +30,7 @@
     const layer = baseLayers.value.find(layer => layer.title === selectedTitle);
     //console.log("updateBaseLayer layer:", layer);
     if (layer) {
-      mapParamsStore.setBaseLayer(layer);
+      //mapParamsStore.setBaseLayer(layer);
       emit('updateBaseLayer', layer);
       console.log("updateBaseLayer mapParamsStore.baseLayer:", mapParamsStore.baseLayer);
     }
