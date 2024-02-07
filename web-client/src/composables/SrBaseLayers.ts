@@ -5,6 +5,7 @@ export interface SrBaseLayer {
     title: string;
     attribution: string;
     allowed_projections: string[];
+    type?: string;
 }
 export const baseLayers = ref<SrBaseLayer[]>([
     {
@@ -54,5 +55,12 @@ export const baseLayers = ref<SrBaseLayer[]>([
       title: "Antarctic Imagery",
       attribution: "Tiles © Esri Antartic contributers",
       allowed_projections:["EPSG:3031"]
+    },
+    {
+      url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
+      title: "NASA Gibs",
+      attribution: "Tiles © NASA Gibs contributers",
+      allowed_projections:["EPSG:3031"],
+      type: "wmts"
     }
   ]);
