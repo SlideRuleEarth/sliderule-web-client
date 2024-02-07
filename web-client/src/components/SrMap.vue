@@ -27,7 +27,6 @@
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
   import { SrBaseLayer } from "@/composables/SrBaseLayers";
-  import { projections,findProjectionByName } from '@/composables/SrProjections.js';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -36,12 +35,6 @@
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
-  // const currentZoom = ref(0); // Define a reactive reference for the current zoom level
-  // const currentCenter = ref([0, 0]); // Define a reactive reference for the current center
-  // const currentRotation = ref(0); // Define a reactive reference for the current rotation
-  // const currentProjection = ref(''); // Define a reactive reference for the current projection
-  // const currentExtent = ref([0, 0, 0, 0]); // Define a reactive reference for the current extent
-
   const controls = ref([]);
   const toast = useToast();
 
@@ -294,11 +287,14 @@
         if (layer.get('title') === oldBaseLayer.title) {
           console.log("adding layer:",baseLayer.title);
           //mapRef.value?.map.removeLayer(layer);
+          let myOptions = {
+            title: baseLayer.title
+          };
           mapRef.value?.map.addLayer(new TileLayer({
             source: new XYZ({
               url: baseLayer.url,
             }),
-            title: baseLayer.title
+            ... myOptions
           }));
         }
       } else {
