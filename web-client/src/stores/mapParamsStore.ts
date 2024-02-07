@@ -12,8 +12,10 @@ type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
-    center: [-108, 39],
+    center: [0, 0],
+    extent: [0, 0, 0, 0],
     projection: projections.value[0] as SrProjection,
+    proj_name: projections.value[0].name,
     zoom: 12,
     rotation: 0,
     baseLayer: baseLayers.value[0] as SrBaseLayer,
@@ -25,7 +27,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
   actions:{
     resetMap() {
       this.projection = projections.value[0] as SrProjection;
+      this.proj_name = projections.value[0].name;
       this.center = projections.value[0].default_center;
+      this.extent = projections.value[0].bbox || [0, 0, 0, 0];
       this.zoom = 12;
       this.rotation = 0;
       this.baseLayer=baseLayers.value[0] as SrBaseLayer,
@@ -52,13 +56,36 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     setProjection(proj: SrProjection) {
       this.projection = proj;
-      this.center = proj.default_center;
-      //console.log('proj.default_zoom:', proj.default_zoom);
-      this.zoom = proj.default_zoom || 12;
-      //console.log('this.zoom:', this.zoom);
+    },
+    setProjName(name: string) {
+      this.proj_name = name;
+    },
+    setExtent(ext: number[]) {
+      this.extent = ext;
     },
     getZoom() {
       return this.zoom;
-    }
+    },
+    getCenter() { 
+      return this.center;
+    },
+    getRotation() {
+      return this.rotation;
+    },
+    getBaseLayer() {
+      return this.baseLayer;
+    },
+    getProjection() {
+      return this.projection;
+    },
+    getProjName() {
+      return this.proj_name;
+    },
+    getExtent() {
+      return this.extent;
+    },
+    getDrawEnabled() {
+      return this.drawEnabled;
+    }  
   },
 });

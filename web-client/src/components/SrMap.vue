@@ -27,6 +27,7 @@
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
   import { SrBaseLayer } from "@/composables/SrBaseLayers";
+  import { projections,findProjectionByName } from '@/composables/SrProjections.js';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -35,11 +36,11 @@
   const mapRef = ref<{ map: Map }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
-  const currentZoom = ref(0); // Define a reactive reference for the current zoom level
-  const currentCenter = ref([0, 0]); // Define a reactive reference for the current center
-  const currentRotation = ref(0); // Define a reactive reference for the current rotation
-  const currentProjection = ref(''); // Define a reactive reference for the current projection
-  const currentExtent = ref([0, 0, 0, 0]); // Define a reactive reference for the current extent
+  // const currentZoom = ref(0); // Define a reactive reference for the current zoom level
+  // const currentCenter = ref([0, 0]); // Define a reactive reference for the current center
+  // const currentRotation = ref(0); // Define a reactive reference for the current rotation
+  // const currentProjection = ref(''); // Define a reactive reference for the current projection
+  // const currentExtent = ref([0, 0, 0, 0]); // Define a reactive reference for the current extent
 
   const controls = ref([]);
   const toast = useToast();
@@ -98,23 +99,24 @@
   function updateCurrentParms(){
     const newZoom = mapRef.value?.map.getView().getZoom();
     if (newZoom !== undefined) {
-      currentZoom.value = newZoom;
+      mapParamsStore.setZoom(newZoom);
     }
     const newCenter = mapRef.value?.map.getView().getCenter();
     if (newCenter !== undefined) {
-      currentCenter.value = newCenter;
+      mapParamsStore.setCenter(newCenter);
     }
     const newRotation = mapRef.value?.map.getView().getRotation();
     if (newRotation !== undefined) {
-      currentRotation.value = newRotation;
+      mapParamsStore.setRotation(newRotation);
     }
     const newProjection = mapRef.value?.map.getView().getProjection().getCode();
     if (newProjection !== undefined) {
-      currentProjection.value = newProjection;
+      const newName = newProjection
+      mapParamsStore.setProjName(newName);
     }
     const newExtent = mapRef.value?.map.getView().calculateExtent();
     if (newExtent !== undefined) {
-      currentExtent.value = newExtent;
+      mapParamsStore.setExtent(newExtent);
     }
   }
 
@@ -166,7 +168,7 @@
         }
         const initialZoom = map.getView().getZoom();
         if (initialZoom !== undefined) {
-          currentZoom.value = initialZoom;
+          mapParamsStore.setZoom(initialZoom);
         }
         // Watch for changes in the zoom level
         map.getView().on('change:resolution', onResolutionChange);
@@ -209,7 +211,8 @@
   };
 
   const updateProjection = (projection: SrProjection) => {
-    const oldProj = getProjection(mapParamsStore.projection.name);
+    console.log("oldProjName:",mapParamsStore.getProjName())
+    const oldProj = getProjection(mapParamsStore.getProjName());
     const newProj = getProjection(projection.name);
     //console.log("oldProj:",oldProj);
     console.log("updateProjection newProj:",newProj);
@@ -269,7 +272,8 @@
     } else {
       console.log("Error: invalid projection name:",projection.name);
     }
-    mapParamsStore.projection = projection;
+    mapParamsStore.setProjection(projection);
+    mapParamsStore.setProjName(projection.name);
     updateCurrentParms();
   };
 
@@ -309,7 +313,7 @@
 
 <template>
   <div class="current-zoom">
-    {{  currentZoom }}
+    {{  mapParamsStore.getZoom() }}
   </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
@@ -365,11 +369,11 @@
     </ol-vector-layer>
   </ol-map>
   <div class="current-view">
-    <span>currentZoom: {{  currentZoom }} </span><br>
-    <span>currentCenter: {{  currentCenter }}</span><br>
-    <span>currentRotation: {{  currentRotation }}</span><br>
-    <span>currentProjection: {{  currentProjection }}</span><br>
-    <span>currentExtent: {{  currentExtent }}</span>
+    <span>currentZoom: {{  mapParamsStore.getZoom() }} </span><br>
+    <span>currentCenter: {{  mapParamsStore.getCenter() }}</span><br>
+    <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
+    <span>currentProjection: {{  mapParamsStore.getProjName()}}</span><br>
+    <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>
   </div>
 
 </template>

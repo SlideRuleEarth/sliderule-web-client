@@ -61,3 +61,8 @@ export const useProjectionNames = () => {
   const projectionNames = computed(() => projections.value.map(p => p.name));
   return projectionNames;
 };
+
+// Function to fetch a projection by its name
+export const findProjectionByName = (name: string) => {
+  return computed(() => projections.value.find(p => p.name === name));
+};
