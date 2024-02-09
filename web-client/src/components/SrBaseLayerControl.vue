@@ -4,7 +4,10 @@
   import { Control } from 'ol/control';
   import { computed } from 'vue';
   import { getBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
-  
+  import { useMapStore } from "@/stores/mapStore";
+  import type { Layer } from 'ol/layer';
+  const mapStore = useMapStore();
+
   const mapParamsStore = useMapParamsStore();
   const baseLayerOptions = computed(() => getBaseLayersForProjection(mapParamsStore.projection.name));
   // Computed property to bind selectedBaseLayer with the store
@@ -12,6 +15,20 @@
     get: () => mapParamsStore.getSelectedBaseLayer().title,
     set: (title) => {
       if(baseLayerOptions.value){
+        //console.log(`setting selectedBaseLayer from: ${mapParamsStore.getSelectedBaseLayer().title}  to ${title}`);
+        const map = mapStore.getMap();
+        if(map){
+          // map.getAllLayers().forEach((layer: Layer) => {
+          //   console.log(`*title:`,layer.get('title'));
+          //   console.log(`*layer:`,layer.getProperties());
+          // });
+          //console.log(`mapParamsStore.getSelectedBaseLayer().title:${mapParamsStore.getSelectedBaseLayer().title}  title:${title}`);
+          const layer = map.getAllLayers().find(layer => layer.get('title') === mapParamsStore.getSelectedBaseLayer().title);
+          //console.log(`old: ${layer}`);
+          if(layer){
+            layer.set('title',title);
+          }
+        }
         const layer = baseLayerOptions.value.find(layer => layer.title === title);
         if (layer) {
           mapParamsStore.setSelectedBaseLayer(layer); 

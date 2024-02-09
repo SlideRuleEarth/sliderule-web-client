@@ -272,7 +272,10 @@
   };
 
   const handleUpdateBaseLayer = (srLayer: SrLayer) => {
-    console.log(`handleUpdateBaseLayer:${srLayer.title}`);
+    if(!srLayer){
+      console.log("Error:handleUpdateBaseLayer srLayer is null");
+    }
+    //console.log(`handleUpdateBaseLayer:${srLayer.title}`);
     updateMapAndView();
   };
 
