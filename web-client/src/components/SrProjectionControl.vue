@@ -1,31 +1,27 @@
 <script setup lang="ts">
-    import { useMapParamsStore } from "@/stores/mapParamsStore.js";
     import { ref,onMounted } from "vue";
     import { Control } from 'ol/control';
     import { projections } from '@/composables/SrProjections.js';
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
-    //import SrProjectionButtonBox from "./SrProjectionButtonBox.vue";
 
     const projectionControlElement = ref(null);
 
-    const mapParamsStore = useMapParamsStore();
 
     const emit = defineEmits(['projection-control-created', 'update-projection']);
 
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
-        if (projectionControlElement.value) {
-          const customControl = new Control({ element: projectionControlElement.value });
-          emit('projection-control-created', customControl);
-          //console.log("SrProjectionControl onMounted customControl:", customControl);
-        }
         projections.value.forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
-        updateProjection(mapParamsStore.projection.label);
+        if (projectionControlElement.value) {
+          const customControl = new Control({ element: projectionControlElement.value });
+          emit('projection-control-created', customControl);
+          //console.log("SrProjectionControl onMounted customControl:", customControl);
+        }
     });
     
     function updateProjection(selectedLabel: string) {
@@ -33,9 +29,7 @@
         const projection = projections.value.find(projection => projection.label === selectedLabel);
         //console.log("updateProjection layer:", layer);
         if (projection) {
-            //mapParamsStore.setProjection(projection);
             emit('update-projection', projection);
-            //console.log("updateProjection mapParamsStore.projection:", mapParamsStore.projection);
         }
     }
 </script>
