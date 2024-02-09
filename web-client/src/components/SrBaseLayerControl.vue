@@ -36,6 +36,9 @@
     if (defaultBaseLayer) {
       mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
     }
+    // baseLayerOptions.value.forEach(layer => {
+    //   console.log(`Title: ${layer.title}}`);
+    // });
   });
 </script>
 

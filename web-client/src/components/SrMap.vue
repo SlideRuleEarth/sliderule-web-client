@@ -3,7 +3,7 @@
   import { useWmsCap } from "@/composables/useWmsCap.js"; 
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref, onMounted } from "vue";
-  import type Map from "ol/Map.js";
+  import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import {useToast} from "primevue/usetoast";
@@ -21,6 +21,7 @@
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
   import Layer from 'ol/layer/Layer.js';
+  import { SrLayer } from "@/composables/SrLayers";
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
   import { getLayer } from "@/composables/SrLayers"; 
@@ -31,7 +32,7 @@
   const stringifyFunc = createStringXY(4);
   const {wms_capabilities_cntrl} = useWmsCap();
 
-  const mapRef = ref<{ map: Map }>();
+  const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
@@ -214,12 +215,12 @@
   };
 
   const updateMapAndView = () => {
-    console.log("****** updateMapAndView ******");
+    //console.log("****** updateMapAndView ******");
     const map = mapRef.value?.map;
     if(map){
       const srProjection = mapParamsStore.getProjection();
       const projection = getProjection(srProjection.name);
-      console.log("projection:",projection);
+      //console.log("projection:",projection);
       if(projection){
         let extent = projection.getExtent();
         //let extent = srProjection.bbox;
@@ -239,7 +240,7 @@
             console.log("extent:",extent);
           }
         } else {
-          console.log("Error: invalid projection bbox:",srProjection.bbox);
+          console.error("Error: invalid projection bbox:",srProjection.bbox);
         }
         const newView = new View({
           projection: projection,
@@ -251,7 +252,7 @@
         console.error("Error: invalid projection:",mapParamsStore.getProjection());
       }
       if(mapParamsStore.selectedBaseLayer){
-        console.log("adding selectedBaseLayer:",mapParamsStore.selectedBaseLayer);
+        //console.log("adding selectedBaseLayer:",mapParamsStore.selectedBaseLayer);
         const layer = getLayer(mapParamsStore.selectedBaseLayer.title);
         if(layer){
           //map.addLayer(layer);
@@ -265,22 +266,22 @@
             map.addLayer(layer.layer);
           });
       } else {
-        console.error("Error:mapParamsStore.layers is null");
+        console.error("Error:mapParamsStore.selectedLayers is null");
       }
     } else {
       console.error("Error:map is null");
     }
-    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-      console.log("layer:",layer)
-      console.log("layer.get('title'):",layer.get('title'));
-    });
-    console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
+    // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+    //   //console.log("layer:",layer)
+    //   //console.log("layer.get('title'):",layer.get('title'));
+    // });
+    //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
   };
 
   const updateProjection = (srProjection: SrProjection) => {
-    console.log("updateProjection oldProjName:",mapParamsStore.getProjection().name)
+    //console.log("updateProjection oldProjName:",mapParamsStore.getProjection().name)
     const newProj = getProjection(srProjection.name);
-    console.log("projection:",newProj);
+    //console.log("projection:",newProj);
     if (newProj) {
       mapParamsStore.setProjection(srProjection);
       updateMapAndView();
@@ -290,13 +291,13 @@
   }
 
   const handleUpdateProjection = (projection: SrProjection) => {
-    console.log("handleUpdateProjection:",projection);
+    //console.log(`handleUpdateProjection: |${projection.title}|`);
     updateProjection(projection);
   };
 
-  const handleUpdateBaseLayerTitle = (baseLayerTitle: string) => {
-    console.log("handleUpdateBaseLayerTitle:",baseLayerTitle);
-    const baseLayer = getLayer(baseLayerTitle);
+  const handleUpdateBaseLayer = (srLayer: SrLayer) => {
+    console.log(`handleUpdateBaseLayer:${srLayer.title}`);
+    const baseLayer = getLayer(srLayer.title);
     if(baseLayer){
       updateMapAndView();
     }
@@ -336,7 +337,7 @@
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
     <SrProjectionControl @projection-control-created="handleProjectionControlCreated" @update-projection="handleUpdateProjection"/>
-    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayerTitle"/>
+    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw

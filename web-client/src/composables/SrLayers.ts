@@ -95,7 +95,7 @@ export const getLayersForCurrentProjection = () => {
   );
 }
 export const getBaseLayersForProjection = (projection: string) => {
-  console.log('getBaseLayersForProjection', projection);
+  //console.log('getBaseLayersForProjection', projection);
   return layers.value.filter(layer => layer.allowed_projections.includes(projection) && layer.isBaseLayer);
 }
 
@@ -104,20 +104,35 @@ export const getDefaultBaseLayer = () => {
 }
 
 export const getLayer = (title: string) => {
-  const srBaseLayer = layers.value.find(layer => layer.title === title);
-  if(srBaseLayer){
-    if(srBaseLayer.type === "wmts"){
-      console.log('WMTS Layer TBD');
-    } else if(srBaseLayer.type === "xyz"){
-      const myOptions = {
-        title: srBaseLayer.title,
+  console.log('getLayer', title);
+  const mapParamsStore = useMapParamsStore();
+  const cachedLayer = mapParamsStore.getLayerFromCache(title);
+  let layerInstance;
+  if (cachedLayer) {
+    layerInstance = cachedLayer; // Return the cached layer if it exists
+  } else {
+    const srLayer = layers.value.find(layer => layer.title === title);
+    if(srLayer){
+      if(srLayer.type === "wmts"){
+        console.log('WMTS Layer TBD');
+      } else if(srLayer.type === "xyz"){
+        const myOptions = {
+          title: srLayer.title,
+        }
+        layerInstance = new TileLayer({
+          source: new XYZ({
+            url: srLayer.url
+          }),
+          ... myOptions
+        });
       }
-      return new TileLayer({
-        source: new XYZ({
-          url: srBaseLayer.url
-        }),
-        ... myOptions
-      });
+      if (layerInstance) {
+        console.log('Caching layer', title);
+        mapParamsStore.cacheLayer(title, layerInstance);
+      }
+    } else {
+      console.log('Layer not found with this title:', title);
     }
   }
+  return layerInstance;
 }

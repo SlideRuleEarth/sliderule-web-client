@@ -1,12 +1,12 @@
 // src/stores/mapStore.js
 import { defineStore } from 'pinia';
-import { Map } from 'ol';
+import { Map as OLMap } from 'ol';
 export const useMapStore = defineStore('map', {
   state: () => ({
-    map: null as Map | null,
+    map: null as OLMap | null,
   }),
   actions: {
-    setMap(mapInstance: Map) {
+    setMap(mapInstance: OLMap) {
       this.map = mapInstance;
     },
     getMap() {

@@ -20,11 +20,17 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     selectedBaseLayer: getDefaultBaseLayer() as SrLayer,
     drawEnabled: false,
     drawType: 'undefined',
-    layers: <SrLayers>([]),
-    layerGroups: <LayerGroup[]>([]),
+    layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
+    layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     selectedLayers: [],
   }),
   actions:{
+    cacheLayer(title:string, layerInstance:any) {
+      this.layerCache.set(title, layerInstance);
+    },
+    getLayerFromCache(title:string) : any {
+      return this.layerCache.get(title);
+    },
     resetMap() {
       this.projection = projections.value[0] as SrProjection;
       this.center = projections.value[0].default_center;
@@ -34,8 +40,8 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.selectedBaseLayer=getDefaultBaseLayer() as SrLayer,
       this.drawEnabled = false;
       this.drawType = 'undefined';
-      this.layers = <SrLayers>([]);
-      this.layerGroups = <LayerGroup[]>([]);
+      this.layerCache = new Map(), // Note this is a javascript Map, not an OpenLayers Map
+      this.layerGroupCache =new Map(), // Note this is a javascript Map, not an OpenLayers Map
       this.selectedLayers = [];
     },
     setCenter(c:number[]) {
@@ -54,7 +60,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.selectedBaseLayer = layer;
     },
     setProjection(proj: SrProjection) {
-      console.log('setProjection', proj);
+      //console.log('setProjection', proj);
       this.projection = proj;
     },
     setExtent(ext: number[]) {
