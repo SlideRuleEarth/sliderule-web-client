@@ -11,13 +11,13 @@
 
     const mapParamsStore = useMapParamsStore();
 
-    const emit = defineEmits(['projectionControlCreated', 'updateProjection']);
+    const emit = defineEmits(['projection-control-created', 'update-projection']);
 
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         if (projectionControlElement.value) {
           const customControl = new Control({ element: projectionControlElement.value });
-          emit('projectionControlCreated', customControl);
+          emit('projection-control-created', customControl);
           //console.log("SrProjectionControl onMounted customControl:", customControl);
         }
         projections.value.forEach(projection => {
@@ -34,7 +34,7 @@
         //console.log("updateProjection layer:", layer);
         if (projection) {
             //mapParamsStore.setProjection(projection);
-            emit('updateProjection', projection);
+            emit('update-projection', projection);
             //console.log("updateProjection mapParamsStore.projection:", mapParamsStore.projection);
         }
     }

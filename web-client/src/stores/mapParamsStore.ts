@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia';
-import { OSM, XYZ } from 'ol/source';
-import { Map } from 'ol';
-import TileLayer from 'ol/layer/Tile.js';
-import type { SrBaseLayer } from '@/composables/SrBaseLayers.js';
-import { baseLayers } from '@/composables/SrBaseLayers.js';
+import {  getDefaultBaseLayer} from '@/composables/SrLayers.js';
 import type { SrProjection } from '@/composables/SrProjections';
+import type { SrLayer } from '@/composables/SrLayers.js';
 import { projections } from '@/composables/SrProjections';
+import Collection from 'ol/Collection.js';
+import LayerGroup from 'ol/layer/Group.js';
+import BaseLayer from 'ol/layer/Base.js';
 
-type AnyTileLayer = TileLayer<OSM> | TileLayer<XYZ>;
+type SrLayers = Collection<BaseLayer> | BaseLayer[];
 
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
@@ -15,27 +15,28 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     center: [0, 0],
     extent: [0, 0, 0, 0],
     projection: projections.value[0] as SrProjection,
-    proj_name: projections.value[0].name,
     zoom: 12,
     rotation: 0,
-    baseLayer: baseLayers.value[0] as SrBaseLayer,
-    tile_title: baseLayers.value[0].title,
+    selectedBaseLayer: getDefaultBaseLayer() as SrLayer,
     drawEnabled: false,
     drawType: 'undefined',
-    layerList: <AnyTileLayer[]>([])
+    layers: <SrLayers>([]),
+    layerGroups: <LayerGroup[]>([]),
+    selectedLayers: [],
   }),
   actions:{
     resetMap() {
       this.projection = projections.value[0] as SrProjection;
-      this.proj_name = projections.value[0].name;
       this.center = projections.value[0].default_center;
       this.extent = projections.value[0].bbox || [0, 0, 0, 0];
       this.zoom = 12;
       this.rotation = 0;
-      this.baseLayer=baseLayers.value[0] as SrBaseLayer,
-      this.tile_title = baseLayers.value[0].title,
+      this.selectedBaseLayer=getDefaultBaseLayer() as SrLayer,
       this.drawEnabled = false;
       this.drawType = 'undefined';
+      this.layers = <SrLayers>([]);
+      this.layerGroups = <LayerGroup[]>([]);
+      this.selectedLayers = [];
     },
     setCenter(c:number[]) {
       this.center = c;
@@ -46,19 +47,15 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     setZoom(z:number) {
       this.zoom = z;
     },
-    addLayer(l: TileLayer<OSM> | TileLayer<XYZ>) {
-      console.log('addLayer', l);
-      this.layerList.push(l);
+    setSelectedLayers(layers: any) {
+      this.selectedLayers = layers;
     },
-    setBaseLayer(layer: SrBaseLayer) {
-      this.baseLayer = layer;
-      this.tile_title = layer.title;
+    setSelectedBaseLayer(layer: SrLayer) {
+      this.selectedBaseLayer = layer;
     },
     setProjection(proj: SrProjection) {
+      console.log('setProjection', proj);
       this.projection = proj;
-    },
-    setProjName(name: string) {
-      this.proj_name = name;
     },
     setExtent(ext: number[]) {
       this.extent = ext;
@@ -72,14 +69,11 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     getRotation() {
       return this.rotation;
     },
-    getBaseLayer() {
-      return this.baseLayer;
+    getSelectedBaseLayer() {
+      return this.selectedBaseLayer;
     },
     getProjection() {
       return this.projection;
-    },
-    getProjName() {
-      return this.proj_name;
     },
     getExtent() {
       return this.extent;

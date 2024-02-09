@@ -4,7 +4,6 @@
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref, onMounted } from "vue";
   import type Map from "ol/Map.js";
-  import View from "ol/View.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import {useToast} from "primevue/usetoast";
@@ -15,22 +14,18 @@
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrProjectionControl from "./SrProjectionControl.vue";
   import { SrProjection } from "@/composables/SrProjections";
-  import {get as getProjection, getTransform} from 'ol/proj.js';
-  import {applyTransform} from 'ol/extent.js';
   import 'ol/ol.css'; 
   import 'ol-geocoder/dist/ol-geocoder.min.css';
   import { useMapStore } from "@/stores/mapStore";
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
-  import XYZ from 'ol/source/XYZ.js';
-  import WMTS from 'ol/source/WMTS.js';
-  import WMTSTileGrid from 'ol/tilegrid/WMTS.js';
-
+  import { get as getProjection } from 'ol/proj.js';
+  import { getTransform } from 'ol/proj.js';
   import Layer from 'ol/layer/Layer.js';
-  import TileLayer from 'ol/layer/Tile.js';
-  import ImageLayer from 'ol/layer/Image.js';
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
-  import { SrBaseLayer } from "@/composables/SrBaseLayers";
+  import { getLayer } from "@/composables/SrLayers"; 
+  import View from 'ol/View';
+  import { applyTransform } from 'ol/extent.js';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -106,11 +101,6 @@
     if (newRotation !== undefined) {
       mapParamsStore.setRotation(newRotation);
     }
-    const newProjection = mapRef.value?.map.getView().getProjection().getCode();
-    if (newProjection !== undefined) {
-      const newName = newProjection
-      mapParamsStore.setProjName(newName);
-    }
     const newExtent = mapRef.value?.map.getView().calculateExtent();
     if (newExtent !== undefined) {
       mapParamsStore.setExtent(newExtent);
@@ -122,6 +112,17 @@
     updateCurrentParms();
   };
 
+  function isLocalStorageAvailable() {
+    try {
+        const test = "__test__";
+        window.localStorage.setItem(test, test);
+        window.localStorage.removeItem(test);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
   onMounted(() => {
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
@@ -129,8 +130,12 @@
       if(map){
         if(wms_capabilities_cntrl){
           map.addControl(wms_capabilities_cntrl);
-          var plink = new Permalink({ visible: false, localStorage: 'position' });
-          map.addControl(plink);
+          if (isLocalStorageAvailable()) {
+            var plink = new Permalink({ visible: false, localStorage: 'position' });
+            map.addControl(plink);
+          } else {
+            console.log("Error:localStorage not available no Permalink control added");
+          }
           let et:any = 'load';
           wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
             const e = event as any;
@@ -167,6 +172,7 @@
         if (initialZoom !== undefined) {
           mapParamsStore.setZoom(initialZoom);
         }
+        updateMapAndView();
         // Watch for changes in the zoom level
         map.getView().on('change:resolution', onResolutionChange);
       } else {
@@ -207,222 +213,94 @@
     }
   };
 
-  const updateProjection = (projection: SrProjection) => {
-    console.log("oldProjName:",mapParamsStore.getProjName())
-    const oldProj = getProjection(mapParamsStore.getProjName());
-    const newProj = getProjection(projection.name);
-    //console.log("oldProj:",oldProj);
-    console.log("updateProjection newProj:",newProj);
-    if (newProj && oldProj) {
-      let extent = newProj.getExtent();
-      const fromLonLat = getTransform('EPSG:4326', newProj);
-      if (projection.bbox){
-        if ((projection.name == 'EPSG:5936') || (projection.name == 'EPSG:3031')){
-          console.log("projection.bbox:",projection.bbox);
-          let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
-          newProj.setWorldExtent(worldExtent);
-          // approximate calculation of projection extent,
-          // checking if the world extent crosses the dateline
-          if (projection.bbox[1] > projection.bbox[3]) {
-            worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
-          }
-          console.log("worldExtent:",worldExtent);
-          extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-          console.log("extent:",extent);
-        }
-        newProj.setExtent(extent);
-        const newView = new View({
-            projection: newProj,
-            constrainResolution: true,
-        });
-        const map = mapRef.value?.map;
-        if(map){
-          map.setView(newView);
-          newView.fit(extent);
-          // Watch for changes in the zoom level
-
-          map.getView().on('change:resolution', onResolutionChange);
-          let z = projection.default_zoom 
-          if (z !== undefined){
-            map.getView().setZoom(z);
-          } else {
-            console.log("Error:default_zoom is undefined");
-          }
-          let min_z = projection.min_zoom 
-          if (min_z !== undefined){
-            map.getView().setMinZoom(min_z);
-          } else {
-            console.log("Error:min_zoom is undefined");
-          }
-          let max_z = projection.max_zoom 
-          if (max_z !== undefined){
-            map.getView().setMaxZoom(max_z);
-          } else {
-            console.log("Error:max_zoom is undefined");
+  const updateMapAndView = () => {
+    console.log("****** updateMapAndView ******");
+    const map = mapRef.value?.map;
+    if(map){
+      const srProjection = mapParamsStore.getProjection();
+      const projection = getProjection(srProjection.name);
+      console.log("projection:",projection);
+      if(projection){
+        let extent = projection.getExtent();
+        //let extent = srProjection.bbox;
+        const fromLonLat = getTransform('EPSG:4326', projection);
+        if (srProjection.bbox){
+          if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031')){
+            console.log("srProjection.bbox:",srProjection.bbox);
+            let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
+            projection.setWorldExtent(worldExtent);
+            // approximate calculation of projection extent,
+            // checking if the world extent crosses the dateline
+            if (srProjection.bbox[1] > srProjection.bbox[3]) {
+              worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
+            }
+            console.log("worldExtent:",worldExtent);
+            extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
+            console.log("extent:",extent);
           }
         } else {
-          console.log("Error:map is null");
+          console.log("Error: invalid projection bbox:",srProjection.bbox);
         }
+        const newView = new View({
+          projection: projection,
+          constrainResolution: true,
+        });
+        map.setView(newView);
+        newView.fit(extent);
       } else {
-        console.log("Error: invalid projection bbox:",projection.bbox);
+        console.error("Error: invalid projection:",mapParamsStore.getProjection());
+      }
+      if(mapParamsStore.selectedBaseLayer){
+        console.log("adding selectedBaseLayer:",mapParamsStore.selectedBaseLayer);
+        const layer = getLayer(mapParamsStore.selectedBaseLayer.title);
+        if(layer){
+          //map.addLayer(layer);
+        } else {
+          console.error("Error:layer is null");
+        }
+      }
+      if(mapParamsStore.selectedLayers){
+          mapParamsStore.selectedLayers.forEach((layer: any) => {
+            console.log("adding layer:",layer);
+            map.addLayer(layer.layer);
+          });
+      } else {
+        console.error("Error:mapParamsStore.layers is null");
       }
     } else {
-      console.log("Error: invalid projection name:",projection.name);
+      console.error("Error:map is null");
     }
-    mapParamsStore.setProjection(projection);
-    mapParamsStore.setProjName(projection.name);
-    updateCurrentParms();
+    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+      console.log("layer:",layer)
+      console.log("layer.get('title'):",layer.get('title'));
+    });
+    console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
+  };
+
+  const updateProjection = (srProjection: SrProjection) => {
+    console.log("updateProjection oldProjName:",mapParamsStore.getProjection().name)
+    const newProj = getProjection(srProjection.name);
+    console.log("projection:",newProj);
+    if (newProj) {
+      mapParamsStore.setProjection(srProjection);
+      updateMapAndView();
+    } else {
+      console.log("Error: invalid projection name:",srProjection.name);
+    }
   }
-
-  // const transformProjection = (projection: SrProjection) => {
-  //   console.log("oldProjName:",mapParamsStore.getProjName())
-  //   const oldProj = getProjection(mapParamsStore.getProjName());
-  //   const newProj = getProjection(projection.name);
-  //   //console.log("oldProj:",oldProj);
-  //   console.log("updateProjection newProj:",newProj);
-  //   if (newProj && oldProj) {
-  //     let extent = newProj.getExtent();
-  //     const fromLonLat = getTransform('EPSG:4326', newProj);
-  //     if (projection.bbox){
-  //       if ((projection.name == 'EPSG:5936') || (projection.name == 'EPSG:3031')){
-  //         console.log("projection.bbox:",projection.bbox);
-  //         let worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3], projection.bbox[0]];
-  //         newProj.setWorldExtent(worldExtent);
-  //         // approximate calculation of projection extent,
-  //         // checking if the world extent crosses the dateline
-  //         if (projection.bbox[1] > projection.bbox[3]) {
-  //           worldExtent = [projection.bbox[1], projection.bbox[2], projection.bbox[3] + 360, projection.bbox[0]];
-  //         }
-  //         console.log("worldExtent:",worldExtent);
-  //         extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-  //         console.log("extent:",extent);
-  //       }
-  //       newProj.setExtent(extent);
-  //       const newView = new View({
-  //           projection: newProj,
-  //           constrainResolution: true,
-  //       });
-  //       const map = mapRef.value?.map;
-  //       if(map){
-  //         map.setView(newView);
-  //         newView.fit(extent);
-  //         // Watch for changes in the zoom level
-
-  //         map.getView().on('change:resolution', onResolutionChange);
-  //         let z = projection.default_zoom 
-  //         if (z !== undefined){
-  //           map.getView().setZoom(z);
-  //         } else {
-  //           console.log("Error:default_zoom is undefined");
-  //         }
-  //         let min_z = projection.min_zoom 
-  //         if (min_z !== undefined){
-  //           map.getView().setMinZoom(min_z);
-  //         } else {
-  //           console.log("Error:min_zoom is undefined");
-  //         }
-  //         let max_z = projection.max_zoom 
-  //         if (max_z !== undefined){
-  //           map.getView().setMaxZoom(max_z);
-  //         } else {
-  //           console.log("Error:max_zoom is undefined");
-  //         }
-  //       } else {
-  //         console.log("Error:map is null");
-  //       }
-  //     } else {
-  //       console.log("Error: invalid projection bbox:",projection.bbox);
-  //     }
-  //   } else {
-  //     console.log("Error: invalid projection name:",projection.name);
-  //   }
-  //   mapParamsStore.setProjection(projection);
-  //   mapParamsStore.setProjName(projection.name);
-  //   updateCurrentParms();
-  // };
 
   const handleUpdateProjection = (projection: SrProjection) => {
     console.log("handleUpdateProjection:",projection);
     updateProjection(projection);
   };
 
-  const handleUpdateBaseLayer = (baseLayer: SrBaseLayer) => {
-    console.log("handleUpdateBaseLayer:",baseLayer);
-    const oldBaseLayer = mapParamsStore.baseLayer;
-    mapParamsStore.baseLayer = baseLayer;
-    let found = false;
-    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-      console.log("layer:",layer)
-      console.log("layer.get('title'):",layer.get('title'));
-      console.log("oldBaseLayer.title:",oldBaseLayer.title)
-      console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
-      if(layer){
-        if (layer.get('title') === baseLayer.title) {
-          found = true;
-        }
-      } else {
-        console.log("Error:layer is null");
-      }      
-    });
-    if (!found){
-      console.log("adding layer:",baseLayer);
-      //mapRef.value?.map.removeLayer(layer);
-      let myOptions = {
-        title: baseLayer.title
-      };
-      if(baseLayer.type == "wmts"){
-        console.log("adding wmts layer")
-        // mapRef.value?.map.addLayer(new TileLayer<WMTS>({
-        //   source: new WMTS({
-        //     url: baseLayer.url,
-        //   }),
-        //   ... myOptions})
-        // );
-
-        var source = new WMTS({
-          url: "https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01",
-          layer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
-          format: 'image/jpeg',
-          matrixSet: '250m',
-
-          tileGrid: new WMTSTileGrid({
-            origin: [-4194304, 4194304],
-            resolutions: [
-              8192.0,
-              4096.0,
-              2048.0,
-              1024.0,
-              512.0,
-              256.0
-            ],
-            matrixIds: [0, 1, 2, 3, 4, 5],
-            tileSize: 512
-          })
-        });
-
-      var layer = new TileLayer({
-        source: source,
-        extent: [-4194304, -4194304, 4194304, 4194304]
-      });
-      mapRef.value?.map.addLayer(layer);
-
-
-
-
-
-      } else {
-        console.log("adding xyz layer")
-        mapRef.value?.map.addLayer(new TileLayer<XYZ>({
-          source: new XYZ({
-            url: baseLayer.url,
-          }),
-          ... myOptions})
-        );
-      }
+  const handleUpdateBaseLayerTitle = (baseLayerTitle: string) => {
+    console.log("handleUpdateBaseLayerTitle:",baseLayerTitle);
+    const baseLayer = getLayer(baseLayerTitle);
+    if(baseLayer){
+      updateMapAndView();
     }
-    updateProjection(mapParamsStore.projection);
   };
- 
 
 </script>
 
@@ -445,8 +323,8 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref=mapParamsStore.baseLayer :title=mapParamsStore.tile_title>
-      <ol-source-xyz :url="mapParamsStore.baseLayer.url" :title="mapParamsStore.baseLayer.title"/>
+    <ol-tile-layer ref=mapParamsStore.selectedBaseLayer :title=mapParamsStore.selectedBaseLayer.title>
+      <ol-source-xyz :url="mapParamsStore.selectedBaseLayer.url" :title="mapParamsStore.selectedBaseLayer.title"/>
     </ol-tile-layer>
 
     <ol-zoom-control  />
@@ -457,8 +335,8 @@
 
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
-    <SrProjectionControl @projectionControlCreated="handleProjectionControlCreated" @updateProjection="handleUpdateProjection"/>
-    <SrBaseLayerControl @baseLayerControlCreated="handleBaseLayerControlCreated" @updateBaseLayer="handleUpdateBaseLayer"/>
+    <SrProjectionControl @projection-control-created="handleProjectionControlCreated" @update-projection="handleUpdateProjection"/>
+    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayerTitle"/>
     <ol-vector-layer title="drawing layer">
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
@@ -487,12 +365,11 @@
     <span>currentZoom: {{  mapParamsStore.getZoom() }} </span><br>
     <span>currentCenter: {{  mapParamsStore.getCenter() }}</span><br>
     <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
-    <span>currentProjection: {{  mapParamsStore.getProjName()}}</span><br>
+    <span>currentProjection: {{  mapParamsStore.getProjection().name}}</span><br>
     <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>
   </div>
 
 </template>
-
 
 <style scoped>
 
@@ -612,6 +489,17 @@
   bottom: auto;
   right: auto;
   left: 5.5rem;
+  background-color: transparent;
+  border-radius: var(--border-radius);
+  color: white;
+  max-width: 30rem; 
+}
+
+::v-deep( .ol-control.sr-layers-control ){
+  top: 0.55rem;
+  bottom: auto;
+  right: auto;
+  left: 23.5rem;
   background-color: transparent;
   border-radius: var(--border-radius);
   color: white;
