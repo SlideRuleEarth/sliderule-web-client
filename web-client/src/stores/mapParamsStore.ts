@@ -22,7 +22,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     drawType: 'undefined',
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
-    selectedLayers: [],
   }),
   actions:{
     cacheLayer(title:string, layerInstance:any) {
@@ -41,8 +40,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.drawEnabled = false;
       this.drawType = 'undefined';
       this.layerCache = new Map(), // Note this is a javascript Map, not an OpenLayers Map
-      this.layerGroupCache =new Map(), // Note this is a javascript Map, not an OpenLayers Map
-      this.selectedLayers = [];
+      this.layerGroupCache =new Map() // Note this is a javascript Map, not an OpenLayers Map
     },
     setCenter(c:number[]) {
       this.center = c;
@@ -52,9 +50,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     setZoom(z:number) {
       this.zoom = z;
-    },
-    setSelectedLayers(layers: any) {
-      this.selectedLayers = layers;
     },
     setSelectedBaseLayer(layer: SrLayer) {
       this.selectedBaseLayer = layer;

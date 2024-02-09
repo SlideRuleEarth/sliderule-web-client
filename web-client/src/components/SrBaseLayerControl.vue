@@ -7,7 +7,7 @@
   
   const mapParamsStore = useMapParamsStore();
   const baseLayerOptions = computed(() => getBaseLayersForProjection(mapParamsStore.projection.name));
-  // Computed property to bind selectedLayers with the store
+  // Computed property to bind selectedBaseLayer with the store
   const selectedBaseLayerTitle = computed({
     get: () => mapParamsStore.getSelectedBaseLayer().title,
     set: (title) => {

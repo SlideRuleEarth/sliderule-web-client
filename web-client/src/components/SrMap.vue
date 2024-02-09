@@ -20,7 +20,6 @@
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
-  import Layer from 'ol/layer/Layer.js';
   import { SrLayer } from "@/composables/SrLayers";
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
@@ -251,23 +250,6 @@
       } else {
         console.error("Error: invalid projection:",mapParamsStore.getProjection());
       }
-      if(mapParamsStore.selectedBaseLayer){
-        //console.log("adding selectedBaseLayer:",mapParamsStore.selectedBaseLayer);
-        const layer = getLayer(mapParamsStore.selectedBaseLayer.title);
-        if(layer){
-          //map.addLayer(layer);
-        } else {
-          console.error("Error:layer is null");
-        }
-      }
-      if(mapParamsStore.selectedLayers){
-          mapParamsStore.selectedLayers.forEach((layer: any) => {
-            console.log("adding layer:",layer);
-            map.addLayer(layer.layer);
-          });
-      } else {
-        console.error("Error:mapParamsStore.selectedLayers is null");
-      }
     } else {
       console.error("Error:map is null");
     }
@@ -278,8 +260,8 @@
     //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
   };
 
-  const updateProjection = (srProjection: SrProjection) => {
-    //console.log("updateProjection oldProjName:",mapParamsStore.getProjection().name)
+  const handleUpdateProjection = (srProjection: SrProjection) => {
+    //console.log(`handleUpdateProjection: |${projection.title}|`);
     const newProj = getProjection(srProjection.name);
     //console.log("projection:",newProj);
     if (newProj) {
@@ -288,11 +270,6 @@
     } else {
       console.log("Error: invalid projection name:",srProjection.name);
     }
-  }
-
-  const handleUpdateProjection = (projection: SrProjection) => {
-    //console.log(`handleUpdateProjection: |${projection.title}|`);
-    updateProjection(projection);
   };
 
   const handleUpdateBaseLayer = (srLayer: SrLayer) => {
