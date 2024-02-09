@@ -23,9 +23,9 @@
   import { SrLayer } from "@/composables/SrLayers";
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
-  import { getLayer } from "@/composables/SrLayers"; 
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
+  import Layer from 'ol/layer/Layer';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -174,7 +174,6 @@
         }
         updateMapAndView();
         // Watch for changes in the zoom level
-        map.getView().on('change:resolution', onResolutionChange);
       } else {
         console.log("Error:map is null");
       } 
@@ -226,7 +225,7 @@
         const fromLonLat = getTransform('EPSG:4326', projection);
         if (srProjection.bbox){
           if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031')){
-            console.log("srProjection.bbox:",srProjection.bbox);
+            //console.log("srProjection.bbox:",srProjection.bbox);
             let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
             projection.setWorldExtent(worldExtent);
             // approximate calculation of projection extent,
@@ -234,9 +233,9 @@
             if (srProjection.bbox[1] > srProjection.bbox[3]) {
               worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
             }
-            console.log("worldExtent:",worldExtent);
+            //console.log("worldExtent:",worldExtent);
             extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-            console.log("extent:",extent);
+            //console.log("extent:",extent);
           }
         } else {
           console.error("Error: invalid projection bbox:",srProjection.bbox);
@@ -253,10 +252,10 @@
     } else {
       console.error("Error:map is null");
     }
-    // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-    //   //console.log("layer:",layer)
-    //   //console.log("layer.get('title'):",layer.get('title'));
-    // });
+    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+      console.log(`layer:`,layer.getProperties());
+    });
+    mapRef.value?.map.getView().on('change:resolution', onResolutionChange);
     //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
   };
 
@@ -298,7 +297,9 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref=mapParamsStore.selectedBaseLayer :title=mapParamsStore.selectedBaseLayer.title>
+    <ol-tile-layer ref=mapParamsStore.selectedBaseLayer 
+                  :title=mapParamsStore.selectedBaseLayer.title
+                  >
       <ol-source-xyz :url="mapParamsStore.selectedBaseLayer.url" :title="mapParamsStore.selectedBaseLayer.title"/>
     </ol-tile-layer>
 
@@ -326,7 +327,6 @@
         </ol-style>
         </ol-interaction-draw>
       </ol-source-vector>
-
       <ol-style>
         <ol-style-stroke color="red" :width="2"></ol-style-stroke>
         <ol-style-fill color="rgba(255,255,255,0.1)"></ol-style-fill>
