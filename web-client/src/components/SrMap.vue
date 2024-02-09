@@ -297,10 +297,7 @@
 
   const handleUpdateBaseLayer = (srLayer: SrLayer) => {
     console.log(`handleUpdateBaseLayer:${srLayer.title}`);
-    const baseLayer = getLayer(srLayer.title);
-    if(baseLayer){
-      updateMapAndView();
-    }
+    updateMapAndView();
   };
 
 </script>
@@ -338,7 +335,7 @@
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
     <SrProjectionControl @projection-control-created="handleProjectionControlCreated" @update-projection="handleUpdateProjection"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
-    <ol-vector-layer title="drawing layer">
+    <ol-vector-layer title="drawing layer" zIndex="999" >
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
           v-if="mapParamsStore.drawEnabled"
