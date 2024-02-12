@@ -317,6 +317,7 @@
         }
         console.log(`adding layer:`,srLayerForProj.title);
         const newLayer = getLayer(srLayerForProj.title);
+        newLayer.setOpacity(srLayerForProj.opacity);
         mapRef.value?.map.addLayer(newLayer);
       });
       //console.log("baseLayerOptions:",baseLayerOptions.value);

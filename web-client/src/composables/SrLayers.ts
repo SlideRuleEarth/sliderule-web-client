@@ -11,6 +11,7 @@ export interface SrLayer {
     attribution: string;
     allowed_projections: string[];
     type: string;
+    opacity: number;
 }
 
 export const layers = ref<SrLayer[]>([
@@ -20,7 +21,8 @@ export const layers = ref<SrLayer[]>([
     title: "Esri World Topo",
     attribution: "Tiles © Esri contributers",
     allowed_projections:["EPSG:3857","EPSG:4326"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   {
     isBaseLayer: true,
@@ -28,7 +30,8 @@ export const layers = ref<SrLayer[]>([
     title: "OpenStreet",
     attribution: "© OpenStreetMap contributors",
     allowed_projections:["EPSG:3857","EPSG:4326"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   {
     isBaseLayer: true,
@@ -36,7 +39,8 @@ export const layers = ref<SrLayer[]>([
     title: "Google",
     attribution: "Map data © Google",
     allowed_projections:["EPSG:3857","EPSG:4326"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   {
     isBaseLayer: false,
@@ -44,7 +48,8 @@ export const layers = ref<SrLayer[]>([
     title: "Artic Ocean Base",
     attribution: "Tiles © Esri contributers",
     allowed_projections:["EPSG:5936"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   {
     isBaseLayer: false,
@@ -52,7 +57,8 @@ export const layers = ref<SrLayer[]>([
     title: "Artic Imagery",
     attribution: "Tiles © Esri Artic Imagery contributers",
     allowed_projections:["EPSG:5936"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 0.1,
   },
   {
     isBaseLayer: false,
@@ -60,7 +66,8 @@ export const layers = ref<SrLayer[]>([
     title: "Artic Reference",
     attribution: "Tiles © Esri Artic Ref contributers",
     allowed_projections:["EPSG:5936"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   {
     isBaseLayer: false,
@@ -68,7 +75,8 @@ export const layers = ref<SrLayer[]>([
     title: "Antarctic Imagery",
     attribution: "Tiles © Esri Antartic contributers",
     allowed_projections:["EPSG:3031"],
-    type: "xyz"
+    type: "xyz",
+    opacity: 1,
   },
   // {
   //   isBaseLayer: false,
