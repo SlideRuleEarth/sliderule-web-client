@@ -20,12 +20,13 @@
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
-  import { SrLayer } from "@/composables/SrLayers";
+  import { SrLayer, getSrLayersForCurrentProjection } from "@/composables/SrLayers";
   import Permalink from "ol-ext/control/Permalink";
   import BaseEvent from "ol/events/Event";
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
+  import { getLayer } from '@/composables/SrLayers.js';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -130,8 +131,9 @@
       if(map){
         if(wms_capabilities_cntrl){
           map.addControl(wms_capabilities_cntrl);
+          var plink;
           if (isLocalStorageAvailable()) {
-            var plink = new Permalink({ visible: false, localStorage: 'position' });
+            plink = new Permalink({ visible: false, localStorage: 'position' });
             map.addControl(plink);
           } else {
             console.log("Error:localStorage not available no Permalink control added");
@@ -141,8 +143,8 @@
             const e = event as any;
             map.addLayer(e.layer);
             e.layer.set('legend', e.options.data.legend);
-            plink.setUrlParam('url', e.options.source.url);
-            plink.setUrlParam('layer', e.options.source.params.LAYERS);
+            //plink.setUrlParam('url', e.options.source.url);
+            //plink.setUrlParam('layer', e.options.source.params.LAYERS);
           });
 
         } else {
@@ -240,6 +242,12 @@
         } else {
           console.error("Error: invalid projection bbox:",srProjection.bbox);
         }
+
+        // const defaultBaseLayer = getDefaultBaseLayer();
+        // if (defaultBaseLayer) {
+        //   mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
+        // }
+
         const newView = new View({
           projection: projection,
           constrainResolution: true,
@@ -264,9 +272,26 @@
     const newProj = getProjection(srProjection.name);
     //console.log("projection:",newProj);
     if (newProj) {
+
+      mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+        if(layer.get('title') !== 'drawing layer'){
+          console.log(`removing layer:`,layer.get('title'));
+          mapRef.value?.map.removeLayer(layer);
+        }
+      });
       mapParamsStore.setProjection(srProjection);
+      const srLayersForProj = getSrLayersForCurrentProjection();
+      srLayersForProj.forEach(srLayerForProj => {
+        if(srLayerForProj.isBaseLayer){
+          console.log(`found base layer:`,srLayerForProj.title);
+        }
+        console.log(`adding layer:`,srLayerForProj.title);
+        const newLayer = getLayer(srLayerForProj.title);
+        mapRef.value?.map.addLayer(newLayer);
+      });
+      //console.log("baseLayerOptions:",baseLayerOptions.value);
       updateMapAndView();
-    } else {
+    } else {  
       console.log("Error: invalid projection name:",srProjection.name);
     }
   };
@@ -275,7 +300,7 @@
     if(!srLayer){
       console.log("Error:handleUpdateBaseLayer srLayer is null");
     }
-    //console.log(`handleUpdateBaseLayer:${srLayer.title}`);
+    console.log(`handleUpdateBaseLayer:${srLayer.title}`);
     updateMapAndView();
   };
 

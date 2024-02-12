@@ -17,9 +17,9 @@ export const layers = ref<SrLayer[]>([
   {
     isBaseLayer: true,
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-    title: "Esri-World-Topo",
+    title: "Esri World Topo",
     attribution: "Tiles © Esri contributers",
-    allowed_projections:["EPSG:3857","EPSG:4326","EPSG:5936","EPSG:3031"],
+    allowed_projections:["EPSG:3857","EPSG:4326"],
     type: "xyz"
   },
   {
@@ -35,7 +35,7 @@ export const layers = ref<SrLayer[]>([
     url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
     title: "Google",
     attribution: "Map data © Google",
-    allowed_projections:["EPSG:3857","EPSG:4326","EPSG:5936","EPSG:3031"],
+    allowed_projections:["EPSG:3857","EPSG:4326"],
     type: "xyz"
   },
   {
@@ -64,14 +64,6 @@ export const layers = ref<SrLayer[]>([
   },
   {
     isBaseLayer: false,
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-    title: "Esri World Topo",
-    attribution: "Tiles © Esri World Topo contributers",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
-    type: "xyz"
-  },
-  {
-    isBaseLayer: false,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
     attribution: "Tiles © Esri Antartic contributers",
@@ -88,14 +80,12 @@ export const layers = ref<SrLayer[]>([
   }
 ]);
        
-export const getLayersForCurrentProjection = () => {
+export const getSrLayersForCurrentProjection = () => {
   const mapParamsStore = useMapParamsStore();
-  return layers.value.filter(layer => 
-    layer.allowed_projections.includes(mapParamsStore.projection.name)
-  );
+  return layers.value.filter(layer => layer.allowed_projections.includes(mapParamsStore.projection.name));
 }
-export const getBaseLayersForProjection = (projection: string) => {
-  //console.log('getBaseLayersForProjection', projection);
+export const getSrBaseLayersForProjection = (projection: string) => {
+  //console.log('getSrBaseLayersForProjection', projection);
   return layers.value.filter(layer => layer.allowed_projections.includes(projection) && layer.isBaseLayer);
 }
 
@@ -104,7 +94,7 @@ export const getDefaultBaseLayer = () => {
 }
 
 export const getLayer = (title: string) => {
-  console.log('getLayer', title);
+  //console.log('getLayer', title);
   const mapParamsStore = useMapParamsStore();
   const cachedLayer = mapParamsStore.getLayerFromCache(title);
   let layerInstance;
@@ -127,7 +117,7 @@ export const getLayer = (title: string) => {
         });
       }
       if (layerInstance) {
-        console.log('Caching layer', title);
+        //console.log('Caching layer', title);
         mapParamsStore.cacheLayer(title, layerInstance);
       }
     } else {

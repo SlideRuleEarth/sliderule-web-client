@@ -3,13 +3,12 @@
   import { ref,onMounted } from "vue";
   import { Control } from 'ol/control';
   import { computed } from 'vue';
-  import { getBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
+  import { getSrBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
   import { useMapStore } from "@/stores/mapStore";
-  import type { Layer } from 'ol/layer';
   const mapStore = useMapStore();
 
   const mapParamsStore = useMapParamsStore();
-  const baseLayerOptions = computed(() => getBaseLayersForProjection(mapParamsStore.projection.name));
+  const baseLayerOptions = computed(() => getSrBaseLayersForProjection(mapParamsStore.projection.name));
   // Computed property to bind selectedBaseLayer with the store
   const selectedBaseLayerTitle = computed({
     get: () => mapParamsStore.getSelectedBaseLayer().title,
