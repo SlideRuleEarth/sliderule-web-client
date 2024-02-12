@@ -47,6 +47,19 @@
 
   const drawend = (event: any) => {
     console.log("drawend:",event);
+    // Access the feature that was drawn
+    const feature = event.feature;
+
+    // Get the geometry of the feature
+    const geometry = feature.getGeometry();
+
+    // Check if the geometry is a polygon
+    if (geometry.getType() === 'Polygon') {
+      // Get the coordinates of the polygon
+      const coordinates = geometry.getCoordinates();
+
+      console.log(coordinates);
+    }  
   };
 
   const handlePickedChanged = (newPickedValue: string) => {
@@ -71,11 +84,12 @@
 
   // Define a function to handle the addresschosen event
   function onAddressChosen(evt: any) {
-    //console.log(evt);
+    console.log(evt);
     // Zoom to the selected location
     const map = mapStore.getMap();
     if(map){
         const view = map.getView();
+
         if (view) {
             view.animate({
                 center: evt.coordinate,
@@ -129,27 +143,27 @@
       mapStore.setMap(mapRef.value?.map);
       const map = mapStore.getMap();
       if(map){
-        if(wms_capabilities_cntrl){
-          map.addControl(wms_capabilities_cntrl);
-          var plink;
-          if (isLocalStorageAvailable()) {
-            plink = new Permalink({ visible: false, localStorage: 'position' });
-            map.addControl(plink);
-          } else {
-            console.log("Error:localStorage not available no Permalink control added");
-          }
-          let et:any = 'load';
-          wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
-            const e = event as any;
-            map.addLayer(e.layer);
-            e.layer.set('legend', e.options.data.legend);
-            //plink.setUrlParam('url', e.options.source.url);
-            //plink.setUrlParam('layer', e.options.source.params.LAYERS);
-          });
+        // if(wms_capabilities_cntrl){
+        //   map.addControl(wms_capabilities_cntrl);
+        //   var plink;
+        //   if (isLocalStorageAvailable()) {
+        //     plink = new Permalink({ visible: true, localStorage: 'position' });
+        //     map.addControl(plink);
+        //   } else {
+        //     console.log("Error:localStorage not available no Permalink control added");
+        //   }
+        //   let et:any = 'load';
+        //   wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
+        //     const e = event as any;
+        //     map.addLayer(e.layer);
+        //     e.layer.set('legend', e.options.data.legend);
+        //     plink.setUrlParam('url', e.options.source.url);
+        //     plink.setUrlParam('layer', e.options.source.params.LAYERS);
+        //   });
+        // } else {
+        //   console.log("Error:wms_capabilities_cntrl null");
+        // }
 
-        } else {
-          console.log("Error:wms_capabilities_cntrl null");
-        }
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
           geoCoderStore.initGeoCoder({
@@ -233,11 +247,12 @@
             // approximate calculation of projection extent,
             // checking if the world extent crosses the dateline
             if (srProjection.bbox[1] > srProjection.bbox[3]) {
+              console.log("crosses the dateline");
               worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
             }
-            //console.log("worldExtent:",worldExtent);
+            console.log("worldExtent:",worldExtent);
             extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-            //console.log("extent:",extent);
+            console.log("extent:",extent);
           }
         } else {
           console.error("Error: invalid projection bbox:",srProjection.bbox);
@@ -247,13 +262,28 @@
         // if (defaultBaseLayer) {
         //   mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
         // }
-
         const newView = new View({
           projection: projection,
           constrainResolution: true,
+          //center: srProjection.default_center,
+          //zoom: srProjection.default_zoom,
         });
+        //newView.setCenter(srProjection.default_center);
+        //newView.setZoom(srProjection.default_zoom);
+        console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
         map.setView(newView);
         newView.fit(extent);
+        updateCurrentParms();
+        let thisView = map.getView();
+        console.log(`view center:`,thisView.getCenter());
+        //let hackCenter = [9000000, 13000000];
+        thisView.animate({
+          //center: thisView.getCenter(),
+          //center: hackCenter,
+          center: srProjection.default_center,
+          duration: 1000,
+          zoom: srProjection.default_zoom,
+        });
       } else {
         console.error("Error: invalid projection:",mapParamsStore.getProjection());
       }

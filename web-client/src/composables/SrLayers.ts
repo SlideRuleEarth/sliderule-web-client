@@ -70,14 +70,14 @@ export const layers = ref<SrLayer[]>([
     allowed_projections:["EPSG:3031"],
     type: "xyz"
   },
-  {
-    isBaseLayer: false,
-    url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
-    title: "NASA Gibs",
-    attribution: "Tiles © NASA Gibs contributers",
-    allowed_projections:["EPSG:3031"],
-    type: "wmts"
-  }
+  // {
+  //   isBaseLayer: false,
+  //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
+  //   title: "NASA Gibs",
+  //   attribution: "Tiles © NASA Gibs contributers",
+  //   allowed_projections:["EPSG:3031"],
+  //   type: "wmts"
+  // }
 ]);
        
 export const getSrLayersForCurrentProjection = () => {
