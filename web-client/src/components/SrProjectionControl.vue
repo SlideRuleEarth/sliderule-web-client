@@ -7,7 +7,6 @@
 
     const projectionControlElement = ref(null);
 
-
     const emit = defineEmits(['projection-control-created', 'update-projection']);
 
     onMounted(() => {

@@ -4,8 +4,8 @@ import type { SrProjection } from '@/composables/SrProjections';
 import type { SrLayer } from '@/composables/SrLayers.js';
 import { projections } from '@/composables/SrProjections';
 import Collection from 'ol/Collection.js';
-import LayerGroup from 'ol/layer/Group.js';
 import BaseLayer from 'ol/layer/Base.js';
+import { getDefaultProjection } from '@/composables/SrProjections.js';
 
 type SrLayers = Collection<BaseLayer> | BaseLayer[];
 
@@ -17,7 +17,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     projection: projections.value[0] as SrProjection,
     zoom: 12,
     rotation: 0,
-    selectedBaseLayer: getDefaultBaseLayer() as SrLayer,
+    selectedBaseLayer: getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,
     drawEnabled: false,
     drawType: 'undefined',
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
@@ -36,7 +36,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.extent = projections.value[0].bbox || [0, 0, 0, 0];
       this.zoom = 12;
       this.rotation = 0;
-      this.selectedBaseLayer=getDefaultBaseLayer() as SrLayer,
+      this.selectedBaseLayer=getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,
       this.drawEnabled = false;
       this.drawType = 'undefined';
       this.layerCache = new Map(), // Note this is a javascript Map, not an OpenLayers Map

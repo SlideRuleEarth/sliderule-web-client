@@ -33,17 +33,6 @@ export const projections = ref<SrProjection[]>([
     max_zoom: 19,
     bbox: [90.0,-180.0,-90.0,180.0],
   },
-  // {
-  //   title: "North: Alaska Polar Stereographic",
-  //   name: "EPSG:5936",
-  //   label: "North",
-  //   proj4def: "+proj=stere +lat_0=90 +lon_0=-150 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs +type=crs",
-  //   default_center: [2978776.46, 3695290.56],
-  //   default_zoom: 4,
-  //   min_zoom: 1,
-  //   max_zoom: 16,
-  //   bbox: [90.0,-180.0,60.0,180.0],
-  // },  
   {
     title: "North: Alaska Polar Stereographic",
     name: "EPSG:5936",
@@ -76,4 +65,8 @@ export const useProjectionNames = () => {
 // Function to fetch a projection by its name
 export const findProjectionByName = (name: string) => {
   return computed(() => projections.value.find(p => p.name === name));
+};
+
+export const getDefaultProjection = () => {
+  return projections.value[0];
 };

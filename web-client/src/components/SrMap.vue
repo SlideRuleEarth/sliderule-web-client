@@ -65,9 +65,9 @@
   const handlePickedChanged = (newPickedValue: string) => {
     console.log("Draw Picked value changed: " + newPickedValue);
     if (newPickedValue === 'TrashCan'){
-      console.log("Clearing drawing layer");
+      console.log("Clearing Drawing Layer");
       // Access the vector layer's source and clear it
-      const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('title') === 'drawing layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+      const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
       console.log("vectorLayer:",vectorLayer);  
       if (vectorLayer) {
         toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
@@ -143,27 +143,26 @@
       mapStore.setMap(mapRef.value?.map);
       const map = mapStore.getMap();
       if(map){
-        // if(wms_capabilities_cntrl){
-        //   map.addControl(wms_capabilities_cntrl);
-        //   var plink;
-        //   if (isLocalStorageAvailable()) {
-        //     plink = new Permalink({ visible: true, localStorage: 'position' });
-        //     map.addControl(plink);
-        //   } else {
-        //     console.log("Error:localStorage not available no Permalink control added");
-        //   }
-        //   let et:any = 'load';
-        //   wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
-        //     const e = event as any;
-        //     map.addLayer(e.layer);
-        //     e.layer.set('legend', e.options.data.legend);
-        //     plink.setUrlParam('url', e.options.source.url);
-        //     plink.setUrlParam('layer', e.options.source.params.LAYERS);
-        //   });
-        // } else {
-        //   console.log("Error:wms_capabilities_cntrl null");
-        // }
-
+        if(wms_capabilities_cntrl){
+          map.addControl(wms_capabilities_cntrl);
+          var plink;
+          if (isLocalStorageAvailable()) {
+            plink = new Permalink({ visible: true, localStorage: 'position' });
+            map.addControl(plink);
+          } else {
+            console.log("Error:localStorage not available no Permalink control added");
+          }
+          let et:any = 'load';
+          wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
+            const e = event as any;
+            map.addLayer(e.layer);
+            e.layer.set('legend', e.options.data.legend);
+            plink.setUrlParam('url', e.options.source.url);
+            plink.setUrlParam('layer', e.options.source.params.LAYERS);
+          });
+        } else {
+          console.log("Error:wms_capabilities_cntrl null");
+        }
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
           geoCoderStore.initGeoCoder({
@@ -250,9 +249,9 @@
               console.log("crosses the dateline");
               worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
             }
-            console.log("worldExtent:",worldExtent);
+            //console.log("worldExtent:",worldExtent);
             extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-            console.log("extent:",extent);
+            //console.log("extent:",extent);
           }
         } else {
           console.error("Error: invalid projection bbox:",srProjection.bbox);
@@ -265,17 +264,13 @@
         const newView = new View({
           projection: projection,
           constrainResolution: true,
-          //center: srProjection.default_center,
-          //zoom: srProjection.default_zoom,
         });
-        //newView.setCenter(srProjection.default_center);
-        //newView.setZoom(srProjection.default_zoom);
-        console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
+        //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
         map.setView(newView);
         newView.fit(extent);
         updateCurrentParms();
         let thisView = map.getView();
-        console.log(`view center:`,thisView.getCenter());
+        //console.log(`view center:`,thisView.getCenter());
         //let hackCenter = [9000000, 13000000];
         thisView.animate({
           //center: thisView.getCenter(),
@@ -304,7 +299,7 @@
     if (newProj) {
 
       mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-        if(layer.get('title') !== 'drawing layer'){
+        if((layer.get('name') !== 'Drawing Layer') && (layer.get('name') !== 'Base Layer')){
           console.log(`removing layer:`,layer.get('title'));
           mapRef.value?.map.removeLayer(layer);
         }
@@ -312,13 +307,12 @@
       mapParamsStore.setProjection(srProjection);
       const srLayersForProj = getSrLayersForCurrentProjection();
       srLayersForProj.forEach(srLayerForProj => {
-        if(srLayerForProj.isBaseLayer){
-          console.log(`found base layer:`,srLayerForProj.title);
+        if(!srLayerForProj.isBaseLayer){
+          console.log(`adding non base layer:`,srLayerForProj.title);
+          const newLayer = getLayer(srLayerForProj.title);
+          newLayer.setOpacity(srLayerForProj.init_opacity);
+          mapRef.value?.map.addLayer(newLayer);
         }
-        console.log(`adding layer:`,srLayerForProj.title);
-        const newLayer = getLayer(srLayerForProj.title);
-        newLayer.setOpacity(srLayerForProj.opacity);
-        mapRef.value?.map.addLayer(newLayer);
       });
       //console.log("baseLayerOptions:",baseLayerOptions.value);
       updateMapAndView();
@@ -358,7 +352,7 @@
     />
     <ol-tile-layer ref=mapParamsStore.selectedBaseLayer 
                   :title=mapParamsStore.selectedBaseLayer.title
-                  >
+                  name="Base Layer">
       <ol-source-xyz :url="mapParamsStore.selectedBaseLayer.url" :title="mapParamsStore.selectedBaseLayer.title"/>
     </ol-tile-layer>
 
@@ -372,7 +366,7 @@
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
     <SrProjectionControl @projection-control-created="handleProjectionControlCreated" @update-projection="handleUpdateProjection"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
-    <ol-vector-layer title="drawing layer" zIndex="999" >
+    <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
           v-if="mapParamsStore.drawEnabled"

@@ -11,7 +11,7 @@ export interface SrLayer {
     attribution: string;
     allowed_projections: string[];
     type: string;
-    opacity: number;
+    init_opacity: number;
 }
 
 export const layers = ref<SrLayer[]>([
@@ -22,7 +22,7 @@ export const layers = ref<SrLayer[]>([
     attribution: "Tiles © Esri contributers",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   {
     isBaseLayer: true,
@@ -31,7 +31,7 @@ export const layers = ref<SrLayer[]>([
     attribution: "© OpenStreetMap contributors",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   {
     isBaseLayer: true,
@@ -40,25 +40,25 @@ export const layers = ref<SrLayer[]>([
     attribution: "Map data © Google",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   {
-    isBaseLayer: false,
+    isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Ocean Base",
     attribution: "Tiles © Esri contributers",
     allowed_projections:["EPSG:5936"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   {
-    isBaseLayer: false,
+    isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Imagery",
     attribution: "Tiles © Esri Artic Imagery contributers",
     allowed_projections:["EPSG:5936"],
     type: "xyz",
-    opacity: 0.1,
+    init_opacity: 1,
   },
   {
     isBaseLayer: false,
@@ -67,16 +67,16 @@ export const layers = ref<SrLayer[]>([
     attribution: "Tiles © Esri Artic Ref contributers",
     allowed_projections:["EPSG:5936"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   {
-    isBaseLayer: false,
+    isBaseLayer: true,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
     attribution: "Tiles © Esri Antartic contributers",
     allowed_projections:["EPSG:3031"],
     type: "xyz",
-    opacity: 1,
+    init_opacity: 1,
   },
   // {
   //   isBaseLayer: false,
@@ -97,8 +97,8 @@ export const getSrBaseLayersForProjection = (projection: string) => {
   return layers.value.filter(layer => layer.allowed_projections.includes(projection) && layer.isBaseLayer);
 }
 
-export const getDefaultBaseLayer = () => {
-  return layers.value.find(layer => layer.isBaseLayer);
+export const getDefaultBaseLayer = (projection: string) => {
+  return layers.value.find(layer => layer.isBaseLayer && layer.allowed_projections.includes(projection));
 }
 
 export const getLayer = (title: string) => {
