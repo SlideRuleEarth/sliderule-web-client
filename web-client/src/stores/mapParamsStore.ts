@@ -7,7 +7,7 @@ import Collection from 'ol/Collection.js';
 import BaseLayer from 'ol/layer/Base.js';
 import { getDefaultProjection } from '@/composables/SrProjections.js';
 
-type SrLayers = Collection<BaseLayer> | BaseLayer[];
+//type SrLayers = Collection<BaseLayer> | BaseLayer[];
 
 
 export const useMapParamsStore = defineStore('mapParamsStore', {

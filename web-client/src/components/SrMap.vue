@@ -21,8 +21,6 @@
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
   import { SrLayer, getSrLayersForCurrentProjection } from "@/composables/SrLayers";
-  import Permalink from "ol-ext/control/Permalink";
-  import BaseEvent from "ol/events/Event";
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
@@ -30,7 +28,6 @@
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
-  const {wms_capabilities_cntrl} = useWmsCap();
 
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
@@ -127,42 +124,11 @@
     updateCurrentParms();
   };
 
-  function isLocalStorageAvailable() {
-    try {
-        const test = "__test__";
-        window.localStorage.setItem(test, test);
-        window.localStorage.removeItem(test);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
   onMounted(() => {
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
       const map = mapStore.getMap();
       if(map){
-        if(wms_capabilities_cntrl){
-          map.addControl(wms_capabilities_cntrl);
-          var plink;
-          if (isLocalStorageAvailable()) {
-            plink = new Permalink({ visible: true, localStorage: 'position' });
-            map.addControl(plink);
-          } else {
-            console.log("Error:localStorage not available no Permalink control added");
-          }
-          let et:any = 'load';
-          wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
-            const e = event as any;
-            map.addLayer(e.layer);
-            e.layer.set('legend', e.options.data.legend);
-            plink.setUrlParam('url', e.options.source.url);
-            plink.setUrlParam('layer', e.options.source.params.LAYERS);
-          });
-        } else {
-          console.log("Error:wms_capabilities_cntrl null");
-        }
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
           geoCoderStore.initGeoCoder({
@@ -257,10 +223,8 @@
           console.error("Error: invalid projection bbox:",srProjection.bbox);
         }
 
-        // const defaultBaseLayer = getDefaultBaseLayer();
-        // if (defaultBaseLayer) {
-        //   mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
-        // }
+        const newWmsCap = useWmsCap(srProjection.name);
+        console.log("newWmsCap:",newWmsCap);
         const newView = new View({
           projection: projection,
           constrainResolution: true,
@@ -315,6 +279,7 @@
         }
       });
       //console.log("baseLayerOptions:",baseLayerOptions.value);
+      
       updateMapAndView();
     } else {  
       console.log("Error: invalid projection name:",srProjection.name);
