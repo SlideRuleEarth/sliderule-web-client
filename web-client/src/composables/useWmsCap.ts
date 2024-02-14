@@ -11,27 +11,27 @@ export function useWmsCap(projectionName: string) {
         services = {
             'Nasa Blue Marble': 'https://worldwind25.arc.nasa.gov/wms',
             'Nasa GIBS Global (3857)': 'https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?',
-            'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else if (projectionName === 'EPSG:4326') {
         services = {
             'Nasa Blue Marble': 'https://worldwind25.arc.nasa.gov/wms',
             'Nasa GIBS Global (4326)': 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?',
-            'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else if (projectionName === 'EPSG:5936') {
         services = {
-            'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else if (projectionName === 'EPSG:3413') {
         services = {
             'Nasa GIBS Sea Ice Polar North (3413)': 'https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi?',
-            'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else if (projectionName === 'EPSG:3031') {
         services = {
             'Nasa GIBS Antartic Polar South (3031)': 'https://gibs.earthdata.nasa.gov/wms/epsg3031/best/wms.cgi?',
-            'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else {
         console.log(`Warn: No Services found for projectionName:${projectionName}`);
