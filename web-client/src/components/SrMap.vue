@@ -1,6 +1,5 @@
   
 <script setup lang="ts">
-  import { useWmsCap } from "@/composables/useWmsCap.js"; 
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
   import { ref, onMounted } from "vue";
   import type OLMap from "ol/Map.js";
@@ -13,7 +12,7 @@
   import Feature from 'ol/Feature';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrProjectionControl from "./SrProjectionControl.vue";
-  import { SrProjection } from "@/composables/SrProjections";
+  import { SrProjection, useProjectionNames } from "@/composables/SrProjections";
   import 'ol/ol.css'; 
   import 'ol-geocoder/dist/ol-geocoder.min.css';
   import { useMapStore } from "@/stores/mapStore";
@@ -25,6 +24,7 @@
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
   import { getLayer } from '@/composables/SrLayers.js';
+import { useWmsCap } from "@/composables/useWmsCap";
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -142,7 +142,6 @@
           });
         }
         const geocoder = geoCoderStore.getGeoCoder()
-
         if(geocoder){       
           map.addControl(geocoder);
           geocoder.on('addresschosen', onAddressChosen); 
@@ -153,6 +152,18 @@
         if (initialZoom !== undefined) {
           mapParamsStore.setZoom(initialZoom);
         }
+        const projectionNames = useProjectionNames();
+
+        projectionNames.value.forEach(name => {
+          const wmsCap = useWmsCap(name);
+          if(wmsCap){ 
+            mapStore.cacheWmsCapForProjection(name, wmsCap);
+          } else {
+            console.error(`Error: no wmsCap for projection: ${name}`);
+          }
+        });
+       mapStore.setCurrentWmsCap(mapParamsStore.getProjection().name);
+
         updateMapAndView();
         // Watch for changes in the zoom level
       } else {
@@ -205,7 +216,7 @@
         //let extent = srProjection.bbox;
         const fromLonLat = getTransform('EPSG:4326', projection);
         if (srProjection.bbox){
-          if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031')){
+          if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031') || (srProjection.name == 'EPSG:3413')){
             //console.log("srProjection.bbox:",srProjection.bbox);
             let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
             projection.setWorldExtent(worldExtent);
@@ -222,9 +233,6 @@
         } else {
           console.error("Error: invalid projection bbox:",srProjection.bbox);
         }
-
-        const newWmsCap = useWmsCap(srProjection.name);
-        console.log("newWmsCap:",newWmsCap);
         const newView = new View({
           projection: projection,
           constrainResolution: true,
@@ -237,8 +245,6 @@
         //console.log(`view center:`,thisView.getCenter());
         //let hackCenter = [9000000, 13000000];
         thisView.animate({
-          //center: thisView.getCenter(),
-          //center: hackCenter,
           center: srProjection.default_center,
           duration: 1000,
           zoom: srProjection.default_zoom,
@@ -257,7 +263,7 @@
   };
 
   const handleUpdateProjection = (srProjection: SrProjection) => {
-    //console.log(`handleUpdateProjection: |${projection.title}|`);
+    console.log(`handleUpdateProjection: |${srProjection.title}|`);
     const newProj = getProjection(srProjection.name);
     //console.log("projection:",newProj);
     if (newProj) {
@@ -269,6 +275,7 @@
         }
       });
       mapParamsStore.setProjection(srProjection);
+      mapStore.updateWmsCap(srProjection.name);
       const srLayersForProj = getSrLayersForCurrentProjection();
       srLayersForProj.forEach(srLayerForProj => {
         if(!srLayerForProj.isBaseLayer){
@@ -481,7 +488,7 @@
   top: 0.55rem;
   bottom: auto;
   right: auto;
-  left: 5.5rem;
+  left: 7.5rem;
   background-color: transparent;
   border-radius: var(--border-radius);
   color: white;

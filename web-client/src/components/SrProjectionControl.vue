@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { ref,onMounted } from "vue";
     import { Control } from 'ol/control';
-    import { projections } from '@/composables/SrProjections.js';
+    import { srProjections } from '@/composables/SrProjections';
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
 
@@ -11,7 +11,7 @@
 
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
-        projections.value.forEach(projection => {
+        srProjections.value.forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
@@ -25,7 +25,7 @@
     
     function updateProjection(selectedLabel: string) {
         //console.log("updateProjection:", selectedLabel);
-        const projection = projections.value.find(projection => projection.label === selectedLabel);
+        const projection = srProjections.value.find(projection => projection.label === selectedLabel);
         //console.log("updateProjection layer:", layer);
         if (projection) {
             emit('update-projection', projection);
@@ -37,8 +37,8 @@
   <div ref="projectionControlElement" class="sr-projection-control ol-unselectable ol-control">
     <form class="select-projection" name="select-proj-form">
       <select @change="updateProjection(($event.target as HTMLInputElement).value)" class="sel-proj-menu" name="sr-proj-sel-menu">
-        <option v-for="projection in projections" :value="projection.label" :key="projection.label">
-          {{ projection.label }}
+        <option v-for="srProjection in srProjections" :value="srProjection.label" :key="srProjection.label">
+          {{ srProjection.label }}
         </option>
       </select>
     </form>

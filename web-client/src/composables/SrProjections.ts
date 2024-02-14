@@ -10,10 +10,10 @@ export interface SrProjection {
     max_zoom?: number;
     bbox?: number[];
 }
-export const projections = ref<SrProjection[]>([
+export const srProjections = ref<SrProjection[]>([
   {
     title: "Web Mercator",
-    label: "Global",
+    label: "Web Mercator",
     name: "EPSG:3857",
     proj4def: "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +type=crs",
     default_center: [0, 0], // Center of the map in Web Mercator coordinates
@@ -36,13 +36,24 @@ export const projections = ref<SrProjection[]>([
   {
     title: "North: Alaska Polar Stereographic",
     name: "EPSG:5936",
-    label: "North",
+    label: "North Alaska",
     proj4def: "+proj=stere +lat_0=90 +lon_0=-150 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs +type=crs",
     default_center: [9000000, 13000000],
     default_zoom: 4,
     min_zoom: 1,
     max_zoom: 16,
     bbox: [90.0,-180.0,60.0,180.0],
+  },
+  {
+    title: "NSIDC Sea Ice Polar Stereographic North",
+    name: "EPSG:3413",
+    label: "North Sea Ice",
+    proj4def: "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs",
+    default_center: [9000000,-9000000],
+    default_zoom: 4,
+    min_zoom: 1,
+    max_zoom: 16,
+    bbox: [90.0,-180.0,0.0,180.0],
   },
   {
     title: "South: Antarctic Polar Stereographic",
@@ -58,15 +69,15 @@ export const projections = ref<SrProjection[]>([
 ]);
 
 export const useProjectionNames = () => {
-  const projectionNames = computed(() => projections.value.map(p => p.name));
+  const projectionNames = computed(() => srProjections.value.map(p => p.name));
   return projectionNames;
 };
 
 // Function to fetch a projection by its name
 export const findProjectionByName = (name: string) => {
-  return computed(() => projections.value.find(p => p.name === name));
+  return computed(() => srProjections.value.find(p => p.name === name));
 };
 
 export const getDefaultProjection = () => {
-  return projections.value[0];
+  return srProjections.value[0];
 };

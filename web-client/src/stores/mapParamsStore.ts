@@ -2,9 +2,9 @@ import { defineStore } from 'pinia';
 import {  getDefaultBaseLayer} from '@/composables/SrLayers.js';
 import type { SrProjection } from '@/composables/SrProjections';
 import type { SrLayer } from '@/composables/SrLayers.js';
-import { projections } from '@/composables/SrProjections';
-import Collection from 'ol/Collection.js';
-import BaseLayer from 'ol/layer/Base.js';
+import { srProjections } from '@/composables/SrProjections';
+//import Collection from 'ol/Collection.js';
+//import BaseLayer from 'ol/layer/Base.js';
 import { getDefaultProjection } from '@/composables/SrProjections.js';
 
 //type SrLayers = Collection<BaseLayer> | BaseLayer[];
@@ -14,7 +14,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
     center: [0, 0],
     extent: [0, 0, 0, 0],
-    projection: projections.value[0] as SrProjection,
+    projection: srProjections.value[0] as SrProjection,
     zoom: 12,
     rotation: 0,
     selectedBaseLayer: getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,
@@ -31,9 +31,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       return this.layerCache.get(title);
     },
     resetMap() {
-      this.projection = projections.value[0] as SrProjection;
-      this.center = projections.value[0].default_center;
-      this.extent = projections.value[0].bbox || [0, 0, 0, 0];
+      this.projection = srProjections.value[0] as SrProjection;
+      this.center = srProjections.value[0].default_center;
+      this.extent = srProjections.value[0].bbox || [0, 0, 0, 0];
       this.zoom = 12;
       this.rotation = 0;
       this.selectedBaseLayer=getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,

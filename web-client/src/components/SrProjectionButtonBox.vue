@@ -2,7 +2,7 @@
     import { onMounted, ref, watch } from 'vue'
     import SrRadioButton from './SrRadioButton.vue';
     import { useMapParamsStore } from "@/stores/mapParamsStore.js";
-    import { projections } from '@/composables/SrProjections.js';
+    import { srProjections } from '@/composables/SrProjections.js';
 
     const mapParamsStore = useMapParamsStore();
     const picked = ref(mapParamsStore.drawType);
@@ -22,14 +22,14 @@
 <template>
     <div class="sr-projection-button-box">
       <SrRadioButton
-        v-for="projection in projections"
-        :key="projection.name"
-        :name="`projectionButtonBox${projection.label}`"
-        :class="`sr-${projection.label.toLowerCase()}-proj-button`"
+        v-for="srProjection in srProjections"
+        :key="srProjection.name"
+        :name="`projectionButtonBox${srProjection.label}`"
+        :class="`sr-${srProjection.label.toLowerCase()}-proj-button`"
         v-model="picked"
-        :value="projection.label"
-        :aria-label="`Select ${projection.label}`"
-        :tooltipText="`${projection.title} Projection`"
+        :value="srProjection.label"
+        :aria-label="`Select ${srProjection.label}`"
+        :tooltipText="`${srProjection.title} Projection`"
       />
     </div>
 </template>

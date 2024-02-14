@@ -71,6 +71,15 @@ export const layers = ref<SrLayer[]>([
   },
   {
     isBaseLayer: true,
+    url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+    title: "Artic Imagery",
+    attribution: "Tiles © Esri Artic Imagery contributers",
+    allowed_projections:["EPSG:3413"],
+    type: "xyz",
+    init_opacity: 1,
+  },
+  {
+    isBaseLayer: true,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
     attribution: "Tiles © Esri Antartic contributers",
