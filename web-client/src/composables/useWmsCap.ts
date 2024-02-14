@@ -43,7 +43,7 @@ export function useWmsCap(projectionName: string) {
             title: title,
             srs: [`${projectionName}`],
             cors: true,
-            optional: 'token',
+            //optional: 'token',
             services: services,
             trace: true
         });

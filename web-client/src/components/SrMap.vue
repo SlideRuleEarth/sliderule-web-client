@@ -24,7 +24,9 @@
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
   import { getLayer } from '@/composables/SrLayers.js';
-import { useWmsCap } from "@/composables/useWmsCap";
+  import { useWmsCap } from "@/composables/useWmsCap";
+import Permalink from "ol-ext/control/Permalink";
+  //import { useWmtsCap } from "@/composables/useWmtsCap";
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -161,9 +163,22 @@ import { useWmsCap } from "@/composables/useWmsCap";
           } else {
             console.error(`Error: no wmsCap for projection: ${name}`);
           }
+          //
+          // TBD WMTS element is same as WMS element, can't add both?
+          //
+          // const wmtsCap = useWmtsCap(name);
+          // if(wmtsCap){ 
+          //   mapStore.cacheWmtsCapForProjection(name, wmtsCap);
+          // } else {
+          //   console.error(`Error: no wmtsCap for projection: ${name}`);
+          // }
         });
-       mapStore.setCurrentWmsCap(mapParamsStore.getProjection().name);
-
+        mapStore.setCurrentWmsCap(mapParamsStore.getProjection().name);
+        //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection().name);
+        if(mapStore.plink){
+          const plink = mapStore.plink as any;
+          map.addControl(plink);
+        }
         updateMapAndView();
         // Watch for changes in the zoom level
       } else {
@@ -249,6 +264,23 @@ import { useWmsCap } from "@/composables/useWmsCap";
           duration: 1000,
           zoom: srProjection.default_zoom,
         });
+        // Permalink
+        if(mapStore.plink){
+          var url = mapStore.plink.getUrlParam('url');
+          var layerName = mapStore.plink.getUrlParam('layer');
+          console.log(`url: ${url} layerName: ${layerName}`);
+          if (url) {
+            console.log(layerName)
+            const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
+            currentWmsCapCntrl.loadLayer(url, layerName,() => {
+              // TBD: Actions to perform after the layer is loaded, if any
+              console.log("wms Layer loaded");
+            });
+          } else {
+            console.log("No url in permalink");
+          }
+        }
+
       } else {
         console.error("Error: invalid projection:",mapParamsStore.getProjection());
       }
