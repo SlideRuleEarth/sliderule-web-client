@@ -32,7 +32,7 @@ export const useMapStore = defineStore('map', {
       return this.wmsCapCache.get(projectionName);
     },
     cacheWmsCapForProjection(projectionName:string, wmsCapInstance: ol_control_WMSCapabilities) {
-      console.log('cacheWmsCapForProjection:', projectionName);
+      //console.log('cacheWmsCapForProjection:', projectionName);
       this.wmsCapCache.set(projectionName, wmsCapInstance);
     },
     updateWmsCap(projectionName: string)  {

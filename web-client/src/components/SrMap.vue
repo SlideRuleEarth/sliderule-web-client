@@ -19,13 +19,12 @@
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
-  import { SrLayer, getSrLayersForCurrentProjection } from "@/composables/SrLayers";
+  import { SrLayer, addLayersForCurrentProjection } from "@/composables/SrLayers";
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
-  import { getLayer } from '@/composables/SrLayers.js';
   import { useWmsCap } from "@/composables/useWmsCap";
-import Permalink from "ol-ext/control/Permalink";
+  //import Permalink from "ol-ext/control/Permalink";
   //import { useWmtsCap } from "@/composables/useWmtsCap";
 
   const geoCoderStore = useGeoCoderStore();
@@ -252,6 +251,7 @@ import Permalink from "ol-ext/control/Permalink";
           projection: projection,
           constrainResolution: true,
         });
+        addLayersForCurrentProjection();
         //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
         map.setView(newView);
         newView.fit(extent);
@@ -268,13 +268,12 @@ import Permalink from "ol-ext/control/Permalink";
         if(mapStore.plink){
           var url = mapStore.plink.getUrlParam('url');
           var layerName = mapStore.plink.getUrlParam('layer');
-          console.log(`url: ${url} layerName: ${layerName}`);
+          //console.log(`url: ${url} layerName: ${layerName}`);
           if (url) {
-            console.log(layerName)
             const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
             currentWmsCapCntrl.loadLayer(url, layerName,() => {
               // TBD: Actions to perform after the layer is loaded, if any
-              console.log("wms Layer loaded");
+              console.log("wms Layer loaded from permalink");
             });
           } else {
             console.log("No url in permalink");
@@ -287,9 +286,9 @@ import Permalink from "ol-ext/control/Permalink";
     } else {
       console.error("Error:map is null");
     }
-    mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-      console.log(`layer:`,layer.getProperties());
-    });
+    // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+    //   console.log(`layer:`,layer.getProperties());
+    // });
     mapRef.value?.map.getView().on('change:resolution', onResolutionChange);
     //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
   };
@@ -299,8 +298,8 @@ import Permalink from "ol-ext/control/Permalink";
     const newProj = getProjection(srProjection.name);
     //console.log("projection:",newProj);
     if (newProj) {
-
       mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+        // base layer is managed by baseLayerControl, drawiing layer is never changed/removed
         if((layer.get('name') !== 'Drawing Layer') && (layer.get('name') !== 'Base Layer')){
           console.log(`removing layer:`,layer.get('title'));
           mapRef.value?.map.removeLayer(layer);
@@ -308,15 +307,6 @@ import Permalink from "ol-ext/control/Permalink";
       });
       mapParamsStore.setProjection(srProjection);
       mapStore.updateWmsCap(srProjection.name);
-      const srLayersForProj = getSrLayersForCurrentProjection();
-      srLayersForProj.forEach(srLayerForProj => {
-        if(!srLayerForProj.isBaseLayer){
-          console.log(`adding non base layer:`,srLayerForProj.title);
-          const newLayer = getLayer(srLayerForProj.title);
-          newLayer.setOpacity(srLayerForProj.init_opacity);
-          mapRef.value?.map.addLayer(newLayer);
-        }
-      });
       //console.log("baseLayerOptions:",baseLayerOptions.value);
       
       updateMapAndView();

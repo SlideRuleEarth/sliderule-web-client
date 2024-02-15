@@ -5,12 +5,14 @@ import BaseEvent from "ol/events/Event";
 const mapStore = useMapStore();
 
 export function useWmsCap(projectionName: string) {
-    console.log("useWmsCap:projectionName",projectionName);
+    //console.log("useWmsCap:projectionName",projectionName);
     let services = {};
     if (projectionName === 'EPSG:3857') {
         services = {
             'Nasa Blue Marble': 'https://worldwind25.arc.nasa.gov/wms',
             'Nasa GIBS Global (3857)': 'https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?',
+            'USGS':'https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?',
+            'GLIMS': 'https://www.glims.org/geoserver/GLIMS/wms',
             //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
         }
     } else if (projectionName === 'EPSG:4326') {
@@ -32,6 +34,7 @@ export function useWmsCap(projectionName: string) {
         services = {
             'Nasa GIBS Antartic Polar South (3031)': 'https://gibs.earthdata.nasa.gov/wms/epsg3031/best/wms.cgi?',
             //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wms/wms',
+            'USGS Antartica': 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer'
         }
     } else {
         console.log(`Warn: No Services found for projectionName:${projectionName}`);
