@@ -173,6 +173,7 @@
           // }
         });
         mapStore.setCurrentWmsCap(mapParamsStore.getProjection().name);
+        addLayersForCurrentProjection();      
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection().name);
         if(mapStore.plink){
           const plink = mapStore.plink as any;
@@ -251,7 +252,6 @@
           projection: projection,
           constrainResolution: true,
         });
-        addLayersForCurrentProjection();
         //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
         map.setView(newView);
         newView.fit(extent);
@@ -308,7 +308,7 @@
       mapParamsStore.setProjection(srProjection);
       mapStore.updateWmsCap(srProjection.name);
       //console.log("baseLayerOptions:",baseLayerOptions.value);
-      
+      addLayersForCurrentProjection();      
       updateMapAndView();
     } else {  
       console.log("Error: invalid projection name:",srProjection.name);

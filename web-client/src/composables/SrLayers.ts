@@ -5,7 +5,7 @@ import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
 import { useMapStore } from "@/stores/mapStore.js";
 import { XYZ } from 'ol/source.js';
-import { e } from "vitest/dist/reporters-rzC174PQ.js";
+import Layer from 'ol/layer/Layer';
 
 const mapStore = useMapStore();
 
@@ -133,7 +133,7 @@ export const getSrBaseLayersForProjection = (projection: string) => {
 }
 
 export const addLayersForCurrentProjection = () => {
-  const srLayersForProj = getSrLayersForCurrentProjection();
+  const srLayersForProj = getSrLayersForCurrentProjection(); 
   srLayersForProj.forEach(srLayerForProj => {
     if(!srLayerForProj.isBaseLayer){ // base layer is managed by baseLayerControl
       console.log(`adding non base layer:`,srLayerForProj.title);
