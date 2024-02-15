@@ -9,12 +9,23 @@ import Layer from 'ol/layer/Layer';
 
 const mapStore = useMapStore();
 
+export const srAttributions = {
+  esri: "Tiles © Esri contributors",
+  openStreetMap: "© OpenStreetMap contributors",
+  google: "Map data © Google",
+  usgs: "USGS National Map 3D Elevation Program (3DEP)",
+  usgs_antartic: "U.S. Geological Survey (USGS), British Antarctic Survey (BAS), National Aeronautics and Space Administration (NASA)",
+  glims: "GLIMS Glacier Data © Contributors",
+  nasa_gibs: "NASA GIBS",
+};
+
+
 export interface SrLayer {
   type: string;
   isBaseLayer: boolean;
   url: string;
   title: string;
-  attribution: string;
+  attributionKey: keyof typeof srAttributions; // Use the keys from the srAttributions object
   allowed_projections: string[];
   layerName?: string;
   init_visibility: boolean;
@@ -27,7 +38,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
     title: "Esri World Topo",
-    attribution: "Tiles © Esri contributers",
+    attributionKey: "esri",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
@@ -37,7 +48,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     title: "OpenStreet",
-    attribution: "© OpenStreetMap contributors",
+    attributionKey: "openStreetMap",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
@@ -47,7 +58,7 @@ export const layers = ref<SrLayer[]>([
     type: "xyz",
     url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
     title: "Google",
-    attribution: "Map data © Google",
+    attributionKey: "google",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
@@ -57,7 +68,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Ocean Base",
-    attribution: "Tiles © Esri contributers",
+    attributionKey : "esri",
     allowed_projections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
@@ -67,7 +78,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Imagery",
-    attribution: "Tiles © Esri Artic Imagery contributers",
+    attributionKey: "esri",
     allowed_projections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
@@ -77,7 +88,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: false,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Reference",
-    attribution: "Tiles © Esri Artic Ref contributers",
+    attributionKey: "esri",
     allowed_projections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
@@ -87,7 +98,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Imagery",
-    attribution: "Tiles © Esri Artic Imagery contributers",
+    attributionKey: "esri",
     allowed_projections:["EPSG:3413"],
     init_visibility: true,
     init_opacity: 1,
@@ -97,7 +108,7 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: true,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
-    attribution: "Tiles © Esri Antartic contributers",
+    attributionKey: "esri",
     allowed_projections:["EPSG:3031"],
     init_visibility: true,
     init_opacity: 1,
@@ -107,12 +118,34 @@ export const layers = ref<SrLayer[]>([
     isBaseLayer: false,
     url:"https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?",
     title: "USGS 3DEP",
-    attribution: "USGS National Map 3D Elevation Program (3DEP)",
+    attributionKey: "usgs",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     layerName: "3DEPElevation:Hillshade Gray",
     init_visibility: true,
     init_opacity: 0.2,
-  }
+  },
+  {
+    type: "wms",
+    isBaseLayer: false,
+    url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
+    title: "LIMA",
+    attributionKey: "usgs_antartic",
+    allowed_projections:["EPSG:3031"],
+    layerName: "LIMA_Full_1km",
+    init_visibility: true,
+    init_opacity: 0.2,
+  },  
+  // {
+  //   type: "wms",
+  //   isBaseLayer: false,
+  //   url:"https://www.glims.org/geoserver/GLIMS/wms",
+  //   title: "GLIMS Glacier",
+  //   attributionKey: "glims",
+  //   allowed_projections:["EPSG:3857","EPSG:4326"],
+  //   layerName: "GLIMS_GLACIER",
+  //   init_visibility: true,
+  //   init_opacity: 0.2,    
+  // }
   // {
   //   isBaseLayer: false,
   //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",

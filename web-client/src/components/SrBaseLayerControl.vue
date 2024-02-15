@@ -6,7 +6,8 @@
   import { getSrBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
   import { useMapStore } from "@/stores/mapStore";
   import { watch } from 'vue';
-  import { getDefaultProjection } from '@/composables/SrProjections.js';
+  import { getDefaultProjection } from '@/composables/SrProjections';
+  import { srAttributions } from '@/composables/SrLayers';
 
   const mapStore = useMapStore();
   const mapParamsStore = useMapParamsStore();
@@ -81,7 +82,7 @@
           {{ layer.title }}
         </option>
       </select>
-      <span class="sr-base-layer-control-attribution">{{ mapParamsStore.selectedBaseLayer.attribution }}</span>
+      <span class="sr-base-layer-control-attribution">{{ srAttributions[mapParamsStore.selectedBaseLayer.attributionKey] }}</span>
     </form>
   </div>
 
