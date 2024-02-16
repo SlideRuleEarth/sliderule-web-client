@@ -3,9 +3,10 @@ import { ref } from "vue";
 import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
+import TileGrid from "ol/tilegrid/TileGrid.js";
 import { useMapStore } from "@/stores/mapStore.js";
 import { XYZ } from 'ol/source.js';
-import Layer from 'ol/layer/Layer';
+import type { ServerType } from 'ol/source/wms.js';
 
 const mapStore = useMapStore();
 
@@ -17,6 +18,7 @@ export const srAttributions = {
   usgs_antartic: "U.S. Geological Survey (USGS), British Antarctic Survey (BAS), National Aeronautics and Space Administration (NASA)",
   glims: "GLIMS Glacier Data © Contributors",
   nasa_gibs: "NASA GIBS",
+  ahocevar: "Ahocevar",
 };
 
 
@@ -28,9 +30,43 @@ export interface SrLayer {
   attributionKey: keyof typeof srAttributions; // Use the keys from the srAttributions object
   allowed_projections: string[];
   layerName?: string;
+  serverType?: ServerType;  //  WMS server type
   init_visibility: boolean;
   init_opacity: number;
+  tileGrid?: TileGrid;
 }
+
+const antarticTileGrid_Options = {
+  origin: [-3.369955099203E7,3.369955101703E7],
+  resolutions: [238810.81335399998,
+      119405.40667699999,
+      59702.70333849987,
+      29851.351669250063,
+      14925.675834625032,
+      7462.837917312516,
+      3731.4189586563907,
+      1865.709479328063,
+      932.8547396640315,
+      466.42736983214803,
+      233.21368491607402,
+      116.60684245803701,
+      58.30342122888621,
+      29.151710614575396,
+      14.5758553072877,
+      7.28792765351156,
+      3.64396382688807,
+      1.82198191331174,
+      0.910990956788164,
+      0.45549547826179,
+      0.227747739130895,
+      0.113873869697739,
+      0.05693693484887,
+      0.028468467424435
+  ],
+  extent: [-9913957.327914657,-5730886.461772691,
+    9913957.327914657,5730886.461773157]
+}
+const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
 
 export const layers = ref<SrLayer[]>([
   {
@@ -62,6 +98,16 @@ export const layers = ref<SrLayer[]>([
     allowed_projections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
+  },
+  {
+    type: "xyz",
+    isBaseLayer: false,
+    url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/ASTER_GDEM_Greyscale_Shaded_Relief/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.jpg",
+    title: "Nasa Shaded Relief",
+    attributionKey: "nasa_gibs",
+    allowed_projections:["EPSG:3857"],
+    init_visibility: false,
+    init_opacity: 0.5,
   },
   {
     type: "xyz",
@@ -103,29 +149,32 @@ export const layers = ref<SrLayer[]>([
     init_visibility: true,
     init_opacity: 1,
   },
-  {
-    type: "xyz",
-    isBaseLayer: true,
-    url:"https://tiles.arcgis.com/tiles/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
-    title: "Antarctic Basemap",
-    attributionKey: "esri",
-    allowed_projections:["EPSG:3031"],
-    init_visibility: true,
-    init_opacity: 1,
-  },
+  // {
+  //   type: "xyz",
+  //   isBaseLayer: true,
+  //   url:"https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
+  //   //url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
+  //   title: "Antarctic Basemap",
+  //   attributionKey: "esri",
+  //   allowed_projections:["EPSG:3031"],
+  //   init_visibility: true,
+  //   init_opacity: 1,
+  // },
   {
     type: "xyz",
     isBaseLayer: true,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
-    //url:"https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
     attributionKey: "esri",
     allowed_projections:["EPSG:3031"],
-    init_visibility: true,
-    init_opacity: 1,
+    init_visibility: false,
+    init_opacity: 0.5,
+    serverType: "mapserver",
+    tileGrid: antarticTileGrid,
   },
   {
     type: "wms",
+    serverType: "mapserver",
     isBaseLayer: false,
     url:"https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?",
     title: "USGS 3DEP",
@@ -145,7 +194,18 @@ export const layers = ref<SrLayer[]>([
     layerName: "LIMA_Full_1km",
     init_visibility: true,
     init_opacity: 0.2,
-  },  
+  },
+  {
+    type: "wms",
+    isBaseLayer: false,
+    url:"https://ahocevar.com/geoserver/wms",
+    title: "US States",
+    attributionKey: "ahocevar",
+    allowed_projections:["EPSG:3857","EPSG:4326"],
+    layerName: "topp:states",
+    init_visibility: false,
+    init_opacity: 0.1,
+  }  
   // {
   //   type: "wms",
   //   isBaseLayer: false,
@@ -221,26 +281,35 @@ export const getLayer = (title: string) => {
 
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
+          console.log(`WMS ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.projection.name}`);
           layerInstance = new TileLayer({
             source: new TileWMS({
               url: srLayer.url,
+              attributions: srAttributions[srLayer.attributionKey],
               params: {
                 'LAYERS': srLayer.layerName, // the WMS layer name(s) to load
                 'TILED': true,
+                'CRS': mapParamsStore.projection.name,
               },
-              serverType: 'geoserver', //  WMS server type 
-              crossOrigin: '', // Consider CORS policies
-              //crossOrigin: 'anonymous', // Consider CORS policies
+              projection: mapParamsStore.projection.name,
+              serverType: srLayer.serverType, //  WMS server type 
+              //crossOrigin: '', // Consider CORS policies
+              crossOrigin: 'anonymous', // Consider CORS policies
               //referrerPolicy: 'no-referrer',
             }),
             ... localTileLayerOptions
           });
 
         } else if(srLayer.type === "xyz"){
+          console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.projection.name}`);
+          const xyzOptions = {
+            url: srLayer.url,
+            extent: mapParamsStore.extent,
+            attributions: srAttributions[srLayer.attributionKey],
+          }
           layerInstance = new TileLayer({
-            source: new XYZ({
-              url: srLayer.url
-            }),
+
+            source: new XYZ(xyzOptions),
             ... localTileLayerOptions
           });
         }

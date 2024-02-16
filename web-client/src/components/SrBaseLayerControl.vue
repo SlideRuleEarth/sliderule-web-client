@@ -70,7 +70,6 @@
           {{ layer.title }}
         </option>
       </select>
-      <span class="sr-base-layer-control-attribution">{{ srAttributions[mapParamsStore.selectedBaseLayer.attributionKey] }}</span>
     </form>
   </div>
 

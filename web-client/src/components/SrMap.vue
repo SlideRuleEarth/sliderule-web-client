@@ -226,7 +226,7 @@
       if(!srLayerForProj.isBaseLayer){ // base layer is managed by baseLayerControl
         console.log(`adding non base layer:`,srLayerForProj.title);
         const newLayer = getLayer(srLayerForProj.title);
-        console.log('WANT to add newLayer', newLayer);
+        console.log('add newLayer', newLayer);
         if(mapStore.map){
           mapStore.map.addLayer(newLayer);
         } else {
@@ -302,7 +302,7 @@
             const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
             currentWmsCapCntrl.loadLayer(url, layerName,() => {
               // TBD: Actions to perform after the layer is loaded, if any
-              console.log("wms Layer loaded from permalink");
+              console.log(`wms Layer loaded from permalink: ${layerName}`);
             });
           } else {
             console.log("No url in permalink");
@@ -417,6 +417,7 @@
         </ol-style-circle>
       </ol-style>
     </ol-vector-layer>
+    <ol-attribution-control :collapsible="true" :collapsed="true" />
   </ol-map>
   <div class="current-view-params">
     <span>currentZoom: {{  mapParamsStore.getZoom() }} </span><br>

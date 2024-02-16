@@ -19,7 +19,7 @@ app.config.errorHandler = (err, vm, info) => {
   console.error('Global Vue Error Handler:', err, info);
 };
 const options: Vue3OpenlayersGlobalOptions = {
-    debug: true,
+    debug: false,
   };
 app.use(OpenLayersMap, options );
 app.use(createPinia())
