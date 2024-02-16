@@ -4,12 +4,10 @@
   import { Control } from 'ol/control';
   import { computed } from 'vue';
   import { getSrBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
-  import { useMapStore } from "@/stores/mapStore";
   import { watch } from 'vue';
   import { getDefaultProjection } from '@/composables/SrProjections';
   import { srAttributions } from '@/composables/SrLayers';
 
-  const mapStore = useMapStore();
   const mapParamsStore = useMapParamsStore();
   const baseLayerOptions = computed(() => getSrBaseLayersForProjection(mapParamsStore.projection.name));
   // Computed property to bind selectedBaseLayer with the store
@@ -17,12 +15,12 @@
     get: () => mapParamsStore.getSelectedBaseLayer().title,
     set: (title) => {
       if(baseLayerOptions.value){
+        const oldBaseLayer = mapParamsStore.getSelectedBaseLayer();
         //console.log(`setting selectedBaseLayer from: ${mapParamsStore.getSelectedBaseLayer().title}  to ${title}`);
-        setBaseLayerTitle(title);
         const srLayer = baseLayerOptions.value.find(srLayer => srLayer.title === title);
         if (srLayer) {
           mapParamsStore.setSelectedBaseLayer(srLayer); 
-          emit('update-baselayer', srLayer);
+          emit('update-baselayer', oldBaseLayer);
         }
       } else {
         console.error(`No baseLayerOptions for projection: ${mapParamsStore.projection.name}`);
@@ -30,21 +28,11 @@
     },
   });
 
-  function setBaseLayerTitle(title: string){
-    const map = mapStore.getMap();
-    if(map){
-      const layer = map.getAllLayers().find(layer => layer.get('name') === 'Base Layer');
-      console.log(`Base Layer: ${layer} new title: ${title}`);
-      if(layer){
-        layer.set('title',title);
-      }
-    }
-  }
   const baseLayerControlElement = ref(null);
   const emit = defineEmits(['baselayer-control-created', 'update-baselayer']);
 
   onMounted(() => {
-    //console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
+    console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
 
     if (baseLayerControlElement.value) {
       const customControl = new Control({ element: baseLayerControlElement.value });
@@ -55,6 +43,7 @@
     if (defaultBaseLayer) {
       mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
     }
+    console.log(`SrBaseLayerControl onMounted selectedBaseLayer: ${mapParamsStore.selectedBaseLayer.title} defaultBaseLayer: ${defaultBaseLayer?.title}`);
     // baseLayerOptions.value.forEach(layer => {
     //   console.log(`Title: ${layer.title}}`);
     // });
@@ -65,7 +54,6 @@
     const defaultBaseLayerForNewProjection = getDefaultBaseLayer(newProjection); 
     if (defaultBaseLayerForNewProjection){
       mapParamsStore.setSelectedBaseLayer(defaultBaseLayerForNewProjection);
-      setBaseLayerTitle(mapParamsStore.getSelectedBaseLayer().title);
     } else {
       console.error(`No default base layer for projection: ${newProjection}`);  
     }

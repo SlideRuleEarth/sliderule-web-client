@@ -19,11 +19,12 @@
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
-  import { SrLayer, addLayersForCurrentProjection } from "@/composables/SrLayers";
+  import { SrLayer,getSrLayersForCurrentProjection,getLayer,getDefaultBaseLayer } from "@/composables/SrLayers";
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
   import { useWmsCap } from "@/composables/useWmsCap";
+  import { getDefaultProjection } from '@/composables/SrProjections';
   //import Permalink from "ol-ext/control/Permalink";
   //import { useWmtsCap } from "@/composables/useWmtsCap";
 
@@ -126,6 +127,7 @@
   };
 
   onMounted(() => {
+    //console.log("SrMap onMounted");
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
       const map = mapStore.getMap();
@@ -173,6 +175,16 @@
           // }
         });
         mapStore.setCurrentWmsCap(mapParamsStore.getProjection().name);
+        const defaultBaseLayer = getDefaultBaseLayer(getDefaultProjection().name);
+        if(defaultBaseLayer){
+          const newLayer = getLayer(defaultBaseLayer.title);
+          if(mapStore.map){
+            console.log('adding Base Layer', newLayer);
+            mapStore.map.addLayer(newLayer);
+          } else {
+            console.log('map not available');
+          }    
+        }
         addLayersForCurrentProjection();      
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection().name);
         if(mapStore.plink){
@@ -208,6 +220,22 @@
     }
   };
 
+  const addLayersForCurrentProjection = () => {
+    const srLayersForProj = getSrLayersForCurrentProjection();
+    srLayersForProj.forEach(srLayerForProj => {
+      if(!srLayerForProj.isBaseLayer){ // base layer is managed by baseLayerControl
+        console.log(`adding non base layer:`,srLayerForProj.title);
+        const newLayer = getLayer(srLayerForProj.title);
+        console.log('WANT to add newLayer', newLayer);
+        if(mapStore.map){
+          mapStore.map.addLayer(newLayer);
+        } else {
+          console.log('map not available');
+        }
+      }
+    });
+  }
+
   const handleProjectionControlCreated = (projectionControl: any) => {
     //console.log(projectionControl);
     const map = mapRef.value?.map;
@@ -231,6 +259,7 @@
         //let extent = srProjection.bbox;
         const fromLonLat = getTransform('EPSG:4326', projection);
         if (srProjection.bbox){
+          // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
           if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031') || (srProjection.name == 'EPSG:3413')){
             //console.log("srProjection.bbox:",srProjection.bbox);
             let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
@@ -299,8 +328,8 @@
     //console.log("projection:",newProj);
     if (newProj) {
       mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-        // base layer is managed by baseLayerControl, drawiing layer is never changed/removed
-        if((layer.get('name') !== 'Drawing Layer') && (layer.get('name') !== 'Base Layer')){
+        // drawiing Layer is never changed/removed
+        if((layer.get('name') !== 'Drawin Layer')){
           console.log(`removing layer:`,layer.get('title'));
           mapRef.value?.map.removeLayer(layer);
         }
@@ -315,11 +344,21 @@
     }
   };
 
-  const handleUpdateBaseLayer = (srLayer: SrLayer) => {
-    if(!srLayer){
+  const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
+    const newSrLayer = mapParamsStore.getSelectedBaseLayer();
+    const oldBaseLayer = getLayer(oldSrLayer.title);
+    if(oldBaseLayer){
+      if(mapStore.map){
+        mapStore.map.removeLayer(getLayer(oldSrLayer.title));
+        const newBaseLayer = getLayer(newSrLayer.title);
+        mapStore.map.addLayer(newBaseLayer);
+      } else {
+        console.log('map not available');
+      }    
+    } else {
       console.log("Error:handleUpdateBaseLayer srLayer is null");
     }
-    console.log(`handleUpdateBaseLayer:${srLayer.title}`);
+    console.log(`handleUpdateBaseLayer from |${oldSrLayer.title}| to |${newSrLayer.title}|`);
     updateMapAndView();
   };
 
@@ -344,11 +383,6 @@
       :trash="false"
       :extent="true"
     />
-    <ol-tile-layer ref=mapParamsStore.selectedBaseLayer 
-                  :title=mapParamsStore.selectedBaseLayer.title
-                  name="Base Layer">
-      <ol-source-xyz :url="mapParamsStore.selectedBaseLayer.url" :title="mapParamsStore.selectedBaseLayer.title"/>
-    </ol-tile-layer>
 
     <ol-zoom-control  />
     

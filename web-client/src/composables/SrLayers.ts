@@ -106,7 +106,18 @@ export const layers = ref<SrLayer[]>([
   {
     type: "xyz",
     isBaseLayer: true,
+    url:"https://tiles.arcgis.com/tiles/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
+    title: "Antarctic Basemap",
+    attributionKey: "esri",
+    allowed_projections:["EPSG:3031"],
+    init_visibility: true,
+    init_opacity: 1,
+  },
+  {
+    type: "xyz",
+    isBaseLayer: true,
     url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
+    //url:"https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
     title: "Antarctic Imagery",
     attributionKey: "esri",
     allowed_projections:["EPSG:3031"],
@@ -121,7 +132,7 @@ export const layers = ref<SrLayer[]>([
     attributionKey: "usgs",
     allowed_projections:["EPSG:3857","EPSG:4326"],
     layerName: "3DEPElevation:Hillshade Gray",
-    init_visibility: true,
+    init_visibility: false, // Note: This layer is not visible by default
     init_opacity: 0.2,
   },
   {
@@ -185,14 +196,19 @@ export const getDefaultBaseLayer = (projection: string) => {
 }
 
 export const getLayer = (title: string) => {
-  //console.log('getLayer', title);
+  console.log(`getLayer ${title}`);
   const srLayer = layers.value.find(layer => layer.title === title);
   let layerInstance;
   if(srLayer){
     const mapParamsStore = useMapParamsStore();
     const cachedLayer = mapParamsStore.getLayerFromCache(title);
+    let name = srLayer.title;
+    if (srLayer.isBaseLayer) {
+      name = "Base Layer";
+    }
     const localTileLayerOptions = {
       title: title,
+      name: name,
       opacity: srLayer.init_opacity,
       visible: srLayer.init_visibility,
     }
@@ -200,18 +216,22 @@ export const getLayer = (title: string) => {
       layerInstance = cachedLayer; // Return the cached layer if it exists
     } else {
         if(srLayer.type === "wmts"){
+
           console.log('WMTS Layer TBD');
+
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
           layerInstance = new TileLayer({
             source: new TileWMS({
               url: srLayer.url,
               params: {
-                'LAYERS': srLayer.layerName, // Specify the WMS layer name(s) you want to load
+                'LAYERS': srLayer.layerName, // the WMS layer name(s) to load
                 'TILED': true,
               },
-              serverType: 'geoserver', // Change this as per your WMS server type if needed
-              crossOrigin: 'anonymous', // Consider CORS policies
+              serverType: 'geoserver', //  WMS server type 
+              crossOrigin: '', // Consider CORS policies
+              //crossOrigin: 'anonymous', // Consider CORS policies
+              //referrerPolicy: 'no-referrer',
             }),
             ... localTileLayerOptions
           });
