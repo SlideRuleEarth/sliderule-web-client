@@ -329,7 +329,7 @@
     if (newProj) {
       mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
         // drawiing Layer is never changed/removed
-        if((layer.get('name') !== 'Drawin Layer')){
+        if((layer.get('name') !== 'Drawing Layer')){
           console.log(`removing layer:`,layer.get('title'));
           mapRef.value?.map.removeLayer(layer);
         }
@@ -351,7 +351,8 @@
       if(mapStore.map){
         mapStore.map.removeLayer(getLayer(oldSrLayer.title));
         const newBaseLayer = getLayer(newSrLayer.title);
-        mapStore.map.addLayer(newBaseLayer);
+        let layersCollection = mapStore.map.getLayers();
+        layersCollection.insertAt(1, newBaseLayer);
       } else {
         console.log('map not available');
       }    
