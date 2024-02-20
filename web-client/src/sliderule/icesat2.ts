@@ -19,7 +19,7 @@
 // “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE UNIVERSITY OF WASHINGTON OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// COmittNTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 // EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 // PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
 // OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
@@ -27,8 +27,8 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import mitt from 'mitt';
-import {core} from '../sliderule/index.js';
+//import { mitt } from 'mitt';
+import {core} from '../sliderule/index';
 //import { error } from 'console';
 //------------------------------------
 // File Data
@@ -77,18 +77,32 @@ const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6
 // Exported Functions
 //------------------------------------
 
+  // Define the parameter type for the atl06p function
+interface Atl06pParams {
+    asset?: string;
+    [key: string]: any; // Other dynamic keys
+}
+type Resource = any; // Replace 'any' with the actual type of a resource
+
+// Define the callback type
+interface Callbacks {
+    atl06rec?: (result: any) => void;
+    [key: string]: ((result: any) => void) | undefined; // Other dynamic keys
+}
+
 //
 // ATL06P
 //
-export async function atl06p(parm, resources, callbacks = null){
+export async function atl06p(parm: Atl06pParams, resources:Resource[], callbacks: Callbacks | null = null): Promise<any[] | void> 
+{
     console.log("atl06p parm: ", parm);
     console.log("atl06p resources: ", resources );
     console.log("atl06p callbacks: ", callbacks);
-    let recs = [];
+    const recs: any[] = [];
     if (!('asset' in parm)) {
         parm['asset'] = 'icesat2';
     }
-    let rqst = {
+    const rqst = {
         "resources": resources,
         "parms": parm
     };
@@ -99,17 +113,16 @@ export async function atl06p(parm, resources, callbacks = null){
                 recs.push(result["elevation"]);
             },
         };
-    }
-    try {
-        const result = await core.source('atl06p', rqst, true, callbacks, true);
+    } 
+    //try {
+        const result = await core.source('atl06p', rqst, true, callbacks);
         //console.log("atl06p result: ", result);
         console.log("atl06p rec[0]: ", recs.flat(1)[0]);
         return result;
-        //return recs.flat(1);
-    } catch (error) {
-        console.error('Error in retrieving atl06p:', error);
-        throw error
-    }
+    //} catch (error) {
+    //    console.error('Error in retrieving atl06p:', error);
+    //    throw error
+    //}
 };
 
 // Export any other constants or functions if necessary

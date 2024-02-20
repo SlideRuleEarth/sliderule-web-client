@@ -26,7 +26,7 @@
 // WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+import mitt from 'mitt';
 import * as core from './core.js';
 
 //------------------------------------
@@ -49,30 +49,32 @@ const datatypes = {
 //
 // h5
 //
-export function h5(dataset, resource, asset, datatype=datatypes.DYNAMIC, col=0, startrow=0, numrows=ALL_ROWS, callbacks=null){
-    let parm = {
+export function h5(dataset:string, resource:string, asset:string, datatype:number=datatypes.DYNAMIC, col:number=0, startrow:number=0, numrows:number=ALL_ROWS, callbacks: { [key: string]: (...args: any[]) => void } | null=null){
+    const parm = {
       asset: asset,
       resource: resource,
       datasets: [ { dataset: dataset, datatype: datatype, col: col, startrow: startrow, numrows: numrows } ]
     };
     if (callbacks != null) {
         return core.source('h5p', parm, true);
-    }
-    else {
-        var event = new events.EventEmitter();
-        var values = null;
-        var callbacks = {
-            h5file: (result) => {
+    } else {
+        const emitter = mitt();
+
+        let values:any = null;
+        const callbacks = {
+            h5file: (result:any) => {
                 values = core.get_values(result.data, result.datatype);
-                event.emit('complete');
+                emitter.emit('complete');
             },
         };
         return new Promise(resolve => {
             core.source('h5p', parm, true, callbacks).then(
-                result => {
-                    event.once('complete', () => {
+                () => {
+                    const onComplete = () => {
                         resolve(values);
-                    });
+                        emitter.off('complete', onComplete); // Remove the event listener after it's called
+                    };
+                    emitter.on('complete', onComplete);
                 }
             );
         });

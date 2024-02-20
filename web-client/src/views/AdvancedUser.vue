@@ -8,7 +8,7 @@
     import { watchDebounced } from '@vueuse/core'
     import {useToast} from "primevue/usetoast";
     import { atl06p } from '@/sliderule/icesat2.js';
-    import { init } from '@/sliderule/core.js';
+    import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
@@ -52,19 +52,32 @@
             "res": 20.0,
             "maxi": 1 }, 
             ["ATL03_20181019065445_03150111_005_01.h5"])
-        .then(result => {
-            // Log the result to the console
-            console.log('runSlideRuleClicked Results = ', result.length, result[0]);
+        .then(
+            result => {
+                // Log the result to the console
+                console.log('runSlideRuleClicked Results = ', result, result[0]);
 
-            // Display a toast message indicating successful completion
-            toast.add({
-                severity: 'success', // Use 'success' severity for successful operations
-                summary: 'Success', // A short summary of the outcome
-                detail: 'RunSlideRule completed successfully.', // A more detailed success message
-                life: 10000 // Adjust the duration as needed
-            });
-        })
-        .catch((error => {
+                // Display a toast message indicating successful completion
+                toast.add({
+                    severity: 'success', // Use 'success' severity for successful operations
+                    summary: 'Success', // A short summary of the outcome
+                    detail: 'RunSlideRule completed successfully.', // A more detailed success message
+                    life: 10000 // Adjust the duration as needed
+                });
+            },
+            error => {
+                // Log the error to the console
+                console.error('runSlideRuleClicked Error = ', error);
+
+                // Display a toast message indicating the error
+                toast.add({
+                    severity: 'error', // Use 'error' severity for error messages
+                    summary: 'Error', // A short summary of the error
+                    detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                    life: 5000 // Adjust the duration as needed
+                });
+            }
+        ).catch((error => {
             // Log the error to the console
             console.error('runSlideRuleClicked Error = ', error);
 

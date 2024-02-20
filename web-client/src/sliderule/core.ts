@@ -1,50 +1,6 @@
-// Copyright (c) 2021, University of Washington
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-// 1. Redistributions of source code must retain the above copyright notice,
-//    this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the University of Washington nor the names of its
-//    contributors may be used to endorse or promote products derived from this
-//    software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF WASHINGTON AND CONTRIBUTORS
-// “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE UNIVERSITY OF WASHINGTON OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-// import https from 'https';
-// import netrc from 'netrc';
-// import pkg from './package.json' assert { type: 'json' };
-// import path from 'path';
-//var Buffer = require('buffer/').Buffer  // note: the trailing slash is important!
+//import https from 'https';
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
-//------------------------------------
-// File Data
-//------------------------------------
-
-//
-// System Credentials
-//
-// let sysCredentials = {
-//   refresh: null,
-//   access: null,
-//   expiration: 0,
-// };
+//import pkg from './package.json' assert { type: 'json' };
 
 //
 // System Configuration
@@ -59,33 +15,45 @@ let sysConfig = {
   timeout: 120000, // milliseconds
 };
 
+// Define type for type_code
+type TypeCode = typeof INT8 | typeof INT16 | typeof INT32 | typeof INT64 | typeof UINT8 | typeof UINT16 | typeof UINT32 | typeof UINT64 | typeof BITFIELD | typeof FLOAT | typeof DOUBLE | typeof TIME8 | typeof STRING | typeof USER;
+
+type field_def_Type = { // C.E.U. defined this type
+  "type": string,
+  "elements": number,
+  "offset": number,
+  "flags": string
+}
+
+type rec_def_Type = Record<string, any> // C.E.U. defined this type
+
+
 //
 // Record Definitions
 //
-let recordDefinitions = {}
+const recordDefinitions: rec_def_Type = {}
 
-//
-// SlideRule Constants
-//
-const INT8            = 0;
-const INT16           = 1;
-const INT32           = 2;
-const INT64           = 3;
-const UINT8           = 4;
-const UINT16          = 5;
-const UINT32          = 6;
-const UINT64          = 7;
-const BITFIELD        = 8;
-const FLOAT           = 9;
-const DOUBLE          = 10;
-const TIME8           = 11;
-const STRING          = 12;
-const USER            = 13;
+// Define types for the constants
+const INT8: number   = 0;
+const INT16: number  = 1;
+const INT32: number  = 2;
+const INT64: number  = 3;
+const UINT8: number  = 4;
+const UINT16: number = 5;
+const UINT32: number = 6;
+const UINT64: number = 7;
+const BITFIELD: number = 8;
+const FLOAT: number  = 9;
+const DOUBLE: number = 10;
+const TIME8: number  = 11;
+const STRING: number = 12;
+const USER: number   = 13;
 
-//
-// SlideRule Field Types
-//
-const fieldtypes = {
+
+//Define type for fieldtypes
+const fieldtypes:{
+  [key: string]: { code: number; size: number };
+} = {
   INT8:     {code: INT8,      size: 1},
   INT16:    {code: INT16,     size: 2},
   INT32:    {code: INT32,     size: 4},
@@ -109,7 +77,7 @@ const fieldtypes = {
 //
 // populateDefinition
 //
-function populateDefinition(rec_type) {
+function populateDefinition(rec_type:any):any {
   if (rec_type in recordDefinitions) {
     return recordDefinitions[rec_type];
   }
@@ -118,6 +86,7 @@ function populateDefinition(rec_type) {
       source("definition", {"rectype" : rec_type}).then(
         result => {
           recordDefinitions[rec_type] = result;
+          //console.log("populateDefinition[",rec_type,"] result:",result);
           resolve(recordDefinitions[rec_type]);
         },
         error => {
@@ -131,12 +100,12 @@ function populateDefinition(rec_type) {
 //
 // getFieldSize
 //
-async function getFieldSize(type) {
+async function getFieldSize(type:any) {
   if (type in fieldtypes) {
     return fieldtypes[type].size;
   }
   else {
-    let rec_def = await populateDefinition(type);
+    const rec_def = await populateDefinition(type);
     return rec_def.__datasize;
   }
 }
@@ -144,21 +113,25 @@ async function getFieldSize(type) {
 //
 // decodeElement
 //
-function decodeElement(type_code, big_endian, buffer, byte_offset) {
+function decodeElement(type_code: TypeCode, big_endian: boolean, buffer: Buffer, byte_offset: number): number | bigint | Date | string  {
   if (big_endian) {
     switch (type_code) {
       case INT8:      return buffer.readInt8(byte_offset);
       case INT16:     return buffer.readInt16BE(byte_offset);
       case INT32:     return buffer.readInt32BE(byte_offset);
-      case INT64:     return buffer.readBigInt64BE(byte_offset);
+      case INT64:     return buffer.readBigInt64BE(byte_offset) as bigint;
       case UINT8:     return buffer.readUInt8(byte_offset);
       case UINT16:    return buffer.readUInt16BE(byte_offset);
       case UINT32:    return buffer.readUInt32BE(byte_offset);
-      case UINT64:    return buffer.readBigUInt64BE(byte_offset);
+      case UINT64:    return buffer.readBigUInt64BE(byte_offset) as bigint;
       case BITFIELD:  throw new Error(`Bit fields are unsupported`);
       case FLOAT:     return buffer.readFloatBE(byte_offset);
       case DOUBLE:    return buffer.readDoubleBE(byte_offset);
-      case TIME8:     return new Date(Number(buffer.readBigInt64BE(byte_offset) / BigInt(1000000)));
+      case TIME8:     
+      {
+        const rawval = buffer.readBigInt64BE(byte_offset)as bigint;
+        return new Date(Number(rawval / BigInt(1000000)));
+      }
       case STRING:    return String.fromCharCode(buffer.readUInt8(byte_offset));
       case USER:      throw new Error(`User fields cannot be decoded as a primitive`);
       default:        throw new Error(`Invalid field type ${type_code}`);
@@ -169,32 +142,37 @@ function decodeElement(type_code, big_endian, buffer, byte_offset) {
       case INT8:      return buffer.readInt8(byte_offset);
       case INT16:     return buffer.readInt16LE(byte_offset);
       case INT32:     return buffer.readInt32LE(byte_offset);
-      case INT64:     return buffer.readBigInt64LE(byte_offset);
+      case INT64:     return buffer.readBigInt64LE(byte_offset) as bigint;
       case UINT8:     return buffer.readUInt8(byte_offset);
       case UINT16:    return buffer.readUInt16LE(byte_offset);
       case UINT32:    return buffer.readUInt32LE(byte_offset);
-      case UINT64:    return buffer.readBigUInt64LE(byte_offset);
+      case UINT64:    return buffer.readBigUInt64LE(byte_offset) as bigint;
       case BITFIELD:  throw new Error(`Bit fields are unsupported`);
       case FLOAT:     return buffer.readFloatLE(byte_offset);
       case DOUBLE:    return buffer.readDoubleLE(byte_offset);
-      case TIME8:     return new Date(Number(buffer.readBigInt64LE(byte_offset) / BigInt(1000000)));
+      case TIME8:     
+      {
+        const rawval = buffer.readBigInt64LE(byte_offset) as bigint;
+        return new Date(Number(rawval / BigInt(1000000)));
+      }
       case STRING:    return String.fromCharCode(buffer.readUInt8(byte_offset));
       case USER:      throw new Error(`User fields cannot be decoded as a primitive`);
       default:        throw new Error(`Invalid field type ${type_code}`);
     };
   }
 }
+
 //
 // decodeField
 //
-async function decodeField(field_def, buffer, offset, rec_size) {
-  let value = []; // ultimately returned
+async function decodeField(field_def:field_def_Type , buffer:any, offset:number, rec_size:number): Promise<any> {
+  let value:any[] | string = []; // ultimately returned
 
   // Pull out field attributes
-  let big_endian = (field_def.flags.match('BE') != null);
+  const big_endian = (field_def.flags.match('BE') != null);
   let byte_offset = offset + (field_def.offset / 8);
   let num_elements = field_def.elements;
-  let field_size = await getFieldSize(field_def.type);
+  const field_size = await getFieldSize(field_def.type);
 
   // Get type code
   let type_code = USER;
@@ -220,10 +198,10 @@ async function decodeField(field_def, buffer, offset, rec_size) {
 
   // Create final value
   if (type_code == STRING) {
-    value = value.join('');
-    let null_index = value.indexOf('\0');
+    value = value.join('') ;
+    const null_index = value.indexOf('\0');
     if (null_index > -1) {
-      value = value.substr(0, null_index);
+      value = value.slice(0, null_index); // Modified to use slice
     }
   }
   else if (num_elements == 1) {
@@ -237,11 +215,11 @@ async function decodeField(field_def, buffer, offset, rec_size) {
 //
 // decodeRecord
 //
-async function decodeRecord(rec_type, buffer, offset, rec_size) {
-  let rec_obj = {}
-  let rec_def = await populateDefinition(rec_type);
+async function decodeRecord(rec_type:string, buffer:any, offset:number, rec_size:number): Promise<any> {
+  const rec_obj:rec_def_Type = {}
+  const rec_def = await populateDefinition(rec_type);
   // For each field defined in record
-  for (let field in rec_def) {
+  for (const field in rec_def) {
     // Check if not property
     if (field.match(/^__/) == null) {
       rec_obj[field] = await decodeField(rec_def[field], buffer, offset, rec_size);
@@ -251,7 +229,7 @@ async function decodeRecord(rec_type, buffer, offset, rec_size) {
   return rec_obj;
 }
 
-async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
+async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: string]: any } ={}, stream=false) {
   try {
       //console.log('fetchAndProcessResult url:', url);
       //console.log('fetchAndProcessResult options:', options);
@@ -269,16 +247,22 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
       //     console.log(`fetchAndProcessResult header: ${key}: ${value}`);
       // }
       const contentType = response.headers.get('content-type');
+
+      // Ensure response.body is not null before attempting to read the stream
+      if (!response.body) {
+        throw new Error('Response body is null');
+    }
+
       if (contentType == 'application/octet-stream') {
         // Get the reader from the response stream
         const reader = response.body.getReader();
 
         // Process the stream
         let receivedLength = 0; // length of the received  data
-        let chunks = []; // array to store received  chunks
+        let chunks:any[] = []; // array to store received  chunks
         const REC_HDR_SIZE = 8;
         const REC_VERSION = 2;
-        let results = {};
+        const results: Record<string, number> = {};
         let total_bytes_read = null;
         let bytes_read = 0;
         let bytes_processed = 0;
@@ -288,7 +272,7 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
         let rec_type_size = 0;
         let loop_done = false;
         let empty_chunks = 0;
-        let recs_cnt = {}
+        const recs_cnt:{ [key: string]: any} = {}
 
         while (loop_done === false) {
           const { done, value } = await reader.read();
@@ -309,11 +293,11 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
                   got_header = true;
                   bytes_processed += REC_HDR_SIZE;
                   bytes_to_process -= REC_HDR_SIZE;
-                  let buffer = Buffer.concat(chunks);
+                  const buffer = Buffer.concat(chunks);
                   // Get header info
-                  let rec_version = buffer.readUInt16BE(0);
+                  const rec_version = buffer.readUInt16BE(0);
                   rec_type_size = buffer.readUInt16BE(2);
-                  let rec_data_size = buffer.readUInt32BE(4);
+                  const rec_data_size = buffer.readUInt32BE(4);
                   if (rec_version != REC_VERSION) {
                     throw new Error(`fetchAndProcessResult invalid record format: ${rec_version}`);
                   }
@@ -327,8 +311,8 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
                   got_header = false;
                   bytes_to_process -= rec_size;
                   bytes_processed += rec_size;
-                  let buffer = Buffer.concat(chunks);
-                  let rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
+                  const buffer = Buffer.concat(chunks);
+                  const rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
                   decodeRecord(rec_type, buffer, rec_type_size, rec_size).then(
                     result => {
                       if (rec_type in callbacks) {
@@ -390,9 +374,9 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
         }
 
         // Combine chunks into a single Uint8Array
-        let binaryData = new Uint8Array(receivedLength);
+        const binaryData = new Uint8Array(receivedLength);
         let position = 0;
-        for (let value of chunks) {
+        for (const value of chunks) {
             binaryData.set(value, position);
             position += value.length;
         }
@@ -418,14 +402,27 @@ async function fetchAndProcessResult(url, options, callbacks={}, stream=false) {
 //
 // Initialize Client
 //
-export function init(config) {
-  sysConfig = Object.assign(sysConfig, config)
-}
+// Define type for the init function
+export function init(config: {
+  domain?: string;
+  organization?: string;
+  //protocol?: https;
+  verbose?: boolean;
+  desired_nodes?: any; // Replace 'any' with a more specific type if possible
+  time_to_live?: number;
+  timeout?: number;
+}): void
+{
+  sysConfig = Object.assign(sysConfig, config) 
+};
 
-//
-// Source Endpoint
-//
-export async function source(api, parm=null, stream=false, callbacks={}) {
+// Define type for the source function
+export async function source(
+  api: string,
+  parm?: any, // Replace 'any' with a more specific type if possible
+  stream?: boolean,
+  callbacks?: { [key: string]: (...args: any[]) => void }
+): Promise<any>{ // Replace 'any' with a more specific return type if possible
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
   const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
@@ -434,7 +431,9 @@ export async function source(api, parm=null, stream=false, callbacks={}) {
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
-  let options = null;
+  let options: RequestInit = {
+    method: 'POST', // You can keep this if POST is the only method you use
+  };
   //let method = 'POST';
   options = {
     //method: method,
@@ -444,8 +443,8 @@ export async function source(api, parm=null, stream=false, callbacks={}) {
     body = JSON.stringify(parm);
     options.headers = {
       'Content-Type': 'application/json', 
-      'Content-Length': Buffer.byteLength(body),
-      'x-sliderule-streaming': stream && 1 || 0
+      'Content-Length': Buffer.byteLength(body).toString(),
+      'x-sliderule-streaming': stream ? '1' : '0',
     };
     options.body = body;
   }
@@ -458,12 +457,14 @@ export async function source(api, parm=null, stream=false, callbacks={}) {
       console.error('Error in fetchAndProcessResult:', error);
       throw error; // Rethrow or handle as needed
   }
-  
-
   return result;
-}
+}; 
 
-
+// Define type for the authenticate function
+// export function authenticate(
+//   ps_username?: string | null,
+//   ps_password?: string | null
+// ): Promise<number | undefined>;
 //
 // Authenticate User
 //
@@ -513,39 +514,52 @@ export async function source(api, parm=null, stream=false, callbacks={}) {
 //     );
 // }
 
-//
-// Get Version
-//
-// export function get_version() {
-//   return source('version').then(
-//     result => {
-//       result['client'] = {version: pkg['version']};
-//       result['organization'] = sysConfig.organization;
-//       return result;
-//     }
-//   );
-// }
 
-//
-// Get Values
-//
-export function get_values(bytearray, fieldtype) {
-  let values = [];
-  let buffer = Buffer.from(bytearray);
+// Define type for the get_version function
+export function get_version(): Promise<{
+  client: { version: string };
+  organization: string;
+  [key: string]: any; // Additional dynamic properties
+}>{
+  //const client_version = import.meta.env.VITE_APP_VERSION
+    return source('version').then(
+      result => {
+        //result['client'] = {version: client_version};
+        result['organization'] = sysConfig.organization;
+        return result;
+      }
+    );
+  };
+
+// Define type for the get_values function
+export function get_values(bytearray: Uint8Array, fieldtype: number):  Array<number | string | BigInt>  // Replace 'any' with a more specific type if possible
+{
+  let values: Array<number | string | BigInt> = [];
+  const buffer = Buffer.from(bytearray);
   switch (fieldtype) {
-    case INT8:    for (let i = 0; i < buffer.length; i += 1) values.push(buffer.readInt8LE(i));   break;
+    case INT8:    for (let i = 0; i < buffer.length; i += 1) values.push(buffer.readInt8(i));   break;
     case INT16:   for (let i = 0; i < buffer.length; i += 2) values.push(buffer.readInt16LE(i));  break;
     case INT32:   for (let i = 0; i < buffer.length; i += 4) values.push(buffer.readInt32LE(i));  break;
-    case INT64:   for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readInt64LE(i));  break;
-    case UINT8:   for (let i = 0; i < buffer.length; i += 1) values.push(buffer.readUInt8LE(i));  break;
+    case INT64:   for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readBigInt64LE(i));  break;
+    case UINT8:   for (let i = 0; i < buffer.length; i += 1) values.push(buffer.readUInt8(i));  break;
     case UINT16:  for (let i = 0; i < buffer.length; i += 2) values.push(buffer.readUInt16LE(i)); break;
     case UINT32:  for (let i = 0; i < buffer.length; i += 4) values.push(buffer.readUInt32LE(i)); break;
-    case UINT64:  for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readUInt64LE(i)); break;
+    case UINT64:  for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readBigUInt64LE(i)); break;
     case FLOAT:   for (let i = 0; i < buffer.length; i += 4) values.push(buffer.readFloatLE(i));  break;
     case DOUBLE:  for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readDoubleLE(i)); break;
-    case TIME8:   for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readInt64LE(i));  break;
-    case STRING:  values = String.fromCharCode.apply(null, bytearray); break;
+    case TIME8:   for (let i = 0; i < buffer.length; i += 8) values.push(buffer.readBigInt64LE(i));  break;
+    case STRING:
+    {
+    // Convert the Uint8Array to a string, then split into an array of single-character strings if necessary
+      const str = String.fromCharCode.apply(null, Array.from(bytearray));
+      values = [str]; 
+      break;
+    }
     default: break;
   }
   return values;
 }
+
+//
+// Get Values
+//
