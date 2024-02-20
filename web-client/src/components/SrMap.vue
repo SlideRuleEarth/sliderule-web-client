@@ -286,13 +286,13 @@
         newView.fit(extent);
         updateCurrentParms();
         let thisView = map.getView();
-        //console.log(`view center:`,thisView.getCenter());
-        //let hackCenter = [9000000, 13000000];
+        console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
         thisView.animate({
           center: srProjection.default_center,
           duration: 1000,
           zoom: srProjection.default_zoom,
         });
+        console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
         // Permalink
         if(mapStore.plink){
           var url = mapStore.plink.getUrlParam('url');

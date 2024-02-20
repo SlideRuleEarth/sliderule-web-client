@@ -28,12 +28,12 @@ export interface SrLayer {
   url: string;
   title: string;
   attributionKey: keyof typeof srAttributions; // Use the keys from the srAttributions object
-  allowed_projections: string[];
+  allowed_projections: string[]; // if view is different from source an automatic reprojection will be attempted
   layerName?: string;
   serverType?: ServerType;  //  WMS server type
   init_visibility: boolean;
   init_opacity: number;
-  tileGrid?: TileGrid;
+  //tileGrid?: TileGrid;
 }
 
 const antarticTileGrid_Options = {
@@ -66,6 +66,12 @@ const antarticTileGrid_Options = {
   extent: [-9913957.327914657,-5730886.461772691,
     9913957.327914657,5730886.461773157]
 }
+
+// const Antartic_hillshadeParams = {
+//   azimuth: 315,
+//   altitude: 45
+// }
+
 const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
 
 export const layers = ref<SrLayer[]>([
@@ -100,6 +106,18 @@ export const layers = ref<SrLayer[]>([
     init_opacity: 1,
   },
   {
+    type: "wms",
+    serverType: "mapserver",
+    isBaseLayer: false,
+    url:"https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?",
+    title: "USGS 3DEP",
+    attributionKey: "usgs",
+    allowed_projections:["EPSG:3857","EPSG:4326"],
+    layerName: "3DEPElevation:Hillshade Gray",
+    init_visibility: false, // Note: This layer is not visible by default
+    init_opacity: 0.2,
+  },
+  {
     type: "xyz",
     isBaseLayer: false,
     url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/ASTER_GDEM_Greyscale_Shaded_Relief/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.jpg",
@@ -119,16 +137,16 @@ export const layers = ref<SrLayer[]>([
     init_visibility: true,
     init_opacity: 1,
   },
-  {
-    type: "xyz",
-    isBaseLayer: true,
-    url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
-    title: "Artic Imagery",
-    attributionKey: "esri",
-    allowed_projections:["EPSG:5936"],
-    init_visibility: true,
-    init_opacity: 1,
-  },
+  // {
+  //   type: "xyz",
+  //   isBaseLayer: true,
+  //   url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
+  //   title: "Artic Imagery",
+  //   attributionKey: "esri",
+  //   allowed_projections:["EPSG:5936"],
+  //   init_visibility: true,
+  //   init_opacity: 1,
+  // },
   {
     type: "xyz",
     isBaseLayer: false,
@@ -160,30 +178,19 @@ export const layers = ref<SrLayer[]>([
   //   init_visibility: true,
   //   init_opacity: 1,
   // },
-  {
-    type: "xyz",
-    isBaseLayer: true,
-    url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
-    title: "Antarctic Imagery",
-    attributionKey: "esri",
-    allowed_projections:["EPSG:3031"],
-    init_visibility: false,
-    init_opacity: 0.5,
-    serverType: "mapserver",
-    tileGrid: antarticTileGrid,
-  },
-  {
-    type: "wms",
-    serverType: "mapserver",
-    isBaseLayer: false,
-    url:"https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?",
-    title: "USGS 3DEP",
-    attributionKey: "usgs",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
-    layerName: "3DEPElevation:Hillshade Gray",
-    init_visibility: false, // Note: This layer is not visible by default
-    init_opacity: 0.2,
-  },
+  // {
+  //   type: "xyz",
+  //   isBaseLayer: true,
+  //   url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
+  //   title: "Antarctic Imagery",
+  //   attributionKey: "esri",
+  //   source_projection: "EPSG:3031",
+  //   allowed_projections:["EPSG:3031"],
+  //   init_visibility: false,
+  //   init_opacity: 0.5,
+  //   serverType: "mapserver",
+  //   tileGrid: antarticTileGrid,
+  // },
   {
     type: "wms",
     isBaseLayer: false,
@@ -198,14 +205,48 @@ export const layers = ref<SrLayer[]>([
   {
     type: "wms",
     isBaseLayer: false,
-    url:"https://ahocevar.com/geoserver/wms",
-    title: "US States",
-    attributionKey: "ahocevar",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
-    layerName: "topp:states",
+    url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
+    title: "MOA",
+    attributionKey: "usgs_antartic",
+    allowed_projections:["EPSG:3031"],
+    layerName: "MOA_125_HP1_090_230",
+    init_visibility: true,
+    init_opacity: 0.2,
+  },  
+  {
+    type: "wms",
+    isBaseLayer: false,
+    url:"https://elevation2.arcgis.com/arcgis/rest/services/Polar/AntarcticDEM/ImageServer",
+    title: "REMA",
+    attributionKey: "usgs_antartic",
+    allowed_projections:["EPSG:3031"],
+    layerName: "Antartic_DEM",
+    init_visibility: true,
+    init_opacity: 0.2,
+  },
+  {
+    type: "wms",
+    isBaseLayer: false,
+    url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
+    title: "RadarMosaic",
+    attributionKey: "usgs_antartic",
+    allowed_projections:["EPSG:3031"],
+    layerName: "Radar_Mosaic",
     init_visibility: false,
-    init_opacity: 0.1,
-  }  
+    init_opacity: 0.2,
+  },  
+  // {
+  //   type: "wms",
+  //   isBaseLayer: false,
+  //   url:"https://ahocevar.com/geoserver/wms",
+  //   title: "US States",
+  //   attributionKey: "ahocevar",
+  //   source_projection: "EPSG:4326",
+  //   allowed_projections:["EPSG:3857","EPSG:4326"],
+  //   layerName: "topp:states",
+  //   init_visibility: false,
+  //   init_opacity: 0.1,
+  // }  
   // {
   //   type: "wms",
   //   isBaseLayer: false,
@@ -213,6 +254,7 @@ export const layers = ref<SrLayer[]>([
   //   title: "GLIMS Glacier",
   //   attributionKey: "glims",
   //   allowed_projections:["EPSG:3857","EPSG:4326"],
+  //   source_projection: "??",
   //   layerName: "GLIMS_GLACIER",
   //   init_visibility: true,
   //   init_opacity: 0.2,    
@@ -222,6 +264,7 @@ export const layers = ref<SrLayer[]>([
   //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
   //   title: "NASA Gibs",
   //   attribution: "Tiles © NASA Gibs contributers",
+  //   source_projection: "??",
   //   allowed_projections:["EPSG:3031"],
   //   type: "wmts"
   // }
@@ -291,7 +334,7 @@ export const getLayer = (title: string) => {
                 'TILED': true,
                 'CRS': mapParamsStore.projection.name,
               },
-              projection: mapParamsStore.projection.name,
+              //projection: srLayer.source_projection,
               serverType: srLayer.serverType, //  WMS server type 
               //crossOrigin: '', // Consider CORS policies
               crossOrigin: 'anonymous', // Consider CORS policies
@@ -308,7 +351,6 @@ export const getLayer = (title: string) => {
             attributions: srAttributions[srLayer.attributionKey],
           }
           layerInstance = new TileLayer({
-
             source: new XYZ(xyzOptions),
             ... localTileLayerOptions
           });

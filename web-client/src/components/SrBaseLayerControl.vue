@@ -6,7 +6,7 @@
   import { getSrBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
   import { watch } from 'vue';
   import { getDefaultProjection } from '@/composables/SrProjections';
-  import { srAttributions } from '@/composables/SrLayers';
+  //import { srAttributions } from '@/composables/SrLayers';
 
   const mapParamsStore = useMapParamsStore();
   const baseLayerOptions = computed(() => getSrBaseLayersForProjection(mapParamsStore.projection.name));
