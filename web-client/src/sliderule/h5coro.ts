@@ -49,14 +49,21 @@ const datatypes = {
 //
 // h5
 //
-export function h5(dataset:string, resource:string, asset:string, datatype:number=datatypes.DYNAMIC, col:number=0, startrow:number=0, numrows:number=ALL_ROWS, callbacks: { [key: string]: (...args: any[]) => void } | null=null){
+export function h5( dataset:string, 
+                    resource:string,
+                     asset:string, 
+                     datatype:number=datatypes.DYNAMIC, 
+                     col:number=0, 
+                     startrow:number=0, 
+                     numrows:number=ALL_ROWS, 
+                     callbacks: { [key: string]: (...args: any[]) => void } | null=null){
     const parm = {
       asset: asset,
       resource: resource,
       datasets: [ { dataset: dataset, datatype: datatype, col: col, startrow: startrow, numrows: numrows } ]
     };
     if (callbacks != null) {
-        return core.source('h5p', parm, true);
+        return core.source('h5p', parm, true, callbacks);
     } else {
         const emitter = mitt();
 

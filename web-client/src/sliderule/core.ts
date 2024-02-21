@@ -229,7 +229,7 @@ async function decodeRecord(rec_type:string, buffer:any, offset:number, rec_size
   return rec_obj;
 }
 
-async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: string]: any } ={}, stream=false) {
+async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: string]: any } ={}, stream: boolean) {
   try {
       //console.log('fetchAndProcessResult url:', url);
       //console.log('fetchAndProcessResult options:', options);
@@ -253,8 +253,9 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         throw new Error('Response body is null');
     }
 
-      if (contentType == 'application/octet-stream') {
+      if (stream) {
         // Get the reader from the response stream
+        console.log('fetchAndProcessResult streaming response:', response);
         const reader = response.body.getReader();
 
         // Process the stream
@@ -385,7 +386,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 
     } else if (contentType == 'application/json' || contentType == 'text/plain') {
       const data = await response.json();
-      //console.log('fetchAndProcessResult returning json data:', data);
+      //console.log('fetchAndProcessResult Non-streaming returning json data:', data);
       return data;
     }
   } catch (error) {
@@ -415,13 +416,15 @@ export function init(config: {
 {
   sysConfig = Object.assign(sysConfig, config) 
 };
-
+export interface Callbacks {
+  [key: string]: ((result: any) => void) | undefined; 
+}
 // Define type for the source function
 export async function source(
   api: string,
   parm?: any, // Replace 'any' with a more specific type if possible
-  stream?: boolean,
-  callbacks?: { [key: string]: (...args: any[]) => void }
+  stream: boolean = false,
+  callbacks?: Callbacks
 ): Promise<any>{ // Replace 'any' with a more specific return type if possible
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
@@ -431,14 +434,10 @@ export async function source(
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
-  let options: RequestInit = {
+  const options: RequestInit = {
     method: 'POST', // You can keep this if POST is the only method you use
   };
-  //let method = 'POST';
-  options = {
-    //method: method,
-    method: 'POST',
-  };
+  
   if (parm != null) {
     body = JSON.stringify(parm);
     options.headers = {

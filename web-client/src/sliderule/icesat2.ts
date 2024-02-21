@@ -29,6 +29,7 @@
 
 //import { mitt } from 'mitt';
 import {core} from '../sliderule/index';
+//import {Callbacks} from '../sliderule/index';
 //import { error } from 'console';
 //------------------------------------
 // File Data
@@ -84,16 +85,12 @@ interface Atl06pParams {
 }
 type Resource = any; // Replace 'any' with the actual type of a resource
 
-// Define the callback type
-interface Callbacks {
-    atl06rec?: (result: any) => void;
-    [key: string]: ((result: any) => void) | undefined; // Other dynamic keys
-}
-
 //
 // ATL06P
 //
-export async function atl06p(parm: Atl06pParams, resources:Resource[], callbacks: Callbacks | null = null): Promise<any[] | void> 
+export async function atl06p(parm: Atl06pParams, 
+                            resources:Resource[], 
+                            callbacks: core.Callbacks ) : Promise<any[] | void> 
 {
     console.log("atl06p parm: ", parm);
     console.log("atl06p resources: ", resources );
@@ -114,15 +111,11 @@ export async function atl06p(parm: Atl06pParams, resources:Resource[], callbacks
             },
         };
     } 
-    //try {
-        const result = await core.source('atl06p', rqst, true, callbacks);
-        //console.log("atl06p result: ", result);
-        console.log("atl06p rec[0]: ", recs.flat(1)[0]);
-        return result;
-    //} catch (error) {
-    //    console.error('Error in retrieving atl06p:', error);
-    //    throw error
-    //}
+    const result = await core.source('atl06p', rqst, true, callbacks);
+    //console.log("atl06p result: ", result);
+    console.log("atl06p rec[0]: ", recs.flat(1)[0]);
+    return result;
+
 };
 
 // Export any other constants or functions if necessary
