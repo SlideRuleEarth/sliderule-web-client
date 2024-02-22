@@ -11,6 +11,13 @@
     import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
+    import { createLegend } from '@/composables/SrMapUtils';
+    import { addVectorLayer,pnt_cnt } from '@/composables/SrMapUtils';
+    import { ElevationData } from '@/composables/SrMapUtils';
+    import { useElevationData } from "@/composables/SrMapUtils";
+    import { useMapStore } from '@/stores/mapStore';
+    import Layer from 'ol/layer/Layer';
+    import { transform, fromLonLat, get as getProjection } from 'ol/proj.js';
 
     const advancedModeStore = useAdvancedModeStore();
 
@@ -18,6 +25,9 @@
 
     const stepValue = ref(10);
     const isLoading = ref(false);
+    const minElevation = ref(0);
+    const maxElevation = ref(0);
+    const cb_count = ref(0);
 
     onMounted(() => {
         advancedModeStore.advanced = true;
@@ -38,24 +48,52 @@
         onStepValueChange,
         { debounce: 500, maxWait: 1000 },
     );
+
+    // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
         // console.log('logoClick');
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked', life: 3000 });
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
+        //const recs: any[] = [];
+        // Create the legend
+
+        const callbacks = {
+            atl06rec: (result) => {
+                cb_count.value += 1;
+                console.log("atl06p cb");
+                let recs:ElevationData[] = result["elevation"];
+                addVectorLayer(recs);
+                //recs.push(result["elevation"]);
+                if(cb_count.value === 1) {
+                    console.log("atl06p cb first result:", result)
+                }
+                for (let i = 0; i < recs.length; i++) {
+                    let rec = recs[i];
+                    if(rec.h_mean < minElevation.value) {
+                        minElevation.value = rec.h_mean;
+                    }
+                    if(rec.h_mean > maxElevation.value) {
+                        maxElevation.value = rec.h_mean;
+                    }
+                }
+            },
+        };
         isLoading.value = true; 
-        atl06p(
-            { "cnf": "atl03_high",
-            "ats": 20.0,
-            "cnt": 10,
-            "len": 40.0,
-            "res": 20.0,
-            "maxi": 1 }, 
-            ["ATL03_20181019065445_03150111_005_01.h5"])
+        atl06p({ 
+                "cnf": "atl03_high",
+                "ats": 20.0,
+                "cnt": 10,
+                "len": 40.0,
+                "res": 20.0,
+                "maxi": 1 
+            }, 
+            ["ATL03_20181019065445_03150111_005_01.h5"],
+            callbacks
+            )
         .then(
-            result => {
+            () => { // result
                 // Log the result to the console
-                console.log('runSlideRuleClicked Results = ', result, result[0]);
 
                 // Display a toast message indicating successful completion
                 toast.add({
@@ -91,8 +129,64 @@
         }))
         .finally(() => {
             isLoading.value = false;
+            console.log("pnt_cnt:",pnt_cnt)
+            createLegend(minElevation.value, maxElevation.value);
         });
     };
+
+    // Function that is called when the "Run Test" button is clicked
+    const runTestClicked = () => {
+        console.log('runTestClicked');
+        const mapStore = useMapStore();
+        const map = mapStore.getMap();
+        const ed = [
+          {longitude: -77.1230, latitude: 39.0117, elevation: 0},
+          {longitude: -77.1230, latitude: 39.0107, elevation: 100},
+          {longitude: -77.1230, latitude: 39.0097, elevation: 200},
+          {longitude: -77.1230, latitude: 39.0087, elevation: 300},
+        ];
+        const edArray: ElevationData[] = ed.map(item => {
+          let edItem = useElevationData(); // Initialize a new ElevationData object
+          edItem.latitude = item.latitude; 
+          edItem.longitude = item.longitude;
+          edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
+          return edItem;
+        });
+
+        // Now ed2Array contains all items from ed transformed into the ElevationData structure.
+        
+        addVectorLayer(edArray);
+        if(map){
+            const view = map.getView();
+            console.log("Hello World!")
+            if (view) {
+                console.log("animating view...")
+                let center = [-77.1230, 39.0117];
+                if (view.getProjection().getUnits() !== 'degrees') {
+                    center = fromLonLat(center);
+                    console.log("CONVERTED center:",center);
+                }
+                console.log("center:",center);
+                view.animate({
+                    center: center,
+                    duration: 1000,
+                    zoom: 17,
+                });
+                map.render();
+            } else {
+                console.error('View is not defined');
+            }
+
+            map.getAllLayers().forEach((layer: Layer) => {
+              console.log(`layer:`,layer.getProperties());
+            });
+
+
+        } else {
+            console.error('Map is not defined');
+        }
+    };        
+
 </script>
 
 <template>
@@ -113,6 +207,9 @@
                             </div>  
                             <div class="run-sr-button" >
                                 <Button label="Run SlideRule" @click="runSlideRuleClicked"></Button>
+                            </div>
+                            <div class="runtest-sr-button" >
+                                <Button label="Run Test" @click="runTestClicked"></Button>
                             </div>
                             <div class="run-sr-progress-spinner">
                                 <ProgressSpinner v-if="isLoading" animationDuration="1.25s" />

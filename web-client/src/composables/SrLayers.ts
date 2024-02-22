@@ -91,7 +91,7 @@ export const layers = ref<SrLayer[]>([
     url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     title: "OpenStreet",
     attributionKey: "openStreetMap",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
+    allowed_projections:["EPSG:4326","EPSG:3857"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -193,7 +193,7 @@ export const layers = ref<SrLayer[]>([
   // },
   {
     type: "wms",
-    isBaseLayer: false,
+    isBaseLayer: true,
     url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
     title: "LIMA",
     attributionKey: "usgs_antartic",
@@ -247,26 +247,26 @@ export const layers = ref<SrLayer[]>([
   //   init_visibility: false,
   //   init_opacity: 0.1,
   // }  
-  // {
-  //   type: "wms",
-  //   isBaseLayer: false,
-  //   url:"https://www.glims.org/geoserver/GLIMS/wms",
-  //   title: "GLIMS Glacier",
-  //   attributionKey: "glims",
-  //   allowed_projections:["EPSG:3857","EPSG:4326"],
-  //   source_projection: "??",
-  //   layerName: "GLIMS_GLACIER",
-  //   init_visibility: true,
-  //   init_opacity: 0.2,    
-  // }
+  {
+    type: "wms",
+    isBaseLayer: false,
+    url:"https://www.glims.org/geoserver/GLIMS/wms",
+    title: "GLIMS Glacier",
+    attributionKey: "glims",
+    allowed_projections:["EPSG:3857","EPSG:4326"],
+    layerName: "GLIMS_GLACIER",
+    init_visibility: false,
+    init_opacity: 0.2,    
+  },
   // {
   //   isBaseLayer: false,
   //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
   //   title: "NASA Gibs",
-  //   attribution: "Tiles © NASA Gibs contributers",
-  //   source_projection: "??",
+  //   attributionKey: "nasa_gibs",
   //   allowed_projections:["EPSG:3031"],
-  //   type: "wmts"
+  //   init_visibility: true,
+  //   init_opacity: 0.5,
+  //   type: "wmts",
   // }
 ]);
        
@@ -308,6 +308,8 @@ export const getLayer = (title: string) => {
     let name = srLayer.title;
     if (srLayer.isBaseLayer) {
       name = "Base Layer";
+    } else {
+      name = srLayer.layerName || srLayer.title;
     }
     const localTileLayerOptions = {
       title: title,
@@ -324,9 +326,12 @@ export const getLayer = (title: string) => {
 
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
-          console.log(`WMS ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.projection.name}`);
+          console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.projection.name}`);
           layerInstance = new TileLayer({
-            source: new TileWMS({
+            // if we specify it, the layer will be reprojected to the view's projection
+            // if we don't specify it we assume it is in the view's projection
+            // note: projection is defaulted to the View's projection
+            source: new TileWMS({ 
               url: srLayer.url,
               attributions: srAttributions[srLayer.attributionKey],
               params: {
@@ -344,7 +349,7 @@ export const getLayer = (title: string) => {
           });
 
         } else if(srLayer.type === "xyz"){
-          console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.projection.name}`);
+          console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapParamsStore.projection.name}`);
           const xyzOptions = {
             url: srLayer.url,
             extent: mapParamsStore.extent,

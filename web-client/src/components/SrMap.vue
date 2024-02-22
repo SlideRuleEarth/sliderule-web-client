@@ -7,9 +7,7 @@
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import {useToast} from "primevue/usetoast";
   import VectorLayer from 'ol/layer/Vector';
-  import VectorSource from 'ol/source/Vector';
   import Geometry from 'ol/geom/Geometry';
-  import Feature from 'ol/Feature';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrProjectionControl from "./SrProjectionControl.vue";
   import { SrProjection, useProjectionNames } from "@/composables/SrProjections";
@@ -25,8 +23,9 @@
   import Layer from 'ol/layer/Layer';
   import { useWmsCap } from "@/composables/useWmsCap";
   import { getDefaultProjection } from '@/composables/SrProjections';
-  //import Permalink from "ol-ext/control/Permalink";
-  //import { useWmtsCap } from "@/composables/useWmtsCap";
+  import VectorSource from 'ol/source/Vector';
+  import Feature from 'ol/Feature';
+  import  { getCenter as getExtentCenter } from 'ol/extent.js';
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -192,7 +191,7 @@
           map.addControl(plink);
         }
         updateMapAndView();
-        // Watch for changes in the zoom level
+
       } else {
         console.log("Error:map is null");
       } 
@@ -255,44 +254,83 @@
       const projection = getProjection(srProjection.name);
       //console.log("projection:",projection);
       if(projection){
+        console.log(`${srProjection.name} units: ${projection.getUnits()}`);
         let extent = projection.getExtent();
+        console.log("extent:",extent);
+        let worldExtent = projection.getWorldExtent();
+        console.log("World extent:",worldExtent);
+        // bbox is in lon/lat, need to convert to meters
+        //const fromLonLatToMeters = getTransform('EPSG:4326', projection);
+        // if(extent == null){ // need to populate from our own data
+        //   if (srProjection.bbox){
+        //     console.log("srProjection.bbox:",srProjection.bbox);
+        //     let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
+        //     projection.setWorldExtent(worldExtent);
+        //     // approximate calculation of projection extent,
+        //     // checking if the world extent crosses the dateline
+        //     if (srProjection.bbox[1] > srProjection.bbox[3]) {
+        //       console.log("crosses the dateline");
+        //       worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
+        //     }
+        //     console.log("worldExtent:",worldExtent);
+        //     extent = applyTransform(worldExtent, fromLonLatToMeters, undefined, 8);
+        //     console.log("extent:",extent);
+        //   } else {
+        //     console.error("Error: invalid projection bbox:",srProjection.bbox);
+        //   }
+        // }
         //let extent = srProjection.bbox;
+        
         const fromLonLat = getTransform('EPSG:4326', projection);
-        if (srProjection.bbox){
-          // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
-          if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031') || (srProjection.name == 'EPSG:3413')){
-            //console.log("srProjection.bbox:",srProjection.bbox);
-            let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
-            projection.setWorldExtent(worldExtent);
-            // approximate calculation of projection extent,
-            // checking if the world extent crosses the dateline
-            if (srProjection.bbox[1] > srProjection.bbox[3]) {
-              console.log("crosses the dateline");
-              worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
+        if(extent == null){ // need to populate from our own data
+          if (srProjection.bbox){
+            // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
+            //if ((srProjection.name == 'EPSG:5936') || (srProjection.name == 'EPSG:3031') || (srProjection.name == 'EPSG:3413')){
+            if(projection.getUnits() == 'm'){
+              //console.log("srProjection.bbox:",srProjection.bbox);
+              let worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3], srProjection.bbox[0]];
+              //projection.setWorldExtent(worldExtent);
+              // approximate calculation of projection extent,
+              // checking if the world extent crosses the dateline
+              if (srProjection.bbox[1] > srProjection.bbox[3]) {
+                console.log("crosses the dateline");
+                worldExtent = [srProjection.bbox[1], srProjection.bbox[2], srProjection.bbox[3] + 360, srProjection.bbox[0]];
+              }
+              extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
+              worldExtent = extent;
+              projection.setExtent(extent);
+              projection.setWorldExtent(worldExtent);
+              console.log("worldExtent:",worldExtent);
+              console.log("extent:",extent);
             }
-            //console.log("worldExtent:",worldExtent);
-            extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-            //console.log("extent:",extent);
+          } else {
+            console.error("Error: invalid projection bbox:",srProjection.bbox);
           }
-        } else {
-          console.error("Error: invalid projection bbox:",srProjection.bbox);
         }
         const newView = new View({
           projection: projection,
           constrainResolution: true,
+          extent: extent || undefined,
+          center: getExtentCenter(extent || [0, 0, 0, 0]),
+          zoom: srProjection.default_zoom,
+          minZoom: srProjection.min_zoom,
+          maxZoom: srProjection.max_zoom,
+
         });
-        //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
+        console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent} worldExtent: ${worldExtent}  `);
+        console.log(`newView:`,newView.getProperties());
         map.setView(newView);
         newView.fit(extent);
         updateCurrentParms();
         let thisView = map.getView();
-        console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
+        //console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
         thisView.animate({
           center: srProjection.default_center,
           duration: 1000,
           zoom: srProjection.default_zoom,
         });
         console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
+        console.log(`thisView:`,thisView.getProperties());
         // Permalink
         if(mapStore.plink){
           var url = mapStore.plink.getUrlParam('url');
@@ -329,9 +367,11 @@
     if (newProj) {
       mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
         // drawiing Layer is never changed/removed
-        if((layer.get('name') !== 'Drawing Layer')){
+        if(layer.get('name') !== 'Drawing Layer'){
           console.log(`removing layer:`,layer.get('title'));
           mapRef.value?.map.removeLayer(layer);
+        } else {
+          console.log(`skipping layer:`,layer.get('name'));
         }
       });
       mapParamsStore.setProjection(srProjection);

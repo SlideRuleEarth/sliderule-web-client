@@ -78,8 +78,8 @@ const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6
 // Exported Functions
 //------------------------------------
 
-  // Define the parameter type for the atl06p function
-interface Atl06pParams {
+// Define the parameter type for the atl06p function
+export interface Atl06pParams {
     asset?: string;
     [key: string]: any; // Other dynamic keys
 }
@@ -106,14 +106,14 @@ export async function atl06p(parm: Atl06pParams,
     if (callbacks == null) {
         callbacks = {
             atl06rec: (result) => {
-                console.log("atl06p cb...");
+                console.log("atl06p--< cb...");
                 recs.push(result["elevation"]);
             },
         };
     } 
     const result = await core.source('atl06p', rqst, true, callbacks);
     //console.log("atl06p result: ", result);
-    console.log("atl06p rec[0]: ", recs.flat(1)[0]);
+    //console.log("atl06p rec[0]: ", recs.flat(1)[0]);
     return result;
 
 };
