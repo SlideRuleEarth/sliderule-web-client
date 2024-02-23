@@ -28,7 +28,8 @@ export interface SrLayer {
   url: string;
   title: string;
   attributionKey: keyof typeof srAttributions; // Use the keys from the srAttributions object
-  allowed_projections: string[]; // if view is different from source an automatic reprojection will be attempted
+  source_projection?: string; // if view is different from source an automatic reprojection will be attempted
+  allowed_reprojections: string[]; // List of allowed reprojections
   layerName?: string;
   serverType?: ServerType;  //  WMS server type
   init_visibility: boolean;
@@ -81,7 +82,8 @@ export const layers = ref<SrLayer[]>([
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
     title: "Esri World Topo",
     attributionKey: "esri",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:3857","EPSG:4326","EPSG:3413","EPSG:3031","EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -91,7 +93,8 @@ export const layers = ref<SrLayer[]>([
     url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     title: "OpenStreet",
     attributionKey: "openStreetMap",
-    allowed_projections:["EPSG:4326","EPSG:3857"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:4326","EPSG:3857"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -101,7 +104,8 @@ export const layers = ref<SrLayer[]>([
     url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
     title: "Google",
     attributionKey: "google",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -112,7 +116,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?",
     title: "USGS 3DEP",
     attributionKey: "usgs",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:3857","EPSG:4326"],
     layerName: "3DEPElevation:Hillshade Gray",
     init_visibility: false, // Note: This layer is not visible by default
     init_opacity: 0.2,
@@ -123,7 +128,8 @@ export const layers = ref<SrLayer[]>([
     url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/ASTER_GDEM_Greyscale_Shaded_Relief/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.jpg",
     title: "Nasa Shaded Relief",
     attributionKey: "nasa_gibs",
-    allowed_projections:["EPSG:3857"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:3857"],
     init_visibility: false,
     init_opacity: 0.5,
   },
@@ -133,7 +139,8 @@ export const layers = ref<SrLayer[]>([
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Ocean Base",
     attributionKey : "esri",
-    allowed_projections:["EPSG:5936"],
+    source_projection: "EPSG:5936",
+    allowed_reprojections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -143,7 +150,7 @@ export const layers = ref<SrLayer[]>([
   //   url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
   //   title: "Artic Imagery",
   //   attributionKey: "esri",
-  //   allowed_projections:["EPSG:5936"],
+  //   allowed_reprojections:["EPSG:5936"],
   //   init_visibility: true,
   //   init_opacity: 1,
   // },
@@ -153,7 +160,8 @@ export const layers = ref<SrLayer[]>([
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Reference",
     attributionKey: "esri",
-    allowed_projections:["EPSG:5936"],
+    source_projection: "EPSG:5936",
+    allowed_reprojections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -163,7 +171,8 @@ export const layers = ref<SrLayer[]>([
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Imagery",
     attributionKey: "esri",
-    allowed_projections:["EPSG:3413"],
+    source_projection: "EPSG:3857",
+    allowed_reprojections:["EPSG:3413"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -174,7 +183,7 @@ export const layers = ref<SrLayer[]>([
   //   //url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
   //   title: "Antarctic Basemap",
   //   attributionKey: "esri",
-  //   allowed_projections:["EPSG:3031"],
+  //   allowed_reprojections:["EPSG:3031"],
   //   init_visibility: true,
   //   init_opacity: 1,
   // },
@@ -185,7 +194,7 @@ export const layers = ref<SrLayer[]>([
   //   title: "Antarctic Imagery",
   //   attributionKey: "esri",
   //   source_projection: "EPSG:3031",
-  //   allowed_projections:["EPSG:3031"],
+  //   allowed_reprojections:["EPSG:3031"],
   //   init_visibility: false,
   //   init_opacity: 0.5,
   //   serverType: "mapserver",
@@ -197,7 +206,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
     title: "LIMA",
     attributionKey: "usgs_antartic",
-    allowed_projections:["EPSG:3031"],
+    source_projection: "EPSG:3031",
+    allowed_reprojections:["EPSG:3031"],
     layerName: "LIMA_Full_1km",
     init_visibility: true,
     init_opacity: 0.2,
@@ -208,7 +218,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
     title: "MOA",
     attributionKey: "usgs_antartic",
-    allowed_projections:["EPSG:3031"],
+    source_projection: "EPSG:3031",
+    allowed_reprojections:["EPSG:3031"],
     layerName: "MOA_125_HP1_090_230",
     init_visibility: true,
     init_opacity: 0.2,
@@ -219,7 +230,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://elevation2.arcgis.com/arcgis/rest/services/Polar/AntarcticDEM/ImageServer",
     title: "REMA",
     attributionKey: "usgs_antartic",
-    allowed_projections:["EPSG:3031"],
+    source_projection: "EPSG:3031",
+    allowed_reprojections:["EPSG:3031"],
     layerName: "Antartic_DEM",
     init_visibility: true,
     init_opacity: 0.2,
@@ -230,7 +242,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer",
     title: "RadarMosaic",
     attributionKey: "usgs_antartic",
-    allowed_projections:["EPSG:3031"],
+    source_projection: "EPSG:3031",
+    allowed_reprojections:["EPSG:3031"],
     layerName: "Radar_Mosaic",
     init_visibility: false,
     init_opacity: 0.2,
@@ -242,7 +255,7 @@ export const layers = ref<SrLayer[]>([
   //   title: "US States",
   //   attributionKey: "ahocevar",
   //   source_projection: "EPSG:4326",
-  //   allowed_projections:["EPSG:3857","EPSG:4326"],
+  //   allowed_reprojections:["EPSG:3857","EPSG:4326"],
   //   layerName: "topp:states",
   //   init_visibility: false,
   //   init_opacity: 0.1,
@@ -253,7 +266,8 @@ export const layers = ref<SrLayer[]>([
     url:"https://www.glims.org/geoserver/GLIMS/wms",
     title: "GLIMS Glacier",
     attributionKey: "glims",
-    allowed_projections:["EPSG:3857","EPSG:4326"],
+    source_projection: "EPSG:4326",
+    allowed_reprojections:["EPSG:3857","EPSG:4326"],
     layerName: "GLIMS_GLACIER",
     init_visibility: false,
     init_opacity: 0.2,    
@@ -263,7 +277,8 @@ export const layers = ref<SrLayer[]>([
   //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
   //   title: "NASA Gibs",
   //   attributionKey: "nasa_gibs",
-  //   allowed_projections:["EPSG:3031"],
+  //   source_projection: "EPSG:3031",//??
+  //   allowed_reprojections:["EPSG:3031"],
   //   init_visibility: true,
   //   init_opacity: 0.5,
   //   type: "wmts",
@@ -272,14 +287,18 @@ export const layers = ref<SrLayer[]>([
        
 export const getSrLayersForCurrentProjection = () => {
   const mapParamsStore = useMapParamsStore();
-  return layers.value.filter(layer => layer.allowed_projections.includes(mapParamsStore.projection.name));
+  return layers.value.filter(layer => layer.allowed_reprojections.includes(mapParamsStore.projection.name));
 }
 export const getSrBaseLayersForProjection = (projection: string) => {
   //console.log('getSrBaseLayersForProjection', projection);
-  return layers.value.filter(layer => layer.allowed_projections.includes(projection) && layer.isBaseLayer);
+  const layerList = layers.value.filter(layer => layer.allowed_reprojections.includes(projection) && layer.isBaseLayer);
+  console.log('getSrBaseLayersForProjection', layerList);
+  return layerList;
 }
 
 export const addLayersForCurrentProjection = () => {
+  console.log('--------------------addLayersForCurrentProjection--------------------');
+
   const srLayersForProj = getSrLayersForCurrentProjection(); 
   srLayersForProj.forEach(srLayerForProj => {
     if(!srLayerForProj.isBaseLayer){ // base layer is managed by baseLayerControl
@@ -290,12 +309,14 @@ export const addLayersForCurrentProjection = () => {
       } else {
         console.log('map not available');
       }
+    } else{
+      console.log(`skipping layer: ${srLayerForProj.title} for projection: ${mapStore.map?.getView().getProjection()}`);
     }
   });
 }
 
 export const getDefaultBaseLayer = (projection: string) => {
-  return layers.value.find(layer => layer.isBaseLayer && layer.allowed_projections.includes(projection));
+  return layers.value.find(layer => layer.isBaseLayer && layer.allowed_reprojections.includes(projection));
 }
 
 export const getLayer = (title: string) => {
@@ -305,15 +326,15 @@ export const getLayer = (title: string) => {
   if(srLayer){
     const mapParamsStore = useMapParamsStore();
     const cachedLayer = mapParamsStore.getLayerFromCache(title);
-    let name = srLayer.title;
+    let lname = srLayer.title;
     if (srLayer.isBaseLayer) {
-      name = "Base Layer";
+      lname = "Base Layer";
     } else {
-      name = srLayer.layerName || srLayer.title;
+      lname = srLayer.layerName || srLayer.title;
     }
     const localTileLayerOptions = {
       title: title,
-      name: name,
+      name: lname,
       opacity: srLayer.init_opacity,
       visible: srLayer.init_visibility,
     }
@@ -339,7 +360,7 @@ export const getLayer = (title: string) => {
                 'TILED': true,
                 'CRS': mapParamsStore.projection.name,
               },
-              //projection: srLayer.source_projection,
+              projection: srLayer.source_projection,
               serverType: srLayer.serverType, //  WMS server type 
               //crossOrigin: '', // Consider CORS policies
               crossOrigin: 'anonymous', // Consider CORS policies
@@ -365,8 +386,10 @@ export const getLayer = (title: string) => {
           mapParamsStore.cacheLayer(title, layerInstance);
         }
     }
+    console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
   } else {
     console.log('Layer not found with this title:', title);
   }
+  //console.log('getLayer returning:', layerInstance);
   return layerInstance;
 }

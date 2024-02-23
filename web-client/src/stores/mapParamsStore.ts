@@ -32,7 +32,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     resetMap() {
       this.projection = srProjections.value[0] as SrProjection;
-      this.center = srProjections.value[0].default_center;
       this.extent = srProjections.value[0].bbox || [0, 0, 0, 0];
       this.zoom = 12;
       this.rotation = 0;
