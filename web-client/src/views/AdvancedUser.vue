@@ -16,17 +16,17 @@
     import { ElevationData } from '@/composables/SrMapUtils';
     import { useElevationData } from "@/composables/SrMapUtils";
     import { useMapStore } from '@/stores/mapStore';
-    import Layer from 'ol/layer/Layer';
-    import { transform, fromLonLat, get as getProjection } from 'ol/proj.js';
+    //import Layer from 'ol/layer/Layer';
+    import { fromLonLat } from 'ol/proj.js';
+    import {useElevationStore} from "@/stores/elevationStore";
 
     const advancedModeStore = useAdvancedModeStore();
+    const elevationStore = useElevationStore();
 
     const toast = useToast();
 
     const stepValue = ref(10);
     const isLoading = ref(false);
-    const minElevation = ref(0);
-    const maxElevation = ref(0);
     const cb_count = ref(0);
 
     onMounted(() => {
@@ -70,11 +70,11 @@
                 }
                 for (let i = 0; i < recs.length; i++) {
                     let rec = recs[i];
-                    if(rec.h_mean < minElevation.value) {
-                        minElevation.value = rec.h_mean;
+                    if(rec.h_mean < elevationStore.getMin()) {
+                        elevationStore.setMin(rec.h_mean);
                     }
-                    if(rec.h_mean > maxElevation.value) {
-                        maxElevation.value = rec.h_mean;
+                    if(rec.h_mean > elevationStore.getMax()) {
+                        elevationStore.setMax(rec.h_mean);
                     }
                 }
             },
@@ -130,7 +130,7 @@
         .finally(() => {
             isLoading.value = false;
             console.log("pnt_cnt:",pnt_cnt)
-            createLegend(minElevation.value, maxElevation.value);
+            createLegend(elevationStore.getMin(), elevationStore.getMax());
         });
     };
 
@@ -152,8 +152,6 @@
           edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
           return edItem;
         });
-
-        // Now ed2Array contains all items from ed transformed into the ElevationData structure.
         
         addVectorLayer(edArray);
         if(map){
@@ -177,10 +175,11 @@
                 console.error('View is not defined');
             }
 
-            map.getAllLayers().forEach((layer: Layer) => {
-              console.log(`layer:`,layer.getProperties());
-            });
+            // map.getAllLayers().forEach((layer: Layer) => {
+            //   console.log(`layer:`,layer.getProperties());
+            // });
 
+            createLegend(elevationStore.getMin(), elevationStore.getMax());
 
         } else {
             console.error('Map is not defined');

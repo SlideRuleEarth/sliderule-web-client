@@ -398,7 +398,7 @@
 
   const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
     const newSrLayer = mapParamsStore.getSelectedBaseLayer();
-    const oldBaseLayer = getLayer(oldSrLayer.title,true);
+    const oldBaseLayer = getLayer(oldSrLayer.title);
     if(oldBaseLayer){
       if(mapStore.map){
         mapStore.map.removeLayer(oldBaseLayer);

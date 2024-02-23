@@ -7,12 +7,13 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Circle from 'ol/style/Circle';
 import { ref } from 'vue';
-import { transform, fromLonLat, get as getProjection } from 'ol/proj.js';
+import { transform,  get as getProjection } from 'ol/proj.js';
 import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+import { useElevationStore } from '@/stores/elevationStore';
 
 export const pnt_cnt = ref(0);
 const mapParamsStore = useMapParamsStore();
-
+const elevationStore = useElevationStore();
 
 
 // Helper function to interpolate between two colors
@@ -43,8 +44,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     return rgbToHex(interpolateColor(purple, yellow, factor));
 }
   
-const minElevation = 0; 
-const maxElevation = 1000;
 
 export type ElevationData = {
     cycle: number;
@@ -113,7 +112,7 @@ function createElevationFeatures(data: ElevationData[]) {
             geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection.name))
         });
 
-        const color = getColorForElevation(h_mean, minElevation, maxElevation);
+        const color = getColorForElevation(h_mean, elevationStore.getMin(), elevationStore.getMax());
         feature.setStyle(new Style({
             image: new Circle({
                 radius: 5,
@@ -169,16 +168,17 @@ export function createLegend(minElevation:number, maxElevation:number) {
     legend.appendChild(gradientDiv);
 
     const minLabel = document.createElement('span');
-    minLabel.innerHTML = `${minElevation}m`;
+    minLabel.innerHTML = `${elevationStore.getMin()}m`;
     minLabel.style.float = 'left';
 
     const maxLabel = document.createElement('span');
-    maxLabel.innerHTML = `${maxElevation}m`;
+    maxLabel.innerHTML = `${elevationStore.getMax()}m`;
     maxLabel.style.float = 'right';
 
     legend.appendChild(minLabel);
     legend.appendChild(maxLabel);
 
     document.body.appendChild(legend);
+    //console.log("legend: ", legend)
   }
 
