@@ -92,10 +92,10 @@ export function useElevationData() : ElevationData{
     return elevationData;
 }
 
-function createElevationFeatures(data: ElevationData[]) {
+function createElevationFeatures(flattenedData: ElevationData[]) {
     // Move projection lookup outside the loop
     const srProjection = mapParamsStore.getProjection();
-    console.log("srProjection: ", srProjection.name)
+    console.log("createElevationFeatures -> data: ", flattenedData);
     const projection = getProjection(srProjection.name);
     if (!projection) {
         console.error('Projection not found');
@@ -103,10 +103,13 @@ function createElevationFeatures(data: ElevationData[]) {
     }
 
     // Filter out items without valid projection and map over the rest
-    return data.filter(elevation => elevation).map(elevation => {
+    return flattenedData.filter(elevation => elevation).map(elevation => {
         const long = elevation.longitude;
         const lat = elevation.latitude;
         const h_mean = elevation.h_mean;
+        if(pnt_cnt.value === 0){
+            console.log("createElevationFeatures -> elevation: ", elevation);
+        }
 
         const feature = new Feature({
             geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection.name))
@@ -120,18 +123,19 @@ function createElevationFeatures(data: ElevationData[]) {
             })
         }));
         
-        console.log("pnt_cnt: ", pnt_cnt.value)
-        console.log("feature: ", feature)
+        //console.log("pnt_cnt: ", pnt_cnt.value)
+        //console.log("feature: ", feature)
         pnt_cnt.value++;
-
         return feature;
     });
 }
 
 export function addVectorLayer(elevationData:ElevationData[]){
+    console.log("addVectorLayer -> elevationData: ", elevationData);
     const vectorSource = new VectorSource({
         features: createElevationFeatures(elevationData),
     });
+    console.log("addVectorLayer pnt_cnt: ", pnt_cnt.value)
     const elOptions = {
         name: 'Elevation Layer',
         source: vectorSource,
@@ -150,7 +154,7 @@ export function addVectorLayer(elevationData:ElevationData[]){
     }
 }
   
-export function createLegend(minElevation:number, maxElevation:number) {
+export function createLegend() {
     const legend = document.createElement('div');
     legend.innerHTML = '<strong>Elevation Legend</strong><br>';
     legend.style.color = 'var(--primary-color)';

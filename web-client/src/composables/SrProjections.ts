@@ -9,8 +9,8 @@ export interface SrProjection {
     max_zoom?: number;
     bbox?: number[];
 }
-export const srProjections = ref<SrProjection[]>([
-  { // This is the default projection for openlayers (coordinate units in meters)
+export const srProjections = ref<{ [key: string]: SrProjection }>({
+  "EPSG:3857": { // This is the default projection for openlayers (coordinate units in meters)
     title: "Web Mercator",
     label: "Web Mercator",
     name: "EPSG:3857",
@@ -20,7 +20,7 @@ export const srProjections = ref<SrProjection[]>([
     max_zoom: 19,
     bbox: [90.0,-180.0,-90.0,180.0], 
   },
-  { // Web Mercator -- This is the 'standard' projection for web maps (coordinate units in lon lat)
+  "EPSG:4326": { // Web Mercator -- This is the 'standard' projection for web maps (coordinate units in lon lat)
     title: "WGS 84",
     label: "WGS 84",
     name: "EPSG:4326",
@@ -30,7 +30,7 @@ export const srProjections = ref<SrProjection[]>([
     max_zoom: 19,
     bbox: [90.0,-180.0,-90.0,180.0], // units are degrees
   },
-  {
+  "EPSG:5936": {
     title: "North: Alaska Polar Stereographic",
     name: "EPSG:5936",
     label: "North Alaska",
@@ -40,7 +40,7 @@ export const srProjections = ref<SrProjection[]>([
     max_zoom: 16,
     bbox: [90.0,-180.0,60.0,180.0],
   },
-  {
+  "EPSG:3413": {
     title: "NSIDC Sea Ice Polar Stereographic North",
     name: "EPSG:3413",
     label: "North Sea Ice",
@@ -50,7 +50,7 @@ export const srProjections = ref<SrProjection[]>([
     max_zoom: 16,
     bbox: [90.0,-180.0,0.0,180.0],
   },
-  {
+  "EPSG:3031": {
     title: "South: Antarctic Polar Stereographic",
     name: "EPSG:3031",
     label: "South",
@@ -60,18 +60,14 @@ export const srProjections = ref<SrProjection[]>([
     max_zoom: 16,
     bbox: [-60.0,-180.0,-90.0,180.0],
   }
-]);
+});
 
 export const useProjectionNames = () => {
-  const projectionNames = computed(() => srProjections.value.map(p => p.name));
+  const projectionNames = computed(() =>  Object.values(srProjections.value).map(p => p.name));
   return projectionNames;
 };
 
-// Function to fetch a projection by its name
-export const findProjectionByName = (name: string) => {
-  return computed(() => srProjections.value.find(p => p.name === name));
-};
 
 export const getDefaultProjection = () => {
-  return srProjections.value[0];
+  return srProjections.value['EPSG:3857'];
 };

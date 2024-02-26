@@ -110,11 +110,17 @@ export async function atl06p(parm: Atl06pParams,
                 recs.push(result["elevation"]);
             },
         };
-    } 
-    const result = await core.source('atl06p', rqst, true, callbacks);
-    //console.log("atl06p result: ", result);
-    //console.log("atl06p rec[0]: ", recs.flat(1)[0]);
-    return result;
+    }
+    try{
+        const result = await core.source('atl06p', rqst, true, callbacks);
+        //console.log("atl06p result: ", result);
+        //console.log("atl06p rec[0]: ", recs.flat(1)[0]);
+        return result;
+    }
+    catch (error) {
+        console.log("atl06p error: ", error);
+        throw error;
+    }
 
 };
 

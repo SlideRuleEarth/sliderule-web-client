@@ -49,7 +49,7 @@
     // });
   });
 
-  watch(() => mapParamsStore.projection.name, (newProjection) => {
+  watch(() => mapParamsStore.getProjection(), (newProjection) => {
     console.log(`SrBaseLayerControl watch newProjection: ${newProjection}`);
     const defaultBaseLayerForNewProjection = getDefaultBaseLayer(newProjection); 
     if (defaultBaseLayerForNewProjection){

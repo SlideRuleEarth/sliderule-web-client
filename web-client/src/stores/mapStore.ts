@@ -5,14 +5,13 @@ import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { usePermalink } from '@/composables/usePermalink';
 
-
 export const useMapStore = defineStore('map', {
   state: () => ({
     map: null as OLMap | null,
     wmsCapCache: new Map(),
-    currentWmsCapProjectionName: '' as string,
+    currentWmsCapProjectionName: 'EPSG:3857' as string,
     wmtsCapCache: new Map(),
-    currentWmtsCapProjectionName: '' as string,
+    currentWmtsCapProjectionName: 'EPSG:3857' as string,
     plink: usePermalink(),
   }),
   actions: {

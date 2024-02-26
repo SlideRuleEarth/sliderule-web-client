@@ -57,14 +57,15 @@
         //console.log("runSlideRuleClicked atl06p:", atl06p);
         //const recs: any[] = [];
         // Create the legend
-
+        let recs:ElevationData[] = [];
         const callbacks = {
             atl06rec: (result) => {
+                if(cb_count.value === 0) {
+                    console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
+                    recs.push(result["elevation"]);
+                }
                 cb_count.value += 1;
-                console.log("atl06p cb");
-                let recs:ElevationData[] = result["elevation"];
-                addVectorLayer(recs);
-                //recs.push(result["elevation"]);
+                //let recs:ElevationData[] = result["elevation"];
                 if(cb_count.value === 1) {
                     console.log("atl06p cb first result:", result)
                 }
@@ -79,31 +80,46 @@
                 }
             },
         };
-        isLoading.value = true; 
-        atl06p({ 
-                "cnf": "atl03_high",
-                "ats": 20.0,
-                "cnt": 10,
-                "len": 40.0,
-                "res": 20.0,
-                "maxi": 1 
-            }, 
-            ["ATL03_20181019065445_03150111_005_01.h5"],
-            callbacks
-            )
-        .then(
-            () => { // result
-                // Log the result to the console
+    
+            console.log("atl06p cb_count:",cb_count.value)
+        
+            isLoading.value = true; 
+            atl06p({ 
+                    "cnf": "atl03_high",
+                    "ats": 20.0,
+                    "cnt": 10,
+                    "len": 40.0,
+                    "res": 20.0,
+                    "maxi": 1 
+                }, 
+                ["ATL03_20181019065445_03150111_005_01.h5"],
+                callbacks
+                )
+            .then(
+                () => { // result
+                    // Log the result to the console
 
-                // Display a toast message indicating successful completion
-                toast.add({
-                    severity: 'success', // Use 'success' severity for successful operations
-                    summary: 'Success', // A short summary of the outcome
-                    detail: 'RunSlideRule completed successfully.', // A more detailed success message
-                    life: 10000 // Adjust the duration as needed
-                });
-            },
-            error => {
+                    // Display a toast message indicating successful completion
+                    toast.add({
+                        severity: 'success', // Use 'success' severity for successful operations
+                        summary: 'Success', // A short summary of the outcome
+                        detail: 'RunSlideRule completed successfully.', // A more detailed success message
+                        life: 10000 // Adjust the duration as needed
+                    });
+                },
+                error => {
+                    // Log the error to the console
+                    console.error('runSlideRuleClicked Error = ', error);
+
+                    // Display a toast message indicating the error
+                    toast.add({
+                        severity: 'error', // Use 'error' severity for error messages
+                        summary: 'Error', // A short summary of the error
+                        detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                        life: 5000 // Adjust the duration as needed
+                    });
+                }
+            ).catch((error => {
                 // Log the error to the console
                 console.error('runSlideRuleClicked Error = ', error);
 
@@ -114,24 +130,15 @@
                     detail: 'An error occurred while running SlideRule.', // A more detailed error message
                     life: 5000 // Adjust the duration as needed
                 });
-            }
-        ).catch((error => {
-            // Log the error to the console
-            console.error('runSlideRuleClicked Error = ', error);
-
-            // Display a toast message indicating the error
-            toast.add({
-                severity: 'error', // Use 'error' severity for error messages
-                summary: 'Error', // A short summary of the error
-                detail: 'An error occurred while running SlideRule.', // A more detailed error message
-                life: 5000 // Adjust the duration as needed
+            }))
+            .finally(() => {
+                const flatRecs = recs.flat();
+                addVectorLayer(flatRecs);
+                isLoading.value = false;
+                console.log("pnt_cnt:",pnt_cnt)
+                createLegend();
             });
-        }))
-        .finally(() => {
-            isLoading.value = false;
-            console.log("pnt_cnt:",pnt_cnt)
-            createLegend(elevationStore.getMin(), elevationStore.getMax());
-        });
+        
     };
 
     // Function that is called when the "Run Test" button is clicked
@@ -152,7 +159,7 @@
           edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
           return edItem;
         });
-        
+       
         addVectorLayer(edArray);
         if(map){
             const view = map.getView();
@@ -179,7 +186,7 @@
             //   console.log(`layer:`,layer.getProperties());
             // });
 
-            createLegend(elevationStore.getMin(), elevationStore.getMax());
+            createLegend();
 
         } else {
             console.error('Map is not defined');
