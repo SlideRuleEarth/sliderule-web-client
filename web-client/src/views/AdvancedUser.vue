@@ -5,6 +5,7 @@
     import SrSliderInput from "@/components/SrSliderInput.vue";
     import SrTextInput from "@/components/SrTextInput.vue";
     import SrMenuInput from "@/components/SrMenuInput.vue";
+    import SrMenuMultiInput from "@/components/SrMenuMultiInput.vue";
     import Button from 'primevue/button';
     import { onMounted, ref } from 'vue';
     import { watchDebounced } from '@vueuse/core'
@@ -26,14 +27,6 @@
 
     const toast = useToast();
     const urlValue = ref('slideruleearth.io');
-    const lengthValue = ref(40);
-    const stepValue = ref(20);
-    const confidenceValue = ref(4);
-    const iterationsValue = ref(6);
-    const spreadValue = ref(20.0);
-    const PE_CountValue = ref(10);
-    const windowValue = ref(3.0);
-    const sigmaValue = ref(5.0);
     const surfaceTypeValue = ref('Land');
     const surfaceTypeItems = ref([
        { value: 'Land', label: 'Land'},
@@ -42,6 +35,48 @@
        { value: 'Land Ice', label: 'Land Ice'},
        { value: 'Inland Water', label: 'Inland Water'},
     ]  );
+    const lengthValue = ref(40);
+    const stepValue = ref(20);
+    const confidenceValue = ref(4);
+    const selectedLandClassItems = ref([]);
+    const landClassItems = ref([
+       { value: 'atl08_noise', label: 'atl08_noise'},
+       { value: 'atl08_ground', label: 'atl08_ground'},
+       { value: 'atl08_canopy', label: 'atl08_canopy'},
+       { value: 'atl08_top_of_canopy', label: 'atl08_top_of_canopy'},
+       { value: 'atl08_unclassified', label: 'atl08_unclassified'},
+    ]  );
+    const iterationsValue = ref(6);
+    const spreadValue = ref(20.0);
+    const PE_CountValue = ref(10);
+    const windowValue = ref(3.0);
+    const sigmaValue = ref(5.0);
+    const variableItems = ref([
+       { value: 'h_mean', label: 'h_mean'},
+       { value: 'h_sigma', label: 'h_sigma'},
+       { value: 'dh_fit_dx', label: 'dh_fit_dx'},
+       { value: 'dh_fit_dy', label: 'dh_fit_dy'},
+       { value: 'rms_misfit', label: 'rms_misfit'},
+       { value: 'w_surface_window_final', label: 'w_surface_window_final'},
+       { value: 'delta_time', label: 'delta_time'},
+       { value: 'cycle', label: 'cycle'},
+       { value: 'rgt', label: 'rgt'},
+    ]  );
+    const colorMapItems = ref([
+         { value: 'viridis', label: 'viridis'},
+         { value: 'plasma', label: 'plasma'},
+         { value: 'inferno', label: 'inferno'},
+         { value: 'magma', label: 'magma'},
+         { value: 'cividis', label: 'cividis'},
+    ]   );
+
+    const pointsToDrawItems = ref([
+         { value: '10k', label: '10k'},
+         { value: '100k', label: '100k'},
+         { value: '1M', label: '1M'},
+    ]   );
+
+
     const isLoading = ref(false);
     const cb_count = ref(0);
 
@@ -250,6 +285,11 @@
                                     :max="4" 
                                     :decimal-places="0"
                                 />
+                                <SrMenuMultiInput
+                                    v-model="selectedLandClassItems"
+                                    label="Land Class:"
+                                    :menuOptions="landClassItems" 
+                                />
                                 <SrSliderInput
                                     v-model="iterationsValue"
                                     label="Iterations:"
@@ -284,6 +324,24 @@
                                     :min="1.0"
                                     :max="10.0" 
                                     :decimal-places="1"
+                                />
+                                <SrMenuInput
+                                    v-model="surfaceTypeValue"
+                                    label="Variable:"
+                                    :menuOptions="variableItems" 
+                                    default="h_mean"
+                                />
+                                <SrMenuInput
+                                    v-model="surfaceTypeValue"
+                                    label="ColorMap:"
+                                    :menuOptions="colorMapItems" 
+                                    default="viridis"
+                                />
+                                <SrMenuInput
+                                    v-model="surfaceTypeValue"
+                                    label="Points to Draw:"
+                                    :menuOptions="pointsToDrawItems" 
+                                    default="10k"
                                 />
                             </div>  
                             <div class="run-sr-button" >
