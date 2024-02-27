@@ -2,9 +2,9 @@
     <div class="menu-input-wrapper">
         <div class="menu-row">
             <div ref="menuElement" class="menu-control">
-                <label class="label">{{ label }}</label>
+                <label for="srSelectMenu-{{ label }}" class="label">{{ label }}</label>
                 <form class="select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu">
+                    <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}">
                         <option v-for="item in menuOptions" :value="item.value" :key=item.value>
                             {{ item.label }}
                         </option>
@@ -45,32 +45,28 @@
     margin-top: 0.125rem;
 }
 
-.menu-row, .flex-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.125rem ;
-}
 .label {
     margin-right: 0.5rem;
 }
 
-
-.input-menu {
-    width: 15em; 
-    text-align: right;
-    padding: 0.25rem;
-}
-
 .select-item {
     display: flex;
-    align-items: center;
+    align-items: right;
+}
+.menu-control {
+    display: flex; /* This enables Flexbox */
+    justify-content: space-between; /* Aligns children to opposite edges */
+    align-items: center; /* This vertically centers the items in the container */
+    width: 100%; /* Ensures it spans the full width of its parent */
+    gap: 10px; /* Optional: adds some space between the label and the select element */
 }
 
 .select-default {
     width: auto; /* Adjust width as needed */
     padding: 0.25rem;
+    color: white;
+    background-color: black;
+    border-radius: var(--border-radius);
 }
-
 </style>
   
