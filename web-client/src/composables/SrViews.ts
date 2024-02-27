@@ -22,7 +22,7 @@ export const srViews = ref<{ [key: string]: SrView }>({
   "North": {
     name: "North",
     description: "North Polar Stereographic",
-    default_zoom: 4,
+    default_zoom: 5,
     min_zoom: 0,
     max_zoom: 16,
     bbox: [90.0, -180.0, 60.0, 180.0],

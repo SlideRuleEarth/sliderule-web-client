@@ -177,19 +177,19 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 1,
     allowed_views: ["North"],
   },
-  "Artic Imagery": {
-    //type: "ArcGisRest",
-    type: "xyz",
-    isBaseLayer: true,
-    url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
-    title: "Artic Imagery",
-    attributionKey: "esri",
-    source_projection: "EPSG:3413",
-    allowed_reprojections:["EPSG:3413"],
-    init_visibility: true,
-    init_opacity: 1,
-    allowed_views: ["South"],
-  },
+  // "Artic Imagery": {
+  //   //type: "ArcGisRest",
+  //   type: "xyz",
+  //   isBaseLayer: true,
+  //   url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+  //   title: "Artic Imagery",
+  //   attributionKey: "esri",
+  //   source_projection: "EPSG:3413",
+  //   allowed_reprojections:["EPSG:4326"],
+  //   init_visibility: true,
+  //   init_opacity: 1,
+  //   allowed_views: ["North"],
+  // },
   // {
   //   type: "xyz",
   //   isBaseLayer: true,
@@ -316,31 +316,12 @@ export const getSrLayersForCurrentProjection = () => {
   return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(mapParamsStore.getProjection()));
 }
 
-export const getSrBaseLayersForProjection = (projection: string) => {
-  //console.log('getSrBaseLayersForProjection', projection);
-  const layerList =  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(projection) && layer.isBaseLayer);
-  console.log('getSrBaseLayersForProjection', layerList);
+export const getSrBaseLayersForView = (view: string) => {
+  //console.log('getSrBaseLayersForView', view);
+  const layerList =  Object.values(layers.value).filter(layer => layer.allowed_views.includes(view) && layer.isBaseLayer);
+  console.log('getSrBaseLayersForView', layerList);
   return layerList;
 }
-
-// export const addLayersForCurrentProjection = () => {
-//   console.log('--------------------addLayersForCurrentProjection--------------------');
-
-//   const srLayersForProj = getSrLayersForCurrentProjection(); 
-//   srLayersForProj.forEach(srLayerForProj => {
-//     if(!srLayerForProj.isBaseLayer){ // base layer is managed by baseLayerControl
-//       console.log(`adding non base layer:`,srLayerForProj.title);
-//       const newLayer = getLayer(srLayerForProj.title);
-//       if(mapStore.map){
-//         mapStore.map.addLayer(newLayer);
-//       } else {
-//         console.log('map not available');
-//       }
-//     } else{
-//       console.log(`skipping layer: ${srLayerForProj.title} for projection: ${mapStore.map?.getView().getProjection()}`);
-//     }
-//   });
-// }
 
 export const addLayersForCurrentView = () => {
   console.log('--------------------addLayersForCurrentView--------------------');
@@ -361,7 +342,9 @@ export const addLayersForCurrentView = () => {
 }
 
 export const getDefaultBaseLayer = (view: string): SrLayer | undefined  => {
-  return Object.values(layers.value).find(layer => layer.isBaseLayer && layer.allowed_views.includes(view));
+  const srLayer = Object.values(layers.value).find(layer => layer.isBaseLayer && layer.allowed_views.includes(view));
+  console.log(`getDefaultBaseLayer for: ${view} --> ${srLayer?.title}`);
+  return srLayer;
 }
 
 export const getLayer = (title: string) => {

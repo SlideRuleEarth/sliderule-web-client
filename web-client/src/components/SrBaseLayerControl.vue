@@ -3,13 +3,12 @@
   import { ref,onMounted } from "vue";
   import { Control } from 'ol/control';
   import { computed } from 'vue';
-  import { getSrBaseLayersForProjection, getDefaultBaseLayer } from '@/composables/SrLayers.js';
-  import { watch } from 'vue';
+  import { getSrBaseLayersForView, getDefaultBaseLayer } from '@/composables/SrLayers.js';
   import { getDefaultProjection } from '@/composables/SrProjections';
   //import { srAttributions } from '@/composables/SrLayers';
 
   const mapParamsStore = useMapParamsStore();
-  const baseLayerOptions = computed(() => getSrBaseLayersForProjection(mapParamsStore.projection.name));
+  const baseLayerOptions = computed(() => getSrBaseLayersForView(mapParamsStore.srView.name));
   // Computed property to bind selectedBaseLayer with the store
   const selectedBaseLayerTitle = computed({
     get: () => mapParamsStore.getSelectedBaseLayer().title,
@@ -23,7 +22,7 @@
           emit('update-baselayer', oldBaseLayer);
         }
       } else {
-        console.error(`No baseLayerOptions for projection: ${mapParamsStore.projection.name}`);
+        console.error(`No baseLayerOptions for projection: ${mapParamsStore.projection}`);
       }
     },
   });
@@ -47,17 +46,6 @@
     // baseLayerOptions.value.forEach(layer => {
     //   console.log(`Title: ${layer.title}}`);
     // });
-  });
-
-  watch(() => mapParamsStore.getProjection(), (newProjection) => {
-    console.log(`SrBaseLayerControl watch newProjection: ${newProjection}`);
-    const defaultBaseLayerForNewProjection = getDefaultBaseLayer(newProjection); 
-    if (defaultBaseLayerForNewProjection){
-      mapParamsStore.setSelectedBaseLayer(defaultBaseLayerForNewProjection);
-    } else {
-      console.error(`No default base layer for projection: ${newProjection}`);  
-    }
-    emit('update-baselayer', defaultBaseLayerForNewProjection);
   });
 
 </script>

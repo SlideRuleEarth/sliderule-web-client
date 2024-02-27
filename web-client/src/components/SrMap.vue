@@ -7,7 +7,7 @@
   import {useToast} from "primevue/usetoast";
   import VectorLayer from 'ol/layer/Vector';
   import Geometry from 'ol/geom/Geometry';
-  //import SrBaseLayerControl from "./SrBaseLayerControl.vue";
+  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrViewControl from "./SrViewControl.vue";
   import { SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
@@ -29,8 +29,9 @@
   import VectorSource from 'ol/source/Vector';
   import Feature from 'ol/Feature';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
-  import { layers }from '@/composables/SrLayers';
-
+  //import { layers }from '@/composables/SrLayers';
+  import { type SrLayer } from '@/composables/SrLayers';
+  
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
 
@@ -216,16 +217,16 @@
     }
   };
 
-  // const handleBaseLayerControlCreated = (baseLayerControl: any) => {
-  //   //console.log(baseLayerControl);
-  //   const map = mapRef.value?.map;
-  //   if(map){
-  //     //console.log("adding baseLayerControl");
-  //     map.addControl(baseLayerControl);
-  //   } else {
-  //     console.log("Error:map is null");
-  //   }
-  // };
+  const handleBaseLayerControlCreated = (baseLayerControl: any) => {
+    //console.log(baseLayerControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding baseLayerControl");
+      map.addControl(baseLayerControl);
+    } else {
+      console.log("Error:map is null");
+    }
+  };
 
   const handleViewControlCreated = (viewControl: any) => {
     console.log(viewControl);
@@ -255,10 +256,11 @@
             console.log(`skipping layer:`,layer.get('name'));
           }
         });
-        let baseLayer = layers.value['Esri World Topo'];
+        //let baseLayer = layers.value['Esri World Topo'];
+        let baseLayer = mapParamsStore.getSelectedBaseLayer();
 
         if(srView.name === 'North'){
-          baseLayer = layers.value['Artic Ocean Base'];
+          //baseLayer = layers.value['Artic Ocean Base'];
           //baseLayer = layers.value['Esri World Topo'];
           //newProj = getProjection('EPSG:5936');
           //newProj = getProjection('EPSG:4326'); // Web default
@@ -386,24 +388,24 @@
     updateMapView("handleUpdateView");
   };
 
-  // const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
-  //   const newSrLayer = mapParamsStore.getSelectedBaseLayer();
-  //   const oldBaseLayer = getLayer(oldSrLayer.title);
-  //   if(oldBaseLayer){
-  //     if(mapStore.map){
-  //       mapStore.map.removeLayer(oldBaseLayer);
-  //       const newBaseLayer = getLayer(newSrLayer.title);
-  //       let layersCollection = mapStore.map.getLayers();
-  //       layersCollection.insertAt(1, newBaseLayer);
-  //     } else {
-  //       console.log('map not available');
-  //     }    
-  //   } else {
-  //     console.log("Error:handleUpdateBaseLayer srLayer is null");
-  //   }
-  //   console.log(`handleUpdateBaseLayer from |${oldSrLayer.title}| to |${newSrLayer.title}|`);
-  //   updateMapView("handleUpdateBaseLayer");
-  // };
+  const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
+    const newSrLayer = mapParamsStore.getSelectedBaseLayer();
+    const oldBaseLayer = getLayer(oldSrLayer.title);
+    if(oldBaseLayer){
+      if(mapStore.map){
+        mapStore.map.removeLayer(oldBaseLayer);
+        const newBaseLayer = getLayer(newSrLayer.title);
+        let layersCollection = mapStore.map.getLayers();
+        layersCollection.insertAt(1, newBaseLayer);
+      } else {
+        console.log('map not available');
+      }    
+    } else {
+      console.log("Error:handleUpdateBaseLayer srLayer is null");
+    }
+    console.log(`handleUpdateBaseLayer from |${oldSrLayer.title}| to |${newSrLayer.title}|`);
+    updateMapView("handleUpdateBaseLayer");
+  };
 
 </script>
 
@@ -436,7 +438,7 @@
     <ol-scaleline-control />
     <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
-    <!-- <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/> -->
+    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
@@ -588,7 +590,7 @@
   top: 0.55rem;
   bottom: auto;
   right: auto;
-  left: 7.5rem;
+  left: 4.5rem;
   background-color: transparent;
   border-radius: var(--border-radius);
   color: white;

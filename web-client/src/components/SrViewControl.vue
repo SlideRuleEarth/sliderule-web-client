@@ -30,8 +30,8 @@
 
 <template>
   <div ref="viewControlElement" class="sr-view-control ol-unselectable ol-control">
-    <form class="select-view" name="select-proj-form">
-      <select @change="updateView(($event.target as HTMLInputElement).value)" class="sel-proj-menu" name="sr-proj-sel-menu">
+    <form class="select-view" name="select-view-form">
+      <select @change="updateView(($event.target as HTMLInputElement).value)" class="sel-view-menu" name="sr-view-sel-menu">
         <option v-for="srView in srViews" :value="srView.name" :key="srView.name">
           {{ srView.name }}
         </option>

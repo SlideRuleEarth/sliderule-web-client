@@ -96,7 +96,7 @@ function createElevationFeatures(flattenedData: ElevationData[]) {
     // Move projection lookup outside the loop
     const srProjection = mapParamsStore.getProjection();
     console.log("createElevationFeatures -> data: ", flattenedData);
-    const projection = getProjection(srProjection.name);
+    const projection = getProjection(srProjection);
     if (!projection) {
         console.error('Projection not found');
         return []; // Or handle this case as needed
@@ -112,7 +112,7 @@ function createElevationFeatures(flattenedData: ElevationData[]) {
         }
 
         const feature = new Feature({
-            geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection.name))
+            geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection))
         });
 
         const color = getColorForElevation(h_mean, elevationStore.getMin(), elevationStore.getMax());
