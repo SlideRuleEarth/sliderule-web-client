@@ -3,6 +3,8 @@
     import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
     import SrMap from "@/components/SrMap.vue";
     import SrSliderInput from "@/components/SrSliderInput.vue";
+    import SrTextInput from "@/components/SrTextInput.vue";
+    import SrMenuInput from "@/components/SrMenuInput.vue";
     import Button from 'primevue/button';
     import { onMounted, ref } from 'vue';
     import { watchDebounced } from '@vueuse/core'
@@ -16,7 +18,6 @@
     import { ElevationData } from '@/composables/SrMapUtils';
     import { useElevationData } from "@/composables/SrMapUtils";
     import { useMapStore } from '@/stores/mapStore';
-    //import Layer from 'ol/layer/Layer';
     import { fromLonLat } from 'ol/proj.js';
     import {useElevationStore} from "@/stores/elevationStore";
 
@@ -24,8 +25,23 @@
     const elevationStore = useElevationStore();
 
     const toast = useToast();
-
-    const stepValue = ref(10);
+    const urlValue = ref('slideruleearth.io');
+    const lengthValue = ref(40);
+    const stepValue = ref(20);
+    const confidenceValue = ref(4);
+    const iterationsValue = ref(6);
+    const spreadValue = ref(20.0);
+    const PE_CountValue = ref(10);
+    const windowValue = ref(3.0);
+    const sigmaValue = ref(5.0);
+    const surfaceTypeValue = ref('Land');
+    const surfaceTypeItems = ref([
+       { value: 'Land', label: 'Land'},
+       { value: 'Ocean', label: 'Ocean'},
+       { value: 'Sea Ice', label: 'Sea Ice'},
+       { value: 'Land Ice', label: 'Land Ice'},
+       { value: 'Inland Water', label: 'Inland Water'},
+    ]  );
     const isLoading = ref(false);
     const cb_count = ref(0);
 
@@ -203,12 +219,71 @@
                     <template v-slot:sr-sidebar-body>
                         <div class="card flex justify-content-center">
                             <div class="card flex justify-content-center">
+                                <SrTextInput
+                                    v-model="urlValue"
+                                    label="URL:"
+                                />
+                                <SrMenuInput
+                                    v-model="surfaceTypeValue"
+                                    label="Surface:"
+                                    :menuOptions="surfaceTypeItems" 
+                                    default="Land"
+                                />
+                                <SrSliderInput
+                                    v-model="lengthValue"
+                                    label="Length:"
+                                    :min="5"
+                                    :max="200" 
+                                    :decimal-places="0"                  
+                                />
                                 <SrSliderInput
                                     v-model="stepValue"
                                     label="Step:"
-                                    :min="0"
+                                    :min="5"
                                     :max="100" 
-                                    :decimal-places="2"                   
+                                    :decimal-places="0"
+                                />
+                                <SrSliderInput
+                                    v-model="confidenceValue"
+                                    label="Confidence:"
+                                    :min="-2"
+                                    :max="4" 
+                                    :decimal-places="0"
+                                />
+                                <SrSliderInput
+                                    v-model="iterationsValue"
+                                    label="Iterations:"
+                                    :min="0"
+                                    :max="20" 
+                                    :decimal-places="0"
+                                />
+                                <SrSliderInput
+                                    v-model="spreadValue"
+                                    label="Spread:"
+                                    :min="0"
+                                    :max="100.0" 
+                                    :decimal-places="1"
+                                />
+                                <SrSliderInput
+                                    v-model="PE_CountValue"
+                                    label="PE Count:"
+                                    :min="0"
+                                    :max="50" 
+                                    :decimal-places="0"
+                                />
+                                <SrSliderInput
+                                    v-model="windowValue"
+                                    label="Window:"
+                                    :min="0.5"
+                                    :max="10.0" 
+                                    :decimal-places="1"
+                                />
+                                <SrSliderInput
+                                    v-model="sigmaValue"
+                                    label="Sigma:"
+                                    :min="1.0"
+                                    :max="10.0" 
+                                    :decimal-places="1"
                                 />
                             </div>  
                             <div class="run-sr-button" >

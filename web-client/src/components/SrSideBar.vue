@@ -30,6 +30,10 @@ const advancedClick = () => {
 </template>
 
 <style scoped>
+    .sr-sidebar-header, .sr-sidebar-body, .sr-sidebar-footer {
+        box-sizing: border-box; /* Ensures padding and border are included in the total width/height */
+    }
+
     .sr-sidebar-header {
         display: flex;
         justify-content: center;

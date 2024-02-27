@@ -5,7 +5,6 @@
   import { computed } from 'vue';
   import { getSrBaseLayersForView, getDefaultBaseLayer } from '@/composables/SrLayers.js';
   import { getDefaultProjection } from '@/composables/SrProjections';
-  //import { srAttributions } from '@/composables/SrLayers';
 
   const mapParamsStore = useMapParamsStore();
   const baseLayerOptions = computed(() => getSrBaseLayersForView(mapParamsStore.srView.name));

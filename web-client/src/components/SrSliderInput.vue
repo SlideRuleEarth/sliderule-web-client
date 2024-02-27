@@ -121,7 +121,7 @@
 
 <style scoped>
 .slider-input-wrapper {
-    border: 1px solid var(--primary-color);
+    border: 1px solid transparent;
     border-top: 0.0625rem solid var(transparent);
     border-radius: var(--border-radius);
 }
