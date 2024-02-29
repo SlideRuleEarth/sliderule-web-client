@@ -7,9 +7,14 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Circle from 'ol/style/Circle';
 import { ref } from 'vue';
+import {Layer, Tile as TileLayer} from 'ol/layer';
 import { transform,  get as getProjection } from 'ol/proj.js';
 import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 import { useElevationStore } from '@/stores/elevationStore';
+import {fromLonLat, toLonLat} from 'ol/proj';
+
+import {Deck} from '@deck.gl/core/typed';
+import {GeoJsonLayer, ArcLayer} from '@deck.gl/layers/typed';
 
 export const pnt_cnt = ref(0);
 const mapParamsStore = useMapParamsStore();
@@ -130,12 +135,12 @@ function createElevationFeatures(flattenedData: ElevationData[]) {
     });
 }
 
-export function addVectorLayer(elevationData:ElevationData[]){
-    console.log("addVectorLayer -> elevationData: ", elevationData);
+export function getVectorLayer(elevationData:ElevationData[]){
+    console.log("getVectorLayer -> elevationData: ", elevationData);
     const vectorSource = new VectorSource({
         features: createElevationFeatures(elevationData),
     });
-    console.log("addVectorLayer pnt_cnt: ", pnt_cnt.value)
+    console.log("getVectorLayer pnt_cnt: ", pnt_cnt.value)
     const elOptions = {
         name: 'Elevation Layer',
         source: vectorSource,
@@ -144,16 +149,75 @@ export function addVectorLayer(elevationData:ElevationData[]){
     const elevationLayer = new VectorLayer({
         ...elOptions
     });
-    const mapStore = useMapStore();
-    const map = mapStore.getMap();
-    
-    if (map) {
-        map.addLayer(elevationLayer); 
-    } else {
-        console.error('Map not found');
-    }
+    return elevationLayer;
 }
-  
+
+export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement) : Layer{
+    console.log("getDeckGLLayer -> ElevationData: ", elevationData);
+    console.log("getDeckGLLayer -> tgt: ", tgt);
+    // Datasource: Natural Earth http://www.naturalearthdata.com/ via geojson.xyz
+    const AIR_PORTS =
+    'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_airports.geojson';
+
+    const deck = new Deck({
+        initialViewState: {longitude: 0, latitude: 0, zoom: 1},
+        controller: false,
+        parent: tgt,//document.getElementById('map') as HTMLElement,
+        style: {pointerEvents: 'none', 'z-index': 1},
+        layers: [
+            new GeoJsonLayer({
+                name: "Airports",
+                id: 'airports',
+                data: AIR_PORTS,
+                // Styles
+                filled: true,
+                pointRadiusMinPixels: 2,
+                pointRadiusScale: 2000,
+                getPointRadius: f => 11 - f.properties.scalerank,
+                getFillColor: [200, 0, 80, 180],
+                // Interactive props
+                pickable: true,
+                autoHighlight: true,
+                onClick: info =>
+                    // eslint-disable-next-line
+                    info.object && alert(`${info.object.properties.name} (${info.object.properties.abbrev})`)
+            }),
+            new ArcLayer({
+                id: 'arcs',
+                name: "Arcs",
+                data: AIR_PORTS,
+                dataTransform: d => d.features.filter(f => f.properties.scalerank < 4),
+                // Styles
+                getSourcePosition: f => [-0.4531566, 51.4709959], // London
+                getTargetPosition: f => f.geometry.coordinates,
+                getSourceColor: [0, 128, 200],
+                getTargetColor: [200, 0, 80],
+                getWidth: 1
+            })
+        ]
+    });
+    // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
+    // size is an array [width, height] indicating the dimensions of the map's viewport.
+    // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
+    // Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
+    // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
+    // Sync deck view with OL view
+
+    const deckLayer = new Layer({
+        render({size, viewState}) {
+            const [width, height] = size;
+            const [longitude, latitude] = toLonLat(viewState.center);
+            const zoom = viewState.zoom - 1;
+            const bearing = (-viewState.rotation * 180) / Math.PI;
+            const deckViewState = {bearing, longitude, latitude, zoom};
+            deck.setProps({width, height, viewState: deckViewState});
+            deck.redraw();
+        },
+        title: 'DeckGL Layer',
+    });
+    return deckLayer
+}
+
 export function createLegend() {
     const legend = document.createElement('div');
     legend.innerHTML = '<strong>Elevation Legend</strong><br>';

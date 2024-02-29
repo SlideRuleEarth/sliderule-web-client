@@ -15,7 +15,7 @@
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createLegend } from '@/composables/SrMapUtils';
-    import { addVectorLayer,pnt_cnt } from '@/composables/SrMapUtils';
+    import { getVectorLayer,getDeckGLLayer,pnt_cnt } from '@/composables/SrMapUtils';
     import { ElevationData } from '@/composables/SrMapUtils';
     import { useElevationData } from "@/composables/SrMapUtils";
     import { useMapStore } from '@/stores/mapStore';
@@ -184,7 +184,7 @@
             }))
             .finally(() => {
                 const flatRecs = recs.flat();
-                addVectorLayer(flatRecs);
+                getVectorLayer(flatRecs);
                 isLoading.value = false;
                 console.log("pnt_cnt:",pnt_cnt)
                 createLegend();
@@ -211,13 +211,23 @@
           return edItem;
         });
        
-        addVectorLayer(edArray);
+
         if(map){
+            //const tgt = map.getTargetElement() as HTMLDivElement; 
+            const tgt = map.getViewport() as HTMLDivElement; 
+            console.log("map target:",tgt);
+            //const elevationLayer = getVectorLayer(edArray);
+            //map.addLayer(elevationLayer);
+            const deckLayer = getDeckGLLayer(edArray, tgt);
+            map.addLayer(deckLayer);
             const view = map.getView();
             console.log("Hello World!")
             if (view) {
                 console.log("animating view...")
-                let center = [-77.1230, 39.0117];
+                //let center = [-77.1230, 39.0117]; // Wyngate
+                //const zoom = 17;
+                let center = [-0.4531566, 51.4709959]; // London
+                const zoom = 3;
                 if (view.getProjection().getUnits() !== 'degrees') {
                     center = fromLonLat(center);
                     console.log("CONVERTED center:",center);
@@ -226,7 +236,7 @@
                 view.animate({
                     center: center,
                     duration: 1000,
-                    zoom: 17,
+                    zoom: zoom,
                 });
                 map.render();
             } else {
