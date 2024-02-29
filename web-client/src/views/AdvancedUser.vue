@@ -114,15 +114,17 @@
                 if(cb_count.value === 0) {
                     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
                 }
-                recs.push(result["elevation"]);
-
+                const currentRecs = result["elevation"];
+                const curFlatRecs = currentRecs.flat();
+                recs.push(curFlatRecs);
                 cb_count.value += 1;
-                //let recs:ElevationData[] = result["elevation"];
                 if(cb_count.value === 1) {
                     console.log("atl06p cb first result:", result)
+                    const r = curFlatRecs[0];
+                    console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
                 }
-                for (let i = 0; i < recs.length; i++) {
-                    let rec = recs[i];
+                for (let i = 0; i < curFlatRecs.length; i++) {
+                    let rec = curFlatRecs[i];
                     if(rec.h_mean < elevationStore.getMin()) {
                         elevationStore.setMin(rec.h_mean);
                     }

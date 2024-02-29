@@ -2,8 +2,8 @@ import { defineStore } from 'pinia';
 
 export const useElevationStore = defineStore('elevation', {
     state: () => ({
-        min: 0,
-        max: 300,
+        min: 10000,
+        max: -10000,
     }),
     actions: {
         setMin(min: number) {

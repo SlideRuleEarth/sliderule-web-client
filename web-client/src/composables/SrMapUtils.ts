@@ -239,17 +239,15 @@ export function createLegend() {
     legend.appendChild(gradientDiv);
 
     const minLabel = document.createElement('span');
-    minLabel.innerHTML = `${elevationStore.getMin()}m`;
+    minLabel.innerHTML = `${elevationStore.getMin().toFixed(1)}m`; // Rounded to 1 decimal place
     minLabel.style.float = 'left';
 
     const maxLabel = document.createElement('span');
-    maxLabel.innerHTML = `${elevationStore.getMax()}m`;
+    maxLabel.innerHTML = `${elevationStore.getMax().toFixed(1)}m`; // Rounded to 1 decimal place
     maxLabel.style.float = 'right';
 
     legend.appendChild(minLabel);
     legend.appendChild(maxLabel);
 
     document.body.appendChild(legend);
-    //console.log("legend: ", legend)
-  }
-
+}
