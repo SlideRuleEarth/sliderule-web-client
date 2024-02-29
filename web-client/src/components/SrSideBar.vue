@@ -14,6 +14,7 @@ const advancedClick = () => {
     }
 };
 
+
 </script>
 
 <template>
@@ -25,7 +26,7 @@ const advancedClick = () => {
     </div>
     <div class="sr-sidebar-footer">
         <slot name = "sr-sidebar-footer"></slot>
-        <SrModeSelect  @advancedClick="advancedClick" /> 
+        <SrModeSelect  @advanced-click="advancedClick" /> 
     </div>
 </template>
 

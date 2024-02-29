@@ -20,8 +20,11 @@
     import { useMapStore } from '@/stores/mapStore';
     import {useElevationStore} from "@/stores/elevationStore";
     import { Map as OLMap } from 'ol';
-
-
+    import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
+    const graticuleClick = () => {
+        const mapStore = useMapStore();
+        mapStore.toggleGraticule();
+    }
     const advancedModeStore = useAdvancedModeStore();
     const elevationStore = useElevationStore();
 
@@ -69,13 +72,6 @@
          { value: 'magma', label: 'magma'},
          { value: 'cividis', label: 'cividis'},
     ]   );
-
-    const pointsToDrawItems = ref([
-         { value: '10k', label: '10k'},
-         { value: '100k', label: '100k'},
-         { value: '1M', label: '1M'},
-    ]   );
-
 
     const isLoading = ref(false);
     const cb_count = ref(0);
@@ -193,8 +189,6 @@
                 map.addLayer(deckLayer);
                 isLoading.value = false;
                 console.log(`cb_count:${cb_count.value} pnt_cnt: ${pnt_cnt.value}`)
-
-
                 createLegend();
             });
         }
@@ -353,12 +347,7 @@
                                     :menuOptions="colorMapItems" 
                                     default="viridis"
                                 />
-                                <SrMenuInput
-                                    v-model="surfaceTypeValue"
-                                    label="Points to Draw:"
-                                    :menuOptions="pointsToDrawItems" 
-                                    default="10k"
-                                />
+                                <SrGraticuleSelect @graticule-click="graticuleClick"/>
                             </div>  
                             <div class="button-spinner-container">
                                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
