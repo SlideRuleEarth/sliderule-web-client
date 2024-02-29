@@ -29,8 +29,9 @@
   import VectorSource from 'ol/source/Vector';
   import Feature from 'ol/Feature';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
-  //import { layers }from '@/composables/SrLayers';
   import { type SrLayer } from '@/composables/SrLayers';
+  import { Graticule } from "ol";
+  import { Stroke } from "ol/style";
   
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -140,7 +141,7 @@
     register(proj4);
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
-      const map = mapStore.getMap();
+      const map = mapStore.getMap() as OLMap;
       if(map){
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
@@ -200,6 +201,19 @@
           const plink = mapStore.plink as any;
           map.addControl(plink);
         }
+        // Add a graticule (latitude and longitude lines)
+        var graticule = new Graticule({
+            // Style options go here
+            strokeStyle: new Stroke({
+                color: 'rgba(255,120,0,0.9)',
+                width: 1,
+                lineDash: [0.5, 4]
+            }),
+            showLabels: true,
+            wrapX: false
+        });
+
+        graticule.setMap(map);
         updateMapView("onMounted");
       } else {
         console.log("Error:map is null");
