@@ -12,9 +12,10 @@ import { transform,  get as getProjection } from 'ol/proj.js';
 import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 import { useElevationStore } from '@/stores/elevationStore';
 import {fromLonLat, toLonLat} from 'ol/proj';
+import {type FeatureCollection, type Feature as GeoFeature, type Geometry} from 'geojson';
 
 import {Deck} from '@deck.gl/core/typed';
-import {GeoJsonLayer, ArcLayer} from '@deck.gl/layers/typed';
+import {GeoJsonLayer, ArcLayer, PointCloudLayer} from '@deck.gl/layers/typed';
 
 export const pnt_cnt = ref(0);
 const mapParamsStore = useMapParamsStore();
@@ -46,8 +47,16 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     const purple = [128, 0, 128]; // RGB for purple
     const yellow = [255, 255, 0]; // RGB for yellow
     const factor = (elevation - minElevation) / (maxElevation - minElevation);
-    return rgbToHex(interpolateColor(purple, yellow, factor));
+    return interpolateColor(purple, yellow, factor);
 }
+
+// // Function to get hex formatted color for elevation
+// function getHexColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
+//     const purple = [128, 0, 128]; // RGB for purple
+//     const yellow = [255, 255, 0]; // RGB for yellow
+//     const factor = (elevation - minElevation) / (maxElevation - minElevation);
+//     return rgbToHex(interpolateColor(purple, yellow, factor));
+// }
   
 
 export type ElevationData = {
@@ -97,64 +106,116 @@ export function useElevationData() : ElevationData{
     return elevationData;
 }
 
-function createElevationFeatures(flattenedData: ElevationData[]) {
-    // Move projection lookup outside the loop
-    const srProjection = mapParamsStore.getProjection();
-    console.log("createElevationFeatures -> data: ", flattenedData);
-    const projection = getProjection(srProjection);
-    if (!projection) {
-        console.error('Projection not found');
-        return []; // Or handle this case as needed
-    }
+// function createElevationFeatures(flattenedData: ElevationData[]) {
+//     // Move projection lookup outside the loop
+//     const srProjection = mapParamsStore.getProjection();
+//     console.log("createElevationFeatures -> data: ", flattenedData);
+//     const projection = getProjection(srProjection);
+//     if (!projection) {
+//         console.error('Projection not found');
+//         return []; // Or handle this case as needed
+//     }
 
-    // Filter out items without valid projection and map over the rest
-    return flattenedData.filter(elevation => elevation).map(elevation => {
-        const long = elevation.longitude;
-        const lat = elevation.latitude;
-        const h_mean = elevation.h_mean;
-        if(pnt_cnt.value === 0){
-            console.log("createElevationFeatures -> elevation: ", elevation);
-        }
+//     // Filter out items without valid projection and map over the rest
+//     return flattenedData.filter(elevation => elevation).map(elevation => {
+//         const long = elevation.longitude;
+//         const lat = elevation.latitude;
+//         const h_mean = elevation.h_mean;
+//         if(pnt_cnt.value === 0){
+//             console.log("createElevationFeatures -> elevation: ", elevation);
+//         }
 
-        const feature = new Feature({
-            geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection))
-        });
+//         const feature = new Feature({
+//             geometry: new Point(transform([long, lat], 'EPSG:4326', srProjection))
+//         });
 
-        const color = getColorForElevation(h_mean, elevationStore.getMin(), elevationStore.getMax());
-        feature.setStyle(new Style({
-            image: new Circle({
-                radius: 5,
-                fill: new Fill({color: color})
-            })
-        }));
+//         const color = getHexColorForElevation(h_mean, elevationStore.getMin(), elevationStore.getMax());
+//         feature.setStyle(new Style({
+//             image: new Circle({
+//                 radius: 5,
+//                 fill: new Fill({color: color})
+//             })
+//         }));
         
-        //console.log("pnt_cnt: ", pnt_cnt.value)
-        //console.log("feature: ", feature)
-        pnt_cnt.value++;
-        return feature;
+//         //console.log("pnt_cnt: ", pnt_cnt.value)
+//         //console.log("feature: ", feature)
+//         pnt_cnt.value++;
+//         return feature;
+//     });
+// }
+
+export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement): Layer{
+
+    const deck = new Deck({
+        initialViewState: {longitude: 0, latitude: 0, zoom: 1},
+        controller: false,
+        parent: tgt,
+        style: {pointerEvents: 'none', zIndex: '1'},
+        layers: [
+            new PointCloudLayer({
+                id: 'point-cloud-layer',
+                data: elevationData,
+                //coordinateOrigin: [0.0, 0.0],
+                //coordinateSystem: 'COORDINATE_SYSTEM.LNGLAT',
+                getPosition: (d:ElevationData) => {
+                    pnt_cnt.value++;
+                    console.log(`${pnt_cnt.value} d:${d.longitude} ${d.latitude} ${d.h_mean} ***!!%% `);
+                    return [d.longitude, d.latitude, d.h_mean]
+                },
+                getNormal: [0, 0, 1],
+                getColor: (d:ElevationData) => {
+                    const color = getColorForElevation(d.h_mean, 0.0, 300.0);
+                    return color;
+                },
+                pointSize: 3
+            })
+        ]
     });
+    // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
+    // size is an array [width, height] indicating the dimensions of the map's viewport.
+    // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
+    // Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
+    // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
+    // Sync deck view with OL view
+    function renderDeck({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}}){
+        const [width, height] = size;
+        const [longitude, latitude] = toLonLat(viewState.center);
+        const zoom = viewState.zoom - 1;
+        const bearing = (-viewState.rotation * 180) / Math.PI;
+        const deckViewState = {bearing, longitude, latitude, zoom};
+        deck.setProps({width, height, viewState: deckViewState});
+        deck.redraw();
+    }
+    const layerOptions = {
+        render: renderDeck as any,
+        title: 'DeckGL Layer',
+    }
+    const deckLayer = new Layer({
+        ...layerOptions
+    });
+    return deckLayer
 }
 
-export function getVectorLayer(elevationData:ElevationData[]){
-    console.log("getVectorLayer -> elevationData: ", elevationData);
-    const vectorSource = new VectorSource({
-        features: createElevationFeatures(elevationData),
-    });
-    console.log("getVectorLayer pnt_cnt: ", pnt_cnt.value)
-    const elOptions = {
-        name: 'Elevation Layer',
-        source: vectorSource,
-        zIndex: 999
-    };
-    const elevationLayer = new VectorLayer({
-        ...elOptions
-    });
-    return elevationLayer;
-}
+// export function getVectorLayer(elevationData:ElevationData[]){
+//     console.log("getVectorLayer -> elevationData: ", elevationData);
+//     const vectorSource = new VectorSource({
+//         features: createElevationFeatures(elevationData),
+//     });
+//     console.log("getVectorLayer pnt_cnt: ", pnt_cnt.value)
+//     const elOptions = {
+//         name: 'Elevation Layer',
+//         source: vectorSource,
+//         zIndex: 999
+//     };
+//     const elevationLayer = new VectorLayer({
+//         ...elOptions
+//     });
+//     return elevationLayer;
+// }
 
-export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement) : Layer{
-    console.log("getDeckGLLayer -> ElevationData: ", elevationData);
-    console.log("getDeckGLLayer -> tgt: ", tgt);
+export function getTestDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement) : Layer{
+    console.log("getTestDeckGLLayer -> ElevationData: ", elevationData);
+    console.log("getTestDeckGLLayer -> tgt: ", tgt);
     // Datasource: Natural Earth http://www.naturalearthdata.com/ via geojson.xyz
     const AIR_PORTS =
     'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_airports.geojson';
@@ -162,8 +223,8 @@ export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement)
     const deck = new Deck({
         initialViewState: {longitude: 0, latitude: 0, zoom: 1},
         controller: false,
-        parent: tgt,//document.getElementById('map') as HTMLElement,
-        style: {pointerEvents: 'none', 'z-index': 1},
+        parent: tgt,
+        style: {pointerEvents: 'none', zIndex: '1'},
         layers: [
             new GeoJsonLayer({
                 name: "Airports",
@@ -173,7 +234,7 @@ export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement)
                 filled: true,
                 pointRadiusMinPixels: 2,
                 pointRadiusScale: 2000,
-                getPointRadius: f => 11 - f.properties.scalerank,
+                getPointRadius: f => 11 - f.properties!.scalerank,
                 getFillColor: [200, 0, 80, 180],
                 // Interactive props
                 pickable: true,
@@ -186,7 +247,7 @@ export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement)
                 id: 'arcs',
                 name: "Arcs",
                 data: AIR_PORTS,
-                dataTransform: d => d.features.filter(f => f.properties.scalerank < 4),
+                dataTransform: (d: FeatureCollection) => d.features.filter(f => f.properties.scalerank < 4),
                 // Styles
                 getSourcePosition: f => [-0.4531566, 51.4709959], // London
                 getTargetPosition: f => f.geometry.coordinates,
@@ -202,18 +263,21 @@ export function getDeckGLLayer(elevationData:ElevationData[],tgt:HTMLDivElement)
     // Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
     // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
     // Sync deck view with OL view
-
-    const deckLayer = new Layer({
-        render({size, viewState}) {
-            const [width, height] = size;
-            const [longitude, latitude] = toLonLat(viewState.center);
-            const zoom = viewState.zoom - 1;
-            const bearing = (-viewState.rotation * 180) / Math.PI;
-            const deckViewState = {bearing, longitude, latitude, zoom};
-            deck.setProps({width, height, viewState: deckViewState});
-            deck.redraw();
-        },
+    function renderDeck({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}}){
+        const [width, height] = size;
+        const [longitude, latitude] = toLonLat(viewState.center);
+        const zoom = viewState.zoom - 1;
+        const bearing = (-viewState.rotation * 180) / Math.PI;
+        const deckViewState = {bearing, longitude, latitude, zoom};
+        deck.setProps({width, height, viewState: deckViewState});
+        deck.redraw();
+    }
+    const layerOptions = {
+        render: renderDeck as any,
         title: 'DeckGL Layer',
+    }
+    const deckLayer = new Layer({
+        ...layerOptions
     });
     return deckLayer
 }

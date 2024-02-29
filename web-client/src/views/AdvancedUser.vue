@@ -15,12 +15,15 @@
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createLegend } from '@/composables/SrMapUtils';
-    import { getVectorLayer,getDeckGLLayer,pnt_cnt } from '@/composables/SrMapUtils';
+    import { getTestDeckGLLayer,createElevationDeckGLLayer, pnt_cnt } from '@/composables/SrMapUtils';
     import { ElevationData } from '@/composables/SrMapUtils';
     import { useElevationData } from "@/composables/SrMapUtils";
     import { useMapStore } from '@/stores/mapStore';
     import { fromLonLat } from 'ol/proj.js';
     import {useElevationStore} from "@/stores/elevationStore";
+
+    import { Graticule } from "ol";
+    import { Stroke } from "ol/style";
 
     const advancedModeStore = useAdvancedModeStore();
     const elevationStore = useElevationStore();
@@ -113,8 +116,9 @@
             atl06rec: (result) => {
                 if(cb_count.value === 0) {
                     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
-                    recs.push(result["elevation"]);
                 }
+                recs.push(result["elevation"]);
+
                 cb_count.value += 1;
                 //let recs:ElevationData[] = result["elevation"];
                 if(cb_count.value === 1) {
@@ -131,9 +135,10 @@
                 }
             },
         };
-    
-            console.log("atl06p cb_count:",cb_count.value)
-        
+        const mapStore = useMapStore();
+        const map = mapStore.getMap();
+        if (map){
+            console.log("atl06p cb_count:",cb_count.value)        
             isLoading.value = true; 
             atl06p({ 
                     "cnf": "atl03_high",
@@ -143,7 +148,7 @@
                     "res": 20.0,
                     "maxi": 1 
                 }, 
-                ["ATL03_20181019065445_03150111_005_01.h5"],
+                ["ATL03_20230529000937_10481906_006_01.h5"],
                 callbacks
                 )
             .then(
@@ -184,12 +189,28 @@
             }))
             .finally(() => {
                 const flatRecs = recs.flat();
-                getVectorLayer(flatRecs);
+                const tgt = map.getViewport() as HTMLDivElement; 
+                const deckLayer = createElevationDeckGLLayer(flatRecs,tgt);
+                map.addLayer(deckLayer);
                 isLoading.value = false;
-                console.log("pnt_cnt:",pnt_cnt)
+                console.log(`cb_count:${cb_count.value} pnt_cnt: ${pnt_cnt.value}`)
+
+                // Add a graticule (latitude and longitude lines)
+                var graticule = new Graticule({
+                    // Style options go here
+                    strokeStyle: new Stroke({
+                    color: 'rgba(255,120,0,0.9)',
+                    width: 2,
+                    }),
+                    showLabels: true,
+                    wrapX: false
+                });
+
+                graticule.setMap(map);
+
                 createLegend();
             });
-        
+        }
     };
 
     // Function that is called when the "Run Test" button is clicked
@@ -215,19 +236,17 @@
         if(map){
             //const tgt = map.getTargetElement() as HTMLDivElement; 
             const tgt = map.getViewport() as HTMLDivElement; 
-            console.log("map target:",tgt);
-            //const elevationLayer = getVectorLayer(edArray);
-            //map.addLayer(elevationLayer);
-            const deckLayer = getDeckGLLayer(edArray, tgt);
+            //console.log("map target:",tgt);
+            const deckLayer = getTestDeckGLLayer(edArray, tgt);
+            let center = [-0.4531566, 51.4709959]; // London
+            const zoom = 3;
             map.addLayer(deckLayer);
             const view = map.getView();
+
+
             console.log("Hello World!")
             if (view) {
                 console.log("animating view...")
-                //let center = [-77.1230, 39.0117]; // Wyngate
-                //const zoom = 17;
-                let center = [-0.4531566, 51.4709959]; // London
-                const zoom = 3;
                 if (view.getProjection().getUnits() !== 'degrees') {
                     center = fromLonLat(center);
                     console.log("CONVERTED center:",center);
