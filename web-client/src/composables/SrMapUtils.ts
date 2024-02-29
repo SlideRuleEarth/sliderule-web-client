@@ -159,7 +159,7 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
                 //coordinateSystem: 'COORDINATE_SYSTEM.LNGLAT',
                 getPosition: (d:ElevationData) => {
                     pnt_cnt.value++;
-                    console.log(`${pnt_cnt.value} d:${d.longitude} ${d.latitude} ${d.h_mean} ***!!%% `);
+                    //console.log(`${pnt_cnt.value} d:${d.longitude} ${d.latitude} ${d.h_mean} ***!!%% `);
                     return [d.longitude, d.latitude, d.h_mean]
                 },
                 getNormal: [0, 0, 1],

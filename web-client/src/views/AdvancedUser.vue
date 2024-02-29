@@ -373,14 +373,12 @@
                                     default="10k"
                                 />
                             </div>  
-                            <div class="run-sr-button" >
-                                <Button label="Run SlideRule" @click="runSlideRuleClicked"></Button>
+                            <div class="button-spinner-container">
+                                <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
+                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
                             </div>
-                            <div class="runtest-sr-button" >
+                           <div class="runtest-sr-button" >
                                 <Button label="Run Test" @click="runTestClicked"></Button>
-                            </div>
-                            <div class="run-sr-progress-spinner">
-                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" />
                             </div>
                         </div>
                     </template>
@@ -399,18 +397,17 @@
         justify-content: center;
         flex-direction: column;
     }
-    .run-sr-button {
+    .button-spinner-container {
+        display: flex;
+        align-items: center; /* This will vertically center the spinner with the button */
+        justify-content: center; /* Center the content horizontally */
+    }
+    .runtest-sr-button {
         display: flex;
         align-items: center;
         justify-content: center;
         flex-direction: column;
         margin: 2rem;
     }
-    .run-sr-progress-spinner {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        margin: 2rem;
-    }
+
 </style>
