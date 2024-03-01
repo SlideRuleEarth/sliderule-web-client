@@ -432,6 +432,7 @@
     
     <ol-mouseposition-control 
       :coordinateFormat="stringifyFunc"
+      projection="EPSG:4326"
     />
 
     <ol-scaleline-control />
@@ -464,7 +465,7 @@
   </ol-map>
   <div class="current-view-params">
     <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
-    <span>currentCenter: {{  mapParamsStore.getCenter() }}</span><br>
+    <span>currentCenter: {{  mapParamsStore.getCenterLonLat() }}</span><br>
     <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
     <span>currentProjection: {{  mapParamsStore.getProjection()}}</span><br>
     <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>

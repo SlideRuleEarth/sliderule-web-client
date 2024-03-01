@@ -6,10 +6,10 @@
         </div>
     </div>
 </template>
-  
+
 <script setup lang="ts">
 
-    import {  onMounted, computed } from 'vue';
+    import { computed } from 'vue';
     import InputText from 'primevue/inputtext';
 
 
@@ -22,9 +22,6 @@
             type: String,
             default: 'Label'
         }
-    });
-    onMounted(() => {
-        console.log('The modelValue:', modelValueComputed.value);
     });
 
     const emit = defineEmits(['update:modelValue']);
@@ -65,4 +62,3 @@
 
 
 </style>
-  

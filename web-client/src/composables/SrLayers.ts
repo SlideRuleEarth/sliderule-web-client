@@ -319,7 +319,7 @@ export const getSrLayersForCurrentProjection = () => {
 export const getSrBaseLayersForView = (view: string) => {
   //console.log('getSrBaseLayersForView', view);
   const layerList =  Object.values(layers.value).filter(layer => layer.allowed_views.includes(view) && layer.isBaseLayer);
-  console.log('getSrBaseLayersForView', layerList);
+  //console.log('getSrBaseLayersForView', layerList);
   return layerList;
 }
 
