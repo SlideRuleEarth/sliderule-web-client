@@ -4,6 +4,8 @@ import { Map as OLMap } from 'ol';
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { usePermalink } from '@/composables/usePermalink';
+import { Graticule } from 'ol';
+import { Stroke } from 'ol/style';
 
 export const useMapStore = defineStore('map', {
   state: () => ({
@@ -13,6 +15,17 @@ export const useMapStore = defineStore('map', {
     wmtsCapCache: new Map(),
     currentWmtsCapProjectionName: 'EPSG:3857' as string,
     plink: usePermalink(),
+    graticuleState: false,
+    graticule : new Graticule({
+        // Style options go here
+        strokeStyle: new Stroke({
+            color: 'rgba(255,120,0,0.9)',
+            width: 1,
+            lineDash: [0.5, 4]
+        }),
+        showLabels: true,
+        wrapX: false
+    }),
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -70,6 +83,17 @@ export const useMapStore = defineStore('map', {
         console.log(`currentWmtsCapCntrl for '${this.currentWmtsCapProjectionName}' not found in cache`);
       }
       this.setCurrentWmtsCap(projectionName);
-    }
+    },
+    toggleGraticule() {
+      this.graticuleState = !this.graticuleState;
+        if (this.graticuleState) {
+          const thisMap = this.map as OLMap;
+          if(thisMap){
+            this.graticule.setMap(thisMap);
+          }
+        } else {
+            this.graticule.setMap(null);
+        }
+    },
   },
 });

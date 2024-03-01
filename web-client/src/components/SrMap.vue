@@ -29,7 +29,6 @@
   import VectorSource from 'ol/source/Vector';
   import Feature from 'ol/Feature';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
-  //import { layers }from '@/composables/SrLayers';
   import { type SrLayer } from '@/composables/SrLayers';
   
   const geoCoderStore = useGeoCoderStore();
@@ -140,7 +139,7 @@
     register(proj4);
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value?.map);
-      const map = mapStore.getMap();
+      const map = mapStore.getMap() as OLMap;
       if(map){
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
@@ -411,7 +410,7 @@
 
 <template>
   <div class="current-zoom">
-    {{  mapParamsStore.getZoom() }}
+    {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
@@ -433,6 +432,7 @@
     
     <ol-mouseposition-control 
       :coordinateFormat="stringifyFunc"
+      projection="EPSG:4326"
     />
 
     <ol-scaleline-control />
@@ -464,8 +464,8 @@
     <ol-attribution-control :collapsible="true" :collapsed="true" />
   </ol-map>
   <div class="current-view-params">
-    <span>currentZoom: {{  mapParamsStore.getZoom() }} </span><br>
-    <span>currentCenter: {{  mapParamsStore.getCenter() }}</span><br>
+    <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
+    <span>currentCenter: {{  mapParamsStore.getCenterLonLat() }}</span><br>
     <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
     <span>currentProjection: {{  mapParamsStore.getProjection()}}</span><br>
     <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>

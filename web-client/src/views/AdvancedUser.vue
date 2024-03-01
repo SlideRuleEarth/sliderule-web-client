@@ -15,13 +15,16 @@
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createLegend } from '@/composables/SrMapUtils';
-    import { addVectorLayer,pnt_cnt } from '@/composables/SrMapUtils';
+    import { createElevationDeckGLLayer, pnt_cnt } from '@/composables/SrMapUtils';
     import { ElevationData } from '@/composables/SrMapUtils';
-    import { useElevationData } from "@/composables/SrMapUtils";
     import { useMapStore } from '@/stores/mapStore';
-    import { fromLonLat } from 'ol/proj.js';
     import {useElevationStore} from "@/stores/elevationStore";
-
+    import { Map as OLMap } from 'ol';
+    import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
+    const graticuleClick = () => {
+        const mapStore = useMapStore();
+        mapStore.toggleGraticule();
+    }
     const advancedModeStore = useAdvancedModeStore();
     const elevationStore = useElevationStore();
 
@@ -70,13 +73,6 @@
          { value: 'cividis', label: 'cividis'},
     ]   );
 
-    const pointsToDrawItems = ref([
-         { value: '10k', label: '10k'},
-         { value: '100k', label: '100k'},
-         { value: '1M', label: '1M'},
-    ]   );
-
-
     const isLoading = ref(false);
     const cb_count = ref(0);
 
@@ -113,15 +109,18 @@
             atl06rec: (result) => {
                 if(cb_count.value === 0) {
                     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
-                    recs.push(result["elevation"]);
                 }
+                const currentRecs = result["elevation"];
+                const curFlatRecs = currentRecs.flat();
+                recs.push(curFlatRecs);
                 cb_count.value += 1;
-                //let recs:ElevationData[] = result["elevation"];
                 if(cb_count.value === 1) {
                     console.log("atl06p cb first result:", result)
+                    const r = curFlatRecs[0];
+                    console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
                 }
-                for (let i = 0; i < recs.length; i++) {
-                    let rec = recs[i];
+                for (let i = 0; i < curFlatRecs.length; i++) {
+                    let rec = curFlatRecs[i];
                     if(rec.h_mean < elevationStore.getMin()) {
                         elevationStore.setMin(rec.h_mean);
                     }
@@ -131,9 +130,10 @@
                 }
             },
         };
-    
-            console.log("atl06p cb_count:",cb_count.value)
-        
+        const mapStore = useMapStore();
+        const map = mapStore.getMap() as OLMap ;
+        if (map){
+            console.log("atl06p cb_count:",cb_count.value)        
             isLoading.value = true; 
             atl06p({ 
                     "cnf": "atl03_high",
@@ -143,7 +143,7 @@
                     "res": 20.0,
                     "maxi": 1 
                 }, 
-                ["ATL03_20181019065445_03150111_005_01.h5"],
+                ["ATL03_20230529000937_10481906_006_01.h5"],
                 callbacks
                 )
             .then(
@@ -184,65 +184,75 @@
             }))
             .finally(() => {
                 const flatRecs = recs.flat();
-                addVectorLayer(flatRecs);
+                const tgt = map.getViewport() as HTMLDivElement; 
+                const deckLayer = createElevationDeckGLLayer(flatRecs,tgt);
+                map.addLayer(deckLayer);
                 isLoading.value = false;
-                console.log("pnt_cnt:",pnt_cnt)
+                console.log(`cb_count:${cb_count.value} pnt_cnt: ${pnt_cnt.value}`)
                 createLegend();
             });
-        
+        }
     };
 
     // Function that is called when the "Run Test" button is clicked
-    const runTestClicked = () => {
-        console.log('runTestClicked');
-        const mapStore = useMapStore();
-        const map = mapStore.getMap();
-        const ed = [
-          {longitude: -77.1230, latitude: 39.0117, elevation: 0},
-          {longitude: -77.1230, latitude: 39.0107, elevation: 100},
-          {longitude: -77.1230, latitude: 39.0097, elevation: 200},
-          {longitude: -77.1230, latitude: 39.0087, elevation: 300},
-        ];
-        const edArray: ElevationData[] = ed.map(item => {
-          let edItem = useElevationData(); // Initialize a new ElevationData object
-          edItem.latitude = item.latitude; 
-          edItem.longitude = item.longitude;
-          edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
-          return edItem;
-        });
+    // const runTestClicked = () => {
+    //     console.log('runTestClicked');
+    //     const mapStore = useMapStore();
+    //     const map = mapStore.getMap();
+    //     const ed = [
+    //       {longitude: -77.1230, latitude: 39.0117, elevation: 0},
+    //       {longitude: -77.1230, latitude: 39.0107, elevation: 100},
+    //       {longitude: -77.1230, latitude: 39.0097, elevation: 200},
+    //       {longitude: -77.1230, latitude: 39.0087, elevation: 300},
+    //     ];
+    //     const edArray: ElevationData[] = ed.map(item => {
+    //       let edItem = useElevationData(); // Initialize a new ElevationData object
+    //       edItem.latitude = item.latitude; 
+    //       edItem.longitude = item.longitude;
+    //       edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
+    //       return edItem;
+    //     });
        
-        addVectorLayer(edArray);
-        if(map){
-            const view = map.getView();
-            console.log("Hello World!")
-            if (view) {
-                console.log("animating view...")
-                let center = [-77.1230, 39.0117];
-                if (view.getProjection().getUnits() !== 'degrees') {
-                    center = fromLonLat(center);
-                    console.log("CONVERTED center:",center);
-                }
-                console.log("center:",center);
-                view.animate({
-                    center: center,
-                    duration: 1000,
-                    zoom: 17,
-                });
-                map.render();
-            } else {
-                console.error('View is not defined');
-            }
 
-            // map.getAllLayers().forEach((layer: Layer) => {
-            //   console.log(`layer:`,layer.getProperties());
-            // });
+    //     if(map){
+    //         //const tgt = map.getTargetElement() as HTMLDivElement; 
+    //         const tgt = map.getViewport() as HTMLDivElement; 
+    //         //console.log("map target:",tgt);
+    //         const deckLayer = getTestDeckGLLayer(edArray, tgt);
+    //         let center = [-0.4531566, 51.4709959]; // London
+    //         const zoom = 3;
+    //         map.addLayer(deckLayer);
+    //         const view = map.getView();
 
-            createLegend();
 
-        } else {
-            console.error('Map is not defined');
-        }
-    };        
+    //         console.log("Hello World!")
+    //         if (view) {
+    //             console.log("animating view...")
+    //             if (view.getProjection().getUnits() !== 'degrees') {
+    //                 center = fromLonLat(center);
+    //                 console.log("CONVERTED center:",center);
+    //             }
+    //             console.log("center:",center);
+    //             view.animate({
+    //                 center: center,
+    //                 duration: 1000,
+    //                 zoom: zoom,
+    //             });
+    //             map.render();
+    //         } else {
+    //             console.error('View is not defined');
+    //         }
+
+    //         // map.getAllLayers().forEach((layer: Layer) => {
+    //         //   console.log(`layer:`,layer.getProperties());
+    //         // });
+
+    //         createLegend();
+
+    //     } else {
+    //         console.error('Map is not defined');
+    //     }
+    // };        
 
 </script>
 
@@ -337,22 +347,15 @@
                                     :menuOptions="colorMapItems" 
                                     default="viridis"
                                 />
-                                <SrMenuInput
-                                    v-model="surfaceTypeValue"
-                                    label="Points to Draw:"
-                                    :menuOptions="pointsToDrawItems" 
-                                    default="10k"
-                                />
+                                <SrGraticuleSelect @graticule-click="graticuleClick"/>
                             </div>  
-                            <div class="run-sr-button" >
-                                <Button label="Run SlideRule" @click="runSlideRuleClicked"></Button>
+                            <div class="button-spinner-container">
+                                <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
+                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
                             </div>
-                            <div class="runtest-sr-button" >
+                           <!-- <div class="runtest-sr-button" >
                                 <Button label="Run Test" @click="runTestClicked"></Button>
-                            </div>
-                            <div class="run-sr-progress-spinner">
-                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" />
-                            </div>
+                            </div> -->
                         </div>
                     </template>
                 </SrSideBar>
@@ -370,18 +373,17 @@
         justify-content: center;
         flex-direction: column;
     }
-    .run-sr-button {
+    .button-spinner-container {
+        display: flex;
+        align-items: center; /* This will vertically center the spinner with the button */
+        justify-content: center; /* Center the content horizontally */
+    }
+    .runtest-sr-button {
         display: flex;
         align-items: center;
         justify-content: center;
         flex-direction: column;
         margin: 2rem;
     }
-    .run-sr-progress-spinner {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        margin: 2rem;
-    }
+
 </style>

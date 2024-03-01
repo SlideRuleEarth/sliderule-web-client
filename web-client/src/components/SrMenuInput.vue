@@ -17,7 +17,7 @@
   
 <script setup lang="ts">
 
-    import { defineProps, onMounted } from 'vue';
+    import { onMounted } from 'vue';
     import { ref } from 'vue';
 
     export interface MenuItem {

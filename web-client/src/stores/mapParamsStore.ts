@@ -6,6 +6,7 @@ import { getDefaultProjection } from '@/composables/SrProjections.js';
 import { srViews } from '@/composables/SrViews';
 import type { SrView } from '@/composables/SrViews';
 import { layers } from '@/composables/SrLayers';
+import { getTransform } from 'ol/proj.js';
 
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
@@ -64,6 +65,11 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     getCenter() { 
       return this.center;
+    },
+    getCenterLonLat(){
+      const toLonLat = getTransform(this.projection,'EPSG:4326');
+      const lonlat = toLonLat(this.center, undefined, 2);
+      return lonlat;
     },
     getRotation() {
       return this.rotation;
