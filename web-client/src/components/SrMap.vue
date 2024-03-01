@@ -410,7 +410,7 @@
 
 <template>
   <div class="current-zoom">
-    {{  mapParamsStore.getZoom() }}
+    {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
@@ -463,7 +463,7 @@
     <ol-attribution-control :collapsible="true" :collapsed="true" />
   </ol-map>
   <div class="current-view-params">
-    <span>currentZoom: {{  mapParamsStore.getZoom() }} </span><br>
+    <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
     <span>currentCenter: {{  mapParamsStore.getCenter() }}</span><br>
     <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
     <span>currentProjection: {{  mapParamsStore.getProjection()}}</span><br>
