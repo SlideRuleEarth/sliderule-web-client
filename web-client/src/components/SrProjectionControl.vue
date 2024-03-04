@@ -42,7 +42,6 @@
         </option>
       </select>
     </form>
-    <!-- <SrProjectionButtonBox /> -->
   </div>
 
 </template>
