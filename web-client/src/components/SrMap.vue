@@ -51,7 +51,7 @@
     console.log("drawend:",event);
     // Access the feature that was drawn
     const feature = event.feature;
-
+    console.log("feature:",feature);
     // Get the geometry of the feature
     const geometry = feature.getGeometry();
 
@@ -436,7 +436,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl @drawControlCreated="handleDrawControlCreated" @pickedChanged="handlePickedChanged" />
+    <SrDrawControl @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >

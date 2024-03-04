@@ -1,6 +1,6 @@
 <template>
   <SrDrawButtonBox ref="drawButtonBox" 
-  @pickedChanged="handlePickedChange"
+  @picked-changed="handlePickedChange"
 />
 </template>
 
@@ -12,7 +12,7 @@ import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 
 const mapParamsStore = useMapParamsStore();
 
-const emit = defineEmits(['drawControlCreated']);
+const emit = defineEmits(['draw-control-created']);
 
 const drawButtonBox = ref<InstanceType<typeof SrDrawButtonBox> | null>(null);
 
@@ -28,7 +28,7 @@ onMounted(() => {
   }
 
   const customControl = new Control({ element });
-  emit('drawControlCreated', customControl);
+  emit('draw-control-created', customControl);
 
 });
 

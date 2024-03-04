@@ -38,16 +38,16 @@
 
   const mapParamsStore = useMapParamsStore();
   const picked = ref(mapParamsStore.drawType);
-  const emit = defineEmits(['drawButtonBoxCreated', 'pickedChanged']);
+  const emit = defineEmits(['draw-buttonbox-created', 'picked-changed']);
   
   onMounted(() => {
     //console.log("SrDrawButtonBox onMounted");
-    emit('drawButtonBoxCreated', picked);
+    emit('draw-buttonbox-created', picked);
   });
 
   watch(picked, (newValue) => {
     //console.log("SrDrawButtonBox picked changed:", newValue);
-    emit('pickedChanged', newValue);
+    emit('picked-changed', newValue);
     if (newValue === 'Box'){
       console.log("SrDrawButtonBox picked changed to Box HACKED TO CIRCLE!!!");
       newValue = 'Circle';

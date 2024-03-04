@@ -11,8 +11,8 @@
 
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
-        srProjections.value.forEach(projection => {
-            //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
+        Object.values(srProjections.value).forEach(projection => {
+            console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
@@ -25,7 +25,7 @@
     
     function updateProjection(selectedLabel: string) {
         //console.log("updateProjection:", selectedLabel);
-        const projection = srProjections.value.find(projection => projection.label === selectedLabel);
+        const projection =  Object.values(srProjections.value).find(projection => projection.label === selectedLabel);
         //console.log("updateProjection layer:", layer);
         if (projection) {
             emit('update-projection', projection);
