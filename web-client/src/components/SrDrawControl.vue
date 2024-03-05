@@ -1,7 +1,5 @@
 <template>
-  <SrDrawButtonBox ref="drawButtonBox" 
-  @picked-changed="handlePickedChange"
-/>
+  <SrDrawButtonBox ref="drawButtonBox" @picked-changed="handlePickedChange"/>
 </template>
 
 <script setup lang="ts">
@@ -32,9 +30,15 @@ onMounted(() => {
 
 });
 
-const handlePickedChange = (newPickedValue) => {
-    //console.log("Picked value changed: " + newPickedValue);
-    mapParamsStore.drawEnabled = true
+const handlePickedChange = (newPickedValue: string) => {
+    console.log("Picked value changed: " + newPickedValue);
+    if (newPickedValue === 'Polygon'){
+        mapParamsStore.drawEnabled = true;
+    } else if (newPickedValue === 'Box'){
+        mapParamsStore.drawEnabled = false;
+    } else if (newPickedValue === 'TrashCan'){
+        mapParamsStore.drawEnabled = false;
+    }
     mapParamsStore.drawType = newPickedValue;
     // Handle the change as needed
 };

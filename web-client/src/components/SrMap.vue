@@ -30,7 +30,10 @@
   import Feature from 'ol/Feature';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
   import { type SrLayer } from '@/composables/SrLayers';
-  
+  import DragBox from 'ol/interaction/DragBox';
+  import { fromExtent }  from 'ol/geom/Polygon';
+  import { Stroke, Style } from 'ol/style';
+
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
 
@@ -39,6 +42,8 @@
   const mapStore = useMapStore();
   const controls = ref([]);
   const toast = useToast();
+
+  const dragBox = new DragBox();
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -64,6 +69,48 @@
     }  
   };
 
+  // Function to toggle the DragBox interaction.
+  function toggleDragBox() {
+    console.log("toggleDragBox");
+    // Check if the DragBox interaction is already added to the map.
+    if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
+      // If it is, remove it.
+      mapRef.value?.map.removeInteraction(dragBox);
+    } else {
+      // If it's not, add it.
+      mapRef.value?.map.addInteraction(dragBox);
+    }
+  }
+
+  var boxStyle = new Style({
+    stroke: new Stroke({
+      color: 'red', // Red stroke color
+      width: 2, // Stroke width
+    }),
+  });
+
+  dragBox.on('boxend', function() {
+    const extent = dragBox.getGeometry().getExtent();
+    console.log("boxend:",extent);
+    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+    if(vectorLayer){
+      const vectorSource = vectorLayer.getSource();
+      if(vectorSource){
+        // Create a rectangle feature using the extent
+        let boxFeature = new Feature(fromExtent(extent));
+        // Apply the style to the feature
+        boxFeature.setStyle(boxStyle);    
+        // Add the feature to the vector layer
+        vectorSource.addFeature(boxFeature);
+        console.log("boxFeature:",boxFeature);
+      } else {
+        console.log("Error:vectorSource is null");
+      }
+    } else {
+      console.log("Error:vectorLayer is null");
+    }
+  });
+
   const handlePickedChanged = (newPickedValue: string) => {
     console.log("Draw Picked value changed: " + newPickedValue);
     if (newPickedValue === 'TrashCan'){
@@ -73,7 +120,6 @@
       console.log("vectorLayer:",vectorLayer);  
       if (vectorLayer) {
         toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
-
         const vectorSource = vectorLayer.getSource();
         if(vectorSource){
           vectorSource.clear();
@@ -81,6 +127,13 @@
           console.log("Error:vectorSource is null");
         }
       }
+    } else if (newPickedValue === 'Polygon'){
+      console.log("Drawing Polygon");
+    } else if (newPickedValue === 'Box'){
+      console.log("Drawing Box");
+      toggleDragBox();
+    } else {
+      console.log("Error:unknown draw type:",newPickedValue);
     }
   };
 

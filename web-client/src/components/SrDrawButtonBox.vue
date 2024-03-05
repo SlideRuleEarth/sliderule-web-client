@@ -48,15 +48,6 @@
   watch(picked, (newValue) => {
     //console.log("SrDrawButtonBox picked changed:", newValue);
     emit('picked-changed', newValue);
-    if (newValue === 'Box'){
-      console.log("SrDrawButtonBox picked changed to Box HACKED TO CIRCLE!!!");
-      newValue = 'Circle';
-    }
-    if (newValue === 'TrashCan'){
-      newValue = 'TrashCan';
-      mapParamsStore.drawEnabled = false;
-    } 
-    mapParamsStore.drawType = newValue;
   });
 
   const getCssVariable = (variable) => {
