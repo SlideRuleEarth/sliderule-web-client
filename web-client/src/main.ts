@@ -3,6 +3,7 @@ import 'primevue/resources/primevue.min.css'; // core css
 import 'primeicons/primeicons.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
 import Menubar from 'primevue/menubar';
 import ToastService from 'primevue/toastservice';
@@ -20,9 +21,15 @@ app.config.errorHandler = (err, vm, info) => {
 };
 const options: Vue3OpenlayersGlobalOptions = {
     debug: false,
-  };
+};
 app.use(OpenLayersMap, options );
-app.use(createPinia())
+const pinia = createPinia();
+pinia.use(createPersistedState({
+  auto: true, // all pinia stores are saved to the storage
+  storage: sessionStorage // session is per tab and not persistent when tab is closed
+}))
+
+app.use(pinia);
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 app.use(PrimeVue, {
