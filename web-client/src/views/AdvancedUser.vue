@@ -6,6 +6,7 @@
     import SrTextInput from "@/components/SrTextInput.vue";
     import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrMenuMultiInput from "@/components/SrMenuMultiInput.vue";
+    import SrAdvOptAccordian from "@/components/SrAdvOptAccordian.vue";
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import { watchDebounced } from '@vueuse/core'
@@ -222,66 +223,6 @@
         }
     };
 
-    // Function that is called when the "Run Test" button is clicked
-    // const runTestClicked = () => {
-    //     console.log('runTestClicked');
-    //     const mapStore = useMapStore();
-    //     const map = mapStore.getMap();
-    //     const ed = [
-    //       {longitude: -77.1230, latitude: 39.0117, elevation: 0},
-    //       {longitude: -77.1230, latitude: 39.0107, elevation: 100},
-    //       {longitude: -77.1230, latitude: 39.0097, elevation: 200},
-    //       {longitude: -77.1230, latitude: 39.0087, elevation: 300},
-    //     ];
-    //     const edArray: ElevationData[] = ed.map(item => {
-    //       let edItem = useElevationData(); // Initialize a new ElevationData object
-    //       edItem.latitude = item.latitude; 
-    //       edItem.longitude = item.longitude;
-    //       edItem.h_mean = item.elevation; // Assuming elevation maps to h_mean
-    //       return edItem;
-    //     });
-       
-
-    //     if(map){
-    //         //const tgt = map.getTargetElement() as HTMLDivElement; 
-    //         const tgt = map.getViewport() as HTMLDivElement; 
-    //         //console.log("map target:",tgt);
-    //         const deckLayer = getTestDeckGLLayer(edArray, tgt);
-    //         let center = [-0.4531566, 51.4709959]; // London
-    //         const zoom = 3;
-    //         map.addLayer(deckLayer);
-    //         const view = map.getView();
-
-
-    //         console.log("Hello World!")
-    //         if (view) {
-    //             console.log("animating view...")
-    //             if (view.getProjection().getUnits() !== 'degrees') {
-    //                 center = fromLonLat(center);
-    //                 console.log("CONVERTED center:",center);
-    //             }
-    //             console.log("center:",center);
-    //             view.animate({
-    //                 center: center,
-    //                 duration: 1000,
-    //                 zoom: zoom,
-    //             });
-    //             map.render();
-    //         } else {
-    //             console.error('View is not defined');
-    //         }
-
-    //         // map.getAllLayers().forEach((layer: Layer) => {
-    //         //   console.log(`layer:`,layer.getProperties());
-    //         // });
-
-    //         createLegend();
-
-    //     } else {
-    //         console.error('Map is not defined');
-    //     }
-    // };        
-
 </script>
 
 <template>
@@ -311,6 +252,10 @@
                                     label="GEDI Api:"
                                     :menuOptions="gediAPIsItems"
                                     initial-value="gedi01b" 
+                                />
+                                <SrAdvOptAccordian
+                                    title="Advanced Options"
+                                    ariaTitle="advanced-options"
                                 />
                                 <SrTextInput
                                     v-model="urlValue"
