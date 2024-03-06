@@ -25,7 +25,7 @@ const options: Vue3OpenlayersGlobalOptions = {
 app.use(OpenLayersMap, options );
 const pinia = createPinia();
 pinia.use(createPersistedState({
-  auto: true, // all pinia stores are saved to the storage
+  //auto: true, // all pinia stores are saved to the storage
   storage: sessionStorage // session is per tab and not persistent when tab is closed
 }))
 

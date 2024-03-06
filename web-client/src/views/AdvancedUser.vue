@@ -7,7 +7,7 @@
     import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrMenuMultiInput from "@/components/SrMenuMultiInput.vue";
     import Button from 'primevue/button';
-    import { onMounted, ref } from 'vue';
+    import { onMounted, ref, watch } from 'vue';
     import { watchDebounced } from '@vueuse/core'
     import {useToast} from "primevue/usetoast";
     import { atl06p } from '@/sliderule/icesat2.js';
@@ -29,6 +29,25 @@
     const elevationStore = useElevationStore();
 
     const toast = useToast();
+    const missionValue = ref('IceSat-2');
+    const missionItems = ref([
+       { value: 'IceSat-2', label: 'IceSat-2'},
+       { value: 'GEDI', label: 'GEDI'},
+    ]  );
+    const iceSat2APIsValue = ref('atl06');
+    const iceSat2APIsItems = ref([
+        { value: 'atl03',   label: 'atl03'},
+        { value: 'atl06',   label: 'atl06'},
+        { value: 'atl06s',  label: 'atl06s'},
+        { value: 'atl08',   label: 'atl08'},
+        { value: 'atl24s',  label: 'atl24s'},
+    ]  );
+    const gediAPIsValue = ref('gedi01b');
+    const gediAPIsItems = ref([
+        { value: 'gedi01b', label: 'gedi01b'},
+        { value: 'gedi02a', label: 'gedi02a'},
+        { value: 'gedi04a', label: 'gedi04a'},
+    ]  );
     const urlValue = ref('slideruleearth.io');
     const surfaceTypeValue = ref('Land');
     const surfaceTypeItems = ref([
@@ -95,6 +114,15 @@
         onStepValueChange,
         { debounce: 500, maxWait: 1000 },
     );
+
+    watch(() => missionValue,(newValue,oldValue) => {
+        console.log(`missionValue changed from ${oldValue} to ${newValue}`);
+        if (newValue.value === 'IceSat-2') {
+            iceSat2APIsValue.value = 'atl06'; // Reset to default when mission changes
+        } else if (newValue.value === 'GEDI') {
+            gediAPIsValue.value = 'gedi01b'; // Reset to default when mission changes
+        }
+    });
 
     // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
@@ -264,6 +292,26 @@
                     <template v-slot:sr-sidebar-body>
                         <div class="card flex justify-content-center">
                             <div class="card flex justify-content-center">
+                                <SrMenuInput
+                                    v-model="missionValue"
+                                    label="Mission:"
+                                    :menuOptions="missionItems" 
+                                    initial-value="IceSat-2"
+                                />
+                                <SrMenuInput
+                                    v-model="iceSat2APIsValue"
+                                    v-if="missionValue === 'IceSat-2'"
+                                    label="IceSat-2 Api:"
+                                    :menuOptions="iceSat2APIsItems"
+                                    initial-value="atl06" 
+                                />
+                                <SrMenuInput
+                                    v-model="gediAPIsValue"
+                                    v-if="missionValue === 'GEDI'"
+                                    label="GEDI Api:"
+                                    :menuOptions="gediAPIsItems"
+                                    initial-value="gedi01b" 
+                                />
                                 <SrTextInput
                                     v-model="urlValue"
                                     label="URL:"
@@ -272,7 +320,6 @@
                                     v-model="surfaceTypeValue"
                                     label="Surface:"
                                     :menuOptions="surfaceTypeItems" 
-                                    default="Land"
                                 />
                                 <SrSliderInput
                                     v-model="lengthValue"
@@ -339,13 +386,13 @@
                                     v-model="surfaceTypeValue"
                                     label="Variable:"
                                     :menuOptions="variableItems" 
-                                    default="h_mean"
+                                    initial-value="h_mean"
                                 />
                                 <SrMenuInput
                                     v-model="surfaceTypeValue"
                                     label="ColorMap:"
                                     :menuOptions="colorMapItems" 
-                                    default="viridis"
+                                    initial-value="viridis"
                                 />
                                 <SrGraticuleSelect @graticule-click="graticuleClick"/>
                             </div>  

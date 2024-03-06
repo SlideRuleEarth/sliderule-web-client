@@ -17,8 +17,7 @@
   
 <script setup lang="ts">
 
-    import { onMounted } from 'vue';
-    import { ref } from 'vue';
+    import { onMounted,ref,watch } from 'vue';
 
     export interface MenuItem {
         value: string; 
@@ -28,9 +27,14 @@
     const props = defineProps({
         label: String,
         menuOptions: Array as () => MenuItem[],
-        default: String
+        initialValue: String
     });
-    const selectedMenuItem = ref<string>(props.default? props.default : '');
+    const selectedMenuItem = ref<string>(props.initialValue? props.initialValue : '');
+    const emit = defineEmits(['update:modelValue']);
+
+    watch(selectedMenuItem, (newValue) => {
+    emit('update:modelValue', newValue);
+    });
 
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
