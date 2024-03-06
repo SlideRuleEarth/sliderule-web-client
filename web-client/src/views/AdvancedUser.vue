@@ -6,7 +6,7 @@
     import SrTextInput from "@/components/SrTextInput.vue";
     import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrMenuMultiInput from "@/components/SrMenuMultiInput.vue";
-    import SrAdvOptAccordian from "@/components/SrAdvOptAccordian.vue";
+    import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import { watchDebounced } from '@vueuse/core'
@@ -35,7 +35,7 @@
        { value: 'IceSat-2', label: 'IceSat-2'},
        { value: 'GEDI', label: 'GEDI'},
     ]  );
-    const iceSat2APIsValue = ref('atl06');
+    const iceSat2SelectedAPI = ref('atl06');
     const iceSat2APIsItems = ref([
         { value: 'atl03',   label: 'atl03'},
         { value: 'atl06',   label: 'atl06'},
@@ -43,7 +43,7 @@
         { value: 'atl08',   label: 'atl08'},
         { value: 'atl24s',  label: 'atl24s'},
     ]  );
-    const gediAPIsValue = ref('gedi01b');
+    const gediSelectedAPI = ref('gedi01b');
     const gediAPIsItems = ref([
         { value: 'gedi01b', label: 'gedi01b'},
         { value: 'gedi02a', label: 'gedi02a'},
@@ -119,9 +119,9 @@
     watch(() => missionValue,(newValue,oldValue) => {
         console.log(`missionValue changed from ${oldValue} to ${newValue}`);
         if (newValue.value === 'IceSat-2') {
-            iceSat2APIsValue.value = 'atl06'; // Reset to default when mission changes
+            iceSat2SelectedAPI.value = 'atl06'; // Reset to default when mission changes
         } else if (newValue.value === 'GEDI') {
-            gediAPIsValue.value = 'gedi01b'; // Reset to default when mission changes
+            gediSelectedAPI.value = 'gedi01b'; // Reset to default when mission changes
         }
     });
 
@@ -240,22 +240,25 @@
                                     initial-value="IceSat-2"
                                 />
                                 <SrMenuInput
-                                    v-model="iceSat2APIsValue"
+                                    v-model="iceSat2SelectedAPI"
                                     v-if="missionValue === 'IceSat-2'"
                                     label="IceSat-2 Api:"
                                     :menuOptions="iceSat2APIsItems"
                                     initial-value="atl06" 
                                 />
                                 <SrMenuInput
-                                    v-model="gediAPIsValue"
+                                    v-model="gediSelectedAPI"
                                     v-if="missionValue === 'GEDI'"
                                     label="GEDI Api:"
                                     :menuOptions="gediAPIsItems"
                                     initial-value="gedi01b" 
                                 />
-                                <SrAdvOptAccordian
+                                <SrAdvOptAccordion
                                     title="Advanced Options"
                                     ariaTitle="advanced-options"
+                                    :mission="missionValue"
+                                    :iceSat2SelectedAPI="iceSat2SelectedAPI"
+                                    :gediSelectedAPI="gediSelectedAPI"
                                 />
                                 <SrTextInput
                                     v-model="urlValue"

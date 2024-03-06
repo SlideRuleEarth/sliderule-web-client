@@ -1,7 +1,8 @@
 
 <template>
     <div class="adv-opt-card">
-        <Accordion :active-index="[0]" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission }}</h4>
+        <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
             <AccordionTab header="General" >
                 <SrMenuInput
                     v-model="polygonSource"
@@ -10,27 +11,24 @@
                     initial-value="Draw"
                 />
             </AccordionTab>
-            <AccordionTab header="Granule Selection">
+            <AccordionTab header="Granule Selection" v-if="mission==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Photon Selection">
+            <AccordionTab header="Photon Selection"  v-if="mission==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Photon Selection">
+            <AccordionTab header="Extents" v-if="mission==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Extents">
+            <AccordionTab header="Surface Elevation" v-if="mission==='IceSat-2' && iceSat2SelectedAPI==='atl06'"  > 
 
             </AccordionTab>
-            <AccordionTab header="Surface Elevation">
+            <AccordionTab header="Veg Density Alg" v-if="mission==='IceSat-2' && iceSat2SelectedAPI==='atl08'" >
+            </AccordionTab>
+            <AccordionTab header="Ancillary Fields"  v-if="mission==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Veg Density Alg">
-            </AccordionTab>
-            <AccordionTab header="Ancillary Fields">
-
-            </AccordionTab>
-            <AccordionTab header="GEDI Footprint">
+            <AccordionTab header="GEDI Footprint"  v-if="mission==='GEDI'" >
 
             </AccordionTab>
             <AccordionTab header="Raster Sampling"> 
@@ -48,6 +46,17 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 
+
+interface Props {
+  title: string;
+  ariaTitle: string;
+  mission: string;
+  iceSat2SelectedAPI: string;
+  gediSelectedAPI: string;
+}
+
+const props = defineProps<Props>();
+
 const polygonSource = ref('Draw');
 const polygonSourceItems = ref([
     { value: 'Draw', label: 'Draw On Map' },
@@ -62,9 +71,24 @@ onMounted(() => {
 </script>
 <style scoped>
 
+.adv-opt-header {
+    
+    justify-content: center;
+}
+
+.adv-opt-card {
+    padding: 0.1250rem;
+    margin: 0.1250rem;
+    /* background-color: transparent;
+    border-radius: var(--border-radius);
+    border-width: 3px;
+    border-color: var(--primary-100);
+    border-style: inset; */
+}
+
 :deep(.p-accordion .p-accordion-tab) {
     background-color: transparent;
-    margin-bottom: 1.0rem;
+    margin: 0.25rem;
 }
 
 :deep(.p-accordion .p-accordion-header) {
@@ -102,6 +126,6 @@ onMounted(() => {
     margin-bottom: 0.5rem;
     background-color: transparent;
 }
-/* "adv-opt-accordion-label"  */
+
 
 </style>
