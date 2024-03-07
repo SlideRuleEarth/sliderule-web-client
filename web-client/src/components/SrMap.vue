@@ -33,6 +33,7 @@
   import DragBox from 'ol/interaction/DragBox';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
+  import { SrMenuItem } from "./SrMenuInput.vue";
 
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
@@ -112,7 +113,8 @@
   });
 
   const handlePickedChanged = (newPickedValue: string) => {
-    console.log("Draw Picked value changed: " + newPickedValue);
+    console.log(`Draw Picked value changed: ${newPickedValue}`);
+
     if (newPickedValue === 'TrashCan'){
       console.log("Clearing Drawing Layer");
       // Access the vector layer's source and clear it

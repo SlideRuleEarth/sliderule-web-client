@@ -17,13 +17,13 @@
   
 <script setup lang="ts">
     import { ref, onMounted } from 'vue';
-    export interface MenuItem {
+    export interface SrMenuItem {
         name:   string;
         value:  string; 
     }
     const props = defineProps({
         label: String,
-        menuOptions: Array as () => MenuItem[],
+        menuOptions: Array as () => SrMenuItem[],
         default: Array as () => string[]
     });
 

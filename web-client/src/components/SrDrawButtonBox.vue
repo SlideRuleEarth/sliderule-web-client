@@ -46,7 +46,7 @@
   });
 
   watch(picked, (newValue) => {
-    //console.log("SrDrawButtonBox picked changed:", newValue);
+    console.log("SrDrawButtonBox picked changed:", newValue);
     emit('picked-changed', newValue);
   });
 

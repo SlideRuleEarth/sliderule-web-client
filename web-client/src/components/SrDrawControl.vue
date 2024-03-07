@@ -31,7 +31,7 @@ onMounted(() => {
 });
 
 const handlePickedChange = (newPickedValue: string) => {
-    console.log("Picked value changed: " + newPickedValue);
+    console.log(`Picked value changed: ${newPickedValue}`);
     if (newPickedValue === 'Polygon'){
         mapParamsStore.drawEnabled = true;
     } else if (newPickedValue === 'Box'){

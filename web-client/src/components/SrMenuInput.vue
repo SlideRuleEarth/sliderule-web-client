@@ -19,13 +19,13 @@
 
     import { onMounted,ref,watch } from 'vue';
 
-    export interface MenuItem {
+    export interface SrMenuItem {
         name:   string;
         value:  string; 
     }
     const props = defineProps({
         label: String,
-        menuOptions: Array as () => MenuItem[],
+        menuOptions: Array as () => SrMenuItem[],
         initialValue: String
     });
     const selectedMenuItem = ref<string>(props.initialValue? props.initialValue : '');

@@ -52,9 +52,8 @@ import { computed } from 'vue';
     try{
       const target = event.target as HTMLInputElement;
       if (target) {
-        //console.log(target.value);
-        emit('update:modelValue', {value: target.value, name: props.name} );
-
+        //console.log(target);
+        emit('update:modelValue', target.value);
       }
     } catch (error) {
       console.log(error);
