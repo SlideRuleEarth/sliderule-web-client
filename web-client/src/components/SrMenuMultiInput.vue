@@ -5,8 +5,8 @@
                 <label for="srSelectMultiMenu-{{ label }}" class="label">{{ label }}</label>
                 <form class="select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItems" class="select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
-                        <option v-for="item in menuOptions" :value="item.value" :key="item.value">
-                            {{ item.label }}
+                        <option v-for="item in menuOptions" :value="item" :key="item.value">
+                            {{ item.value }}
                         </option>
                     </select>
                 </form>
@@ -17,12 +17,10 @@
   
 <script setup lang="ts">
     import { ref, onMounted } from 'vue';
-
     export interface MenuItem {
-        value: string; 
-        label: string;
+        name:   string;
+        value:  string; 
     }
-
     const props = defineProps({
         label: String,
         menuOptions: Array as () => MenuItem[],

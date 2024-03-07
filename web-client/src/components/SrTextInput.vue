@@ -30,7 +30,7 @@
     const modelValueComputed = computed({
         get: () => props.modelValue, // Getter simply returns the current prop value
         set: (newValue) => {
-            emit('update:modelValue', newValue); // Setter emits an update event
+            emit('update:modelValue', {value: newValue, name: props.label} );
         }
     });
 </script>

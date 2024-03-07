@@ -1,34 +1,38 @@
 
 <template>
     <div class="adv-opt-card">
-        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission }}</h4>
+        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
         <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
             <AccordionTab header="General" >
                 <SrMenuInput
                     v-model="polygonSource"
                     label = "Polygon Source:"
                     :menuOptions="polygonSourceItems"
-                    initial-value="Draw"
+                    initial-value="Draw on Map"
                 />
+                <div class="card poly-file-upload">
+                    <Toast />
+                    <FileUpload v-if="polygonSource.value==='File'" mode="basic" name="demo[]" url="/api/upload" accept="image/*" :maxFileSize="1000000" @upload="onUpload" />
+                </div>
             </AccordionTab>
-            <AccordionTab header="Granule Selection" v-if="mission==='IceSat-2'" >
+            <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Photon Selection"  v-if="mission==='IceSat-2'" >
+            <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Extents" v-if="mission==='IceSat-2'" >
+            <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="Surface Elevation" v-if="mission==='IceSat-2' && iceSat2SelectedAPI==='atl06'"  > 
+            <AccordionTab header="Surface Elevation" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
 
             </AccordionTab>
-            <AccordionTab header="Veg Density Alg" v-if="mission==='IceSat-2' && iceSat2SelectedAPI==='atl08'" >
+            <AccordionTab header="Veg Density Alg" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl08'" >
             </AccordionTab>
-            <AccordionTab header="Ancillary Fields"  v-if="mission==='IceSat-2'" >
+            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='IceSat-2'" >
 
             </AccordionTab>
-            <AccordionTab header="GEDI Footprint"  v-if="mission==='GEDI'" >
+            <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
 
             </AccordionTab>
             <AccordionTab header="Raster Sampling"> 
@@ -45,24 +49,28 @@ import { onMounted,ref } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
+import FileUpload from 'primevue/fileupload';
 
+import { useToast } from "primevue/usetoast";
+import Toast from 'primevue/toast';
+const toast = useToast();
+
+const onUpload = () => {
+    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded', life: 3000 });
+};
 
 interface Props {
   title: string;
   ariaTitle: string;
-  mission: string;
-  iceSat2SelectedAPI: string;
-  gediSelectedAPI: string;
+  mission: {name:string,value:string};
+  iceSat2SelectedAPI:  {name:string,value:string};
+  gediSelectedAPI:  {name:string,value:string};
 }
 
 const props = defineProps<Props>();
 
-const polygonSource = ref('Draw');
-const polygonSourceItems = ref([
-    { value: 'Draw', label: 'Draw On Map' },
-    { value: 'File', label: 'Upload File' },
-]);
-
+const polygonSource = ref({name:'Polygon Source',value:'Draw on Map'});
+const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'File'}]);
 
 onMounted(() => {
     console.log('Mounted SrAdvOptAccordian');
@@ -72,7 +80,6 @@ onMounted(() => {
 <style scoped>
 
 .adv-opt-header {
-    
     justify-content: center;
 }
 
@@ -127,5 +134,21 @@ onMounted(() => {
     background-color: transparent;
 }
 
+:deep(.p-button.p-component.p-fileupload-choose) {
+    font-family: var(--font-family);
+    background-color: transparent;
+    border-color: var(--primary-100);
+    border-width: 1px;
+    color: white;
+    border-radius: var(--border-radius);
+    margin: 0.5rem;
+    padding: 0.5rem;
+}
 
+.poly-file-upload { /* card flex justify-content-center */ 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0.5rem;
+}
 </style>

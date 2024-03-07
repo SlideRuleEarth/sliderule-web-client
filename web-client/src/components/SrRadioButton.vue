@@ -20,6 +20,8 @@
 import { computed } from 'vue';
   const props = withDefaults(
     defineProps<{
+      name: string
+      class: string
       value?: string
       modelValue?: string
       icon?: string
@@ -27,6 +29,8 @@ import { computed } from 'vue';
       tooltipText?: string 
     }>(),
     {
+      name: '',
+      class: '',
       value: undefined,
       modelValue: '',
       icon: '',
@@ -49,7 +53,8 @@ import { computed } from 'vue';
       const target = event.target as HTMLInputElement;
       if (target) {
         //console.log(target.value);
-        emit('update:modelValue', target.value);
+        emit('update:modelValue', {value: target.value, name: props.name} );
+
       }
     } catch (error) {
       console.log(error);

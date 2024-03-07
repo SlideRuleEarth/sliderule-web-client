@@ -6,7 +6,7 @@
                 <form class="select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}">
                         <option v-for="item in menuOptions" :value="item.value" :key=item.value>
-                            {{ item.label }}
+                            {{ item.value }}
                         </option>
                     </select>
                 </form>
@@ -20,10 +20,9 @@
     import { onMounted,ref,watch } from 'vue';
 
     export interface MenuItem {
-        value: string; 
-        label: string;
+        name:   string;
+        value:  string; 
     }
-
     const props = defineProps({
         label: String,
         menuOptions: Array as () => MenuItem[],
@@ -33,7 +32,8 @@
     const emit = defineEmits(['update:modelValue']);
 
     watch(selectedMenuItem, (newValue) => {
-    emit('update:modelValue', newValue);
+        console.log('Menu:', props.label, 'selected:', newValue);
+        emit('update:modelValue', {value: newValue, name: props.label} );
     });
 
     onMounted(() => {
@@ -62,7 +62,6 @@
     justify-content: space-between; /* Aligns children to opposite edges */
     align-items: center; /* This vertically centers the items in the container */
     width: 100%; /* Ensures it spans the full width of its parent */
-    gap: 10px; /* Optional: adds some space between the label and the select element */
 }
 
 .select-default {

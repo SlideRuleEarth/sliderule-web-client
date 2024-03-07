@@ -10,7 +10,7 @@
     const emit = defineEmits(['view-control-created', 'update-view']);
 
     onMounted(() => {
-      console.log("SrViewControl onMounted viewControlElement:", viewControlElement.value);
+      //console.log("SrViewControl onMounted viewControlElement:", viewControlElement.value);
       if (viewControlElement.value) {
         const customControl = new Control({ element: viewControlElement.value });
         emit('view-control-created',customControl);
@@ -18,9 +18,9 @@
     });
     
     function updateView(selectedLabel: string) {
-        console.log("updateView:", selectedLabel);
+        //console.log("updateView:", selectedLabel);
         const view = srViews.value[selectedLabel];
-        console.log("updateView view:", view);
+        //console.log("updateView view:", view);
         if (view) {
           mapParamsStore.setSrView(view);
           emit('update-view', view);

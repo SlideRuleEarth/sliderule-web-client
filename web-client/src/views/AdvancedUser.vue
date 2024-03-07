@@ -30,69 +30,27 @@
     const elevationStore = useElevationStore();
 
     const toast = useToast();
-    const missionValue = ref('IceSat-2');
-    const missionItems = ref([
-       { value: 'IceSat-2', label: 'IceSat-2'},
-       { value: 'GEDI', label: 'GEDI'},
-    ]  );
-    const iceSat2SelectedAPI = ref('atl06');
-    const iceSat2APIsItems = ref([
-        { value: 'atl03',   label: 'atl03'},
-        { value: 'atl06',   label: 'atl06'},
-        { value: 'atl06s',  label: 'atl06s'},
-        { value: 'atl08',   label: 'atl08'},
-        { value: 'atl24s',  label: 'atl24s'},
-    ]  );
-    const gediSelectedAPI = ref('gedi01b');
-    const gediAPIsItems = ref([
-        { value: 'gedi01b', label: 'gedi01b'},
-        { value: 'gedi02a', label: 'gedi02a'},
-        { value: 'gedi04a', label: 'gedi04a'},
-    ]  );
+    const missionValue = ref({name:'mission',value:'IceSat-2'});
+    const missionItems = ref([{name:'mission',value:'IceSat-2'},{name:'mission',value:'GEDI'}]);
+    const iceSat2SelectedAPI = ref({name:'IceSat-2 Api',value:'atl06'});
+    const iceSat2APIsItems = ref([{name:'IceSat-2 Api',value:'atl03'},{name:'IceSat-2 Api',value:'atl06'},{name:'IceSat-2 Api',value:'atl06s'},{name:'IceSat-2 Api',value:'atl08'},{name:'IceSat-2 Api',value:'atl24s'}]);
+    const gediSelectedAPI = ref({name:'GEDI Api',value:'gedi01b'});
+    const gediAPIsItems = ref([{name:'GEDI Api',value:'gedi01b'},{name:'GEDI Api',value:'gedi02a'},{name:'GEDI Api',value:'gedi04a'}]);
     const urlValue = ref('slideruleearth.io');
-    const surfaceTypeValue = ref('Land');
-    const surfaceTypeItems = ref([
-       { value: 'Land', label: 'Land'},
-       { value: 'Ocean', label: 'Ocean'},
-       { value: 'Sea Ice', label: 'Sea Ice'},
-       { value: 'Land Ice', label: 'Land Ice'},
-       { value: 'Inland Water', label: 'Inland Water'},
-    ]  );
+    const surfaceTypeValue = ref({name:'SurfaceType', value:'Land'});
+    const surfaceTypeItems = ref([{name:'SurfaceType', value:'Land'},{name:'SurfaceType', value:'Ocean'},{name:'SurfaceType', value:'Sea Ice'},{name:'SurfaceType', value:'Land Ice'},{name:'SurfaceType', value:'Inland Water'}]);
     const lengthValue = ref(40);
     const stepValue = ref(20);
     const confidenceValue = ref(4);
     const selectedLandClassItems = ref([]);
-    const landClassItems = ref([
-       { value: 'atl08_noise', label: 'atl08_noise'},
-       { value: 'atl08_ground', label: 'atl08_ground'},
-       { value: 'atl08_canopy', label: 'atl08_canopy'},
-       { value: 'atl08_top_of_canopy', label: 'atl08_top_of_canopy'},
-       { value: 'atl08_unclassified', label: 'atl08_unclassified'},
-    ]  );
+    const landClassItems = ref([{name:'LandClass',value:'atl08_noise'},{name:'LandClass',value:'atl08_ground'},{name:'LandClass',value:'atl08_canopy'},{name:'LandClass',value:'atl08_top_of_canopy'},{name:'LandClass',value:'atl08_unclassified'}]);
     const iterationsValue = ref(6);
     const spreadValue = ref(20.0);
     const PE_CountValue = ref(10);
     const windowValue = ref(3.0);
     const sigmaValue = ref(5.0);
-    const variableItems = ref([
-       { value: 'h_mean', label: 'h_mean'},
-       { value: 'h_sigma', label: 'h_sigma'},
-       { value: 'dh_fit_dx', label: 'dh_fit_dx'},
-       { value: 'dh_fit_dy', label: 'dh_fit_dy'},
-       { value: 'rms_misfit', label: 'rms_misfit'},
-       { value: 'w_surface_window_final', label: 'w_surface_window_final'},
-       { value: 'delta_time', label: 'delta_time'},
-       { value: 'cycle', label: 'cycle'},
-       { value: 'rgt', label: 'rgt'},
-    ]  );
-    const colorMapItems = ref([
-         { value: 'viridis', label: 'viridis'},
-         { value: 'plasma', label: 'plasma'},
-         { value: 'inferno', label: 'inferno'},
-         { value: 'magma', label: 'magma'},
-         { value: 'cividis', label: 'cividis'},
-    ]   );
-
+    const variableItems = ref([{name:'Variable',value:'h_mean'},{name:'Variable',value:'h_sigma'},{name:'Variable',value:'dh_fit_dx'},{name:'Variable',value:'dh_fit_dy'},{name:'Variable',value:'rms_misfit'},{name:'Variable',value:'w_surface_window_final'},{name:'Variable',value:'delta_time'},{name:'Variable',value:'cycle'},{name:'Variable',value:'rgt'}]);
+    const colorMapItems = ref([{name:'ColorMap',value:'viridis'},{name:'ColorMap',value:'plasma'},{name:'ColorMap',value:'inferno'},{name:'ColorMap',value:'magma'},{name:'ColorMap',value:'cividis'}]);
     const isLoading = ref(false);
     const cb_count = ref(0);
 
@@ -118,10 +76,10 @@
 
     watch(() => missionValue,(newValue,oldValue) => {
         console.log(`missionValue changed from ${oldValue} to ${newValue}`);
-        if (newValue.value === 'IceSat-2') {
-            iceSat2SelectedAPI.value = 'atl06'; // Reset to default when mission changes
-        } else if (newValue.value === 'GEDI') {
-            gediSelectedAPI.value = 'gedi01b'; // Reset to default when mission changes
+        if (newValue.value.value === 'IceSat-2') {
+            iceSat2SelectedAPI.value.value = 'atl06'; // Reset to default when mission changes
+        } else if (newValue.value.value === 'GEDI') {
+            gediSelectedAPI.value.value = 'gedi01b'; // Reset to default when mission changes
         }
     });
 
@@ -241,14 +199,14 @@
                                 />
                                 <SrMenuInput
                                     v-model="iceSat2SelectedAPI"
-                                    v-if="missionValue === 'IceSat-2'"
+                                    v-if="missionValue.value === 'IceSat-2'"
                                     label="IceSat-2 Api:"
                                     :menuOptions="iceSat2APIsItems"
                                     initial-value="atl06" 
                                 />
                                 <SrMenuInput
                                     v-model="gediSelectedAPI"
-                                    v-if="missionValue === 'GEDI'"
+                                    v-if="missionValue.value === 'GEDI'"
                                     label="GEDI Api:"
                                     :menuOptions="gediAPIsItems"
                                     initial-value="gedi01b" 

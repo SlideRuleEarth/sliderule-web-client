@@ -30,7 +30,7 @@
   const emit = defineEmits(['baselayer-control-created', 'update-baselayer']);
 
   onMounted(() => {
-    console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
+    //console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
 
     if (baseLayerControlElement.value) {
       const customControl = new Control({ element: baseLayerControlElement.value });
@@ -41,7 +41,7 @@
     if (defaultBaseLayer) {
       mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
     }
-    console.log(`SrBaseLayerControl onMounted selectedBaseLayer: ${mapParamsStore.selectedBaseLayer.title} defaultBaseLayer: ${defaultBaseLayer?.title}`);
+    //console.log(`SrBaseLayerControl onMounted selectedBaseLayer: ${mapParamsStore.selectedBaseLayer.title} defaultBaseLayer: ${defaultBaseLayer?.title}`);
     // baseLayerOptions.value.forEach(layer => {
     //   console.log(`Title: ${layer.title}}`);
     // });

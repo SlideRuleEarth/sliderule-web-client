@@ -324,11 +324,11 @@ export const getSrBaseLayersForView = (view: string) => {
 }
 
 export const addLayersForCurrentView = () => {
-  console.log('--------------------addLayersForCurrentView--------------------');
+  //console.log('--------------------addLayersForCurrentView--------------------');
   const srLayersForView = getSrLayersForCurrentView(); 
   srLayersForView.forEach(srLayerForView => {
     if(!srLayerForView.isBaseLayer){ // base layer is managed by baseLayerControl
-      console.log(`adding non base layer:`,srLayerForView.title);
+      //console.log(`adding non base layer:`,srLayerForView.title);
       const newLayer = getLayer(srLayerForView.title);
       if(mapStore.map){
         mapStore.map.addLayer(newLayer);
@@ -336,19 +336,19 @@ export const addLayersForCurrentView = () => {
         console.log('map not available');
       }
     } else{
-      console.log(`skipping layer: ${srLayerForView.title} for projection: ${mapStore.map?.getView().getProjection()}`);
+      //console.log(`skipping layer: ${srLayerForView.title} for projection: ${mapStore.map?.getView().getProjection()}`);
     }
   });
 }
 
 export const getDefaultBaseLayer = (view: string): SrLayer | undefined  => {
   const srLayer = Object.values(layers.value).find(layer => layer.isBaseLayer && layer.allowed_views.includes(view));
-  console.log(`getDefaultBaseLayer for: ${view} --> ${srLayer?.title}`);
+  //console.log(`getDefaultBaseLayer for: ${view} --> ${srLayer?.title}`);
   return srLayer;
 }
 
 export const getLayer = (title: string) => {
-  console.log(`getLayer ${title}`);
+  //console.log(`getLayer ${title}`);
   const srLayer =  Object.values(layers.value).find(layer => layer.title === title);
   let layerInstance;
   if(srLayer){
@@ -375,7 +375,7 @@ export const getLayer = (title: string) => {
 
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
-          console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.getProjection()}`);
+          //console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.getProjection()}`);
           layerInstance = new TileLayer({
             // if we specify it, the layer will be reprojected to the view's projection
             // if we don't specify it we assume it is in the view's projection
@@ -398,7 +398,7 @@ export const getLayer = (title: string) => {
           });
 
         } else if(srLayer.type === "xyz"){
-          console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapParamsStore.getProjection()}`);
+          //console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapParamsStore.getProjection()}`);
           const xyzOptions = {
             url: srLayer.url,
             //extent: mapParamsStore.extent,
@@ -425,7 +425,7 @@ export const getLayer = (title: string) => {
           mapParamsStore.cacheLayer(title, layerInstance);
         }
     }
-    console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
+    //console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
   } else {
     console.log('Layer not found with this title:', title);
   }

@@ -273,7 +273,7 @@
     //console.log(baseLayerControl);
     const map = mapRef.value?.map;
     if(map){
-      console.log("adding baseLayerControl");
+      //console.log("adding baseLayerControl");
       map.addControl(baseLayerControl);
     } else {
       console.log("Error:map is null");
@@ -281,18 +281,18 @@
   };
 
   const handleViewControlCreated = (viewControl: any) => {
-    console.log(viewControl);
+    //console.log(viewControl);
     const map = mapRef.value?.map;
     if(map){
-      console.log("adding viewControl");
+      //console.log("adding viewControl");
       map.addControl(viewControl);
     } else {
-      console.log("Error:map is null");
+      console.error("Error:map is null");
     }
   };
 
   const updateMapView = (reason:string) => {
-    console.log(`****** updateMapView for ${reason} ******`);
+    //console.log(`****** updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
     if(map){
       const srView = mapParamsStore.getSrView();
@@ -305,7 +305,7 @@
             console.log(`removing layer:`,layer.get('title'));
             map.removeLayer(layer);
           } else {
-            console.log(`skipping layer:`,layer.get('name'));
+            //console.log(`skipping layer:`,layer.get('name'));
           }
         });
         //let baseLayer = layers.value['Esri World Topo'];
@@ -327,50 +327,50 @@
         }
         if(newProj){
           if(baseLayer){
-            console.log('adding Base Layer', baseLayer);
+            //console.log('adding Base Layer', baseLayer);
             const layer = getLayer(baseLayer.title);
             map.addLayer(layer);
           } else {
             console.log("Error:baseLayer is null");
           }
 
-          console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
+          //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
           let extent = newProj.getExtent();
-          console.log("projection's extent:",extent);
+          //console.log("projection's extent:",extent);
           let worldExtent = newProj.getWorldExtent();
-          console.log("projection's World extent:",worldExtent);
+          //console.log("projection's World extent:",worldExtent);
           
           const fromLonLat = getTransform('EPSG:4326', newProj);
-          console.log("extent:",extent);
+          //console.log("extent:",extent);
           //if(extent == null){ // need to populate from our own data
-          console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
+          //console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
           if (srView.bbox){
             // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
             if ((newProj.getCode() == 'EPSG:5936') || (newProj.getCode() == 'EPSG:3031') || (newProj.getCode() == 'EPSG:3413')){
-            //if(projection.getUnits() == 'm'){
-              console.log("srView.bbox:",srView.bbox);
+              //if(projection.getUnits() == 'm'){
+              //console.log("srView.bbox:",srView.bbox);
               let worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3], srView.bbox[0]];
               //projection.setWorldExtent(worldExtent);
               // approximate calculation of projection extent,
               // checking if the world extent crosses the dateline
               if (srView.bbox[1] > srView.bbox[3]) {
-                console.log("crosses the dateline");
+                //console.log("crosses the dateline");
                 worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
               }
               extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
               //worldExtent = extent;
               newProj.setExtent(extent);
               //newProj.setWorldExtent(worldExtent);
-              console.log("worldExtent:",worldExtent);
-              console.log("extent:",extent);
+              //console.log("worldExtent:",worldExtent);
+              //console.log("extent:",extent);
             } else {
-              console.log("projection units not meters:",newProj.getUnits());
+              //console.log("projection units pole units:",newProj.getUnits());
             }
             //} else {
             //  console.log(`${srProjection.name} Extent is NOT NULL using it's extent:${extent}`);
             //}
             let center = getExtentCenter(extent);
-            console.log(`extent: ${extent}, center: ${center}`);
+            //console.log(`extent: ${extent}, center: ${center}`);
             const newView = new View({
               projection: newProj,
               //constrainResolution: true,
@@ -380,10 +380,10 @@
               //minZoom: srView.min_zoom,
               //maxZoom: srView.max_zoom,
             });
-            console.log(`new projection code: ${newProj.getCode()}`);
+            //console.log(`new projection code: ${newProj.getCode()}`);
             mapParamsStore.setProjection(newProj.getCode());
             //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
-            console.log(`newView:`,newView.getProperties());
+            //console.log(`newView:`,newView.getProperties());
             map.setView(newView);
             newView.fit(extent);
             updateCurrentParms();
@@ -395,8 +395,8 @@
               duration: 1000,
               zoom: srView.default_zoom,
             });
-            console.log(`z:${srView.default_zoom} view center: ${thisView.getCenter()} center:${center}`);
-            console.log(`thisView:`,thisView.getProperties());
+            //console.log(`z:${srView.default_zoom} view center: ${thisView.getCenter()} center:${center}`);
+            //console.log(`thisView:`,thisView.getProperties());
             map.getView().on('change:resolution', onResolutionChange);
 
 
