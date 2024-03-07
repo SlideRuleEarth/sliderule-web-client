@@ -33,18 +33,20 @@
   import DragBox from 'ol/interaction/DragBox';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
-  import { SrMenuItem } from "./SrMenuInput.vue";
 
+  interface SrDrawControlMethods {
+    resetPicked: () => void;
+  }
   const geoCoderStore = useGeoCoderStore();
   const stringifyFunc = createStringXY(4);
-
+  const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
   const toast = useToast();
-
   const dragBox = new DragBox();
+  const polyCoords = ref([]);
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -64,10 +66,14 @@
     // Check if the geometry is a polygon
     if (geometry.getType() === 'Polygon') {
       // Get the coordinates of the polygon
-      const coordinates = geometry.getCoordinates();
-
-      console.log(coordinates);
-    }  
+      polyCoords.value = geometry.getCoordinates();
+      console.log(`polyCoords:${polyCoords.value}`);
+    } else {
+      console.error("Error:geometry is not a polygon?");
+    }
+    if(srDrawControlRef.value){
+      srDrawControlRef.value.resetPicked();
+    }
   };
 
   // Function to toggle the DragBox interaction.
@@ -112,30 +118,60 @@
     }
   });
 
+
+  const clearDrawingLayer = () =>{
+    console.log("Clearing Drawing Layer");
+    let cleared = false;
+    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+    if(vectorLayer){
+      const vectorSource = vectorLayer.getSource();
+      if(vectorSource){
+        const features = vectorSource.getFeatures()
+        console.log("VectorSource hasFeature:",features.length);
+        if(features.length > 0){
+          console.log("Clearing VectorSource features");
+          vectorSource.clear();
+          cleared = true;
+        } else {
+          console.log("vectorSource has no features");
+        }
+      } else {
+        console.error("Error:vectorSource is null");
+      }
+    } else {
+      console.error("Error:vectorLayer is null");
+    }
+    return cleared;
+  }
+
   const handlePickedChanged = (newPickedValue: string) => {
     console.log(`Draw Picked value changed: ${newPickedValue}`);
-
+    let clearExisting = true;
     if (newPickedValue === 'TrashCan'){
-      console.log("Clearing Drawing Layer");
-      // Access the vector layer's source and clear it
-      const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
-      console.log("vectorLayer:",vectorLayer);  
-      if (vectorLayer) {
-        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
-        const vectorSource = vectorLayer.getSource();
-        if(vectorSource){
-          vectorSource.clear();
-        } else {
-          console.log("Error:vectorSource is null");
-        }
-      }
+      console.log("TrashCan selected Clearing Drawing Layer");
     } else if (newPickedValue === 'Polygon'){
       console.log("Drawing Polygon");
     } else if (newPickedValue === 'Box'){
       console.log("Drawing Box");
-      toggleDragBox();
     } else {
-      console.log("Error:unknown draw type:",newPickedValue);
+      // deselecting all
+      clearExisting = false;
+      console.log("draw type:",newPickedValue);
+    }
+    if(clearExisting){
+      if(clearDrawingLayer()){
+        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
+      } else {
+        //toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'No items to delete', life: 3000 });
+      }
+    }
+    if (newPickedValue === 'Box'){
+      toggleDragBox();
+    } else if (newPickedValue === 'TrashCan'){
+      console.log("TrashCan selected Clearing Drawing Layer, disabling draw");
+      // if(srDrawControlRef.value){
+      //   srDrawControlRef.value.resetPicked();
+      // }
     }
   };
 
@@ -491,14 +527,14 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+    <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
       <ol-source-vector :projection="mapParamsStore.projection">
         <ol-interaction-draw
-          v-if="mapParamsStore.drawEnabled"
-          :type="mapParamsStore.drawType"
+          v-if="mapParamsStore.drawType==='Polygon'"
+          type="Polygon"
           @drawend="drawend"
           @drawstart="drawstart"
         >

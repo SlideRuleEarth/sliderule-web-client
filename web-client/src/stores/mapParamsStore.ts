@@ -18,7 +18,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     zoom: 12,
     rotation: 0,
     selectedBaseLayer: layers.value['Esri World Topo'] as SrLayer,
-    drawEnabled: false,
     drawType: 'undefined',
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
@@ -36,7 +35,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.zoom = 12;
       this.rotation = 0;
       this.selectedBaseLayer=getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,
-      this.drawEnabled = false;
       this.drawType = 'undefined';
       this.layerCache = new Map(), // Note this is a javascript Map, not an OpenLayers Map
       this.layerGroupCache =new Map() // Note this is a javascript Map, not an OpenLayers Map
@@ -95,9 +93,6 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     getExtent() {
       return this.extent;
-    },
-    getDrawEnabled() {
-      return this.drawEnabled;
-    }  
+    }
   },
 });

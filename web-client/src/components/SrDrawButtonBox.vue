@@ -41,13 +41,23 @@
   const emit = defineEmits(['draw-buttonbox-created', 'picked-changed']);
   
   onMounted(() => {
-    //console.log("SrDrawButtonBox onMounted");
+    console.log(`Mounted SrDrawButtonBox: ${picked.value}`);
     emit('draw-buttonbox-created', picked);
   });
 
   watch(picked, (newValue) => {
     console.log("SrDrawButtonBox picked changed:", newValue);
     emit('picked-changed', newValue);
+  });
+
+  // Expose a reset function to the parent
+  defineExpose({
+    resetPicked() {
+      console.log("SrDrawButtonBox resetPicked");
+      picked.value = 'undefined';
+      // Optionally, if you want to emit an event or do additional actions when reset
+      emit('picked-changed', picked.value);
+    }
   });
 
   const getCssVariable = (variable) => {

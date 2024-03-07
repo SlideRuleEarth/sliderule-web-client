@@ -52,7 +52,7 @@ import { computed } from 'vue';
     try{
       const target = event.target as HTMLInputElement;
       if (target) {
-        //console.log(target);
+        console.log(target);
         emit('update:modelValue', target.value);
       }
     } catch (error) {

@@ -12,11 +12,11 @@
             <span
             class="toggle-background"
             :class="backgroundStyles"
-            />  
+            ></span>  
             <span  
             class="toggle-indicator"  
             :style="indicatorStyles"   
-            /> 
+            ></span>
         </span>
     </div>
 </template>
