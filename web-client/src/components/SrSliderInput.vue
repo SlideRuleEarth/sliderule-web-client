@@ -16,6 +16,8 @@
     import Slider from 'primevue/slider';
     import { watchDebounced } from '@vueuse/core'
     import { useDebounceFn } from '@vueuse/core';
+    import { useSrToastStore } from "@/stores/srToastStore.js";
+    const srToastStore = useSrToastStore();
 
     const toast = useToast();
 
@@ -73,11 +75,11 @@
         emit('update:modelValue', {value: newValue, name: props.label} );
     
     };
+    
     watchDebounced(innerValue, 
         onInnerValueChange,
         { debounce: 500, maxWait: 1000 },
     );
-
 
     watch(sliderStepSize, (newValue) => {
         console.log('Updated Slider Step Size:', newValue);
@@ -101,7 +103,7 @@
             //console.log('numericValue:', numericValue)
             if (isNaN(numericValue)) {
                 console.log('Bad numericValue:',numericValue)
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be a number', life: 3000 });
+                toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be a number',  life: srToastStore.getLife()});
                 // Handle non-numeric input - reset to the last valid value
                 numericValue = innerValue.value;
             } else {

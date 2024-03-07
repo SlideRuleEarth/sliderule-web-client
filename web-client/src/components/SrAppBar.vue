@@ -1,7 +1,11 @@
 <script setup lang="ts">
+    import {useToast} from "primevue/usetoast";
+    import Toast from 'primevue/toast';
 
     import Button from 'primevue/button';
     import { Ref,ref } from 'vue';
+
+    const toast = useToast();
 
     const geoCoderContainer: Ref<HTMLElement | null> = ref(null);
 

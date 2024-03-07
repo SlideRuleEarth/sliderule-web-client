@@ -11,7 +11,6 @@
                     initial-value="Draw on Map"
                 />
                 <div class="card poly-file-upload">
-                    <Toast />
                     <FileUpload v-if="polygonSource.value==='File'" mode="basic" name="demo[]" url="/api/upload" accept="image/*" :maxFileSize="1000000" @upload="onUpload" />
                 </div>
             </AccordionTab>
@@ -50,13 +49,14 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import FileUpload from 'primevue/fileupload';
-
 import { useToast } from "primevue/usetoast";
-import Toast from 'primevue/toast';
 const toast = useToast();
+import { useSrToastStore } from "@/stores/srToastStore.js";
+const srToastStore = useSrToastStore();
 
 const onUpload = () => {
-    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded', life: 3000 });
+    // there is a nice progress bar here: https://primevue.org/toast/#headless 
+    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded',  life: srToastStore.getLife()});
 };
 
 interface Props {

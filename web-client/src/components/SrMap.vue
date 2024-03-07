@@ -33,6 +33,9 @@
   import DragBox from 'ol/interaction/DragBox';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
+  import { Coordinate } from "ol/coordinate";
+  import { useSrToastStore } from "@/stores/srToastStore.js";
+  const srToastStore = useSrToastStore();
 
   interface SrDrawControlMethods {
     resetPicked: () => void;
@@ -46,7 +49,7 @@
   const controls = ref([]);
   const toast = useToast();
   const dragBox = new DragBox();
-  const polyCoords = ref([]);
+  const polyCoords = ref<Coordinate[][]>([]);
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -77,16 +80,21 @@
   };
 
   // Function to toggle the DragBox interaction.
-  function toggleDragBox() {
-    console.log("toggleDragBox");
-    // Check if the DragBox interaction is already added to the map.
+
+    // Function to toggle the DragBox interaction.
+  function disableDragBox() {
+    console.log("disableDragBox");
+    // Check if the DragBox interaction is added to the map.
     if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
       // If it is, remove it.
       mapRef.value?.map.removeInteraction(dragBox);
-    } else {
-      // If it's not, add it.
-      mapRef.value?.map.addInteraction(dragBox);
     }
+  }
+
+  function enableDragBox() {
+    console.log("enableDragBox");
+    disableDragBox();
+    mapRef.value?.map.addInteraction(dragBox);
   }
 
   var boxStyle = new Style({
@@ -110,12 +118,28 @@
         // Add the feature to the vector layer
         vectorSource.addFeature(boxFeature);
         console.log("boxFeature:",boxFeature);
+        // Get the geometry of the feature
+        const geometry = boxFeature.getGeometry();
+        console.log("geometry:",geometry);
+        if(geometry){
+          console.log("geometry.getType():",geometry.getType());
+
+          // Get the coordinates of the polygon shaped as a rectangle
+          polyCoords.value = geometry.getCoordinates();
+          console.log(`polyCoords:${polyCoords.value}`);
+        } else {
+          console.error("Error:geometry is null");
+        }
       } else {
         console.log("Error:vectorSource is null");
       }
     } else {
       console.log("Error:vectorLayer is null");
     }
+    if(srDrawControlRef.value){
+      srDrawControlRef.value.resetPicked();
+    }
+    disableDragBox();
   });
 
 
@@ -160,14 +184,19 @@
     }
     if(clearExisting){
       if(clearDrawingLayer()){
-        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: 3000 });
-      } else {
-        //toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'No items to delete', life: 3000 });
+        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
       }
     }
     if (newPickedValue === 'Box'){
-      toggleDragBox();
+      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: srToastStore.getLife() });
+
+      enableDragBox();
+    } else if (newPickedValue === 'Polygon'){
+      disableDragBox();
+      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: srToastStore.getLife() });
+
     } else if (newPickedValue === 'TrashCan'){
+      disableDragBox();
       console.log("TrashCan selected Clearing Drawing Layer, disabling draw");
       // if(srDrawControlRef.value){
       //   srDrawControlRef.value.resetPicked();

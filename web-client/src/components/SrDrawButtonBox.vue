@@ -17,7 +17,7 @@
         value="Box"
         :icon="getRectangleIcon"
         aria-label="Select Rectangle"
-        tooltipText="Draw a Rectangle"
+        tooltipText="Draw a Rectangle by clicking and dragging on the map."
       />
       <SrRadioButton
         name="drawButtonBoxTrashCan"
