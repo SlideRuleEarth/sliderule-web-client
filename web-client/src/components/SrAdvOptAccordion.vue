@@ -1,76 +1,4 @@
 
-<template>
-    <div class="adv-opt-card">
-        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
-        <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-            <AccordionTab header="General" >
-                <SrMenuInput
-                    v-model="polygonSource"
-                    label = "Polygon Source:"
-                    :menuOptions="polygonSourceItems"
-                    initial-value="Draw on Map"
-                />
-                <div class="file-upload-panel">
-                    <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
-                        <template #container="{ message, closeCallback }">
-                            <section class="toast-container">
-                                <i class="upload-icon"></i>
-                                <div class="message-container">
-                                    <p class="summary">{{ message.summary }}</p>
-                                    <p class="detail">{{ message.detail }}</p>
-                                    <div class="progress-container">
-                                        <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
-                                        <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
-                                    </div>
-                                    <div class="button-container">
-                                        <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
-                                    </div>
-                                </div>
-                            </section>
-                        </template>
-                    </Toast>
-                    <FileUpload v-if="polygonSource.value==='File'" 
-                                mode="basic" 
-                                name="SrFileUploads[]" 
-                                :auto="true" 
-                                accept=".geojson,.json" 
-                                :maxFileSize="10000000000" 
-                                customUpload 
-                                @uploader="customUploader"
-                                @select="onSelect"
-                                @error="onError"
-                                @clear="onClear"
-                    />
-                </div>
-            </AccordionTab>
-            <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
-
-            </AccordionTab>
-            <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
-
-            </AccordionTab>
-            <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
-
-            </AccordionTab>
-            <AccordionTab header="Surface Elevation" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
-
-            </AccordionTab>
-            <AccordionTab header="Veg Density Alg" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl08'" >
-            </AccordionTab>
-            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='IceSat-2'" >
-
-            </AccordionTab>
-            <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
-
-            </AccordionTab>
-            <AccordionTab header="Raster Sampling"> 
-            </AccordionTab>
-            <AccordionTab header="Output">
-
-            </AccordionTab>
-        </Accordion>
-    </div>
-</template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
@@ -82,13 +10,12 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
-import { useSrToastStore } from "@/stores/srToastStore.js";
 import { useGeoJsonStore } from '../stores/geoJsonStore';
+import { useMapStore } from '@/stores/mapStore';
 
-const srToastStore = useSrToastStore();
 const toast = useToast();
-
 const geoJsonStore = useGeoJsonStore();
+const mapStore = useMapStore();
 
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
@@ -111,6 +38,7 @@ const customUploader = async (event) => {
         reader.onload = async (e) => {
             try {
                 if (e.target === null){
+                    console.error('e.target is null');
                     return;
                 } else {
                     //console.log(`e.target.result: ${e.target.result}`);
@@ -118,9 +46,7 @@ const customUploader = async (event) => {
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(data);
-                        upload_progress.value = 100;
-                        //console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
-                        //toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', group: 'headless' });
+                        toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
@@ -173,14 +99,87 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const polygonSource = ref({name:'Polygon Source',value:'Draw on Map'});
-const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'File'}]);
+//const polygonSource = ref({name:'Polygon Source',value:'Draw on Map'});
+const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'Upload geojson File'}]);
 
 onMounted(() => {
     console.log('Mounted SrAdvOptAccordian');
 });
 
 </script>
+
+<template>
+    <div class="adv-opt-card">
+        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
+        <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+            <AccordionTab header="General" >
+                <SrMenuInput
+                    v-model="mapStore.polygonSource"
+                    label = "Polygon Source:"
+                    :menuOptions="polygonSourceItems"
+                    initial-value="Draw on Map"
+                />
+                <div class="file-upload-panel">
+                    <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
+                        <template #container="{ message, closeCallback }">
+                            <section class="toast-container">
+                                <i class="upload-icon"></i>
+                                <div class="message-container">
+                                    <p class="summary">{{ message.summary }}</p>
+                                    <p class="detail">{{ message.detail }}</p>
+                                    <div class="progress-container">
+                                        <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
+                                        <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
+                                    </div>
+                                    <div class="button-container">
+                                        <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
+                                    </div>
+                                </div>
+                            </section>
+                        </template>
+                    </Toast>
+                    <FileUpload v-if="mapStore.polygonSource.value==='Upload geojson File'" 
+                                mode="basic" 
+                                name="SrFileUploads[]" 
+                                :auto="true" 
+                                accept=".geojson,.json" 
+                                :maxFileSize="10000000000" 
+                                customUpload 
+                                @uploader="customUploader"
+                                @select="onSelect"
+                                @error="onError"
+                                @clear="onClear"
+                    />
+                </div>
+            </AccordionTab>
+            <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
+
+            </AccordionTab>
+            <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
+
+            </AccordionTab>
+            <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
+
+            </AccordionTab>
+            <AccordionTab header="Surface Elevation" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
+
+            </AccordionTab>
+            <AccordionTab header="Veg Density Alg" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl08'" >
+            </AccordionTab>
+            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='IceSat-2'" >
+
+            </AccordionTab>
+            <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
+
+            </AccordionTab>
+            <AccordionTab header="Raster Sampling"> 
+            </AccordionTab>
+            <AccordionTab header="Output">
+
+            </AccordionTab>
+        </Accordion>
+    </div>
+</template>
 
 <style scoped>
 

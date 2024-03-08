@@ -26,6 +26,7 @@ export const useMapStore = defineStore('map', {
         showLabels: true,
         wrapX: false
     }),
+    polygonSource:{name:'Polygon Source',value:'Draw on Map'},
   }),
   actions: {
     setMap(mapInstance: OLMap) {
