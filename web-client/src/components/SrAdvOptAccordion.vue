@@ -134,30 +134,19 @@ const customUploader = async (event) => {
 
         reader.onprogress = (e) => {
             console.log('onprogress e:',e);
-            if (!upload_progress_visible.value) {
-                console.log(`Uploading your files ${e.loaded} of ${e.total}`);
-                toast.add({ severity: 'info', summary: 'Uploading your files.', group: 'headless' });//, life: srToastStore.getLife()
-                upload_progress_visible.value = true;
-                upload_progress.value = 0;
-
-                if (interval.value) {
-                    clearInterval(interval.value);
+            if (e.lengthComputable) {
+                console.log(`Uploading your file ${e.loaded} of ${e.total}`);
+                const percentLoaded = Math.round((e.loaded / e.total) * 100);
+                upload_progress.value = percentLoaded;
+                if (!upload_progress_visible.value) {
+                    upload_progress_visible.value = true;
+                    toast.add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
                 }
-
-                interval.value = setInterval(() => {
-                    if (upload_progress.value <= 100) {
-                        upload_progress.value = e.loaded / e.total * 100;
-                    }
-
-                    if (upload_progress.value >= 100) {
-                        upload_progress.value = 100;
-                        clearInterval(interval.value);
-                    }
-                }, 10);
             }
         };
     } else {
         console.error('No file input found');
+        toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
     };
 };
 
