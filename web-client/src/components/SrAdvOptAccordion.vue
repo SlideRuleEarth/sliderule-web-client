@@ -99,7 +99,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-//const polygonSource = ref({name:'Polygon Source',value:'Draw on Map'});
 const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'Upload geojson File'}]);
 
 onMounted(() => {

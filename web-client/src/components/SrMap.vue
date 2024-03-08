@@ -1,6 +1,6 @@
   <script setup lang="ts">
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
-  import { ref, onMounted } from "vue";
+  import { ref, onMounted, computed } from "vue";
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
@@ -50,6 +50,7 @@
   const toast = useToast();
   const dragBox = new DragBox();
   const polyCoords = ref<Coordinate[][]>([]);
+  const showDrawControl = computed(() => mapStore.polygonSource.value === 'Draw on Map');
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -556,7 +557,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+    <SrDrawControl v-if="showDrawControl" ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
@@ -819,4 +820,10 @@
 
   font-size: 0.75rem;
 }
+
+.hidden-control {
+    display: none;
+}
+
+
 </style>
