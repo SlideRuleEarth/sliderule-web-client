@@ -6,8 +6,17 @@ import {Layer} from 'ol/layer';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import {PointCloudLayer} from '@deck.gl/layers/typed';
 import {toLonLat} from 'ol/proj';
+import {GeoJSON} from 'ol/format';
+import { useMapParamsStore } from '@/stores/mapParamsStore';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
+import {Geometry} from 'ol/geom';
+import { e } from 'vitest/dist/reporters-rzC174PQ.js';
 
 export const pnt_cnt = ref(0);
+
+const mapParamsStore = useMapParamsStore();
 const elevationStore = useElevationStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
@@ -25,7 +34,31 @@ export const polyCoordsExist = computed(() => {
         exist = false;
     }
     return exist
-  });
+});
+
+
+export function drawGeoJson(geoJsonData:string) {
+    if(mapStore.map){
+        const vectorLayer = mapStore.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+        if (!vectorLayer) {
+        console.error('Vector layer is not defined.');
+        return;
+        }
+        const geoJSON = new GeoJSON(); // Assuming 'ol' is the OpenLayers object
+        const features = geoJSON.readFeatures(geoJsonData, {
+        featureProjection: mapParamsStore.projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
+        }) as Feature<Geometry>[];
+        const src = vectorLayer.getSource();
+        if(src){
+            // Add the features to the vector layer source
+            src.clear(); // Optional: Remove existing features
+            src.addFeatures(features);
+        }
+    } else {
+        console.error('Map is not defined.');
+    }
+}
+
 // Helper function to interpolate between two colors
 function interpolateColor(color1: number[], color2:number[], factor:number): number[] {
     if (arguments.length < 3) { 

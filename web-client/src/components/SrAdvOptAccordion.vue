@@ -13,6 +13,7 @@ import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
 import { polyCoordsExist } from '@/composables/SrMapUtils';
+import { drawGeoJson } from '@/composables/SrMapUtils';
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
@@ -48,6 +49,7 @@ const customUploader = async (event) => {
                         const data = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(data);
                         toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
+                        drawGeoJson(data);
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
