@@ -10,8 +10,35 @@
                     :menuOptions="polygonSourceItems"
                     initial-value="Draw on Map"
                 />
-                <div class="card poly-file-upload">
-                    <FileUpload v-if="polygonSource.value==='File'" mode="basic" name="demo[]" url="/api/upload" accept="image/*" :maxFileSize="1000000" @upload="onUpload" />
+                <div class="file-upload-panel">
+                    <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
+                        <template #container="{ message, closeCallback }">
+                            <section class="toast-container">
+                                <i class="upload-icon"></i>
+                                <div class="message-container">
+                                    <p class="summary">{{ message.summary }}</p>
+                                    <p class="detail">{{ message.detail }}</p>
+                                    <div class="progress-container">
+                                        <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
+                                        <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
+                                    </div>
+                                    <div class="button-container">
+                                        <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
+                                    </div>
+                                </div>
+                            </section>
+                        </template>
+                    </Toast>
+                    <FileUpload v-if="polygonSource.value==='File'" 
+                                mode="basic" 
+                                name="SrFileUploads[]" 
+                                :auto="true" 
+                                accept=".geojson" 
+                                :maxFileSize="10000000000" 
+                                customUpload 
+                                @progress="onProgress" 
+                                @uploader="customUploader"
+                    />
                 </div>
             </AccordionTab>
             <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
@@ -44,20 +71,96 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted,ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import FileUpload from 'primevue/fileupload';
+import ProgressBar from 'primevue/progressbar';
+import Button from 'primevue/button';
+import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
-const toast = useToast();
 import { useSrToastStore } from "@/stores/srToastStore.js";
-const srToastStore = useSrToastStore();
+import { useGeoJsonStore } from '../stores/geoJsonStore';
 
-const onUpload = () => {
-    // there is a nice progress bar here: https://primevue.org/toast/#headless 
-    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded',  life: srToastStore.getLife()});
+const srToastStore = useSrToastStore();
+const toast = useToast();
+
+const geoJsonStore = useGeoJsonStore();
+
+////////////// upload toast items
+const upload_progress_visible = ref(false);
+const upload_progress = ref(0);
+const interval = ref();
+//////////////
+
+onUnmounted(() => {
+    if (interval.value) {
+        clearInterval(interval.value);
+    }
+})
+
+const customUploader = async (event) => {
+    const file = event.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = async (e) => {
+            try {
+                if (e.target === null){
+                    return;
+                } else {
+                    console.log(`e.target.result: ${e.target.result}`);
+                    console.log(`e.target.result type: ${typeof e.target.result}`);
+                    if (typeof e.target.result === 'string') {
+                        const data = JSON.parse(e.target.result);
+                        geoJsonStore.setGeoJsonData(data);
+                        upload_progress.value = 100;
+                        console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
+                        toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', group: 'headless' });
+                    } else {
+                        console.error('Error parsing GeoJSON:', e.target.result);
+                        toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing GeoJSON:', error);
+
+            }
+        };
+    } else {
+        console.error('No file input found');
+    };
 };
+
+const onProgress = (e) => {
+    console.log('onProgress e:',e);
+    // there is a nice progress bar here: https://primevue.org/toast/#headless 
+    toast.add({ severity: 'info', summary: 'Uploading', detail: 'File Uploaded',  life: srToastStore.getLife()});
+
+    if (!upload_progress_visible.value) {
+        console.log('Uploading your files.');
+        toast.add({ severity: 'info', summary: 'Uploading your files.', group: 'headless' });
+        upload_progress_visible.value = true;
+        upload_progress.value = 0;
+
+        if (interval.value) {
+            clearInterval(interval.value);
+        }
+
+        interval.value = setInterval(() => {
+            if (upload_progress.value <= 100) {
+                upload_progress.value = upload_progress.value + 20;
+            }
+
+            if (upload_progress.value >= 100) {
+                upload_progress.value = 100;
+                clearInterval(interval.value);
+            }
+        }, 1000);
+    }
+};
+
 
 interface Props {
   title: string;
@@ -145,10 +248,73 @@ onMounted(() => {
     padding: 0.5rem;
 }
 
-.poly-file-upload { /* card flex justify-content-center */ 
+.file-upload-panel { 
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 0.5rem;
 }
+:deep(.p-progressbar-label){
+    color: var(--text-color);
+}
+.toast-container {
+    display: flex;
+    padding: 1rem; /* 12px 3rem in bootstrap, adjust accordingly */
+    gap: 1rem; /* adjust as needed */
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    border-radius: var(--border-radius);
+}
+
+.upload-icon {
+    /* Styles for pi pi-cloud-upload */
+    color: var(--primary-color); /* primary-500 color  #2c7be5;*/
+    font-size: 1.5rem; /* 2xl size */
+}
+
+.message-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* adjust as needed */
+    width: 100%;
+}
+
+.summary, .detail {
+    margin: 0;
+    font-weight: 600; /* font-semibold */
+    font-size: 1rem; /* text-base */
+    color: #ffffff;
+}
+
+.detail {
+    color: var(--text-color); /* text-700 color, adjust as needed */
+}
+
+.progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* adjust as needed */
+}
+
+.progress-bar {
+    height: 4px;
+}
+
+.upload-percentage {
+    text-align: right;
+    font-size: 0.75rem; /* text-xs */
+    color:var(--text-color);
+}
+
+.button-container {
+    display: flex;
+    gap: 12px; /* adjust as needed */
+    margin-bottom: 12px; /* mb-3, adjust accordingly */
+}
+
+ .done-btn {
+    padding: 0.25rem 0.5rem; /* py-1 px-2 */
+    color: var(--text-color); 
+}
+
 </style>
