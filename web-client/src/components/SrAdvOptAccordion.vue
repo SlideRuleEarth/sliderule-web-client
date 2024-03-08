@@ -33,11 +33,13 @@
                                 mode="basic" 
                                 name="SrFileUploads[]" 
                                 :auto="true" 
-                                accept=".geojson" 
+                                accept=".geojson,.json" 
                                 :maxFileSize="10000000000" 
                                 customUpload 
-                                @progress="onProgress" 
                                 @uploader="customUploader"
+                                @select="onSelect"
+                                @error="onError"
+                                @clear="onClear"
                     />
                 </div>
             </AccordionTab>
@@ -101,6 +103,7 @@ onUnmounted(() => {
 })
 
 const customUploader = async (event) => {
+    console.log('customUploader event:',event);
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
@@ -110,14 +113,14 @@ const customUploader = async (event) => {
                 if (e.target === null){
                     return;
                 } else {
-                    console.log(`e.target.result: ${e.target.result}`);
+                    //console.log(`e.target.result: ${e.target.result}`);
                     console.log(`e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(data);
                         upload_progress.value = 100;
-                        console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
-                        toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', group: 'headless' });
+                        //console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
+                        //toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', group: 'headless' });
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
@@ -125,7 +128,32 @@ const customUploader = async (event) => {
                 }
             } catch (error) {
                 console.error('Error parsing GeoJSON:', error);
+                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+            }
+        };
 
+        reader.onprogress = (e) => {
+            console.log('onprogress e:',e);
+            if (!upload_progress_visible.value) {
+                console.log(`Uploading your files ${e.loaded} of ${e.total}`);
+                toast.add({ severity: 'info', summary: 'Uploading your files.', group: 'headless' });//, life: srToastStore.getLife()
+                upload_progress_visible.value = true;
+                upload_progress.value = 0;
+
+                if (interval.value) {
+                    clearInterval(interval.value);
+                }
+
+                interval.value = setInterval(() => {
+                    if (upload_progress.value <= 100) {
+                        upload_progress.value = e.loaded / e.total * 100;
+                    }
+
+                    if (upload_progress.value >= 100) {
+                        upload_progress.value = 100;
+                        clearInterval(interval.value);
+                    }
+                }, 10);
             }
         };
     } else {
@@ -133,32 +161,16 @@ const customUploader = async (event) => {
     };
 };
 
-const onProgress = (e) => {
-    console.log('onProgress e:',e);
-    // there is a nice progress bar here: https://primevue.org/toast/#headless 
-    toast.add({ severity: 'info', summary: 'Uploading', detail: 'File Uploaded',  life: srToastStore.getLife()});
+const onSelect = (e) => {
+    console.log('onSelect e:',e);
+};
 
-    if (!upload_progress_visible.value) {
-        console.log('Uploading your files.');
-        toast.add({ severity: 'info', summary: 'Uploading your files.', group: 'headless' });
-        upload_progress_visible.value = true;
-        upload_progress.value = 0;
-
-        if (interval.value) {
-            clearInterval(interval.value);
-        }
-
-        interval.value = setInterval(() => {
-            if (upload_progress.value <= 100) {
-                upload_progress.value = upload_progress.value + 20;
-            }
-
-            if (upload_progress.value >= 100) {
-                upload_progress.value = 100;
-                clearInterval(interval.value);
-            }
-        }, 1000);
-    }
+const onError = (e) => {
+    console.log('onError e:',e);
+    toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
+};
+const onClear = () => {
+    console.log('onClear');
 };
 
 
@@ -180,6 +192,7 @@ onMounted(() => {
 });
 
 </script>
+
 <style scoped>
 
 .adv-opt-header {
