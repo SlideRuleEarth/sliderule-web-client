@@ -12,7 +12,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import {Geometry} from 'ol/geom';
-import { e } from 'vitest/dist/reporters-rzC174PQ.js';
 
 export const pnt_cnt = ref(0);
 
@@ -37,26 +36,37 @@ export const polyCoordsExist = computed(() => {
 });
 
 
-export function drawGeoJson(geoJsonData:string) {
+export function drawGeoJson(geoJsonData:string, onlyOne:boolean = true) {
+    let retToastMsg = null;
     if(mapStore.map){
         const vectorLayer = mapStore.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
         if (!vectorLayer) {
-        console.error('Vector layer is not defined.');
-        return;
+            console.error('Vector layer is not defined.');
+            return;
         }
         const geoJSON = new GeoJSON(); // Assuming 'ol' is the OpenLayers object
         const features = geoJSON.readFeatures(geoJsonData, {
-        featureProjection: mapParamsStore.projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
+            featureProjection: mapParamsStore.projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
         }) as Feature<Geometry>[];
         const src = vectorLayer.getSource();
         if(src){
             // Add the features to the vector layer source
             src.clear(); // Optional: Remove existing features
-            src.addFeatures(features);
+            if(onlyOne){
+                console.info('Only one feature is allowed. There are:',src.getFeatures().length);
+                src.addFeature(features[0]);
+                if(features.length > 1) {
+                    retToastMsg = {severity:'warn', summary: 'Too many features', detail: 'Only one feature is allowed. The first was drawn, others ignored'};
+                }
+            } else {
+                console.error('Multiple features uploaded.');
+                src.addFeatures(features);
+            }
         }
     } else {
         console.error('Map is not defined.');
     }
+    return retToastMsg;
 }
 
 // Helper function to interpolate between two colors

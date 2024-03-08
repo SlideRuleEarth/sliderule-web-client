@@ -1,7 +1,7 @@
 
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
@@ -14,6 +14,7 @@ import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
 import { polyCoordsExist } from '@/composables/SrMapUtils';
 import { drawGeoJson } from '@/composables/SrMapUtils';
+import ts from 'typescript';
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
@@ -49,7 +50,10 @@ const customUploader = async (event) => {
                         const data = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(data);
                         toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        drawGeoJson(data);
+                        const tstMsg = drawGeoJson(data);
+                        if (tstMsg) {
+                            toast.add(tstMsg);
+                        }
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
@@ -91,6 +95,17 @@ const onClear = () => {
     console.log('onClear');
 };
 
+
+watch(mapStore.polygonSource, (newValue) => {
+    console.log('polygonSource:', newValue);
+    if (newValue.value === 'Draw on Map') {
+        console.log('Draw on Map');
+    } else if (newValue.value === 'Upload geojson File') {
+        console.log('Upload geojson File');
+    } else {
+        console.error('Unknown polygonSource:', newValue);
+    }
+});
 
 interface Props {
   title: string;
