@@ -1,7 +1,7 @@
 
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
@@ -12,6 +12,7 @@ import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
+import { polyCoordsExist } from '@/composables/SrMapUtils';
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
@@ -118,7 +119,7 @@ onMounted(() => {
                     :menuOptions="polygonSourceItems"
                     initial-value="Draw on Map"
                 />
-                <div class="file-upload-panel">
+                <div class="file-upload-panel" v-if="!polyCoordsExist">
                     <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
                         <template #container="{ message, closeCallback }">
                             <section class="toast-container">

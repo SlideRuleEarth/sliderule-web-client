@@ -1,27 +1,31 @@
-import VectorSource from 'ol/source/Vector';
-import VectorLayer from 'ol/layer/Vector';
 import { useMapStore } from '@/stores/mapStore';
-import Point from 'ol/geom/Point';
-import Feature from 'ol/Feature';
-import Style from 'ol/style/Style';
-import Fill from 'ol/style/Fill';
-import Circle from 'ol/style/Circle';
-import { ref } from 'vue';
-import {Layer, Tile as TileLayer} from 'ol/layer';
-import { transform,  get as getProjection } from 'ol/proj.js';
-import { useMapParamsStore } from "@/stores/mapParamsStore.js";
 import { useElevationStore } from '@/stores/elevationStore';
-import {fromLonLat, toLonLat} from 'ol/proj';
-import {type FeatureCollection, type Feature as GeoFeature, type Geometry} from 'geojson';
-
 import {Deck} from '@deck.gl/core/typed';
-import {GeoJsonLayer, ArcLayer, PointCloudLayer} from '@deck.gl/layers/typed';
+import { ref,computed } from 'vue';
+import {Layer} from 'ol/layer';
+import { useGeoJsonStore } from '@/stores/geoJsonStore';
+import {PointCloudLayer} from '@deck.gl/layers/typed';
+import {toLonLat} from 'ol/proj';
 
 export const pnt_cnt = ref(0);
-const mapParamsStore = useMapParamsStore();
 const elevationStore = useElevationStore();
+const mapStore = useMapStore();
+const geoJsonStore = useGeoJsonStore();
 
-
+export const polyCoordsExist = computed(() => {
+    let exist = false;
+    if(geoJsonStore.geoJsonData){
+        console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
+        exist = true;
+    } else if (mapStore.polyCoords.length > 0) {
+        console.log('mapStore.polyCoords:',mapStore.polyCoords);
+        exist = true;
+    } else {
+        console.log(`mapStore.polyCoords: ${mapStore.polyCoords} and geoJsonStore.geoJsonData: ${geoJsonStore.geoJsonData} do not exist.`);
+        exist = false;
+    }
+    return exist
+  });
 // Helper function to interpolate between two colors
 function interpolateColor(color1: number[], color2:number[], factor:number): number[] {
     if (arguments.length < 3) { 

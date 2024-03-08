@@ -6,6 +6,7 @@ import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
+import { type Coordinate } from "ol/coordinate";
 
 export const useMapStore = defineStore('map', {
   state: () => ({
@@ -27,6 +28,7 @@ export const useMapStore = defineStore('map', {
         wrapX: false
     }),
     polygonSource:{name:'Polygon Source',value:'Draw on Map'},
+    polyCoords: <Coordinate[][]>([])
   }),
   actions: {
     setMap(mapInstance: OLMap) {

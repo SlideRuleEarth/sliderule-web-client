@@ -33,8 +33,9 @@
   import DragBox from 'ol/interaction/DragBox';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
-  import { Coordinate } from "ol/coordinate";
   import { useSrToastStore } from "@/stores/srToastStore.js";
+  import { polyCoordsExist } from "@/composables/SrMapUtils";
+
   const srToastStore = useSrToastStore();
 
   interface SrDrawControlMethods {
@@ -49,8 +50,7 @@
   const controls = ref([]);
   const toast = useToast();
   const dragBox = new DragBox();
-  const polyCoords = ref<Coordinate[][]>([]);
-  const showDrawControl = computed(() => mapStore.polygonSource.value === 'Draw on Map');
+
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -70,8 +70,8 @@
     // Check if the geometry is a polygon
     if (geometry.getType() === 'Polygon') {
       // Get the coordinates of the polygon
-      polyCoords.value = geometry.getCoordinates();
-      console.log(`polyCoords:${polyCoords.value}`);
+      mapStore.polyCoords = geometry.getCoordinates();
+      console.log(`polyCoords:${mapStore.polyCoords}`);
     } else {
       console.error("Error:geometry is not a polygon?");
     }
@@ -126,8 +126,8 @@
           console.log("geometry.getType():",geometry.getType());
 
           // Get the coordinates of the polygon shaped as a rectangle
-          polyCoords.value = geometry.getCoordinates();
-          console.log(`polyCoords:${polyCoords.value}`);
+          mapStore.polyCoords = geometry.getCoordinates();
+          console.log(`polyCoords:${mapStore.polyCoords}`);
         } else {
           console.error("Error:geometry is null");
         }
@@ -557,7 +557,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl v-if="showDrawControl" ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+    <SrDrawControl v-if="(!polyCoordsExist && mapStore.polygonSource.value === 'Draw on Map') " ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
