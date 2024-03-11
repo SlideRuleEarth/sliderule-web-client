@@ -31,21 +31,16 @@
     const handleSelectAllItems = (event) => {
         console.log('CheckSelectAll:', event);
         selectAll.value = event;
-        if (event) {
-            if(props.menuOptions){
-                if(selectAll.value){
-                    console.log('Select All:', props.menuOptions);
-                    selectedMenuItems.value = props.menuOptions.map(item => item);
-                } else {
-                    console.error('No menu options to select');
-                    selectedMenuItems.value = [];
-                }
+        if(props.menuOptions){
+            if(selectAll.value){
+                console.log('Select All:', props.menuOptions);
+                selectedMenuItems.value = props.menuOptions.map(item => item);
             } else {
-                console.error('No menu options to select');
+                console.log('Deselect All:', props.menuOptions);
                 selectedMenuItems.value = [];
             }
         } else {
-            console.error('No event to handle');
+            console.error('No menu options to select?');
             selectedMenuItems.value = [];
         }
         console.log('Selected Items:', selectedMenuItems.value);
