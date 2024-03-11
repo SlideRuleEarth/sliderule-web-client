@@ -12,6 +12,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import {Geometry} from 'ol/geom';
+import {Polygon} from 'ol/geom';
 
 export const pnt_cnt = ref(0);
 
@@ -62,6 +63,14 @@ export function drawGeoJson(geoJsonData:string, onlyOne:boolean = true) {
                 console.error('Multiple features uploaded.');
                 src.addFeatures(features);
             }
+            const geometry = features[0].getGeometry();
+            if (geometry instanceof Polygon) {
+                const nestedCoords = geometry.getCoordinates();
+                mapStore.polyCoords = nestedCoords;
+                console.log('mapStore.polyCoords:',mapStore.polyCoords);
+            } else {
+                console.error('The geometry type does not support getCoordinates().');
+            }        
         }
     } else {
         console.error('Map is not defined.');
@@ -205,7 +214,6 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
 //     // Datasource: Natural Earth http://www.naturalearthdata.com/ via geojson.xyz
 //     const AIR_PORTS =
 //     'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_airports.geojson';
-
 //     const deck = new Deck({
 //         initialViewState: {longitude: 0, latitude: 0, zoom: 1},
 //         controller: false,

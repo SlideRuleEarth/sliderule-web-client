@@ -14,7 +14,11 @@ import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
 import { polyCoordsExist } from '@/composables/SrMapUtils';
 import { drawGeoJson } from '@/composables/SrMapUtils';
-import ts from 'typescript';
+import SrCheckbox from './SrCheckbox.vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+
+const reqParamsStore = useReqParamsStore();
+
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
@@ -168,6 +172,11 @@ onMounted(() => {
                                 @clear="onClear"
                     />
                 </div>
+                <SrCheckbox
+                    label="Rasterize Polygon:"
+                    :store="reqParamsStore"
+                    propertyName="rasterizePolygon"
+                />
             </AccordionTab>
             <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
 
