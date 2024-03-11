@@ -17,6 +17,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         rgtValue: 1,
         cycleValue: 1,
         regionValue: 1,
+        t0Value: '2020-01-01',
+        t1Value: '2020-01-01',
         reqTimeoutValue: 60,
         lengthValue: 40,
         stepValue: 20,

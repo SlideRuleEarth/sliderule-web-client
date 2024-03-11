@@ -17,6 +17,7 @@ import { polyCoordsExist } from '@/composables/SrMapUtils';
 import { drawGeoJson } from '@/composables/SrMapUtils';
 import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
+import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 
 const reqParamsStore = useReqParamsStore();
@@ -223,6 +224,14 @@ onMounted(() => {
                     :min="1"
                     :max="100" 
                     :decimal-places="0"
+                />
+                <SrCalendar
+                    v-model="reqParamsStore.t0Value"
+                    label="T0:"
+                />
+                <SrCalendar
+                    v-model="reqParamsStore.t1Value"
+                    label="T1:"
                 />
                 
             </AccordionTab>
