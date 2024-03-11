@@ -15,6 +15,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { polyCoordsExist } from '@/composables/SrMapUtils';
 import { drawGeoJson } from '@/composables/SrMapUtils';
 import SrCheckbox from './SrCheckbox.vue';
+import SrSliderInput from './SrSliderInput.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 
 const reqParamsStore = useReqParamsStore();
@@ -174,8 +175,18 @@ onMounted(() => {
                 </div>
                 <SrCheckbox
                     label="Rasterize Polygon:"
-                    :store="reqParamsStore"
-                    propertyName="rasterizePolygon"
+                    v-model="reqParamsStore.rasterizePolygon"
+                />
+                <SrCheckbox
+                    label="Ignore Poly for CMR:"
+                    v-model="reqParamsStore.ignorePolygon"
+                />
+                <SrSliderInput
+                    v-model="reqParamsStore.reqTimeoutValue"
+                    label="Req timeout:"
+                    :min="5"
+                    :max="3600" 
+                    :decimal-places="0"
                 />
             </AccordionTab>
             <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >

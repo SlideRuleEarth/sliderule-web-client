@@ -1,36 +1,24 @@
 <template>
     <div class="sr-checkbox">
         <label> {{ label }} </label>
-        <input type="checkbox" :checked="isChecked" @change="handleChange" />
+        <input type="checkbox" v-model="isChecked" @change="handleChange" />
     </div>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import {ref} from 'vue';
 
 const props = defineProps({
   label: String,
-  store: Object, // The Pinia store
-  propertyName: String // The name of the property in the store
 });
 
-// Creates a computed property bound to the store value
-const isChecked = computed({
-  get: () => {
-    if (props.store && props.propertyName !== undefined) {
-      return props.store[props.propertyName]; // TypeScript now knows propertyName cannot be undefined
-    }
-    return false; // Provide a default fallback
-  },
-  set: (value) => {
-    if (props.store && props.propertyName !== undefined) {
-      props.store.$patch({ [props.propertyName]: value });
-    }
-  }
-});
+const isChecked = ref(false);
+
+
+const emit = defineEmits(['update:modelValue']);
 
 function handleChange(event) {
-  isChecked.value = event.target.checked;
+    console.log(`${props.label} SrCheckbox: ${event.target.checked}`);
 }
 </script>
 
