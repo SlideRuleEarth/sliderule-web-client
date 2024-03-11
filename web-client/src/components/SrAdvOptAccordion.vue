@@ -5,6 +5,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
+import SrMenuMultiInput from './SrMenuMultiInput.vue';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -190,7 +191,12 @@ onMounted(() => {
                 />
             </AccordionTab>
             <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
-
+                <SrMenuMultiInput
+                    v-model="reqParamsStore.tracks"
+                    label = "Track(s):"
+                    :menuOptions="reqParamsStore.tracksOptions"
+                    initial-value="['All']"
+                />
             </AccordionTab>
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
 

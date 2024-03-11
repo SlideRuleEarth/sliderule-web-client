@@ -251,7 +251,7 @@
                                     :max="4" 
                                     :decimal-places="0"
                                 />
-                                <SrMenuMultiInput
+                                <!-- <SrMenuMultiInput
                                     v-model="selectedLandClassItems"
                                     label="Land Class:"
                                     :menuOptions="landClassItems" 
@@ -302,7 +302,7 @@
                                     label="ColorMap:"
                                     :menuOptions="colorMapItems" 
                                     initial-value="viridis"
-                                />
+                                /> -->
                                 <SrGraticuleSelect @graticule-click="graticuleClick"/>
                             </div>  
                             <div class="button-spinner-container">

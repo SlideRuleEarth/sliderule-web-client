@@ -19,6 +19,7 @@ const emit = defineEmits(['update:modelValue']);
 
 function handleChange(event) {
     console.log(`${props.label} SrCheckbox: ${event.target.checked}`);
+    emit('update:modelValue', event.target.checked);
 }
 </script>
 

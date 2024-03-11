@@ -10,6 +10,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         gediSelectedAPI: {name:'GEDI Api', value:'gedi01b'},
         urlValue: 'slideruleearth.io',
         surfaceTypeValue: {name:'SurfaceType', value:'Land'},
+        tracks:  ['Track 1', 'Track 2', 'Track 3'],
+        tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
         reqTimeoutValue: 60,
         lengthValue: 40,
         stepValue: 20,
