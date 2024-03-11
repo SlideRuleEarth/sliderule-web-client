@@ -4,7 +4,7 @@
             <div ref="menuElement" class="menu-control">
                 <label for="srSelectMultiMenu-{{ label }}" class="label">{{ label }}</label>
                 <SrCheckbox label="Select All" :default="true" @update:modelValue="handleSelectAllItems" />
-                <form class="select-item" name="sr-select-item-form">
+                <form class="sr-multimenu-select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItems" class="select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
                         <option v-for="item in menuOptions" :value="item" :key="item">
                             {{ item }}
@@ -79,13 +79,22 @@
 }
 
 .select-default {
-    width: auto;
-    padding: 0.25rem;
+    width: calc(100% - 0.25rem);
+    padding: 0rem;
+    margin: 0rem;
     color: white;
     background-color: black;
     border-radius: var(--border-radius);
-    /* Additional styles to improve usability of multi-select */
     height: auto; /* Adjust height to fit multiple selections */
     overflow-y: auto; /* Allows scrolling through options */
 }
+
+.sr-multimenu-select-item {
+    width: 100%;
+    height: auto;
+    overflow-y: auto;
+    padding: 0rem;
+    margin: 0rem;
+}
+
 </style>
