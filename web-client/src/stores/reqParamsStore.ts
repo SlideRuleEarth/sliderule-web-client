@@ -12,6 +12,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         surfaceTypeValue: {name:'SurfaceType', value:'Land'},
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
+        beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
+        beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
         reqTimeoutValue: 60,
         lengthValue: 40,
         stepValue: 20,

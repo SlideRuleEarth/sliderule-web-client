@@ -195,7 +195,13 @@ onMounted(() => {
                     v-model="reqParamsStore.tracks"
                     label = "Track(s):"
                     :menuOptions="reqParamsStore.tracksOptions"
-                    initial-value="['All']"
+                    :default="reqParamsStore.tracksOptions"
+                />
+                <SrMenuMultiInput
+                    v-model="reqParamsStore.beams"
+                    label = "Beam(s):"
+                    :menuOptions="reqParamsStore.beamsOptions"
+                    :default="reqParamsStore.beamsOptions"
                 />
             </AccordionTab>
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >

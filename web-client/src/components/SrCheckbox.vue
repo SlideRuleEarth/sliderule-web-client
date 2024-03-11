@@ -9,10 +9,16 @@
 import {ref} from 'vue';
 
 const props = defineProps({
-  label: String,
+    label: {type:String,
+            default: 'undefined'
+    },
+    default: {
+        type: Boolean,
+        default: false
+    }
 });
 
-const isChecked = ref(false);
+const isChecked = ref(props.default);
 
 
 const emit = defineEmits(['update:modelValue']);

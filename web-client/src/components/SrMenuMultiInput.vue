@@ -3,7 +3,7 @@
         <div class="menu-row">
             <div ref="menuElement" class="menu-control">
                 <label for="srSelectMultiMenu-{{ label }}" class="label">{{ label }}</label>
-                <SrCheckbox label="Select All" @update:modelValue="handleSelectAllItems"/>
+                <SrCheckbox label="Select All" :default="true" @update:modelValue="handleSelectAllItems" />
                 <form class="select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItems" class="select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
                         <option v-for="item in menuOptions" :value="item" :key="item">
@@ -26,7 +26,7 @@
         default: Array as () => string[]
     });
 
-    const selectAll = ref(false);
+    const selectAll = ref(true);
 
     const handleSelectAllItems = (event) => {
         console.log('CheckSelectAll:', event);
