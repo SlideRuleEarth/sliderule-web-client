@@ -22,6 +22,9 @@
     import {useElevationStore} from "@/stores/elevationStore";
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
+    import { useSrToastStore } from '@/stores/srToastStore.js';
+
+    const toastStore = useSrToastStore();
     const graticuleClick = () => {
         const mapStore = useMapStore();
         mapStore.toggleGraticule();
@@ -86,7 +89,7 @@
     // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
         // console.log('logoClick');
-        toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked',  life: srToastStore.getLife()});
+        toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked',  life: toastStore.getLife()});
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
         //const recs: any[] = [];

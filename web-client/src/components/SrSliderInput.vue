@@ -72,7 +72,7 @@
     //const onInnerValueChange = (newValue, oldValue) => {
     const onInnerValueChange = (newValue) => {
         //console.log(`Inner value changed from ${oldValue} to ${newValue}`);
-        emit('update:modelValue', {value: newValue, name: props.label} );
+        emit('update:modelValue', newValue );
     
     };
     
