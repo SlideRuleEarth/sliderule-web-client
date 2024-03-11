@@ -203,6 +203,28 @@ onMounted(() => {
                     :menuOptions="reqParamsStore.beamsOptions"
                     :default="reqParamsStore.beamsOptions"
                 />
+                <SrSliderInput
+                    v-model="reqParamsStore.rgtValue"
+                    label="RGT:"
+                    :min="1"
+                    :max="100" 
+                    :decimal-places="0"
+                />
+                <SrSliderInput
+                    v-model="reqParamsStore.cycleValue"
+                    label="Cycle:"
+                    :min="1"
+                    :max="100" 
+                    :decimal-places="0"
+                />
+                <SrSliderInput
+                    v-model="reqParamsStore.regionValue"
+                    label="Region:"
+                    :min="1"
+                    :max="100" 
+                    :decimal-places="0"
+                />
+                
             </AccordionTab>
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
 
