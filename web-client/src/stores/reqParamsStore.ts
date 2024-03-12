@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-
+import type { SrRadioBtnCategory } from '@/components/SrRadioButtonBox.vue';
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
@@ -27,7 +27,15 @@ export const useReqParamsStore = defineStore('reqParams', {
         spreadValue: 20.0,
         PE_CountValue: 10,
         windowValue: 3.0,
-        sigmaValue: 5.0,    
+        sigmaValue: 5.0,
+        surfaceTypeOptions: [
+          { name: 'Land', key:'L' },
+          { name: 'Ocean', key:'O' },
+          { name: 'Sea Ice', key:'S'},
+          { name: 'Land Ice', key:'I'},
+          { name: 'Inland Water',key:'W' },
+        ] as SrRadioBtnCategory[],
+        surfaceType: 'Land',   
     }),
     actions: {
         setRasterizePolygon(value:boolean) {

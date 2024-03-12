@@ -35,7 +35,7 @@ import { computed } from 'vue';
       modelValue: '',
       icon: '',
       ariaLabel: '',
-      tooltipText: 'Draw',
+      tooltipText: '',
     },
   );
   

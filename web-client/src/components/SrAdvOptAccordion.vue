@@ -19,6 +19,7 @@ import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import SrRadioButtonBox from './SrRadioButtonBox.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -123,7 +124,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
 const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'Upload geojson File'}]);
 
 onMounted(() => {
@@ -236,7 +236,11 @@ onMounted(() => {
                 
             </AccordionTab>
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
-
+                <SrRadioButtonBox
+                    label="Surface Type"
+                    ariaTitle="Select Surface Type"
+                    :categories="reqParamsStore.surfaceTypeOptions"
+                />
             </AccordionTab>
             <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
 
@@ -398,4 +402,4 @@ onMounted(() => {
     color: var(--text-color); 
 }
 
-</style>
+</style>./SrRadioButtonBox.vue
