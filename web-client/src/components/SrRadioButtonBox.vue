@@ -4,7 +4,7 @@
       <label class="sr-radio-bb-cat-label" for="dynamic">{{ props.label }}</label>
       <div class="sr-radio-bb-container ">
           <div v-for="category in categories" :key="category.key" class="sr-radio-bb-menu">
-              <RadioButton v-model="selectedCategory" :inputId="category.key" name="dynamic" :value="category.name" />
+              <RadioButton v-model="selectedCategory" :inputId="category.key" name="dynamic" :value="category.name" ariaLabel="ariaLabel"/>
               <label :for="category.key" class="sr-radio-bb-label">{{ category.name }}</label>
           </div>
       </div>
@@ -41,6 +41,7 @@ const selectedCategory = ref(props.categories[0].name);
     border-width: 1px;
     border-radius: var(--border-radius);
     border-style: solid;
+    border-color: var(--border-color);
   }
   .sr-radio-bb-outer-container {
     margin: 0rem 0rem 0rem 1rem;
