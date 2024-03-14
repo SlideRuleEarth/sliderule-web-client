@@ -7,7 +7,7 @@
     </div>
 </template>  
 <script setup lang="ts">
-    import { ref, onMounted } from 'vue';
+    import { ref, onMounted, watch } from 'vue';
     import MultiSelect from 'primevue/multiselect';
     import FloatLabel from 'primevue/floatlabel';
 
@@ -18,12 +18,35 @@
     const props = defineProps({
         label: String,
         menuOptions: Array as () => SrMultiSelectItem[],
-        default: Array as () => SrMultiSelectItem[]
+        default: Array as () => SrMultiSelectItem[],
+        value: Array as () => SrMultiSelectItem[],
+        names: Array as () => string[]
     });
 
     // Update to manage an array of selected items
-    const selectedMenuItems = ref();
+    const selectedMenuItems = ref(props.default);
+    const emit = defineEmits(['update:value']);
+    watch(selectedMenuItems, (newValue) => {
+        console.log('MultiMenu:', props.label, 'selected:', newValue);
+        if(newValue){
+            const names = newValue.map(item => item.name);
+            // Emit event to update parent value
+            emit('update:value', names);
+        } else {
+            console.error('No selected items?');
+        }
+    
+    });
+
     onMounted(() => {
+        selectedMenuItems.value = props.default;
+        if(selectedMenuItems.value){
+            const names = selectedMenuItems.value.map(item => item.name);
+            // Emit event to update parent value
+            emit('update:value', names);
+        } else {
+            console.error('No selected items?');
+        }
 
         console.log('Mounted MultiMenu:', props.label);
         console.log('Selected:', selectedMenuItems.value);

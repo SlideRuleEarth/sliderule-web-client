@@ -242,22 +242,25 @@ onMounted(() => {
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
                 <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl03'"
+                    :menuOptions="reqParamsStore.surfaceTypeOptions"
                     label="Surface Type"
                     ariaLabel="Select Surface Type"
-                    :menuOptions="reqParamsStore.surfaceTypeOptions"
+                    @update:value="reqParamsStore.surfaceType = $event"
+                    :default="reqParamsStore.surfaceTypeOptions"
                 />
                 <SrRadioButtonBox
                     v-if="iceSat2SelectedAPI.value==='atl03'"
                     label="Signal Confidence"
                     ariaLabel="Signal Confidence"
                     :categories="reqParamsStore.signalConfidenceOptions"
+                    default
                 />
-                <SrMenuMultiInput
+                <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl08'"
-                    v-model="reqParamsStore.landTypeOptions"
+                    :menuOptions="reqParamsStore.landTypeOptions"
                     label = "Land Type:"
                     aria-label="Select Land Type"
-                    :menuOptions="reqParamsStore.landTypeOptions"
+                    @update:value="reqParamsStore.landType = $event"
                     :default="reqParamsStore.landTypeOptions"
                 />
                 <SrSliderInput

@@ -10,7 +10,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         iceSat2SelectedAPI: {name:'IceSat-2 Api', value:'atl06'},
         gediSelectedAPI: {name:'GEDI Api', value:'gedi01b'},
         urlValue: 'slideruleearth.io',
-        surfaceTypeValue: {name:'SurfaceType', value:'Land'},
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
         beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
@@ -36,7 +35,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Land Ice', code:'I'},
           { name: 'Inland Water',code:'W' },
         ] as SrMultiSelectItem[],
-        surfaceType: 'Land',
+        surfaceType:[] as string[],
         signalConfidenceOptions: [
           { name: 'TEP', key: '-2' },
           { name: 'Not Considered', key: '0' },
@@ -47,8 +46,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'High', key: '4' },
         ] as SrRadioBtnCategory[],
         signalConfidence: 'Terrain Echo Photon (TEP)',
-        landTypeOptions: ['noise', 'ground', 'canopy', 'Top of Canopy','unclasified'],
-        landType: 'noise',
+        landTypeOptions: [
+          { name: 'noise', code: '0' },
+          { name: 'ground', code: '1' },
+          { name: 'canopy', code: '2' },
+          { name: 'Top of Canopy', code: '3' },
+          { name: 'unclassified', code: '4' },
+        ] as SrMultiSelectItem[],
+        landType: 'ground',
         YAPC: 0.0,
     }),
     actions: {
