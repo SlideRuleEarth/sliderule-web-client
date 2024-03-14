@@ -59,6 +59,7 @@
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
     margin-top: 0.125rem;
+    border-color: var(--border-color);
 }
 
 .label {

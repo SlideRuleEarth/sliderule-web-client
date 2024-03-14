@@ -33,15 +33,15 @@
     const elevationStore = useElevationStore();
 
     const toast = useToast();
-    const missionValue = ref({name:'mission',value:'IceSat-2'});
-    const missionItems = ref([{name:'mission',value:'IceSat-2'},{name:'mission',value:'GEDI'}]);
-    const iceSat2SelectedAPI = ref({name:'IceSat-2 Api',value:'atl06'});
-    const iceSat2APIsItems = ref([{name:'IceSat-2 Api',value:'atl03'},{name:'IceSat-2 Api',value:'atl06'},{name:'IceSat-2 Api',value:'atl06s'},{name:'IceSat-2 Api',value:'atl08'},{name:'IceSat-2 Api',value:'atl24s'}]);
-    const gediSelectedAPI = ref({name:'GEDI Api',value:'gedi01b'});
-    const gediAPIsItems = ref([{name:'GEDI Api',value:'gedi01b'},{name:'GEDI Api',value:'gedi02a'},{name:'GEDI Api',value:'gedi04a'}]);
+    const missionValue = ref({name:'IceSat-2',value:'IceSat-2'});
+    const missionItems = ref([{name:'IceSat-2',value:'IceSat-2'},{name:'GEDI',value:'GEDI'}]);
+    const iceSat2SelectedAPI = ref({name:'atl06',value:'atl06'});
+    const iceSat2APIsItems = ref([{name:'atl03',value:'atl03'},{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
+    const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
+    const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     const urlValue = ref('slideruleearth.io');
-    const surfaceTypeValue = ref({name:'SurfaceType', value:'Land'});
-    const surfaceTypeItems = ref([{name:'SurfaceType', value:'Land'},{name:'SurfaceType', value:'Ocean'},{name:'SurfaceType', value:'Sea Ice'},{name:'SurfaceType', value:'Land Ice'},{name:'SurfaceType', value:'Inland Water'}]);
+    const surfaceTypeValue = ref({name:'Land', value:'Land'});
+    const surfaceTypeItems = ref([{name:'Land', value:'Land'},{name:'Ocean', value:'Ocean'},{name:'Sea Ice', value:'Sea Ice'},{name:'Land Ice', value:'Land Ice'},{name:'Inland Water', value:'Inland Water'}]);
     const lengthValue = ref(40);
     const stepValue = ref(20);
     const confidenceValue = ref(4);

@@ -243,17 +243,24 @@ onMounted(() => {
                 <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl03'"
                     :menuOptions="reqParamsStore.surfaceTypeOptions"
-                    label="Surface Type"
+                    label="Surface Type:"
                     ariaLabel="Select Surface Type"
                     @update:value="reqParamsStore.surfaceType = $event"
-                    :default="reqParamsStore.surfaceTypeOptions"
+                    :default="[reqParamsStore.surfaceTypeOptions[0]]"
                 />
-                <SrRadioButtonBox
+                <!-- <SrRadioButtonBox
                     v-if="iceSat2SelectedAPI.value==='atl03'"
                     label="Signal Confidence"
                     ariaLabel="Signal Confidence"
                     :categories="reqParamsStore.signalConfidenceOptions"
-                    default
+                /> -->
+                <SrMenuInput
+                    v-if="iceSat2SelectedAPI.value==='atl03'"
+                    label="Signal Confidence"
+                    ariaLabel="Signal Confidence"
+                    :menuOptions="reqParamsStore.signalConfidenceOptions"
+                    @update:value="reqParamsStore.signalConfidence = $event"
+                    :default="[reqParamsStore.signalConfidenceOptions[0]]"
                 />
                 <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl08'"

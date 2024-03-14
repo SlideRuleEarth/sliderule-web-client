@@ -3,9 +3,9 @@
     <div class="sr-radio-bb-outer-container ">
       <label class="sr-radio-bb-cat-label" for="dynamic">{{ props.label }}</label>
       <div class="sr-radio-bb-container ">
-          <div v-for="category in categories" :key="category.key" class="sr-radio-bb-menu">
-              <RadioButton v-model="selectedCategory" :inputId="category.key" name="dynamic" :value="category.name" ariaLabel="ariaLabel"/>
-              <label :for="category.key" class="sr-radio-bb-label">{{ category.name }}</label>
+          <div v-for="category in categories" :key="category.value" class="sr-radio-bb-menu">
+              <RadioButton v-model="selectedCategory" :inputId="category.value" name="dynamic" :value="category.name" ariaLabel="ariaLabel"/>
+              <label :for="category.value" class="sr-radio-bb-label">{{ category.name }}</label>
           </div>
       </div>
     </div>
@@ -18,7 +18,7 @@ import RadioButton from 'primevue/radiobutton';
 
 export interface SrRadioBtnCategory {
   name: string;
-  key: string;
+  value: string;
 }
 
 const props = defineProps<{
@@ -32,8 +32,7 @@ const selectedCategory = ref(props.categories[0].name);
 
 <style scoped>
   .sr-radio-bb-card {
-    width: 100%;
-    padding: 0rem 0rem 0rem 0rem; /* t r b l */
+    padding: 0.25rem 0rem 0rem 0rem; /* t r b l */
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -41,7 +40,7 @@ const selectedCategory = ref(props.categories[0].name);
     border-width: 1px;
     border-radius: var(--border-radius);
     border-style: solid;
-    border-color: var(--border-color);
+    border-color: #424b57;
   }
   .sr-radio-bb-outer-container {
     margin: 0rem 0rem 0rem 1rem;

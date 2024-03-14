@@ -5,7 +5,7 @@
                 <label for="srSelectMenu-{{ label }}" class="label">{{ label }}</label>
                 <form class="select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label">
-                        <option v-for="item in menuOptions" :value="item.value" :key=item.value>
+                        <option v-for="item in menuOptions" :label="item.name" :value="item.value" :key=item.value>
                             {{ item.value }}
                         </option>
                     </select>

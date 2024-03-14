@@ -1,19 +1,16 @@
 <template>
-    <div>
-        <FloatLabel class="multi-menu-float-label">
-            <MultiSelect  v-model="selectedMenuItems" display="chip" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="multi-selector" /> 
-            <label for="sr-multiselect-{{ label }}">{{ label }} </label> 
-        </FloatLabel>
+    <div class="menu-label-wrapper">
+        <label for="sr-multiselect-{{ label }}">{{ label }} </label> 
+        <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="multi-selector" /> 
     </div>
 </template>  
 <script setup lang="ts">
     import { ref, onMounted, watch } from 'vue';
     import MultiSelect from 'primevue/multiselect';
-    import FloatLabel from 'primevue/floatlabel';
 
     export interface SrMultiSelectItem {
         name: string;
-        code: string; 
+        value: string; 
     }
     const props = defineProps({
         label: String,
@@ -56,6 +53,7 @@
 
 <style scoped>
 
+
 .multi-menu-card {
     display: flex;
     justify-content: center;
@@ -65,6 +63,12 @@
     margin-top: 2rem;
     width: 100%;
     max-width: 20rem;
+}
+.menu-label-wrapper {
+    display: flex; /* This enables Flexbox */
+    justify-content: space-between; /* Aligns children to opposite edges */
+    align-items: center; /* This vertically centers the items in the container */
+    width: 100%; /* Ensures it spans the full width of its parent */
 }
 
 .multi-selector {
