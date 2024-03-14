@@ -1,7 +1,7 @@
 <template>
     <div class="sr-checkbox">
-        <label> {{ label }} </label>
-        <input type="checkbox" v-model="isChecked" @change="handleChange" />
+        <label :for="'sr-checkbox-' + label"> {{ label }} </label>
+        <input :id="'sr-checkbox-' + label" type="checkbox" v-model="isChecked" @change="handleChange" />
     </div>
 </template>
 

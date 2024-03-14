@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { SrRadioBtnCategory } from '@/components/SrRadioButtonBox.vue';
+import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
@@ -29,13 +30,26 @@ export const useReqParamsStore = defineStore('reqParams', {
         windowValue: 3.0,
         sigmaValue: 5.0,
         surfaceTypeOptions: [
-          { name: 'Land', key:'L' },
-          { name: 'Ocean', key:'O' },
-          { name: 'Sea Ice', key:'S'},
-          { name: 'Land Ice', key:'I'},
-          { name: 'Inland Water',key:'W' },
+          { name: 'Land', code:'L' },
+          { name: 'Ocean', code:'O' },
+          { name: 'Sea Ice', code:'S'},
+          { name: 'Land Ice', code:'I'},
+          { name: 'Inland Water',code:'W' },
+        ] as SrMultiSelectItem[],
+        surfaceType: 'Land',
+        signalConfidenceOptions: [
+          { name: 'TEP', key: '-2' },
+          { name: 'Not Considered', key: '0' },
+          { name: 'Background', key: '1' },
+          { name: 'Within 10m', key: '?' },
+          { name: 'Low', key: '2' },
+          { name: 'Medium', key: '3' },
+          { name: 'High', key: '4' },
         ] as SrRadioBtnCategory[],
-        surfaceType: 'Land',   
+        signalConfidence: 'Terrain Echo Photon (TEP)',
+        landTypeOptions: ['noise', 'ground', 'canopy', 'Top of Canopy','unclasified'],
+        landType: 'noise',
+        YAPC: 0.0,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {

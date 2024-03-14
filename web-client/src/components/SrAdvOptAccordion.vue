@@ -9,6 +9,7 @@ import SrMenuMultiInput from './SrMenuMultiInput.vue';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
+import SrMultiSelect from './SrMultiSelect.vue'
 import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '../stores/geoJsonStore';
@@ -140,6 +141,7 @@ onMounted(() => {
                 <SrMenuInput
                     v-model="mapStore.polygonSource"
                     label = "Polygon Source:"
+                    aria-label="Select Polygon Source"
                     :menuOptions="polygonSourceItems"
                     initial-value="Draw on Map"
                 />
@@ -195,12 +197,14 @@ onMounted(() => {
                 <SrMenuMultiInput
                     v-model="reqParamsStore.tracks"
                     label = "Track(s):"
+                    aria-label="Select Tracks"
                     :menuOptions="reqParamsStore.tracksOptions"
                     :default="reqParamsStore.tracksOptions"
                 />
                 <SrMenuMultiInput
                     v-model="reqParamsStore.beams"
                     label = "Beam(s):"
+                    aria-label="Select Beams"
                     :menuOptions="reqParamsStore.beamsOptions"
                     :default="reqParamsStore.beamsOptions"
                 />
@@ -236,11 +240,32 @@ onMounted(() => {
                 
             </AccordionTab>
             <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
-                <SrRadioButtonBox
+                <SrMultiSelect
+                    v-if="iceSat2SelectedAPI.value==='atl03'"
                     label="Surface Type"
-                    ariaTitle="Select Surface Type"
-                    :categories="reqParamsStore.surfaceTypeOptions"
+                    ariaLabel="Select Surface Type"
+                    :menuOptions="reqParamsStore.surfaceTypeOptions"
                 />
+                <SrRadioButtonBox
+                    v-if="iceSat2SelectedAPI.value==='atl03'"
+                    label="Signal Confidence"
+                    ariaLabel="Signal Confidence"
+                    :categories="reqParamsStore.signalConfidenceOptions"
+                />
+                <SrMenuMultiInput
+                    v-if="iceSat2SelectedAPI.value==='atl08'"
+                    v-model="reqParamsStore.landTypeOptions"
+                    label = "Land Type:"
+                    aria-label="Select Land Type"
+                    :menuOptions="reqParamsStore.landTypeOptions"
+                    :default="reqParamsStore.landTypeOptions"
+                />
+                <SrSliderInput
+                    v-if="iceSat2SelectedAPI.value==='atl03'"
+                    v-model="reqParamsStore.YAPC"
+                    label="YAPC:"
+                />   
+
             </AccordionTab>
             <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
 
@@ -274,11 +299,6 @@ onMounted(() => {
 .adv-opt-card {
     padding: 0.1250rem;
     margin: 0.1250rem;
-    /* background-color: transparent;
-    border-radius: var(--border-radius);
-    border-width: 3px;
-    border-color: var(--primary-100);
-    border-style: inset; */
 }
 
 :deep(.p-accordion .p-accordion-tab) {
@@ -303,6 +323,7 @@ onMounted(() => {
     border-radius: var(--border-radius);
     border-width: 4px;
     margin-bottom: 0rem;
+    color: var(--text-color);
 }
 
 :deep(.p-accordion-header.p-highlight){

@@ -1,9 +1,9 @@
 <template>
-    <div class="slider-input-wrapper">
-      <div class="slider-row">
-            <label class="label">{{ label }}</label>
-            <Slider v-model="innerValue" :min="min" :max="max" class="slider" />
-            <InputText v-model="formattedValue" class="input-text" />
+    <div class="sr-slider-input-wrapper">
+      <div class="sr-slider-row">
+            <label class="sr-label" :for="inputId">{{ label }}</label>
+            <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" />
+            <InputText v-model="formattedValue" class="sr-input-text" :inputId="inputId"/>
         </div>
     </div>
 </template>
@@ -11,14 +11,13 @@
 <script setup lang="ts">
     import {useToast} from "primevue/usetoast";
 
-    import { ref, watch, computed,onMounted } from 'vue';
+    import { ref, watch, computed, onMounted,  } from 'vue';
     import InputText from 'primevue/inputtext';
     import Slider from 'primevue/slider';
     import { watchDebounced } from '@vueuse/core'
     import { useDebounceFn } from '@vueuse/core';
     import { useSrToastStore } from "@/stores/srToastStore.js";
     const srToastStore = useSrToastStore();
-
     const toast = useToast();
 
     const props = defineProps({
@@ -119,31 +118,33 @@
             updateInnerValue(numericValue);
         }
     });
-    
+    // Method to generate the ID for the Slider element using the label and prefix
+    const inputId = `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
+    const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
 </script>
 
 <style scoped>
-.slider-input-wrapper {
+.sr-slider-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.0625rem solid var(transparent);
     border-radius: var(--border-radius);
 }
 
-.slider-row {
+.sr-slider-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.125rem ;
 }
-.label {
+.sr-label {
     margin-right: 0.5rem;
 }
-.slider {
+.sr-slider {
     min-width: 5rem; /* Example width, adjust as needed */
     margin-right: 0.5rem;
 }
 
-.input-text {
+.sr-slider-input-text {
     width: 5em; /* Adjust as needed for 5 digits */
     text-align: right;
     padding: 0.25rem;
