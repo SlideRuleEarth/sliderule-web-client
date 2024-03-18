@@ -275,6 +275,12 @@ onMounted(() => {
                     label="YAPC:"
                 />   
                 <SrSwitchedSliderInput
+                    label="SR YAPC:"
+                    :min="1"
+                    :max="100" 
+                    :decimalPlaces="0"
+                />
+                <SrSwitchedSliderInput
                     v-if="iceSat2SelectedAPI.value==='atl03'"
                     label="YAPC:"
                     :min="1"
@@ -283,7 +289,56 @@ onMounted(() => {
                 />
             </AccordionTab>
             <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
-
+                <SrMenuInput
+                    v-model="reqParamsStore.distanceIn"
+                    label = "Distance In:"
+                    aria-label="Select Distance in"
+                    :menuOptions="reqParamsStore.distanceInOptions"
+                />
+                <SrSliderInput
+                    v-if="reqParamsStore.distanceIn==='meters'"
+                    v-model="reqParamsStore.lengthValue"
+                    label="Length in meters:"
+                    :min="5"
+                    :max="200" 
+                    :decimal-places="0"                  
+                />
+                <SrSliderInput
+                    v-if="reqParamsStore.distanceIn==='meters'"
+                    v-model="reqParamsStore.stepValue"
+                    label="Step Size (meters):"
+                    :min="5"
+                    :max="100" 
+                    :decimal-places="0"
+                />
+                <SrSliderInput
+                    v-if="reqParamsStore.distanceIn==='segments'"
+                    v-model="reqParamsStore.lengthValue"
+                    label="Length in segments:"
+                    :min="5"
+                    :max="200" 
+                    :decimal-places="0"                  
+                />
+                <SrCheckbox
+                    label="Pass Invalid:"
+                    v-model="reqParamsStore.passInvalid"
+                />
+                <SrSliderInput
+                    :insensitive="reqParamsStore.passInvalid"
+                    v-model="reqParamsStore.alongTrackSpread"
+                    label="Along Track Spread:"
+                    :min="0"
+                    :max="200" 
+                    :decimal-places="0"
+                />
+                <SrSliderInput
+                    :insensitive="reqParamsStore.passInvalid"
+                    v-model="reqParamsStore.minimumPhotonCount"
+                    label="Minimum Photon Count:"
+                    :min="0"
+                    :max="200" 
+                    :decimal-places="0"
+                />
             </AccordionTab>
             <AccordionTab header="Surface Elevation" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
 

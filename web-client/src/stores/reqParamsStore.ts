@@ -55,6 +55,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         ] as SrMultiSelectItem[],
         landType: 'ground',
         YAPC: 0.0,
+        distanceInOptions:[
+          { name: 'meters', value: 'meters' },
+          { name: 'segments', value: 'segments' },
+        ] as SrMultiSelectItem[],
+        distanceIn: 'meters',
+        passInvalid: false,
+        alongTrackSpread: 0.0,
+        minimumPhotonCount: 0,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {

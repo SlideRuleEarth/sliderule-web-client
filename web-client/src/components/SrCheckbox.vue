@@ -1,6 +1,6 @@
 <template>
     <div class="sr-checkbox">
-        <label :for="'sr-checkbox-' + label"> {{ label }} </label>
+        <label class = 'sr-checkbox-label' :for="'sr-checkbox-' + label"> {{ label }} </label>
         <input :id="'sr-checkbox-' + label" type="checkbox" v-model="isChecked" @change="handleChange" />
     </div>
 </template>
@@ -34,5 +34,9 @@ function handleChange(event) {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+.sr-checkbox-label {
+    white-space: nowrap;
 }
 </style>

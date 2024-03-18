@@ -1,18 +1,16 @@
 <template>
-    <div class="menu-input-wrapper">
-        <div class="menu-row">
-            <div ref="menuElement" class="menu-control">
-                <label for="srSelectMultiMenu-{{ label }}" class="label">{{ label }}</label>
+    <div class="sr-menu-multi-input-wrapper">
+            <div ref="menuElement" class="sr-menu-multi-input-menu-control">
+                <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
                 <SrCheckbox label="Select All" :default="true" @update:modelValue="handleSelectAllItems" />
                 <form class="sr-multimenu-select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItems" class="select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
+                    <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
                         <option v-for="item in menuOptions" :value="item" :key="item">
                             {{ item }}
                         </option>
                     </select>
                 </form>
             </div>
-        </div>
     </div>
 </template>
   
@@ -54,24 +52,23 @@
 </script>
 
 <style scoped>
-.menu-input-wrapper {
+.sr-menu-multi-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
     margin-top: 0.125rem;
-    border-color: var(--border-color);
 }
 
-.label {
+.sr-menu-multi-input-label {
     margin-right: 0.5rem;
 }
 
-.select-item {
+.sr-menu-multi-input-select-item {
     display: flex;
     align-items: right;
 }
 
-.menu-control {
+.sr-menu-multi-input-menu-control {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -79,7 +76,7 @@
     gap: 10px;
 }
 
-.select-default {
+.sr-menu-multi-input-select-default {
     width: calc(100% - 0.25rem);
     padding: 0rem;
     margin: 0rem;

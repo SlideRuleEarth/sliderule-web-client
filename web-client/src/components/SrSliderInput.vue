@@ -1,9 +1,9 @@
 <template>
     <div class="sr-slider-input-wrapper">
       <div class="sr-slider-row">
-            <label class="sr-slider-label" :for="inputId">{{ label }}</label>
-            <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" />
-            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId"/>
+            <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+            <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
+            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :readonly="insensitive"/>
         </div>
     </div>
 </template>
@@ -24,6 +24,10 @@
     modelValue: {
         type: Number,
         required: true
+    },
+    insensitive: {
+        type: Boolean,
+        default: false
     },
     min: {
         type: Number,
@@ -141,8 +145,14 @@
     padding: 0.125rem ;
 }
 
-.sr-label {
-    margin-right: 0.5rem;
+.sr-slider-label {
+    white-space: nowrap;
+    margin-right: 0.75rem;
+}
+.sr-slider-label-insensitive {
+    white-space: nowrap;
+    margin-right: 0.75rem;
+    color: #888; /* Example grey color */
 }
 
 .sr-slider {
