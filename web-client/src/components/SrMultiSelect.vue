@@ -74,4 +74,22 @@
 .multi-selector {
     width: 100%;
 }
+/* 
+:deep(.p-multiselect) {
+    height: 2.0rem;
+}
+
+:deep(.p-multiselect-label-container) {
+    height: 1.25rem;
+    padding-left:0.25;
+}
+:deep(.p-multiselect-label) {
+    font-size: 1rem;
+    border:0;
+    margin-top: 0; 
+    margin-right: 0; 
+    margin-bottom: 0;
+    margin-left: 0.25rem;    
+} */
+
 </style>

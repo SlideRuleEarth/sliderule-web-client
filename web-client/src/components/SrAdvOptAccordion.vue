@@ -21,6 +21,7 @@ import SrSliderInput from './SrSliderInput.vue';
 import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrRadioButtonBox from './SrRadioButtonBox.vue';
+import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -143,7 +144,6 @@ onMounted(() => {
                     label = "Polygon Source:"
                     aria-label="Select Polygon Source"
                     :menuOptions="polygonSourceItems"
-                    initial-value="Draw on Map"
                 />
                 <div class="file-upload-panel" v-if="!polyCoordsExist">
                     <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
@@ -260,7 +260,6 @@ onMounted(() => {
                     ariaLabel="Signal Confidence"
                     :menuOptions="reqParamsStore.signalConfidenceOptions"
                     @update:value="reqParamsStore.signalConfidence = $event"
-                    :default="[reqParamsStore.signalConfidenceOptions[0]]"
                 />
                 <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl08'"
@@ -275,7 +274,13 @@ onMounted(() => {
                     v-model="reqParamsStore.YAPC"
                     label="YAPC:"
                 />   
-
+                <SrSwitchedSliderInput
+                    v-if="iceSat2SelectedAPI.value==='atl03'"
+                    label="YAPC:"
+                    :min="1"
+                    :max="100" 
+                    :decimalPlaces="0"
+                />
             </AccordionTab>
             <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
 
@@ -310,14 +315,13 @@ onMounted(() => {
     padding: 0.1250rem;
     margin: 0.1250rem;
 }
-
+/* 
 :deep(.p-accordion .p-accordion-tab) {
     background-color: transparent;
     margin: 0.25rem;
 }
 
 :deep(.p-accordion .p-accordion-header) {
-    /* display: flex; */
     background-color: transparent;
     margin-bottom: 0.0rem;
 }
@@ -343,7 +347,6 @@ onMounted(() => {
     margin-bottom: 0rem;
 }
 :deep(.p-accordion-header-link.p-accordion-header-action){
-    /* background-color: transparent; */
     padding:0.5rem;
 }
 
@@ -362,7 +365,7 @@ onMounted(() => {
     border-radius: var(--border-radius);
     margin: 0.5rem;
     padding: 0.5rem;
-}
+} */
 
 .file-upload-panel { 
     display: flex;

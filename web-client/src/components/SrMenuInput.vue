@@ -5,8 +5,8 @@
                 <label for="srSelectMenu-{{ label }}" class="label">{{ label }}</label>
                 <form class="select-item" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label">
-                        <option v-for="item in menuOptions" :label="item.name" :value="item.value" :key=item.value>
-                            {{ item.value }}
+                        <option v-for="item in menuOptions" :label="item.value" :value="item" :key=item.value>
+                            {{ item }}
                         </option>
                     </select>
                 </form>
@@ -26,14 +26,18 @@
     const props = defineProps({
         label: String,
         menuOptions: Array as () => SrMenuItem[],
-        initialValue: String
     });
-    const selectedMenuItem = ref<string>(props.initialValue? props.initialValue : '');
+    const selectedMenuItem = ref<SrMenuItem>(
+        props.menuOptions && props.menuOptions.length > 0
+            ? props.menuOptions[0]
+            : { name: 'default', value: 'default' }
+    );
+
     const emit = defineEmits(['update:modelValue']);
 
     watch(selectedMenuItem, (newValue) => {
         console.log('Menu:', props.label, 'selected:', newValue);
-        emit('update:modelValue', {value: newValue, name: props.label} );
+        emit('update:modelValue', newValue); 
     });
 
     onMounted(() => {

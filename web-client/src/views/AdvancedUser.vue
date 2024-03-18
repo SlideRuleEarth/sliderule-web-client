@@ -2,10 +2,7 @@
     import SrSideBar from "@/components/SrSideBar.vue";
     import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
     import SrMap from "@/components/SrMap.vue";
-    import SrSliderInput from "@/components/SrSliderInput.vue";
-    import SrTextInput from "@/components/SrTextInput.vue";
     import SrMenuInput from "@/components/SrMenuInput.vue";
-    import SrMenuMultiInput from "@/components/SrMenuMultiInput.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
@@ -198,21 +195,20 @@
                                     v-model="missionValue"
                                     label="Mission:"
                                     :menuOptions="missionItems" 
-                                    initial-value="IceSat-2"
                                 />
                                 <SrMenuInput
                                     v-model="iceSat2SelectedAPI"
                                     v-if="missionValue.value === 'IceSat-2'"
                                     label="IceSat-2 Api:"
                                     :menuOptions="iceSat2APIsItems"
-                                    initial-value="atl06" 
+                                    :initial-value="iceSat2APIsItems[0]" 
                                 />
                                 <SrMenuInput
                                     v-model="gediSelectedAPI"
                                     v-if="missionValue.value === 'GEDI'"
                                     label="GEDI Api:"
                                     :menuOptions="gediAPIsItems"
-                                    initial-value="gedi01b" 
+                                    :initial-value="gediAPIsItems[0]" 
                                 />
                                 <SrAdvOptAccordion
                                     title="Advanced Options"
@@ -221,88 +217,6 @@
                                     :iceSat2SelectedAPI="iceSat2SelectedAPI"
                                     :gediSelectedAPI="gediSelectedAPI"
                                 />
-                                <SrTextInput
-                                    v-model="urlValue"
-                                    label="URL:"
-                                />
-                                <SrMenuInput
-                                    v-model="surfaceTypeValue"
-                                    label="Surface:"
-                                    :menuOptions="surfaceTypeItems" 
-                                />
-                                <SrSliderInput
-                                    v-model="lengthValue"
-                                    label="Length:"
-                                    :min="5"
-                                    :max="200" 
-                                    :decimal-places="0"                  
-                                />
-                                <SrSliderInput
-                                    v-model="stepValue"
-                                    label="Step:"
-                                    :min="5"
-                                    :max="100" 
-                                    :decimal-places="0"
-                                />
-                                <SrSliderInput
-                                    v-model="confidenceValue"
-                                    label="Confidence:"
-                                    :min="-2"
-                                    :max="4" 
-                                    :decimal-places="0"
-                                />
-                                <!-- <SrMenuMultiInput
-                                    v-model="selectedLandClassItems"
-                                    label="Land Class:"
-                                    :menuOptions="landClassItems" 
-                                />
-                                <SrSliderInput
-                                    v-model="iterationsValue"
-                                    label="Iterations:"
-                                    :min="0"
-                                    :max="20" 
-                                    :decimal-places="0"
-                                />
-                                <SrSliderInput
-                                    v-model="spreadValue"
-                                    label="Spread:"
-                                    :min="0"
-                                    :max="100.0" 
-                                    :decimal-places="1"
-                                />
-                                <SrSliderInput
-                                    v-model="PE_CountValue"
-                                    label="PE Count:"
-                                    :min="0"
-                                    :max="50" 
-                                    :decimal-places="0"
-                                />
-                                <SrSliderInput
-                                    v-model="windowValue"
-                                    label="Window:"
-                                    :min="0.5"
-                                    :max="10.0" 
-                                    :decimal-places="1"
-                                />
-                                <SrSliderInput
-                                    v-model="sigmaValue"
-                                    label="Sigma:"
-                                    :min="1.0"
-                                    :max="10.0" 
-                                    :decimal-places="1"
-                                />
-                                <SrMenuInput
-                                    v-model="surfaceTypeValue"
-                                    label="Variable:"
-                                    :menuOptions="variableItems" 
-                                    initial-value="h_mean"
-                                />
-                                <SrMenuInput
-                                    v-model="surfaceTypeValue"
-                                    label="ColorMap:"
-                                    :menuOptions="colorMapItems" 
-                                    initial-value="viridis"
-                                /> -->
                                 <SrGraticuleSelect @graticule-click="graticuleClick"/>
                             </div>  
                             <div class="button-spinner-container">

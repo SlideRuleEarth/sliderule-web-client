@@ -1,9 +1,9 @@
 <template>
     <div class="sr-slider-input-wrapper">
       <div class="sr-slider-row">
-            <label class="sr-label" :for="inputId">{{ label }}</label>
+            <label class="sr-slider-label" :for="inputId">{{ label }}</label>
             <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" />
-            <InputText v-model="formattedValue" class="sr-input-text" :inputId="inputId"/>
+            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId"/>
         </div>
     </div>
 </template>
@@ -36,6 +36,10 @@
     label: {
         type: String,
         default: 'Label'
+    },
+    id: {
+        type: String,
+        default: 'sr-slider-input-' + Math.random().toString(36).substring(2, 9)
     },
     decimalPlaces: {
         type: Number,
@@ -72,7 +76,6 @@
     const onInnerValueChange = (newValue) => {
         //console.log(`Inner value changed from ${oldValue} to ${newValue}`);
         emit('update:modelValue', newValue );
-    
     };
     
     watchDebounced(innerValue, 
@@ -118,8 +121,9 @@
             updateInnerValue(numericValue);
         }
     });
-    // Method to generate the ID for the Slider element using the label and prefix
-    const inputId = `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
+    // Method to generate the ID for the Slider element using the label and prefix if possible
+    const inputId = props.label && props.label.trim() !== '' ? 
+        `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}` : props.id;
     const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
 </script>
 
@@ -136,9 +140,11 @@
     align-items: center;
     padding: 0.125rem ;
 }
+
 .sr-label {
     margin-right: 0.5rem;
 }
+
 .sr-slider {
     min-width: 5rem; /* Example width, adjust as needed */
     margin-right: 0.5rem;
