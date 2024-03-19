@@ -1,12 +1,30 @@
 export type RasterParams = {
     key: string;
-    t0: string;
-    t1: string;
+    asset: string;
+    algorithm: string;
+    radius: number;
+    zonalStats: string;
+    withFlag: boolean;
+    t0: Date;
+    t1: Date;
+    substring: string;
+    closestTime: boolean;
+    catalog: string;
+    bands: string[];
 }
 export const RasterParamsCols = [
   { field: 'key', header: 'Key' },
-  { field: 't0', header: 'T0 Value' },
-  { field: 't1', header: 'T1 Value' }  
+  { field: 'asset', header: 'asset' },
+  { field: 'algorithm', header: 'algorithm' }, 
+  { field: 'radius', header: 'radius' },
+  { field: 'zonalStats', header: 'zonalStats' },
+  { field: 'withFlag', header: 'withFlag' },
+  { field: 't0', header: 't0' },
+  { field: 't1', header: 't1' },
+  { field: 'substring', header: 'substring' },
+  { field: 'closestTime', header: 'closestTime' },
+  { field: 'catalog', header: 'catalog' },
+  { field: 'bands', header: 'bands' }
 ];
 
 // Define the store

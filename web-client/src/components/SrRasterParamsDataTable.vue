@@ -18,8 +18,18 @@
       // Define a new raster parameter object
       const newRasterParam: RasterParams = {
         key: 'new_key_example',
-        t0: 'new_t0_example',
-        t1: 'new_t1_example'
+        asset: 'new_asset_example',
+        algorithm: 'new_algorithm_example',
+        radius: 0,
+        zonalStats: 'new_zonalStats_example',
+        withFlag: false,
+        t0: new Date,
+        t1: new Date,
+        substring: 'new_substring_example',
+        closestTime: false,
+        catalog: 'new_catalog_example',
+        bands: ['band0','band1','band2'],
+
       };
 
       // Add the new raster parameter to the store
