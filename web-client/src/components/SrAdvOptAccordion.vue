@@ -20,8 +20,8 @@ import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import SrRadioButtonBox from './SrRadioButtonBox.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
+import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -405,6 +405,7 @@ onMounted(() => {
                 />
             </AccordionTab>
             <AccordionTab header="Raster Sampling"> 
+                <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
             </AccordionTab>
             <AccordionTab header="Output">
 
@@ -544,4 +545,4 @@ onMounted(() => {
     color: var(--text-color); 
 }
 
-</style>./SrRadioButtonBox.vue
+</style>
