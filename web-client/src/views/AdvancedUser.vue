@@ -30,8 +30,8 @@
     const elevationStore = useElevationStore();
 
     const toast = useToast();
-    const missionValue = ref({name:'IceSat-2',value:'IceSat-2'});
-    const missionItems = ref([{name:'IceSat-2',value:'IceSat-2'},{name:'GEDI',value:'GEDI'}]);
+    const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
+    const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
     const iceSat2SelectedAPI = ref({name:'atl06',value:'atl06'});
     const iceSat2APIsItems = ref([{name:'atl03',value:'atl03'},{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
     const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
@@ -76,7 +76,7 @@
 
     watch(() => missionValue,(newValue,oldValue) => {
         console.log(`missionValue changed from ${oldValue} to ${newValue}`);
-        if (newValue.value.value === 'IceSat-2') {
+        if (newValue.value.value === 'ICESat-2') {
             iceSat2SelectedAPI.value.value = 'atl06'; // Reset to default when mission changes
         } else if (newValue.value.value === 'GEDI') {
             gediSelectedAPI.value.value = 'gedi01b'; // Reset to default when mission changes
@@ -198,8 +198,8 @@
                                 />
                                 <SrMenuInput
                                     v-model="iceSat2SelectedAPI"
-                                    v-if="missionValue.value === 'IceSat-2'"
-                                    label="IceSat-2 Api:"
+                                    v-if="missionValue.value === 'ICESat-2'"
+                                    label="ICESat-2 Api:"
                                     :menuOptions="iceSat2APIsItems"
                                     :initial-value="iceSat2APIsItems[0]" 
                                 />

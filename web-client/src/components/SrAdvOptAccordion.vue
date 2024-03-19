@@ -127,7 +127,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'Upload geojson File'}]);
-
+ 
 onMounted(() => {
     console.log('Mounted SrAdvOptAccordian');
 });
@@ -193,7 +193,7 @@ onMounted(() => {
                     :decimal-places="0"
                 />
             </AccordionTab>
-            <AccordionTab header="Granule Selection" v-if="mission.value==='IceSat-2'" >
+            <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
                 <SrMenuMultiInput
                     v-model="reqParamsStore.tracks"
                     label = "Track(s):"
@@ -239,7 +239,7 @@ onMounted(() => {
                 />
                 
             </AccordionTab>
-            <AccordionTab header="Photon Selection"  v-if="mission.value==='IceSat-2'" >
+            <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
                 <SrMultiSelect
                     v-if="iceSat2SelectedAPI.value==='atl03'"
                     :menuOptions="reqParamsStore.surfaceTypeOptions"
@@ -288,7 +288,7 @@ onMounted(() => {
                     :decimalPlaces="0"
                 />
             </AccordionTab>
-            <AccordionTab header="Extents" v-if="mission.value==='IceSat-2'" >
+            <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
                 <SrMenuInput
                     v-model="reqParamsStore.distanceIn"
                     label = "Distance In:"
@@ -340,16 +340,69 @@ onMounted(() => {
                     :decimal-places="0"
                 />
             </AccordionTab>
-            <AccordionTab header="Surface Elevation" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
+            <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
 
             </AccordionTab>
-            <AccordionTab header="Veg Density Alg" v-if="mission.value==='IceSat-2' && iceSat2SelectedAPI.value==='atl08'" >
+            <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl08'" >
             </AccordionTab>
-            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='IceSat-2'" >
-
+            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
+                <SrMenuMultiInput
+                    v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                    v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                    label="ATL03 GeoSpatial Fields:"
+                    ariaLabel="Select ATL03 GeoSpatial Fields"
+                    :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                    :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                />  
+                <SrMenuMultiInput
+                    v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                    v-model="reqParamsStore.ATL03PhotonFieldsOptions"
+                    label="ATL03 Photon Fields:"
+                    ariaLabel="Select ATL03 Photon Fields"
+                    :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
+                    :default="reqParamsStore.ATL03PhotonFieldsOptions"
+                /> 
+                <SrMenuMultiInput
+                    v-if="iceSat2SelectedAPI.value==='atl06s'"
+                    v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                    label="ATL03 IceSegment Fields:"
+                    ariaLabel="Select ATL03 IceSegment Fields"
+                    :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                    :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                />  
+                <SrMenuMultiInput
+                    v-if="iceSat2SelectedAPI.value==='atl08'"
+                    v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                    label="ATL03 IceSegment Fields:"
+                    ariaLabel="Select ATL03 IceSegment Fields"
+                    :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                    :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                />  
             </AccordionTab>
             <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
-
+                <SrMultiSelect
+                    v-model="reqParamsStore.gediBeams"
+                    label = "Select Beam(s):"
+                    aria-label="Select Beams"
+                    :menuOptions="reqParamsStore.gediBeamsOptions"
+                    :default="reqParamsStore.gediBeamsOptions"
+                />
+                <SrCheckbox
+                    label="Degrade Flag:"
+                    v-model="reqParamsStore.DegradeFlag"
+                />
+                <SrCheckbox
+                    label="L2 Quality Flag:"
+                    v-model="reqParamsStore.L2QualityFlag"
+                />
+                <SrCheckbox
+                    label="L4 Quality Flag:"
+                    v-model="reqParamsStore.L4QualityFlag"
+                />
+                <SrCheckbox
+                    label="Surface Flag:"
+                    v-model="reqParamsStore.SurfaceFlag"
+                />
             </AccordionTab>
             <AccordionTab header="Raster Sampling"> 
             </AccordionTab>
