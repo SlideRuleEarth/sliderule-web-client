@@ -1,5 +1,5 @@
 export type RasterParams = {
-    key: string;
+    key: string; 
     asset: string;
     algorithm: string;
     radius: number;
@@ -7,7 +7,7 @@ export type RasterParams = {
     withFlag: boolean;
     t0: Date;
     t1: Date;
-    substring: string;
+    substring: string; 
     closestTime: boolean;
     catalog: string;
     bands: string[];
@@ -28,12 +28,13 @@ export const RasterParamsCols = [
 ];
 
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
+import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 // Define the store
 import { defineStore } from 'pinia';
 
 export const useRasterParamsStore = defineStore('rasterParams', {
   state: () => ({
-    dataTable: [] as RasterParams[], // Array to hold multiple raster parameters
+    dataTable: [] as RasterParams[], // Array to hold a sets of raster parameters
     key: '' as RasterParams['key'],
     asset: '' as RasterParams['asset'],
     algorithm: '' as RasterParams['algorithm'],
@@ -80,7 +81,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
       {name:'B1', value:'B1'},
       {name:'B2', value:'B2'},
       {name:'B3', value:'B3'},
-    ] as SrMenuItem[],
+    ] as SrMultiSelectItem[],
   }),
   actions: {
     addRasterParams(rasterParams: RasterParams) {

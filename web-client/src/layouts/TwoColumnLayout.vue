@@ -3,7 +3,7 @@
 
 <template>
   <div class="two-column-layout">
-    <div>
+    <div class="sidebar-col">
       <slot name = "sidebar-col"></slot>
     </div>
     <main>
@@ -20,11 +20,11 @@
       flex-direction: column;
     }
   }
+
   .sidebar-col {
-    flex: 0 0 20%; /* flex-grow | flex-shrink | flex-basis */
+    flex-basis: 20%;
     margin-top: 0.5rem;
-    bottom: 0.5rem;
-    overflow-x: auto;
+    /* overflow-x: auto; */
   }
 
   main {

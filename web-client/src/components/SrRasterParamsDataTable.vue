@@ -1,6 +1,6 @@
 <template>
     <div class="sr-raster-params-table-card">
-      <DataTable :value="rasterParamsStore.value" :tableStyle="{ 'max-width': '15%', margin: '3px auto' }">
+      <DataTable :value="rasterParamsStore.dataTable" :tableStyle="{ 'max-width': '15%', margin: '3px auto' }">
         <Column v-for="col in RasterParamsCols" :key="col.field" :field="col.field" :header="col.header"></Column>
       </DataTable>
     </div>
@@ -8,9 +8,10 @@
   
   <script setup lang="ts">
     import { onMounted } from 'vue';
-    import { useRasterParamsStore,  RasterParamsCols, RasterParams } from '@/stores/rasterParamsStore';
+    import { useRasterParamsStore,  RasterParamsCols, type RasterParams } from '@/stores/rasterParamsStore';
     import DataTable from 'primevue/datatable';
     import Column from 'primevue/column';
+    import type { SrMenuItem } from './SrMenuInput.vue';
   
     const rasterParamsStore = useRasterParamsStore();
 
@@ -28,17 +29,16 @@
         substring: 'new_substring_example',
         closestTime: false,
         catalog: 'new_catalog_example',
-        bands: ['band0','band1','band2'],
-
+        bands:   ['B1','B2','B3'],
       };
-
       // Add the new raster parameter to the store
       rasterParamsStore.addRasterParams(newRasterParam);
     });
   </script>
   <style scoped>
-    .sr-raster-params-table-card {
+    /* .sr-raster-params-table-card {
+      display: flex;
+      overflow-x:auto;
       margin: 0.5rem;
-      max-width: fit-content;
-    }
+    } */
   </style>

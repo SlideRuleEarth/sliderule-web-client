@@ -43,11 +43,12 @@ const advancedClick = () => {
     }
     .sr-sidebar-body {
         display: flex;
+        overflow-x: auto;
         min-height: 80vh;
         min-width: 15vw;
         justify-content: center;
         align-items: flex-start;
-        margin: 1rem;
+        margin: 0.1rem;
     }
     .sr-sidebar-footer {
         display: flex;
