@@ -14,7 +14,7 @@
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createLegend } from '@/composables/SrMapUtils';
     import { createElevationDeckGLLayer, pnt_cnt } from '@/composables/SrMapUtils';
-    import { ElevationData } from '@/composables/SrMapUtils';
+    import { type ElevationData } from '@/composables/SrMapUtils';
     import { useMapStore } from '@/stores/mapStore';
     import {useElevationStore} from "@/stores/elevationStore";
     import { Map as OLMap } from 'ol';
@@ -36,21 +36,21 @@
     const iceSat2APIsItems = ref([{name:'atl03',value:'atl03'},{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
     const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
-    const urlValue = ref('slideruleearth.io');
-    const surfaceTypeValue = ref({name:'Land', value:'Land'});
-    const surfaceTypeItems = ref([{name:'Land', value:'Land'},{name:'Ocean', value:'Ocean'},{name:'Sea Ice', value:'Sea Ice'},{name:'Land Ice', value:'Land Ice'},{name:'Inland Water', value:'Inland Water'}]);
-    const lengthValue = ref(40);
-    const stepValue = ref(20);
-    const confidenceValue = ref(4);
-    const selectedLandClassItems = ref([]);
-    const landClassItems = ref([{name:'LandClass',value:'atl08_noise'},{name:'LandClass',value:'atl08_ground'},{name:'LandClass',value:'atl08_canopy'},{name:'LandClass',value:'atl08_top_of_canopy'},{name:'LandClass',value:'atl08_unclassified'}]);
-    const iterationsValue = ref(6);
-    const spreadValue = ref(20.0);
-    const PE_CountValue = ref(10);
-    const windowValue = ref(3.0);
-    const sigmaValue = ref(5.0);
-    const variableItems = ref([{name:'Variable',value:'h_mean'},{name:'Variable',value:'h_sigma'},{name:'Variable',value:'dh_fit_dx'},{name:'Variable',value:'dh_fit_dy'},{name:'Variable',value:'rms_misfit'},{name:'Variable',value:'w_surface_window_final'},{name:'Variable',value:'delta_time'},{name:'Variable',value:'cycle'},{name:'Variable',value:'rgt'}]);
-    const colorMapItems = ref([{name:'ColorMap',value:'viridis'},{name:'ColorMap',value:'plasma'},{name:'ColorMap',value:'inferno'},{name:'ColorMap',value:'magma'},{name:'ColorMap',value:'cividis'}]);
+    // const urlValue = ref('slideruleearth.io');
+    // const surfaceTypeValue = ref({name:'Land', value:'Land'});
+    // const surfaceTypeItems = ref([{name:'Land', value:'Land'},{name:'Ocean', value:'Ocean'},{name:'Sea Ice', value:'Sea Ice'},{name:'Land Ice', value:'Land Ice'},{name:'Inland Water', value:'Inland Water'}]);
+    // const lengthValue = ref(40);
+    // const stepValue = ref(20);
+    // const confidenceValue = ref(4);
+    // const selectedLandClassItems = ref([]);
+    // const landClassItems = ref([{name:'LandClass',value:'atl08_noise'},{name:'LandClass',value:'atl08_ground'},{name:'LandClass',value:'atl08_canopy'},{name:'LandClass',value:'atl08_top_of_canopy'},{name:'LandClass',value:'atl08_unclassified'}]);
+    // const iterationsValue = ref(6);
+    // const spreadValue = ref(20.0);
+    // const PE_CountValue = ref(10);
+    // const windowValue = ref(3.0);
+    // const sigmaValue = ref(5.0);
+    // const variableItems = ref([{name:'Variable',value:'h_mean'},{name:'Variable',value:'h_sigma'},{name:'Variable',value:'dh_fit_dx'},{name:'Variable',value:'dh_fit_dy'},{name:'Variable',value:'rms_misfit'},{name:'Variable',value:'w_surface_window_final'},{name:'Variable',value:'delta_time'},{name:'Variable',value:'cycle'},{name:'Variable',value:'rgt'}]);
+    // const colorMapItems = ref([{name:'ColorMap',value:'viridis'},{name:'ColorMap',value:'plasma'},{name:'ColorMap',value:'inferno'},{name:'ColorMap',value:'magma'},{name:'ColorMap',value:'cividis'}]);
     const isLoading = ref(false);
     const cb_count = ref(0);
 
@@ -62,17 +62,17 @@
 
     // Function that is called when stepValue changes
     //const onStepValueChange = (newValue, oldValue) => {
-    const onStepValueChange = (newValue) => {
-        stepValue.value =newValue;
-        //console.log(`Step value changed from ${oldValue} to ${newValue}`,stepValue.value);
-    };
+    // const onStepValueChange = (newValue) => {
+    //     stepValue.value =newValue;
+    //     //console.log(`Step value changed from ${oldValue} to ${newValue}`,stepValue.value);
+    // };
 
-    // Watcher for stepValue
-    watchDebounced(
-        stepValue,
-        onStepValueChange,
-        { debounce: 500, maxWait: 1000 },
-    );
+    // // Watcher for stepValue
+    // watchDebounced(
+    //     stepValue,
+    //     onStepValueChange,
+    //     { debounce: 500, maxWait: 1000 },
+    // );
 
     watch(() => missionValue,(newValue,oldValue) => {
         console.log(`missionValue changed from ${oldValue} to ${newValue}`);
@@ -93,7 +93,7 @@
         // Create the legend
         let recs:ElevationData[] = [];
         const callbacks = {
-            atl06rec: (result) => {
+            atl06rec: (result:any) => {
                 if(cb_count.value === 0) {
                     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
                 }

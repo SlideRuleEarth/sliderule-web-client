@@ -345,9 +345,55 @@ onMounted(() => {
                     />
                 </AccordionTab>
                 <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
-
+                    <SrSliderInput
+                        v-model="reqParamsStore.maxIterations"
+                        label="Max Iterations:"
+                        :min="0"
+                        :max="200" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.minWindowHeight"
+                        label="Min window height (meters):"
+                        :min="0"
+                        :max="200" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.maxRobustDispersion"
+                        label="Max robust dispersion (meters):"
+                        :min="0"
+                        :max="200" 
+                        :decimal-places="0"
+                    />
                 </AccordionTab>
                 <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl08'" >
+                    <SrSliderInput
+                        v-model="reqParamsStore.binSize"
+                        label="Bin Size:"
+                        :min="0"
+                        :max="200"
+                        :decimal-places="0"
+                    />
+                    <SrMenuInput
+                        v-model="reqParamsStore.geoLocation"
+                        label = "Geo Location:"
+                        aria-label="Select Geo Location"
+                        :menuOptions="reqParamsStore.geoLocationOptions"
+                    />
+                    <SrCheckbox
+                        label="Use Absolute Heights:"
+                        v-model="reqParamsStore.useAbsoluteHeights"
+                    />
+                    <SrCheckbox
+                        label="Send Waveforms:"
+                        v-model="reqParamsStore.sendWaveforms"
+                    />
+                    <SrCheckbox
+                        label="Use ABoVE Classifier:"
+                        v-model="reqParamsStore.useAboveClassifier"   
+                    />
+
                 </AccordionTab>
                 <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
                     <SrMenuMultiInput

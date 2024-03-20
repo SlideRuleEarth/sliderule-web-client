@@ -75,7 +75,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         ] as SrMultiSelectItem[],
         useAbsoluteHeights: false,
         sendWaveforms: false,
-        useAboveClassifier: false,
+        useABoVEClassifier: false,
         gediBeams: [
           {name:'0',value:'0'}, 
           {name:'1',value:'1'},
