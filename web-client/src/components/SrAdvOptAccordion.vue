@@ -408,8 +408,10 @@ onMounted(() => {
                         v-model="reqParamsStore.SurfaceFlag"
                     />
                 </AccordionTab>
-                <AccordionTab header="Raster Sampling"> 
-                    <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
+                <AccordionTab header="Raster Sampling">
+                    <div class="sr-raster-sampling-table">
+                        <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
+                    </div> 
                     <SrRasterParams />
                 </AccordionTab>
                 <AccordionTab header="Output">
@@ -429,6 +431,12 @@ onMounted(() => {
 .adv-opt-card {
     padding: 0.1250rem;
     margin: 0.1250rem;
+}
+.sr-raster-sampling-table {
+    flex:auto;
+    width: 30rem;
+    overflow-x: scroll;
+    white-space: nowrap;
 }
 /* 
 :deep(.p-accordion .p-accordion-tab) {

@@ -57,7 +57,6 @@
 <style scoped>
 .sr-raster-params_wrapper {
     display: flex;
-    overflow-x: auto;
     max-width: 30rem;
     flex-direction: column;
     justify-content: space-between;

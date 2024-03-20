@@ -36,9 +36,5 @@
     });
   </script>
   <style scoped>
-    /* .sr-raster-params-table-card {
-      display: flex;
-      overflow-x:auto;
-      margin: 0.5rem;
-    } */
+
   </style>

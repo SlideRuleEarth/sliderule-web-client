@@ -24,7 +24,6 @@
   .sidebar-col {
     flex-basis: 20%;
     margin-top: 0.5rem;
-    /* overflow-x: auto; */
   }
 
   main {
