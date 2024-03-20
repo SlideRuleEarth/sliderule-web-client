@@ -27,19 +27,67 @@ export const RasterParamsCols = [
   { field: 'bands', header: 'bands' }
 ];
 
+import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 // Define the store
 import { defineStore } from 'pinia';
 
 export const useRasterParamsStore = defineStore('rasterParams', {
   state: () => ({
-    value: [] as RasterParams[] // Array to hold multiple raster parameters
+    dataTable: [] as RasterParams[], // Array to hold multiple raster parameters
+    key: '' as RasterParams['key'],
+    asset: '' as RasterParams['asset'],
+    algorithm: '' as RasterParams['algorithm'],
+    radius: 0 as RasterParams['radius'],
+    zonalStats: '' as RasterParams['zonalStats'],
+    withFlag: false as RasterParams['withFlag'],
+    t0: new Date() as RasterParams['t0'],
+    t1: new Date() as RasterParams['t1'],
+    substring: '' as RasterParams['substring'],
+    closestTime: false as RasterParams['closestTime'],
+    catalog: '' as RasterParams['catalog'],
+    bands: [] as RasterParams['bands'],
+    assetOptions: 
+    [
+      {name:'gedil3-elevation', value:'gedil3-elevation'},
+      {name:'gedil3-canopy', value:'gedil3-canopy'},
+      {name:'gedil3-elevation-stddev', value:'gedil3-elevation-stddev'},
+      {name:'gedil3-canopy-stddev', value:'gedil3-canopy-stddev'},
+      {name:'gedil3-counts', value:'gedil3-counts'},
+      {name:'merit-dem', value:'merit-dem'},
+      {name:'swot-sim-ecco-llc4320', value:'swot-sim-ecco-llc4320'},
+      {name:'swot-sim-glorys', value:'swot-sim-glorys'},
+      {name:'usgs3dep-1meter-dem', value:'usgs3dep-1meter-dem'},
+      {name:'esa-worldcover-10meter', value:'esa-worldcover-10meter'},
+      {name:'landsat-hls', value:'landsat-hls'},
+      {name:'arcticdem-mosaic', value:'arcticdem-mosaic'},
+      {name:'arcticdem-strips', value:'arcticdem-strips'},
+      {name:'rema-mosaic', value:'rema-mosaic'},
+      {name:'rema-strips', value:'rema-strips'},
+    ] as SrMenuItem[],
+    algorithmOptions: 
+    [
+      {name:'NearestNeighbor', value:'NearestNeighbor'},
+      {name:'Bilinear', value:'Bilinear'},
+      {name:'Cubic', value:'Cubic'},
+      {name:'CubicSpline', value:'CubicSpline'},
+      {name:'Lanczos', value:'Lanczos'},
+      {name:'Average', value:'Average'},
+      {name:'Mode', value:'Mode'},
+      {name:'Gauss', value:'Gauss'},
+    ] as SrMenuItem[],
+    bandOptions:
+    [
+      {name:'B1', value:'B1'},
+      {name:'B2', value:'B2'},
+      {name:'B3', value:'B3'},
+    ] as SrMenuItem[],
   }),
   actions: {
     addRasterParams(rasterParams: RasterParams) {
-      this.value.push(rasterParams); // Method to add a new raster parameter
+      this.dataTable.push(rasterParams); // Method to add a new raster parameter
     },
     clearRasterParams() {
-      this.value = []; // Method to clear all raster parameters
+      this.dataTable = []; // Method to clear all raster parameters
     }
   }
 });

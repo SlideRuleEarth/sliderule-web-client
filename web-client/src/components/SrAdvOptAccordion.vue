@@ -11,6 +11,7 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrMultiSelect from './SrMultiSelect.vue'
 import Toast from 'primevue/toast';
+import { type ToastMessageOptions } from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -22,6 +23,7 @@ import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
+import SrRasterParams from './SrRasterParams.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -42,7 +44,7 @@ onUnmounted(() => {
     }
 })
 
-const customUploader = async (event) => {
+const customUploader = async (event:any) => {
     console.log('customUploader event:',event);
     const file = event.files[0];
     if (file) {
@@ -59,9 +61,10 @@ const customUploader = async (event) => {
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(data);
-                        toast.add({ severity: "info", summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
+                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
                         const tstMsg = drawGeoJson(data);
                         if (tstMsg) {
+                            //{ severity: string; summary: string; detail: string; }
                             toast.add(tstMsg);
                         }
                     } else {
@@ -93,11 +96,11 @@ const customUploader = async (event) => {
     };
 };
 
-const onSelect = (e) => {
+const onSelect = (e:any) => {
     console.log('onSelect e:',e);
 };
 
-const onError = (e) => {
+const onError = (e:any) => {
     console.log('onError e:',e);
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
@@ -136,281 +139,284 @@ onMounted(() => {
 
 <template>
     <div class="adv-opt-card">
-        <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
-        <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-            <AccordionTab header="General" >
-                <SrMenuInput
-                    v-model="mapStore.polygonSource"
-                    label = "Polygon Source:"
-                    aria-label="Select Polygon Source"
-                    :menuOptions="polygonSourceItems"
-                />
-                <div class="file-upload-panel" v-if="!polyCoordsExist">
-                    <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
-                        <template #container="{ message, closeCallback }">
-                            <section class="toast-container">
-                                <i class="upload-icon"></i>
-                                <div class="message-container">
-                                    <p class="summary">{{ message.summary }}</p>
-                                    <p class="detail">{{ message.detail }}</p>
-                                    <div class="progress-container">
-                                        <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
-                                        <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
-                                    </div>
-                                    <div class="button-container">
-                                        <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
-                                    </div>
-                                </div>
-                            </section>
-                        </template>
-                    </Toast>
-                    <FileUpload v-if="mapStore.polygonSource.value==='Upload geojson File'" 
-                                mode="basic" 
-                                name="SrFileUploads[]" 
-                                :auto="true" 
-                                accept=".geojson,.json" 
-                                :maxFileSize="10000000000" 
-                                customUpload 
-                                @uploader="customUploader"
-                                @select="onSelect"
-                                @error="onError"
-                                @clear="onClear"
+        <div adv-opts-wrapper>
+            <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
+            <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                <AccordionTab header="General" >
+                    <SrMenuInput
+                        v-model="mapStore.polygonSource"
+                        label = "Polygon Source:"
+                        aria-label="Select Polygon Source"
+                        :menuOptions="polygonSourceItems"
                     />
-                </div>
-                <SrCheckbox
-                    label="Rasterize Polygon:"
-                    v-model="reqParamsStore.rasterizePolygon"
-                />
-                <SrCheckbox
-                    label="Ignore Poly for CMR:"
-                    v-model="reqParamsStore.ignorePolygon"
-                />
-                <SrSliderInput
-                    v-model="reqParamsStore.reqTimeoutValue"
-                    label="Req timeout:"
-                    :min="5"
-                    :max="3600" 
-                    :decimal-places="0"
-                />
-            </AccordionTab>
-            <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
-                <SrMenuMultiInput
-                    v-model="reqParamsStore.tracks"
-                    label = "Track(s):"
-                    aria-label="Select Tracks"
-                    :menuOptions="reqParamsStore.tracksOptions"
-                    :default="reqParamsStore.tracksOptions"
-                />
-                <SrMenuMultiInput
-                    v-model="reqParamsStore.beams"
-                    label = "Beam(s):"
-                    aria-label="Select Beams"
-                    :menuOptions="reqParamsStore.beamsOptions"
-                    :default="reqParamsStore.beamsOptions"
-                />
-                <SrSliderInput
-                    v-model="reqParamsStore.rgtValue"
-                    label="RGT:"
-                    :min="1"
-                    :max="100" 
-                    :decimal-places="0"
-                />
-                <SrSliderInput
-                    v-model="reqParamsStore.cycleValue"
-                    label="Cycle:"
-                    :min="1"
-                    :max="100" 
-                    :decimal-places="0"
-                />
-                <SrSliderInput
-                    v-model="reqParamsStore.regionValue"
-                    label="Region:"
-                    :min="1"
-                    :max="100" 
-                    :decimal-places="0"
-                />
-                <SrCalendar
-                    v-model="reqParamsStore.t0Value"
-                    label="T0:"
-                />
-                <SrCalendar
-                    v-model="reqParamsStore.t1Value"
-                    label="T1:"
-                />
-                
-            </AccordionTab>
-            <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
-                <SrMultiSelect
-                    v-if="iceSat2SelectedAPI.value==='atl03'"
-                    :menuOptions="reqParamsStore.surfaceTypeOptions"
-                    label="Surface Type:"
-                    ariaLabel="Select Surface Type"
-                    @update:value="reqParamsStore.surfaceType = $event"
-                    :default="[reqParamsStore.surfaceTypeOptions[0]]"
-                />
-                <!-- <SrRadioButtonBox
-                    v-if="iceSat2SelectedAPI.value==='atl03'"
-                    label="Signal Confidence"
-                    ariaLabel="Signal Confidence"
-                    :categories="reqParamsStore.signalConfidenceOptions"
-                /> -->
-                <SrMenuInput
-                    v-if="iceSat2SelectedAPI.value==='atl03'"
-                    label="Signal Confidence"
-                    ariaLabel="Signal Confidence"
-                    :menuOptions="reqParamsStore.signalConfidenceOptions"
-                    @update:value="reqParamsStore.signalConfidence = $event"
-                />
-                <SrMultiSelect
-                    v-if="iceSat2SelectedAPI.value==='atl08'"
-                    :menuOptions="reqParamsStore.landTypeOptions"
-                    label = "Land Type:"
-                    aria-label="Select Land Type"
-                    @update:value="reqParamsStore.landType = $event"
-                    :default="reqParamsStore.landTypeOptions"
-                />
-                <SrSliderInput
-                    v-if="iceSat2SelectedAPI.value==='atl03'"
-                    v-model="reqParamsStore.YAPC"
-                    label="YAPC:"
-                />   
-                <SrSwitchedSliderInput
-                    label="SR YAPC:"
-                    :min="1"
-                    :max="100" 
-                    :decimalPlaces="0"
-                />
-                <SrSwitchedSliderInput
-                    v-if="iceSat2SelectedAPI.value==='atl03'"
-                    label="YAPC:"
-                    :min="1"
-                    :max="100" 
-                    :decimalPlaces="0"
-                />
-            </AccordionTab>
-            <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
-                <SrMenuInput
-                    v-model="reqParamsStore.distanceIn"
-                    label = "Distance In:"
-                    aria-label="Select Distance in"
-                    :menuOptions="reqParamsStore.distanceInOptions"
-                />
-                <SrSliderInput
-                    v-if="reqParamsStore.distanceIn==='meters'"
-                    v-model="reqParamsStore.lengthValue"
-                    label="Length in meters:"
-                    :min="5"
-                    :max="200" 
-                    :decimal-places="0"                  
-                />
-                <SrSliderInput
-                    v-if="reqParamsStore.distanceIn==='meters'"
-                    v-model="reqParamsStore.stepValue"
-                    label="Step Size (meters):"
-                    :min="5"
-                    :max="100" 
-                    :decimal-places="0"
-                />
-                <SrSliderInput
-                    v-if="reqParamsStore.distanceIn==='segments'"
-                    v-model="reqParamsStore.lengthValue"
-                    label="Length in segments:"
-                    :min="5"
-                    :max="200" 
-                    :decimal-places="0"                  
-                />
-                <SrCheckbox
-                    label="Pass Invalid:"
-                    v-model="reqParamsStore.passInvalid"
-                />
-                <SrSliderInput
-                    :insensitive="reqParamsStore.passInvalid"
-                    v-model="reqParamsStore.alongTrackSpread"
-                    label="Along Track Spread:"
-                    :min="0"
-                    :max="200" 
-                    :decimal-places="0"
-                />
-                <SrSliderInput
-                    :insensitive="reqParamsStore.passInvalid"
-                    v-model="reqParamsStore.minimumPhotonCount"
-                    label="Minimum Photon Count:"
-                    :min="0"
-                    :max="200" 
-                    :decimal-places="0"
-                />
-            </AccordionTab>
-            <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
+                    <div class="file-upload-panel" v-if="!polyCoordsExist">
+                        <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
+                            <template #container="{ message, closeCallback }">
+                                <section class="toast-container">
+                                    <i class="upload-icon"></i>
+                                    <div class="message-container">
+                                        <p class="summary">{{ message.summary }}</p>
+                                        <p class="detail">{{ message.detail }}</p>
+                                        <div class="progress-container">
+                                            <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
+                                            <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
+                                        </div>
+                                        <div class="button-container">
+                                            <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </template>
+                        </Toast>
+                        <FileUpload v-if="mapStore.polygonSource.value==='Upload geojson File'" 
+                                    mode="basic" 
+                                    name="SrFileUploads[]" 
+                                    :auto="true" 
+                                    accept=".geojson,.json" 
+                                    :maxFileSize="10000000000" 
+                                    customUpload 
+                                    @uploader="customUploader"
+                                    @select="onSelect"
+                                    @error="onError"
+                                    @clear="onClear"
+                        />
+                    </div>
+                    <SrCheckbox
+                        label="Rasterize Polygon:"
+                        v-model="reqParamsStore.rasterizePolygon"
+                    />
+                    <SrCheckbox
+                        label="Ignore Poly for CMR:"
+                        v-model="reqParamsStore.ignorePolygon"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.reqTimeoutValue"
+                        label="Req timeout:"
+                        :min="5"
+                        :max="3600" 
+                        :decimal-places="0"
+                    />
+                </AccordionTab>
+                <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
+                    <SrMenuMultiInput
+                        v-model="reqParamsStore.tracks"
+                        label = "Track(s):"
+                        aria-label="Select Tracks"
+                        :menuOptions="reqParamsStore.tracksOptions"
+                        :default="reqParamsStore.tracksOptions"
+                    />
+                    <SrMenuMultiInput
+                        v-model="reqParamsStore.beams"
+                        label = "Beam(s):"
+                        aria-label="Select Beams"
+                        :menuOptions="reqParamsStore.beamsOptions"
+                        :default="reqParamsStore.beamsOptions"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.rgtValue"
+                        label="RGT:"
+                        :min="1"
+                        :max="100" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.cycleValue"
+                        label="Cycle:"
+                        :min="1"
+                        :max="100" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        v-model="reqParamsStore.regionValue"
+                        label="Region:"
+                        :min="1"
+                        :max="100" 
+                        :decimal-places="0"
+                    />
+                    <SrCalendar
+                        v-model="reqParamsStore.t0Value"
+                        label="T0:"
+                    />
+                    <SrCalendar
+                        v-model="reqParamsStore.t1Value"
+                        label="T1:"
+                    />
+                    
+                </AccordionTab>
+                <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
+                    <SrMultiSelect
+                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        :menuOptions="reqParamsStore.surfaceTypeOptions"
+                        label="Surface Type:"
+                        ariaLabel="Select Surface Type"
+                        @update:value="reqParamsStore.surfaceType = $event"
+                        :default="[reqParamsStore.surfaceTypeOptions[0]]"
+                    />
+                    <!-- <SrRadioButtonBox
+                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        label="Signal Confidence"
+                        ariaLabel="Signal Confidence"
+                        :categories="reqParamsStore.signalConfidenceOptions"
+                    /> -->
+                    <SrMenuInput
+                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        label="Signal Confidence"
+                        ariaLabel="Signal Confidence"
+                        :menuOptions="reqParamsStore.signalConfidenceOptions"
+                        @update:value="reqParamsStore.signalConfidence = $event"
+                    />
+                    <SrMultiSelect
+                        v-if="iceSat2SelectedAPI.value==='atl08'"
+                        :menuOptions="reqParamsStore.landTypeOptions"
+                        label = "Land Type:"
+                        aria-label="Select Land Type"
+                        @update:value="reqParamsStore.landType = $event"
+                        :default="reqParamsStore.landTypeOptions"
+                    />
+                    <SrSliderInput
+                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        v-model="reqParamsStore.YAPC"
+                        label="YAPC:"
+                    />   
+                    <SrSwitchedSliderInput
+                        label="SR YAPC:"
+                        :min="1"
+                        :max="100" 
+                        :decimalPlaces="0"
+                    />
+                    <SrSwitchedSliderInput
+                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        label="YAPC:"
+                        :min="1"
+                        :max="100" 
+                        :decimalPlaces="0"
+                    />
+                </AccordionTab>
+                <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
+                    <SrMenuInput
+                        v-model="reqParamsStore.distanceIn"
+                        label = "Distance In:"
+                        aria-label="Select Distance in"
+                        :menuOptions="reqParamsStore.distanceInOptions"
+                    />
+                    <SrSliderInput
+                        v-if="reqParamsStore.distanceIn==='meters'"
+                        v-model="reqParamsStore.lengthValue"
+                        label="Length in meters:"
+                        :min="5"
+                        :max="200" 
+                        :decimal-places="0"                  
+                    />
+                    <SrSliderInput
+                        v-if="reqParamsStore.distanceIn==='meters'"
+                        v-model="reqParamsStore.stepValue"
+                        label="Step Size (meters):"
+                        :min="5"
+                        :max="100" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        v-if="reqParamsStore.distanceIn==='segments'"
+                        v-model="reqParamsStore.lengthValue"
+                        label="Length in segments:"
+                        :min="5"
+                        :max="200" 
+                        :decimal-places="0"                  
+                    />
+                    <SrCheckbox
+                        label="Pass Invalid:"
+                        v-model="reqParamsStore.passInvalid"
+                    />
+                    <SrSliderInput
+                        :insensitive="reqParamsStore.passInvalid"
+                        v-model="reqParamsStore.alongTrackSpread"
+                        label="Along Track Spread:"
+                        :min="0"
+                        :max="200" 
+                        :decimal-places="0"
+                    />
+                    <SrSliderInput
+                        :insensitive="reqParamsStore.passInvalid"
+                        v-model="reqParamsStore.minimumPhotonCount"
+                        label="Minimum Photon Count:"
+                        :min="0"
+                        :max="200" 
+                        :decimal-places="0"
+                    />
+                </AccordionTab>
+                <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
 
-            </AccordionTab>
-            <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl08'" >
-            </AccordionTab>
-            <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
-                <SrMenuMultiInput
-                    v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
-                    v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                    label="ATL03 GeoSpatial Fields:"
-                    ariaLabel="Select ATL03 GeoSpatial Fields"
-                    :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                    :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                />  
-                <SrMenuMultiInput
-                    v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
-                    v-model="reqParamsStore.ATL03PhotonFieldsOptions"
-                    label="ATL03 Photon Fields:"
-                    ariaLabel="Select ATL03 Photon Fields"
-                    :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
-                    :default="reqParamsStore.ATL03PhotonFieldsOptions"
-                /> 
-                <SrMenuMultiInput
-                    v-if="iceSat2SelectedAPI.value==='atl06s'"
-                    v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                    label="ATL03 IceSegment Fields:"
-                    ariaLabel="Select ATL03 IceSegment Fields"
-                    :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                    :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                />  
-                <SrMenuMultiInput
-                    v-if="iceSat2SelectedAPI.value==='atl08'"
-                    v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                    label="ATL03 IceSegment Fields:"
-                    ariaLabel="Select ATL03 IceSegment Fields"
-                    :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                    :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                />  
-            </AccordionTab>
-            <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
-                <SrMultiSelect
-                    v-model="reqParamsStore.gediBeams"
-                    label = "Select Beam(s):"
-                    aria-label="Select Beams"
-                    :menuOptions="reqParamsStore.gediBeamsOptions"
-                    :default="reqParamsStore.gediBeamsOptions"
-                />
-                <SrCheckbox
-                    label="Degrade Flag:"
-                    v-model="reqParamsStore.DegradeFlag"
-                />
-                <SrCheckbox
-                    label="L2 Quality Flag:"
-                    v-model="reqParamsStore.L2QualityFlag"
-                />
-                <SrCheckbox
-                    label="L4 Quality Flag:"
-                    v-model="reqParamsStore.L4QualityFlag"
-                />
-                <SrCheckbox
-                    label="Surface Flag:"
-                    v-model="reqParamsStore.SurfaceFlag"
-                />
-            </AccordionTab>
-            <AccordionTab header="Raster Sampling"> 
-                <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
-            </AccordionTab>
-            <AccordionTab header="Output">
+                </AccordionTab>
+                <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl08'" >
+                </AccordionTab>
+                <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
+                    <SrMenuMultiInput
+                        v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                        v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                        label="ATL03 GeoSpatial Fields:"
+                        ariaLabel="Select ATL03 GeoSpatial Fields"
+                        :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                        :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                    />  
+                    <SrMenuMultiInput
+                        v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                        v-model="reqParamsStore.ATL03PhotonFieldsOptions"
+                        label="ATL03 Photon Fields:"
+                        ariaLabel="Select ATL03 Photon Fields"
+                        :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
+                        :default="reqParamsStore.ATL03PhotonFieldsOptions"
+                    /> 
+                    <SrMenuMultiInput
+                        v-if="iceSat2SelectedAPI.value==='atl06s'"
+                        v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                        label="ATL03 IceSegment Fields:"
+                        ariaLabel="Select ATL03 IceSegment Fields"
+                        :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                        :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                    />  
+                    <SrMenuMultiInput
+                        v-if="iceSat2SelectedAPI.value==='atl08'"
+                        v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                        label="ATL03 IceSegment Fields:"
+                        ariaLabel="Select ATL03 IceSegment Fields"
+                        :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                        :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                    />  
+                </AccordionTab>
+                <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
+                    <SrMultiSelect
+                        v-model="reqParamsStore.gediBeams"
+                        label = "Select Beam(s):"
+                        aria-label="Select Beams"
+                        :menuOptions="reqParamsStore.gediBeamsOptions"
+                        :default="reqParamsStore.gediBeamsOptions"
+                    />
+                    <SrCheckbox
+                        label="Degrade Flag:"
+                        v-model="reqParamsStore.DegradeFlag"
+                    />
+                    <SrCheckbox
+                        label="L2 Quality Flag:"
+                        v-model="reqParamsStore.L2QualityFlag"
+                    />
+                    <SrCheckbox
+                        label="L4 Quality Flag:"
+                        v-model="reqParamsStore.L4QualityFlag"
+                    />
+                    <SrCheckbox
+                        label="Surface Flag:"
+                        v-model="reqParamsStore.SurfaceFlag"
+                    />
+                </AccordionTab>
+                <AccordionTab header="Raster Sampling"> 
+                    <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
+                    <SrRasterParams />
+                </AccordionTab>
+                <AccordionTab header="Output">
 
-            </AccordionTab>
-        </Accordion>
+                </AccordionTab>
+            </Accordion>
+        </div>
     </div>
 </template>
 

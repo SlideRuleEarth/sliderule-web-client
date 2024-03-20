@@ -21,9 +21,10 @@
     }
   }
   .sidebar-col {
-    flex-basis: 20%;
+    flex: 0 0 20%; /* flex-grow | flex-shrink | flex-basis */
     margin-top: 0.5rem;
     bottom: 0.5rem;
+    overflow-x: auto;
   }
 
   main {

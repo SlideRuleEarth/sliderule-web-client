@@ -1,6 +1,6 @@
 <template>
-    <div class="card">
-      <DataTable :value="rasterParamsStore.value" :tableStyle="{ minWidth: '50rem' }">
+    <div class="sr-raster-params-table-card">
+      <DataTable :value="rasterParamsStore.value" :tableStyle="{ 'max-width': '15%', margin: '3px auto' }">
         <Column v-for="col in RasterParamsCols" :key="col.field" :field="col.field" :header="col.header"></Column>
       </DataTable>
     </div>
@@ -36,4 +36,9 @@
       rasterParamsStore.addRasterParams(newRasterParam);
     });
   </script>
-  
+  <style scoped>
+    .sr-raster-params-table-card {
+      margin: 0.5rem;
+      max-width: fit-content;
+    }
+  </style>
