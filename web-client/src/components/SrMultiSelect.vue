@@ -30,7 +30,7 @@
             // Emit event to update parent value
             emit('update:value', names);
         } else {
-            console.error('No selected items?');
+            console.error(`Watch: ${props.label} No selected items?`);
         }
     
     });
@@ -42,7 +42,7 @@
             // Emit event to update parent value
             emit('update:value', names);
         } else {
-            console.error('No selected items?');
+            console.error(`onMounted: ${props.label} No selected items?`);
         }
 
         console.log('Mounted MultiMenu:', props.label);

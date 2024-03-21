@@ -391,7 +391,7 @@ onMounted(() => {
                     />
                     <SrCheckbox
                         label="Use ABoVE Classifier:"
-                        v-model="reqParamsStore.useAboveClassifier"   
+                        v-model="reqParamsStore.useABoVEClassifier"   
                     />
 
                 </AccordionTab>

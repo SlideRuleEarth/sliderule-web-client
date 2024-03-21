@@ -17,7 +17,11 @@
                 <label>Catalog</label>
             </FloatLabel>
         </div>
-        <SrMultiSelect label="Bands" :menuOptions="rasterParamsStore.bandOptions" v-model="rasterParamsStore.bands" />
+        <SrMultiSelect label="Bands" 
+            :menuOptions="rasterParamsStore.bandOptions" 
+            v-model="rasterParamsStore.bands"                         
+            :default="[rasterParamsStore.bandOptions[0]]"
+/>
         <Button @click="addRasterParams()">Add</Button>
     </div>
 </template>
