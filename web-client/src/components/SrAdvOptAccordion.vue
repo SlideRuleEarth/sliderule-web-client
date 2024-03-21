@@ -7,6 +7,7 @@ import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue'
+import SrCredsFileUpload from './SrCredsFileUpload.vue';
 import { useMapStore } from '@/stores/mapStore';
 import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -16,6 +17,7 @@ import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
 import SrRasterParams from './SrRasterParams.vue';
 import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
+import SrTextInput from './SrTextInput.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -371,20 +373,28 @@ onMounted(() => {
                         :menuOptions="reqParamsStore.outputFormatOptions"
                     />
                     <SrMenuInput
-                        v-if = "reqParamsStore.saveOutput"
+                        v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
                         v-model="reqParamsStore.outputLocation"
                         label = "Output Location:"
                         aria-label="Select Output Location"
                         :menuOptions="reqParamsStore.outputLocationOptions"
                     />
+                    <SrTextInput
+                        v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
+                        v-model="reqParamsStore.outputLocationPath"
+                        label = "Output Location Path:"
+                        aria-label="Enter Output Location Path"
+                    />
                     <SrMenuInput
-                        v-if = "reqParamsStore.saveOutput"
+                        v-if = "reqParamsStore.saveOutput  && reqParamsStore.outputLocation.name==='S3' && reqParamsStore.staged===false"
                         v-model="reqParamsStore.awsRegion"
                         label = "AWS Region:"
                         aria-label="Select AWS Region"
                         :menuOptions="reqParamsStore.awsRegionOptions"
                     />
-                    
+                    <SrCredsFileUpload
+                        v-if = "reqParamsStore.saveOutput && reqParamsStore.outputLocation.name==='S3' && reqParamsStore.staged===false"
+                    />
                 </AccordionTab>
             </Accordion>
         </div>

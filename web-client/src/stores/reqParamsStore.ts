@@ -112,10 +112,10 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:"parquet", value:"parquet"},
           {name:"csv", value:"csv"},
         ],
-        outputLocation: {name:"s3", value:"s3"},
+        outputLocation: {name:"local", value:"local"},
         outputLocationOptions: [
-          {name:"s3", value:"s3"},
           {name:"local", value:"local"},
+          {name:"S3", value:"S3"},
         ],
         outputLocationPath: '',
         awsRegion: {name:"us-west-2", value:"us-west-2"},

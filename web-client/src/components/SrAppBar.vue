@@ -31,6 +31,9 @@
             <div ref="geoCoderContainer" class="geocoder">
             </div>
         </div>
+        <div class="under-construction-banner">
+            <p class="under-construction-text">This website is under construction</p>
+        </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick" />
             <Button icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick" />
@@ -40,6 +43,15 @@
 </template>
   
 <style scoped>
+    .under-construction-banner {
+        background-color: #ffc107; /* Yellow background color */
+        color: #333; /* Text color */
+        text-align: center; /* Center align text */
+        align-items: center;
+        padding: 0rem; /* Add some padding */
+        margin: 0rem;
+    }
+
     .container {
         display: flex;
         justify-content: space-between;

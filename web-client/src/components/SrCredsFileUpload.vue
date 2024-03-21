@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { drawGeoJson } from '@/composables/SrMapUtils';
+import { useCredsStore } from '@/stores/credsStore';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
-import { useGeoJsonStore } from '@/stores/geoJsonStore';
-
 
 const toast = useToast();
-const geoJsonStore = useGeoJsonStore();
+const credsStore = useCredsStore();
 
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
@@ -19,7 +17,7 @@ const upload_progress = ref(0);
 
 
 const customUploader = async (event:any) => {
-    console.log('GeoJson customUploader event:',event);
+    console.log('Creds customUploader event:',event);
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
@@ -34,21 +32,17 @@ const customUploader = async (event:any) => {
                     console.log(`e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
-                        geoJsonStore.setGeoJsonData(data);
-                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        const tstMsg = drawGeoJson(data);
-                        if (tstMsg) {
-                            //{ severity: string; summary: string; detail: string; }
-                            toast.add(tstMsg);
-                        }
+                        credsStore.setCredsData(data);
+                        toast.add({ severity: 'info', summary: 'File Load', detail: 'Creds file successfully loaded', life: 3000});
+                
                     } else {
-                        console.error('Error parsing GeoJSON:', e.target.result);
-                        toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                        console.error('Error parsing Credentials:', e.target.result);
+                        toast.add({ severity: 'error', summary: 'Failed to parse credentials file', group: 'headless' });
                     }
                 }
             } catch (error) {
-                console.error('Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                console.error('Error parsing Credentials:', error);
+                toast.add({ severity: 'error', summary: 'Failed to parse credentials file', group: 'headless' });
             }
         };
 
@@ -105,11 +99,12 @@ const onClear = () => {
             </template>
         </Toast>
         <FileUpload mode="basic" 
-                    name="SrFileUploads[]" 
+                    name="SrCreds" 
                     :auto="true" 
-                    accept=".geojson,.json" 
+                    accept="*" 
                     :maxFileSize="10000000000" 
-                    customUpload 
+                    customUpload
+                    chooseLabel="Upload a Creds File"
                     @uploader="customUploader"
                     @select="onSelect"
                     @error="onError"
