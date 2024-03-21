@@ -6,17 +6,8 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
-import FileUpload from 'primevue/fileupload';
-import ProgressBar from 'primevue/progressbar';
-import Button from 'primevue/button';
 import SrMultiSelect from './SrMultiSelect.vue'
-import Toast from 'primevue/toast';
-import { type ToastMessageOptions } from 'primevue/toast';
-import { useToast } from "primevue/usetoast";
-import { useGeoJsonStore } from '../stores/geoJsonStore';
 import { useMapStore } from '@/stores/mapStore';
-import { polyCoordsExist } from '@/composables/SrMapUtils';
-import { drawGeoJson } from '@/composables/SrMapUtils';
 import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrCalendar from './SrCalendar.vue';
@@ -24,90 +15,16 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
 import SrRasterParams from './SrRasterParams.vue';
+import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
 
 const reqParamsStore = useReqParamsStore();
 
-
-const toast = useToast();
-const geoJsonStore = useGeoJsonStore();
 const mapStore = useMapStore();
-
-////////////// upload toast items
-const upload_progress_visible = ref(false);
-const upload_progress = ref(0);
-const interval = ref();
 //////////////
 
 onUnmounted(() => {
-    if (interval.value) {
-        clearInterval(interval.value);
-    }
+
 })
-
-const customUploader = async (event:any) => {
-    console.log('customUploader event:',event);
-    const file = event.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = async (e) => {
-            try {
-                if (e.target === null){
-                    console.error('e.target is null');
-                    return;
-                } else {
-                    //console.log(`e.target.result: ${e.target.result}`);
-                    console.log(`e.target.result type: ${typeof e.target.result}`);
-                    if (typeof e.target.result === 'string') {
-                        const data = JSON.parse(e.target.result);
-                        geoJsonStore.setGeoJsonData(data);
-                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        const tstMsg = drawGeoJson(data);
-                        if (tstMsg) {
-                            //{ severity: string; summary: string; detail: string; }
-                            toast.add(tstMsg);
-                        }
-                    } else {
-                        console.error('Error parsing GeoJSON:', e.target.result);
-                        toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
-                    }
-                }
-            } catch (error) {
-                console.error('Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
-            }
-        };
-
-        reader.onprogress = (e) => {
-            console.log('onprogress e:',e);
-            if (e.lengthComputable) {
-                console.log(`Uploading your file ${e.loaded} of ${e.total}`);
-                const percentLoaded = Math.round((e.loaded / e.total) * 100);
-                upload_progress.value = percentLoaded;
-                if (!upload_progress_visible.value) {
-                    upload_progress_visible.value = true;
-                    toast.add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
-                }
-            }
-        };
-    } else {
-        console.error('No file input found');
-        toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
-    };
-};
-
-const onSelect = (e:any) => {
-    console.log('onSelect e:',e);
-};
-
-const onError = (e:any) => {
-    console.log('onError e:',e);
-    toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
-};
-const onClear = () => {
-    console.log('onClear');
-};
-
 
 watch(mapStore.polygonSource, (newValue) => {
     console.log('polygonSource:', newValue);
@@ -149,38 +66,9 @@ onMounted(() => {
                         aria-label="Select Polygon Source"
                         :menuOptions="polygonSourceItems"
                     />
-                    <div class="file-upload-panel" v-if="!polyCoordsExist">
-                        <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
-                            <template #container="{ message, closeCallback }">
-                                <section class="toast-container">
-                                    <i class="upload-icon"></i>
-                                    <div class="message-container">
-                                        <p class="summary">{{ message.summary }}</p>
-                                        <p class="detail">{{ message.detail }}</p>
-                                        <div class="progress-container">
-                                            <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
-                                            <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
-                                        </div>
-                                        <div class="button-container">
-                                            <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
-                                        </div>
-                                    </div>
-                                </section>
-                            </template>
-                        </Toast>
-                        <FileUpload v-if="mapStore.polygonSource.value==='Upload geojson File'" 
-                                    mode="basic" 
-                                    name="SrFileUploads[]" 
-                                    :auto="true" 
-                                    accept=".geojson,.json" 
-                                    :maxFileSize="10000000000" 
-                                    customUpload 
-                                    @uploader="customUploader"
-                                    @select="onSelect"
-                                    @error="onError"
-                                    @clear="onClear"
-                        />
-                    </div>
+                    <SrGeoJsonFileUpload
+                        v-if="mapStore.polygonSource.value==='Upload geojson File'"
+                    />
                     <SrCheckbox
                         label="Rasterize Polygon:"
                         v-model="reqParamsStore.rasterizePolygon"
