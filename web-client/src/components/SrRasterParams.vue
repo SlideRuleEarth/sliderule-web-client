@@ -67,9 +67,9 @@
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    margin: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 2rem;
+    margin: 0.125rem;
+    padding: 0.125rem;
+    border-radius: var(--border-radius);
     border: 2px solid var(--surface-d);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }

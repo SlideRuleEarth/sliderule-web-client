@@ -343,9 +343,14 @@ onMounted(() => {
                     />
                 </AccordionTab>
                 <AccordionTab header="Raster Sampling">
-                    <div class="sr-raster-sampling-table">
-                        <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
-                    </div> 
+                    <div class="sr-raster-sampling-table-section">
+                        <div class="sr-raster-sampling-table-head">
+                            <h3>Raster Sampling Parameters Table</h3>
+                        </div>  
+                        <div class="sr-raster-sampling-table">
+                            <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
+                        </div> 
+                    </div>
                     <SrRasterParams />
                 </AccordionTab>
                 <AccordionTab header="Output">
@@ -366,9 +371,23 @@ onMounted(() => {
     padding: 0.1250rem;
     margin: 0.1250rem;
 }
+.sr-raster-sampling-table-section {
+    border-radius: var(--border-radius);
+    border: 2px solid var(--surface-d);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: 0.125rem;
+    padding: 0.125rem;
+}
+.sr-raster-sampling-table-head {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0.125rem;
+    padding: 0.125rem;
+}
 .sr-raster-sampling-table {
     flex:auto;
-    width: 30rem;
+    width: 25rem;
     overflow-x: scroll;
     white-space: nowrap;
 }
