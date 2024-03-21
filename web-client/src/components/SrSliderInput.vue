@@ -67,7 +67,7 @@
     const innerValue = ref(props.modelValue);
 
     //const modelValueChanged = (newValue, oldValue) => {
-    const modelValueChanged = (newValue) => {
+    const modelValueChanged = (newValue:any) => {
         //console.log(`Model value changed from ${oldValue} to ${newValue}`);
         innerValue.value = newValue;
     };
@@ -77,7 +77,7 @@
     );
 
     //const onInnerValueChange = (newValue, oldValue) => {
-    const onInnerValueChange = (newValue) => {
+    const onInnerValueChange = (newValue:any) => {
         //console.log(`Inner value changed from ${oldValue} to ${newValue}`);
         emit('update:modelValue', newValue );
     };
