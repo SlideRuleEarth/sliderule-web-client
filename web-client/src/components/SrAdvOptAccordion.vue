@@ -327,19 +327,19 @@ onMounted(() => {
                     />
                     <SrCheckbox
                         label="Degrade Flag:"
-                        v-model="reqParamsStore.DegradeFlag"
+                        v-model="reqParamsStore.degradeFlag"
                     />
                     <SrCheckbox
                         label="L2 Quality Flag:"
-                        v-model="reqParamsStore.L2QualityFlag"
+                        v-model="reqParamsStore.l2QualityFlag"
                     />
                     <SrCheckbox
                         label="L4 Quality Flag:"
-                        v-model="reqParamsStore.L4QualityFlag"
+                        v-model="reqParamsStore.l4QualityFlag"
                     />
                     <SrCheckbox
                         label="Surface Flag:"
-                        v-model="reqParamsStore.SurfaceFlag"
+                        v-model="reqParamsStore.surfaceFlag"
                     />
                 </AccordionTab>
                 <AccordionTab header="Raster Sampling">
@@ -354,7 +354,37 @@ onMounted(() => {
                     <SrRasterParams />
                 </AccordionTab>
                 <AccordionTab header="Output">
-
+                    <SrCheckbox
+                        label="Save Output"
+                        v-model="reqParamsStore.saveOutput"
+                    />
+                    <SrCheckbox
+                        v-if = "reqParamsStore.saveOutput"
+                        label="Staged"
+                        v-model="reqParamsStore.staged"
+                    />
+                    <SrMenuInput
+                        v-if = "reqParamsStore.saveOutput"
+                        v-model="reqParamsStore.outputFormat"
+                        label = "Output Format:"
+                        aria-label="Select Output Format"
+                        :menuOptions="reqParamsStore.outputFormatOptions"
+                    />
+                    <SrMenuInput
+                        v-if = "reqParamsStore.saveOutput"
+                        v-model="reqParamsStore.outputLocation"
+                        label = "Output Location:"
+                        aria-label="Select Output Location"
+                        :menuOptions="reqParamsStore.outputLocationOptions"
+                    />
+                    <SrMenuInput
+                        v-if = "reqParamsStore.saveOutput"
+                        v-model="reqParamsStore.awsRegion"
+                        label = "AWS Region:"
+                        aria-label="Select AWS Region"
+                        :menuOptions="reqParamsStore.awsRegionOptions"
+                    />
+                    
                 </AccordionTab>
             </Accordion>
         </div>
