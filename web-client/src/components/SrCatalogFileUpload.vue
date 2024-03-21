@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { drawGeoJson } from '@/composables/SrMapUtils';
+import { useCatalogStore } from '@/stores/catalogStore';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
-import { useGeoJsonStore } from '@/stores/geoJsonStore';
-
 
 const toast = useToast();
-const geoJsonStore = useGeoJsonStore();
+const catalogStore = useCatalogStore();
 
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
@@ -34,13 +32,9 @@ const customUploader = async (event:any) => {
                     console.log(`e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
-                        geoJsonStore.setGeoJsonData(data);
-                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        const tstMsg = drawGeoJson(data);
-                        if (tstMsg) {
-                            //{ severity: string; summary: string; detail: string; }
-                            toast.add(tstMsg);
-                        }
+                        catalogStore.setCatalogData(data);
+                        toast.add({ severity: 'info', summary: 'File Load', detail: 'Catalog file successfully loaded', life: 3000});
+                
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
@@ -105,11 +99,12 @@ const onClear = () => {
             </template>
         </Toast>
         <FileUpload mode="basic" 
-                    name="SrFileUploads[]" 
+                    name="SrCatalog" 
                     :auto="true" 
-                    accept=".geojson,.json" 
+                    accept=".smp,.smpr" 
                     :maxFileSize="10000000000" 
-                    customUpload 
+                    customUpload
+                    chooseLabel="Upload a Catalog File"
                     @uploader="customUploader"
                     @select="onSelect"
                     @error="onError"

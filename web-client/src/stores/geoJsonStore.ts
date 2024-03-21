@@ -1,4 +1,3 @@
-// src/stores/geoJsonStore.js
 import { defineStore } from 'pinia';
 
 export const useGeoJsonStore = defineStore('geoJson', {

@@ -16,6 +16,7 @@
                 <TextArea  v-model="rasterParamsStore.catalog" rows="3" cols="35" />
                 <label>Catalog</label>
             </FloatLabel>
+            <SrCatalogFileUpload />
         </div>
         <SrMultiSelect label="Bands" 
             :menuOptions="rasterParamsStore.bandOptions" 
@@ -37,6 +38,7 @@
     import SrMultiSelect from '@/components/SrMultiSelect.vue';
     import { useRasterParamsStore } from '@/stores/rasterParamsStore';
     import type { RasterParams } from '@/stores/rasterParamsStore';
+    import SrCatalogFileUpload from './SrCatalogFileUpload.vue';
 
     const rasterParamsStore = useRasterParamsStore();
     const addRasterParams = () => {
