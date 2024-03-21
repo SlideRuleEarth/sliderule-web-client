@@ -6,7 +6,7 @@ import router from './router/index.js';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { useSrToastStore } from "@/stores/srToastStore";
 
-const srToastStore = useSrToastStore
+const srToastStore = useSrToastStore()
 
 const advancedModeStore = useAdvancedModeStore();
 

@@ -1,10 +1,12 @@
 <script setup>
-const client_version = import.meta.env.VITE_APP_VERSION
+  import SrBuildDate from '@/components/SrBuildDate.vue';
+  const client_version = import.meta.env.VITE_APP_VERSION
 </script>
 
 <template>
   <div class="about">
-    <h1 class="light">Version: {{ client_version }}</h1>
+    <SrBuildDate />
+    <p class="light">Version: {{ client_version }}</p>
   </div>
 </template>
 

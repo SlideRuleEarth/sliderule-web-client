@@ -17,6 +17,8 @@ reinstall: clean ## Reinstall the web client dependencies
 	cd web-client && npm install
 
 live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
+	UPLOAD_DATE=$$(date +"%Y-%m-%d %T"); \
+	echo "export const UPLOAD_DATE = '$$UPLOAD_DATE';" > web-client/src/uploadDate.js
 	aws s3 sync web-client/dist/ s3://client.$(DOMAIN) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
@@ -24,6 +26,8 @@ live-update-testsliderule: ## Update the testsliderule.org with new build
 	make live-update DOMAIN=testsliderule.org
 
 build: ## Build the web client and update the dist folder
+	BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
+	echo "export const BUILD_DATE = '$$BUILD_DATE';" > web-client/src/buildDate.js
 	cd web-client && npm run build
 
 type-check: ## Build the web client and update the dist folder
@@ -33,6 +37,8 @@ build-with-maps: ## Build the web client and update the dist folder with src map
 	cd web-client && npm run build_with_maps
 
 run: ## Run the web client locally for development
+	UPLOAD_DATE=$$(date +"%Y-%m-%d %T"); \
+	echo "export const UPLOAD_DATE = '$$UPLOAD_DATE';" > web-client/src/uploadDate.js
 	cd web-client && npm run dev
 
 preview: ## Preview the web client production build locally for development
