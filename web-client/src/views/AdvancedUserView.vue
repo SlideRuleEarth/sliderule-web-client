@@ -152,57 +152,55 @@
 </script>
 
 <template>
-    <div class="advanced-user">
-        <TwoColumnLayout>
-            <template v-slot:sidebar-col>
-                <SrSideBar>
-                    <template v-slot:sr-sidebar-body>
+    <TwoColumnLayout>
+        <template v-slot:sidebar-col>
+            <SrSideBar>
+                <template v-slot:sr-sidebar-body>
+                    <div class="card flex justify-content-center">
                         <div class="card flex justify-content-center">
-                            <div class="card flex justify-content-center">
-                                <SrMenuInput
-                                    v-model="missionValue"
-                                    label="Mission:"
-                                    :menuOptions="missionItems" 
-                                />
-                                <SrMenuInput
-                                    v-model="iceSat2SelectedAPI"
-                                    v-if="missionValue.value === 'ICESat-2'"
-                                    label="ICESat-2 Api:"
-                                    :menuOptions="iceSat2APIsItems"
-                                    :initial-value="iceSat2APIsItems[0]" 
-                                />
-                                <SrMenuInput
-                                    v-model="gediSelectedAPI"
-                                    v-if="missionValue.value === 'GEDI'"
-                                    label="GEDI Api:"
-                                    :menuOptions="gediAPIsItems"
-                                    :initial-value="gediAPIsItems[0]" 
-                                />
-                                <SrAdvOptAccordion
-                                    title="Advanced Options"
-                                    ariaTitle="advanced-options"
-                                    :mission="missionValue"
-                                    :iceSat2SelectedAPI="iceSat2SelectedAPI"
-                                    :gediSelectedAPI="gediSelectedAPI"
-                                />
-                                <SrGraticuleSelect @graticule-click="graticuleClick"/>
-                            </div>  
-                            <div class="button-spinner-container">
-                                <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
-                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
-                            </div>
-                           <!-- <div class="runtest-sr-button" >
-                                <Button label="Run Test" @click="runTestClicked"></Button>
-                            </div> -->
+                            <SrMenuInput
+                                v-model="missionValue"
+                                label="Mission:"
+                                :menuOptions="missionItems" 
+                            />
+                            <SrMenuInput
+                                v-model="iceSat2SelectedAPI"
+                                v-if="missionValue.value === 'ICESat-2'"
+                                label="ICESat-2 Api:"
+                                :menuOptions="iceSat2APIsItems"
+                                :initial-value="iceSat2APIsItems[0]" 
+                            />
+                            <SrMenuInput
+                                v-model="gediSelectedAPI"
+                                v-if="missionValue.value === 'GEDI'"
+                                label="GEDI Api:"
+                                :menuOptions="gediAPIsItems"
+                                :initial-value="gediAPIsItems[0]" 
+                            />
+                            <SrAdvOptAccordion
+                                title="Advanced Options"
+                                ariaTitle="advanced-options"
+                                :mission="missionValue"
+                                :iceSat2SelectedAPI="iceSat2SelectedAPI"
+                                :gediSelectedAPI="gediSelectedAPI"
+                            />
+                            <SrGraticuleSelect @graticule-click="graticuleClick"/>
+                        </div>  
+                        <div class="button-spinner-container">
+                            <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
+                            <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
                         </div>
-                    </template>
-                </SrSideBar>
-            </template>
-            <template v-slot:main>
-                <SrMap />
-            </template>
-        </TwoColumnLayout>
-    </div>
+                        <!-- <div class="runtest-sr-button" >
+                            <Button label="Run Test" @click="runTestClicked"></Button>
+                        </div> -->
+                    </div>
+                </template>
+            </SrSideBar>
+        </template>
+        <template v-slot:main>
+            <SrMap />
+        </template>
+    </TwoColumnLayout>
 </template>
 <style scoped>
     .example-slider-input {

@@ -1,16 +1,15 @@
 <script setup>
+import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue';
 </script>
 
 <template>
-  <div class="sr-about">
-    <p>RecordView placeholder</p>
-  </div>
+  <SingleColumnLayout>
+    <template v-slot:sr-single-col>
+      <h1>RecordView Placeholder</h1>
+    </template>
+  </SingleColumnLayout>
 </template>
 
 <style scoped>
-  .sr-about {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
+
 </style>
