@@ -6,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/GeneralUser.vue')
+      component: () => import('@/views/GeneralUserView.vue')
     },
     {
       path: '/about',
@@ -17,14 +17,30 @@ const router = createRouter({
       component: () => import('@/views/AboutView.vue')
     },
     {
+      path: '/Popular',
+      name: 'popular',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('@/views/PopularView.vue')
+    },
+    {
+      path: '/Record',
+      name: 'record',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('@/views/RecordView.vue')
+    },
+    {
       path: '/general-user',
       name: 'general-user',
-      component: () => import('@/views/GeneralUser.vue') 
+      component: () => import('@/views/GeneralUserView.vue') 
     },
     {
       path: '/advanced-user',
       name: 'advanced-user',
-      component: () => import('@/views/AdvancedUser.vue')
+      component: () => import('@/views/AdvancedUserView.vue')
     },
     {
       path: '/:pathMatch(.*)*',

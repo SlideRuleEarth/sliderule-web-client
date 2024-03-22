@@ -33,10 +33,17 @@ const toolButtonClick = () => {
 const popularButtonClick = () => {
   // console.log('popularButtonClick');
   toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: srToastStore.getLife()});
+  router.push('/popular');
+};
+
+const recordButtonClick = () => {
+  // console.log('recordButtonClick');
+  toast.add({ severity: 'info', summary: 'Record Button', detail: 'Record button was pushed', life: srToastStore.getLife()});
+  router.push('/record');
 };
 
 const aboutButtonClick = () => {
-  // console.log('about-button-click');
+  // console.log('aboutButtonClick');
   toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed',  life: srToastStore.getLife()});
   router.push('/about');
 };
@@ -52,6 +59,7 @@ const aboutButtonClick = () => {
       @search-button-click="searchButtonClick"
       @tool-button-click="toolButtonClick"
       @popular-button-click="popularButtonClick"
+      @record-button-click="recordButtonClick"
       @about-button-click="aboutButtonClick"
     />
   </header>

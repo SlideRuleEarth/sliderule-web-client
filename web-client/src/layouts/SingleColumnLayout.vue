@@ -4,7 +4,7 @@
 <template>
   <div class="single-column-layout">
     <header>
-      <slot name = "sr-sidebar-header"></slot>
+      <slot name = "sr-single-col"></slot>
     </header>
 
   </div>

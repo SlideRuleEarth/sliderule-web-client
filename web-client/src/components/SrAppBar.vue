@@ -1,5 +1,4 @@
 <script setup lang="ts">
-    import {useToast} from "primevue/usetoast";
     import { useAdvancedModeStore } from "@/stores/advancedModeStore";  
     import Button from 'primevue/button';
     import { type Ref,ref } from 'vue';
@@ -39,10 +38,10 @@
             <p class="under-construction-text">This website is under construction</p>
         </div>
         <div class="right-content">
-            <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick" />
-            <Button v-if="!advancedModeStore.advanced" icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick" />
-            <Button v-if="advancedModeStore.advanced" icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick" />
-            <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick" />
+            <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
+            <Button v-if="!advancedModeStore.advanced" icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
+            <Button v-if="advancedModeStore.advanced" icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
+            <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>
         </div>
     </div>
 </template>
