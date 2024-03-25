@@ -1,17 +1,22 @@
 <template>
-  <div class="multi-select-container">
+  <div class="sr-multi-select-check-container">
     <div v-for="option in menuOptions" :key="option.value" 
-         @click="toggleSelection(option, $event)"
-         :class="{ 'selected': option.selected }">
-      <label>{{ option.label }}</label>
+        @click="toggleSelection(option, $event)"
+        :class="{ 'selected': option.selected }">
+      <div class="multi-select-option-container">
 
-      <input 
-        type="checkbox" 
-        v-model="option.additionalParameter" 
-        :disabled="!option.selected"
-        @change="handleAdditionalParamChange(option)" 
-      /> 
-      <label>{{ additionalParamLabel }}</label>
+        <label>{{ option.label }}</label>
+        <div>
+          <input 
+            type="checkbox" 
+            v-model="option.additionalParameter" 
+            :disabled="!option.selected"
+            class="sr-multi-select-checkbox"
+            @change="handleAdditionalParamChange(option)" 
+          /> 
+          <label>{{ additionalParamLabel }}</label>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -46,12 +51,21 @@ function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
 </script>
 
 <style scoped>
-.multi-select-container {
+.sr-multi-select-check-container {
   cursor: pointer;
 }
 
+.multi-select-option-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Align items at both ends of the row */
+
+}
+.sr-multi-select-checkbox {
+  margin-left: 1rem;
+}
 /* Style the selected row */
 .selected {
-  background-color: #e0e0e0;
+  background-color:var(--primary-300);
 }
 </style>
