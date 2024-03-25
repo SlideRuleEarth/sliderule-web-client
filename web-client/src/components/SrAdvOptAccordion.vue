@@ -135,55 +135,59 @@ onMounted(() => {
                     
                 </AccordionTab>
                 <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
+                    <SrCheckbox
+                        label="Atl03 Confidence:"
+                        v-model="reqParamsStore.enableAtl03Confidence"
+                    />
                     <SrMultiSelect
-                        v-if="iceSat2SelectedAPI.value==='atl03'"
-                        :menuOptions="reqParamsStore.surfaceTypeOptions"
-                        label="Surface Type:"
-                        ariaLabel="Select Surface Type"
-                        @update:value="reqParamsStore.surfaceType = $event"
-                        :default="[reqParamsStore.surfaceTypeOptions[0]]"
+                        v-if="reqParamsStore.enableAtl03Confidence"
+                        :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
+                        label="Surface Reference Type:"
+                        ariaLabel="Select Reference Surface Type"
+                        @update:value="reqParamsStore.surfaceReferenceType = $event"
+                        :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
                     />
                     <!-- <SrRadioButtonBox
-                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                        v-if="props.iceSat2SelectedAPI.value==='atl03'"
                         label="Signal Confidence"
                         ariaLabel="Signal Confidence"
                         :categories="reqParamsStore.signalConfidenceOptions"
                     /> -->
                     <SrMenuInput
-                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                    v-if="reqParamsStore.enableAtl03Confidence"
                         label="Signal Confidence"
                         ariaLabel="Signal Confidence"
                         :menuOptions="reqParamsStore.signalConfidenceOptions"
                         @update:value="reqParamsStore.signalConfidence = $event"
                     />
+                    <SrCheckbox
+                        label="Atl08 Confidence:"
+                        v-model="reqParamsStore.enableAtl08Classification"
+                    />
                     <SrMultiSelect
-                        v-if="iceSat2SelectedAPI.value==='atl08'"
+                        v-if="reqParamsStore.enableAtl08Classification"
                         :menuOptions="reqParamsStore.landTypeOptions"
                         label = "Land Type:"
                         aria-label="Select Land Type"
                         @update:value="reqParamsStore.landType = $event"
                         :default="reqParamsStore.landTypeOptions"
                     />
-                    <SrSliderInput
-                        v-if="iceSat2SelectedAPI.value==='atl03'"
+                    <SrSwitchedSliderInput
+                        v-if="props.iceSat2SelectedAPI.value==='atl03'"
                         v-model="reqParamsStore.YAPC"
-                        label="YAPC:"
-                    />   
+                        label="ATL03 YAPC:"
+                        :min="1"
+                        :max="100" 
+                        :decimalPlaces="0"
+                    />
                     <SrSwitchedSliderInput
                         label="SR YAPC:"
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
                     />
-                    <SrSwitchedSliderInput
-                        v-if="iceSat2SelectedAPI.value==='atl03'"
-                        label="YAPC:"
-                        :min="1"
-                        :max="100" 
-                        :decimalPlaces="0"
-                    />
                 </AccordionTab>
-                <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
+                <AccordionTab header="Extents (Variable-Length Segmentation)" v-if="mission.value==='ICESat-2'" >
                     <SrMenuInput
                         v-model="reqParamsStore.distanceIn"
                         label = "Distance In:"
@@ -191,7 +195,7 @@ onMounted(() => {
                         :menuOptions="reqParamsStore.distanceInOptions"
                     />
                     <SrSliderInput
-                        v-if="reqParamsStore.distanceIn==='meters'"
+                        v-if="reqParamsStore.distanceIn.value==='meters'"
                         v-model="reqParamsStore.lengthValue"
                         label="Length in meters:"
                         :min="5"
@@ -199,7 +203,7 @@ onMounted(() => {
                         :decimal-places="0"                  
                     />
                     <SrSliderInput
-                        v-if="reqParamsStore.distanceIn==='meters'"
+                        v-if="reqParamsStore.distanceIn.value==='meters'"
                         v-model="reqParamsStore.stepValue"
                         label="Step Size (meters):"
                         :min="5"
@@ -207,7 +211,7 @@ onMounted(() => {
                         :decimal-places="0"
                     />
                     <SrSliderInput
-                        v-if="reqParamsStore.distanceIn==='segments'"
+                        v-if="reqParamsStore.distanceIn.value==='segments'"
                         v-model="reqParamsStore.lengthValue"
                         label="Length in segments:"
                         :min="5"
@@ -235,7 +239,7 @@ onMounted(() => {
                         :decimal-places="0"
                     />
                 </AccordionTab>
-                <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl06'"  > 
+                <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
                     <SrSliderInput
                         v-model="reqParamsStore.maxIterations"
                         label="Max Iterations:"
@@ -258,7 +262,7 @@ onMounted(() => {
                         :decimal-places="0"
                     />
                 </AccordionTab>
-                <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && iceSat2SelectedAPI.value==='atl08'" >
+                <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
                     <SrSliderInput
                         v-model="reqParamsStore.binSize"
                         label="Bin Size:"
@@ -288,7 +292,7 @@ onMounted(() => {
                 </AccordionTab>
                 <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
                     <SrMenuMultiInput
-                        v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                        v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
                         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
                         label="ATL03 GeoSpatial Fields:"
                         ariaLabel="Select ATL03 GeoSpatial Fields"
@@ -296,7 +300,7 @@ onMounted(() => {
                         :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
                     />  
                     <SrMenuMultiInput
-                        v-if="iceSat2SelectedAPI.value==='atl03' || iceSat2SelectedAPI.value==='atl06'"
+                        v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
                         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
                         label="ATL03 Photon Fields:"
                         ariaLabel="Select ATL03 Photon Fields"
@@ -304,7 +308,7 @@ onMounted(() => {
                         :default="reqParamsStore.ATL03PhotonFieldsOptions"
                     /> 
                     <SrMenuMultiInput
-                        v-if="iceSat2SelectedAPI.value==='atl06s'"
+                        v-if="props.iceSat2SelectedAPI.value==='atl06s'"
                         v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
                         label="ATL03 IceSegment Fields:"
                         ariaLabel="Select ATL03 IceSegment Fields"
@@ -312,7 +316,7 @@ onMounted(() => {
                         :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
                     />  
                     <SrMenuMultiCheckInput
-                        v-if="iceSat2SelectedAPI.value==='atl08'"
+                        v-if="props.iceSat2SelectedAPI.value==='atl08'"
                         v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
                         label="ATL08 LandSegment Fields:"
                         additionalParamLabel="interpolate"

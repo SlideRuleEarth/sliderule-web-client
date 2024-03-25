@@ -1,16 +1,16 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
-            <div ref="menuElement" class="sr-menu-multi-input-menu-control">
-                <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
-                <SrCheckbox label="Select All" :default="true" @update:modelValue="handleSelectAllItems" />
-                <form class="sr-multi-menu-select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
-                        <option v-for="item in menuOptions" :value="item" :key="item">
-                            {{ item }}
-                        </option>
-                    </select>
-                </form>
-            </div>
+        <div ref="menuElement" class="sr-menu-multi-input-menu-control">
+            <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
+            <SrCheckbox label="All" :default="true" @update:modelValue="handleSelectAllItems" />
+            <form class="sr-multi-menu-select-item" name="sr-select-item-form">
+                <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
+                    <option v-for="item in menuOptions" :value="item" :key="item">
+                        {{ item }}
+                    </option>
+                </select>
+            </form>
+        </div>
     </div>
 </template>
   

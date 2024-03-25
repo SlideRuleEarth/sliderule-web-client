@@ -8,8 +8,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         rasterizePolygon: false,
         ignorePolygon: false,
         missionValue: {name:'mission', value:'-2'},
-        iceSat2SelectedAPI: {name:'ICESat-2 Api', value:'atl06'},
-        gediSelectedAPI: {name:'GEDI Api', value:'gedi01b'},
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
@@ -29,14 +27,15 @@ export const useReqParamsStore = defineStore('reqParams', {
         PE_CountValue: 10,
         windowValue: 3.0,
         sigmaValue: 5.0,
-        surfaceTypeOptions: [
+        enableAtl03Confidence: false,
+        surfaceReferenceTypeOptions: [
           { name: 'Land', value:'L' },
           { name: 'Ocean', value:'O' },
           { name: 'Sea Ice', value:'S'},
           { name: 'Land Ice', value:'I'},
           { name: 'Inland Water',value:'W' },
         ] as SrMultiSelectItem[],
-        surfaceType:[] as string[],
+        surfaceReferenceType:[] as string[],
         signalConfidenceOptions: [
           { name: 'TEP', value: '-2' },
           { name: 'Not Considered', value: '0' },
@@ -47,6 +46,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'High', value: '4' },
         ] as SrRadioBtnCategory[],
         signalConfidence: 'Terrain Echo Photon (TEP)',
+        enableAtl08Classification: false,
         landTypeOptions: [
           { name: 'noise', value: '0' },
           { name: 'ground', value: '1' },
@@ -60,7 +60,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
         ] as SrMultiSelectItem[],
-        distanceIn: 'meters',
+        distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
         alongTrackSpread: 0.0,
         minimumPhotonCount: 0,
