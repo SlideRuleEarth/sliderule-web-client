@@ -37,8 +37,8 @@ build-with-maps: ## Build the web client and update the dist folder with src map
 	cd web-client && npm run build_with_maps
 
 run: ## Run the web client locally for development
-	UPLOAD_DATE=$$(date +"%Y-%m-%d %T"); \
-	echo "export const UPLOAD_DATE = '$$UPLOAD_DATE';" > web-client/src/uploadDate.js
+	RUN_DEV_DATE=$$(date +"%Y-%m-%d %T"); \
+	echo "export const RUN_DEV_DATE = '$$RUN_DEV_DATE';" > web-client/src/runDevDate.js
 	cd web-client && npm run dev
 
 preview: ## Preview the web client production build locally for development

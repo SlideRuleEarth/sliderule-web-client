@@ -2,6 +2,7 @@
   <div class="sr-build-date">
     <p>Build Date: {{ BUILD_DATE }}</p>
     <p>Upload Date: {{ UPLOAD_DATE }}</p>
+    <p>Run Dev Date: {{ RUN_DEV_DATE }}</p>
     <p class="light">Version: {{ client_version }}</p>
 
   </div>
@@ -11,6 +12,7 @@
 import { ref } from 'vue';
 import { BUILD_DATE } from '@/buildDate.js';
 import { UPLOAD_DATE } from '@/uploadDate.js';
+import { RUN_DEV_DATE } from '@/runDevDate.js';
 const client_version = import.meta.env.VITE_APP_VERSION
 
 </script>
