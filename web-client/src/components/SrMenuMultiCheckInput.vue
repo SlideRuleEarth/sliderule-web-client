@@ -1,7 +1,7 @@
 <template>
   <div class="multi-select-container">
     <div v-for="option in menuOptions" :key="option.value" 
-         @click="toggleSelection(option)"
+         @click="toggleSelection(option, $event)"
          :class="{ 'selected': option.selected }">
       <label>{{ option.label }}</label>
 
@@ -33,8 +33,10 @@ const props = defineProps<{
 
 const menuOptions = ref<SrMenuMultiCheckInputOption[]>(props.menuOptions);
 
-const toggleSelection = (option: SrMenuMultiCheckInputOption) => {
-  option.selected = !option.selected;
+const toggleSelection = (option: SrMenuMultiCheckInputOption, event: MouseEvent) => {
+  if (!(event.target instanceof HTMLInputElement)) {
+    option.selected = !option.selected;
+  }
 };
 
 function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
