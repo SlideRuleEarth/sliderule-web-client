@@ -1,12 +1,13 @@
 <template>
-    <div class="sr-menu-multi-input-wrapper">
-            <div ref="menuElement" class="sr-menu-multi-input-menu-control">
-                <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
+    <div class="sr-menu-multi-check-input-wrapper">
+            <div ref="menuElement" class="sr-menu-multi-check-input-menu-control">
+                <label for="srSelectMultiCheckMenu-{{ label }}" class="sr-menu-multi-check-input-label">{{ label }}</label>
                 <SrCheckbox label="Select All" :default="true" @update:modelValue="handleSelectAllItems" />
-                <form class="sr-multi-menu-select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
+                <form class="sr-multi-check-menu-select-item" name="sr-select-multicheck-item-form">
+                    <select v-model="selectedMenuItems" class="sr-menu-multi-check-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
                         <option v-for="item in menuOptions" :value="item" :key="item">
                             {{ item }}
+                            <SrCheckbox label="Select" :default="true" />
                         </option>
                     </select>
                 </form>
@@ -52,23 +53,23 @@
 </script>
 
 <style scoped>
-.sr-menu-multi-input-wrapper {
+.sr-menu-multi-check-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
     margin-top: 0.125rem;
 }
 
-.sr-menu-multi-input-label {
+.sr-menu-multi-check-input-label {
     margin-right: 0.5rem;
 }
 
-.sr-menu-multi-input-select-item {
+.sr-menu-multi-check-input-select-item {
     display: flex;
     align-items: right;
 }
 
-.sr-menu-multi-input-menu-control {
+.sr-menu-multi-check-input-menu-control {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -76,7 +77,7 @@
     gap: 10px;
 }
 
-.sr-menu-multi-input-select-default {
+.sr-menu-multi-check-input-select-default {
     width: calc(100% - 0.25rem);
     padding: 0rem;
     margin: 0rem;
@@ -87,9 +88,9 @@
     overflow-y: auto; /* Allows scrolling through options */
 }
 
-.sr-multi-menu-select-item {
+.sr-multi-check-menu-select-item {
     width: 100%;
-    min-width: 4rem;
+    min-width: 10rem;
     height: auto;
     overflow-y: auto;
     padding: 0rem;

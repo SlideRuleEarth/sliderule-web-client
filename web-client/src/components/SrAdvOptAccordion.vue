@@ -6,6 +6,7 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
+import SrMenuMultiCheckInput from './SrMenuMultiCheckInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue'
 import SrCredsFileUpload from './SrCredsFileUpload.vue';
 import { useMapStore } from '@/stores/mapStore';
@@ -310,11 +311,11 @@ onMounted(() => {
                         :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
                         :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
                     />  
-                    <SrMenuMultiInput
+                    <SrMenuMultiCheckInput
                         v-if="iceSat2SelectedAPI.value==='atl08'"
                         v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                        label="ATL03 IceSegment Fields:"
-                        ariaLabel="Select ATL03 IceSegment Fields"
+                        label="ATL08 LandSegment Fields:"
+                        ariaLabel="Select ATL08 LandSegment Fields"
                         :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
                         :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
                     />  
