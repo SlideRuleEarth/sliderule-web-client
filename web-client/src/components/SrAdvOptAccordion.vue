@@ -315,6 +315,7 @@ onMounted(() => {
                         v-if="iceSat2SelectedAPI.value==='atl08'"
                         v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
                         label="ATL08 LandSegment Fields:"
+                        additionalParamLabel="interpolate"
                         ariaLabel="Select ATL08 LandSegment Fields"
                         :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
                         :default="reqParamsStore.ATL08LandSegmentFieldsOptions"

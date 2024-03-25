@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { SrRadioBtnCategory } from '@/components/SrRadioButtonBox.vue';
 import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
+import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
@@ -99,7 +100,11 @@ export const useReqParamsStore = defineStore('reqParams', {
         ATL03GeoSpatialFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
         ATL03PhotonFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
         ATL06IceSegmentFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
-        ATL08LandSegmentFieldsOptions:['Field_1_Checkbox_TBD', 'Field_2Checkbox_TBD', 'Field_3Checkbox_TBD'],
+        ATL08LandSegmentFieldsOptions:[
+          { label: 'Option 1', value: 'opt1', selected: false, additionalParameter: false },
+          { label: 'Option 2', value: 'opt2', selected: false, additionalParameter: false },
+          { label: 'Option 3', value: 'opt3', selected: false, additionalParameter: false },
+        ] as SrMenuMultiCheckInputOption[],
         degradeFlag: false,
         l2QualityFlag: false,
         l4QualityFlag: false,

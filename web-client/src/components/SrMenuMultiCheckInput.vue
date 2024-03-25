@@ -1,6 +1,6 @@
 <template>
   <div class="multi-select-container">
-    <div v-for="option in options" :key="option.value" 
+    <div v-for="option in menuOptions" :key="option.value" 
          @click="toggleSelection(option)"
          :class="{ 'selected': option.selected }">
       <label>{{ option.label }}</label>
@@ -11,7 +11,7 @@
         :disabled="!option.selected"
         @change="handleAdditionalParamChange(option)" 
       /> 
-      <label>Additional Parameter</label>
+      <label>{{ additionalParamLabel }}</label>
     </div>
   </div>
 </template>
@@ -19,24 +19,25 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-interface Option {
+export interface SrMenuMultiCheckInputOption {
   label: string;
   value: string; // Or other relevant type
   selected: boolean;
   additionalParameter: boolean;
 }
 
-const options = ref<Option[]>([
-  { label: 'Option 1', value: 'opt1', selected: false, additionalParameter: false },
-  { label: 'Option 2', value: 'opt2', selected: false, additionalParameter: false },
-  { label: 'Option 3', value: 'opt3', selected: false, additionalParameter: false },
-]);
+const props = defineProps<{
+  menuOptions: SrMenuMultiCheckInputOption[];
+  additionalParamLabel: string;
+}>()
 
-const toggleSelection = (option: Option) => {
+const menuOptions = ref<SrMenuMultiCheckInputOption[]>(props.menuOptions);
+
+const toggleSelection = (option: SrMenuMultiCheckInputOption) => {
   option.selected = !option.selected;
 };
 
-function handleAdditionalParamChange(option: Option) {
+function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
   // You can add any extra logic for managing the additional parameter here 
   // Example: Send updated option data to an API 
 }
