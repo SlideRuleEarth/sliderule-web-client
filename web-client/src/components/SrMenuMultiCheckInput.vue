@@ -8,13 +8,13 @@
         <label>{{ option.label }}</label>
         <div>
           <input 
-            type="checkbox" 
-            v-model="option.additionalParameter" 
-            :disabled="!option.selected"
-            class="sr-multi-select-checkbox"
-            @change="handleAdditionalParamChange(option)" 
-          /> 
-          <label>{{ additionalParamLabel }}</label>
+              type="checkbox" 
+              v-model="option.additionalParameter" 
+              :disabled="!option.selected"
+              class="sr-multi-select-checkbox"
+              @change="handleAdditionalParamChange(option)" 
+            /> 
+            <label>{{ additionalParamLabel }}</label>
         </div>
       </div>
     </div>
@@ -41,6 +41,9 @@ const menuOptions = ref<SrMenuMultiCheckInputOption[]>(props.menuOptions);
 const toggleSelection = (option: SrMenuMultiCheckInputOption, event: MouseEvent) => {
   if (!(event.target instanceof HTMLInputElement)) {
     option.selected = !option.selected;
+    if (!option.selected) {
+      option.additionalParameter = false; // Uncheck the checkbox when deselecting the item
+    }
   }
 };
 
@@ -66,6 +69,6 @@ function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
 }
 /* Style the selected row */
 .selected {
-  background-color:var(--primary-300);
+  background-color: var(--primary-300);
 }
 </style>
