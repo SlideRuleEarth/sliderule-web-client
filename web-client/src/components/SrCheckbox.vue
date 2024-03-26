@@ -1,7 +1,7 @@
 <template>
     <div class="sr-checkbox">
-        <label class = 'sr-checkbox-label' :for="'sr-checkbox-' + label"> {{ label }} </label>
-        <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" />
+        <label :class = "{'sr-checkbox-label':!insensitive, 'sr-checkbox-label-insensitive': insensitive }" :for="'sr-checkbox-' + label"> {{ label }} </label>
+        <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" :disabled="insensitive"/>
     </div>
 </template>
 
@@ -16,6 +16,10 @@ const props = defineProps({
         default: false
     },
     default: {
+        type: Boolean,
+        default: false
+    },
+    insensitive: {
         type: Boolean,
         default: false
     }
@@ -39,5 +43,10 @@ const toggleChecked = (e:any) => {
 
 .sr-checkbox-label {
     white-space: nowrap;
+}
+
+.sr-checkbox-label-insensitive {
+    white-space: nowrap;
+    color: #888; /*  grey color */
 }
 </style>

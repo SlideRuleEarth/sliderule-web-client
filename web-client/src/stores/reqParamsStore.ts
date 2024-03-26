@@ -47,13 +47,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         ] as SrRadioBtnCategory[],
         signalConfidence: 'Terrain Echo Photon (TEP)',
         enableAtl08Classification: false,
-        landTypeOptions: [
-          { name: 'noise', value: '0' },
-          { name: 'ground', value: '1' },
-          { name: 'canopy', value: '2' },
-          { name: 'Top of Canopy', value: '3' },
-          { name: 'unclassified', value: '4' },
-        ] as SrMultiSelectItem[],
+        // landTypeOptions: [
+        //   { name: 'noise', value: '0' },
+        //   { name: 'ground', value: '1' },
+        //   { name: 'canopy', value: '2' },
+        //   { name: 'Top of Canopy', value: '3' },
+        //   { name: 'unclassified', value: '4' },
+        // ] as SrMultiSelectItem[],
+        landTypeOptions: ['ground', 'canopy', 'Top of Canopy', 'unclassified', 'noise'], 
         landType: 'ground',
         YAPC: 0.0,
         distanceInOptions:[

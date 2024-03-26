@@ -1,10 +1,10 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
-        <div ref="menuElement" class="sr-menu-multi-input-menu-control">
+        <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
             <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
-            <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems" />
+            <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
             <form class="sr-multi-menu-select-item" name="sr-select-item-form">
-                <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
+                <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple :disabled="insensitive">
                     <option v-for="item in menuOptions" :value="item" :key="item">
                         {{ item }}
                     </option>
@@ -21,7 +21,11 @@
     const props = defineProps({
         label: String,
         menuOptions: Array as () => string[],
-        default: Array as () => string[]
+        default: Array as () => string[],
+        insensitive: {
+            type: Boolean,
+            default: false
+        }
     });
 
     const selectAll = ref(true);
@@ -87,6 +91,14 @@
     align-items: center;
     width: 100%;
     gap: 10px;
+}
+.sr-menu-multi-input-menu-control-insensitive {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    color: #888; /*  grey color */
 }
 
 .sr-menu-multi-input-select-default {

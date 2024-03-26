@@ -158,12 +158,12 @@ onMounted(() => {
                         label="Atl08 Confidence:"
                         v-model="reqParamsStore.enableAtl08Classification"
                     />
-                    <SrMultiSelect
-                        :insensitive="reqParamsStore.enableAtl08Classification"
+                    <SrMenuMultiInput
+                        :insensitive="!reqParamsStore.enableAtl08Classification"
                         :menuOptions="reqParamsStore.landTypeOptions"
-                        label = "Land Type:"
+                        label = "Land Type(s):"
                         aria-label="Select Land Type"
-                        @update:value="reqParamsStore.landType = $event"
+                        v-model="reqParamsStore.landType"
                         :default="reqParamsStore.landTypeOptions"
                     />
                     <SrSwitchedSliderInput
