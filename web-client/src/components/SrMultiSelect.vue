@@ -1,7 +1,7 @@
 <template>
-    <div class="menu-label-wrapper">
-        <label for="sr-multiselect-{{ label }}">{{ label }} </label> 
-        <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="multi-selector" /> 
+    <div class="sr-menu-label-wrapper">
+        <label for="sr-multiselect-{{ label }}" :class="{'sr-multi-menu-float-label': !insensitive,'sr-multi-menu-float-label-insensitive': insensitive}">{{ label }} </label> 
+        <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="sr-multi-selector" :disabled="props.insensitive" /> 
     </div>
 </template>  
 <script setup lang="ts">
@@ -17,7 +17,11 @@
         menuOptions: Array as () => SrMultiSelectItem[],
         default: Array as () => SrMultiSelectItem[],
         value: Array as () => SrMultiSelectItem[],
-        names: Array as () => string[]
+        names: Array as () => string[],
+        insensitive: {
+            type: Boolean,
+            default: false
+        }
     });
 
     // Update to manage an array of selected items
@@ -54,24 +58,28 @@
 <style scoped>
 
 
-.multi-menu-card {
-    display: flex;
-    justify-content: center;
-}
-
-.multi-menu-float-label {
-    margin-top: 2rem;
+.sr-multi-menu-float-label {
     width: 100%;
     max-width: 20rem;
+    white-space: nowrap;
 }
-.menu-label-wrapper {
+
+.sr-multi-menu-float-label-insensitive {
+    width: 100%;
+    max-width: 20rem;
+    white-space: nowrap;
+    color: #888; /*  grey color */
+}
+
+.sr-menu-label-wrapper {
     display: flex; /* This enables Flexbox */
+    flex-direction: row;
     justify-content: space-between; /* Aligns children to opposite edges */
     align-items: center; /* This vertically centers the items in the container */
     width: 100%; /* Ensures it spans the full width of its parent */
 }
 
-.multi-selector {
+.sr-multi-selector {
     width: 100%;
 }
 /* 

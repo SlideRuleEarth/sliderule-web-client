@@ -23,9 +23,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const toggleChecked = () => {
-    console.log(`${props.label} SrCheckbox: ${props.modelValue}`);
-    emit('update:modelValue', !props.modelValue);
+const toggleChecked = (e:any) => {
+    console.log(`SrCheckbox: ${props.label}: ${props.modelValue}`);
+    console.log(`SrCheckbox e.target.checked: ${props.label}: ${e.target.checked}`);
+    emit('update:modelValue', e.target.checked);
 }
 </script>
 
@@ -33,7 +34,7 @@ const toggleChecked = () => {
 .sr-checkbox {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
 }
 
 .sr-checkbox-label {

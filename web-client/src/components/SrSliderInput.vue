@@ -160,7 +160,7 @@
 .sr-slider-label-insensitive {
     white-space: nowrap;
     margin-right: 0.75rem;
-    color: #888; /* Example grey color */
+    color: #888; /*  grey color */
 }
 
 .sr-slider {

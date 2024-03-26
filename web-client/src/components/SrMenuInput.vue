@@ -2,9 +2,9 @@
     <div class="menu-input-wrapper">
         <div class="menu-row">
             <div ref="menuElement" class="menu-control">
-                <label for="srSelectMenu-{{ label }}" class="label">{{ label }}</label>
+                <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" >{{ label }}</label>
                 <form class="select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label">
+                    <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
                             {{ item.name }}
                         </option>
@@ -26,6 +26,10 @@
     const props = defineProps({
         label: String,
         menuOptions: Array as () => SrMenuItem[],
+        insensitive: {
+            type: Boolean,
+            default: false
+        }
     });
     const selectedMenuItem = ref<SrMenuItem>(
         props.menuOptions && props.menuOptions.length > 0
@@ -53,10 +57,15 @@
     margin-top: 0.125rem;
 }
 
-.label {
+.sr-select-menu-label {
     margin-right: 0.5rem;
+    white-space: nowrap;
 }
 
+.sr-select-menu-label-insensitive {
+    margin-right: 0.5rem;
+    color: #888; /*  grey color */
+}
 .select-item {
     display: flex;
     align-items: right;

@@ -73,6 +73,7 @@
 
 .sr-menu-multi-input-label {
     margin-right: 0.5rem;
+    white-space: nowrap;
 }
 
 .sr-menu-multi-input-select-item {

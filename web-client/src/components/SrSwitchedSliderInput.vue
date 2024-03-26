@@ -23,7 +23,7 @@
         },
         label: {
             type: String,
-            default: 'Label'
+            default: ''
         },
         checkBoxLabel: {
             type: String,

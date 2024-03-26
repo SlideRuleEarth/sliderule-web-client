@@ -105,7 +105,7 @@ onMounted(() => {
                     />
                     <SrSwitchedSliderInput
                         v-model="reqParamsStore.rgtValue"
-                        label="RGT:"
+                        checkBoxLabel="RGT:"
                         :min="1"
                         :max="100" 
                         :decimal-places="0"
@@ -140,22 +140,16 @@ onMounted(() => {
                         v-model="reqParamsStore.enableAtl03Confidence"
                     />
                     <SrMultiSelect
-                        v-if="reqParamsStore.enableAtl03Confidence"
-                        :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
+                        :insensitive="!reqParamsStore.enableAtl03Confidence"
                         label="Surface Reference Type:"
                         ariaLabel="Select Reference Surface Type"
+                        :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
                         @update:value="reqParamsStore.surfaceReferenceType = $event"
                         :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
                     />
-                    <!-- <SrRadioButtonBox
-                        v-if="props.iceSat2SelectedAPI.value==='atl03'"
-                        label="Signal Confidence"
-                        ariaLabel="Signal Confidence"
-                        :categories="reqParamsStore.signalConfidenceOptions"
-                    /> -->
                     <SrMenuInput
-                    v-if="reqParamsStore.enableAtl03Confidence"
-                        label="Signal Confidence"
+                        :insensitive="!reqParamsStore.enableAtl03Confidence"
+                        label="Signal Confidence:"
                         ariaLabel="Signal Confidence"
                         :menuOptions="reqParamsStore.signalConfidenceOptions"
                         @update:value="reqParamsStore.signalConfidence = $event"
@@ -165,7 +159,7 @@ onMounted(() => {
                         v-model="reqParamsStore.enableAtl08Classification"
                     />
                     <SrMultiSelect
-                        v-if="reqParamsStore.enableAtl08Classification"
+                        :insensitive="reqParamsStore.enableAtl08Classification"
                         :menuOptions="reqParamsStore.landTypeOptions"
                         label = "Land Type:"
                         aria-label="Select Land Type"
@@ -174,13 +168,13 @@ onMounted(() => {
                     />
                     <SrSwitchedSliderInput
                         v-model="reqParamsStore.YAPC"
-                        label="ATL03 YAPC:"
+                        checkBoxLabel="ATL03 YAPC:"
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
                     />
                     <SrSwitchedSliderInput
-                        label="SR YAPC:"
+                        checkBoxLabel="SR YAPC:"
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
