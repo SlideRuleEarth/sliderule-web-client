@@ -1,8 +1,8 @@
 <template>
     <div class="sr-swithced-slider-input-wrapper">
         <div class="sr-switched-slider-row">
-            <SrCheckbox label=""/>
-            <SrSliderInput v-model=innerModelValue :label="props.label" :id="inputID" :min="min"  :max="max" :decimalPlaces="decimalPlaces"/>
+            <SrCheckbox v-model="isCheckboxChecked" :label="props.checkBoxLabel"  @change="handleChange" />
+            <SrSliderInput v-model="innerModelValue" :label="props.label" :id="inputID" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked"/>
         </div>
     </div>
 </template>
@@ -25,14 +25,22 @@
             type: String,
             default: 'Label'
         },
+        checkBoxLabel: {
+            type: String,
+            default: ''
+        },
         decimalPlaces: {
             type: Number,
             default: 0 // Default to 0 decimal places
         }
     });
     const innerModelValue = ref(0.0);
+    const isCheckboxChecked = ref(false);
     const inputID = `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
-
+    const handleChange = (event: any) => {
+        console.log(`SrSwitchedSliderInput checked?: ${event.target.checked}`);
+        isCheckboxChecked.value = event.target.checked;
+    }
 </script>
 
 <style scoped>

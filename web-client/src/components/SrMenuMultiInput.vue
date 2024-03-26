@@ -2,7 +2,7 @@
     <div class="sr-menu-multi-input-wrapper">
         <div ref="menuElement" class="sr-menu-multi-input-menu-control">
             <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
-            <SrCheckbox label="All" :default="true" @update:modelValue="handleSelectAllItems" />
+            <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems" />
             <form class="sr-multi-menu-select-item" name="sr-select-item-form">
                 <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple>
                     <option v-for="item in menuOptions" :value="item" :key="item">
@@ -15,7 +15,7 @@
 </template>
   
 <script setup lang="ts">
-    import { ref, onMounted } from 'vue';
+    import { ref, onMounted, watch } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
 
     const props = defineProps({
@@ -26,15 +26,13 @@
 
     const selectAll = ref(true);
 
-    const handleSelectAllItems = (event:any) => {
-        console.log('CheckSelectAll:', event);
-        selectAll.value = event;
+    const handleSelectAllItems = (newValue: boolean) => {
+        console.log('CheckSelectAll:', newValue);
+        selectAll.value = newValue;
         if(props.menuOptions){
-            if(selectAll.value){
-                console.log('Select All:', props.menuOptions);
-                selectedMenuItems.value = props.menuOptions.map(item => item);
+            if (selectAll.value) {
+                selectedMenuItems.value = [...props.menuOptions];
             } else {
-                console.log('Deselect All:', props.menuOptions);
                 selectedMenuItems.value = [];
             }
         } else {
@@ -45,6 +43,20 @@
     };
     // Update to manage an array of selected items
     const selectedMenuItems = ref(props.default);
+
+    // Watcher to update selectAll based on selected items
+    watch(selectedMenuItems, (currentSelection) => {
+        console.log('Selected Items:', currentSelection);
+        // If the length of selected items is equal to the length of menu options, set selectAll to true, otherwise false
+        if (currentSelection && props.menuOptions){
+            console.log('Menu Options:', props.menuOptions);
+            selectAll.value = currentSelection.length === props.menuOptions.length;
+        } else {
+            console.error('No menu options to select?');
+            selectAll.value = false;
+        }
+        console.log('Select All:', selectAll.value);
+    }, { deep: true });
 
     onMounted(() => {
         console.log('Mounted Menu:', props.label);

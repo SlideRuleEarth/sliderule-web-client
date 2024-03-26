@@ -1,7 +1,7 @@
 <template>
     <div class="sr-calendar">
         <label class="sr-calendar-label" :for="inputId"> {{ label }} </label>
-        <Calendar v-model="dateDisplay" showIcon :showOnFocus="false" :inputId="inputId" />
+        <Calendar v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
     </div>
 </template>
 
@@ -26,7 +26,7 @@ const emit = defineEmits(['update:modelValue']);
 // Generate a unique inputId based on the label prop
 const inputId = `sr-calendar-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
 
-function handleChange(event) {
+function handleChange(event:any) {
     console.log(`${props.label} SrCheckbox: ${event.target.checked}`);
     emit('update:modelValue', event.target.checked);
 }

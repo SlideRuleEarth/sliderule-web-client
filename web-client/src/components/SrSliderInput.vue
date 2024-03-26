@@ -101,7 +101,15 @@
     }, 500, {maxWait: 1000}); // Adjust the debounce time (500ms) as needed
 
     const formattedValue = computed({
-        get: () => innerValue.value.toFixed(props.decimalPlaces),
+        get: () => 
+        {
+            if (props.insensitive) {
+                return '';
+            } else {
+                // Otherwise, return the formatted number
+                return innerValue.value.toFixed(props.decimalPlaces);
+            }
+        },
         set: (val) => {
             // Check if the input is a number
             let numericValue = parseFloat(val);

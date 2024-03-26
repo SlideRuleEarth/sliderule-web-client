@@ -27,7 +27,7 @@ export const useMapStore = defineStore('map', {
         showLabels: true,
         wrapX: false
     }),
-    polygonSource:{name:'Polygon Source',value:'Draw on Map'},
+    polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([])
   }),
   actions: {

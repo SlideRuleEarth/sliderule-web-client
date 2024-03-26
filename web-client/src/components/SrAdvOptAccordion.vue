@@ -103,7 +103,7 @@ onMounted(() => {
                         :menuOptions="reqParamsStore.beamsOptions"
                         :default="reqParamsStore.beamsOptions"
                     />
-                    <SrSliderInput
+                    <SrSwitchedSliderInput
                         v-model="reqParamsStore.rgtValue"
                         label="RGT:"
                         :min="1"

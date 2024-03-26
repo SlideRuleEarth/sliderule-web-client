@@ -1,16 +1,19 @@
 <template>
     <div class="sr-checkbox">
         <label class = 'sr-checkbox-label' :for="'sr-checkbox-' + label"> {{ label }} </label>
-        <input :id="'sr-checkbox-' + label" type="checkbox" v-model="isChecked" @change="handleChange" />
+        <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" />
     </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
 
 const props = defineProps({
     label: {type:String,
             default: 'undefined'
+    },
+    modelValue: {
+        type: Boolean,
+        default: false
     },
     default: {
         type: Boolean,
@@ -18,14 +21,11 @@ const props = defineProps({
     }
 });
 
-const isChecked = ref(props.default);
-
-
 const emit = defineEmits(['update:modelValue']);
 
-function handleChange(event) {
-    console.log(`${props.label} SrCheckbox: ${event.target.checked}`);
-    emit('update:modelValue', event.target.checked);
+const toggleChecked = () => {
+    console.log(`${props.label} SrCheckbox: ${props.modelValue}`);
+    emit('update:modelValue', !props.modelValue);
 }
 </script>
 
