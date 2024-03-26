@@ -3,7 +3,7 @@
     <!-- Flex container for aligning select all and options list -->
     <div class="options-flex-container">
       <div class="multi-select-option-container select-all-container">
-        <input type="checkbox" id="selectAll" v-model="selectAllChecked" @change="toggleAllSelection">
+        <input type="checkbox" id="selectAll" v-model="selectAllChecked" >
         <label for="selectAll">All</label>
       </div>
       

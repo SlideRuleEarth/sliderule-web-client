@@ -49,7 +49,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const polygonSourceItems = ref([{name:'Polygon Source',value:'Draw on Map'},{name:'Polygon Source',value:'Upload geojson File'}]);
+const polygonSourceItems = ref([{name:'Draw on Map',value:'Draw on Map'},{name:'Upload geojson File',value:'Upload geojson File'}]);
  
 onMounted(() => {
     console.log('Mounted SrAdvOptAccordian');
@@ -173,7 +173,6 @@ onMounted(() => {
                         :default="reqParamsStore.landTypeOptions"
                     />
                     <SrSwitchedSliderInput
-                        v-if="props.iceSat2SelectedAPI.value==='atl03'"
                         v-model="reqParamsStore.YAPC"
                         label="ATL03 YAPC:"
                         :min="1"
