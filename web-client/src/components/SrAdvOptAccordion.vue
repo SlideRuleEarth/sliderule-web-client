@@ -21,6 +21,8 @@ import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
 import SrTextInput from './SrTextInput.vue';
 import SrResources from './SrResources.vue';
 import SrYAPC from './SrYAPC.vue';
+import SrAtl03Cnf from './SrAtl03Cnf.vue';
+import SrAtl08Cnf from './SrAtl08Cnf.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -138,38 +140,8 @@ onMounted(() => {
                     
                 </AccordionTab>
                 <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
-                    <SrCheckbox
-                        label="Atl03 Confidence:"
-                        v-model="reqParamsStore.enableAtl03Confidence"
-                    />
-                    <SrMultiSelect
-                        :insensitive="!reqParamsStore.enableAtl03Confidence"
-                        label="Surface Reference Type:"
-                        ariaLabel="Select Reference Surface Type"
-                        :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
-                        @update:value="reqParamsStore.surfaceReferenceType = $event"
-                        :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
-                    />
-                    <SrMenuInput
-                        :insensitive="!reqParamsStore.enableAtl03Confidence"
-                        label="Signal Confidence:"
-                        ariaLabel="Signal Confidence"
-                        :menuOptions="reqParamsStore.signalConfidenceOptions"
-                        defaultOptionIndex="2"
-                        @update:value="reqParamsStore.signalConfidence = $event"
-                    />
-                    <SrCheckbox
-                        label="Atl08 Confidence:"
-                        v-model="reqParamsStore.enableAtl08Classification"
-                    />
-                    <SrMenuMultiInput
-                        :insensitive="!reqParamsStore.enableAtl08Classification"
-                        :menuOptions="reqParamsStore.landTypeOptions"
-                        label = "Land Type(s):"
-                        aria-label="Select Land Type"
-                        v-model="reqParamsStore.landType"
-                        :default="reqParamsStore.landTypeOptions"
-                    />
+                    <SrAtl03Cnf />
+                    <SrAtl08Cnf />
                     <SrYAPC />
                 </AccordionTab>
                 <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >

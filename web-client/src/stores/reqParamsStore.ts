@@ -46,7 +46,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'High', value: 'atl03_high' },
         ] as SrRadioBtnCategory[],
         signalConfidence: { name: 'Background', value: 'atl03_background' },
-        enableAtl08Classification: false,
+        enableAtl08Confidence: false,
         // landTypeOptions: [
         //   { name: 'noise', value: '0' },
         //   { name: 'ground', value: '1' },
@@ -54,8 +54,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         //   { name: 'Top of Canopy', value: '3' },
         //   { name: 'unclassified', value: '4' },
         // ] as SrMultiSelectItem[],
-        landTypeOptions: ['ground', 'canopy', 'Top of Canopy', 'unclassified', 'noise'], 
-        landType: 'ground',
+        landTypeOptions: [
+          {name: 'ground', value: 'ground'},
+          {name:'canopy', value:'canopy'},
+          {name:'Top of Canopy', value:'Top of Canopy'},
+          {name:'unclassified', value:'unclassified'},
+          {name:'noise', value:'noise'}, 
+          ] as SrMultiSelectItem[], 
+        landType: [] as string[],
         distanceInOptions:[
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
