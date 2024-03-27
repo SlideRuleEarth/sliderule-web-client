@@ -10,9 +10,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import { BUILD_DATE } from '@/buildDate.js';
-import { UPLOAD_DATE } from '@/uploadDate.js';
-import { RUN_DEV_DATE } from '@/runDevDate.js';
+import { BUILD_DATE } from '@/buildDate';
+import { UPLOAD_DATE } from '@/uploadDate';
+import { RUN_DEV_DATE } from '@/runDevDate';
 const client_version = import.meta.env.VITE_APP_VERSION
 
 </script>

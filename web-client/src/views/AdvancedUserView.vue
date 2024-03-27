@@ -123,7 +123,6 @@
                         severity: 'error', // Use 'error' severity for error messages
                         summary: 'Error', // A short summary of the error
                         detail: 'An error occurred while running SlideRule.', // A more detailed error message
-                        life: 5000 // Adjust the duration as needed
                     });
                 }
             ).catch((error => {
@@ -135,7 +134,6 @@
                     severity: 'error', // Use 'error' severity for error messages
                     summary: 'Error', // A short summary of the error
                     detail: 'An error occurred while running SlideRule.', // A more detailed error message
-                    life: 5000 // Adjust the duration as needed
                 });
             })).finally(() => {
                 const flatRecs = recs.flat();

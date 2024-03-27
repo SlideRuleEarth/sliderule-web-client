@@ -14,18 +14,15 @@ const toast = useToast();
 
 const logoClick = () => {
   // console.log('logoClick');
-  toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: srToastStore.getLife()});
+  //toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: srToastStore.getLife()});
   router.push('/');
 };
 
-const searchButtonClick = (inputValue: number) => {
-  console.log('searchButtonClick',inputValue);
-  toast.add({ severity: 'info', summary: 'Search Button', detail: 'Search button was pushed', life: srToastStore.getLife()});
-};
+
 
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
-  toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
+  //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
   advancedModeStore.advanced = true;
   router.push('/advanced-user');
 };
@@ -44,7 +41,7 @@ const recordButtonClick = () => {
 
 const aboutButtonClick = () => {
   // console.log('aboutButtonClick');
-  toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed',  life: srToastStore.getLife()});
+  //toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed',  life: srToastStore.getLife()});
   router.push('/about');
 };
 </script>
@@ -56,7 +53,6 @@ const aboutButtonClick = () => {
   <header>
     <SrAppBar 
       @logo-click="logoClick"
-      @search-button-click="searchButtonClick"
       @tool-button-click="toolButtonClick"
       @popular-button-click="popularButtonClick"
       @record-button-click="recordButtonClick"
