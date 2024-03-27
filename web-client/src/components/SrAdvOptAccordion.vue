@@ -20,6 +20,7 @@ import SrRasterParams from './SrRasterParams.vue';
 import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
 import SrTextInput from './SrTextInput.vue';
 import SrResources from './SrResources.vue';
+import SrYAPC from './SrYAPC.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -154,6 +155,7 @@ onMounted(() => {
                         label="Signal Confidence:"
                         ariaLabel="Signal Confidence"
                         :menuOptions="reqParamsStore.signalConfidenceOptions"
+                        defaultOptionIndex="2"
                         @update:value="reqParamsStore.signalConfidence = $event"
                     />
                     <SrCheckbox
@@ -168,21 +170,9 @@ onMounted(() => {
                         v-model="reqParamsStore.landType"
                         :default="reqParamsStore.landTypeOptions"
                     />
-                    <SrSwitchedSliderInput
-                        v-model="reqParamsStore.YAPC"
-                        checkBoxLabel="ATL03 YAPC:"
-                        :min="1"
-                        :max="100" 
-                        :decimalPlaces="0"
-                    />
-                    <SrSwitchedSliderInput
-                        checkBoxLabel="SR YAPC:"
-                        :min="1"
-                        :max="100" 
-                        :decimalPlaces="0"
-                    />
+                    <SrYAPC />
                 </AccordionTab>
-                <AccordionTab header="Extents (Variable-Length Segmentation)" v-if="mission.value==='ICESat-2'" >
+                <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
                     <SrMenuInput
                         v-model="reqParamsStore.distanceIn"
                         label = "Distance In:"

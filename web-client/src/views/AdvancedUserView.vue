@@ -19,7 +19,9 @@
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useSrToastStore } from '@/stores/srToastStore.js';
+    import { useReqParamsStore } from "@/stores/reqParamsStore";
 
+    const reqParamsStore = useReqParamsStore();
     const toastStore = useSrToastStore();
     const graticuleClick = () => {
         const mapStore = useMapStore();
@@ -92,7 +94,7 @@
             console.log("atl06p cb_count:",cb_count.value)        
             isLoading.value = true; 
             atl06p({ 
-                    "cnf": "atl03_high",
+                    "cnf": reqParamsStore.signalConfidence,
                     "ats": 20.0,
                     "cnt": 10,
                     "len": 40.0,

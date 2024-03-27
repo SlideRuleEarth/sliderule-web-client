@@ -3,7 +3,7 @@
       <div class="sr-slider-row">
             <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
             <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
-            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :readonly="insensitive"/>
+            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
         </div>
     </div>
 </template>
@@ -21,34 +21,34 @@
     const toast = useToast();
 
     const props = defineProps({
-    modelValue: {
-        type: Number,
-        required: true
-    },
-    insensitive: {
-        type: Boolean,
-        default: false
-    },
-    min: {
-        type: Number,
-        default: 0
-    },
-    max: {
-        type: Number,
-        default: 100
-    },
-    label: {
-        type: String,
-        default: 'Label'
-    },
-    id: {
-        type: String,
-        default: 'sr-slider-input-' + Math.random().toString(36).substring(2, 9)
-    },
-    decimalPlaces: {
-        type: Number,
-        default: 0 // Default to 0 decimal places
-    }
+        modelValue: {
+            type: Number,
+            required: true
+        },
+        insensitive: {
+            type: Boolean,
+            default: false
+        },
+        min: {
+            type: Number,
+            default: 0
+        },
+        max: {
+            type: Number,
+            default: 100
+        },
+        label: {
+            type: String,
+            default: 'Label'
+        },
+        id: {
+            type: String,
+            default: 'sr-slider-input-' + Math.random().toString(36).substring(2, 9)
+        },
+        decimalPlaces: {
+            type: Number,
+            default: 0 // Default to 0 decimal places
+        }
     });
     const modelValueComputed = computed(() => props.modelValue);
 

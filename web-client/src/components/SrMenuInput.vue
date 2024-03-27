@@ -29,11 +29,15 @@
         insensitive: {
             type: Boolean,
             default: false
+        },
+        defaultOptionIndex: {
+            type: String,
+            default: "0"
         }
     });
     const selectedMenuItem = ref<SrMenuItem>(
         props.menuOptions && props.menuOptions.length > 0
-            ? props.menuOptions[0]
+            ? props.menuOptions[Number(props.defaultOptionIndex)]
             : { name: 'default', value: 'default' }
     );
 
@@ -45,6 +49,7 @@
     });
 
     onMounted(() => {
+
         console.log('Mounted Menu:', props.label);
     });
 </script>
