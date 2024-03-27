@@ -3,7 +3,7 @@ export type RasterParams = {
     asset: string;
     algorithm: string;
     radius: number;
-    zonalStats: string;
+    zonalStats: boolean;
     withFlag: boolean;
     t0: Date;
     t1: Date;
@@ -39,7 +39,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     asset: '' as RasterParams['asset'],
     algorithm: '' as RasterParams['algorithm'],
     radius: 0 as RasterParams['radius'],
-    zonalStats: '' as RasterParams['zonalStats'],
+    zonalStats: false as RasterParams['zonalStats'],
     withFlag: false as RasterParams['withFlag'],
     t0: new Date() as RasterParams['t0'],
     t1: new Date() as RasterParams['t1'],

@@ -140,12 +140,21 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:"ap-south-1", value:"ap-south-1"},
           {name:"sa-east-1", value:"sa-east-1"},
         ],
+        resources: [] as string[],
     }),
     actions: {
         setRasterizePolygon(value:boolean) {
           this.rasterizePolygon = value;
         },
-      },
+        addResource(resource: string) {
+          if (resource.trim().length) {
+            this.resources.push(resource);
+          }
+        },
+        removeResource(index: number) {
+          this.resources.splice(index, 1);
+        },
+    },
 })
 
 

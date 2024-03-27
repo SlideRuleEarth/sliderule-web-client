@@ -19,6 +19,7 @@ import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
 import SrRasterParams from './SrRasterParams.vue';
 import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
 import SrTextInput from './SrTextInput.vue';
+import SrResources from './SrResources.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -80,6 +81,7 @@ onMounted(() => {
                         label="Ignore Poly for CMR:"
                         v-model="reqParamsStore.ignorePolygon"
                     />
+                    <SrResources v-if="reqParamsStore.ignorePolygon"/>
                     <SrSliderInput
                         v-model="reqParamsStore.reqTimeoutValue"
                         label="Req timeout:"
