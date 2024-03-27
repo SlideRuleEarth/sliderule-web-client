@@ -20,7 +20,7 @@ const reqParamsStore = useReqParamsStore();
             aria-label="Select Land Type"
             :menuOptions="reqParamsStore.landTypeOptions"
             :insensitive="!reqParamsStore.enableAtl08Confidence"
-            :default="reqParamsStore.landTypeOptions"
+            :default="[reqParamsStore.landTypeOptions[0]]"
         />
 
     </div>

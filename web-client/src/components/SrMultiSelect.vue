@@ -81,6 +81,7 @@
 
 .sr-multi-selector {
     width: 100%;
+    padding: 0.125rem 0.5rem;
 }
 
 /* :deep(.p-multiselect) {

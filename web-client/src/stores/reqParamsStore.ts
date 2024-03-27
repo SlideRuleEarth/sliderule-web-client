@@ -55,11 +55,11 @@ export const useReqParamsStore = defineStore('reqParams', {
         //   { name: 'unclassified', value: '4' },
         // ] as SrMultiSelectItem[],
         landTypeOptions: [
+          {name:'noise', value:'noise'}, 
           {name: 'ground', value: 'ground'},
           {name:'canopy', value:'canopy'},
           {name:'Top of Canopy', value:'Top of Canopy'},
           {name:'unclassified', value:'unclassified'},
-          {name:'noise', value:'noise'}, 
           ] as SrMultiSelectItem[], 
         landType: [] as string[],
         distanceInOptions:[

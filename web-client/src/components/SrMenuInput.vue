@@ -1,10 +1,10 @@
 <template>
-    <div class="menu-input-wrapper">
-        <div class="menu-row">
-            <div ref="menuElement" class="menu-control">
+    <div class="sr-menu-input-wrapper">
+        <div class="sr-menu-row">
+            <div ref="menuElement" class="sr-menu-control">
                 <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" >{{ label }}</label>
-                <form class="select-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItem" class="select-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
+                <form class="sr-select-menu-item" name="sr-select-item-form">
+                    <select v-model="selectedMenuItem" class="sr-select-menu-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
                             {{ item.name }}
                         </option>
@@ -55,7 +55,7 @@
 </script>
 
 <style scoped>
-.menu-input-wrapper {
+.sr-menu-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
@@ -71,23 +71,25 @@
     margin-right: 0.5rem;
     color: #888; /*  grey color */
 }
-.select-item {
+.sr-select-menu-item {
     display: flex;
     align-items: right;
 }
-.menu-control {
+.sr-menu-control {
     display: flex; /* This enables Flexbox */
     justify-content: space-between; /* Aligns children to opposite edges */
     align-items: center; /* This vertically centers the items in the container */
     width: 100%; /* Ensures it spans the full width of its parent */
 }
 
-.select-default {
+.sr-select-menu-default {
     width: auto; /* Adjust width as needed */
     padding: 0.25rem;
     color: white;
     background-color: black;
     border-radius: var(--border-radius);
+    font-family: var(--font-family);
+    font-size: 1rem;
 }
 </style>
   
