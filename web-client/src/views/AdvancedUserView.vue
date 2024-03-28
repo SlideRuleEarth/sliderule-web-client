@@ -95,11 +95,11 @@
             isLoading.value = true; 
             atl06p({ 
                     "cnf": reqParamsStore.signalConfidence,
-                    "ats": 20.0,
-                    "cnt": 10,
-                    "len": 40.0,
-                    "res": 20.0,
-                    "maxi": 1 
+                    "ats": reqParamsStore.alongTrackSpread,   // 20.0,
+                    "cnt": reqParamsStore.minimumPhotonCount, // 10,
+                    "len": reqParamsStore.lengthValue,        // 40.0,
+                    "res": reqParamsStore.stepValue,          // 20.0,
+                    "maxi": reqParamsStore.maxIterations      // 1 
                 }, 
                 ["ATL03_20230529000937_10481906_006_01.h5"],
                 callbacks
@@ -119,12 +119,12 @@
                 error => {
                     // Log the error to the console
                     console.error('runSlideRuleClicked Error = ', error);
-
+                    console.log('runSlideRuleClicked Error = ', error);
                     // Display a toast message indicating the error
                     toast.add({
                         severity: 'error', // Use 'error' severity for error messages
                         summary: 'Error', // A short summary of the error
-                        detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                        detail: `An error occurred while running SlideRule: ${error}`, // A more detailed error message
                     });
                 }
             ).catch((error => {

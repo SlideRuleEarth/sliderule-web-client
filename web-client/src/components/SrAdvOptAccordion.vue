@@ -200,7 +200,7 @@ onMounted(() => {
                     <SrSliderInput
                         v-model="reqParamsStore.maxIterations"
                         label="Max Iterations:"
-                        :min="0"
+                        :min="1"
                         :max="200" 
                         :decimal-places="0"
                     />

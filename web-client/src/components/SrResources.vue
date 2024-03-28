@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 // Import any other components or utilities you need
 const reqParamsStore = useReqParamsStore();
-const newResource = ref('');
+const newResource = ref('ATL03_20181019065445_03150111_003_01.h5');
 
 const addResource = () => {
   reqParamsStore.addResource(newResource.value);
