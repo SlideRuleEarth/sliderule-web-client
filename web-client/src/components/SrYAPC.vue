@@ -74,7 +74,7 @@ const reqParamsStore = useReqParamsStore();
 .sr-yapc-container {
   margin: 1rem;
   padding: 1rem;
-  border: 1px solid var(--primary-300);
+  border: 1px solid grey;
   border-radius: var(--border-radius);
 }
 

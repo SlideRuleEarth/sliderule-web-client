@@ -65,10 +65,12 @@
 .sr-select-menu-label {
     margin-right: 0.5rem;
     white-space: nowrap;
+    font-size: small;
 }
 
 .sr-select-menu-label-insensitive {
     margin-right: 0.5rem;
+    font-size: small;
     color: #888; /*  grey color */
 }
 .sr-select-menu-item {
@@ -86,10 +88,10 @@
     width: auto; /* Adjust width as needed */
     padding: 0.25rem;
     color: white;
-    background-color: black;
+    background-color: transparent;
     border-radius: var(--border-radius);
     font-family: var(--font-family);
-    font-size: 1rem;
+    font-size: small;
 }
 </style>
   

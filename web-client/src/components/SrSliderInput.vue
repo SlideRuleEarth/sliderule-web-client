@@ -1,7 +1,7 @@
 <template>
     <div class="sr-slider-input-wrapper">
-      <div class="sr-slider-row">
-            <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+        <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+        <div class="sr-slider-row">
             <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
             <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
         </div>
@@ -142,41 +142,44 @@
 <style scoped>
 .sr-slider-input-wrapper {
     border: 1px solid transparent;
-    border-top: 0.0625rem solid var(transparent);
     border-radius: var(--border-radius);
+    margin-bottom: 0.125rem;
 }
 
 .sr-slider-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.125rem ;
 }
 
 .sr-slider-label {
     white-space: nowrap;
-    margin-right: 0.75rem;
+    font-size: small;
 }
 .sr-slider-label-insensitive {
     white-space: nowrap;
-    margin-right: 0.75rem;
     color: #888; /*  grey color */
+    font-size: small;
 }
 
 .sr-slider {
-    min-width: 8rem; 
+    width: 12rem; 
     margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .sr-slider-input-text {
     width: 5em; /* Adjust as needed for 5 digits */
     text-align: right;
     padding: 0.25rem;
+    font-size: small;
+    background: transparent;
+    border-color: transparent;
 }
 
 :deep(.p-slider .p-slider-handle) {
-    width: 0.57rem; 
-    height: 0.57rem;
+    width: 0.52rem; 
+    height: 0.52rem;
     border-radius: 50%; 
 } 
 
@@ -185,7 +188,7 @@
 }
 
 :deep(.p-slider.p-slider-horizontal .p-slider-handle) {
-    margin-top: -0.2rem;
-    margin-left: -0.2rem;
+    margin-top: -0.25rem;
+    margin-left: -0.25rem;
 }
 </style>

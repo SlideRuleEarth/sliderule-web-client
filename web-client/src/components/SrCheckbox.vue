@@ -43,6 +43,7 @@ const toggleChecked = (e:any) => {
 
 .sr-checkbox-label {
     white-space: nowrap;
+    font-size: small;
 }
 
 .sr-checkbox-label-insensitive {

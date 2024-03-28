@@ -15,22 +15,22 @@ const reqParamsStore = useReqParamsStore();
                 v-model="reqParamsStore.enableAtl03Confidence"
             />
         </div>
-            <SrMultiSelect
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
-                label="Surface Reference Type:"
-                ariaLabel="Select Reference Surface Type"
-                :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
-                @update:value="reqParamsStore.surfaceReferenceType = $event"
-                :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
-            />
-            <SrMenuInput
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
-                label="Signal Confidence:"
-                ariaLabel="Signal Confidence"
-                :menuOptions="reqParamsStore.signalConfidenceOptions"
-                defaultOptionIndex="2"
-                @update:value="reqParamsStore.signalConfidence = $event"
-            />
+        <SrMultiSelect
+            :insensitive="!reqParamsStore.enableAtl03Confidence"
+            label="Surface Reference Type:"
+            ariaLabel="Select Reference Surface Type"
+            :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
+            @update:value="reqParamsStore.surfaceReferenceType = $event"
+            :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
+        />
+        <SrMenuInput
+            :insensitive="!reqParamsStore.enableAtl03Confidence"
+            label="Signal Confidence:"
+            ariaLabel="Signal Confidence"
+            :menuOptions="reqParamsStore.signalConfidenceOptions"
+            defaultOptionIndex="2"
+            @update:value="reqParamsStore.signalConfidence = $event"
+        />
     </div>
 </template>
 <style scoped>
@@ -44,7 +44,7 @@ const reqParamsStore = useReqParamsStore();
 .sr-atl03-cnf-container {
   margin: 1rem;
   padding: 1rem;
-  border: 1px solid var(--primary-300);
+  border: 1px solid grey;
   border-radius: var(--border-radius);
 }
 

@@ -104,7 +104,7 @@ function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
 .options-list-container {
   display: flex;
   flex-direction: column;
-  min-width: 10rem;
+  min-width: 8rem;
   /* Add more styles here to manage spacing and alignment if necessary */
 }
 

@@ -37,10 +37,13 @@ function handleChange(event:any) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.25rem;
+    margin: 0.25rem;
+    padding: 0.125rem;
+    font-size: small;
 }
 .sr-calendar-label {
     margin-right: 0.25rem;
+    font-size: small;
 }
 
 :deep(.p-datepicker.trigger) {
@@ -53,6 +56,12 @@ function handleChange(event:any) {
 :deep( .p-inputtext) {
     width: 100%;
     height: 1.5rem;
+    font-size: small;
 }
 
+:deep(.p-button){
+    border-color: grey;
+    color:white;
+    background-color: transparent;
+}
 </style>

@@ -1,9 +1,7 @@
 <template>
-    <div class="sr-swithced-slider-input-wrapper">
-        <div class="sr-switched-slider-row">
-            <SrCheckbox v-model="isCheckboxChecked" :label="props.checkBoxLabel"  @change="handleChange" :insensitive="insensitive"/>
-            <SrSliderInput v-model="innerModelValue" :label="props.label" :id="inputID" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive"/>
-        </div>
+    <div class="sr-switched-slider-input-wrapper">
+        <SrCheckbox v-model="isCheckboxChecked" :label="props.checkBoxLabel"  @change="handleChange" :insensitive="insensitive"/>
+        <SrSliderInput v-model="innerModelValue" :label="props.label" :id="inputID" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive"/>
     </div>
 </template>
   
@@ -56,25 +54,5 @@
 </script>
 
 <style scoped>
-.sr-switched-slider-input-wrapper {
-    border: 1px solid transparent;
-    border-top: 0.0625rem solid var(transparent);
-    border-radius: var(--border-radius);
-}
-
-.sr-switched-slider-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.125rem ;
-}
-.sr-switched-slider-checkbox-label {
-    white-space: nowrap;
-}
-
-.sr-switched-slider-checkbox-label-insensitive {
-    white-space: nowrap;
-    color: #888; /*  grey color */
-}
 </style>
   

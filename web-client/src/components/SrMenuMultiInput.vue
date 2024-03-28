@@ -3,7 +3,7 @@
         <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
             <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
             <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
-            <form class="sr-multi-menu-select-item" name="sr-select-item-form">
+            <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple :disabled="insensitive">
                     <option v-for="item in menuOptions" :value="item" :key="item">
                         {{ item }}
@@ -78,6 +78,7 @@
 .sr-menu-multi-input-label {
     margin-right: 0.5rem;
     white-space: nowrap;
+    font-size: small;
 }
 
 .sr-menu-multi-input-select-item {
@@ -90,14 +91,12 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    gap: 10px;
 }
 .sr-menu-multi-input-menu-control-insensitive {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    gap: 10px;
     color: #888; /*  grey color */
 }
 
@@ -106,19 +105,20 @@
     padding: 0rem;
     margin: 0rem;
     color: white;
-    background-color: black;
+    background-color: transparent;
     border-radius: var(--border-radius);
     height: auto; /* Adjust height to fit multiple selections */
     overflow-y: auto; /* Allows scrolling through options */
 }
 
-.sr-multi-menu-select-item {
+.sr-menu-multi-input-select-item {
     width: 100%;
     min-width: 4rem;
     height: auto;
     overflow-y: auto;
     padding: 0rem;
     margin: 0rem;
+    font-size: small;
 }
 
 </style>

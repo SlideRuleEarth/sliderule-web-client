@@ -62,12 +62,14 @@
     width: 100%;
     max-width: 20rem;
     white-space: nowrap;
+    font-size: small;
 }
 
 .sr-multi-menu-float-label-insensitive {
     width: 100%;
     max-width: 20rem;
     white-space: nowrap;
+    font-size: small;
     color: #888; /*  grey color */
 }
 
@@ -82,8 +84,17 @@
 .sr-multi-selector {
     width: 100%;
     padding: 0.125rem 0.5rem;
+    background-color: transparent;
 }
 
+.p-multiselect-item {
+    font-size: small;
+}
+
+:deep(.p-multiselect-panel .p-multiselect-items .p-multiselect-item .p-checkbox) {
+    width: 0.25rem;
+    height: 0.25rem;
+}
 /* :deep(.p-multiselect) {
     height: 2.0rem;
 } */
@@ -96,7 +107,8 @@
 :deep(.p-multiselect .p-multiselect-label) {
     display: flex;
     flex-direction: column; /* Stack items vertically */ 
-    padding:0.125rem; 
+    padding:0.125rem;
+    font-size: small; 
 } 
 
 </style>

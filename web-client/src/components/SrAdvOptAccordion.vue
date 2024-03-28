@@ -177,26 +177,31 @@ onMounted(() => {
                         :max="200" 
                         :decimal-places="0"                  
                     />
-                    <SrCheckbox
-                        label="Pass Invalid:"
-                        v-model="reqParamsStore.passInvalid"
-                    />
-                    <SrSliderInput
-                        :insensitive="reqParamsStore.passInvalid"
-                        v-model="reqParamsStore.alongTrackSpread"
-                        label="Along Track Spread:"
-                        :min="0"
-                        :max="200" 
-                        :decimal-places="0"
-                    />
-                    <SrSliderInput
-                        :insensitive="reqParamsStore.passInvalid"
-                        v-model="reqParamsStore.minimumPhotonCount"
-                        label="Minimum Photon Count:"
-                        :min="0"
-                        :max="200" 
-                        :decimal-places="0"
-                    />
+                    <div class="sr-pass-invalid-container">
+                        <div class="sr-pass-invalid-header-container">
+                            <SrCheckbox
+                                label="Pass Invalid:"
+                                v-model="reqParamsStore.passInvalid"
+                            />
+                        </div>  
+                        <SrSliderInput
+                            :insensitive="reqParamsStore.passInvalid"
+                            v-model="reqParamsStore.alongTrackSpread"
+                            label="Along Track Spread:"
+                            :min="0"
+                            :max="200" 
+                            :decimal-places="0"
+                        />
+                        <SrSliderInput
+                            :insensitive="reqParamsStore.passInvalid"
+                            v-model="reqParamsStore.minimumPhotonCount"
+                            label="Minimum Photon Count:"
+                            :min="0"
+                            :max="200" 
+                            :decimal-places="0"
+                        />
+                    </div>
+
                 </AccordionTab>
                 <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
                     <SrSliderInput
@@ -398,6 +403,18 @@ onMounted(() => {
     width: 25rem;
     overflow-x: scroll;
     white-space: nowrap;
+}
+.sr-pass-invalid-container{
+    margin: 1rem;
+    padding: 1rem;
+    border: 1px solid grey;
+    border-radius: var(--border-radius);
+}
+.sr-pass-invalid-header-container{
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    background-color: transparent;
 }
 /* 
 :deep(.p-accordion .p-accordion-tab) {
