@@ -93,15 +93,16 @@
         if (map){
             console.log("atl06p cb_count:",cb_count.value)        
             isLoading.value = true; 
+            console.log("runSlideRuleClicked reqParamsStore:",reqParamsStore);
             atl06p({ 
-                    "cnf": reqParamsStore.signalConfidence,
+                    "cnf": reqParamsStore.signalConfidence,   // 'atl03_high'
                     "ats": reqParamsStore.alongTrackSpread,   // 20.0,
                     "cnt": reqParamsStore.minimumPhotonCount, // 10,
                     "len": reqParamsStore.lengthValue,        // 40.0,
                     "res": reqParamsStore.stepValue,          // 20.0,
                     "maxi": reqParamsStore.maxIterations      // 1 
                 }, 
-                ["ATL03_20230529000937_10481906_006_01.h5"],
+                reqParamsStore.resources,
                 callbacks
                 )
             .then(
@@ -118,13 +119,23 @@
                 },
                 error => {
                     // Log the error to the console
-                    console.error('runSlideRuleClicked Error = ', error);
                     console.log('runSlideRuleClicked Error = ', error);
                     // Display a toast message indicating the error
                     toast.add({
                         severity: 'error', // Use 'error' severity for error messages
                         summary: 'Error', // A short summary of the error
                         detail: `An error occurred while running SlideRule: ${error}`, // A more detailed error message
+                    });
+                    let emsg = '';
+                    if (navigator.onLine) {
+                        emsg =  'Network error: Possible DNS resolution issue or server down.';
+                    } else {
+                        emsg = 'Network error: your browser appears to be offline.';
+                    }
+                    toast.add({
+                        severity: 'error',   
+                        summary: 'Error',   
+                        detail: emsg,      
                     });
                 }
             ).catch((error => {

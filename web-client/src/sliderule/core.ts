@@ -251,7 +251,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
       // Ensure response.body is not null before attempting to read the stream
       if (!response.body) {
         throw new Error('Response body is null');
-    }
+      }
 
       if (stream) {
         // Get the reader from the response stream
@@ -431,7 +431,7 @@ export async function source(
   const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
   const api_path = 'source/'+ api;
   const url = 'https://' + host + '/' + api_path;
-  //console.log('source url:', url);
+  console.log('source url:', url);
   // Setup Request Options
   let body = null;
   const options: RequestInit = {
