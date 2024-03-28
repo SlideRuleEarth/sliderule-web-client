@@ -1,11 +1,12 @@
 <script setup>
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue';
+import SrRecords from '@/components/SrRecords.vue';
 </script>
 
 <template>
   <SingleColumnLayout>
     <template v-slot:sr-single-col>
-      <h1>RecordView Placeholder</h1>
+      <SrRecords />
     </template>
   </SingleColumnLayout>
 </template>

@@ -13,6 +13,9 @@
 <style scoped>
 .single-column-layout {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+
   @media (max-width: 768px) {
     flex-direction: column;
   }

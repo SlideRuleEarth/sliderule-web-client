@@ -24,6 +24,8 @@
   .sidebar-col {
     flex-basis: 20%;
     margin-top: 0.5rem;
+    flex-direction: column;
+    align-items: center;
   }
 
   main {

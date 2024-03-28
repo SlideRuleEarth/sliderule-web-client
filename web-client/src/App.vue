@@ -35,7 +35,7 @@ const popularButtonClick = () => {
 
 const recordButtonClick = () => {
   // console.log('recordButtonClick');
-  toast.add({ severity: 'info', summary: 'Record Button', detail: 'Record button was pushed', life: srToastStore.getLife()});
+  // toast.add({ severity: 'info', summary: 'Record Button', detail: 'Record button was pushed', life: srToastStore.getLife()});
   router.push('/record');
 };
 

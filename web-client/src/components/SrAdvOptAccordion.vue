@@ -24,6 +24,7 @@ import SrYAPC from './SrYAPC.vue';
 import SrAtl03Cnf from './SrAtl03Cnf.vue';
 import SrAtl08Cnf from './SrAtl08Cnf.vue';
 import SrSysConfig from './SrSysConfig.vue';
+import SrRecords from './SrRecords.vue';
 
 const reqParamsStore = useReqParamsStore();
 
