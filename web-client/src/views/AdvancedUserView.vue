@@ -20,9 +20,11 @@
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useSrToastStore } from '@/stores/srToastStore.js';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
+    import { useSysConfigStore} from "@/stores/sysConfigStore";
 
     const reqParamsStore = useReqParamsStore();
     const toastStore = useSrToastStore();
+    const sysConfigStore = useSysConfigStore();
     const graticuleClick = () => {
         const mapStore = useMapStore();
         mapStore.toggleGraticule();
@@ -42,7 +44,6 @@
 
     onMounted(() => {
         advancedModeStore.advanced = true;
-        init({});
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
@@ -56,7 +57,7 @@
 
     // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
-        // console.log('logoClick');
+        init(sysConfigStore.getSysConfig());
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked',  life: toastStore.getLife()});
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);

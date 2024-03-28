@@ -414,7 +414,8 @@ export function init(config: {
   timeout?: number;
 }): void
 {
-  sysConfig = Object.assign(sysConfig, config) 
+  sysConfig = Object.assign(sysConfig, config)
+  console.log('sysConfig:', sysConfig); 
 };
 export interface Callbacks {
   [key: string]: ((result: any) => void) | undefined; 
