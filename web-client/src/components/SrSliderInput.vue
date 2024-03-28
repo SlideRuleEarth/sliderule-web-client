@@ -164,7 +164,7 @@
 }
 
 .sr-slider {
-    min-width: 5rem; /* Example width, adjust as needed */
+    min-width: 8rem; 
     margin-right: 0.5rem;
 }
 
@@ -174,6 +174,18 @@
     padding: 0.25rem;
 }
 
+:deep(.p-slider .p-slider-handle) {
+    width: 0.57rem; 
+    height: 0.57rem;
+    border-radius: 50%; 
+} 
 
+:deep(.p-slider.p-slider-horizontal) {
+    height: 0.2rem;
+}
+
+:deep(.p-slider.p-slider-horizontal .p-slider-handle) {
+    margin-top: -0.2rem;
+    margin-left: -0.2rem;
+}
 </style>
-  
