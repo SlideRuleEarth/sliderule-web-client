@@ -39,6 +39,7 @@ const toggleChecked = (e:any) => {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    margin: 0.25rem;
 }
 
 .sr-checkbox-label {

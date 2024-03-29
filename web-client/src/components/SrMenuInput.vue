@@ -59,7 +59,7 @@
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
-    margin-top: 0.125rem;
+    margin: 0.25rem;
 }
 
 .sr-select-menu-label {

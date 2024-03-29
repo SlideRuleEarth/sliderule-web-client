@@ -72,7 +72,10 @@
     display: flex;
     align-items: center;
     justify-content: left;
-    margin-left: 0.125rem;
+    margin: 0rem;
+    margin-bottom: -0.6rem;
+    margin-left: -0.125rem;
+
 }
 .sr-switchedslider-label {
     white-space: nowrap;

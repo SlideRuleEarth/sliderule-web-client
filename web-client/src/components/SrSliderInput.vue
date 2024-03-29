@@ -156,7 +156,6 @@
     flex-direction: column;
     align-items: self-start;
     justify-content: left;
-    margin: 0.125rem;
 }
 .sr-slider-label-icon-row {
     display: flex;
