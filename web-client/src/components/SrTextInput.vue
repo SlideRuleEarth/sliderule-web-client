@@ -1,8 +1,8 @@
 <template>
-    <div class="text-input-wrapper">
-      <div class="text-row">
-            <label for="{{label}}_text" class="label">{{ label }}</label>
-            <InputText v-model="modelValueComputed" class="input-text" id={{label}}_text />
+    <div class="sr-text-input-wrapper">
+      <div class="sr-text-row ">
+            <label for="{{label}}_text" :class="{'sr-text-input-label':!insensitive, 'sr-text-input-label-insensitive':insensitive }" :insensitive="insensitive">{{ label }}</label>
+            <InputText v-model="modelValueComputed" class="input-text" id={{label}}_text :disabled="insensitive"/>
         </div>
     </div>
 </template>
@@ -21,6 +21,10 @@
         label: {
             type: String,
             default: 'Label'
+        },
+        insensitive: {
+            type: Boolean,
+            default: false
         }
     });
 
@@ -36,23 +40,31 @@
 </script>
 
 <style scoped>
-.text-input-wrapper {
+.sr-text-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
     margin-top: 0.125rem;
+    font-size: small;
 }
 
-.text-row {
+.sr-text-row  {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.125rem ;
 }
-.label {
+.sr-text-input-label {
     margin-right: 0.5rem;
+    font-size: small;
+    white-space: nowrap;
 }
-
+.sr-text-input-label-insensitive {
+    margin-right: 0.5rem;
+    font-size: small;
+    white-space: nowrap;
+    color: #888; /*  grey color */
+}
 
 .input-text {
     width: 15em; /* Adjust as needed for 5 digits */

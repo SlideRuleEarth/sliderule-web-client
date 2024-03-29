@@ -8,7 +8,6 @@ import SrMenuInput from './SrMenuInput.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
 import SrMenuMultiCheckInput from './SrMenuMultiCheckInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue'
-import SrCredsFileUpload from './SrCredsFileUpload.vue';
 import { useMapStore } from '@/stores/mapStore';
 import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -18,7 +17,6 @@ import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
 import SrRasterParams from './SrRasterParams.vue';
 import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
-import SrTextInput from './SrTextInput.vue';
 import SrResources from './SrResources.vue';
 import SrYAPC from './SrYAPC.vue';
 import SrAtl03Cnf from './SrAtl03Cnf.vue';
@@ -26,6 +24,7 @@ import SrAtl08Cnf from './SrAtl08Cnf.vue';
 import SrSysConfig from './SrSysConfig.vue';
 import SrExtents from './SrExtents.vue';
 import SrRecords from './SrRecords.vue';
+import SrOutput from './SrOutput.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -276,45 +275,7 @@ onMounted(() => {
                     <SrSysConfig />
                 </AccordionTab>
                 <AccordionTab header="Output">
-                    <SrCheckbox
-                        label="Save Output"
-                        v-model="reqParamsStore.saveOutput"
-                    />
-                    <SrCheckbox
-                        v-if = "reqParamsStore.saveOutput"
-                        label="Staged"
-                        v-model="reqParamsStore.staged"
-                    />
-                    <SrMenuInput
-                        v-if = "reqParamsStore.saveOutput"
-                        v-model="reqParamsStore.outputFormat"
-                        label = "Output Format"
-                        aria-label="Select Output Format"
-                        :menuOptions="reqParamsStore.outputFormatOptions"
-                    />
-                    <SrMenuInput
-                        v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
-                        v-model="reqParamsStore.outputLocation"
-                        label = "Output Location"
-                        aria-label="Select Output Location"
-                        :menuOptions="reqParamsStore.outputLocationOptions"
-                    />
-                    <SrTextInput
-                        v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
-                        v-model="reqParamsStore.outputLocationPath"
-                        label = "Output Location Path"
-                        aria-label="Enter Output Location Path"
-                    />
-                    <SrMenuInput
-                        v-if = "reqParamsStore.saveOutput  && reqParamsStore.outputLocation.name==='S3' && reqParamsStore.staged===false"
-                        v-model="reqParamsStore.awsRegion"
-                        label = "AWS Region"
-                        aria-label="Select AWS Region"
-                        :menuOptions="reqParamsStore.awsRegionOptions"
-                    />
-                    <SrCredsFileUpload
-                        v-if = "reqParamsStore.saveOutput && reqParamsStore.outputLocation.name==='S3' && reqParamsStore.staged===false"
-                    />
+                    <SrOutput />
                 </AccordionTab>
             </Accordion>
         </div>
