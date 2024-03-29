@@ -2,8 +2,8 @@
     <div class="sr-switched-slider-input-wrapper">
         <div class="sr-switched-slider-labeled-cb">
             <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="insensitive"/>
-            <label :class="{ 'sr-switched-slider-label': !insensitive, 'sr-switched-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
-            <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button>
+            <label :class="{ 'sr-switched-slider-label': !insensitive, 'sr-switched-slider-label-insensitive': insensitive }" :for="inputId" :title="tooltipText">{{ label }}</label>
+            <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipText"></Button>
         </div>
         <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive"/>
     </div>
@@ -43,6 +43,10 @@
         insensitive: {
             type: Boolean,
             default: false
+        },
+        tooltipText: {
+            type: String,
+            default: 'Some tooltip text here'
         }
     });
 

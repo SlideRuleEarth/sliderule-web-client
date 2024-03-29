@@ -2,9 +2,10 @@
     <div class="sr-slider-input-wrapper">
         <div class="sr-slider-col">
             <div class="sr-slider-label-icon-row">
-                <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+                <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId" :title="tooltipText">{{ label }} </label>
                 <!-- Info Icon with Tooltip -->
-                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button>
+                <!-- <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button> -->
+                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipText"></Button>
             </div>
             <div class="sr-slider-input-row">
                 <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
@@ -54,6 +55,10 @@
         decimalPlaces: {
             type: Number,
             default: 0 // Default to 0 decimal places
+        },
+        tooltipText: {
+            type: String,
+            default: 'Some tooltip text here'
         }
     });
     const modelValueComputed = computed(() => props.modelValue);
