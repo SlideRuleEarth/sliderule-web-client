@@ -24,6 +24,7 @@ import SrYAPC from './SrYAPC.vue';
 import SrAtl03Cnf from './SrAtl03Cnf.vue';
 import SrAtl08Cnf from './SrAtl08Cnf.vue';
 import SrSysConfig from './SrSysConfig.vue';
+import SrExtents from './SrExtents.vue';
 import SrRecords from './SrRecords.vue';
 
 const reqParamsStore = useReqParamsStore();
@@ -147,61 +148,7 @@ onMounted(() => {
                     <SrYAPC />
                 </AccordionTab>
                 <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
-                    <SrMenuInput
-                        v-model="reqParamsStore.distanceIn"
-                        label = "Distance In"
-                        aria-label="Select Distance in"
-                        :menuOptions="reqParamsStore.distanceInOptions"
-                    />
-                    <SrSliderInput
-                        v-if="reqParamsStore.distanceIn.value==='meters'"
-                        v-model="reqParamsStore.lengthValue"
-                        label="Length in meters"
-                        :min="5"
-                        :max="200" 
-                        :decimal-places="0"                  
-                    />
-                    <SrSliderInput
-                        v-if="reqParamsStore.distanceIn.value==='meters'"
-                        v-model="reqParamsStore.stepValue"
-                        label="Step Size (meters)"
-                        :min="5"
-                        :max="100" 
-                        :decimal-places="0"
-                    />
-                    <SrSliderInput
-                        v-if="reqParamsStore.distanceIn.value==='segments'"
-                        v-model="reqParamsStore.lengthValue"
-                        label="Length in segments"
-                        :min="5"
-                        :max="200" 
-                        :decimal-places="0"                  
-                    />
-                    <div class="sr-pass-invalid-container">
-                        <div class="sr-pass-invalid-header-container">
-                            <SrCheckbox
-                                label="Pass Invalid"
-                                v-model="reqParamsStore.passInvalid"
-                            />
-                        </div>  
-                        <SrSliderInput
-                            :insensitive="reqParamsStore.passInvalid"
-                            v-model="reqParamsStore.alongTrackSpread"
-                            label="Along Track Spread"
-                            :min="0"
-                            :max="200" 
-                            :decimal-places="0"
-                        />
-                        <SrSliderInput
-                            :insensitive="reqParamsStore.passInvalid"
-                            v-model="reqParamsStore.minimumPhotonCount"
-                            label="Minimum Photon Count"
-                            :min="0"
-                            :max="200" 
-                            :decimal-places="0"
-                        />
-                    </div>
-
+                    <SrExtents />
                 </AccordionTab>
                 <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
                     <SrSliderInput
@@ -404,18 +351,7 @@ onMounted(() => {
     overflow-x: scroll;
     white-space: nowrap;
 }
-.sr-pass-invalid-container{
-    margin: 1rem;
-    padding: 1rem;
-    border: 1px solid grey;
-    border-radius: var(--border-radius);
-}
-.sr-pass-invalid-header-container{
-    display: flex;
-    justify-content: center; 
-    align-items: center;
-    background-color: transparent;
-}
+
 /* 
 :deep(.p-accordion .p-accordion-tab) {
     background-color: transparent;
