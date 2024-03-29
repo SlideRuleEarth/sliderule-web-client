@@ -1,7 +1,7 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
+        <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
         <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
-            <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
             <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple :disabled="insensitive">
@@ -70,13 +70,18 @@
 <style scoped>
 .sr-menu-multi-input-wrapper {
     border: 1px solid transparent;
-    border-top: 0.125rem solid transparent;
     border-radius: var(--border-radius);
-    margin-top: 0.125rem;
+    margin-bottom: 1rem;
 }
 
+.sr-menu-multi-input-menu-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    margin: 0.25rem;
+}
 .sr-menu-multi-input-label {
-    margin-right: 0.5rem;
     white-space: nowrap;
     font-size: small;
 }
@@ -86,12 +91,6 @@
     align-items: right;
 }
 
-.sr-menu-multi-input-menu-control {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
 .sr-menu-multi-input-menu-control-insensitive {
     display: flex;
     justify-content: space-between;
