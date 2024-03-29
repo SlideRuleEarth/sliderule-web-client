@@ -39,8 +39,8 @@ const reqParamsStore = useReqParamsStore();
 
 
 .sr-atl03-cnf-container {
-    margin: 1rem;
-    padding: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.25rem;
     border: 1px solid grey;
     border-radius: var(--border-radius);
 }
