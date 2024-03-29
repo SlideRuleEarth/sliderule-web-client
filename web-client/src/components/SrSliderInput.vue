@@ -1,6 +1,8 @@
 <template>
     <div class="sr-slider-input-wrapper">
         <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+        <!-- Info Icon with Tooltip -->
+        <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button>
         <div class="sr-slider-row">
             <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
             <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
@@ -10,7 +12,7 @@
   
 <script setup lang="ts">
     import {useToast} from "primevue/usetoast";
-
+    import Button from 'primevue/button';
     import { ref, watch, computed, onMounted,  } from 'vue';
     import InputText from 'primevue/inputtext';
     import Slider from 'primevue/slider';
@@ -190,5 +192,22 @@
 :deep(.p-slider.p-slider-horizontal .p-slider-handle) {
     margin-top: -0.25rem;
     margin-left: -0.25rem;
+}
+
+:deep(.p-button.p-button-icon-only.p-button-rounded.p-button-text.p-button-plain.sr-info-button) {
+    margin-left: 0.25rem;
+    padding: 0rem;
+    height: 1rem;
+    width: 1rem;
+    color: var(--primary-300);
+}
+:deep(.sr-info-button .pi) {
+    margin-left: 0rem;
+    padding: 0rem;
+    padding-left: 0rem;
+    height: 0.75rem;
+    width: 0.75rem;
+    font-size: smaller;
+    color: var(--primary-300);
 }
 </style>

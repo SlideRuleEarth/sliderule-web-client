@@ -5,6 +5,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
+import Tooltip from 'primevue/tooltip';
+
 import Menubar from 'primevue/menubar';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
@@ -41,6 +43,7 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(router)
+app.directive('tooltip', Tooltip);
 app.component('menu-bar', Menubar)
 app.component('accordion-bar', Accordion)
 app.component('accordion-tab', AccordionTab)
