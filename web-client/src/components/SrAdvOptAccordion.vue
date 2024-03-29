@@ -71,7 +71,7 @@ onMounted(() => {
                 <AccordionTab header="General" >
                     <SrMenuInput
                         v-model="mapStore.polygonSource"
-                        label = "Polygon Source:"
+                        label = "Polygon Source"
                         aria-label="Select Polygon Source"
                         :menuOptions="polygonSourceItems"
                     />
@@ -79,17 +79,17 @@ onMounted(() => {
                         v-if="mapStore.polygonSource.value==='Upload geojson File'"
                     />
                     <SrCheckbox
-                        label="Rasterize Polygon:"
+                        label="Rasterize Polygon"
                         v-model="reqParamsStore.rasterizePolygon"
                     />
                     <SrCheckbox
-                        label="Ignore Poly for CMR:"
+                        label="Ignore Poly for CMR"
                         v-model="reqParamsStore.ignorePolygon"
                     />
                     <SrResources v-if="reqParamsStore.ignorePolygon"/>
                     <SrSliderInput
                         v-model="reqParamsStore.reqTimeoutValue"
-                        label="Req timeout:"
+                        label="Req timeout"
                         :min="5"
                         :max="3600" 
                         :decimal-places="0"
@@ -98,46 +98,46 @@ onMounted(() => {
                 <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
                     <SrMenuMultiInput
                         v-model="reqParamsStore.tracks"
-                        label = "Track(s):"
+                        label = "Track(s)"
                         aria-label="Select Tracks"
                         :menuOptions="reqParamsStore.tracksOptions"
                         :default="reqParamsStore.tracksOptions"
                     />
                     <SrMenuMultiInput
                         v-model="reqParamsStore.beams"
-                        label = "Beam(s):"
+                        label = "Beam(s)"
                         aria-label="Select Beams"
                         :menuOptions="reqParamsStore.beamsOptions"
                         :default="reqParamsStore.beamsOptions"
                     />
                     <SrSwitchedSliderInput
                         v-model="reqParamsStore.rgtValue"
-                        checkBoxLabel="RGT:"
+                        checkBoxLabel="RGT"
                         :min="1"
                         :max="100" 
                         :decimal-places="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.cycleValue"
-                        label="Cycle:"
+                        label="Cycle"
                         :min="1"
                         :max="100" 
                         :decimal-places="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.regionValue"
-                        label="Region:"
+                        label="Region"
                         :min="1"
                         :max="100" 
                         :decimal-places="0"
                     />
                     <SrCalendar
                         v-model="reqParamsStore.t0Value"
-                        label="T0:"
+                        label="T0"
                     />
                     <SrCalendar
                         v-model="reqParamsStore.t1Value"
-                        label="T1:"
+                        label="T1"
                     />
                     
                 </AccordionTab>
@@ -149,14 +149,14 @@ onMounted(() => {
                 <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
                     <SrMenuInput
                         v-model="reqParamsStore.distanceIn"
-                        label = "Distance In:"
+                        label = "Distance In"
                         aria-label="Select Distance in"
                         :menuOptions="reqParamsStore.distanceInOptions"
                     />
                     <SrSliderInput
                         v-if="reqParamsStore.distanceIn.value==='meters'"
                         v-model="reqParamsStore.lengthValue"
-                        label="Length in meters:"
+                        label="Length in meters"
                         :min="5"
                         :max="200" 
                         :decimal-places="0"                  
@@ -164,7 +164,7 @@ onMounted(() => {
                     <SrSliderInput
                         v-if="reqParamsStore.distanceIn.value==='meters'"
                         v-model="reqParamsStore.stepValue"
-                        label="Step Size (meters):"
+                        label="Step Size (meters)"
                         :min="5"
                         :max="100" 
                         :decimal-places="0"
@@ -172,7 +172,7 @@ onMounted(() => {
                     <SrSliderInput
                         v-if="reqParamsStore.distanceIn.value==='segments'"
                         v-model="reqParamsStore.lengthValue"
-                        label="Length in segments:"
+                        label="Length in segments"
                         :min="5"
                         :max="200" 
                         :decimal-places="0"                  
@@ -180,14 +180,14 @@ onMounted(() => {
                     <div class="sr-pass-invalid-container">
                         <div class="sr-pass-invalid-header-container">
                             <SrCheckbox
-                                label="Pass Invalid:"
+                                label="Pass Invalid"
                                 v-model="reqParamsStore.passInvalid"
                             />
                         </div>  
                         <SrSliderInput
                             :insensitive="reqParamsStore.passInvalid"
                             v-model="reqParamsStore.alongTrackSpread"
-                            label="Along Track Spread:"
+                            label="Along Track Spread"
                             :min="0"
                             :max="200" 
                             :decimal-places="0"
@@ -195,7 +195,7 @@ onMounted(() => {
                         <SrSliderInput
                             :insensitive="reqParamsStore.passInvalid"
                             v-model="reqParamsStore.minimumPhotonCount"
-                            label="Minimum Photon Count:"
+                            label="Minimum Photon Count"
                             :min="0"
                             :max="200" 
                             :decimal-places="0"
@@ -206,21 +206,21 @@ onMounted(() => {
                 <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
                     <SrSliderInput
                         v-model="reqParamsStore.maxIterations"
-                        label="Max Iterations:"
+                        label="Max Iterations"
                         :min="1"
                         :max="200" 
                         :decimal-places="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.minWindowHeight"
-                        label="Min window height (meters):"
+                        label="Min window height (meters)"
                         :min="0"
                         :max="200" 
                         :decimal-places="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.maxRobustDispersion"
-                        label="Max robust dispersion (meters):"
+                        label="Max robust dispersion (meters)"
                         :min="0"
                         :max="200" 
                         :decimal-places="0"
@@ -229,27 +229,27 @@ onMounted(() => {
                 <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
                     <SrSliderInput
                         v-model="reqParamsStore.binSize"
-                        label="Bin Size:"
+                        label="Bin Size"
                         :min="0"
                         :max="200"
                         :decimal-places="0"
                     />
                     <SrMenuInput
                         v-model="reqParamsStore.geoLocation"
-                        label = "Geo Location:"
+                        label = "Geo Location"
                         aria-label="Select Geo Location"
                         :menuOptions="reqParamsStore.geoLocationOptions"
                     />
                     <SrCheckbox
-                        label="Use Absolute Heights:"
+                        label="Use Absolute Heights"
                         v-model="reqParamsStore.useAbsoluteHeights"
                     />
                     <SrCheckbox
-                        label="Send Waveforms:"
+                        label="Send Waveforms"
                         v-model="reqParamsStore.sendWaveforms"
                     />
                     <SrCheckbox
-                        label="Use ABoVE Classifier:"
+                        label="Use ABoVE Classifier"
                         v-model="reqParamsStore.useABoVEClassifier"   
                     />
 
@@ -258,7 +258,7 @@ onMounted(() => {
                     <SrMenuMultiInput
                         v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
                         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                        label="ATL03 GeoSpatial Fields:"
+                        label="ATL03 GeoSpatial Fields"
                         ariaLabel="Select ATL03 GeoSpatial Fields"
                         :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
                         :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
@@ -266,7 +266,7 @@ onMounted(() => {
                     <SrMenuMultiInput
                         v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
                         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
-                        label="ATL03 Photon Fields:"
+                        label="ATL03 Photon Fields"
                         ariaLabel="Select ATL03 Photon Fields"
                         :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
                         :default="reqParamsStore.ATL03PhotonFieldsOptions"
@@ -274,7 +274,7 @@ onMounted(() => {
                     <SrMenuMultiInput
                         v-if="props.iceSat2SelectedAPI.value==='atl06s'"
                         v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                        label="ATL03 IceSegment Fields:"
+                        label="ATL03 IceSegment Fields"
                         ariaLabel="Select ATL03 IceSegment Fields"
                         :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
                         :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
@@ -282,7 +282,7 @@ onMounted(() => {
                     <SrMenuMultiCheckInput
                         v-if="props.iceSat2SelectedAPI.value==='atl08'"
                         v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                        label="ATL08 LandSegment Fields:"
+                        label="ATL08 LandSegment Fields"
                         additionalParamLabel="interpolate"
                         ariaLabel="Select ATL08 LandSegment Fields"
                         :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
@@ -292,25 +292,25 @@ onMounted(() => {
                 <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
                     <SrMultiSelect
                         v-model="reqParamsStore.gediBeams"
-                        label = "Select Beam(s):"
+                        label = "Select Beam(s)"
                         aria-label="Select Beams"
                         :menuOptions="reqParamsStore.gediBeamsOptions"
                         :default="reqParamsStore.gediBeamsOptions"
                     />
                     <SrCheckbox
-                        label="Degrade Flag:"
+                        label="Degrade Flag"
                         v-model="reqParamsStore.degradeFlag"
                     />
                     <SrCheckbox
-                        label="L2 Quality Flag:"
+                        label="L2 Quality Flag"
                         v-model="reqParamsStore.l2QualityFlag"
                     />
                     <SrCheckbox
-                        label="L4 Quality Flag:"
+                        label="L4 Quality Flag"
                         v-model="reqParamsStore.l4QualityFlag"
                     />
                     <SrCheckbox
-                        label="Surface Flag:"
+                        label="Surface Flag"
                         v-model="reqParamsStore.surfaceFlag"
                     />
                 </AccordionTab>
@@ -341,27 +341,27 @@ onMounted(() => {
                     <SrMenuInput
                         v-if = "reqParamsStore.saveOutput"
                         v-model="reqParamsStore.outputFormat"
-                        label = "Output Format:"
+                        label = "Output Format"
                         aria-label="Select Output Format"
                         :menuOptions="reqParamsStore.outputFormatOptions"
                     />
                     <SrMenuInput
                         v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
                         v-model="reqParamsStore.outputLocation"
-                        label = "Output Location:"
+                        label = "Output Location"
                         aria-label="Select Output Location"
                         :menuOptions="reqParamsStore.outputLocationOptions"
                     />
                     <SrTextInput
                         v-if = "reqParamsStore.saveOutput && reqParamsStore.staged===false"
                         v-model="reqParamsStore.outputLocationPath"
-                        label = "Output Location Path:"
+                        label = "Output Location Path"
                         aria-label="Enter Output Location Path"
                     />
                     <SrMenuInput
                         v-if = "reqParamsStore.saveOutput  && reqParamsStore.outputLocation.name==='S3' && reqParamsStore.staged===false"
                         v-model="reqParamsStore.awsRegion"
-                        label = "AWS Region:"
+                        label = "AWS Region"
                         aria-label="Select AWS Region"
                         :menuOptions="reqParamsStore.awsRegionOptions"
                     />
