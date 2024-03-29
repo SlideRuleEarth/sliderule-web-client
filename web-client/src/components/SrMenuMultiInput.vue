@@ -76,7 +76,7 @@
 
 .sr-menu-multi-input-menu-control {
     display: flex;
-    justify-content: space-between;
+    justify-content: start;
     align-items: center;
     width: 90%;
     margin: 0.25rem;
@@ -88,7 +88,7 @@
 
 .sr-menu-multi-input-select-item {
     display: flex;
-    align-items: right;
+    max-width: fit-content;
 }
 
 .sr-menu-multi-input-menu-control-insensitive {
