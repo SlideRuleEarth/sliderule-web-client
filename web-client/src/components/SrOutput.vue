@@ -55,6 +55,7 @@ const reqParamsStore = useReqParamsStore();
 <style scoped>
 
 
+
 .sr-output-container {
     margin-bottom: 1rem;
     padding: 0.25rem;
@@ -68,4 +69,9 @@ const reqParamsStore = useReqParamsStore();
   background-color: transparent;
   margin-bottom: 1rem;
 }
+
+:deep(.sr-output-header .sr-checkbox-label){
+    font-size: large;
+}
+
 </style>

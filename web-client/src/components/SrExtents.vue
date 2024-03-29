@@ -100,4 +100,10 @@ const reqParamsStore = useReqParamsStore();
     align-items: center;
     background-color: transparent;
 }
+:deep(.sr-pass-invalid-header-container .sr-checkbox-label){
+    font-size: large;
+}
+:deep(.sr-ext-distance-header-container .sr-select-menu-label){
+    font-size: large;
+}
 </style>

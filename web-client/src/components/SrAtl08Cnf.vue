@@ -41,5 +41,7 @@ const reqParamsStore = useReqParamsStore();
     background-color: transparent;
     margin-bottom: 1rem;
 }
-
+:deep(.sr-atl08-cnf-header .sr-checkbox-label){
+    font-size: large;
+}
 </style>

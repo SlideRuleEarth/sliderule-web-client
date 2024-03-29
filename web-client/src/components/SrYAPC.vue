@@ -88,5 +88,7 @@ const reqParamsStore = useReqParamsStore();
   align-items: center;
   background-color: transparent;
 }
-
+:deep(.sr-yapc-header .sr-checkbox-label){
+    font-size: large;
+}
 </style>
