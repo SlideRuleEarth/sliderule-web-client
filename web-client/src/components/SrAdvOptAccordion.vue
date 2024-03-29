@@ -112,7 +112,7 @@ onMounted(() => {
                     />
                     <SrSwitchedSliderInput
                         v-model="reqParamsStore.rgtValue"
-                        checkBoxLabel="RGT"
+                        label="RGT"
                         :min="1"
                         :max="100" 
                         :decimal-places="0"

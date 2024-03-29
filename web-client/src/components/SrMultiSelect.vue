@@ -82,8 +82,9 @@
 }
 
 .sr-multi-selector {
-    width: 100%;
-    padding: 0.125rem 0.5rem;
+    width: 75%;
+    padding: 0.125rem ;
+    margin:0.25rem;
     background-color: transparent;
 }
 
@@ -104,10 +105,22 @@
     padding-left:0.25;
 } 
 */
+:deep(.p-multiselect .p-multiselect-trigger) {
+    width: 0.75rem;
+    height: 0.75rem;
+    align-self: center;
+}
+:deep(.p-multiselect .p-multiselect-trigger .p-icon) {
+    width: 0.65rem;
+    height: 0.65rem;
+}
+
 :deep(.p-multiselect .p-multiselect-label) {
     display: flex;
     flex-direction: column; /* Stack items vertically */ 
-    padding:0.125rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left:0.25rem;
     font-size: small; 
 } 
 

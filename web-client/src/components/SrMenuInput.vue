@@ -3,8 +3,8 @@
         <div class="sr-menu-row">
             <div ref="menuElement" class="sr-menu-control">
                 <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" >{{ label }}</label>
-                <form class="sr-select-menu-item" name="sr-select-item-form">
-                    <select v-model="selectedMenuItem" class="sr-select-menu-default" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
+                <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
+                    <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
                             {{ item.name }}
                         </option>
@@ -77,6 +77,11 @@
     display: flex;
     align-items: right;
 }
+.sr-select-menu-item-insensitive {
+    display: flex;
+    align-items: right;
+    color: #888; /*  grey color */
+}
 .sr-menu-control {
     display: flex; /* This enables Flexbox */
     justify-content: space-between; /* Aligns children to opposite edges */
@@ -85,9 +90,19 @@
 }
 
 .sr-select-menu-default {
-    width: auto; /* Adjust width as needed */
+    width: auto; 
     padding: 0.25rem;
     color: white;
+    background-color: transparent;
+    border-radius: var(--border-radius);
+    font-family: var(--font-family);
+    font-size: small;
+}
+
+.sr-select-menu-default-insensitive {
+    width: auto;
+    padding: 0.25rem;
+    color: #888; /*  grey color */
     background-color: transparent;
     border-radius: var(--border-radius);
     font-family: var(--font-family);

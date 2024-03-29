@@ -1,11 +1,15 @@
 <template>
     <div class="sr-slider-input-wrapper">
-        <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
-        <!-- Info Icon with Tooltip -->
-        <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button>
-        <div class="sr-slider-row">
-            <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
-            <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
+        <div class="sr-slider-col">
+            <div class="sr-slider-label-icon-row">
+                <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId">{{ label }}</label>
+                <!-- Info Icon with Tooltip -->
+                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button>
+            </div>
+            <div class="sr-slider-input-row">
+                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
+                <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
+            </div>
         </div>
     </div>
 </template>
@@ -145,10 +149,21 @@
 .sr-slider-input-wrapper {
     border: 1px solid transparent;
     border-radius: var(--border-radius);
-    margin-bottom: 0.125rem;
+    margin: 0.25rem;
 }
-
-.sr-slider-row {
+.sr-slider-col {
+    display: flex;
+    flex-direction: column;
+    align-items: self-start;
+    justify-content: left;
+    margin: 0.125rem;
+}
+.sr-slider-label-icon-row {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+.sr-slider-input-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -168,6 +183,7 @@
     width: 12rem; 
     margin-right: 0.5rem;
     margin-bottom: 0.25rem;
+    margin-left: 0.25rem;
 }
 
 .sr-slider-input-text {

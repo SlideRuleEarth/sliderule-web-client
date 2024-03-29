@@ -168,8 +168,8 @@
         <template v-slot:sidebar-col>
             <SrSideBar>
                 <template v-slot:sr-sidebar-body>
-                    <div class="card flex justify-content-center">
-                        <div class="card flex justify-content-center">
+                    <div class="sr-adv-option-sidebar-container">
+                        <div class="sr-adv-option-sidebar-options">
                             <SrMenuInput
                                 v-model="missionValue"
                                 label="Mission:"
@@ -215,11 +215,17 @@
     </TwoColumnLayout>
 </template>
 <style scoped>
-    .example-slider-input {
+    .sr-adv-option-sidebar-container {
         display: flex;
-        align-items: center;
-        justify-content: center;
         flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .sr-adv-option-sidebar-options {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     .button-spinner-container {
         display: flex;

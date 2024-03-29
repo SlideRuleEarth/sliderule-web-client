@@ -12,23 +12,25 @@ const reqParamsStore = useReqParamsStore();
     <div class="sr-yapc-header">
       <SrCheckBox
           v-model="reqParamsStore.YAPC"
-          label="YAPC:"
+          label="YAPC"
           :min="1"
           :max="100" 
           :decimalPlaces="0"
       />
     </div>
-    <SrMenuInput
-        v-model="reqParamsStore.YAPCVersion"
-        :selected="reqParamsStore.usesYAPCVersion"
-        label = "Version:"
-        aria-label="Select Version"
-        :menuOptions="reqParamsStore.YAPCVersionOptions"
-        :insensitive="!reqParamsStore.YAPC"
-    />
+    <div class="sr-yapc-version-header">
+      <SrMenuInput
+          v-model="reqParamsStore.YAPCVersion"
+          :selected="reqParamsStore.usesYAPCVersion"
+          label = "Version"
+          aria-label="Select Version"
+          :menuOptions="reqParamsStore.YAPCVersionOptions"
+          :insensitive="!reqParamsStore.YAPC"
+      />
+    </div>
     <SrSliderInput
         v-model="reqParamsStore.YAPCScore"
-        label="Score:"
+        label="Score"
         :min="1"
         :max="100" 
         :decimalPlaces="0"
@@ -37,7 +39,7 @@ const reqParamsStore = useReqParamsStore();
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCKnn"
         :selected="reqParamsStore.usesYAPCKnn"
-        checkBoxLabel="Knn:"
+        label="Knn"
         :min="1"
         :max="100" 
         :decimalPlaces="0"
@@ -46,7 +48,7 @@ const reqParamsStore = useReqParamsStore();
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCWindowHeight"
         :selected="reqParamsStore.usesYAPCWindowHeight"
-        checkBoxLabel="Window Height:"
+        label="Window Height"
         :min="1"
         :max="1000" 
         :decimalPlaces="0"  
@@ -55,7 +57,7 @@ const reqParamsStore = useReqParamsStore();
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCWindowWidth"
         :selected="reqParamsStore.usesYAPCWindowWidth"
-        checkBoxLabel="Window Width:"
+        label="Window Width"
         :min="1"
         :max="1000" 
         :decimalPlaces="0"
@@ -65,17 +67,26 @@ const reqParamsStore = useReqParamsStore();
 </template>
 <style scoped>
 
-.sr-yapc-header {
-  display: flex;
-  justify-content: center; 
-  align-items: center;
-  background-color: transparent;
-}
 .sr-yapc-container {
   margin: 1rem;
   padding: 1rem;
   border: 1px solid grey;
   border-radius: var(--border-radius);
+}
+
+.sr-yapc-header {
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  background-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.sr-yapc-version-header {
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  background-color: transparent;
 }
 
 </style>
