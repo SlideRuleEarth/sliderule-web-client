@@ -1,12 +1,13 @@
 <template>
     <div class="sr-menu-label-wrapper">
-        <label for="sr-multiselect-{{ label }}" :class="{'sr-multi-menu-float-label': !insensitive,'sr-multi-menu-float-label-insensitive': insensitive}">{{ label }} </label> 
+        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="sr-multi-selector" :disabled="props.insensitive" /> 
     </div>
 </template>  
 <script setup lang="ts">
     import { ref, onMounted, watch } from 'vue';
     import MultiSelect from 'primevue/multiselect';
+    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     export interface SrMultiSelectItem {
         name: string;
@@ -21,7 +22,15 @@
         insensitive: {
             type: Boolean,
             default: false
-        }
+        },
+        tooltipText: {
+            type: String,
+            default: 'This Some tooltip text here'
+        },
+        tooltipUrl: {
+            type: String,
+            default: ''
+        },
     });
 
     // Update to manage an array of selected items
@@ -57,21 +66,6 @@
 
 <style scoped>
 
-
-.sr-multi-menu-float-label {
-    width: 100%;
-    max-width: 20rem;
-    white-space: nowrap;
-    font-size: small;
-}
-
-.sr-multi-menu-float-label-insensitive {
-    width: 100%;
-    max-width: 20rem;
-    white-space: nowrap;
-    font-size: small;
-    color: #888; /*  grey color */
-}
 
 .sr-menu-label-wrapper {
     display: flex; /* This enables Flexbox */

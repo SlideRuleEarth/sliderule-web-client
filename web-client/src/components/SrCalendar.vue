@@ -53,10 +53,6 @@ function handleChange(event:any) {
     padding: 0.125rem;
     font-size: small;
 }
-.sr-calendar-label {
-    margin-right: 0.25rem;
-    font-size: small;
-}
 
 :deep(.p-datepicker.trigger) {
     width: 100%;

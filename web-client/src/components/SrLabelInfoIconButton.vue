@@ -43,7 +43,7 @@
         }
     };
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted SrLabelIconInfoButton:', props.label, 'insensitive:', props.insensitive);
     });
 </script>
 
@@ -53,12 +53,16 @@
     margin-right: 0rem;
     white-space: nowrap;
     font-size: small;
+    white-space: nowrap;
+    background-color: transparent;
 }
 
 .sr-label-info-icon-button-label-insensitive {
-    margin-right: 0.5rem;
+    margin-right: 0rem;
     font-size: small;
     color: #888; /*  grey color */
+    white-space: nowrap;
+
 }
 .sr-label-info-icon-button {
     display: flex; /* This enables Flexbox */

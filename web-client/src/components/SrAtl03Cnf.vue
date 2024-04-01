@@ -2,16 +2,23 @@
 import SrMenuInput from './SrMenuInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue';
 import SrCheckbox from './SrCheckbox.vue';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();
-
+const props = defineProps({
+    insensitive: {
+            type: Boolean,
+            default: false
+        },
+    });
 </script>
 
 <template>
     <div class = "sr-atl03-cnf-container">
         <div class="sr-atl03-cnf-header">
+            <SrLabelInfoIconButton v-if="label != ''" label="Atl03 Classification" tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification" :insensitive="insensitive"/>
             <SrCheckbox
-                label="Atl03 Confidence"
+                label=""
                 v-model="reqParamsStore.enableAtl03Confidence"
             />
         </div>
@@ -51,7 +58,8 @@ const reqParamsStore = useReqParamsStore();
   background-color: transparent;
   margin-bottom: 1rem;
 }
-:deep(.sr-atl03-cnf-header .sr-checkbox-label){
+
+:deep(.sr-label-info-icon-button-label) {
     font-size: large;
 }
 </style>
