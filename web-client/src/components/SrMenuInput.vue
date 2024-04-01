@@ -3,6 +3,8 @@
         <div class="sr-menu-row">
             <div ref="menuElement" class="sr-menu-control">
                 <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
+                <!-- Info Icon with Tooltip -->
+                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
@@ -18,6 +20,7 @@
 <script setup lang="ts">
 
     import { onMounted,ref,watch } from 'vue';
+    import Button from 'primevue/button';
 
     export interface SrMenuItem {
         name:   string;
@@ -37,6 +40,10 @@
         tooltipText: {
             type: String,
             default: 'This Some tooltip text here'
+        },
+        tooltipUrl: {
+            type: String,
+            default: ''
         },
     });
     const selectedMenuItem = ref<SrMenuItem>(

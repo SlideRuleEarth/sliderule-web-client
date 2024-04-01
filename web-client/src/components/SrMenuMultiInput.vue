@@ -1,6 +1,8 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
-        <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label">{{ label }}</label>
+        <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label" :title="tooltipText">{{ label }}</label>
+        <!-- Info Icon with Tooltip -->
+        <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
         <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
             <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
@@ -17,6 +19,7 @@
 <script setup lang="ts">
     import { ref, onMounted, watch } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
+    import Button from 'primevue/button';
 
     const props = defineProps({
         label: String,
@@ -25,7 +28,15 @@
         insensitive: {
             type: Boolean,
             default: false
-        }
+        },
+        tooltipText: {
+            type: String,
+            default: 'This Some tooltip text here'
+        },
+        tooltipUrl: {
+            type: String,
+            default: ''
+        },
     });
 
     const selectAll = ref(true);
@@ -61,7 +72,14 @@
         }
         console.log('Select All:', selectAll.value);
     }, { deep: true });
-
+    const openTooltipUrl = () => {
+        console.log('openTooltipUrl:', props.tooltipUrl);
+        if (props.tooltipUrl) {
+            window.open(props.tooltipUrl, '_blank').focus();
+        } else {
+            console.warn('No tooltip URL provided');
+        }
+    };
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
     });

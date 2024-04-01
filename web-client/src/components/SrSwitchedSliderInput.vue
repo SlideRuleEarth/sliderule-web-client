@@ -64,7 +64,7 @@
         isCheckboxChecked.value = event.target.checked;
         emit('update:selected', event.target.checked);
     }
-    // Add this method in your <script setup> section
+
     const openTooltipUrl = () => {
         console.log('openTooltipUrl:', props.tooltipUrl);
         if (props.tooltipUrl) {
