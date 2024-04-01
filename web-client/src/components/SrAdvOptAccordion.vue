@@ -96,7 +96,7 @@ onMounted(() => {
                     <SrResources v-if="reqParamsStore.ignorePolygon"/>
                     <SrSliderInput
                         v-model="reqParamsStore.totalTimeoutValue"
-                        label="timeout"
+                        label="Timeout"
                         :min="5"
                         :max="3600" 
                         :decimalPlaces="0"
@@ -138,6 +138,8 @@ onMounted(() => {
                         aria-label="Select Tracks"
                         :menuOptions="reqParamsStore.tracksOptions"
                         :default="reqParamsStore.tracksOptions"
+                        tooltipText="Each track has both a weak and a strong spot"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                     />
                     <SrMenuMultiInput
                         v-model="reqParamsStore.beams"
@@ -145,6 +147,8 @@ onMounted(() => {
                         aria-label="Select Beams"
                         :menuOptions="reqParamsStore.beamsOptions"
                         :default="reqParamsStore.beamsOptions"
+                        tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                     />
                     <SrSwitchedSliderInput
                         v-model="reqParamsStore.rgtValue"
@@ -152,6 +156,8 @@ onMounted(() => {
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
+                        tooltipText="RGT is the reference ground track: defaults to all if not specified"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.cycleValue"
@@ -159,6 +165,8 @@ onMounted(() => {
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
+                        tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.regionValue"
@@ -166,14 +174,20 @@ onMounted(() => {
                         :min="1"
                         :max="100" 
                         :decimalPlaces="0"
+                        tooltipText="geographic region for corresponding standard product (defaults to all if not specified)"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     <SrCalendar
                         v-model="reqParamsStore.t0Value"
                         label="T0"
+                        tooltipText="Start Time for filtering granules"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     <SrCalendar
                         v-model="reqParamsStore.t1Value"
                         label="T1"
+                        tooltipText="End Time for filtering granules"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     
                 </AccordionTab>

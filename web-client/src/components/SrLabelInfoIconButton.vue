@@ -71,6 +71,7 @@
     height: 1rem;
     width: 1rem;
     color: var(--primary-300);
+    border-color: transparent;
 }
 :deep(.sr-info-button .pi) {
     margin-left: 0rem;

@@ -1,6 +1,6 @@
 <template>
     <div class="sr-calendar">
-        <label class="sr-calendar-label" :for="inputId"> {{ label }} </label>
+        <SrLabelInfoIconButton v-if="label != ''" :label="label" :labelFor="inputId" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         <Calendar v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
     </div>
 </template>
@@ -8,10 +8,23 @@
 <script setup lang="ts">
 import {ref} from 'vue';
 import Calendar from 'primevue/calendar';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 const props = defineProps({
     label: {type:String,
         default: 'undefined'
+    },
+    insensitive: {
+        type: Boolean,
+        default: false
+    },
+    tooltipText: {
+        type: String,
+        default: 'This Some tooltip text here'
+    },
+    tooltipUrl: {
+        type: String,
+        default: ''
     },
     default: {
         type: Date,
