@@ -1,15 +1,15 @@
 <template>
     <div class="sr-switched-slider-input-wrapper">
         <div class="sr-switched-slider-labeled-cb">
-            <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="insensitive"/>
-            <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl"/>
+            <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="props.insensitive"/>
+            <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         </div>
         <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive" :tooltipText="tooltipText"  />
     </div>
 </template>
   
 <script setup lang="ts">
-    import { ref } from 'vue';
+    import { ref,onMounted } from 'vue';
     import SrSliderInput from './SrSliderInput.vue';
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
@@ -62,6 +62,9 @@
         isCheckboxChecked.value = event.target.checked;
         emit('update:selected', event.target.checked);
     }
+    onMounted(() => {
+        console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
+    });
 </script>
 
 <style scoped>

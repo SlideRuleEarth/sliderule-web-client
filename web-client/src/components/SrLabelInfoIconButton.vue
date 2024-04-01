@@ -1,6 +1,6 @@
 <template>
     <div class="sr-label-info-icon-button">
-        <label :for="labelFor" :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
+        <label :for="labelFor" :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" :title="tooltipText" :style="{ fontSize: labelFontSize, whitespace: 'no-wrap' }">{{ label }}</label>
         <!-- Info Icon with Tooltip -->
         <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
     </div>
@@ -27,6 +27,10 @@
         tooltipUrl: {
             type: String,
             default: ''
+        },
+        labelFontSize: {
+            type: String,
+            default: 'small' // default font size if not passed
         },
     });
     const openTooltipUrl = () => {

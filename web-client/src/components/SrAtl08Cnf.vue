@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import SrMenuMultiInput from './SrMultiSelect.vue';
 import SrCheckbox from './SrCheckbox.vue';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();
-
+const props = defineProps({
+    label: String,
+    insensitive: {
+            type: Boolean,
+            default: false
+        },
+    });
 </script>
 
 <template>
     <div class = "sr-atl08-cnf-container">
         <div class="sr-atl08-cnf-header">
+            <SrLabelInfoIconButton v-if="label != ''" label="Atl08 Classification" tooltipText="If ATL08 classification parameters are specified, the ATL08 (vegetation height) files corresponding to the ATL03 files are queried for the more advanced classification scheme available in those files" tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification" :insensitive="insensitive" labelFontSize="large"/>
             <SrCheckbox
-                label="Atl08 Confidence"
+                label=""
                 v-model="reqParamsStore.enableAtl08Confidence"
             />
         </div>
@@ -40,8 +48,5 @@ const reqParamsStore = useReqParamsStore();
     align-items: center;
     background-color: transparent;
     margin-bottom: 1rem;
-}
-:deep(.sr-atl08-cnf-header .sr-checkbox-label){
-    font-size: large;
 }
 </style>

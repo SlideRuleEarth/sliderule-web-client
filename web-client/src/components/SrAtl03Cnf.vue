@@ -6,6 +6,7 @@ import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();
 const props = defineProps({
+    label: String,
     insensitive: {
             type: Boolean,
             default: false
@@ -16,7 +17,7 @@ const props = defineProps({
 <template>
     <div class = "sr-atl03-cnf-container">
         <div class="sr-atl03-cnf-header">
-            <SrLabelInfoIconButton v-if="label != ''" label="Atl03 Classification" tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification" :insensitive="insensitive"/>
+            <SrLabelInfoIconButton v-if="label != ''" label="Atl03 Classification" tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification" :insensitive="insensitive" labelFontSize="large"/>
             <SrCheckbox
                 label=""
                 v-model="reqParamsStore.enableAtl03Confidence"

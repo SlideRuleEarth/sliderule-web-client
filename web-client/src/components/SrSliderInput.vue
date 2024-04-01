@@ -1,10 +1,10 @@
 <template>
     <div class="sr-slider-input-wrapper">
         <div class="sr-slider-col">
-            <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
+            <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="props.insensitive"/>
             <div class="sr-slider-input-row">
-                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive" />
-                <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
+                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="props.insensitive" />
+                <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="props.insensitive"/>
             </div>
         </div>
     </div>
@@ -68,6 +68,7 @@
 
     // Initialize sliderStepSize as a ref with a default value
     onMounted(() => {
+        console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
         //console.log('The Slider Step Size:', sliderStepSize.value);
     });
@@ -180,16 +181,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.sr-slider-label {
-    white-space: nowrap;
-    font-size: small;
-}
-.sr-slider-label-insensitive {
-    white-space: nowrap;
-    color: #888; /*  grey color */
-    font-size: small;
 }
 
 .sr-slider {

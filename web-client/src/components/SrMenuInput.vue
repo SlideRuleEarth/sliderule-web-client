@@ -2,7 +2,7 @@
     <div class="sr-menu-input-wrapper">
         <div class="sr-menu-row">
             <div ref="menuElement" class="sr-menu-control">
-                <SrLabelInfoIconButton :label="label" lableFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
+                <SrLabelInfoIconButton :label="label" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
@@ -71,16 +71,16 @@
 
 .sr-select-menu-item {
     display: flex;
-    align-items: right;
+    margin-left: 0.25rem;
 }
 .sr-select-menu-item-insensitive {
     display: flex;
-    align-items: right;
+    margin-left: 0.25rem;
     color: #888; /*  grey color */
 }
 .sr-menu-control {
     display: flex; /* This enables Flexbox */
-    justify-content: space-between; /* Aligns children to opposite edges */
+    justify-content: center; /* Aligns children to opposite edges */
     align-items: center; /* This vertically centers the items in the container */
     width: 100%; /* Ensures it spans the full width of its parent */
 }
