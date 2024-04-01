@@ -15,6 +15,8 @@ const reqParamsStore = useReqParamsStore();
                 label = "Distance In"
                 aria-label="Select Distance in"
                 :menuOptions="reqParamsStore.distanceInOptions"
+                tooltipText="Selected photons are collected into extents, each of which may be suitable for elevation fitting. The distance in parameter determines the size of the extents. The distance in parameter may be specified in meters or segments. If meters is selected, the length of the extent is specified in meters and the step size is specified in meters. If segments is selected, the length of the extent is specified in segments and the step size is specified in segments. "
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
             />
         </div>
         <SrSliderInput

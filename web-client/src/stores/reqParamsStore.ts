@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import type { SrRadioBtnCategory } from '@/components/SrRadioButtonBox.vue';
 import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 export const useReqParamsStore = defineStore('reqParams', {
@@ -47,17 +46,18 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Low', value: 'atl03_low' },
           { name: 'Medium', value: 'atl03_medium' },
           { name: 'High', value: 'atl03_high' },
-        ] as SrRadioBtnCategory[],
+        ] as SrMultiSelectItem[],
         signalConfidence: { name: 'High', value: 'atl03_high' },
+        qualityPHValue: 0.0,
         enableAtl08Confidence: false,
-        landTypeOptions: [
-          {name:'noise', value:'noise'}, 
-          {name: 'ground', value: 'ground'},
-          {name:'canopy', value:'canopy'},
-          {name:'Top of Canopy', value:'Top of Canopy'},
-          {name:'unclassified', value:'unclassified'},
+        atl08LandTypeOptions: [
+          {name:'Noise', value:'atl08_noise'}, 
+          {name: 'Ground', value: 'atl08_ground'},
+          {name:'Canopy', value:'atl08_canopy'},
+          {name:'Top of Canopy', value:'atl08_top_of_canopy'},
+          {name:'Unclassified', value:'atl08_unclassified'},
           ] as SrMultiSelectItem[], 
-        landType: [] as string[],
+        landType: [] as SrMultiSelectItem[],
         distanceInOptions:[
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },

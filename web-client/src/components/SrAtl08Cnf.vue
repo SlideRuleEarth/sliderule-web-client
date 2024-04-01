@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SrMenuMultiInput from './SrMultiSelect.vue';
+import SrMultiSelect from './SrMultiSelect.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
@@ -20,15 +20,19 @@ const props = defineProps({
             <SrCheckbox
                 label=""
                 v-model="reqParamsStore.enableAtl08Confidence"
-            />
+                tooltipText="If ATL08 classification parameters are specified, the ATL08 (vegetation height) files corresponding to the ATL03 files are queried for the more advanced classification scheme available in those files. Photons are then selected based on the classification values specified. Note that srt=0 (land) and cnf=0 (no native filtering) should be specified to allow all ATL08 photons to be used."
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
+             />
         </div>
-        <SrMenuMultiInput
+        <SrMultiSelect
             v-model="reqParamsStore.landType"
             label = "Land Type(s)"
             aria-label="Select Land Type"
-            :menuOptions="reqParamsStore.landTypeOptions"
+            :menuOptions="reqParamsStore.atl08LandTypeOptions"
             :insensitive="!reqParamsStore.enableAtl08Confidence"
-            :default="[reqParamsStore.landTypeOptions[0]]"
+            :default="[reqParamsStore.atl08LandTypeOptions[0]]"
+            tooltipText="The ATL08 classifications used to select which photons are used in the processing."
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
         />
 
     </div>

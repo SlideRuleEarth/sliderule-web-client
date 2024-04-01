@@ -48,6 +48,8 @@ const props = defineProps({
         :max="100" 
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.YAPC"
+        tooltipText="The minimum yapc classification score of a photon to be used in the processing request"
+        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
     />
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCKnn"

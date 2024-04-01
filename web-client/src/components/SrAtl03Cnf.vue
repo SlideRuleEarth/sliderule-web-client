@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SrMenuInput from './SrMenuInput.vue';
+import SrSliderInput from './SrSliderInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
@@ -30,15 +30,29 @@ const props = defineProps({
                 ariaLabel="Select Reference Surface Type"
                 :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
                 @update:value="reqParamsStore.surfaceReferenceType = $event"
-                :default="[reqParamsStore.surfaceReferenceTypeOptions[0]]"
+                :default="[reqParamsStore.surfaceReferenceTypeOptions[3]]"
+                tooltipText="The surface type used in the ATL03 photon classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
-            <SrMenuInput
+            <SrMultiSelect
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
                 label="Signal Confidence"
                 ariaLabel="Signal Confidence"
                 :menuOptions="reqParamsStore.signalConfidenceOptions"
-                defaultOptionIndex="2"
+                :default=[reqParamsStore.signalConfidenceOptions[2]]
                 @update:value="reqParamsStore.signalConfidence = $event"
+                tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
+            />
+            <SrSliderInput
+                v-model="reqParamsStore.qualityPHValue"
+                label="Quailty PH"
+                :min="0"
+                :max="1000"
+                :decimalPlaces="2"
+                :insensitive="!reqParamsStore.enableAtl03Confidence"
+                tooltipText="quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts, can be supplied as a single value (which means the classification must be exactly that), or a list (which means the classification must be in the list))"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
         </div>
     </div>
