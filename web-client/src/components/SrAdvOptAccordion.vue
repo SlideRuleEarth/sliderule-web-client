@@ -75,13 +75,19 @@ onMounted(() => {
                         aria-label="Select Polygon Source"
                         :menuOptions="polygonSourceItems"
                         tooltipText="This is how you define the region of interest"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#polygons"
                     />
                     <SrGeoJsonFileUpload
                         v-if="mapStore.polygonSource.value==='Upload geojson File'"
                     />
                     <SrSwitchedSliderInput
-                        label="Rasterize Polygon"
+                        label="Rasterize Polygon cell size"
                         v-model="reqParamsStore.rasterizePolygon"
+                        :min="1"
+                        :max="100"
+                        :decimalPlaces="0"
+                        tooltipText="The number of pixels to rasterize the polygon into"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
                     />
                     <SrCheckbox
                         label="Ignore Poly for CMR"

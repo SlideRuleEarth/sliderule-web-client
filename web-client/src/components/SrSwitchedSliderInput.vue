@@ -2,8 +2,7 @@
     <div class="sr-switched-slider-input-wrapper">
         <div class="sr-switched-slider-labeled-cb">
             <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="insensitive"/>
-            <label :class="{ 'sr-switched-slider-label': !insensitive, 'sr-switched-slider-label-insensitive': insensitive }" :for="inputId" :title="tooltipText">{{ label }}</label>
-            <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
+            <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl"/>
         </div>
         <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive" :tooltipText="tooltipText"  />
     </div>
@@ -13,8 +12,7 @@
     import { ref } from 'vue';
     import SrSliderInput from './SrSliderInput.vue';
     import SrCheckbox from './SrCheckbox.vue';
-    import Button from 'primevue/button';
-
+    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     const props = defineProps({
         selected: {
             type: Boolean,
@@ -64,15 +62,6 @@
         isCheckboxChecked.value = event.target.checked;
         emit('update:selected', event.target.checked);
     }
-
-    const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
-        if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank').focus();
-        } else {
-            console.warn('No tooltip URL provided');
-        }
-    };
 </script>
 
 <style scoped>
@@ -104,21 +93,5 @@
     font-size: small;
 }
 
-:deep(.p-button.p-button-icon-only.p-button-rounded.p-button-text.p-button-plain.sr-info-button) {
-    margin-left: 0.25rem;
-    padding: 0rem;
-    height: 1rem;
-    width: 1rem;
-    color: var(--primary-300);
-}
-:deep(.sr-info-button .pi) {
-    margin-left: 0rem;
-    padding: 0rem;
-    padding-left: 0rem;
-    height: 0.75rem;
-    width: 0.75rem;
-    font-size: smaller;
-    color: var(--primary-300);
-}
 </style>
   

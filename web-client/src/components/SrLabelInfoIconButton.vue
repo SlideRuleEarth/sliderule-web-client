@@ -1,8 +1,8 @@
 <template>
     <div class="sr-label-info-icon-button">
-        <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
+        <label :for="labelFor" :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
         <!-- Info Icon with Tooltip -->
-        <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
+        <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
     </div>
 </template>
 
@@ -12,6 +12,14 @@
 
     const props = defineProps({
         label: String,
+        insensitive: {
+            type: Boolean,
+            default: false
+        },
+        labelFor: {
+            type: String,
+            default: ''
+        },
         tooltipText: {
             type: String,
             default: 'This Some tooltip text here'
@@ -21,6 +29,19 @@
             default: ''
         },
     });
+    const openTooltipUrl = () => {
+        console.log('openTooltipUrl:', props.tooltipUrl);
+        if (props.tooltipUrl) {
+            const newWindow = window.open(props.tooltipUrl, '_blank');
+            if (newWindow) {
+                newWindow.focus();
+            } else {
+                console.warn('Failed to open new window');
+            }
+        } else {
+            console.warn('No tooltip URL provided');
+        }
+    };
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
     });
@@ -28,13 +49,13 @@
 
 <style scoped>
 
-.sr-select-menu-label {
+.sr-label-info-icon-button-label {
     margin-right: 0rem;
     white-space: nowrap;
     font-size: small;
 }
 
-.sr-select-menu-label-insensitive {
+.sr-label-info-icon-button-label-insensitive {
     margin-right: 0.5rem;
     font-size: small;
     color: #888; /*  grey color */
