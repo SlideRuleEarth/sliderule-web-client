@@ -74,11 +74,12 @@ onMounted(() => {
                         label = "Polygon Source"
                         aria-label="Select Polygon Source"
                         :menuOptions="polygonSourceItems"
+                        tooltipText="This is how you define the region of interest"
                     />
                     <SrGeoJsonFileUpload
                         v-if="mapStore.polygonSource.value==='Upload geojson File'"
                     />
-                    <SrCheckbox
+                    <SrSwitchedSliderInput
                         label="Rasterize Polygon"
                         v-model="reqParamsStore.rasterizePolygon"
                     />
@@ -88,13 +89,40 @@ onMounted(() => {
                     />
                     <SrResources v-if="reqParamsStore.ignorePolygon"/>
                     <SrSliderInput
-                        v-model="reqParamsStore.reqTimeoutValue"
-                        label="Req timeout"
+                        v-model="reqParamsStore.totalTimeoutValue"
+                        label="timeout"
                         :min="5"
                         :max="3600" 
-                        :decimal-places="0"
-                        tooltipText="Request Timeout in seconds"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/sliderule.html#set-rqst-timeout"
+                        :decimalPlaces="0"
+                        tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                    />
+                    <SrSwitchedSliderInput
+                        v-model="reqParamsStore.reqTimeoutValue"
+                        label="rqst-timeout"
+                        :min="1"
+                        :max="3600" 
+                        :decimalPlaces="0"
+                        tooltipText="total time in seconds for request to be processed"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                    />                    
+                    <SrSwitchedSliderInput
+                        v-model="reqParamsStore.nodeTimeoutValue"
+                        label="node-timeout"
+                        :min="1"
+                        :max="3600" 
+                        :decimalPlaces="0"
+                        tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                    />
+                    <SrSwitchedSliderInput
+                        v-model="reqParamsStore.readTimeoutValue"
+                        label="read-timeout"
+                        :min="1"
+                        :max="3600" 
+                        :decimalPlaces="0"
+                        tooltipText="time in seconds for a single read of an asset to take"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
                     />
                 </AccordionTab>
                 <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
@@ -117,21 +145,21 @@ onMounted(() => {
                         label="RGT"
                         :min="1"
                         :max="100" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.cycleValue"
                         label="Cycle"
                         :min="1"
                         :max="100" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.regionValue"
                         label="Region"
                         :min="1"
                         :max="100" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrCalendar
                         v-model="reqParamsStore.t0Value"
@@ -157,21 +185,21 @@ onMounted(() => {
                         label="Max Iterations"
                         :min="1"
                         :max="200" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.minWindowHeight"
                         label="Min window height (meters)"
                         :min="0"
                         :max="200" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.maxRobustDispersion"
                         label="Max robust dispersion (meters)"
                         :min="0"
                         :max="200" 
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                 </AccordionTab>
                 <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
@@ -180,7 +208,7 @@ onMounted(() => {
                         label="Bin Size"
                         :min="0"
                         :max="200"
-                        :decimal-places="0"
+                        :decimalPlaces="0"
                     />
                     <SrMenuInput
                         v-model="reqParamsStore.geoLocation"

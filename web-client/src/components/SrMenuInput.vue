@@ -2,7 +2,7 @@
     <div class="sr-menu-input-wrapper">
         <div class="sr-menu-row">
             <div ref="menuElement" class="sr-menu-control">
-                <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" >{{ label }}</label>
+                <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
@@ -33,7 +33,11 @@
         defaultOptionIndex: {
             type: String,
             default: "0"
-        }
+        },
+        tooltipText: {
+            type: String,
+            default: 'This Some tooltip text here'
+        },
     });
     const selectedMenuItem = ref<SrMenuItem>(
         props.menuOptions && props.menuOptions.length > 0

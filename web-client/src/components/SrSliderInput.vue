@@ -4,11 +4,10 @@
             <div class="sr-slider-label-icon-row">
                 <label :class="{ 'sr-slider-label': !insensitive, 'sr-slider-label-insensitive': insensitive }" :for="inputId" :title="tooltipText">{{ label }} </label>
                 <!-- Info Icon with Tooltip -->
-                <!-- <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " v-tooltip="'Your tooltip text here'"></Button> -->
-                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipText" @click="openTooltipUrl"></Button>
+                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
             </div>
             <div class="sr-slider-input-row">
-                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive"/>
+                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="insensitive" />
                 <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="insensitive"/>
             </div>
         </div>
@@ -152,11 +151,12 @@
 
     // Add this method in your <script setup> section
     const openTooltipUrl = () => {
-    if (props.tooltipUrl) {
-        window.open(props.tooltipUrl, '_blank').focus();
-    } else {
-        console.warn('No tooltip URL provided');
-    }
+        console.log('openTooltipUrl:', props.tooltipUrl);
+        if (props.tooltipUrl) {
+            window.open(props.tooltipUrl, '_blank').focus();
+        } else {
+            console.warn('No tooltip URL provided');
+        }
     };
     // Method to generate the ID for the Slider element using the label and prefix if possible
     const inputId = props.label && props.label.trim() !== '' ? 

@@ -3,9 +3,9 @@
         <div class="sr-switched-slider-labeled-cb">
             <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="insensitive"/>
             <label :class="{ 'sr-switched-slider-label': !insensitive, 'sr-switched-slider-label-insensitive': insensitive }" :for="inputId" :title="tooltipText">{{ label }}</label>
-            <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipText"></Button>
+            <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
         </div>
-        <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive"/>
+        <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive" :tooltipText="tooltipText"  />
     </div>
 </template>
   
@@ -47,6 +47,10 @@
         tooltipText: {
             type: String,
             default: 'Some tooltip text here'
+        },
+        tooltipUrl: {
+            type: String,
+            default: ''
         }
     });
 
@@ -60,6 +64,15 @@
         isCheckboxChecked.value = event.target.checked;
         emit('update:selected', event.target.checked);
     }
+    // Add this method in your <script setup> section
+    const openTooltipUrl = () => {
+        console.log('openTooltipUrl:', props.tooltipUrl);
+        if (props.tooltipUrl) {
+            window.open(props.tooltipUrl, '_blank').focus();
+        } else {
+            console.warn('No tooltip URL provided');
+        }
+    };
 </script>
 
 <style scoped>
