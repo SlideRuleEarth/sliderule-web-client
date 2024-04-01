@@ -93,6 +93,8 @@ onMounted(() => {
                         :min="5"
                         :max="3600" 
                         :decimal-places="0"
+                        tooltipText="Request Timeout in seconds"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/sliderule.html#set-rqst-timeout"
                     />
                 </AccordionTab>
                 <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
