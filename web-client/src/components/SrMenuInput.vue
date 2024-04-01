@@ -2,9 +2,7 @@
     <div class="sr-menu-input-wrapper">
         <div class="sr-menu-row">
             <div ref="menuElement" class="sr-menu-control">
-                <label for="srSelectMenu-{{ label }}" :class="{ 'sr-select-menu-label': !insensitive, 'sr-select-menu-label-insensitive': insensitive}" :title="tooltipText" >{{ label }}</label>
-                <!-- Info Icon with Tooltip -->
-                <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
+                <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
@@ -20,8 +18,7 @@
 <script setup lang="ts">
 
     import { onMounted,ref,watch } from 'vue';
-    import Button from 'primevue/button';
-
+    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     export interface SrMenuItem {
         name:   string;
         value:  string; 
@@ -60,7 +57,6 @@
     });
 
     onMounted(() => {
-
         console.log('Mounted Menu:', props.label);
     });
 </script>
@@ -73,17 +69,6 @@
     margin: 0.25rem;
 }
 
-.sr-select-menu-label {
-    margin-right: 0.5rem;
-    white-space: nowrap;
-    font-size: small;
-}
-
-.sr-select-menu-label-insensitive {
-    margin-right: 0.5rem;
-    font-size: small;
-    color: #888; /*  grey color */
-}
 .sr-select-menu-item {
     display: flex;
     align-items: right;
