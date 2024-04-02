@@ -4,11 +4,12 @@ export type RasterParams = {
     algorithm: string;
     radius: number;
     zonalStats: boolean;
-    withFlag: boolean;
+    withFlags: boolean;
     t0: Date;
     t1: Date;
     substring: string; 
-    closestTime: boolean;
+    closestTime: Date;
+    use_poi_time: boolean;
     catalog: string;
     bands: string[];
 }
@@ -18,12 +19,13 @@ export const RasterParamsCols = [
   { field: 'algorithm', header: 'algorithm' }, 
   { field: 'radius', header: 'radius' },
   { field: 'zonalStats', header: 'zonalStats' },
-  { field: 'withFlag', header: 'withFlag' },
+  { field: 'withFlags', header: 'withFlags' },
   { field: 't0', header: 't0' },
   { field: 't1', header: 't1' },
   { field: 'substring', header: 'substring' },
   { field: 'closestTime', header: 'closestTime' },
   { field: 'catalog', header: 'catalog' },
+  { field: 'use_poi_time', header: 'use_poi_time' },
   { field: 'bands', header: 'bands' }
 ];
 
@@ -40,11 +42,12 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     algorithm: '' as RasterParams['algorithm'],
     radius: 0 as RasterParams['radius'],
     zonalStats: false as RasterParams['zonalStats'],
-    withFlag: false as RasterParams['withFlag'],
+    withFlags: false as RasterParams['withFlags'],
     t0: new Date() as RasterParams['t0'],
     t1: new Date() as RasterParams['t1'],
     substring: '' as RasterParams['substring'],
-    closestTime: false as RasterParams['closestTime'],
+    closestTime: new Date() as RasterParams['closestTime'],
+    use_poi_time: false as RasterParams['use_poi_time'],
     catalog: '' as RasterParams['catalog'],
     bands: [] as RasterParams['bands'],
     assetOptions: 

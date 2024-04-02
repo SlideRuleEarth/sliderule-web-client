@@ -1,7 +1,7 @@
 <template>
     <div class="sr-text-input-wrapper">
       <div class="sr-text-row ">
-            <label for="{{label}}_text" :class="{'sr-text-input-label':!insensitive, 'sr-text-input-label-insensitive':insensitive }" :insensitive="insensitive">{{ label }}</label>
+            <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" :labelFontSize="labelFontSize"/>
             <InputText v-model="modelValueComputed" class="input-text" id={{label}}_text :disabled="insensitive"/>
         </div>
     </div>
@@ -11,7 +11,7 @@
 
     import { computed } from 'vue';
     import InputText from 'primevue/inputtext';
-
+    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     const props = defineProps({
         modelValue: {
@@ -25,7 +25,19 @@
         insensitive: {
             type: Boolean,
             default: false
-        }
+        },
+        tooltipText: {
+            type: String,
+            default: 'tooltip text'
+        },
+        tooltipUrl: {
+            type: String,
+            default: ''
+        },
+        labelFontSize: {
+            type: String,
+            default: 'small' // default font size if not passed
+        },
     });
 
     const emit = defineEmits(['update:modelValue']);

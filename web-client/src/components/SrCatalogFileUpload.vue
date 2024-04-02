@@ -92,7 +92,7 @@ const onClear = () => {
                             <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
                         </div>
                         <div class="button-container">
-                            <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
+                            <Button label="Done" size="small" text class="done-btn" @click="closeCallback"></Button>
                         </div>
                     </div>
                 </section>
