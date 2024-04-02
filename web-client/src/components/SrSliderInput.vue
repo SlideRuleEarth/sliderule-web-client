@@ -72,7 +72,7 @@
 
     // Initialize sliderStepSize as a ref with a default value
     onMounted(() => {
-        console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
+        //console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
         //console.log('The Slider Step Size:', sliderStepSize.value);
     });
@@ -109,7 +109,7 @@
 
     watch(() => props.decimalPlaces, (newDecimalPlaces) => {
         sliderStepSize.value = Math.pow(10, -newDecimalPlaces);
-        console.log('Updated Slider Step Size:', sliderStepSize.value);
+        //console.log('Updated Slider Step Size:', sliderStepSize.value);
     });
 
     const updateInnerValue = useDebounceFn((newValue) => {
@@ -132,7 +132,7 @@
             //console.log('val:', val)
             //console.log('numericValue:', numericValue)
             if (isNaN(numericValue)) {
-                console.log('Bad numericValue:',numericValue)
+                console.error('Bad numericValue:',numericValue)
                 toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be a number',  life: srToastStore.getLife()});
                 // Handle non-numeric input - reset to the last valid value
                 numericValue = innerValue.value;
@@ -151,7 +151,7 @@
     });
 
     const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
+        //console.log('openTooltipUrl:', props.tooltipUrl);
         if (props.tooltipUrl) {
             window.open(props.tooltipUrl, '_blank').focus();
         } else {

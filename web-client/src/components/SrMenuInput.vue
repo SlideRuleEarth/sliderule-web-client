@@ -92,6 +92,8 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    padding-right: 1rem;
+    padding-bottom: 0.5rem;
 }
 .sr-menu-control-center {
     display: flex; /* This enables Flexbox */

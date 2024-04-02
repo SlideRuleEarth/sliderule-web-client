@@ -57,10 +57,9 @@
         } else {
             console.error(`onMounted: ${props.label} No selected items?`);
         }
-
         console.log('Mounted MultiMenu:', props.label);
-        console.log('Selected:', selectedMenuItems.value);
-        console.log('Options:', props.menuOptions);
+        // console.log('Selected:', selectedMenuItems.value);
+        // console.log('Options:', props.menuOptions);
     });
 </script>
 
