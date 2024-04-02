@@ -92,6 +92,8 @@ onMounted(() => {
                     <SrCheckbox
                         label="Ignore Poly for CMR"
                         v-model="reqParamsStore.ignorePolygon"
+                        tooltipText="When you check this the server skips the CMR polygon search and uses the resources you specify below"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
                     />
                     <SrResources v-if="reqParamsStore.ignorePolygon"/>
                     <SrSliderInput

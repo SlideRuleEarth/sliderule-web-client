@@ -1,6 +1,6 @@
 <template>
     <div class="sr-checkbox">
-        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" labelFontSize="large"/>
+        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" :labelFontSize="labelFontSize"/>
         <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" :disabled="insensitive"/>
     </div>
 </template>
@@ -30,6 +30,10 @@ const props = defineProps({
     tooltipUrl: {
         type: String,
         default: ''
+    },
+    labelFontSize: {
+        type: String,
+        default: 'small' // default font size if not passed
     },
 });
 
