@@ -38,7 +38,8 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Inland Water',value:'W' },
         ] as SrMultiSelectItem[],
         surfaceReferenceType:[] as string[],
-        signalConfidenceOptions: [
+        signalConfidenceOptions: 
+        [
           { name: 'TEP', value: 'atl03_tep' },
           { name: 'Not Considered', value: 'atl03_not_considered' },
           { name: 'Background', value: 'atl03_background' },
@@ -47,7 +48,13 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 'atl03_medium' },
           { name: 'High', value: 'atl03_high' },
         ] as SrMultiSelectItem[],
-        signalConfidence: { name: 'High', value: 'atl03_high' },
+        signalConfidence: [ 
+          'atl03_background' ,
+          'atl03_within_10m' ,
+          'atl03_low' ,
+          'atl03_medium' ,
+          'atl03_high' ,
+        ],
         qualityPHValue: 0.0,
         enableAtl08Confidence: false,
         atl08LandTypeOptions: [

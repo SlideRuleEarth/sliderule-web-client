@@ -39,13 +39,13 @@
     watch(selectedMenuItems, (newValue) => {
         console.log('MultiMenu:', props.label, 'selected:', newValue);
         if(newValue){
-            const names = newValue.map(item => item.name);
+            const values = newValue.map(item => item.value);
             // Emit event to update parent value
-            emit('update:value', names);
+            emit('update:value', values);
         } else {
             console.error(`Watch: ${props.label} No selected items?`);
         }
-    
+        console.log('Selected Items:', selectedMenuItems.value);
     });
 
     onMounted(() => {
