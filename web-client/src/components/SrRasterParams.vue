@@ -2,7 +2,7 @@
     <div class="sr-raster-params_wrapper">
         <div class="sr-raster-params-header">
             <SrLabelInfoIconButton label="Add new raster parameters" 
-                                labelFontSize='large'
+                                labelFontSize='larger'
                                 tooltipText='SlideRule supports sampling raster datasets at the latitude and longitude of each calculated result from SlideRule processing. When raster sampling is requested, the DataFrame returned by SlideRule includes columns for each requested raster with their associated values.To request raster sampling, the "samples" parameter must be populated as a dictionary in the request. Each key in the dictionary is used to label the data returned for that raster in the returned DataFrame.' 
                                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
@@ -55,7 +55,7 @@
         />
         <div class="sr-raster-params-catalog">
             <SrLabelInfoIconButton label="Catalog" 
-                                labelFontSize='small'
+                                labelFontSize='large'
                                 tooltipText='geojson formatted stac query response (obtained through the sliderule.earthdata.stac Python API)' 
                                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
@@ -130,7 +130,14 @@
     margin: 0.5rem;
 }
 .sr-raster-params-catalog {
-    margin: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--surface-d);
 }
 .sr-add-raster-params-btn {
     margin: 1rem;
