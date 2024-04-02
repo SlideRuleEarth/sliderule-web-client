@@ -18,22 +18,26 @@ const reqParamsStore = useReqParamsStore();
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters" 
                     labelFontSize="larger"/>
         </div>
-        <div class="sr-distance-container">
-            <div class="sr-ext-distance-header-container">
+        <div class="sr-ext-distance-container">
+            <!-- <div class="sr-ext-distance-header-container">
                 <SrLabelInfoIconButton 
                     label="Distance" 
                     tooltipText="Selected photons are collected into extents, each of which may be suitable for elevation fitting. The API may also select photons based on their along-track distance, or based on the segment-id parameters in the ATL03 product." 
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                     labelFontSize="large"/>
+            </div> -->
+            <div class="sr-ext-distance-header-container">
                 <SrMenuInput
-                    v-model="reqParamsStore.distanceIn"
-                    label = "Distance In"
-                    aria-label="Select Distance in"
-                    :menuOptions="reqParamsStore.distanceInOptions"
-                    tooltipText="Distance in meters or segments"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        v-model="reqParamsStore.distanceIn"
+                        label = "Distance In"
+                        labelFontSize="large"
+                        :justify_center='false'
+                        aria-label="Select Distance in"
+                        :menuOptions="reqParamsStore.distanceInOptions"
+                        tooltipText="Distance in meters or segments"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
-            </div>
+                </div>
             <div class="sr-ext-distance-body-container">
                 <SrSliderInput
                     v-if="reqParamsStore.distanceIn.value==='meters'"
@@ -131,7 +135,7 @@ const reqParamsStore = useReqParamsStore();
     background-color: transparent;
     margin-bottom: 1.5rem;
 }
-.sr-distance-container{
+.sr-ext-distance-container{
     display: flex;
     flex-direction: column;
     border: 1px solid grey;

@@ -23,6 +23,7 @@ import SrAtl08Cnf from './SrAtl08Cnf.vue';
 import SrSysConfig from './SrSysConfig.vue';
 import SrExtents from './SrExtents.vue';
 import SrAncillaryFields from './SrAncillaryFields.vue';
+import SrSurfaceElevation from './SrSurfaceElevation.vue';
 import SrOutput from './SrOutput.vue';
 
 const reqParamsStore = useReqParamsStore();
@@ -201,33 +202,7 @@ onMounted(() => {
                     <SrExtents />
                 </AccordionTab>
                 <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
-                    <SrSliderInput
-                        v-model="reqParamsStore.maxIterations"
-                        label="Max Iterations"
-                        :min="1"
-                        :max="200" 
-                        :decimalPlaces="0"
-                        tooltipText="The maximum number of iterations, not including initial least-squares-fit selection"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
-                    />
-                    <SrSliderInput
-                        v-model="reqParamsStore.minWindowHeight"
-                        label="Min window height (meters)"
-                        :min="0"
-                        :max="200" 
-                        :decimalPlaces="0"
-                        tooltipText="The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
-                    />
-                    <SrSliderInput
-                        v-model="reqParamsStore.maxRobustDispersion"
-                        label="Max robust dispersion (meters)"
-                        :min="0"
-                        :max="200" 
-                        :decimalPlaces="0"
-                        tooltipText="The maximum robust dispersion in meters"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
-                    />
+                    <SrSurfaceElevation />
                 </AccordionTab>
                 <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
                     <SrSliderInput

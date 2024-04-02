@@ -2,7 +2,7 @@
     <div class="sr-menu-input-wrapper">
         <div class="sr-menu-row">
             <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
-                <SrLabelInfoIconButton :label="label" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
+                <SrLabelInfoIconButton :label="label" :labelFontSize="labelFontSize" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
@@ -45,7 +45,11 @@
         justify_center: {
             type: Boolean,
             default: false
-        }
+        },
+        labelFontSize: {
+            type: String,
+            default: 'small' // default font size if not passed
+        },
     });
     const selectedMenuItem = ref<SrMenuItem>(
         props.menuOptions && props.menuOptions.length > 0
@@ -67,10 +71,11 @@
 
 <style scoped>
 .sr-menu-input-wrapper {
-    border: 1px solid transparent;
-    border-top: 0.125rem solid transparent;
-    border-radius: var(--border-radius);
-    margin: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    border-color: transparent;
+    margin-left: 0.5rem;
+    width: 100%;
 }
 
 .sr-select-menu-item {
@@ -81,6 +86,12 @@
     display: flex;
     margin-left: 0.25rem;
     color: #888; /*  grey color */
+}
+.sr-menu-row  {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
 .sr-menu-control-center {
     display: flex; /* This enables Flexbox */
