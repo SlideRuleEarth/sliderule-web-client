@@ -19,13 +19,6 @@ const reqParamsStore = useReqParamsStore();
                     labelFontSize="larger"/>
         </div>
         <div class="sr-ext-distance-container">
-            <!-- <div class="sr-ext-distance-header-container">
-                <SrLabelInfoIconButton 
-                    label="Distance" 
-                    tooltipText="Selected photons are collected into extents, each of which may be suitable for elevation fitting. The API may also select photons based on their along-track distance, or based on the segment-id parameters in the ATL03 product." 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
-                    labelFontSize="large"/>
-            </div> -->
             <div class="sr-ext-distance-header-container">
                 <SrMenuInput
                         v-model="reqParamsStore.distanceIn"

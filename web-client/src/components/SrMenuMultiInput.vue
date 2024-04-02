@@ -18,7 +18,6 @@
 <script setup lang="ts">
     import { ref, onMounted, watch } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
-    import Button from 'primevue/button';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     const props = defineProps({
