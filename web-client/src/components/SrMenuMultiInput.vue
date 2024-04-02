@@ -1,8 +1,7 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
-        <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label" :title="tooltipText">{{ label }}</label>
-        <!-- Info Icon with Tooltip -->
-        <Button v-if="label != ''" icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
+        <!-- <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label" :title="tooltipText">{{ label }}</label> -->
+        <SrLabelInfoIconButton :label="label"  :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
             <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
@@ -20,6 +19,7 @@
     import { ref, onMounted, watch } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
     import Button from 'primevue/button';
+    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     const props = defineProps({
         label: String,
@@ -36,6 +36,10 @@
         tooltipUrl: {
             type: String,
             default: ''
+        },
+        labelFontSize: {
+            type: String,
+            default: 'small' // default font size if not passed
         },
     });
 

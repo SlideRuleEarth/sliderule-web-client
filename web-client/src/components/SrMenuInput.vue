@@ -1,7 +1,7 @@
 <template>
     <div class="sr-menu-input-wrapper">
         <div class="sr-menu-row">
-            <div ref="menuElement" class="sr-menu-control">
+            <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
                 <SrLabelInfoIconButton :label="label" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
@@ -42,6 +42,10 @@
             type: String,
             default: ''
         },
+        justify_center: {
+            type: Boolean,
+            default: false
+        }
     });
     const selectedMenuItem = ref<SrMenuItem>(
         props.menuOptions && props.menuOptions.length > 0
@@ -78,13 +82,19 @@
     margin-left: 0.25rem;
     color: #888; /*  grey color */
 }
-.sr-menu-control {
+.sr-menu-control-center {
     display: flex; /* This enables Flexbox */
     justify-content: center; /* Aligns children to opposite edges */
     align-items: center; /* This vertically centers the items in the container */
     width: 100%; /* Ensures it spans the full width of its parent */
 }
 
+.sr-menu-control {
+    display: flex; /* This enables Flexbox */
+    justify-content: space-between; /* Aligns children to opposite edges */
+    align-items: center; /* This vertically centers the items in the container */
+    width: 100%; /* Ensures it spans the full width of its parent */
+}
 .sr-select-menu-default {
     width: auto; 
     padding: 0.25rem;

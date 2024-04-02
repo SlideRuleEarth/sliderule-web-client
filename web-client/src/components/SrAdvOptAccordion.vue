@@ -6,7 +6,6 @@ import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
-import SrMenuMultiCheckInput from './SrMenuMultiCheckInput.vue';
 import SrMultiSelect from './SrMultiSelect.vue'
 import { useMapStore } from '@/stores/mapStore';
 import SrCheckbox from './SrCheckbox.vue';
@@ -23,7 +22,7 @@ import SrAtl03Cnf from './SrAtl03Cnf.vue';
 import SrAtl08Cnf from './SrAtl08Cnf.vue';
 import SrSysConfig from './SrSysConfig.vue';
 import SrExtents from './SrExtents.vue';
-import SrRecords from './SrRecords.vue';
+import SrAncillaryFields from './SrAncillaryFields.vue';
 import SrOutput from './SrOutput.vue';
 
 const reqParamsStore = useReqParamsStore();
@@ -259,47 +258,7 @@ onMounted(() => {
 
                 </AccordionTab>
                 <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
-                    <SrMenuMultiInput
-                        v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
-                        v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                        label="ATL03 GeoSpatial Fields"
-                        ariaLabel="Select ATL03 GeoSpatial Fields"
-                        :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                        :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
-                        tooltipText='Fields in the “geolocation” and “geophys_corr” groups of the ATL03 granule'
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
-                    />  
-                    <SrMenuMultiInput
-                        v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
-                        v-model="reqParamsStore.ATL03PhotonFieldsOptions"
-                        label="ATL03 Photon Fields"
-                        ariaLabel="Select ATL03 Photon Fields"
-                        :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
-                        :default="reqParamsStore.ATL03PhotonFieldsOptions"
-                        tooltipText='Fields in the "heights"  groups of the ATL03 granule'
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
-                    /> 
-                    <SrMenuMultiInput
-                        v-if="props.iceSat2SelectedAPI.value==='atl06s'"
-                        v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                        label="ATL03 IceSegment Fields"
-                        ariaLabel="Select ATL03 IceSegment Fields"
-                        :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                        :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
-                        tooltipText='Fields in the "land_ice_segments"  groups of the ATL06 granule'
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
-                    />  
-                    <SrMenuMultiCheckInput
-                        v-if="props.iceSat2SelectedAPI.value==='atl08'"
-                        v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                        label="ATL08 LandSegment Fields"
-                        additionalParamLabel="interpolate"
-                        ariaLabel="Select ATL08 LandSegment Fields"
-                        :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                        :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
-                        tooltipText='Fields in the "land_segments"  groups of the ATL06 granule'
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
-                    />  
+                    <SrAncillaryFields :iceSat2SelectedAPI="iceSat2SelectedAPI"/>
                 </AccordionTab>
                 <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
                     <SrMultiSelect

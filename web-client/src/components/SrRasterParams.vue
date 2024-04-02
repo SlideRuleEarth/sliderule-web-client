@@ -7,52 +7,54 @@
                                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
         </div>
-        <SrTextInput label="Key" v-model="rasterParamsStore.key" 
-            tooltipText="user supplied name used to identify results returned from sampling this raster"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrMenuInput label="Asset" :menuOptions="rasterParamsStore.assetOptions" v-model="rasterParamsStore.asset"
-            tooltipText="name of the raster (as supplied in the Asset Directory) to be sampleds"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrMenuInput label="Algorithm" :menuOptions="rasterParamsStore.algorithmOptions" v-model="rasterParamsStore.algorithm"
-            tooltipText="algorithm to use to sample the raster; the available algorithms for sampling rasters are: NearestNeighbour, Bilinear, Cubic, CubicSpline, Lanczos, Average, Mode, Gauss"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrSliderInput label="Radius" v-model="rasterParamsStore.radius" 
-            tooltipText="the size of the kernel in meters when sampling a raster; the size of the region in meters for zonal statistics"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrCheckbox label="Zonal Stats" v-model="rasterParamsStore.zonalStats" 
-            tooltipText="boolean whether to calculate and return zonal statistics for the region around the location being sampled"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrCheckbox label="With Flags" v-model="rasterParamsStore.withFlag" 
-            tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrCalendar label="T0" v-model="rasterParamsStore.t0"
-            tooltipText="Start time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrCalendar label="T1" v-model="rasterParamsStore.t1" 
-            tooltipText="Stop time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrTextInput label="Substring" 
-            v-model="rasterParamsStore.substring" 
-            tooltipText="substring filter for rasters to be sampled; the raster will only be sampled if the name of the raster includes the provided substring (useful for datasets that have multiple rasters for a given geolocation to be sampled)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
-        <SrCalendar label="Closest Time" v-model="rasterParamsStore.closestTime" 
-            tooltipText="Time used to filter rasters to be sampled; only the raster that is closest in time to the provided time will be sampled - can be multiple rasters if they all share the "
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"      
-        />
-        <SrCheckbox label="Use POI Time"
-            v-model="rasterParamsStore.usePoiTime"
-            tooltipText="Overrides the “closest_time” setting (or provides one if not set) with the time associated with the point of interest being sampled"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
-        />
+        <div>
+            <SrTextInput label="Key" v-model="rasterParamsStore.key" 
+                tooltipText="user supplied name used to identify results returned from sampling this raster"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrMenuInput label="Asset" :menuOptions="rasterParamsStore.assetOptions" v-model="rasterParamsStore.asset"
+                tooltipText="name of the raster (as supplied in the Asset Directory) to be sampleds"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrMenuInput label="Algorithm" :menuOptions="rasterParamsStore.algorithmOptions" v-model="rasterParamsStore.algorithm"
+                tooltipText="algorithm to use to sample the raster; the available algorithms for sampling rasters are: NearestNeighbour, Bilinear, Cubic, CubicSpline, Lanczos, Average, Mode, Gauss"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrSliderInput label="Radius" v-model="rasterParamsStore.radius" 
+                tooltipText="the size of the kernel in meters when sampling a raster; the size of the region in meters for zonal statistics"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrCheckbox label="Zonal Stats" v-model="rasterParamsStore.zonalStats" 
+                tooltipText="boolean whether to calculate and return zonal statistics for the region around the location being sampled"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrCheckbox label="With Flags" v-model="rasterParamsStore.withFlag" 
+                tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrCalendar label="T0" v-model="rasterParamsStore.t0"
+                tooltipText="Start time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrCalendar label="T1" v-model="rasterParamsStore.t1" 
+                tooltipText="Stop time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrTextInput label="Substring" 
+                v-model="rasterParamsStore.substring" 
+                tooltipText="substring filter for rasters to be sampled; the raster will only be sampled if the name of the raster includes the provided substring (useful for datasets that have multiple rasters for a given geolocation to be sampled)"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+            <SrCalendar label="Closest Time" v-model="rasterParamsStore.closestTime" 
+                tooltipText="Time used to filter rasters to be sampled; only the raster that is closest in time to the provided time will be sampled - can be multiple rasters if they all share the "
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"      
+            />
+            <SrCheckbox label="Use POI Time"
+                v-model="rasterParamsStore.usePoiTime"
+                tooltipText="Overrides the “closest_time” setting (or provides one if not set) with the time associated with the point of interest being sampled"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            />
+        </div>
         <div class="sr-raster-params-catalog">
             <SrLabelInfoIconButton label="Catalog" 
                                 labelFontSize='large'
@@ -77,7 +79,6 @@
 <script setup lang="ts">
     import TextArea from 'primevue/textarea';
     import Button from 'primevue/button';
-    import FloatLabel from 'primevue/floatlabel';
     import SrTextInput from '@/components/SrTextInput.vue';
     import SrMenuInput from '@/components/SrMenuInput.vue';
     import SrSliderInput from '@/components/SrSliderInput.vue';

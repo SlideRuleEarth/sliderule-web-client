@@ -48,7 +48,7 @@ function handleChange(event:any) {
 <style scoped>
 .sr-calendar {
     display: flex;
-    justify-content: start;
+    justify-content: space-between;
     margin: 0.25rem;
     padding: 0.125rem;
     font-size: small;

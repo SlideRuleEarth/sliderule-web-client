@@ -66,12 +66,13 @@
     font-size: small;
     color: #888; /*  grey color */
     white-space: nowrap;
-
+    background-color: transparent;
 }
 .sr-label-info-icon-button {
     display: flex; /* This enables Flexbox */
     justify-content: left; 
     align-items: center; /* This vertically centers the items in the container */
+    background-color: transparent;
 }
 :deep(.p-button.p-button-icon-only.p-button-rounded.p-button-text.p-button-plain.sr-info-button) {
     margin-left: 0rem;

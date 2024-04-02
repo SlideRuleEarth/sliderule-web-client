@@ -17,41 +17,43 @@ const reqParamsStore = useReqParamsStore();
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#output-parameters"
             />
         </div>
-        <SrCheckbox
-            :insensitive = "!reqParamsStore.saveOutput"
-            label="Staged"
-            v-model="reqParamsStore.staged"
-        />
-        <SrMenuInput
-            :insensitive = "!reqParamsStore.saveOutput"
-            v-model="reqParamsStore.outputFormat"
-            label = "Output Format"
-            aria-label="Select Output Format"
-            :menuOptions="reqParamsStore.outputFormatOptions"
-        />
-        <SrMenuInput
-            :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
-            v-model="reqParamsStore.outputLocation"
-            label = "Output Location"
-            aria-label="Select Output Location"
-            :menuOptions="reqParamsStore.outputLocationOptions"
-        />
-        <SrTextInput
-            :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
-            v-model="reqParamsStore.outputLocationPath"
-            label = "Output Location Path"
-            aria-label="Enter Output Location Path"
-        />
-        <SrMenuInput
-            :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
-            v-model="reqParamsStore.awsRegion"
-            label = "AWS Region"
-            aria-label="Select AWS Region"
-            :menuOptions="reqParamsStore.awsRegionOptions"
-        />
-        <SrCredsFileUpload
-            :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
-        />
+        <div>
+            <SrCheckbox
+                :insensitive = "!reqParamsStore.saveOutput"
+                label="Staged"
+                v-model="reqParamsStore.staged"
+            />
+            <SrMenuInput
+                :insensitive = "!reqParamsStore.saveOutput"
+                v-model="reqParamsStore.outputFormat"
+                label = "Output Format"
+                aria-label="Select Output Format"
+                :menuOptions="reqParamsStore.outputFormatOptions"
+            />
+            <SrMenuInput
+                :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
+                v-model="reqParamsStore.outputLocation"
+                label = "Output Location"
+                aria-label="Select Output Location"
+                :menuOptions="reqParamsStore.outputLocationOptions"
+            />
+            <SrTextInput
+                :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
+                v-model="reqParamsStore.outputLocationPath"
+                label = "Output Location Path"
+                aria-label="Enter Output Location Path"
+            />
+            <SrMenuInput
+                :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
+                v-model="reqParamsStore.awsRegion"
+                label = "AWS Region"
+                aria-label="Select AWS Region"
+                :menuOptions="reqParamsStore.awsRegionOptions"
+            />
+            <SrCredsFileUpload
+                :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
+            />
+        </div>
     </div>
 </template>
 <style scoped>
@@ -61,7 +63,7 @@ const reqParamsStore = useReqParamsStore();
 .sr-output-container {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
     padding: 0.25rem;
