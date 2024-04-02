@@ -45,19 +45,19 @@
         } else {
             console.error(`Watch: ${props.label} No selected items?`);
         }
-        console.log('Selected Items:', selectedMenuItems.value);
+        console.log(`${props.label} Selected Items: `,selectedMenuItems.value);
     });
 
     onMounted(() => {
         selectedMenuItems.value = props.default;
         if(selectedMenuItems.value){
-            const names = selectedMenuItems.value.map(item => item.name);
+            const values = selectedMenuItems.value.map(item => item.value);
             // Emit event to update parent value
-            emit('update:value', names);
+            emit('update:value', values);
+            console.log('onMounted:', props.label, 'values:',values,'Selected Items:', selectedMenuItems.value)
         } else {
             console.error(`onMounted: ${props.label} No selected items?`);
         }
-        console.log('Mounted MultiMenu:', props.label);
         // console.log('Selected:', selectedMenuItems.value);
         // console.log('Options:', props.menuOptions);
     });
