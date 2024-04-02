@@ -40,6 +40,10 @@
             type: Number,
             default: 100
         },
+        defaultValue: {
+            type: Number,
+            default: 0
+        },
         label: {
             type: String,
             default: 'Label'
@@ -75,7 +79,7 @@
 
     const emit = defineEmits(['update:modelValue']);
 
-    const innerValue = ref(props.modelValue);
+    const innerValue = ref(props.defaultValue);
 
     //const modelValueChanged = (newValue, oldValue) => {
     const modelValueChanged = (newValue:any) => {
