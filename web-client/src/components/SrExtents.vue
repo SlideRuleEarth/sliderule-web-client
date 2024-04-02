@@ -9,6 +9,7 @@ const reqParamsStore = useReqParamsStore();
 </script>
 <template>
     <div class="sr-ext-distance-container">
+        <h4 class="sr-ext-distance-header">Extents</h4>
         <div class="sr-ext-distance-header-container">
             <SrMenuInput
                 v-model="reqParamsStore.distanceIn"
@@ -26,6 +27,8 @@ const reqParamsStore = useReqParamsStore();
             :min="5"
             :max="200" 
             :decimal-places="0"                  
+            tooltipText="The length of the extent in meters"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
         <SrSliderInput
             v-if="reqParamsStore.distanceIn.value==='meters'"
@@ -34,6 +37,8 @@ const reqParamsStore = useReqParamsStore();
             :min="5"
             :max="100" 
             :decimal-places="0"
+            tooltipText="The Step Size of the extent in meters"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
         <SrSliderInput
             v-if="reqParamsStore.distanceIn.value==='segments'"
@@ -42,6 +47,8 @@ const reqParamsStore = useReqParamsStore();
             :min="5"
             :max="200" 
             :decimal-places="0"                  
+            tooltipText="The length of the extent in segments"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
         <SrSliderInput
             v-if="reqParamsStore.distanceIn.value==='segments'"
@@ -50,6 +57,8 @@ const reqParamsStore = useReqParamsStore();
             :min="1"
             :max="100" 
             :decimal-places="0"
+            tooltipText="The length of the extent in segments"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
     </div>
     <div class="sr-pass-invalid-container">
@@ -66,6 +75,8 @@ const reqParamsStore = useReqParamsStore();
             :min="0"
             :max="200" 
             :decimal-places="0"
+            tooltipText="minimum along track spread"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
         <SrSliderInput
             :insensitive="reqParamsStore.passInvalid"
@@ -74,22 +85,47 @@ const reqParamsStore = useReqParamsStore();
             :min="0"
             :max="200" 
             :decimal-places="0"
+            tooltipText="minimum photon count in segments"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
         />
     </div>
 
 </template>
 <style scoped>
 .sr-ext-distance-container{
+    display: flex;
+    flex-direction: column;
+    border: 1px solid grey;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+}
+.sr-ext-distance-header{
+    font-size: large;
+    background-color: transparent;
+    margin: 0rem;
+    margin-bottom: 0.25rem;
+}
+
+.sr-ext-distance-container{
+    display: flex;
+    flex-direction: column;
     border: 1px solid grey;
     border-radius: var(--border-radius);
     margin-bottom: 1rem;
     padding: 0.25rem;
+    align-items: center;
+    justify-content: center;
 }
 .sr-ext-distance-header-container{
     display: flex;
     justify-content: center; 
     align-items: center;
     background-color: transparent;
+    margin-bottom: 1rem;
 }
 .sr-pass-invalid-container{
     border: 1px solid grey;
