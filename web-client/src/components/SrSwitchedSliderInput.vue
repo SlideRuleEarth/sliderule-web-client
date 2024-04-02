@@ -44,7 +44,7 @@
         },
         tooltipText: {
             type: String,
-            default: 'Some tooltip text here'
+            default: 'tooltip text'
         },
         tooltipUrl: {
             type: String,

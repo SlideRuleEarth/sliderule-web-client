@@ -22,7 +22,15 @@ const props = defineProps({
     insensitive: {
         type: Boolean,
         default: false
-    }
+    },
+    tooltipText: {
+        type: String,
+        default: 'tooltip text'
+    },
+    tooltipUrl: {
+        type: String,
+        default: ''
+    },
 });
 
 const emit = defineEmits(['update:modelValue']);

@@ -66,6 +66,8 @@ const reqParamsStore = useReqParamsStore();
             <SrCheckbox
                 label="Pass Invalid"
                 v-model="reqParamsStore.passInvalid"
+                tooltipText="indicating whether or not extents that fail validation checks are still used and returned in the results" 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
             />
         </div>  
         <SrSliderInput
