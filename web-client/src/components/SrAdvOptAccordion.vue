@@ -206,6 +206,8 @@ onMounted(() => {
                         :min="1"
                         :max="200" 
                         :decimalPlaces="0"
+                        tooltipText="The maximum number of iterations, not including initial least-squares-fit selection"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.minWindowHeight"
@@ -213,6 +215,8 @@ onMounted(() => {
                         :min="0"
                         :max="200" 
                         :decimalPlaces="0"
+                        tooltipText="The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
                     />
                     <SrSliderInput
                         v-model="reqParamsStore.maxRobustDispersion"
@@ -220,6 +224,8 @@ onMounted(() => {
                         :min="0"
                         :max="200" 
                         :decimalPlaces="0"
+                        tooltipText="The maximum robust dispersion in meters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
                     />
                 </AccordionTab>
                 <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
@@ -258,6 +264,8 @@ onMounted(() => {
                         ariaLabel="Select ATL03 GeoSpatial Fields"
                         :menuOptions="reqParamsStore.ATL03GeoSpatialFieldsOptions"
                         :default="reqParamsStore.ATL03GeoSpatialFieldsOptions"
+                        tooltipText='Fields in the “geolocation” and “geophys_corr” groups of the ATL03 granule'
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
                     />  
                     <SrMenuMultiInput
                         v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
@@ -266,6 +274,8 @@ onMounted(() => {
                         ariaLabel="Select ATL03 Photon Fields"
                         :menuOptions="reqParamsStore.ATL03PhotonFieldsOptions"
                         :default="reqParamsStore.ATL03PhotonFieldsOptions"
+                        tooltipText='Fields in the "heights"  groups of the ATL03 granule'
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
                     /> 
                     <SrMenuMultiInput
                         v-if="props.iceSat2SelectedAPI.value==='atl06s'"
@@ -274,6 +284,8 @@ onMounted(() => {
                         ariaLabel="Select ATL03 IceSegment Fields"
                         :menuOptions="reqParamsStore.ATL06IceSegmentFieldsOptions"
                         :default="reqParamsStore.ATL06IceSegmentFieldsOptions"
+                        tooltipText='Fields in the "land_ice_segments"  groups of the ATL06 granule'
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
                     />  
                     <SrMenuMultiCheckInput
                         v-if="props.iceSat2SelectedAPI.value==='atl08'"
@@ -283,6 +295,8 @@ onMounted(() => {
                         ariaLabel="Select ATL08 LandSegment Fields"
                         :menuOptions="reqParamsStore.ATL08LandSegmentFieldsOptions"
                         :default="reqParamsStore.ATL08LandSegmentFieldsOptions"
+                        tooltipText='Fields in the "land_segments"  groups of the ATL06 granule'
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
                     />  
                 </AccordionTab>
                 <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >

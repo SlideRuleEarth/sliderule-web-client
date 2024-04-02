@@ -4,12 +4,19 @@ import SrSliderInput from './SrSliderInput.vue';
 import SrMenuInput from './SrMenuInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+
 const reqParamsStore = useReqParamsStore();
 
 </script>
 <template>
     <div class="sr-ext-distance-container">
-        <h4 class="sr-ext-distance-header">Extents</h4>
+        <SrLabelInfoIconButton 
+            label="Extents" 
+            tooltipText="Selected photons are collected into extents, each of which may be suitable for elevation fitting. The _len_ parameter specifies the length of each extent, and the _res_parameter specifies the distance between subsequent extent centers. If _res_ is less than _len_, subsequent segments will contain duplicate photons. The API may also select photons based on their along-track distance, or based on the segment-id parameters in the ATL03 product (see the _dist_in_seg_ parameter)." 
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters" 
+            labelFontSize="large"/>
+
         <div class="sr-ext-distance-header-container">
             <SrMenuInput
                 v-model="reqParamsStore.distanceIn"
@@ -104,12 +111,6 @@ const reqParamsStore = useReqParamsStore();
     align-items: center;
     justify-content: center;
     background-color: transparent;
-}
-.sr-ext-distance-header{
-    font-size: large;
-    background-color: transparent;
-    margin: 0rem;
-    margin-bottom: 0.25rem;
 }
 
 .sr-ext-distance-container{

@@ -1,12 +1,12 @@
 <template>
     <div class="sr-checkbox">
-        <label :class = "{'sr-checkbox-label':!insensitive, 'sr-checkbox-label-insensitive': insensitive }" :for="'sr-checkbox-' + label"> {{ label }} </label>
+        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" labelFontSize="large"/>
         <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" :disabled="insensitive"/>
     </div>
 </template>
 
 <script setup lang="ts">
-
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 const props = defineProps({
     label: {type:String,
             default: 'undefined'
