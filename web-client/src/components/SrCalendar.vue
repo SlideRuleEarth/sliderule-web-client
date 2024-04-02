@@ -1,6 +1,6 @@
 <template>
     <div class="sr-calendar">
-        <SrLabelInfoIconButton v-if="label != ''" :label="label" :labelFor="inputId" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
+        <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         <Calendar v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
     </div>
 </template>

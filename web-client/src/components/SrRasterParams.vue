@@ -7,8 +7,14 @@
         <SrSliderInput label="Radius" v-model="rasterParamsStore.radius" />
         <SrCheckbox label="Zonal Stats" v-model="rasterParamsStore.zonalStats" />
         <SrCheckbox label="With Flag" v-model="rasterParamsStore.withFlag" />
-        <SrCalendar label="T0" v-model="rasterParamsStore.t0" />
-        <SrCalendar label="T1" v-model="rasterParamsStore.t1" />
+        <SrCalendar label="T0" v-model="rasterParamsStore.t0"
+            tooltipText="The start time for filtering granules ."
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+        />
+        <SrCalendar label="T1" v-model="rasterParamsStore.t1" 
+            tooltipText="The end time for filtering granules ."
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+        />
         <SrTextInput label="Substring" v-model="rasterParamsStore.substring" />
         <SrCheckbox label="Closest Time" v-model="rasterParamsStore.closestTime" />
         <div class="sr-raster-params-catalog">
