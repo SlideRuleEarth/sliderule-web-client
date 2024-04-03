@@ -37,7 +37,7 @@ export const polyCoordsExist = computed(() => {
 });
 
 
-export function drawGeoJson(geoJsonData:string, onlyOne:boolean = true) {
+export function drawGeoJson(geoJsonData:string, onlyOne:boolean = false) {
     if(mapStore.map){
         const vectorLayer = mapStore.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
         if (!vectorLayer) {
