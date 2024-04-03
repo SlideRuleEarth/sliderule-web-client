@@ -1,20 +1,5 @@
 import { defineStore } from 'pinia';
-
-interface Atl06ReqParams {
-  Cnf: string;
-  Ats: number;
-  Cnt: number;
-  Len: number;
-  Res: number;
-  Maxi: number;
-}
-
-interface Atl06PReqParams {
-  Atl06: Atl06ReqParams;
-  Resources: string[];
-}
-
-type ReqParams = Atl06ReqParams | Atl06PReqParams;
+import { type ReqParams } from './reqParamsStore';
 
 interface Job {
   Star: boolean;

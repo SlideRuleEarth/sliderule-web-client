@@ -21,7 +21,8 @@
     import { useSrToastStore } from '@/stores/srToastStore.js';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
-    import { useJobsStore,Atl06PReqParams } from "@/stores/jobsStore";
+    import { useJobsStore } from "@/stores/jobsStore";
+    import { Atl06pReqParams } from '@/sliderule/icesat2';
 
     const reqParamsStore = useReqParamsStore();
     const toastStore = useSrToastStore();
@@ -96,17 +97,10 @@
         if (map){
             console.log("atl06p cb_count:",cb_count.value)        
             isLoading.value = true; 
-            const atl06pParams: Atl06PReqParams = {
-                "cnf": reqParamsStore.signalConfidence,   // 'atl03_high'
-                "ats": reqParamsStore.alongTrackSpread,   // 20.0,
-                "cnt": reqParamsStore.minimumPhotonCount, // 10,
-                "len": reqParamsStore.lengthValue,        // 40.0,
-                "res": reqParamsStore.stepValue,          // 20.0,
-                "maxi": reqParamsStore.maxIterations      // 1 
-            };
+            const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
             console.log("atl06pParams:",atl06pParams);
             jobsStore.addRequest(atl06pParams)
-            atl06p(atl06pParams,reqParamsStore.resources,callbacks)
+            atl06p(atl06pParams,callbacks)
             .then(
                 () => { // result
                     // Log the result to the console

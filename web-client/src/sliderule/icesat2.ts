@@ -77,31 +77,40 @@ const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6
 //------------------------------------
 // Exported Functions
 //------------------------------------
+type Resource = string; 
 
 // Define the parameter type for the atl06p function
-export interface Atl06pParams {
+export interface Atl06ReqParams {
     asset?: string;
+    cnf: string[];
+    ats: number;
+    cnt: number;
+    len: number;
+    res: number;
+    maxi: number;
     [key: string]: any; // Other dynamic keys
 }
-type Resource = any; // Replace 'any' with the actual type of a resource
+  
+export interface Atl06pReqParams {
+    atl06Params: Atl06ReqParams;
+    resources: Resource[];
+}
+
 
 //
 // ATL06P
 //
-export async function atl06p(parm: Atl06pParams, 
-                            resources:Resource[], 
-                            callbacks: core.Callbacks ) : Promise<any[] | void> 
+export async function atl06p(params: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<any[] | void> 
 {
-    console.log("atl06p parm: ", parm);
-    console.log("atl06p resources: ", resources );
+    console.log("atl06p params: ", params);
     console.log("atl06p callbacks: ", callbacks);
     const recs: any[] = [];
-    if (!('asset' in parm)) {
-        parm['asset'] = 'icesat2';
+    if (!('asset' in params.atl06Params)) {
+        params.atl06Params['asset'] = 'icesat2';
     }
     const rqst = {
-        "resources": resources,
-        "parms": parm
+        "parms": params,
+        "resources": params.resources,
     };
     if (callbacks == null) {
         callbacks = {

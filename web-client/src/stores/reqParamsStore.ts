@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
+import type { Atl06ReqParams, Atl06pReqParams } from '@/sliderule/icesat2';
+export type ReqParams = Atl06ReqParams | Atl06pReqParams;
+
+
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
@@ -177,6 +181,22 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         removeResource(index: number) {
           this.resources.splice(index, 1);
+        },
+        getAtl06ReqParams(): Atl06ReqParams {
+          return {
+            cnf: this.signalConfidence,   
+            ats: this.alongTrackSpread,  
+            cnt: this.minimumPhotonCount, 
+            len: this.lengthValue,        
+            res: this.stepValue,          
+            maxi: this.maxIterations      
+          };
+        },
+        getAtl06pReqParams(): Atl06pReqParams {
+          return {
+            atl06Params: this.getAtl06ReqParams(),
+            resources: this.resources
+          };
         },
     },
 })
