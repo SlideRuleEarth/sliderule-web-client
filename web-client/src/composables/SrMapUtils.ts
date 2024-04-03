@@ -37,7 +37,7 @@ export const polyCoordsExist = computed(() => {
 });
 
 
-export function drawGeoJson(geoJsonData:string, onlyOne:boolean = false) {
+export function drawGeoJson(geoJsonData:string) {
     if(mapStore.map){
         const vectorLayer = mapStore.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
         if (!vectorLayer) {
@@ -52,23 +52,14 @@ export function drawGeoJson(geoJsonData:string, onlyOne:boolean = false) {
         if(src){
             // Add the features to the vector layer source
             src.clear(); // Optional: Remove existing features
-            if(onlyOne){
-                console.info('Only one feature is allowed. There are:',src.getFeatures().length);
-                src.addFeature(features[0]);
-                if(features.length > 1) {
-                    return {severity:'warn' as const, summary: 'Too many features', detail: 'Only one feature is allowed. The first was drawn, others ignored'};
-                }
-            } else {
-                console.error('Multiple features uploaded.');
-                src.addFeatures(features);
-            }
+            src.addFeatures(features);
             const geometry = features[0].getGeometry();
             if (geometry instanceof Polygon) {
                 const nestedCoords = geometry.getCoordinates();
                 mapStore.polyCoords = nestedCoords;
                 console.log('mapStore.polyCoords:',mapStore.polyCoords);
             } else {
-                console.error('The geometry type does not support getCoordinates().');
+                console.error('The geometry type Polygon is only type supported. got geometry:',geometry);
             }        
         }
     } else {
