@@ -35,6 +35,7 @@
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
   import { polyCoordsExist } from "@/composables/SrMapUtils";
+  import { clearPolyCoords } from "@/composables/SrMapUtils";
 
   const srToastStore = useSrToastStore();
 
@@ -94,7 +95,7 @@
 
   function enableDragBox() {
     console.log("enableDragBox");
-    disableDragBox();
+    disableDragBox(); // reset then add
     mapRef.value?.map.addInteraction(dragBox);
   }
 
@@ -186,6 +187,9 @@
     if(clearExisting){
       if(clearDrawingLayer()){
         toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
+      }
+      if (clearPolyCoords()){
+        console.log("Cleared uploaded GeoJson polyCoords");
       }
     }
     if (newPickedValue === 'Box'){
@@ -557,7 +561,7 @@
     />
 
     <ol-scaleline-control />
-    <SrDrawControl v-if="(!polyCoordsExist && mapStore.polygonSource.value === 'Draw on Map') " ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+    <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >

@@ -1,6 +1,7 @@
 <template>
 <div class="sr-draw-button-box">
       <SrRadioButton
+        v-if="(mapStore.polygonSource.value === 'Draw on Map')"
         name="drawButtonBoxPoly"
         class="sr-draw-poly-button"
         v-model="picked"
@@ -9,8 +10,9 @@
         aria-label="Select Polygon"
         tooltipText="Draw a Polygon"
       />
-      <span class="sr-button-box-divider"></span>
+      <span class="sr-button-box-divider" v-if="(mapStore.polygonSource.value === 'Draw on Map')"></span>
       <SrRadioButton
+        v-if="(mapStore.polygonSource.value === 'Draw on Map')"
         name="drawButtonBoxBox"
         class="sr-draw-box-button"
         v-model="picked"
@@ -35,8 +37,11 @@
   import { onMounted, ref, computed, watch } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
   import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  import { useMapStore } from "@/stores/mapStore.js";
+  import { polyCoordsExist } from "@/composables/SrMapUtils.js";
 
   const mapParamsStore = useMapParamsStore();
+  const mapStore = useMapStore();
   const picked = ref(mapParamsStore.drawType);
   const emit = defineEmits(['draw-buttonbox-created', 'picked-changed']);
   

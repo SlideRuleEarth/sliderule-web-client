@@ -48,3 +48,5 @@ app.component('menu-bar', Menubar)
 app.component('accordion-bar', Accordion)
 app.component('accordion-tab', AccordionTab)
 app.mount('#app')
+console.log("Vue mode:",process.env.NODE_ENV);
+

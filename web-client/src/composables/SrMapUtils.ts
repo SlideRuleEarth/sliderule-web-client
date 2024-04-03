@@ -35,6 +35,13 @@ export const polyCoordsExist = computed(() => {
     }
     return exist
 });
+export const clearPolyCoords = () => {
+    mapStore.polyCoords = [];
+    if(geoJsonStore.geoJsonData){
+        geoJsonStore.geoJsonData = null;
+    }
+}
+
 
 
 export function drawGeoJson(geoJsonData:string) {
