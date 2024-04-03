@@ -99,8 +99,8 @@
             isLoading.value = true; 
             const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
             console.log("atl06pParams:",atl06pParams);
-            jobsStore.addRequest(atl06pParams)
-            atl06p(atl06pParams,callbacks)
+            jobsStore.addRequest('atl06p',atl06pParams)
+            jobsStore.currentJobId = atl06p(atl06pParams,callbacks)
             .then(
                 () => { // result
                     // Log the result to the console
@@ -112,6 +112,7 @@
                         detail: 'RunSlideRule completed successfully.', // A more detailed success message
                         life: 10000 // Adjust the duration as needed
                     });
+                    jobsStore.updateStatus(jobsStore.currentJobId,'success')
                 },
                 error => {
                     // Log the error to the console
@@ -133,6 +134,7 @@
                         summary: 'Error',   
                         detail: emsg,      
                     });
+                    jobsStore.updateStatus(jobsStore.currentJobId,'error')
                 }
             ).catch((error => {
                 // Log the error to the console
