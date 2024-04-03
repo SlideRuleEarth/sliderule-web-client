@@ -49,4 +49,5 @@ app.component('accordion-bar', Accordion)
 app.component('accordion-tab', AccordionTab)
 app.mount('#app')
 console.log("Vue mode:",process.env.NODE_ENV);
+console.log("BASE_URL:",import.meta.env.BASE_URL); // Outputs the base URL of the app
 
