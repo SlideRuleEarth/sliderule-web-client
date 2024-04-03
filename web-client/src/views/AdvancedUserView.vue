@@ -173,7 +173,9 @@
                             <SrMenuInput
                                 v-model="missionValue"
                                 label="Mission:"
-                                :menuOptions="missionItems" 
+                                :menuOptions="missionItems"
+                                tooltipText="Select a mission to determine which APIs are available."
+                                tooltipUrl="https://slideruleearth.io/web/rtd/index.html" 
                             />
                             <SrMenuInput
                                 v-model="iceSat2SelectedAPI"
@@ -181,6 +183,8 @@
                                 label="ICESat-2 Api:"
                                 :menuOptions="iceSat2APIsItems"
                                 :initial-value="iceSat2APIsItems[0]" 
+                                tootipText="Select an API to use for the selected mission."
+                                tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
                             />
                             <SrMenuInput
                                 v-model="gediSelectedAPI"
@@ -188,6 +192,8 @@
                                 label="GEDI Api:"
                                 :menuOptions="gediAPIsItems"
                                 :initial-value="gediAPIsItems[0]" 
+                                tooltipText="Select an API to use for the selected mission."
+                                tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
                             />
                             <SrAdvOptAccordion
                                 title="Advanced Options"
