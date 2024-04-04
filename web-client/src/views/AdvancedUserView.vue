@@ -77,7 +77,7 @@
                 recs.push(curFlatRecs);
                 cb_count.value += 1;
                 if(cb_count.value === 1) {
-                    console.log("atl06p cb first result:", result)
+                    console.log("FIRST: atl06p cb", cb_count.value," result:", result)
                     const r = curFlatRecs[0];
                     console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
                 }
@@ -90,6 +90,14 @@
                         elevationStore.setMax(rec.h_mean);
                     }
                 }
+            },
+            exceptrec: (result:any) => {
+                console.log('atl06p cb exceptrec result:', result);
+                toast.add({
+                    severity: 'info',
+                    summary: 'Progress',
+                    detail: result['text'],
+                });
             },
         };
         const mapStore = useMapStore();
@@ -148,6 +156,7 @@
                 });
             })).finally(() => {
                 const flatRecs = recs.flat();
+                console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                 const tgt = map.getViewport() as HTMLDivElement; 
                 const deckLayer = createElevationDeckGLLayer(flatRecs,tgt);
                 map.addLayer(deckLayer);

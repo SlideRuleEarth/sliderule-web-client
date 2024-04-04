@@ -122,8 +122,6 @@ export async function atl06p(params: Atl06pReqParams, callbacks: core.Callbacks 
     }
     try{
         const result = await core.source('atl06p', rqst, true, callbacks);
-        //console.log("atl06p result: ", result);
-        //console.log("atl06p rec[0]: ", recs.flat(1)[0]);
         return result;
     }
     catch (error) {

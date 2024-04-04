@@ -264,7 +264,6 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         const REC_HDR_SIZE = 8;
         const REC_VERSION = 2;
         const results: Record<string, number> = {};
-        let total_bytes_read = null;
         let bytes_read = 0;
         let bytes_processed = 0;
         let bytes_to_process = 0;
@@ -273,6 +272,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         let rec_type_size = 0;
         let loop_done = false;
         let empty_chunks = 0;
+        let decode_errors = 0;
         const recs_cnt:{ [key: string]: any} = {}
 
         while (loop_done === false) {
@@ -305,15 +305,15 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   // Set record attributes
                   rec_size = rec_type_size + rec_data_size;
                   chunks = [buffer.subarray(REC_HDR_SIZE)];
-                }
-                // State: Accumulating Record
-                else if (got_header && bytes_to_process >= rec_size) {
+                } else if (got_header && bytes_to_process >= rec_size) {
+                  // State: Accumulating Record
                   // Process record
                   got_header = false;
                   bytes_to_process -= rec_size;
                   bytes_processed += rec_size;
                   const buffer = Buffer.concat(chunks);
                   const rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
+                  //console.log('fetchAndProcessResult rec_type:', rec_type, 'rec_size:', rec_size, 'rec_type_size:', rec_type_size, 'bytes_to_process:', bytes_to_process, 'bytes_processed:', bytes_processed);
                   decodeRecord(rec_type, buffer, rec_type_size, rec_size).then(
                     result => {
                       if (rec_type in callbacks) {
@@ -326,30 +326,24 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                         }              
                       }
                     }
-                  );
+                  ).catch(error => {
+                    decode_errors++;
+                    console.error(`Error decoding record of type ${rec_type}:`, error, 'decode_errors:', decode_errors);
+                  });
                   // Update stats
                   if (!(rec_type in results)) {
                     results[rec_type] = 0;
+                    console.log('Not in results rec_type:', rec_type);
                   }
                   results[rec_type]++;
-                  // Check if complete
-                  if ((total_bytes_read != null) && (bytes_processed == total_bytes_read)) {
-                    results["bytes_processed"] = bytes_processed;
-                    console.log('bytes_processed == total_bytes_read results:', results);
-                    //resolve(results);
-                    loop_done = true;
-                    break;
-                  }
                   // Restore unused bytes that have been read
                   if(bytes_to_process > 0) {
                     chunks = [buffer.subarray(rec_size)];
-                  }
-                  else {
+                  } else {
                     chunks = [];
                   }
-                }
-                // State: Need More Data
-                else {
+                } else {
+                  // State: Need More Data
                   break;
                 }
               }
@@ -365,8 +359,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
           } 
           if (done) {
             // The stream has been read completely
-            total_bytes_read = bytes_read;
-            results["bytes_read"] = total_bytes_read;
+            results["bytes_read"] = bytes_read;
             results["bytes_processed"] = bytes_processed;
             console.log('fetchAndProcessResult read returned done: results:', results);
             //resolve(results);

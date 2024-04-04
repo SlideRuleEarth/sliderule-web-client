@@ -10,6 +10,30 @@
                 </template>
             </Column>
             <Column v-for="col in jobsStore.filteredColumns" :key="col.field" :field="col.field" :header="col.header"></Column>
+            <Column field="Actions" header="">
+                <template #body="slotProps">
+                    <i 
+                      class="pi pi-chart-line"
+                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                    > Analyze</i>
+                </template>
+            </Column>
+            <Column field="Actions" header="">
+                <template #body="slotProps">
+                    <i 
+                      class="pi pi-code"
+                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                    > Source code</i>
+                </template>
+            </Column>
+            <Column field="Actions" header="">
+                <template #body="slotProps">
+                    <i 
+                      :class="PrimeIcons.TRASH"
+                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                    ></i>
+                </template>
+            </Column>
         </DataTable>
     </div>
 </template>
