@@ -277,8 +277,10 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 
         while (loop_done === false) {
           const { done, value } = await reader.read();
-          //console.log('fetchAndProcessResult done:', done);
-          //console.log('fetchAndProcessResult value:', value);
+          if (done) {
+            console.log('fetchAndProcessResult done:', done);
+            console.log('fetchAndProcessResult value:', value);
+          }
           if (value) {
             //console.log(`fetchAndProcessResult Received ${value.length} bytes of data`);
             chunks.push(value);

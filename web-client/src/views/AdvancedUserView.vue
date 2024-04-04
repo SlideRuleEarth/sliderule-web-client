@@ -99,6 +99,9 @@
                     detail: result['text'],
                 });
             },
+            eventrec: (result:any) => {
+                console.log('atl06p cb eventrec result:', result);
+            },
         };
         const mapStore = useMapStore();
         const map = mapStore.getMap() as OLMap ;

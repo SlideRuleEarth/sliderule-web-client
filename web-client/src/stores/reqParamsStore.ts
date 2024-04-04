@@ -77,7 +77,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         passInvalid: false,
         alongTrackSpread: 20.0,
         minimumPhotonCount: 10,
-        maxIterations: 0,
+        maxIterations: 1,
         minWindowHeight: 0.0,
         maxRobustDispersion: 0.0,
         binSize: 0.0,
