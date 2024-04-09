@@ -7,6 +7,7 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
+import type { Layer } from 'ol/layer';
 
 export const useMapStore = defineStore('map', {
   state: () => ({
@@ -28,7 +29,8 @@ export const useMapStore = defineStore('map', {
         wrapX: false
     }),
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
-    polyCoords: <Coordinate[][]>([])
+    polyCoords: <Coordinate[][]>([]),
+    deckLayer: null as Layer | null,
   }),
   actions: {
     setMap(mapInstance: OLMap) {

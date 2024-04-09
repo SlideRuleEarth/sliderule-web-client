@@ -20,12 +20,5 @@ export const useElevationStore = defineStore('elevation', {
         getMax() {
             return this.max;
         },
-        pushRecs(flat_recs: ElevationData[]) {
-            this.recs.push(...flat_recs);
-        },
-        clearRecs() {
-            this.recs = [];
-        }
-
     },
 });

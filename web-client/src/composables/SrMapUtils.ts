@@ -205,7 +205,7 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
     const deckLayer = new Layer({
         ...layerOptions
     });
-    deckStore.setDeckLayer(deckLayer);
+    //deckStore.setDeckLayer(deckLayer);
     return deckLayer
 }
 
