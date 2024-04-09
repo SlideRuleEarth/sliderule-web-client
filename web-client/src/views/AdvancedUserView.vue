@@ -64,9 +64,8 @@
         toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked',  life: toastStore.getLife()});
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
-        //const recs: any[] = [];
-        // Create the legend
-        let recs:ElevationData[] = [];
+        //let recs:ElevationData[] = [];
+        elevationStore.clearRecs();
         const callbacks = {
             atl06rec: (result:any) => {
                 if(cb_count.value === 0) {
@@ -74,7 +73,8 @@
                 }
                 const currentRecs = result["elevation"];
                 const curFlatRecs = currentRecs.flat();
-                recs.push(curFlatRecs);
+                //recs.push(curFlatRecs);
+                elevationStore.pushRecs(curFlatRecs);
                 cb_count.value += 1;
                 if(cb_count.value === 1) {
                     console.log("FIRST: atl06p cb", cb_count.value," result:", result)
@@ -158,7 +158,7 @@
                     detail: 'An error occurred while running SlideRule.', // A more detailed error message
                 });
             })).finally(() => {
-                const flatRecs = recs.flat();
+                const flatRecs = elevationStore.recs.flat();
                 console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                 const tgt = map.getViewport() as HTMLDivElement; 
                 const deckLayer = createElevationDeckGLLayer(flatRecs,tgt);

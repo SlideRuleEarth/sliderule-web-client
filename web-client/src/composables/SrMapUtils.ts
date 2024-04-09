@@ -13,6 +13,7 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import {Geometry} from 'ol/geom';
 import {Polygon} from 'ol/geom';
+import { useDeckStore } from '@/stores/deckStore';
 
 export const pnt_cnt = ref(0);
 
@@ -20,6 +21,7 @@ const mapParamsStore = useMapParamsStore();
 const elevationStore = useElevationStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
+const deckStore = useDeckStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -180,6 +182,7 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
             })
         ]
     });
+    deckStore.setDeckInstance(deck);
     // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
     // size is an array [width, height] indicating the dimensions of the map's viewport.
     // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
@@ -202,6 +205,7 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
     const deckLayer = new Layer({
         ...layerOptions
     });
+    deckStore.setDeckLayer(deckLayer);
     return deckLayer
 }
 
