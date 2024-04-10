@@ -46,13 +46,23 @@
     const isLoading = ref(false);
     const cb_count = ref(0);
 
+
     onMounted(() => {
+
+        // Get the computed style of the document's root element
+        const rootStyle = window.getComputedStyle(document.documentElement);
+        // Extract the font size from the computed style
+        const fontSize = rootStyle.fontSize;
+        // Log the font size to the console
+        console.log(`Current root font size: ${fontSize}`);
+
         advancedModeStore.advanced = true;
         const mapStore = useMapStore();
         const map = mapStore.getMap() as OLMap ;
         if (map){
             const tgt = map.getViewport() as HTMLDivElement; 
-            createDeckGLInstance(tgt);
+            const deckLayer = createDeckGLInstance(tgt);
+            map.addLayer(deckLayer);
         }
     });
 
@@ -96,6 +106,9 @@
                         elevationStore.setMax(rec.h_mean);
                     }
                 }
+                const flatRecs = recs.flat();
+                //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+                updateElevationLayer(flatRecs);
             },
             exceptrec: (result:any) => {
                 console.log('atl06p cb exceptrec result:', result);
@@ -167,8 +180,7 @@
             })).finally(() => {
                 const flatRecs = recs.flat();
                 console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                const deckLayer = updateElevationLayer(flatRecs);
-                map.addLayer(deckLayer);
+                updateElevationLayer(flatRecs);
                 isLoading.value = false;
                 console.log(`cb_count:${cb_count.value}`)
                 createLegend();

@@ -167,7 +167,7 @@ function renderDeck({size, viewState}: {size: number[], viewState: {center: numb
     deckStore.deckInstance.redraw();
 }
 
-export function createDeckGLInstance(tgt:HTMLDivElement): void{
+export function createDeckGLInstance(tgt:HTMLDivElement): Layer{
     const deck = new Deck({
         initialViewState: {longitude: 0, latitude: 0, zoom: 1},
         controller: false,
@@ -176,12 +176,20 @@ export function createDeckGLInstance(tgt:HTMLDivElement): void{
         layers: []
     });
     deckStore.setDeckInstance(deck);
+    const layerOptions = {
+        render: renderDeck as any,
+        title: 'DeckGL Layer',
+    }
+    const deckLayer = new Layer({
+        ...layerOptions
+    });
+    return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
 }
 
-export function updateElevationLayer(elevationData:ElevationData[]): Layer{
+export function updateElevationLayer(elevationData:ElevationData[]): void{
     const layer =     
         new PointCloudLayer({
-            id: 'point-cloud-layer',
+            id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
             data: elevationData,
             getPosition: (d:ElevationData) => {
                 return [d.longitude, d.latitude, d.h_mean]
@@ -195,14 +203,6 @@ export function updateElevationLayer(elevationData:ElevationData[]): Layer{
         })
 
     deckStore.deckInstance.setProps({layers:[layer]});
-    const layerOptions = {
-        render: renderDeck as any,
-        title: 'DeckGL Layer',
-    }
-    const deckLayer = new Layer({
-        ...layerOptions
-    });
-    return deckLayer // we just need a Layer object with render function and title
 
 }
 
@@ -211,15 +211,15 @@ export function createLegend() {
     legend.innerHTML = '<strong>Elevation Legend</strong><br>';
     legend.style.color = 'var(--primary-color)';
     legend.style.position = 'absolute';
-    legend.style.bottom = '20px';
-    legend.style.right = '20px';
-    legend.style.padding = '10px';
+    legend.style.bottom = '1.25rem'; // 20px / 16px = 1.25rem
+    legend.style.right = '1.25rem'; // 20px / 16px = 1.25rem
+    legend.style.padding = '0.625rem'; // 10px / 16px = 0.625rem
     legend.style.background = 'rgba(255, 255, 255, 0.8)';
-    legend.style.borderRadius = '5px';
+    legend.style.borderRadius = '0.3125rem'; // 5px / 16px = 0.3125rem
 
     const gradientDiv = document.createElement('div');
-    gradientDiv.style.height = '20px';
-    gradientDiv.style.width = '200px';
+    gradientDiv.style.height = '1.25rem'; // 20px / 16px = 1.25rem
+    gradientDiv.style.width = '12.5rem'; // 200px / 16px = 12.5rem
     gradientDiv.style.background = 'linear-gradient(to right, purple, yellow)';
     legend.appendChild(gradientDiv);
 
