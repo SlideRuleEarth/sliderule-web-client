@@ -9,7 +9,7 @@
   import Geometry from 'ol/geom/Geometry';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrViewControl from "./SrViewControl.vue";
-  import { SrView } from "@/composables/SrViews";
+  import { type SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
   import { srProjections } from "@/composables/SrProjections";
   import proj4 from 'proj4';
@@ -125,7 +125,6 @@
         console.log("geometry:",geometry);
         if(geometry){
           console.log("geometry.getType():",geometry.getType());
-
           // Get the coordinates of the polygon shaped as a rectangle
           mapStore.polyCoords = geometry.getCoordinates();
           console.log(`polyCoords:${mapStore.polyCoords}`);
@@ -188,9 +187,9 @@
       if(clearDrawingLayer()){
         toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
       }
-      if (clearPolyCoords()){
-        console.log("Cleared uploaded GeoJson polyCoords");
-      }
+      clearPolyCoords();
+      console.log("Cleared uploaded GeoJson polyCoords");
+      
     }
     if (newPickedValue === 'Box'){
       toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: srToastStore.getLife() });

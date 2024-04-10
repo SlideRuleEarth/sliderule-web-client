@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import {Deck} from '@deck.gl/core/typed';
-import {Layer} from 'ol/layer';
+import { Deck } from '@deck.gl/core/typed';
+import { Layer } from '@deck.gl/core/typed';
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({

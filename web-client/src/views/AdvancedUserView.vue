@@ -12,7 +12,8 @@
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createLegend } from '@/composables/SrMapUtils';
-    import { createElevationDeckGLLayer, pnt_cnt } from '@/composables/SrMapUtils';
+    import { createDeckGLInstance} from '@/composables/SrMapUtils';
+    import { updateElevationLayer} from '@/composables/SrMapUtils';
     import { type ElevationData } from '@/composables/SrMapUtils';
     import { useMapStore } from '@/stores/mapStore';
     import {useElevationStore} from "@/stores/elevationStore";
@@ -22,7 +23,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useJobsStore } from "@/stores/jobsStore";
-    import { Atl06pReqParams } from '@/sliderule/icesat2';
+    import { type Atl06pReqParams } from '@/sliderule/icesat2';
 
     const reqParamsStore = useReqParamsStore();
     const toastStore = useSrToastStore();
@@ -47,6 +48,12 @@
 
     onMounted(() => {
         advancedModeStore.advanced = true;
+        const mapStore = useMapStore();
+        const map = mapStore.getMap() as OLMap ;
+        if (map){
+            const tgt = map.getViewport() as HTMLDivElement; 
+            createDeckGLInstance(tgt);
+        }
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
@@ -160,11 +167,10 @@
             })).finally(() => {
                 const flatRecs = recs.flat();
                 console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                const tgt = map.getViewport() as HTMLDivElement; 
-                const deckLayer = createElevationDeckGLLayer(flatRecs,tgt);
+                const deckLayer = updateElevationLayer(flatRecs);
                 map.addLayer(deckLayer);
                 isLoading.value = false;
-                console.log(`cb_count:${cb_count.value} pnt_cnt: ${pnt_cnt.value}`)
+                console.log(`cb_count:${cb_count.value}`)
                 createLegend();
             });
         }
