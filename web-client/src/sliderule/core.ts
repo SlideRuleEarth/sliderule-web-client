@@ -261,6 +261,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         // Process the stream
         let receivedLength = 0; // length of the received  data
         let chunks:any[] = []; // array to store received  chunks
+        let num_chunks = 0;
         const REC_HDR_SIZE = 8;
         const REC_VERSION = 2;
         const results: Record<string, number> = {};
@@ -282,7 +283,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             console.log('fetchAndProcessResult value:', value);
           }
           if (value) {
-            //console.log(`fetchAndProcessResult Received ${value.length} bytes of data`);
+            num_chunks++;
+            console.log(`fetchAndProcessResult chunk:${num_chunks} Received ${value.length} bytes of data`);
             chunks.push(value);
             receivedLength += value.length;
 
@@ -363,20 +365,23 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             // The stream has been read completely
             results["bytes_read"] = bytes_read;
             results["bytes_processed"] = bytes_processed;
+            results["num_chunks"] = num_chunks;
             console.log('fetchAndProcessResult read returned done: results:', results);
-            //resolve(results);
             break;
           }
         }
 
-        // Combine chunks into a single Uint8Array
+        // Combine any straggling chunks into a single Uint8Array
         const binaryData = new Uint8Array(receivedLength);
         let position = 0;
+        let num_chunks_appended = 0;
         for (const value of chunks) {
+            num_chunks_appended++;
             binaryData.set(value, position);
             position += value.length;
         }
-        console.log("fetchAndProcessResult final recs_cnt:", recs_cnt);
+        console.log("fetchAndProcessResult final recs_cnt:", recs_cnt, " num_chunks_appended:", num_chunks_appended, "results:", results);
+        console.log('fetchAndProcessResult returning binaryData:', binaryData);
         return binaryData;
 
     } else if (contentType == 'application/json' || contentType == 'text/plain') {

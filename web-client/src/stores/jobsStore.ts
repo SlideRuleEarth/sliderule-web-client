@@ -53,8 +53,8 @@ export const useJobsStore = defineStore('jobs', {
         func: func, // Set the function to "atl06p"
         parameters: params // Set the passed ReqParams
       };
-      
-     return this.addJob(newJob); // Add the new job and return the ID
+      this.currentJobId = this.addJob(newJob); // Add the new job and return the ID
+      return this.currentJobId  
     },
     updateStatus(jobId: number, newStatus: string) {
       console.log('Updating status of job', jobId, 'to', newStatus);

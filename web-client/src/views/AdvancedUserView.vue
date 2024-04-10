@@ -110,7 +110,7 @@
             const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
             console.log("atl06pParams:",atl06pParams);
             jobsStore.addRequest('atl06p',atl06pParams)
-            jobsStore.currentJobId = atl06p(atl06pParams,callbacks)
+            atl06p(atl06pParams,callbacks)
             .then(
                 () => { // result
                     // Log the result to the console
@@ -149,6 +149,7 @@
             ).catch((error => {
                 // Log the error to the console
                 console.error('runSlideRuleClicked Error = ', error);
+                jobsStore.updateStatus(jobsStore.currentJobId,'error')
 
                 // Display a toast message indicating the error
                 toast.add({
