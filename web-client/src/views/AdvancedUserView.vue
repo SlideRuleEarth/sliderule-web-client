@@ -11,7 +11,6 @@
     import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
-    import { createLegend } from '@/composables/SrMapUtils';
     import { createDeckGLInstance} from '@/composables/SrMapUtils';
     import { updateElevationLayer} from '@/composables/SrMapUtils';
     import { type ElevationData } from '@/composables/SrMapUtils';
@@ -183,7 +182,7 @@
                 updateElevationLayer(flatRecs);
                 isLoading.value = false;
                 console.log(`cb_count:${cb_count.value}`)
-                createLegend();
+                //createLegend();
             });
         }
     };

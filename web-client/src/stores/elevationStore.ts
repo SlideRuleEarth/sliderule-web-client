@@ -3,8 +3,8 @@ import { type ElevationData } from '@/composables/SrMapUtils';
 
 export const useElevationStore = defineStore('elevation', {
     state: () => ({
-        min: 10000,
-        max: -10000,
+        min: 100000,
+        max: -100000,
         recs: [] as ElevationData[]
     }),
     actions: {

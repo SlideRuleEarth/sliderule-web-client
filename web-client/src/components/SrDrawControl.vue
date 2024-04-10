@@ -6,7 +6,7 @@
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
 import SrDrawButtonBox from './SrDrawButtonBox.vue';
-import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+import { useMapParamsStore } from "@/stores/mapParamsStore";
 
 const mapParamsStore = useMapParamsStore();
 

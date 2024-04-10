@@ -1,6 +1,6 @@
   <script setup lang="ts">
-  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
-  import { ref, onMounted, computed } from "vue";
+  import { useMapParamsStore } from "@/stores/mapParamsStore";
+  import { ref, onMounted } from "vue";
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrDrawControl from "@/components/SrDrawControl.vue";
@@ -34,8 +34,9 @@
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
-  import { polyCoordsExist } from "@/composables/SrMapUtils";
   import { clearPolyCoords } from "@/composables/SrMapUtils";
+  import  SrLegendControl  from "./SrLegendControl.vue";
+
 
   const srToastStore = useSrToastStore();
 
@@ -51,7 +52,6 @@
   const controls = ref([]);
   const toast = useToast();
   const dragBox = new DragBox();
-
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -362,6 +362,17 @@
     }
   };
 
+  const handleLegendControlCreated = (legendControl: any) => {
+    //console.log(legendControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding legendControl");
+      map.addControl(legendControl);
+    } else {
+      console.error("Error:map is null");
+    }
+  };
+
   const updateMapView = (reason:string) => {
     //console.log(`****** updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
@@ -561,6 +572,7 @@
 
     <ol-scaleline-control />
     <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+    <SrLegendControl @legend-control-created="handleLegendControlCreated" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
@@ -781,7 +793,15 @@
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
   color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--border-radius);
 }
+:deep(.sr-legend-control){
+  background: rgba(255, 255, 255, 0.25);
+  bottom: 0.5rem;
+  right: 2.5rem;
+}
+
 
 :deep(.ol-zoom .ol-zoom-in) {
   margin: 2px;

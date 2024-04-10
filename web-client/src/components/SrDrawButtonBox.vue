@@ -36,7 +36,7 @@
 <script setup lang="ts">
   import { onMounted, ref, computed, watch } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
-  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { useMapStore } from "@/stores/mapStore.js";
   import { polyCoordsExist } from "@/composables/SrMapUtils.js";
 

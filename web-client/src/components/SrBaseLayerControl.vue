@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { ref,onMounted } from "vue";
   import { Control } from 'ol/control';
   import { computed } from 'vue';
@@ -70,10 +70,10 @@
     border-radius: var(--border-radius);
   }
 
-  .sr-base-layer-control-attribution {
+  /* .sr-base-layer-control-attribution {
     color: var(--primary-color); 
     margin: 0.5em;
     padding: 0.5em;
     background-color:transparent;
-  }
+  } */
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+  import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { ref,onMounted } from "vue";
   import { Control } from 'ol/control';
 

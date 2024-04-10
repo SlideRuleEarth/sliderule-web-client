@@ -1,6 +1,6 @@
 
 import { ref } from "vue";
-import { useMapParamsStore } from "@/stores/mapParamsStore.js";
+import { useMapParamsStore } from "@/stores/mapParamsStore";
 import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
 import TileGrid from "ol/tilegrid/TileGrid.js";

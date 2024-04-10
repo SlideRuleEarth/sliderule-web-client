@@ -206,33 +206,33 @@ export function updateElevationLayer(elevationData:ElevationData[]): void{
 
 }
 
-export function createLegend() {
-    const legend = document.createElement('div');
-    legend.innerHTML = '<strong>Elevation Legend</strong><br>';
-    legend.style.color = 'var(--primary-color)';
-    legend.style.position = 'absolute';
-    legend.style.bottom = '1.25rem'; // 20px / 16px = 1.25rem
-    legend.style.right = '1.25rem'; // 20px / 16px = 1.25rem
-    legend.style.padding = '0.625rem'; // 10px / 16px = 0.625rem
-    legend.style.background = 'rgba(255, 255, 255, 0.8)';
-    legend.style.borderRadius = '0.3125rem'; // 5px / 16px = 0.3125rem
+// export function createLegend() {
+//     const legend = document.createElement('div');
+//     legend.innerHTML = '<strong>Elevation Legend</strong><br>';
+//     legend.style.color = 'var(--primary-color)';
+//     legend.style.position = 'absolute';
+//     legend.style.bottom = '1.25rem'; // 20px / 16px = 1.25rem
+//     legend.style.right = '1.25rem'; // 20px / 16px = 1.25rem
+//     legend.style.padding = '0.625rem'; // 10px / 16px = 0.625rem
+//     legend.style.background = 'rgba(255, 255, 255, 0.8)';
+//     legend.style.borderRadius = '0.3125rem'; // 5px / 16px = 0.3125rem
 
-    const gradientDiv = document.createElement('div');
-    gradientDiv.style.height = '1.25rem'; // 20px / 16px = 1.25rem
-    gradientDiv.style.width = '12.5rem'; // 200px / 16px = 12.5rem
-    gradientDiv.style.background = 'linear-gradient(to right, purple, yellow)';
-    legend.appendChild(gradientDiv);
+//     const gradientDiv = document.createElement('div');
+//     gradientDiv.style.height = '1.25rem'; // 20px / 16px = 1.25rem
+//     gradientDiv.style.width = '12.5rem'; // 200px / 16px = 12.5rem
+//     gradientDiv.style.background = 'linear-gradient(to right, purple, yellow)';
+//     legend.appendChild(gradientDiv);
 
-    const minLabel = document.createElement('span');
-    minLabel.innerHTML = `${elevationStore.getMin().toFixed(1)}m`; // Rounded to 1 decimal place
-    minLabel.style.float = 'left';
+//     const minLabel = document.createElement('span');
+//     minLabel.innerHTML = `${elevationStore.getMin().toFixed(1)}m`; // Rounded to 1 decimal place
+//     minLabel.style.float = 'left';
 
-    const maxLabel = document.createElement('span');
-    maxLabel.innerHTML = `${elevationStore.getMax().toFixed(1)}m`; // Rounded to 1 decimal place
-    maxLabel.style.float = 'right';
+//     const maxLabel = document.createElement('span');
+//     maxLabel.innerHTML = `${elevationStore.getMax().toFixed(1)}m`; // Rounded to 1 decimal place
+//     maxLabel.style.float = 'right';
 
-    legend.appendChild(minLabel);
-    legend.appendChild(maxLabel);
+//     legend.appendChild(minLabel);
+//     legend.appendChild(maxLabel);
 
-    document.body.appendChild(legend);
-}
+//     document.body.appendChild(legend);
+// }
