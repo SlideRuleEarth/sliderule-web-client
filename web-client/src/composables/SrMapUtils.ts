@@ -195,8 +195,8 @@ export function createElevationDeckGLLayer(elevationData:ElevationData[],tgt:HTM
         const zoom = viewState.zoom - 1;
         const bearing = (-viewState.rotation * 180) / Math.PI;
         const deckViewState = {bearing, longitude, latitude, zoom};
-        deck.setProps({width, height, viewState: deckViewState});
-        deck.redraw();
+        deckStore.deckInstance.setProps({width, height, viewState: deckViewState});
+        deckStore.deckInstance.redraw();
     }
     const layerOptions = {
         render: renderDeck as any,
