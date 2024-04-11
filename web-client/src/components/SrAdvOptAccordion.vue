@@ -65,7 +65,7 @@ onMounted(() => {
 
 <template>
     <div class="adv-opt-card">
-        <div adv-opts-wrapper>
+        <div class="adv-opts-wrapper">
             <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                 <AccordionTab header="General" >
@@ -286,11 +286,20 @@ onMounted(() => {
 
 .adv-opt-header {
     justify-content: center;
+    align-items: center;
 }
 
 .adv-opt-card {
-    padding: 0.1250rem;
+    display: flex;
+}
+.adv-opts-wrapper{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     margin: 0.1250rem;
+    padding: 0.1250rem;
+
 }
 .sr-raster-sampling-table-section {
     border-radius: var(--border-radius);

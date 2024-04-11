@@ -1,7 +1,6 @@
 import { useMapStore } from '@/stores/mapStore';
-import { useElevationStore } from '@/stores/elevationStore';
 import { Deck } from '@deck.gl/core/typed';
-import { ref,computed } from 'vue';
+import { computed } from 'vue';
 import {Layer} from 'ol/layer';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers/typed';
@@ -14,9 +13,9 @@ import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { useDeckStore } from '@/stores/deckStore';
+import { type Elevation } from '@/composables/db';
 
 const mapParamsStore = useMapParamsStore();
-const elevationStore = useElevationStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
 const deckStore = useDeckStore();
@@ -104,53 +103,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
 // }
   
 
-export type ElevationData = {
-    cycle: number;
-    dh_fit_dx: number;
-    extent_id: bigint;
-    gt: number;
-    h_mean: number;
-    h_sigma: number;
-    latitude: number;
-    longitude: number;
-    n_fit_photons: number;
-    pflags: number;
-    region: number;
-    rgt: number;
-    rms_misfit: number;
-    segment_id: number;
-    spot: number;
-    time: Date;
-    w_surface_window_final: number;
-    x_atc: number;
-    y_atc: number;
-};
- 
-export function useElevationData() : ElevationData{
-    const elevationData: ElevationData = {
-        cycle: 0,
-        dh_fit_dx: 0,
-        extent_id: BigInt(0), // Note: BigInt literals require 'n' at the end, but TypeScript uses BigInt function for type consistency
-        gt: 0,
-        h_mean: 0,
-        h_sigma: 0,
-        latitude: 0,
-        longitude: 0,
-        n_fit_photons: 0,
-        pflags: 0,
-        region: 0,
-        rgt: 0,
-        rms_misfit: 0,
-        segment_id: 0,
-        spot: 0,
-        time: new Date(0), // Epoch time as default
-        w_surface_window_final: 0,
-        x_atc: 0,
-        y_atc: 0,
-    };
-    return elevationData;
-}
-
 // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
 // size is an array [width, height] indicating the dimensions of the map's viewport.
 // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
@@ -186,16 +138,16 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Layer{
     return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
 }
 
-export function updateElevationLayer(elevationData:ElevationData[]): void{
+export function updateElevationLayer(elevationData:Elevation[]): void{
     const layer =     
         new PointCloudLayer({
             id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
             data: elevationData,
-            getPosition: (d:ElevationData) => {
+            getPosition: (d:Elevation) => {
                 return [d.longitude, d.latitude, d.h_mean]
             },
             getNormal: [0, 0, 1],
-            getColor: (d:ElevationData) => {
+            getColor: (d:Elevation) => {
                 const color = getColorForElevation(d.h_mean, 0.0, 300.0) as [number, number, number, number];
                 return color;
             },

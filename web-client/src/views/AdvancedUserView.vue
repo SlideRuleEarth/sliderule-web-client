@@ -13,21 +13,21 @@
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     import { createDeckGLInstance} from '@/composables/SrMapUtils';
     import { updateElevationLayer} from '@/composables/SrMapUtils';
-    import { type ElevationData } from '@/composables/SrMapUtils';
+    import { type Elevation } from '@/composables/db';
     import { useMapStore } from '@/stores/mapStore';
     import {useElevationStore} from "@/stores/elevationStore";
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
-    import { useSrToastStore } from '@/stores/srToastStore.js';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useJobsStore } from "@/stores/jobsStore";
+    import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
 
     const reqParamsStore = useReqParamsStore();
-    const toastStore = useSrToastStore();
     const sysConfigStore = useSysConfigStore();
     const jobsStore = useJobsStore();
+    const srToastStore = useSrToastStore();
     const graticuleClick = () => {
         const mapStore = useMapStore();
         mapStore.toggleGraticule();
@@ -77,15 +77,13 @@
     // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
         init(sysConfigStore.getSysConfig());
-        toast.add({ severity: 'info', summary: 'Run', detail: 'RunSlideRule was clicked',  life: toastStore.getLife()});
         console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
-        let recs:ElevationData[] = [];
-        //elevationStore.clearRecs();
+        let recs:Elevation[] = [];
         const callbacks = {
             atl06rec: (result:any) => {
                 if(cb_count.value === 0) {
-                    console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of ElevationData');
+                    console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
                 }
                 const currentRecs = result["elevation"];
                 const curFlatRecs = currentRecs.flat();
@@ -111,14 +109,12 @@
             },
             exceptrec: (result:any) => {
                 console.log('atl06p cb exceptrec result:', result);
-                toast.add({
-                    severity: 'info',
-                    summary: 'Progress',
-                    detail: result['text'],
-                });
+                toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
             },
             eventrec: (result:any) => {
                 console.log('atl06p cb eventrec result:', result);
+                const this_detail = `Level:${result['level']}  ${result['attr']}`;
+                toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
             },
         };
         const mapStore = useMapStore();
@@ -221,6 +217,10 @@
                                 tooltipText="Select an API to use for the selected mission."
                                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
                             />
+                            <div class="button-spinner-container">
+                                <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
+                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
+                            </div>
                             <SrAdvOptAccordion
                                 title="Advanced Options"
                                 ariaTitle="advanced-options"
@@ -230,13 +230,6 @@
                             />
                             <SrGraticuleSelect @graticule-click="graticuleClick"/>
                         </div>  
-                        <div class="button-spinner-container">
-                            <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
-                            <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
-                        </div>
-                        <!-- <div class="runtest-sr-button" >
-                            <Button label="Run Test" @click="runTestClicked"></Button>
-                        </div> -->
                     </div>
                 </template>
             </SrSideBar>

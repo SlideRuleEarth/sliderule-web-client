@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 export const useSrToastStore = defineStore('srToast', {
     state: () => ({
-        life: 10000, // default life of a toast in milliseconds (10 seconds)
+        life: 5000, // default life of a toast in milliseconds (5 seconds)
     }),
     actions: {
         setLife(life: number) {

@@ -48,7 +48,7 @@ const aboutButtonClick = () => {
 
 <template>
   <div>
-    <Toast position="top-left"/>
+    <Toast position="top-center"/>
   </div>  
   <header>
     <SrAppBar 
