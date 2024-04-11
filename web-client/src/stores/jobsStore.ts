@@ -21,6 +21,7 @@ export const useJobsStore = defineStore('jobs', {
       { field: 'func', header: 'Function' },
       { field: 'parameters', header: 'Parameters' },
     ],
+    msg:'ready'
   }),
   getters: {
     getJobById: (state) => {
@@ -28,7 +29,7 @@ export const useJobsStore = defineStore('jobs', {
         const jobIndex = state.jobs.findIndex(job => job.id === jobId);
         return jobIndex !== -1 ? state.jobs[jobIndex] : null;
       };
-    },
+    }
   },
   actions: {
     toggleStar(jobId: number) {
@@ -36,6 +37,9 @@ export const useJobsStore = defineStore('jobs', {
       if (jobIndex !== -1) {
         this.jobs[jobIndex].star = !this.jobs[jobIndex].star;
       }
+    },
+    getConsoleMsg(){
+      return this.msg;
     },
     createNewJob(): Job {
       // Determine the new jobId as one more than the current maximum jobId
@@ -60,6 +64,9 @@ export const useJobsStore = defineStore('jobs', {
       this.jobs.push(newJob);
       console.log(`New job created with ID ${newJobId}.`);
       return newJob;  // Returning the new job might be useful for immediate use
+    },
+    setMsg(msg: string) {
+      this.msg = msg;
     },
     updateJob(updateParams: Job): void {
       const { id, ...restParams } = updateParams;

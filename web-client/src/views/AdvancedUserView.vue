@@ -25,7 +25,6 @@
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
     import { db } from '@/composables/db';
     import { srTimeDelta } from '@/composables/SrMapUtils';
-    import { type Job } from '@/stores/jobsStore';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -85,12 +84,6 @@
             if(iceSat2SelectedAPI.value.value === 'atl06') {
                 console.log('atl06 selected');
                 const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
-                const updateParams = {
-                    id: job.id,
-                    status: 'pending',
-                    func: 'atl06p',
-                    params: atl06pParams,
-                };
                 jobsStore.updateJob({id: job.id, parameters:atl06pParams, status: 'pending'});
                 init(sysConfigStore.getSysConfig());
                 console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
@@ -135,21 +128,25 @@
                                 //console.log('Bulk add successful');
                             } catch (error) {
                                 console.error('Bulk add failed: ', error);
+                                jobsStore.setMsg('DB txn failed');                    
                             }
                         }).catch((error) => {
                             console.error('Transaction failed: ', error);
+                            jobsStore.setMsg('Transaction failed');
                             toast.add({severity: 'error', summary: 'Transaction failed', detail: error.toString(), life: srToastStore.getLife() });
                         });            
                     },
                     exceptrec: (result:any) => {
                         console.log('atl06p cb exceptrec result:', result);
                         toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
+                        jobsStore.setMsg(result['text']);
                         jobsStore.updateJob({id: job.id, status:'processing', elapsed_time: srTimeDelta(st,new Date())});
-                    },
+                        jobsStore.setMsg(result['text']);                    },
                     eventrec: (result:any) => {
                         console.log('atl06p cb eventrec result:', result);
                         const this_detail = `Level:${result['level']}  ${result['attr']}`;
-                        toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
+                        //toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
+                        jobsStore.setMsg(this_detail)
                         jobsStore.updateJob({id: job.id, status:'processing', elapsed_time: srTimeDelta(st,new Date())});
                     },
                 };
@@ -269,6 +266,9 @@
                                 <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
                                 <span v-if="isLoading">Loading... {{ elevationStore.getNumRecs() }}</span>
                             </div>
+                            <div class="sr-msg-console">
+                                <span>{{jobsStore.getConsoleMsg()}}</span>
+                            </div>
                             <SrAdvOptAccordion
                                 title="Advanced Options"
                                 ariaTitle="advanced-options"
@@ -312,5 +312,12 @@
         flex-direction: column;
         margin: 2rem;
     }
-
+    .sr-msg-console {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        margin: 0rem;
+        font-size: x-small;
+    }   
 </style>
