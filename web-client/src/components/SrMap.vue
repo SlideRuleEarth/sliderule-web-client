@@ -274,7 +274,6 @@
             targetType: 'glass-button',
             limit: 5,
             keepOpen: false,
-            //target: 'geoCoderContainer'
           });
         }
         const geocoder = geoCoderStore.getGeoCoder()
@@ -374,7 +373,7 @@
   };
 
   const updateMapView = (reason:string) => {
-    //console.log(`****** updateMapView for ${reason} ******`);
+    console.log(`****** updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
     if(map){
       const srView = mapParamsStore.getSrView();

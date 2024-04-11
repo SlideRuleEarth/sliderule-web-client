@@ -9,7 +9,7 @@
                     ></i>
                 </template>
             </Column>
-            <Column v-for="col in jobsStore.filteredColumns" :key="col.field" :field="col.field" :header="col.header"></Column>
+            <Column v-for="col in jobsStore.columns" :key="col.field" :field="col.field" :header="col.header"></Column>
             <Column field="Actions" header="">
                 <template #body="slotProps">
                     <i 

@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { type Elevation } from '@/composables/db';
 
 export const useElevationStore = defineStore('elevation', {
     state: () => ({
         min: 100000,
         max: -100000,
-        recs: [] as Elevation[]
+        num_recs: 0,
+        req_id: 0,
+        duration: 0,
     }),
     actions: {
         setMin(min: number) {
@@ -20,5 +21,14 @@ export const useElevationStore = defineStore('elevation', {
         getMax() {
             return this.max;
         },
+        setNumRecs(num_recs: number) {
+            this.num_recs = num_recs;
+        },
+        addNumRecs(num_recs: number) {
+            this.num_recs += num_recs;
+        },
+        getNumRecs() {
+            return this.num_recs;
+        }
     },
 });

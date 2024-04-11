@@ -1,6 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 
 export interface Elevation {
+    db_id?: number;
+    request_id?: number;
     cycle: number;
     dh_fit_dx: number;
     extent_id: bigint;
@@ -29,7 +31,7 @@ export class SlideRuleDexie extends Dexie {
   constructor() {
     super('slideruleDB');
     this.version(1).stores({
-      elevations: '++extent_id, cycle, gt, region, rgt, spot' // Primary key and indexed props
+      elevations: '++db_id, cycle, gt, region, rgt, spot' // Primary key and indexed props
     });
   }
 }

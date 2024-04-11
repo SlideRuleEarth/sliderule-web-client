@@ -23,6 +23,9 @@
     import { useJobsStore } from "@/stores/jobsStore";
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
+    import { db } from '@/composables/db';
+    import { srTimeDelta } from '@/composables/SrMapUtils';
+    import { type Job } from '@/stores/jobsStore';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -39,7 +42,7 @@
     const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
     const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
     const iceSat2SelectedAPI = ref({name:'atl06',value:'atl06'});
-    const iceSat2APIsItems = ref([{name:'atl03',value:'atl03'},{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
+    const iceSat2APIsItems = ref([{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
     const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     const isLoading = ref(false);
@@ -76,110 +79,154 @@
 
     // Function that is called when the "Run SlideRule" button is clicked
     const runSlideRuleClicked = () => {
-        init(sysConfigStore.getSysConfig());
-        console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
-        //console.log("runSlideRuleClicked atl06p:", atl06p);
-        let recs:Elevation[] = [];
-        const callbacks = {
-            atl06rec: (result:any) => {
-                if(cb_count.value === 0) {
-                    console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
-                }
-                const currentRecs = result["elevation"];
-                const curFlatRecs = currentRecs.flat();
-                recs.push(curFlatRecs);
-                cb_count.value += 1;
-                if(cb_count.value === 1) {
-                    console.log("FIRST: atl06p cb", cb_count.value," result:", result)
-                    const r = curFlatRecs[0];
-                    console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
-                }
-                for (let i = 0; i < curFlatRecs.length; i++) {
-                    let rec = curFlatRecs[i];
-                    if(rec.h_mean < elevationStore.getMin()) {
-                        elevationStore.setMin(rec.h_mean);
-                    }
-                    if(rec.h_mean > elevationStore.getMax()) {
-                        elevationStore.setMax(rec.h_mean);
-                    }
-                }
-                const flatRecs = recs.flat();
-                //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                updateElevationLayer(flatRecs);
-            },
-            exceptrec: (result:any) => {
-                console.log('atl06p cb exceptrec result:', result);
-                toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
-            },
-            eventrec: (result:any) => {
-                console.log('atl06p cb eventrec result:', result);
-                const this_detail = `Level:${result['level']}  ${result['attr']}`;
-                toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
-            },
-        };
-        const mapStore = useMapStore();
-        const map = mapStore.getMap() as OLMap ;
-        if (map){
-            console.log("atl06p cb_count:",cb_count.value)        
-            isLoading.value = true; 
-            const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
-            console.log("atl06pParams:",atl06pParams);
-            jobsStore.addRequest('atl06p',atl06pParams)
-            atl06p(atl06pParams,callbacks)
-            .then(
-                () => { // result
-                    // Log the result to the console
+        const st = new Date();
+        const job = jobsStore.createNewJob();
+        if(missionValue.value.value === 'ICESat-2') {
+            if(iceSat2SelectedAPI.value.value === 'atl06') {
+                console.log('atl06 selected');
+                const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
+                const updateParams = {
+                    id: job.id,
+                    status: 'pending',
+                    func: 'atl06p',
+                    params: atl06pParams,
+                };
+                jobsStore.updateJob({id: job.id, parameters:atl06pParams, status: 'pending'});
+                init(sysConfigStore.getSysConfig());
+                console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
+                //console.log("runSlideRuleClicked atl06p:", atl06p);
+                let recs:Elevation[] = [];
+                const callbacks = {
+                    atl06rec: (result:any) => {
+                        if(cb_count.value === 0) {
+                            console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
+                        }
+                        const currentRecs = result["elevation"];
+                        const curFlatRecs = currentRecs.flat();
+                        elevationStore.addNumRecs(curFlatRecs.length);
+                        recs.push(curFlatRecs);
+                        cb_count.value += 1;
+                        if(cb_count.value === 1) {
+                            console.log("FIRST: atl06p cb", cb_count.value," result:", result)
+                            const r = curFlatRecs[0];
+                            console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
+                        }
+                        for (let i = 0; i < curFlatRecs.length; i++) {
+                            let rec = curFlatRecs[i];
+                            if(rec.h_mean < elevationStore.getMin()) {
+                                elevationStore.setMin(rec.h_mean);
+                            }
+                            if(rec.h_mean > elevationStore.getMax()) {
+                                elevationStore.setMax(rec.h_mean);
+                            }
+                        }
+                        const flatRecs = recs.flat();
+                        //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+                        updateElevationLayer(flatRecs);
+                        db.transaction('rw', db.elevations, async () => {
+                            try {
+                                // Adding request_id to each record in curFlatRecs
+                                const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
+                                    ...rec,
+                                    request_id: jobsStore.currentJobId, // Assuming jobsStore.currentJobId is the correct path
+                                }));
+                                //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
+                                await db.elevations.bulkAdd(updatedFlatRecs);
+                                //console.log('Bulk add successful');
+                            } catch (error) {
+                                console.error('Bulk add failed: ', error);
+                            }
+                        }).catch((error) => {
+                            console.error('Transaction failed: ', error);
+                            toast.add({severity: 'error', summary: 'Transaction failed', detail: error.toString(), life: srToastStore.getLife() });
+                        });            
+                    },
+                    exceptrec: (result:any) => {
+                        console.log('atl06p cb exceptrec result:', result);
+                        toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
+                        jobsStore.updateJob({id: job.id, status:'processing', elapsed_time: srTimeDelta(st,new Date())});
+                    },
+                    eventrec: (result:any) => {
+                        console.log('atl06p cb eventrec result:', result);
+                        const this_detail = `Level:${result['level']}  ${result['attr']}`;
+                        toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
+                        jobsStore.updateJob({id: job.id, status:'processing', elapsed_time: srTimeDelta(st,new Date())});
+                    },
+                };
+                const mapStore = useMapStore();
+                const map = mapStore.getMap() as OLMap ;
+                if (map){
+                    console.log("atl06p cb_count:",cb_count.value)        
+                    isLoading.value = true; 
+                    console.log("atl06pParams:",atl06pParams);
+                    atl06p(atl06pParams,callbacks)
+                    .then(
+                        () => { // result
+                            // Log the result to the console
+                            // Display a toast message indicating successful completion
+                            const flatRecs = recs.flat();
+                            console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+                            updateElevationLayer(flatRecs);
+                            toast.add({
+                                severity: 'success', // Use 'success' severity for successful operations
+                                summary: 'Success', // A short summary of the outcome
+                                detail: `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`, 
+                                life: 10000 // Adjust the duration as needed
+                            });
+                            jobsStore.updateJob({id: job.id,status: 'success'});
+                        },
+                        error => {
+                            // Log the error to the console
+                            console.log('runSlideRuleClicked Error = ', error);
+                            // Display a toast message indicating the error
+                            toast.add({
+                                severity: 'error', // Use 'error' severity for error messages
+                                summary: 'Error', // A short summary of the error
+                                detail: `An error occurred while running SlideRule: ${error}`, // A more detailed error message
+                            });
+                            let emsg = '';
+                            if (navigator.onLine) {
+                                emsg =  'Network error: Possible DNS resolution issue or server down.';
+                            } else {
+                                emsg = 'Network error: your browser appears to be offline.';
+                            }
+                            toast.add({
+                                severity: 'error',   
+                                summary: 'Error',   
+                                detail: emsg,      
+                            });
+                            jobsStore.updateJob({id: job.id,status: 'error'});
+                        }
+                    ).catch((error => {
+                        // Log the error to the console
+                        console.error('runSlideRuleClicked Error = ', error);
+                        jobsStore.updateJob({id: job.id,status: 'error'});
 
-                    // Display a toast message indicating successful completion
-                    toast.add({
-                        severity: 'success', // Use 'success' severity for successful operations
-                        summary: 'Success', // A short summary of the outcome
-                        detail: 'RunSlideRule completed successfully.', // A more detailed success message
-                        life: 10000 // Adjust the duration as needed
+                        // Display a toast message indicating the error
+                        toast.add({
+                            severity: 'error', // Use 'error' severity for error messages
+                            summary: 'Error', // A short summary of the error
+                            detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                        });
+                    })).finally(() => {
+                        isLoading.value = false;
+                        console.log(`cb_count:${cb_count.value}`)
+                        jobsStore.updateJob({id: job.id, elapsed_time: srTimeDelta(st,new Date())});
                     });
-                    jobsStore.updateStatus(jobsStore.currentJobId,'success')
-                },
-                error => {
-                    // Log the error to the console
-                    console.log('runSlideRuleClicked Error = ', error);
-                    // Display a toast message indicating the error
-                    toast.add({
-                        severity: 'error', // Use 'error' severity for error messages
-                        summary: 'Error', // A short summary of the error
-                        detail: `An error occurred while running SlideRule: ${error}`, // A more detailed error message
-                    });
-                    let emsg = '';
-                    if (navigator.onLine) {
-                        emsg =  'Network error: Possible DNS resolution issue or server down.';
-                    } else {
-                        emsg = 'Network error: your browser appears to be offline.';
-                    }
-                    toast.add({
-                        severity: 'error',   
-                        summary: 'Error',   
-                        detail: emsg,      
-                    });
-                    jobsStore.updateStatus(jobsStore.currentJobId,'error')
                 }
-            ).catch((error => {
-                // Log the error to the console
-                console.error('runSlideRuleClicked Error = ', error);
-                jobsStore.updateStatus(jobsStore.currentJobId,'error')
-
-                // Display a toast message indicating the error
-                toast.add({
-                    severity: 'error', // Use 'error' severity for error messages
-                    summary: 'Error', // A short summary of the error
-                    detail: 'An error occurred while running SlideRule.', // A more detailed error message
-                });
-            })).finally(() => {
-                const flatRecs = recs.flat();
-                console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                updateElevationLayer(flatRecs);
-                isLoading.value = false;
-                console.log(`cb_count:${cb_count.value}`)
-                //createLegend();
-            });
+            } else if(iceSat2SelectedAPI.value.value === 'atl03') {
+                console.log('atl03 TBD');
+                toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
+            } else if(iceSat2SelectedAPI.value.value === 'atl08') {
+                console.log('atl08 TBD');
+                toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
+            } else if(iceSat2SelectedAPI.value.value === 'atl24s') {
+                console.log('atl24s TBD');
+                toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });
+            }
+        } else if(missionValue.value.value === 'GEDI') {
+            console.log('GEDI TBD');
+            toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
         }
     };
 
@@ -219,7 +266,8 @@
                             />
                             <div class="button-spinner-container">
                                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
-                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"  />
+                                <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
+                                <span v-if="isLoading">Loading... {{ elevationStore.getNumRecs() }}</span>
                             </div>
                             <SrAdvOptAccordion
                                 title="Advanced Options"

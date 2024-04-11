@@ -284,7 +284,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
           }
           if (value) {
             num_chunks++;
-            console.log(`fetchAndProcessResult chunk:${num_chunks} Received ${value.length} bytes of data`);
+            //console.log(`fetchAndProcessResult chunk:${num_chunks} Received ${value.length} bytes of data`);
             chunks.push(value);
             receivedLength += value.length;
 

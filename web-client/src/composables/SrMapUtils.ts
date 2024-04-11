@@ -158,6 +158,44 @@ export function updateElevationLayer(elevationData:Elevation[]): void{
 
 }
 
+export interface SrTimeDelta{
+    days : number,
+    hours : number,
+    minutes : number,
+    seconds : number
+}
+
+export function srTimeDelta  (t1:Date, t2:Date):SrTimeDelta {
+    const differenceInMs = t2.getTime() - t1.getTime();
+    const seconds = Math.floor(differenceInMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24); 
+    return {days, hours, minutes, seconds}
+}
+
+
+export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
+    const parts: string[] = [];
+
+    // For each part, if its value is not zero, add it to the parts array with proper pluralization.
+    if (srTimeDelta.days > 0) {
+        parts.push(`${srTimeDelta.days} day${srTimeDelta.days === 1 ? '' : 's'}`);
+    }
+    if (srTimeDelta.hours > 0) {
+        parts.push(`${srTimeDelta.hours} hr${srTimeDelta.hours === 1 ? '' : 's'}`);
+    }
+    if (srTimeDelta.minutes > 0) {
+        parts.push(`${srTimeDelta.minutes} min${srTimeDelta.minutes === 1 ? '' : 's'}`);
+    }
+    if (srTimeDelta.seconds > 0) {
+        parts.push(`${srTimeDelta.seconds} sec${srTimeDelta.seconds === 1 ? '' : 's'}`);
+    }
+
+    // Join the parts with a comma and a space, or return a default string if no parts are added.
+    return parts.length > 0 ? parts.join(', ') : '0 secs';
+}
+
 // export function createLegend() {
 //     const legend = document.createElement('div');
 //     legend.innerHTML = '<strong>Elevation Legend</strong><br>';

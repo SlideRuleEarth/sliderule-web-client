@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia';
-import { type ReqParams } from './reqParamsStore';
+import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
+import { type SrTimeDelta } from '@/composables/SrMapUtils';
 
 export interface Job {
-  star: boolean;
   id: number;
-  status: string;
-  func: string;
-  parameters: ReqParams;
-}
+  star?: boolean;
+  status?: string;
+  func?: string;
+  parameters?: ReqParams;
+  elapsed_time?: SrTimeDelta;
+};
 
 export const useJobsStore = defineStore('jobs', {
   state: () => ({
@@ -21,7 +23,12 @@ export const useJobsStore = defineStore('jobs', {
     ],
   }),
   getters: {
-    filteredColumns: (state) => state.columns.filter(col => col.field !== 'Star'),
+    getJobById: (state) => {
+      return (jobId: number) => {
+        const jobIndex = state.jobs.findIndex(job => job.id === jobId);
+        return jobIndex !== -1 ? state.jobs[jobIndex] : null;
+      };
+    },
   },
   actions: {
     toggleStar(jobId: number) {
@@ -30,38 +37,45 @@ export const useJobsStore = defineStore('jobs', {
         this.jobs[jobIndex].star = !this.jobs[jobIndex].star;
       }
     },
-    setJobs(jobs: Job[]) {
-      this.jobs = jobs;
-    },
-    addJob(newJob: Job): number{
-      // Check if there are any jobs. If so, find the highest ID and add 1.
-      // If not, start with ID 1.
-      const highestId = this.jobs.reduce((max, job) => job.id > max ? job.id : max, 0);
-      newJob.id = highestId + 1;
-  
-      // Now add the new job with the generated ID.
-      this.jobs.push(newJob);
-      return newJob.id;
-    },
-    // New addRequest action
-    addRequest(func:string, params: ReqParams): number{
-      console.log('Adding new request with func:',func,' parameters:', params);
+    createNewJob(): Job {
+      // Determine the new jobId as one more than the current maximum jobId
+      const newJobId = this.jobs.reduce((max, job) => Math.max(max, job.id), 0) + 1;
+    
+      // Define a new job with blank/default values
       const newJob: Job = {
-        star: false, // Initialize Star to false
-        id: 0, // Temporary ID, will be set properly in addJob
-        status: 'Pending', // Initialize Status to "Pending"
-        func: func, // Set the function to "atl06p"
-        parameters: params // Set the passed ReqParams
+        id: newJobId,
+        star: false,
+        status: 'Pending',  // or any other default status like 'New' or 'Unstarted'
+        func: '',           // assuming no default function
+        parameters: {} as NullReqParams,     // assuming an empty object for default parameters
+        elapsed_time: {
+          days: 0,
+          hours: 0,
+          minutes: 0,
+          seconds: 0
+        }
       };
-      this.currentJobId = this.addJob(newJob); // Add the new job and return the ID
-      return this.currentJobId  
+    
+      // Add the new job to the jobs array
+      this.jobs.push(newJob);
+      console.log(`New job created with ID ${newJobId}.`);
+      return newJob;  // Returning the new job might be useful for immediate use
     },
-    updateStatus(jobId: number, newStatus: string) {
-      console.log('Updating status of job', jobId, 'to', newStatus);
-      const jobIndex = this.jobs.findIndex(job => job.id === jobId);
+    updateJob(updateParams: Job): void {
+      const { id, ...restParams } = updateParams;
+      // Find the index of the job in the array
+      const jobIndex = this.jobs.findIndex(job => job.id === id);
+      console.log(`Updating job ${id} with parameters:`, restParams);
       if (jobIndex !== -1) {
-        this.jobs[jobIndex].status = newStatus;
+        // Job exists, so update it with provided parameters
+        this.jobs[jobIndex] = {
+          ...this.jobs[jobIndex],
+          ...restParams
+        };
+      } else {
+        // jobId does not exist, handle accordingly
+        console.error(`Job with ID ${id} does not exist.`);
       }
-    },
+    }
   }
 });

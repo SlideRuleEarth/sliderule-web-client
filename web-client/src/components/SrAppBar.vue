@@ -1,11 +1,8 @@
 <script setup lang="ts">
     import { useAdvancedModeStore } from "@/stores/advancedModeStore";  
     import Button from 'primevue/button';
-    import { type Ref,ref } from 'vue';
 
     const advancedModeStore = useAdvancedModeStore();
-
-    const geoCoderContainer: Ref<HTMLElement | null> = ref(null);
 
     const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','record-button-click','about-button-click']);
 
@@ -30,10 +27,6 @@
 <template>
     <div class="container">
         <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
-        <div class="center-content">
-            <div ref="geoCoderContainer" class="geocoder">
-            </div>
-        </div>
         <div class="under-construction-banner">
             <p class="under-construction-text">This website is under construction</p>
         </div>

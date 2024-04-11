@@ -2,7 +2,12 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { Atl06ReqParams, Atl06pReqParams } from '@/sliderule/icesat2';
-export type ReqParams = Atl06ReqParams | Atl06pReqParams;
+
+export interface NullReqParams {
+  null: null;
+}
+
+export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
 
 
 export const useReqParamsStore = defineStore('reqParams', {
@@ -10,7 +15,6 @@ export const useReqParamsStore = defineStore('reqParams', {
     state: () => ({
         rasterizePolygon: false,
         ignorePolygon: false,
-        missionValue: {name:'mission', value:'-2'},
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
