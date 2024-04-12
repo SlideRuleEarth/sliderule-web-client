@@ -31,7 +31,7 @@ export class SlideRuleDexie extends Dexie {
   constructor() {
     super('slideruleDB');
     this.version(1).stores({
-      elevations: '++db_id, cycle, gt, region, rgt, spot' // Primary key and indexed props
+      elevations: '++db_id, request_id, cycle, gt, region, rgt, spot' // Primary key and indexed props
     });
   }
 }

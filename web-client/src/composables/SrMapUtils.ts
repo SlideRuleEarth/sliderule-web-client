@@ -14,11 +14,14 @@ import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { useDeckStore } from '@/stores/deckStore';
 import { type Elevation } from '@/composables/db';
+import { useElevationStore } from '@/stores/elevationStore';
+
 
 const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
 const deckStore = useDeckStore();
+const elevationStore = useElevationStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -195,6 +198,27 @@ export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
     // Join the parts with a comma and a space, or return a default string if no parts are added.
     return parts.length > 0 ? parts.join(', ') : '0 secs';
 }
+
+
+export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
+    const elevationStore = useElevationStore();
+    let localMin = elevationStore.getMin();
+    let localMax = elevationStore.getMax();
+
+    curFlatRecs.forEach(rec => {
+        if (rec.h_mean < localMin) {
+            localMin = rec.h_mean;
+        }
+        if (rec.h_mean > localMax) {
+            localMax = rec.h_mean;
+        }
+    });
+
+    elevationStore.setMin(localMin);
+    elevationStore.setMax(localMax);
+}
+
+// This function can be called within a Vue component setup function or in a lifecycle hook
 
 // export function createLegend() {
 //     const legend = document.createElement('div');

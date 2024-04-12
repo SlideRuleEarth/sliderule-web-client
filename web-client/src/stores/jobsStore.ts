@@ -34,6 +34,7 @@ export const useJobsStore = defineStore('jobs', {
   actions: {
     toggleStar(jobId: number) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
+      console.log(`Toggling star for job ${jobId} using jobIndex:${jobIndex}.`);
       if (jobIndex !== -1) {
         this.jobs[jobIndex].star = !this.jobs[jobIndex].star;
       }
@@ -83,6 +84,17 @@ export const useJobsStore = defineStore('jobs', {
         // jobId does not exist, handle accordingly
         console.error(`Job with ID ${id} does not exist.`);
       }
-    }
+    },
+    deleteJob(jobId: number) {
+      const jobIndex = this.jobs.findIndex(job => job.id === jobId);
+      if (jobIndex !== -1) {
+        // Remove the job from the array
+        this.jobs.splice(jobIndex, 1);
+        console.log(`Job with ID ${jobId} deleted.`);
+      } else {
+        // Log an error if the job ID does not exist
+        console.error(`Job with ID ${jobId} does not exist and cannot be deleted.`);
+      }
+    },
   }
 });

@@ -255,7 +255,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 
       if (stream) {
         // Get the reader from the response stream
-        console.log('fetchAndProcessResult streaming response:', response);
+        //console.log('fetchAndProcessResult streaming response:', response);
         const reader = response.body.getReader();
 
         // Process the stream
@@ -278,10 +278,6 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 
         while (loop_done === false) {
           const { done, value } = await reader.read();
-          if (done) {
-            console.log('fetchAndProcessResult done:', done);
-            console.log('fetchAndProcessResult value:', value);
-          }
           if (value) {
             num_chunks++;
             //console.log(`fetchAndProcessResult chunk:${num_chunks} Received ${value.length} bytes of data`);
@@ -337,7 +333,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   // Update stats
                   if (!(rec_type in results)) {
                     results[rec_type] = 0;
-                    console.log('Not in results rec_type:', rec_type);
+                    //console.log('Not in results rec_type:', rec_type);
                   }
                   results[rec_type]++;
                   // Restore unused bytes that have been read
@@ -354,10 +350,9 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             } 
           } else {
             empty_chunks++;
-            console.log('empty_chunks:', empty_chunks);
             if (empty_chunks > 10) {
               loop_done = true;
-              console.log('fetchAndProcessResult empty_chunks > 10? Done! ');
+              console.error('fetchAndProcessResult empty_chunks > 10? Done! ');
               break;
             }
           } 
@@ -366,7 +361,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             results["bytes_read"] = bytes_read;
             results["bytes_processed"] = bytes_processed;
             results["num_chunks"] = num_chunks;
-            console.log('fetchAndProcessResult read returned done: results:', results);
+            results["empty_chunks"] = empty_chunks;
+            //console.log('fetchAndProcessResult read returned done: results:', results);
             break;
           }
         }
@@ -381,7 +377,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             position += value.length;
         }
         console.log("fetchAndProcessResult final recs_cnt:", recs_cnt, " num_chunks_appended:", num_chunks_appended, "results:", results);
-        console.log('fetchAndProcessResult returning binaryData:', binaryData);
+        //console.log('fetchAndProcessResult returning binaryData:', binaryData);
         return binaryData;
 
     } else if (contentType == 'application/json' || contentType == 'text/plain') {
@@ -432,11 +428,11 @@ export async function source(
   const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
   const api_path = 'source/'+ api;
   const url = 'https://' + host + '/' + api_path;
-  console.log('source url:', url);
+  //console.log('source url:', url);
   // Setup Request Options
   let body = null;
   const options: RequestInit = {
-    method: 'POST', // You can keep this if POST is the only method you use
+    method: 'POST', 
   };
   
   if (parm != null) {

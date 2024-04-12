@@ -4,8 +4,8 @@
             <Column field="Star" header="">
                 <template #body="slotProps">
                     <i 
-                      :class="[slotProps.data.Star ? PrimeIcons.STAR_FILL : PrimeIcons.STAR]"
-                      @click="() => jobsStore.toggleStar(slotProps.data.ID)"
+                      :class="[slotProps.data.star ? PrimeIcons.STAR_FILL : PrimeIcons.STAR]"
+                      @click="() => jobsStore.toggleStar(slotProps.data.id)"
                     ></i>
                 </template>
             </Column>
@@ -14,7 +14,7 @@
                 <template #body="slotProps">
                     <i 
                       class="pi pi-chart-line"
-                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                      @click="() => jobsStore.deleteJob(slotProps.data.id)"
                     > Analyze</i>
                 </template>
             </Column>
@@ -22,7 +22,7 @@
                 <template #body="slotProps">
                     <i 
                       class="pi pi-code"
-                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                      @click="() => jobsStore.deleteJob(slotProps.data.id)"
                     > Source code</i>
                 </template>
             </Column>
@@ -30,7 +30,7 @@
                 <template #body="slotProps">
                     <i 
                       :class="PrimeIcons.TRASH"
-                      @click="() => jobsStore.deleteJob(slotProps.data.ID)"
+                      @click="() => jobsStore.deleteJob(slotProps.data.id)"
                     ></i>
                 </template>
             </Column>
@@ -52,4 +52,3 @@ onMounted(() => {
     console.log('SrRecords mounted');
 });
 </script>
-@/stores/jobsStore

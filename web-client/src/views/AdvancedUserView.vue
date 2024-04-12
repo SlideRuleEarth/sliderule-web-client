@@ -24,7 +24,8 @@
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
     import { db } from '@/composables/db';
-    import { srTimeDelta } from '@/composables/SrMapUtils';
+    import { srTimeDelta,updateElevationExtremes } from '@/composables/SrMapUtils';
+
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -86,33 +87,34 @@
                 const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
                 jobsStore.updateJob({id: job.id, parameters:atl06pParams, status: 'pending'});
                 init(sysConfigStore.getSysConfig());
-                console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
+                //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
                 //console.log("runSlideRuleClicked atl06p:", atl06p);
                 let recs:Elevation[] = [];
                 const callbacks = {
                     atl06rec: (result:any) => {
-                        if(cb_count.value === 0) {
-                            console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
-                        }
+                        // if(cb_count.value === 0) {
+                        //     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
+                        // }
                         const currentRecs = result["elevation"];
                         const curFlatRecs = currentRecs.flat();
                         elevationStore.addNumRecs(curFlatRecs.length);
                         recs.push(curFlatRecs);
                         cb_count.value += 1;
-                        if(cb_count.value === 1) {
-                            console.log("FIRST: atl06p cb", cb_count.value," result:", result)
-                            const r = curFlatRecs[0];
-                            console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
-                        }
-                        for (let i = 0; i < curFlatRecs.length; i++) {
-                            let rec = curFlatRecs[i];
-                            if(rec.h_mean < elevationStore.getMin()) {
-                                elevationStore.setMin(rec.h_mean);
-                            }
-                            if(rec.h_mean > elevationStore.getMax()) {
-                                elevationStore.setMax(rec.h_mean);
-                            }
-                        }
+                        // if(cb_count.value === 1) {
+                        //     console.log("FIRST: atl06p cb", cb_count.value," result:", result)
+                        //     const r = curFlatRecs[0];
+                        //     console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
+                        // }
+                        // for (let i = 0; i < curFlatRecs.length; i++) {
+                        //     let rec = curFlatRecs[i];
+                        //     if(rec.h_mean < elevationStore.getMin()) {
+                        //         elevationStore.setMin(rec.h_mean);
+                        //     }
+                        //     if(rec.h_mean > elevationStore.getMax()) {
+                        //         elevationStore.setMax(rec.h_mean);
+                        //     }
+                        // }
+                        updateElevationExtremes(curFlatRecs);
                         const flatRecs = recs.flat();
                         //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                         updateElevationLayer(flatRecs);
@@ -319,5 +321,8 @@
         flex-direction: column;
         margin: 0rem;
         font-size: x-small;
+        white-space: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
     }   
 </style>
