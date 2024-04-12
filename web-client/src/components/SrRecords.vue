@@ -14,7 +14,7 @@
                 <template #body="slotProps">
                     <i 
                       class="pi pi-chart-line"
-                      @click="() => jobsStore.deleteJob(slotProps.data.id)"
+                      @click="analyze(slotProps.data.id)"
                     > Analyze</i>
                 </template>
             </Column>
@@ -22,7 +22,7 @@
                 <template #body="slotProps">
                     <i 
                       class="pi pi-code"
-                      @click="() => jobsStore.deleteJob(slotProps.data.id)"
+                      @click="sourceCodePopup(slotProps.data.id)"
                     > Source code</i>
                 </template>
             </Column>
@@ -47,6 +47,14 @@ import { PrimeIcons } from 'primevue/api';
 import { useJobsStore } from '@/stores/jobsStore'; // Adjust the path based on your file structure
 
 const jobsStore = useJobsStore();
+
+const analyze = (id:number) => {
+    console.log('Analyze ', id);
+};
+
+const sourceCodePopup = (id:number) => {
+    console.log('Source code ', id);
+};
 
 onMounted(() => {
     console.log('SrRecords mounted');

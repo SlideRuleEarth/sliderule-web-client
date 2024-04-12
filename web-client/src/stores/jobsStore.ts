@@ -1,38 +1,41 @@
 import { defineStore } from 'pinia';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
-import { type SrTimeDelta } from '@/composables/SrMapUtils';
+import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface Job {
-  id: number;
+  id: string;
   star?: boolean;
   status?: string;
   func?: string;
   parameters?: ReqParams;
-  elapsed_time?: SrTimeDelta;
+  startTime?: Date;  // Include start time for each job
+  endTime?: Date;    // Include end time for each job
+  elapsed_time?: string;
 };
 
 export const useJobsStore = defineStore('jobs', {
   state: () => ({
-    currentJobId: 0,
+    currentJobId: '' as string,
     jobs: [] as Job[],
     columns: [
-      { field: 'id', header: 'ID' },
       { field: 'status', header: 'Status' },
       { field: 'func', header: 'Function' },
       { field: 'parameters', header: 'Parameters' },
+      { field: 'elapsed_time', header: 'Elapsed Time'}
     ],
     msg:'ready'
   }),
   getters: {
     getJobById: (state) => {
-      return (jobId: number) => {
+      return (jobId: string) => {
         const jobIndex = state.jobs.findIndex(job => job.id === jobId);
         return jobIndex !== -1 ? state.jobs[jobIndex] : null;
       };
     }
   },
   actions: {
-    toggleStar(jobId: number) {
+    toggleStar(jobId: string) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
       console.log(`Toggling star for job ${jobId} using jobIndex:${jobIndex}.`);
       if (jobIndex !== -1) {
@@ -44,8 +47,10 @@ export const useJobsStore = defineStore('jobs', {
     },
     createNewJob(): Job {
       // Determine the new jobId as one more than the current maximum jobId
-      const newJobId = this.jobs.reduce((max, job) => Math.max(max, job.id), 0) + 1;
-    
+      //const newJobId = this.jobs.reduce((max, job) => Math.max(max, job.id), 0) + 1;
+      const newJobId = uuidv4();
+      const startTime = new Date();  // Capture the start time for this job
+      const endTime = new Date();    // Placeholder end time for this job
       // Define a new job with blank/default values
       const newJob: Job = {
         id: newJobId,
@@ -53,12 +58,9 @@ export const useJobsStore = defineStore('jobs', {
         status: 'Pending',  // or any other default status like 'New' or 'Unstarted'
         func: '',           // assuming no default function
         parameters: {} as NullReqParams,     // assuming an empty object for default parameters
-        elapsed_time: {
-          days: 0,
-          hours: 0,
-          minutes: 0,
-          seconds: 0
-        }
+        startTime,  // Store the start time
+        endTime,    // Store the end time
+        elapsed_time: srTimeDeltaString(srTimeDelta(startTime, endTime))  // Calculate and format elapsed time
       };
     
       // Add the new job to the jobs array
@@ -84,8 +86,23 @@ export const useJobsStore = defineStore('jobs', {
         // jobId does not exist, handle accordingly
         console.error(`Job with ID ${id} does not exist.`);
       }
+      this.updateJobElapsedTime(id);  // Update the elapsed time for the job (if applicable
     },
-    deleteJob(jobId: number) {
+    updateJobElapsedTime(jobId: string) {
+      const jobIndex = this.jobs.findIndex(job => job.id === jobId);
+      if (jobIndex !== -1) {
+        const job = this.jobs[jobIndex];
+        job.endTime = new Date();  // Update the end time
+        if (job.startTime){
+          job.elapsed_time = srTimeDeltaString(srTimeDelta(job.startTime, job.endTime));  // Recalculate elapsed time
+        } else {
+          console.error(`Job with ID ${jobId} has no start time.`);
+        }
+      } else {
+        console.error(`Job with ID ${jobId} does not exist.`);
+      }
+    },
+    deleteJob(jobId: string) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
       if (jobIndex !== -1) {
         // Remove the job from the array

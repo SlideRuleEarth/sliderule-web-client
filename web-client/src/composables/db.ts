@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 
 export interface Elevation {
     db_id?: number;
-    request_id?: number;
+    request_id?: string;
     cycle: number;
     dh_fit_dx: number;
     extent_id: bigint;
