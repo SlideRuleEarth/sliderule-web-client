@@ -19,6 +19,7 @@ export const useJobsStore = defineStore('jobs', {
     currentJobId: '' as string,
     jobs: [] as Job[],
     columns: [
+      { field: 'id', header: 'ID' },
       { field: 'status', header: 'Status' },
       { field: 'func', header: 'Function' },
       { field: 'parameters', header: 'Parameters' },
@@ -77,8 +78,14 @@ export const useJobsStore = defineStore('jobs', {
       // Find the index of the job in the array
       const jobIndex = this.jobs.findIndex(job => job.id === id);
       console.log(`Updating job ${id} with parameters:`, restParams);
+      // Job exists, so update it with provided parameters
       if (jobIndex !== -1) {
-        // Job exists, so update it with provided parameters
+        // if status is provided and different from current status, update the state in the database
+        if (restParams.status){
+          if (restParams.status != this.jobs[jobIndex].status){
+            db.updateRequestState(id, restParams.status);
+          }
+        }
         this.jobs[jobIndex] = {
           ...this.jobs[jobIndex],
           ...restParams

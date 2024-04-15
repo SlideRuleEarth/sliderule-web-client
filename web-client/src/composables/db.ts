@@ -52,5 +52,15 @@ export class SlideRuleDexie extends Dexie {
         throw error; // Rethrowing allows the calling context to handle it further
     }
   }
+    // Function to update the state of a request
+    async updateRequestState(reqId: number, newState: string): Promise<void> {
+      try {
+          await this.requestStates.update(reqId, { state: newState });
+          console.log(`Request state updated for req_id ${reqId} to ${newState}.`);
+      } catch (error) {
+          console.error(`Failed to update request state for req_id ${reqId}:`, error);
+          throw error; // Rethrowing the error for further handling if needed
+      }
+  }
 }
 export const db = new SlideRuleDexie();
