@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
 import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from '@/composables/db';
 
 export interface Job {
-  id: string;
+  id: number; // req_id from the Requests table in the Dexie database
   star?: boolean;
   status?: string;
   func?: string;
@@ -28,14 +28,14 @@ export const useJobsStore = defineStore('jobs', {
   }),
   getters: {
     getJobById: (state) => {
-      return (jobId: string) => {
+      return (jobId: number) => {
         const jobIndex = state.jobs.findIndex(job => job.id === jobId);
         return jobIndex !== -1 ? state.jobs[jobIndex] : null;
       };
     }
   },
   actions: {
-    toggleStar(jobId: string) {
+    toggleStar(jobId: number) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
       console.log(`Toggling star for job ${jobId} using jobIndex:${jobIndex}.`);
       if (jobIndex !== -1) {
@@ -45,12 +45,13 @@ export const useJobsStore = defineStore('jobs', {
     getConsoleMsg(){
       return this.msg;
     },
-    createNewJob(): Job {
+    async createNewJob(): Promise<Job> {
       // Determine the new jobId as one more than the current maximum jobId
       //const newJobId = this.jobs.reduce((max, job) => Math.max(max, job.id), 0) + 1;
-      const newJobId = uuidv4();
+      const newJobId = await db.addPendingRequest(); // Await the promise to get the new req_id
       const startTime = new Date();  // Capture the start time for this job
       const endTime = new Date();    // Placeholder end time for this job
+
       // Define a new job with blank/default values
       const newJob: Job = {
         id: newJobId,
@@ -88,7 +89,7 @@ export const useJobsStore = defineStore('jobs', {
       }
       this.updateJobElapsedTime(id);  // Update the elapsed time for the job (if applicable
     },
-    updateJobElapsedTime(jobId: string) {
+    updateJobElapsedTime(jobId: number) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
       if (jobIndex !== -1) {
         const job = this.jobs[jobIndex];
@@ -102,7 +103,7 @@ export const useJobsStore = defineStore('jobs', {
         console.error(`Job with ID ${jobId} does not exist.`);
       }
     },
-    deleteJob(jobId: string) {
+    deleteJob(jobId: number) {
       const jobIndex = this.jobs.findIndex(job => job.id === jobId);
       if (jobIndex !== -1) {
         // Remove the job from the array

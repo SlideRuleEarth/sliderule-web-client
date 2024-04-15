@@ -115,10 +115,10 @@
                 updateElevationLayer(flatRecs);
                 db.transaction('rw', db.elevations, async () => {
                     try {
-                        // Adding request_id to each record in curFlatRecs
+                        // Adding req_id to each record in curFlatRecs
                         const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
                             ...rec,
-                            request_id: jobsStore.currentJobId, 
+                            req_id: jobsStore.currentJobId, 
                         }));
                         //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
                         await db.elevations.bulkAdd(updatedFlatRecs);
@@ -210,8 +210,8 @@
     }
 
     // Function that is called when the "Run SlideRule" button is clicked
-    const runSlideRuleClicked = () => {
-        const job = jobsStore.createNewJob();
+    async function runSlideRuleClicked() {
+        const job = await jobsStore.createNewJob();
         if(missionValue.value.value === 'ICESat-2') {
             if(iceSat2SelectedAPI.value.value === 'atl06') {
                 console.log('atl06 selected');
