@@ -36,6 +36,7 @@
   import { useSrToastStore } from "@/stores/srToastStore.js";
   import { clearPolyCoords } from "@/composables/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
+  import { createDeckGLInstance} from '@/composables/SrMapUtils';
 
 
   const srToastStore = useSrToastStore();
@@ -322,6 +323,9 @@
           const plink = mapStore.plink as any;
           map.addControl(plink);
         }
+        const tgt = map.getViewport() as HTMLDivElement; 
+        const deckLayer = createDeckGLInstance(tgt);
+        map.addLayer(deckLayer);
         updateMapView("onMounted");
       } else {
         console.log("Error:map is null");

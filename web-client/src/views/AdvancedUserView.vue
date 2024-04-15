@@ -4,13 +4,10 @@
     import SrMap from "@/components/SrMap.vue";
     import SrAdvOptSidebar from "@/components/SrAdvOptSidebar.vue";
     import { onMounted } from 'vue';
-    import { useMapStore } from '@/stores/mapStore';
-    import { createDeckGLInstance} from '@/composables/SrMapUtils';
-    import { Map as OLMap } from 'ol';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
     const advancedModeStore = useAdvancedModeStore();
-    
+
     onMounted(() => {
         // Get the computed style of the document's root element
         const rootStyle = window.getComputedStyle(document.documentElement);
@@ -20,13 +17,7 @@
         console.log(`Current root font size: ${fontSize}`);
 
         advancedModeStore.advanced = true;
-        const mapStore = useMapStore();
-        const map = mapStore.getMap() as OLMap ;
-        if (map){
-            const tgt = map.getViewport() as HTMLDivElement; 
-            const deckLayer = createDeckGLInstance(tgt);
-            map.addLayer(deckLayer);
-        }
+
         console.log('AdvancedUserView onMounted');
     });
 </script>
