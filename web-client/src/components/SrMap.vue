@@ -37,6 +37,8 @@
   import { clearPolyCoords } from "@/composables/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { createDeckGLInstance} from '@/composables/SrMapUtils';
+  import { onActivated } from "vue";
+  import { onDeactivated } from "vue";
 
 
   const srToastStore = useSrToastStore();
@@ -318,7 +320,7 @@
             console.log('map not available');
           }    
         }
-        //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection().name);
+        //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
         if(mapStore.plink){
           const plink = mapStore.plink as any;
           map.addControl(plink);
@@ -332,6 +334,14 @@
       } 
     }
   });
+
+  onActivated(() => {
+    console.log("SrMap onActivated");
+  })
+
+  onDeactivated(() => {
+    console.log("SrMap onDeactivated");
+  })
 
   const handleDrawControlCreated = (drawControl: any) => {
     //console.log(drawControl);

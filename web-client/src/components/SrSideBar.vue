@@ -2,15 +2,26 @@
 import { useRouter } from 'vue-router';
 import SrModeSelect from "@/components/SrModeSelect.vue";
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
+import { NavigationFailureType, isNavigationFailure } from 'vue-router'
+import {useToast} from 'primevue/usetoast';
+const toast = useToast();
 const router = useRouter();
 const advancedModeStore = useAdvancedModeStore();
 
-const advancedClick = () => {
+const advancedClick = async () => {
     // console.log('advancedModeStore.advanced:', advancedModeStore.advanced);
     if (advancedModeStore.advanced) {
-        router.push('/advanced-user');
+        const failure = await router.push('/advanced-user');
+        if (isNavigationFailure(failure, NavigationFailureType.aborted)) {
+            // show a small notification to the user
+            toast.add({severity:'info',summary:'Save?',detail:'You have unsaved changes, discard and leave anyway?'})
+        }    
     } else {
-        router.push('/general-user');
+        const failure = await router.push('/general-user');
+        if (isNavigationFailure(failure, NavigationFailureType.aborted)) {
+            // show a small notification to the user
+            toast.add({severity:'info',summary:'Save?',detail:'You have unsaved changes, discard and leave anyway?'})
+        }    
     }
 };
 
