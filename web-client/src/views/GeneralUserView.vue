@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import SrSideBar from "@/components/SrSideBar.vue";
 import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
+import SrSideBarLayout from "@/layouts/SrSideBarLayout.vue";
 import SrMap from "@/components/SrMap.vue";
 import { onMounted } from 'vue';
+import SrModeSelect from "@/components/SrModeSelect.vue";
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
 const advancedModeStore = useAdvancedModeStore();
@@ -16,7 +17,7 @@ onMounted(() => {
 <template>
     <TwoColumnLayout>
         <template v-slot:sidebar-col>
-            <SrSideBar>
+            <SrSideBarLayout>
                 <template v-slot:sr-sidebar-body>
                     <div class="card flex justify-content-center ">
                         <div class = "banner-margin">
@@ -30,7 +31,10 @@ onMounted(() => {
                         </div>
                     </div>
                 </template>
-            </SrSideBar>
+                <template v-slot:sr-sidebar-footer>
+                    <SrModeSelect /> 
+                </template>
+            </SrSideBarLayout>
         </template>
         <template v-slot:main>
             <SrMap />
