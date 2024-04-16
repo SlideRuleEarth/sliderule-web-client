@@ -8,6 +8,13 @@
     import { useMapStore } from '@/stores/mapStore';
     import { createDeckGLInstance} from '@/composables/SrMapUtils';
     import { Map as OLMap } from 'ol';
+    import SrModeSelect from "@/components/SrModeSelect.vue";
+    import { NavigationFailureType, isNavigationFailure } from 'vue-router'
+    import { useRouter } from 'vue-router';
+    import {useToast} from 'primevue/usetoast';
+
+    const toast = useToast();
+    const router = useRouter();
 
 
     const advancedModeStore = useAdvancedModeStore();
@@ -37,6 +44,24 @@
         }
         console.log('AdvancedUserView onMounted');
     });
+
+    const advancedClick = async () => {
+    // console.log('advancedModeStore.advanced:', advancedModeStore.advanced);
+    if (advancedModeStore.advanced) {
+        const failure = await router.push('/advanced-user');
+        if (isNavigationFailure(failure, NavigationFailureType.aborted)) {
+            // show a small notification to the user
+            toast.add({severity:'info',summary:'Save?',detail:'You have unsaved changes, discard and leave anyway?'})
+        }    
+    } else {
+        const failure = await router.push('/general-user');
+        if (isNavigationFailure(failure, NavigationFailureType.aborted)) {
+            // show a small notification to the user
+            toast.add({severity:'info',summary:'Save?',detail:'You have unsaved changes, discard and leave anyway?'})
+        }    
+    }
+};
+
 </script>
 
 <template>
@@ -45,6 +70,9 @@
             <SrSideBar>
                 <template v-slot:sr-sidebar-body>
                     <SrAdvOptSidebar/>
+                </template>
+                <template v-slot:sr-sidebar-footer>
+                    <SrModeSelect  @advanced-click="advancedClick" /> 
                 </template>
             </SrSideBar>
         </template>
