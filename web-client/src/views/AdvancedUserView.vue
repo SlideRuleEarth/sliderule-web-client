@@ -5,6 +5,10 @@
     import SrAdvOptSidebar from "@/components/SrAdvOptSidebar.vue";
     import { onMounted } from 'vue';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
+    import { useMapStore } from '@/stores/mapStore';
+    import { createDeckGLInstance} from '@/composables/SrMapUtils';
+    import { Map as OLMap } from 'ol';
+
 
     const advancedModeStore = useAdvancedModeStore();
 
@@ -17,7 +21,20 @@
         console.log(`Current root font size: ${fontSize}`);
 
         advancedModeStore.advanced = true;
-
+        const mapStore = useMapStore();
+        const map = mapStore.getMap() as OLMap ;
+        if (map){
+            const tgt = map.getViewport() as HTMLDivElement; 
+            const deckLayer = createDeckGLInstance(tgt);
+            if(deckLayer){
+                map.addLayer(deckLayer);
+                console.log('deckLayer added:',deckLayer);
+            } else {
+                console.error('createDeckGLInstance returned null');
+            }
+        } else {
+            console.error('map is null');
+        }
         console.log('AdvancedUserView onMounted');
     });
 </script>

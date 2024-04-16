@@ -46,6 +46,7 @@
 
     onMounted(() => {
         console.log('SrAdvOptSidebar onMounted');
+
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
@@ -72,6 +73,10 @@
                 // }
                 const currentRecs = result["elevation"];
                 const curFlatRecs = currentRecs.flat();
+                if(curFlatRecs.length === 0) {
+                    console.log('atl06p cb curFlatRecs.length === 0');
+                    return;
+                }
                 elevationStore.addNumRecs(curFlatRecs.length);
                 recs.push(curFlatRecs);
                 cb_count.value += 1;
@@ -140,14 +145,23 @@
                     // Display a toast message indicating successful completion
                     const flatRecs = recs.flat();
                     console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                    updateElevationLayer(flatRecs);
-                    toast.add({
-                        severity: 'success', // Use 'success' severity for successful operations
-                        summary: 'Success', // A short summary of the outcome
-                        detail: `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`, 
-                        life: 10000 // Adjust the duration as needed
-                    });
-                    jobsStore.updateJob({id: job.id,status: 'success'});
+                    if(flatRecs.length > 0) {
+                        updateElevationLayer(flatRecs);
+                        toast.add({
+                            severity: 'success', // Use 'success' severity for successful operations
+                            summary: 'Success', // A short summary of the outcome
+                            detail: `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`, 
+                            life: 10000 // Adjust the duration as needed
+                        });
+                        jobsStore.updateJob({id: job.id,status: 'success'});
+                    } else {
+                        toast.add({
+                            severity: 'error', // Use 'error' severity for error messages
+                            summary: 'No Data returned', // A short summary of the error
+                            detail: 'No data returned from SlideRule.', // A more detailed error message
+                        });
+                        jobsStore.updateJob({id: job.id,status: 'error'});
+                    }
                 },
                 error => {
                     // Log the error to the console

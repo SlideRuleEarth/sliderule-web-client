@@ -53,14 +53,28 @@ export class SlideRuleDexie extends Dexie {
     }
   }
     // Function to update the state of a request
-    async updateRequestState(reqId: number, newState: string): Promise<void> {
-      try {
-          await this.requestStates.update(reqId, { state: newState });
-          console.log(`Request state updated for req_id ${reqId} to ${newState}.`);
-      } catch (error) {
-          console.error(`Failed to update request state for req_id ${reqId}:`, error);
-          throw error; // Rethrowing the error for further handling if needed
-      }
+  async updateRequestState(reqId: number, newState: string): Promise<void> {
+    try {
+        await this.requestStates.update(reqId, { state: newState });
+        console.log(`Request state updated for req_id ${reqId} to ${newState}.`);
+    } catch (error) {
+        console.error(`Failed to update request state for req_id ${reqId}:`, error);
+        throw error; // Rethrowing the error for further handling if needed
+    }
   }
+
+  // Method to fetch elevation data in chunks
+  async getElevationsChunk(offset: number, chunkSize: number): Promise<Elevation[]> {
+    try {
+        // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
+        const elevationsChunk: Elevation[] = await this.elevations.offset(offset).limit(chunkSize).toArray();
+        return elevationsChunk;
+    } catch (error) {
+        console.error("Failed to fetch elevation chunk:", error);
+        throw error; // Rethrowing the error for further handling if needed
+    }
+  }
+
+
 }
 export const db = new SlideRuleDexie();

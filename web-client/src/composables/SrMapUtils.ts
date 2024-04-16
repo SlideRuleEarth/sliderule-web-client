@@ -122,43 +122,55 @@ function renderDeck({size, viewState}: {size: number[], viewState: {center: numb
     deckStore.deckInstance.redraw();
 }
 
-export function createDeckGLInstance(tgt:HTMLDivElement): Layer{
-    const deck = new Deck({
-        initialViewState: {longitude: 0, latitude: 0, zoom: 1},
-        controller: false,
-        parent: tgt,
-        style: {pointerEvents: 'none', zIndex: '1'},
-        layers: []
-    });
-    deckStore.setDeckInstance(deck);
-    const layerOptions = {
-        render: renderDeck as any,
-        title: 'DeckGL Layer',
+export function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
+    try{
+        const deck = new Deck({
+            initialViewState: {longitude: 0, latitude: 0, zoom: 1},
+            controller: false,
+            parent: tgt,
+            style: {pointerEvents: 'none', zIndex: '1'},
+            layers: []
+        });
+        deckStore.setDeckInstance(deck);
+        const layerOptions = {
+            render: renderDeck as any,
+            title: 'DeckGL Layer',
+        }
+        const deckLayer = new Layer({
+            ...layerOptions
+        });
+        return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
+    } catch (error) {
+        console.error('Error creating DeckGL instance:',error);
+        return null;
     }
-    const deckLayer = new Layer({
-        ...layerOptions
-    });
-    return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
 }
 
 export function updateElevationLayer(elevationData:Elevation[]): void{
-    const layer =     
-        new PointCloudLayer({
-            id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-            data: elevationData,
-            getPosition: (d:Elevation) => {
-                return [d.longitude, d.latitude, d.h_mean]
-            },
-            getNormal: [0, 0, 1],
-            getColor: (d:Elevation) => {
-                const color = getColorForElevation(d.h_mean, 0.0, 300.0) as [number, number, number, number];
-                return color;
-            },
-            pointSize: 3,
-        })
-
-    deckStore.deckInstance.setProps({layers:[layer]});
-
+    try{
+        //console.log('updateElevationLayer:',elevationData);
+        const layer =     
+            new PointCloudLayer({
+                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
+                data: elevationData,
+                getPosition: (d:Elevation) => {
+                    return [d.longitude, d.latitude, d.h_mean]
+                },
+                getNormal: [0, 0, 1],
+                getColor: (d:Elevation) => {
+                    const color = getColorForElevation(d.h_mean, 0.0, 300.0) as [number, number, number, number];
+                    return color;
+                },
+                pointSize: 3,
+            });
+        if(deckStore.deckInstance){
+            deckStore.deckInstance.setProps({layers:[layer]});
+        } else {
+            console.error('Error updating elevation deckStore.deckInstance:',deckStore.deckInstance);
+        }
+    } catch (error) {
+        console.error('Error updating elevation layer:',error);
+    }
 }
 
 export interface SrTimeDelta{

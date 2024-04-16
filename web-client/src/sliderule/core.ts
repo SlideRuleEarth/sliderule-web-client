@@ -301,6 +301,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   const rec_data_size = buffer.readUInt32BE(4);
                   if (rec_version != REC_VERSION) {
                     throw new Error(`fetchAndProcessResult invalid record format: ${rec_version}`);
+                    loop_done = true;
                   }
                   // Set record attributes
                   rec_size = rec_type_size + rec_data_size;
@@ -329,6 +330,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   ).catch(error => {
                     decode_errors++;
                     console.error(`Error decoding record of type ${rec_type}:`, error, 'decode_errors:', decode_errors);
+                    loop_done = true;
+                    bytes_to_process = 0;
                   });
                   // Update stats
                   if (!(rec_type in results)) {
