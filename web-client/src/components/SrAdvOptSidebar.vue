@@ -11,16 +11,17 @@
     import { updateElevationLayer} from '@/composables/SrMapUtils';
     import { type Elevation } from '@/composables/db';
     import { useMapStore } from '@/stores/mapStore';
-    import {useElevationStore} from "@/stores/elevationStore";
+    import {useCurAtl06JobSumStore} from "@/stores/curAtl06JobSumStore";
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
-    import { useReqParamsStore } from "@/stores/reqParamsStore";
+    import { NullReqParams, useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useJobsStore, type Job } from "@/stores/jobsStore";
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
     import { db } from '@/composables/db';
     import { updateElevationExtremes } from '@/composables/SrMapUtils';
+import { N } from "vitest/dist/reporters-P7C2ytIv";
 
 
     const reqParamsStore = useReqParamsStore();
@@ -31,7 +32,7 @@
         const mapStore = useMapStore();
         mapStore.toggleGraticule();
     }
-    const elevationStore = useElevationStore();
+    const curJobSumStore = useCurAtl06JobSumStore();
 
     const toast = useToast();
     const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
@@ -77,23 +78,9 @@
                     console.log('atl06p cb curFlatRecs.length === 0');
                     return;
                 }
-                elevationStore.addNumRecs(curFlatRecs.length);
+                curJobSumStore.addNumRecs(curFlatRecs.length);
                 recs.push(curFlatRecs);
                 cb_count.value += 1;
-                // if(cb_count.value === 1) {
-                //     console.log("FIRST: atl06p cb", cb_count.value," result:", result)
-                //     const r = curFlatRecs[0];
-                //     console.log(`h_mean:${r.h_mean}  min:${elevationStore.getMin()} max:${elevationStore.getMax()}`)
-                // }
-                // for (let i = 0; i < curFlatRecs.length; i++) {
-                //     let rec = curFlatRecs[i];
-                //     if(rec.h_mean < elevationStore.getMin()) {
-                //         elevationStore.setMin(rec.h_mean);
-                //     }
-                //     if(rec.h_mean > elevationStore.getMax()) {
-                //         elevationStore.setMax(rec.h_mean);
-                //     }
-                // }
                 updateElevationExtremes(curFlatRecs);
                 const flatRecs = recs.flat();
                 //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
@@ -224,7 +211,6 @@
             console.log('GEDI TBD');
             toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
         }
-        jobsStore.updateJobElapsedTime(job.id);
     };
 
 </script>
@@ -259,7 +245,7 @@
             <div class="button-spinner-container">
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
                 <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-                <span v-if="isLoading">Loading... {{ elevationStore.getNumRecs() }}</span>
+                <span v-if="isLoading">Loading... {{ curJobSumStore.getNumRecs() }}</span>
             </div>
             <div class="sr-svr-msg-console">
                 <span class="sr-svr-msg">{{jobsStore.getConsoleMsg()}}</span>

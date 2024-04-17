@@ -34,12 +34,10 @@
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
-  import { clearPolyCoords, updateElevationLayer, updateElevationExtremes } from "@/composables/SrMapUtils";
+  import { clearPolyCoords } from "@/composables/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
-  import { db } from "@/composables/db";
-  import { Elevation } from "@/composables/db";
 
   const srToastStore = useSrToastStore();
 
@@ -256,33 +254,6 @@
     updateCurrentParms();
   };
 
-  async function fetchAndUpdateElevationData() {
-    try {
-        let offset = 0;
-        const chunkSize = 100000; // the size of each chunk
-        let hasMore = true;
-        let elevationData: Elevation[] = []; 
-        while (hasMore) {
-            const elevationDataChunk = await db.getElevationsChunk(offset, chunkSize);
-            updateElevationExtremes(elevationDataChunk);  // Update extremes with each chunk
-            elevationData = elevationData.concat(elevationDataChunk);
-            updateElevationLayer(elevationData);     // Update the layer with each chunk
-
-            offset += elevationDataChunk.length;
-            hasMore = elevationDataChunk.length === chunkSize;
-
-            // allow the UI thread to update
-            await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
-            console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
-        }
-        toast.add({ severity: 'success', summary: 'Elevation data loaded', detail: 'Elevation data loaded successfully', life: srToastStore.getLife() });
-    } catch (error) {
-        console.error('Failed to fetch and update elevation data:', error);
-    }
-  }
-
-
-
   onMounted(() => {
     console.log("SrMap onMounted");
     //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -356,7 +327,6 @@
         // const deckLayer = createDeckGLInstance(tgt);
         // map.addLayer(deckLayer);
         updateMapView("onMounted");
-        //fetchAndUpdateElevationData();
 
       } else {
         console.log("Error:map is null");

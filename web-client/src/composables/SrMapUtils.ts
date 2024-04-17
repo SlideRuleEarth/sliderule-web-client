@@ -14,14 +14,14 @@ import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { useDeckStore } from '@/stores/deckStore';
 import { type Elevation } from '@/composables/db';
-import { useElevationStore } from '@/stores/elevationStore';
+import { useCurAtl06JobSumStore } from '@/stores/curAtl06JobSumStore';
+import { db } from "@/composables/db";
 
 
 const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
 const deckStore = useDeckStore();
-const elevationStore = useElevationStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -97,15 +97,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     return interpolateColor(purple, yellow, factor);
 }
 
-// // Function to get hex formatted color for elevation
-// function getHexColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
-//     const purple = [128, 0, 128]; // RGB for purple
-//     const yellow = [255, 255, 0]; // RGB for yellow
-//     const factor = (elevation - minElevation) / (maxElevation - minElevation);
-//     return rgbToHex(interpolateColor(purple, yellow, factor));
-// }
-  
-
 // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
 // size is an array [width, height] indicating the dimensions of the map's viewport.
 // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
@@ -118,8 +109,8 @@ function renderDeck({size, viewState}: {size: number[], viewState: {center: numb
     const zoom = viewState.zoom - 1;
     const bearing = (-viewState.rotation * 180) / Math.PI;
     const deckViewState = {bearing, longitude, latitude, zoom};
-    deckStore.deckInstance.setProps({width, height, viewState: deckViewState});
-    deckStore.deckInstance.redraw();
+    deckStore.getDeckInstance().setProps({width, height, viewState: deckViewState});
+    deckStore.getDeckInstance().redraw();
 }
 
 export function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
@@ -163,10 +154,10 @@ export function updateElevationLayer(elevationData:Elevation[]): void{
                 },
                 pointSize: 3,
             });
-        if(deckStore.deckInstance){
-            deckStore.deckInstance.setProps({layers:[layer]});
+        if(deckStore.getDeckInstance()){
+            deckStore.getDeckInstance().setProps({layers:[layer]});
         } else {
-            console.error('Error updating elevation deckStore.deckInstance:',deckStore.deckInstance);
+            console.error('Error updating elevation deckStore.deckInstance:',deckStore.getDeckInstance());
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
@@ -211,11 +202,10 @@ export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
     return parts.length > 0 ? parts.join(', ') : '0 secs';
 }
 
-
 export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
-    const elevationStore = useElevationStore();
-    let localMin = elevationStore.getMin();
-    let localMax = elevationStore.getMax();
+    const curJobSumStore = useCurAtl06JobSumStore();
+    let localMin = curJobSumStore.get_h_mean_Min();
+    let localMax = curJobSumStore.get_h_mean_Max();
 
     curFlatRecs.forEach(rec => {
         if (rec.h_mean < localMin) {
@@ -226,39 +216,31 @@ export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
         }
     });
 
-    elevationStore.setMin(localMin);
-    elevationStore.setMax(localMax);
+    curJobSumStore.set_h_mean_Min(localMin);
+    curJobSumStore.set_h_mean_Max(localMax);
 }
 
-// This function can be called within a Vue component setup function or in a lifecycle hook
+export async function fetchAndUpdateElevationData() {
+    try {
+        let offset = 0;
+        const chunkSize = 100000; // the size of each chunk
+        let hasMore = true;
+        let elevationData: Elevation[] = []; 
+        while (hasMore) {
+            const elevationDataChunk = await db.getElevationsChunk(offset, chunkSize);
+            updateElevationExtremes(elevationDataChunk);  // Update extremes with each chunk
+            elevationData = elevationData.concat(elevationDataChunk);
+            updateElevationLayer(elevationData);     // Update the layer with each chunk
 
-// export function createLegend() {
-//     const legend = document.createElement('div');
-//     legend.innerHTML = '<strong>Elevation Legend</strong><br>';
-//     legend.style.color = 'var(--primary-color)';
-//     legend.style.position = 'absolute';
-//     legend.style.bottom = '1.25rem'; // 20px / 16px = 1.25rem
-//     legend.style.right = '1.25rem'; // 20px / 16px = 1.25rem
-//     legend.style.padding = '0.625rem'; // 10px / 16px = 0.625rem
-//     legend.style.background = 'rgba(255, 255, 255, 0.8)';
-//     legend.style.borderRadius = '0.3125rem'; // 5px / 16px = 0.3125rem
+            offset += elevationDataChunk.length;
+            hasMore = elevationDataChunk.length === chunkSize;
 
-//     const gradientDiv = document.createElement('div');
-//     gradientDiv.style.height = '1.25rem'; // 20px / 16px = 1.25rem
-//     gradientDiv.style.width = '12.5rem'; // 200px / 16px = 12.5rem
-//     gradientDiv.style.background = 'linear-gradient(to right, purple, yellow)';
-//     legend.appendChild(gradientDiv);
+            // allow the UI thread to update
+            await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
+            console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
+        }
+    } catch (error) {
+        console.error('Failed to fetch and update elevation data:', error);
+    }
+  }
 
-//     const minLabel = document.createElement('span');
-//     minLabel.innerHTML = `${elevationStore.getMin().toFixed(1)}m`; // Rounded to 1 decimal place
-//     minLabel.style.float = 'left';
-
-//     const maxLabel = document.createElement('span');
-//     maxLabel.innerHTML = `${elevationStore.getMax().toFixed(1)}m`; // Rounded to 1 decimal place
-//     maxLabel.style.float = 'right';
-
-//     legend.appendChild(minLabel);
-//     legend.appendChild(maxLabel);
-
-//     document.body.appendChild(legend);
-// }
