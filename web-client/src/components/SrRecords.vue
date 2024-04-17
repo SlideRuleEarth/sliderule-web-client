@@ -36,16 +36,20 @@ onUnmounted(() => {
                 <template #body="slotProps">
                     <i 
                       :class="[slotProps.data.star ? PrimeIcons.STAR_FILL : PrimeIcons.STAR]"
-                      @click="() => requestsStore.toggleStar(slotProps.data.id)"
+                      @click="() => requestsStore.toggleStar(slotProps.data.req_id)"
                     ></i>
                 </template>
             </Column>
-            <Column v-for="col in requestsStore.columns" :key="col.field" :field="col.field" :header="col.header"></Column>
+            <Column v-for="col in requestsStore.columns" :key="col.field" :field="col.field" >
+                <template #header="">
+                    <span v-tooltip="col.tooltip">{{ col.header }}</span>
+                </template>
+            </Column>
             <Column field="Actions" header="" >
                 <template #body="slotProps">
                     <i 
                       class="pi pi-chart-line sr-text-with-code-icon"
-                      @click="analyze(slotProps.data.id)"
+                      @click="analyze(slotProps.data.req_id)"
                       v-tooltip="'Analyze'"
                     ></i>
                 </template>
@@ -54,7 +58,7 @@ onUnmounted(() => {
                 <template #body="slotProps">
                     <i 
                       class="pi pi-code sr-src-code-icon "
-                      @click="sourceCodePopup(slotProps.data.id)"
+                      @click="sourceCodePopup(slotProps.data.req_id)"
                       v-tooltip="'View source code'"
                     ></i>
                 </template>

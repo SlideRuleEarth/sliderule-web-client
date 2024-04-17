@@ -134,48 +134,53 @@
                     console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                     if(flatRecs.length > 0) {
                         updateElevationLayer(flatRecs);
+                        const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
                         toast.add({
                             severity: 'success', // Use 'success' severity for successful operations
                             summary: 'Success', // A short summary of the outcome
-                            detail: `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`, 
+                            detail: status_details, // A more detailed message
                             life: 10000 // Adjust the duration as needed
                         });
-                        requestsStore.updateReq({req_id: req.req_id,status: 'success'});
+                        requestsStore.updateReq({req_id: req.req_id,status: 'success' ,status_details: status_details});
                     } else {
+                        const status_details = 'No data returned from SlideRule.';
                         toast.add({
                             severity: 'error', // Use 'error' severity for error messages
                             summary: 'No Data returned', // A short summary of the error
-                            detail: 'No data returned from SlideRule.', // A more detailed error message
+                            detail: status_details, // A more detailed error message
                         });
-                        requestsStore.updateReq({req_id: req.req_id,status: 'error'});
+                        console.log('No data returned from SlideRule.');
+                        requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
                     }
                 },
                 error => {
                     // Log the error to the console
                     console.log('runSlideRuleClicked Error = ', error);
                     // Display a toast message indicating the error
+                    const status_details = `An error occurred while running SlideRule: ${error}`;
                     toast.add({
                         severity: 'error', // Use 'error' severity for error messages
                         summary: 'Error', // A short summary of the error
-                        detail: `An error occurred while running SlideRule: ${error}`, // A more detailed error message
+                        detail: status_details, // A more detailed error message
                     });
                     let emsg = '';
                     if (navigator.onLine) {
                         emsg =  'Network error: Possible DNS resolution issue or server down.';
                     } else {
-                        emsg = 'Network error: your browser appears to be offline.';
+                        emsg = 'Network error: your browser appears to be/have been offline.';
                     }
                     toast.add({
                         severity: 'error',   
                         summary: 'Error',   
                         detail: emsg,      
                     });
-                    requestsStore.updateReq({req_id: req.req_id,status: 'error'});
+                    requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: emsg});
                 }
             ).catch((error => {
                 // Log the error to the console
                 console.error('runSlideRuleClicked Error = ', error);
-                requestsStore.updateReq({req_id: req.req_id,status: 'error'});
+                const status_details = `An error occurred while running SlideRule: ${error}`;
+                requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: status_details});
 
                 // Display a toast message indicating the error
                 toast.add({

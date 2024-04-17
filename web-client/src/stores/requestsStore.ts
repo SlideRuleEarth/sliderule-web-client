@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
-import { type NullReqParams } from '@/stores/reqParamsStore';
 import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
 import { db, type Request } from '@/composables/db';
 import { liveQuery } from 'dexie';
-import { useElapsedTime } from '@/composables/useElapsedTime';
 
 
 export const useReqsStore = defineStore('reqs', {
@@ -11,12 +9,13 @@ export const useReqsStore = defineStore('reqs', {
     currentReqId: '' as string,
     reqs: [] as Request[],
     columns: [
-      { field: 'req_id', header: 'ID' },
-      { field: 'status', header: 'Status' },
-      { field: 'func', header: 'Function' },
-      { field: 'parameters', header: 'Parameters' },
-      { field: 'elapsed_time', header: 'Elapsed Time'}
+      { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
+      { field: 'status', header: 'Status', tooltip: 'Request Status' },
+      { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
+      { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
+      { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
     ],
+    error_in_req: [] as boolean[],
     liveQuerySubscription: null as any,
     msg:'ready'
   }),
@@ -45,28 +44,31 @@ export const useReqsStore = defineStore('reqs', {
       console.log('createNewReq() newReqId:', newReqId);
       await this.fetchReqs();  // Fetch the updated requests from the db
       console.log(`New req created with ID ${this.reqs[newReqId]}.`);
+      this.error_in_req[newReqId-1] = false;
       return this.reqs[newReqId-1];  // array is zero based db is 1 based
     },
     setMsg(msg: string) {
       this.msg = msg;
     },
-    async updateReq(updateParams: Request): Promise<void> {
+    async updateReq(updateParams: Partial<Request>): Promise<void> {
       const { req_id, start_time, end_time, ...restParams } = updateParams;
+      console.log('updateReq-->updateParams:', updateParams);
       try{
         if(!req_id) throw new Error('Request ID is required to update a request.');
-        const jobIndex = this.reqs.findIndex(req => req.req_id === req_id);
+        this.fetchReqs();
+        const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
+        console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
     
         let checked_st = start_time;
         if(!checked_st){
-          console.log('this.reqs[jobIndex]:', this.reqs[jobIndex])
-          checked_st = this.reqs[jobIndex].start_time;
+          checked_st = this.reqs[reqIndex].start_time;
           if(!checked_st){
             checked_st = new Date().toISOString();
           }
         }
         let checked_et = end_time;
         if(!checked_et){
-          checked_et = this.reqs[jobIndex].end_time;
+          checked_et = this.reqs[reqIndex].end_time;
           if(!checked_et){
             checked_et = new Date().toISOString();
           }
@@ -74,11 +76,15 @@ export const useReqsStore = defineStore('reqs', {
         const updatedReq = {
           ...updateParams,
           elapsed_time:  srTimeDeltaString(srTimeDelta(new Date(checked_st), new Date(checked_et)))
+        };
+        if(this.error_in_req[reqIndex] && (updatedReq.status != 'error')){
+          // received records from the server after an error, ignore status updates
+          console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updatedReq, ' as it was in error state');
+          return;
+        } else {
+          console.log(`Request with ID ${req_id}  to be updated with:`, updatedReq);
         }
-  
-
         await db.updateRequest(req_id, updatedReq);
-        console.log(`Request with ID ${req_id} updated with:`, restParams);
       } catch (error) {
         console.error(`Failed to update request with ID ${req_id}:`, error);
         throw error; // Rethrowing the error for further handling if needed

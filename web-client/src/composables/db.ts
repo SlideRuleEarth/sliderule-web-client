@@ -33,6 +33,7 @@ export interface Request {
     start_time?: string; // ISO string rep of start time of request
     end_time?: string; // ISO string rep of end time of request
     elapsed_time?: string; // ISO string rep of elapsed time
+    status_details?: string; // status message (details of status)
 }
 
 export class SlideRuleDexie extends Dexie {
@@ -45,7 +46,7 @@ export class SlideRuleDexie extends Dexie {
     super('slideruleDB');
     this.version(1).stores({
       elevations: '++db_id, req_id, cycle, gt, region, rgt, spot', // Primary key and indexed props
-      requests: '++req_id, star, status, func, parameters, start_time, end_time' // req_id is auto-incrementing and the primary key here
+      requests: '++req_id, star, status, func, parameters, start_time, end_time, elapsed_time, status_details' // req_id is auto-incrementing and the primary key here
     });
   }
   // Function to add a new request with status 'pending'
@@ -60,15 +61,15 @@ export class SlideRuleDexie extends Dexie {
     }
   }
     // Function to update the status of a request
-  async updateRequestStatus(reqId: number, newStatus: string): Promise<void> {
-    try {
-        await this.requests.update(reqId, { status: newStatus });
-        console.log(`Request status updated for req_id ${reqId} to ${newStatus}.`);
-    } catch (error) {
-        console.error(`Failed to update request status for req_id ${reqId}:`, error);
-        throw error; // Rethrowing the error for further handling if needed
-    }
-  }
+  // async updateRequestStatus(reqId: number, newStatus: string): Promise<void> {
+  //   try {
+  //       await this.requests.update(reqId, { status: newStatus });
+  //       console.log(`Request status updated for req_id ${reqId} to ${newStatus}.`);
+  //   } catch (error) {
+  //       console.error(`Failed to update request status for req_id ${reqId}:`, error);
+  //       throw error; // Rethrowing the error for further handling if needed
+  //   }
+  // }
 
   // Function to update any field of a specific request
   async updateRequest(reqId: number, updates: Partial<Request>): Promise<void> {
