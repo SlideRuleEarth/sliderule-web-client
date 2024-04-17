@@ -4,6 +4,8 @@ export const useCurAtl06JobSumStore = defineStore('curAtl06JobSum', {
     state: () => ({
         h_mean_min: 100000,
         h_mean_max: -100000,
+        h_mean_low: 100000,   // 5th percentile
+        h_mean_high: -100000, // 95th percentile
         lat_min: -90,
         lat_max: 90,
         lon_min: -180,
@@ -63,6 +65,17 @@ export const useCurAtl06JobSumStore = defineStore('curAtl06JobSum', {
         },
         getNumRecs() {
             return this.num_recs;
-        }
+        },
+        setPercentiles() {
+            const h_mean_range = this.h_mean_max - this.h_mean_min;
+            this.h_mean_low = this.h_mean_min + 0.05 * h_mean_range;
+            this.h_mean_high = this.h_mean_min + 0.95 * h_mean_range;
+        },
+        get_h_mean_Low() {
+            return this.h_mean_low;
+        },
+        get_h_mean_High() {
+            return this.h_mean_high;
+        },
     },
 });

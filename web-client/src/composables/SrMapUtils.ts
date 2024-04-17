@@ -22,6 +22,7 @@ const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
 const deckStore = useDeckStore();
+const curAtl06JobSumStore = useCurAtl06JobSumStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -76,18 +77,16 @@ export function drawGeoJson(geoJsonData:string) {
 }
 
 // Helper function to interpolate between two colors
-function interpolateColor(color1: number[], color2:number[], factor:number): number[] {
-    if (arguments.length < 3) { 
-      factor = 0.5; 
-    }
+function interpolateColor(color1: number[], color2: number[], factor: number = 0.5, alpha: number = 255): number[] {
+    factor = Math.max(0, Math.min(1, factor)); // Clamp factor between 0 and 1
+  
     const result = color1.slice();
     for (let i = 0; i < 3; i++) {
       result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
     }
-    result[3] = 255; // Alpha
+    result[3] = alpha; 
     return result;
-};
-
+  };
   
 // Function to get color for elevation
 function getColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
@@ -140,6 +139,7 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
 export function updateElevationLayer(elevationData:Elevation[]): void{
     try{
         //console.log('updateElevationLayer:',elevationData);
+
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
@@ -149,7 +149,7 @@ export function updateElevationLayer(elevationData:Elevation[]): void{
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d:Elevation) => {
-                    const color = getColorForElevation(d.h_mean, 0.0, 300.0) as [number, number, number, number];
+                    const color = getColorForElevation(d.h_mean, curAtl06JobSumStore.get_h_mean_Low() , curAtl06JobSumStore.get_h_mean_High()) as [number, number, number, number];
                     return color;
                 },
                 pointSize: 3,
@@ -202,10 +202,10 @@ export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
     return parts.length > 0 ? parts.join(', ') : '0 secs';
 }
 
+
 export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
-    const curJobSumStore = useCurAtl06JobSumStore();
-    let localMin = curJobSumStore.get_h_mean_Min();
-    let localMax = curJobSumStore.get_h_mean_Max();
+    let localMin = curAtl06JobSumStore.get_h_mean_Min();
+    let localMax = curAtl06JobSumStore.get_h_mean_Max();
 
     curFlatRecs.forEach(rec => {
         if (rec.h_mean < localMin) {
@@ -216,9 +216,12 @@ export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
         }
     });
 
-    curJobSumStore.set_h_mean_Min(localMin);
-    curJobSumStore.set_h_mean_Max(localMax);
+    curAtl06JobSumStore.set_h_mean_Min(localMin);
+    curAtl06JobSumStore.set_h_mean_Max(localMax);
+    curAtl06JobSumStore.setPercentiles()
 }
+
+
 
 export async function fetchAndUpdateElevationData() {
     try {
