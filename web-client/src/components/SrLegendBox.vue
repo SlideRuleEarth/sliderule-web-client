@@ -4,17 +4,17 @@
     <div class = "sr-legend-gradient-box">
     </div>
     <div class="sr-legend-minmax">
-        <span class="sr-legend-min">{{ parseFloat(curJobSumStore.get_h_mean_Min().toFixed(1)) }}m</span>
-        <span class="sr-legend-max">{{ parseFloat(curJobSumStore.get_h_mean_Max().toFixed(1)) }}m</span>
+        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) }}m</span>
+        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) }}m</span>
     </div>
 </div> 
 </template>
 
 <script setup lang="ts">
   import { onMounted } from 'vue'
-  import { useCurAtl06JobSumStore } from '@/stores/curAtl06JobSumStore';
+  import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 
-  const curJobSumStore = useCurAtl06JobSumStore();
+  const curReqSumStore = useCurAtl06ReqSumStore();
   const emit = defineEmits(['legendbox-created', 'picked-changed']);
   
   onMounted(() => {

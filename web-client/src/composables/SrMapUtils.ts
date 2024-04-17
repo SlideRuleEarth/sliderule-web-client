@@ -14,7 +14,7 @@ import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { useDeckStore } from '@/stores/deckStore';
 import { type Elevation } from '@/composables/db';
-import { useCurAtl06JobSumStore } from '@/stores/curAtl06JobSumStore';
+import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 import { db } from "@/composables/db";
 
 
@@ -22,7 +22,7 @@ const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
 const deckStore = useDeckStore();
-const curAtl06JobSumStore = useCurAtl06JobSumStore();
+const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -149,7 +149,7 @@ export function updateElevationLayer(elevationData:Elevation[]): void{
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d:Elevation) => {
-                    const color = getColorForElevation(d.h_mean, curAtl06JobSumStore.get_h_mean_Low() , curAtl06JobSumStore.get_h_mean_High()) as [number, number, number, number];
+                    const color = getColorForElevation(d.h_mean, curAtl06ReqSumStore.get_h_mean_Low() , curAtl06ReqSumStore.get_h_mean_High()) as [number, number, number, number];
                     return color;
                 },
                 pointSize: 3,
@@ -204,8 +204,8 @@ export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
 
 
 export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
-    let localMin = curAtl06JobSumStore.get_h_mean_Min();
-    let localMax = curAtl06JobSumStore.get_h_mean_Max();
+    let localMin = curAtl06ReqSumStore.get_h_mean_Min();
+    let localMax = curAtl06ReqSumStore.get_h_mean_Max();
 
     curFlatRecs.forEach(rec => {
         if (rec.h_mean < localMin) {
@@ -216,9 +216,9 @@ export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
         }
     });
 
-    curAtl06JobSumStore.set_h_mean_Min(localMin);
-    curAtl06JobSumStore.set_h_mean_Max(localMax);
-    curAtl06JobSumStore.setPercentiles()
+    curAtl06ReqSumStore.set_h_mean_Min(localMin);
+    curAtl06ReqSumStore.set_h_mean_Max(localMax);
+    curAtl06ReqSumStore.setPercentiles()
 }
 
 

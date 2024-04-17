@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-export const useCurAtl06JobSumStore = defineStore('curAtl06JobSum', {
+export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
     state: () => ({
         h_mean_min: 100000,
         h_mean_max: -100000,

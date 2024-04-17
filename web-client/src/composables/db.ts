@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
 
 export interface Elevation {
     req_id?: number;
@@ -25,26 +26,32 @@ export interface Elevation {
 
 export interface Request {
     req_id?: number; // auto incrementing
-    state: string; // states: 'pending', 'processing', 'success', 'error'
+    star?: boolean; // mark as favorite
+    status?: string; // status: 'pending', 'processing', 'success', 'error'
+    func?: string; // function name
+    parameters?: ReqParams; // JSON string of parameters
+    start_time?: string; // ISO string rep of start time of request
+    end_time?: string; // ISO string rep of end time of request
+    elapsed_time?: string; // ISO string rep of elapsed time
 }
 
 export class SlideRuleDexie extends Dexie {
   // 'elevations' is added by dexie when declaring the stores()
   // We just tell the typing system this is the case
   elevations!: Table<Elevation>; 
-  requestStates!: Table<Request>;
+  requests!: Table<Request>;
 
   constructor() {
     super('slideruleDB');
     this.version(1).stores({
       elevations: '++db_id, req_id, cycle, gt, region, rgt, spot', // Primary key and indexed props
-      requestStates: '++req_id, state' // req_id is auto-incrementing and the primary key here
+      requests: '++req_id, star, status, func, parameters, start_time, end_time' // req_id is auto-incrementing and the primary key here
     });
   }
-  // Function to add a new request with state 'pending'
+  // Function to add a new request with status 'pending'
   async addPendingRequest(): Promise<number> {
     try {
-        const reqId = await this.requestStates.add({ state: 'pending' });
+        const reqId = await this.requests.add({ status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date().toISOString(), end_time: new Date().toISOString()});
         return reqId;
     } catch (error) {
         console.error("Failed to add pending request:", error);
@@ -52,17 +59,38 @@ export class SlideRuleDexie extends Dexie {
         throw error; // Rethrowing allows the calling context to handle it further
     }
   }
-    // Function to update the state of a request
-  async updateRequestState(reqId: number, newState: string): Promise<void> {
+    // Function to update the status of a request
+  async updateRequestStatus(reqId: number, newStatus: string): Promise<void> {
     try {
-        await this.requestStates.update(reqId, { state: newState });
-        console.log(`Request state updated for req_id ${reqId} to ${newState}.`);
+        await this.requests.update(reqId, { status: newStatus });
+        console.log(`Request status updated for req_id ${reqId} to ${newStatus}.`);
     } catch (error) {
-        console.error(`Failed to update request state for req_id ${reqId}:`, error);
+        console.error(`Failed to update request status for req_id ${reqId}:`, error);
         throw error; // Rethrowing the error for further handling if needed
     }
   }
 
+  // Function to update any field of a specific request
+  async updateRequest(reqId: number, updates: Partial<Request>): Promise<void> {
+    try {
+        console.log("updates:",updates);
+        await this.requests.update(reqId, updates);
+        console.log(`Request updated for req_id ${reqId} with changes:`, updates);
+    } catch (error) {
+        console.error(`Failed to update request for req_id ${reqId}:`, error);
+        throw error; // Rethrowing the error for further handling if needed
+    }
+  }
+  // Function to delete a specific request
+  async deleteRequest(reqId: number): Promise<void> {
+    try {
+        await this.requests.delete(reqId);
+        console.log(`Request deleted for req_id ${reqId}.`);
+    } catch (error) {
+        console.error(`Failed to delete request for req_id ${reqId}:`, error);
+        throw error; // Rethrowing the error for further handling if needed
+    }
+  }
   // Method to fetch elevation data in chunks
   async getElevationsChunk(offset: number, chunkSize: number): Promise<Elevation[]> {
     try {
@@ -74,6 +102,7 @@ export class SlideRuleDexie extends Dexie {
         throw error; // Rethrowing the error for further handling if needed
     }
   }
+
 
 
 }

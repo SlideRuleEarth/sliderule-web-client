@@ -11,28 +11,28 @@
     import { updateElevationLayer} from '@/composables/SrMapUtils';
     import { type Elevation } from '@/composables/db';
     import { useMapStore } from '@/stores/mapStore';
-    import {useCurAtl06JobSumStore} from "@/stores/curAtl06JobSumStore";
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
-    import { NullReqParams, useReqParamsStore } from "@/stores/reqParamsStore";
+    import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
-    import { useJobsStore, type Job } from "@/stores/jobsStore";
+    import { useReqsStore } from "@/stores/requestsStore";
+    import { type Request } from '@/composables/db';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
     import { db } from '@/composables/db';
     import { updateElevationExtremes } from '@/composables/SrMapUtils';
-import { N } from "vitest/dist/reporters-P7C2ytIv";
+    import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
-    const jobsStore = useJobsStore();
+    const requestsStore = useReqsStore();
     const srToastStore = useSrToastStore();
     const graticuleClick = () => {
         const mapStore = useMapStore();
         mapStore.toggleGraticule();
     }
-    const curJobSumStore = useCurAtl06JobSumStore();
+    const curReqSumStore = useCurAtl06ReqSumStore();
 
     const toast = useToast();
     const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
@@ -59,10 +59,10 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
         }
     });
 
-    async function runAtl06(job:Job){
-        console.log('runAtl06');
+    async function runAtl06(req:Request){
+        console.log('runAtl06 with req:',req);
         const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
-        jobsStore.updateJob({id: job.id, parameters:atl06pParams, func:'atl06', status: 'pending'});
+        requestsStore.updateReq({req_id: req.req_id, parameters:atl06pParams, func:'atl06', status: 'pending'});
         init(sysConfigStore.getSysConfig());
         //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
@@ -78,7 +78,7 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
                     console.log('atl06p cb curFlatRecs.length === 0');
                     return;
                 }
-                curJobSumStore.addNumRecs(curFlatRecs.length);
+                curReqSumStore.addNumRecs(curFlatRecs.length);
                 recs.push(curFlatRecs);
                 cb_count.value += 1;
                 updateElevationExtremes(curFlatRecs);
@@ -90,33 +90,33 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
                         // Adding req_id to each record in curFlatRecs
                         const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
                             ...rec,
-                            req_id: jobsStore.currentJobId, 
+                            req_id: requestsStore.currentReqId, 
                         }));
                         //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
                         await db.elevations.bulkAdd(updatedFlatRecs);
                         //console.log('Bulk add successful');
                     } catch (error) {
                         console.error('Bulk add failed: ', error);
-                        jobsStore.setMsg('DB txn failed');                    
+                        requestsStore.setMsg('DB txn failed');                    
                     }
                 }).catch((error) => {
                     console.error('Transaction failed: ', error);
-                    jobsStore.setMsg('Transaction failed');
+                    requestsStore.setMsg('Transaction failed');
                     toast.add({severity: 'error', summary: 'Transaction failed', detail: error.toString(), life: srToastStore.getLife() });
                 });            
             },
             exceptrec: (result:any) => {
                 console.log('atl06p cb exceptrec result:', result);
                 toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
-                jobsStore.setMsg(result['text']);
-                jobsStore.updateJob({id: job.id, status:'processing'});
-                jobsStore.setMsg(result['text']);                    },
+                requestsStore.setMsg(result['text']);
+                requestsStore.updateReq({req_id: req.req_id, status:'processing'});
+                requestsStore.setMsg(result['text']);                    },
             eventrec: (result:any) => {
                 console.log('atl06p cb eventrec result:', result);
                 const this_detail = `Level:${result['level']}  ${result['attr']}`;
                 //toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
-                jobsStore.setMsg(this_detail)
-                jobsStore.updateJob({id: job.id, status:'processing'});
+                requestsStore.setMsg(this_detail)
+                requestsStore.updateReq({req_id: req.req_id, status:'processing'});
             },
         };
         const mapStore = useMapStore();
@@ -140,14 +140,14 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
                             detail: `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`, 
                             life: 10000 // Adjust the duration as needed
                         });
-                        jobsStore.updateJob({id: job.id,status: 'success'});
+                        requestsStore.updateReq({req_id: req.req_id,status: 'success'});
                     } else {
                         toast.add({
                             severity: 'error', // Use 'error' severity for error messages
                             summary: 'No Data returned', // A short summary of the error
                             detail: 'No data returned from SlideRule.', // A more detailed error message
                         });
-                        jobsStore.updateJob({id: job.id,status: 'error'});
+                        requestsStore.updateReq({req_id: req.req_id,status: 'error'});
                     }
                 },
                 error => {
@@ -170,12 +170,12 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
                         summary: 'Error',   
                         detail: emsg,      
                     });
-                    jobsStore.updateJob({id: job.id,status: 'error'});
+                    requestsStore.updateReq({req_id: req.req_id,status: 'error'});
                 }
             ).catch((error => {
                 // Log the error to the console
                 console.error('runSlideRuleClicked Error = ', error);
-                jobsStore.updateJob({id: job.id,status: 'error'});
+                requestsStore.updateReq({req_id: req.req_id,status: 'error'});
 
                 // Display a toast message indicating the error
                 toast.add({
@@ -192,11 +192,12 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
 
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
-        const job = await jobsStore.createNewJob();
+        let req = await requestsStore.createNewReq();
         if(missionValue.value.value === 'ICESat-2') {
             if(iceSat2SelectedAPI.value.value === 'atl06') {
                 console.log('atl06 selected');
-                await runAtl06(job);
+                req.parameters = reqParamsStore.getAtl06pReqParams();
+                await runAtl06(req);
             } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                 console.log('atl03 TBD');
                 toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
@@ -245,10 +246,10 @@ import { N } from "vitest/dist/reporters-P7C2ytIv";
             <div class="button-spinner-container">
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
                 <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-                <span v-if="isLoading">Loading... {{ curJobSumStore.getNumRecs() }}</span>
+                <span v-if="isLoading">Loading... {{ curReqSumStore.getNumRecs() }}</span>
             </div>
             <div class="sr-svr-msg-console">
-                <span class="sr-svr-msg">{{jobsStore.getConsoleMsg()}}</span>
+                <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
             </div>
             <SrAdvOptAccordion
                 title="Advanced Options"
