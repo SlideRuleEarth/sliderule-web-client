@@ -8,6 +8,7 @@ export const useReqsStore = defineStore('reqs', {
   state: () => ({
     currentReqId: '' as string,
     reqs: [] as Request[],
+    reqIsLoading: {} as { [reqId: number]: boolean },
     columns: [
       { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
       { field: 'status', header: 'Status', tooltip: 'Request Status' },

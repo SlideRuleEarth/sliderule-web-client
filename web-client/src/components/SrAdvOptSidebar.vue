@@ -61,6 +61,10 @@
 
     async function runAtl06(req:Request){
         console.log('runAtl06 with req:',req);
+        if(!req.req_id) {
+            console.error('runAtl06 req_id is undefined');
+            return;
+        }
         const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
         requestsStore.updateReq({req_id: req.req_id, parameters:atl06pParams, func:'atl06', status: 'pending'});
         init(sysConfigStore.getSysConfig());
@@ -84,7 +88,7 @@
                 updateElevationExtremes(curFlatRecs);
                 const flatRecs = recs.flat();
                 //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                updateElevationLayer(flatRecs);
+                updateElevationLayer(flatRecs,true);
                 db.transaction('rw', db.elevations, async () => {
                     try {
                         // Adding req_id to each record in curFlatRecs
@@ -122,8 +126,9 @@
         const mapStore = useMapStore();
         const map = mapStore.getMap() as OLMap ;
         if (map){
-            console.log("atl06p cb_count:",cb_count.value)        
-            isLoading.value = true; 
+            console.log("atl06p cb_count:",cb_count.value)
+            isLoading.value = true; // for local button control        
+            requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
             console.log("atl06pParams:",atl06pParams);
             atl06p(atl06pParams,callbacks)
             .then(
@@ -133,7 +138,7 @@
                     const flatRecs = recs.flat();
                     console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                     if(flatRecs.length > 0) {
-                        updateElevationLayer(flatRecs);
+                        updateElevationLayer(flatRecs,true);
                         const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
                         toast.add({
                             severity: 'success', // Use 'success' severity for successful operations
@@ -189,7 +194,12 @@
                     detail: 'An error occurred while running SlideRule.', // A more detailed error message
                 });
             })).finally(() => {
-                isLoading.value = false;
+                isLoading.value = false; // for local button control
+                if(req.req_id){
+                    requestsStore.reqIsLoading[req.req_id] = false; 
+                } else {
+                    console.error('runAtl06 req_id was undefined?');
+                }
                 console.log(`cb_count:${cb_count.value}`)
             });
         }

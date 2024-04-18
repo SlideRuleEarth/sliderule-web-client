@@ -136,7 +136,7 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
     }
 }
 
-export function updateElevationLayer(elevationData:Elevation[]): void{
+export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
     try{
         //console.log('updateElevationLayer:',elevationData);
 
@@ -149,8 +149,8 @@ export function updateElevationLayer(elevationData:Elevation[]): void{
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d:Elevation) => {
-                    const color = getColorForElevation(d.h_mean, curAtl06ReqSumStore.get_h_mean_Low() , curAtl06ReqSumStore.get_h_mean_High()) as [number, number, number, number];
-                    return color;
+                    if (use_white) return [255, 255, 255, 127];
+                    return getColorForElevation(d.h_mean, curAtl06ReqSumStore.get_h_mean_Low() , curAtl06ReqSumStore.get_h_mean_High()) as [number, number, number, number];
                 },
                 pointSize: 3,
             });
@@ -223,14 +223,14 @@ export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
 
 
 
-export async function fetchAndUpdateElevationData() {
+export async function fetchAndUpdateElevationData(reqId: number) {
     try {
         let offset = 0;
         const chunkSize = 100000; // the size of each chunk
         let hasMore = true;
         let elevationData: Elevation[] = []; 
         while (hasMore) {
-            const elevationDataChunk = await db.getElevationsChunk(offset, chunkSize);
+            const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
             updateElevationExtremes(elevationDataChunk);  // Update extremes with each chunk
             elevationData = elevationData.concat(elevationDataChunk);
             updateElevationLayer(elevationData);     // Update the layer with each chunk

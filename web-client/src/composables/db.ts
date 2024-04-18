@@ -37,7 +37,7 @@ export interface Request {
 }
 
 export class SlideRuleDexie extends Dexie {
-  // 'elevations' is added by dexie when declaring the stores()
+  // 'elevations' and 'requests' are added by dexie when declaring the stores()
   // We just tell the typing system this is the case
   elevations!: Table<Elevation>; 
   requests!: Table<Request>;
@@ -46,7 +46,7 @@ export class SlideRuleDexie extends Dexie {
     super('slideruleDB');
     this.version(1).stores({
       elevations: '++db_id, req_id, cycle, gt, region, rgt, spot', // Primary key and indexed props
-      requests: '++req_id, star, status, func, parameters, start_time, end_time, elapsed_time, status_details' // req_id is auto-incrementing and the primary key here
+      requests: '++req_id' // req_id is auto-incrementing and the primary key here, no other keys required 
     });
   }
   // Function to add a new request with status 'pending'
@@ -60,16 +60,6 @@ export class SlideRuleDexie extends Dexie {
         throw error; // Rethrowing allows the calling context to handle it further
     }
   }
-    // Function to update the status of a request
-  // async updateRequestStatus(reqId: number, newStatus: string): Promise<void> {
-  //   try {
-  //       await this.requests.update(reqId, { status: newStatus });
-  //       console.log(`Request status updated for req_id ${reqId} to ${newStatus}.`);
-  //   } catch (error) {
-  //       console.error(`Failed to update request status for req_id ${reqId}:`, error);
-  //       throw error; // Rethrowing the error for further handling if needed
-  //   }
-  // }
 
   // Function to update any field of a specific request
   async updateRequest(reqId: number, updates: Partial<Request>): Promise<void> {
@@ -93,10 +83,10 @@ export class SlideRuleDexie extends Dexie {
     }
   }
   // Method to fetch elevation data in chunks
-  async getElevationsChunk(offset: number, chunkSize: number): Promise<Elevation[]> {
+  async getElevationsChunk(reqId:number, offset: number, chunkSize: number): Promise<Elevation[]> {
     try {
         // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
-        const elevationsChunk: Elevation[] = await this.elevations.offset(offset).limit(chunkSize).toArray();
+        const elevationsChunk: Elevation[] = await this.elevations.where({ req_id: reqId }).offset(offset).limit(chunkSize).toArray();
         return elevationsChunk;
     } catch (error) {
         console.error("Failed to fetch elevation chunk:", error);
