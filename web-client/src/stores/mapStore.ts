@@ -31,6 +31,7 @@ export const useMapStore = defineStore('map', {
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([]),
     deckLayer: null as Layer | null,
+    isLoading: false,
   }),
   actions: {
     setMap(mapInstance: OLMap) {

@@ -4,12 +4,15 @@ import { onMounted,onUnmounted } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
-import { useReqsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
+import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
+import router from '@/router/index';
 
-const requestsStore = useReqsStore();
+
+const requestsStore = useRequestsStore();
 
 const analyze = (id:number) => {
     console.log('Analyze ', id);
+    router.push(`/analyze/${id}`);
 };
 
 const sourceCodePopup = (id:number) => {
@@ -18,13 +21,12 @@ const sourceCodePopup = (id:number) => {
 
 onMounted(() => {
     console.log('SrRecords mounted');
-    const reqsStore = useReqsStore();
-    reqsStore.watchReqTable();
+    requestsStore.watchReqTable();
+    requestsStore.fetchReqs();
 });
 
 onUnmounted(() => {
-  const reqsStore = useReqsStore();
-  reqsStore.liveQuerySubscription.unsubscribe();
+  requestsStore.liveQuerySubscription.unsubscribe();
 });
 
 </script>
@@ -45,10 +47,10 @@ onUnmounted(() => {
                     <span v-tooltip="col.tooltip">{{ col.header }}</span>
                 </template>
             </Column>
-            <Column field="Actions" header="" >
+            <Column field="Actions" header="" class="sr-analyze">
                 <template #body="slotProps">
                     <i 
-                      class="pi pi-chart-line sr-text-with-code-icon"
+                      class="pi pi-chart-line "
                       @click="analyze(slotProps.data.req_id)"
                       v-tooltip="'Analyze'"
                     ></i>
@@ -63,16 +65,20 @@ onUnmounted(() => {
                     ></i>
                 </template>
             </Column>
-            <Column field="Actions" header="" class="sr-analyze">
+            <Column field="Actions" header="" class="sr-delete">
                 <template #body="slotProps">
                     <i 
                       :class="PrimeIcons.TRASH"
-                      @click="() => requestsStore.deleteReq(slotProps.data.id)"
+                      @click="() => requestsStore.deleteReq(slotProps.data.req_id)"
                       v-tooltip="'Delete req'"
                     ></i>
                 </template>
             </Column>
         </DataTable>
+        <!-- Display an error message if there is an error -->
+        <div v-if="requestsStore.autoFetchError" class="error-message">
+        {{ requestsStore.autoFetchErrorMsg }}
+        </div>
     </div>
 </template>
 
@@ -88,8 +94,15 @@ onUnmounted(() => {
     text-align: center;
     cursor: pointer;
 }
-.sr-text-with-icon {
-   cursor: pointer;
+.sr-delete {
+    width: 5rem;
+    text-align: center;
+    cursor: pointer;
+}
+.error-message {
+    color: red;
+    font-size: 1.5rem;
+    margin-top: 1rem;
 }
 
 </style>

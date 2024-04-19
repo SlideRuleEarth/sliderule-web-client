@@ -225,6 +225,7 @@ export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
 
 export async function fetchAndUpdateElevationData(reqId: number) {
     try {
+        console.log('Fetching and updating elevation data...');
         let offset = 0;
         const chunkSize = 100000; // the size of each chunk
         let hasMore = true;
@@ -242,6 +243,7 @@ export async function fetchAndUpdateElevationData(reqId: number) {
             await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
             console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
         }
+        console.log('Elevation data fetched and updated:', elevationData.length);
     } catch (error) {
         console.error('Failed to fetch and update elevation data:', error);
     }

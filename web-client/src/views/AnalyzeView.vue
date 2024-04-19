@@ -6,6 +6,7 @@
     import { useMapStore } from '@/stores/mapStore';
     import { createDeckGLInstance} from '@/composables/SrMapUtils';
     import { Map as OLMap } from 'ol';
+    import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
 
 
     const analyzeStore = useAnalyzeStore();

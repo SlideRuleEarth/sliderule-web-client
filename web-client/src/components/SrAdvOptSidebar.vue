@@ -15,7 +15,7 @@
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
-    import { useReqsStore } from "@/stores/requestsStore";
+    import { useRequestsStore } from "@/stores/requestsStore";
     import { type Request } from '@/composables/db';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
@@ -26,10 +26,11 @@
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
-    const requestsStore = useReqsStore();
+    const requestsStore = useRequestsStore();
     const srToastStore = useSrToastStore();
+    const mapStore = useMapStore();
+
     const graticuleClick = () => {
-        const mapStore = useMapStore();
         mapStore.toggleGraticule();
     }
     const curReqSumStore = useCurAtl06ReqSumStore();
@@ -114,7 +115,7 @@
                 toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
                 requestsStore.setMsg(result['text']);
                 requestsStore.updateReq({req_id: req.req_id, status:'processing'});
-                requestsStore.setMsg(result['text']);                    },
+            },
             eventrec: (result:any) => {
                 console.log('atl06p cb eventrec result:', result);
                 const this_detail = `Level:${result['level']}  ${result['attr']}`;
@@ -123,7 +124,6 @@
                 requestsStore.updateReq({req_id: req.req_id, status:'processing'});
             },
         };
-        const mapStore = useMapStore();
         const map = mapStore.getMap() as OLMap ;
         if (map){
             console.log("atl06p cb_count:",cb_count.value)
@@ -207,25 +207,34 @@
 
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
+        mapStore.isLoading = true;
+        console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
         let req = await requestsStore.createNewReq();
-        if(missionValue.value.value === 'ICESat-2') {
-            if(iceSat2SelectedAPI.value.value === 'atl06') {
-                console.log('atl06 selected');
-                req.parameters = reqParamsStore.getAtl06pReqParams();
-                await runAtl06(req);
-            } else if(iceSat2SelectedAPI.value.value === 'atl03') {
-                console.log('atl03 TBD');
-                toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
-            } else if(iceSat2SelectedAPI.value.value === 'atl08') {
-                console.log('atl08 TBD');
-                toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
-            } else if(iceSat2SelectedAPI.value.value === 'atl24s') {
-                console.log('atl24s TBD');
-                toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });
+        if(req) {
+            console.log('runSlideRuleClicked req:',req);
+            if(missionValue.value.value === 'ICESat-2') {
+                if(iceSat2SelectedAPI.value.value === 'atl06') {
+                    console.log('atl06 selected');
+                    req.parameters = reqParamsStore.getAtl06pReqParams();
+                    await runAtl06(req);
+                } else if(iceSat2SelectedAPI.value.value === 'atl03') {
+                    console.log('atl03 TBD');
+                    toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
+                } else if(iceSat2SelectedAPI.value.value === 'atl08') {
+                    console.log('atl08 TBD');
+                    toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
+                } else if(iceSat2SelectedAPI.value.value === 'atl24s') {
+                    console.log('atl24s TBD');
+                    toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });
+                }
+            } else if(missionValue.value.value === 'GEDI') {
+                console.log('GEDI TBD');
+                toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
             }
-        } else if(missionValue.value.value === 'GEDI') {
-            console.log('GEDI TBD');
-            toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
+            mapStore.isLoading = false;
+            console.log('done... isLoading:',mapStore.isLoading);
+        } else {
+            console.error('runSlideRuleClicked req was undefined');
         }
     };
 

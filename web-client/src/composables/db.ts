@@ -1,4 +1,5 @@
-import Dexie, { type Table } from 'dexie';
+import Dexie from 'dexie';
+import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
 
 export interface Elevation {
@@ -29,10 +30,10 @@ export interface Request {
     star?: boolean; // mark as favorite
     status?: string; // status: 'pending', 'processing', 'success', 'error'
     func?: string; // function name
-    parameters?: ReqParams; // JSON string of parameters
-    start_time?: string; // ISO string rep of start time of request
-    end_time?: string; // ISO string rep of end time of request
-    elapsed_time?: string; // ISO string rep of elapsed time
+    parameters?: ReqParams; //  parameters
+    start_time?: Date; // start time of request
+    end_time?: Date; //end time of request
+    elapsed_time?: string; //  elapsed time
     status_details?: string; // status message (details of status)
 }
 
@@ -43,16 +44,77 @@ export class SlideRuleDexie extends Dexie {
   requests!: Table<Request>;
 
   constructor() {
-    super('slideruleDB');
+    super('SlideRuleDataBase');
     this.version(1).stores({
       elevations: '++db_id, req_id, cycle, gt, region, rgt, spot', // Primary key and indexed props
       requests: '++req_id' // req_id is auto-incrementing and the primary key here, no other keys required 
     });
+    this._useMiddleware();
+    console.log("Database initialized.");
   }
+
+  private _useMiddleware(): void {
+    this.use({
+        stack: "dbcore",
+        name: "serializeDates",
+        create: (downlevelDatabase: DBCore) => ({
+            ...downlevelDatabase,
+            table: (tableName: string) => {
+                const downlevelTable: DBCoreTable = downlevelDatabase.table(tableName);
+                return this._serializeDatesInTable(downlevelTable);
+            }
+        })
+    });
+  }
+ 
+  private _serializeDatesInTable(downlevelTable: DBCoreTable): DBCoreTable {
+    return {
+        ...downlevelTable,
+        mutate: async (req: DBCoreMutateRequest): Promise<DBCoreMutateResponse> => {
+            if ('values' in req) {
+                req.values = req.values.map(value => JSON.parse(JSON.stringify(value, (key, val) => {
+                    if (val instanceof Date) {
+                        return val.toISOString();
+                    } else if (typeof val === 'bigint') {
+                        return val.toString() + "n"; // Append 'n' to differentiate BigInt strings
+                    } else {
+                        return val;
+                    }
+                })));
+            }
+            return downlevelTable.mutate(req);
+        },
+        getMany: async (req: DBCoreGetManyRequest): Promise<any[]> => {
+            const result = await downlevelTable.getMany(req);
+            result.forEach(obj => {
+                for (const key in obj) {
+                    const value = obj[key];
+                    if (typeof value === 'string') {
+                        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value)) {
+                            obj[key] = new Date(value);
+                        } else if (value.endsWith('n')) {
+                            obj[key] = BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
+                        }
+                    }
+                }
+            });
+            return result;
+        }
+    }
+}
+
   // Function to add a new request with status 'pending'
   async addPendingRequest(): Promise<number> {
     try {
-        const reqId = await this.requests.add({ status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date().toISOString(), end_time: new Date().toISOString()});
+        console.log("Adding pending request...");
+        const reqId = await this.requests.add({ 
+          status: 'pending', 
+          func: '', 
+          parameters: {} as NullReqParams, 
+          start_time: new Date(), 
+          end_time: new Date()
+        });
+        console.log(`Pending request added with req_id ${reqId}.`);
         return reqId;
     } catch (error) {
         console.error("Failed to add pending request:", error);
@@ -93,8 +155,5 @@ export class SlideRuleDexie extends Dexie {
         throw error; // Rethrowing the error for further handling if needed
     }
   }
-
-
-
 }
 export const db = new SlideRuleDexie();

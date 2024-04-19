@@ -45,6 +45,11 @@ const router = createRouter({
       component: () => import('@/views/AdvancedUserView.vue')
     },
     {
+      path: '/analyze/:id',
+      name: 'analyze',
+      component: () => import('@/views/AnalyzeView.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/components/NotFoundComponent.vue')

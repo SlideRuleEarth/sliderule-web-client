@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
 import { db, type Request } from '@/composables/db';
+import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 
 
-export const useReqsStore = defineStore('reqs', {
+export const useRequestsStore = defineStore('requests', {
   state: () => ({
     currentReqId: '' as string,
     reqs: [] as Request[],
@@ -18,7 +19,9 @@ export const useReqsStore = defineStore('reqs', {
     ],
     error_in_req: [] as boolean[],
     liveQuerySubscription: null as any,
-    msg:'ready'
+    msg:'ready',
+    autoFetchError: false,
+    autoFetchErrorMsg:'',
   }),
   getters: {
     getReqById: (state) => {
@@ -39,20 +42,28 @@ export const useReqsStore = defineStore('reqs', {
     getConsoleMsg(){
       return this.msg;
     },
-    async createNewReq(): Promise<Request> {
+    async createNewReq(): Promise<Request | null>  {
       // Get the new reqId from the db
+      console.log('createNewReq()');
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
       console.log('createNewReq() newReqId:', newReqId);
-      await this.fetchReqs();  // Fetch the updated requests from the db
-      console.log(`New req created with ID ${this.reqs[newReqId]}.`);
-      this.error_in_req[newReqId-1] = false;
-      return this.reqs[newReqId-1];  // array is zero based db is 1 based
+      if(newReqId){
+        this.reqs.push({req_id: newReqId, status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+        await this.fetchReqs();  // Fetch the updated requests from the db
+        const newReq = this.getReqById(newReqId);
+        console.log('New req created:', newReq);
+        return newReq;
+      } else {
+        const errorMsg = 'Error creating new request, undefined reqId ?';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      } 
     },
     setMsg(msg: string) {
       this.msg = msg;
     },
     async updateReq(updateParams: Partial<Request>): Promise<void> {
-      const { req_id, start_time, end_time, ...restParams } = updateParams;
+      const { req_id, status, start_time, end_time, ...restParams } = updateParams;
       console.log('updateReq-->updateParams:', updateParams);
       try{
         if(!req_id) throw new Error('Request ID is required to update a request.');
@@ -60,34 +71,22 @@ export const useReqsStore = defineStore('reqs', {
         const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
         console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
     
-        let checked_st = start_time;
-        if(!checked_st){
-          checked_st = this.reqs[reqIndex].start_time;
-          if(!checked_st){
-            checked_st = new Date().toISOString();
-          }
+        if(start_time && end_time){
+          updateParams.elapsed_time = srTimeDeltaString(srTimeDelta(start_time, end_time));
         }
-        let checked_et = end_time;
-        if(!checked_et){
-          checked_et = this.reqs[reqIndex].end_time;
-          if(!checked_et){
-            checked_et = new Date().toISOString();
-          }
-        }
-        const updatedReq = {
-          ...updateParams,
-          elapsed_time:  srTimeDeltaString(srTimeDelta(new Date(checked_st), new Date(checked_et)))
-        };
-        if(this.error_in_req[reqIndex] && (updatedReq.status != 'error')){
+        
+        if(this.error_in_req[reqIndex] && (updateParams.status != 'error')){
           // received records from the server after an error, ignore status updates
-          console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updatedReq, ' as it was in error state');
+          console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updateParams, ' as it was in error state');
           return;
-        } else {
-          console.log(`Request with ID ${req_id}  to be updated with:`, updatedReq);
+        } 
+        console.log('final updateParams:', updateParams);
+        await db.updateRequest(req_id, updateParams);
+        if(updateParams.status == 'error'){
+          this.error_in_req[reqIndex] = true;
         }
-        await db.updateRequest(req_id, updatedReq);
       } catch (error) {
-        console.error(`Failed to update request with ID ${req_id}:`, error);
+        console.error('Failed to update request using params:', updateParams,' with ID:',req_id,' error:', error);
         throw error; // Rethrowing the error for further handling if needed
       }
     },
@@ -111,11 +110,21 @@ export const useReqsStore = defineStore('reqs', {
     },
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').toArray())
-        .subscribe((updatedReqs) => {
+      .subscribe({
+        next: (updatedReqs) => {
           this.reqs = updatedReqs;
-          console.log('Requests updated:', this.reqs);
-        });
-    
+          this.autoFetchError = false; // Clear any previous error messages
+          this.autoFetchErrorMsg = ''; // Clear any previous error messages
+          console.log('Requests automagically updated:', this.reqs);
+        },
+        error: (err) => {
+          console.error('Failed to update requests due to:', err);
+          // Optionally, update state to reflect the error
+          this.msg = 'Error fetching requests'; // use this to display an error message in UI if needed
+          this.autoFetchError = true; // Set a flag to indicate an error occurred
+          this.autoFetchErrorMsg = 'Failed to fetch requests'; // Set a user-friendly error message
+        }
+      });
       //Store the subscription; you need to unsubscribe later
       this.liveQuerySubscription = subscription;
     }
