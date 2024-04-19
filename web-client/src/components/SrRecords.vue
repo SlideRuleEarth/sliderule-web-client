@@ -1,5 +1,6 @@
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { onMounted,onUnmounted } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -18,6 +19,11 @@ const analyze = (id:number) => {
 const sourceCodePopup = (id:number) => {
     console.log('Source code ', id);
 };
+
+const filteredColumns = computed(() => {
+    // we treat status column differently, it has a tooltip
+  return requestsStore.columns.filter(col => col.field !== 'status');
+});
 
 onMounted(() => {
     console.log('SrRecords mounted');
@@ -42,7 +48,14 @@ onUnmounted(() => {
                     ></i>
                 </template>
             </Column>
-            <Column v-for="col in requestsStore.columns" :key="col.field" :field="col.field" >
+            <Column field="status" header="Status"> 
+                <template #body="slotProps">
+                    <span v-tooltip="slotProps.data.status_details">
+                        {{ slotProps.data.status }}
+                    </span>
+                </template>
+            </Column>
+            <Column v-for="col in filteredColumns" :key="col.field" :field="col.field" >
                 <template #header="">
                     <span v-tooltip="col.tooltip">{{ col.header }}</span>
                 </template>
