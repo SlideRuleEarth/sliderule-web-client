@@ -1,13 +1,11 @@
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { onMounted,onUnmounted } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
-
 
 const requestsStore = useRequestsStore();
 
@@ -20,10 +18,6 @@ const sourceCodePopup = (id:number) => {
     console.log('Source code ', id);
 };
 
-const filteredColumns = computed(() => {
-    // we treat status column differently, it has a tooltip
-  return requestsStore.columns.filter(col => col.field !== 'status');
-});
 
 onMounted(() => {
     console.log('SrRecords mounted');
@@ -48,6 +42,7 @@ onUnmounted(() => {
                     ></i>
                 </template>
             </Column>
+            <Column field="req_id" header="ID"></Column>
             <Column field="status" header="Status"> 
                 <template #body="slotProps">
                     <span v-tooltip="slotProps.data.status_details">
@@ -55,11 +50,14 @@ onUnmounted(() => {
                     </span>
                 </template>
             </Column>
-            <Column v-for="col in filteredColumns" :key="col.field" :field="col.field" >
+            <Column field="func" header="Function"></Column>
+            <Column field="parameters" header="Parameters"></Column>
+            <Column field="elapsed_time" header="Elapsed Time"></Column>
+            <!-- <Column v-for="col in filteredColumns" :key="col.field" :field="col.field" >
                 <template #header="">
                     <span v-tooltip="col.tooltip">{{ col.header }}</span>
                 </template>
-            </Column>
+            </Column> -->
             <Column field="Actions" header="" class="sr-analyze">
                 <template #body="slotProps">
                     <i 

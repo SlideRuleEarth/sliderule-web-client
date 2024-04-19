@@ -67,7 +67,7 @@
             return;
         }
         const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
-        requestsStore.updateReq({req_id: req.req_id, parameters:atl06pParams, func:'atl06', status: 'pending'});
+        requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:atl06pParams, func:'atl06', start_time: new Date(), end_time: new Date()});
         init(sysConfigStore.getSysConfig());
         //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
@@ -216,6 +216,8 @@
                 if(iceSat2SelectedAPI.value.value === 'atl06') {
                     console.log('atl06 selected');
                     req.parameters = reqParamsStore.getAtl06pReqParams();
+                    req.start_time = new Date();
+                    req.end_time = new Date();
                     await runAtl06(req);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
