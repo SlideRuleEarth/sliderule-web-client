@@ -15,7 +15,7 @@
 <style scoped>
   .two-column-layout {
     display: flex;
-    min-height: 90vh;
+    min-height: 80vh;
     @media (max-width: 768px) {
       flex-direction: column;
     }

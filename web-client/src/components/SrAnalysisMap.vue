@@ -306,49 +306,51 @@
   <div class="current-zoom">
     {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
-  <ol-map ref="mapRef" @error="handleEvent"
-    :loadTilesWhileAnimating="true"
-    :loadTilesWhileInteracting="true"
-    style="height: 800px; border-radius: 15px; overflow: hidden;"
-    :controls="controls"
-  >
-    <ol-layerswitcher-control 
-      :selection="true"
-      :displayInLayerSwitcher="true"
-      :show_progress="true"
-      :mouseover="false"
-      :reordering="true"
-      :trash="false"
-      :extent="true"
-    />
+  <div ref="mapContainer" style="min-height: 15rem; min-width: 15rem; width: 100%; border-radius: 0.25rem; overflow: hidden;">
+    <ol-map ref="mapRef" @error="handleEvent"
+      :loadTilesWhileAnimating="true"
+      :loadTilesWhileInteracting="true"
+      style="height: 30vh; border-radius: 15px; overflow: hidden;"
+      :controls="controls"
+    >
+      <ol-layerswitcher-control 
+        :selection="true"
+        :displayInLayerSwitcher="true"
+        :show_progress="true"
+        :mouseover="false"
+        :reordering="true"
+        :trash="false"
+        :extent="true"
+      />
 
-    <ol-zoom-control  />
-    
-    <ol-mouseposition-control 
-      :coordinateFormat="stringifyFunc"
-      projection="EPSG:4326"
-    />
+      <ol-zoom-control  />
+      
+      <ol-mouseposition-control 
+        :coordinateFormat="stringifyFunc"
+        projection="EPSG:4326"
+      />
 
-    <ol-scaleline-control />
-    <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
-    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
-    <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
-      <ol-source-vector :projection="mapParamsStore.projection">
+      <ol-scaleline-control />
+      <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
+      <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
+      <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
+        <ol-source-vector :projection="mapParamsStore.projection">
+          <ol-style>
+            <ol-style-stroke color="blue" :width="2"></ol-style-stroke>
+            <ol-style-fill color="rgba(255, 255, 0, 0.4)"></ol-style-fill>
+          </ol-style>
+        </ol-source-vector>
         <ol-style>
-          <ol-style-stroke color="blue" :width="2"></ol-style-stroke>
-          <ol-style-fill color="rgba(255, 255, 0, 0.4)"></ol-style-fill>
+          <ol-style-stroke color="red" :width="2"></ol-style-stroke>
+          <ol-style-fill color="rgba(255,255,255,0.1)"></ol-style-fill>
+          <ol-style-circle :radius="7">
+            <ol-style-fill color="red"></ol-style-fill>
+          </ol-style-circle>
         </ol-style>
-      </ol-source-vector>
-      <ol-style>
-        <ol-style-stroke color="red" :width="2"></ol-style-stroke>
-        <ol-style-fill color="rgba(255,255,255,0.1)"></ol-style-fill>
-        <ol-style-circle :radius="7">
-          <ol-style-fill color="red"></ol-style-fill>
-        </ol-style-circle>
-      </ol-style>
-    </ol-vector-layer>
-    <ol-attribution-control :collapsible="true" :collapsed="true" />
-  </ol-map>
+      </ol-vector-layer>
+      <ol-attribution-control :collapsible="true" :collapsed="true" />
+    </ol-map>
+  </div>
   <div class="current-view-params">
     <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
     <span>currentCenter: {{  mapParamsStore.getCenterLonLat() }}</span><br>

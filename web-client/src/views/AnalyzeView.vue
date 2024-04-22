@@ -7,7 +7,7 @@
     import { createDeckGLInstance} from '@/composables/SrMapUtils';
     import { Map as OLMap } from 'ol';
     import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
-
+    import SrScatterPlot from "@/components/SrScatterPlot.vue";
 
     const analyzeStore = useAnalyzeStore();
 
@@ -45,3 +45,9 @@
         </template>
     </TwoColumnLayout>
 </template>
+<style scoped>
+    .sr-sidebar-body {
+       width: 100%;
+       min-height: 30vh;
+    }
+</style>

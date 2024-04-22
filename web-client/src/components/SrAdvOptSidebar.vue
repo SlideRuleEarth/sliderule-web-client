@@ -294,6 +294,7 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        width: 100%;
     }
     .sr-adv-option-sidebar-options {
         display: flex;
