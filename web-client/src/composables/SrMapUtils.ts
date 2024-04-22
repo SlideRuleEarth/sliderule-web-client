@@ -203,21 +203,39 @@ export function srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
 }
 
 
-export function updateElevationExtremes(curFlatRecs: { h_mean: number }[]) {
-    let localMin = curAtl06ReqSumStore.get_h_mean_Min();
-    let localMax = curAtl06ReqSumStore.get_h_mean_Max();
+export function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitude:number }[]) {
+    let localHMin = curAtl06ReqSumStore.get_h_mean_Min();
+    let localHMax = curAtl06ReqSumStore.get_h_mean_Max();
+    let localLatMin = curAtl06ReqSumStore.get_lat_Min();
+    let localLatMax = curAtl06ReqSumStore.get_lat_Max();
+    let localLonMin = curAtl06ReqSumStore.get_lon_Min();
+    let localLonMax = curAtl06ReqSumStore.get_lon_Max();
 
     curFlatRecs.forEach(rec => {
-        if (rec.h_mean < localMin) {
-            localMin = rec.h_mean;
+        if (rec.h_mean < localHMin) {
+            localHMin = rec.h_mean;
         }
-        if (rec.h_mean > localMax) {
-            localMax = rec.h_mean;
+        if (rec.h_mean > localHMax) {
+            localHMax = rec.h_mean;
+        }
+        if (rec.latitude < localLatMin) {
+            localLatMin = rec.latitude;
+        }
+        if (rec.latitude > localLatMax) {
+            localLatMax = rec.latitude;
+        }
+        if (rec.longitude < localLonMin) {
+            localLonMin = rec.longitude;
+        }
+        if (rec.longitude > localLonMax) {
+            localLonMax = rec.longitude;
         }
     });
 
-    curAtl06ReqSumStore.set_h_mean_Min(localMin);
-    curAtl06ReqSumStore.set_h_mean_Max(localMax);
+    curAtl06ReqSumStore.set_h_mean_Min(localHMin);
+    curAtl06ReqSumStore.set_h_mean_Max(localHMax);
+    curAtl06ReqSumStore.set_lat_Min(localLatMin);
+    curAtl06ReqSumStore.set_lat_Max(localLatMax);
     curAtl06ReqSumStore.setPercentiles()
 }
 
@@ -232,7 +250,6 @@ export async function fetchAndUpdateElevationData(reqId: number) {
         let elevationData: Elevation[] = []; 
         while (hasMore) {
             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
-            updateElevationExtremes(elevationDataChunk);  // Update extremes with each chunk
             elevationData = elevationData.concat(elevationDataChunk);
             updateElevationLayer(elevationData);     // Update the layer with each chunk
 

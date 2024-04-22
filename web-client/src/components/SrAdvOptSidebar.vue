@@ -20,7 +20,7 @@
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
     import { db } from '@/composables/db';
-    import { updateElevationExtremes } from '@/composables/SrMapUtils';
+    import { updateExtremes } from '@/composables/SrMapUtils';
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 
 
@@ -29,6 +29,7 @@
     const requestsStore = useRequestsStore();
     const srToastStore = useSrToastStore();
     const mapStore = useMapStore();
+    
 
     const graticuleClick = () => {
         mapStore.toggleGraticule();
@@ -66,6 +67,7 @@
             console.error('runAtl06 req_id is undefined');
             return;
         }
+        requestsStore.currentReqId = req.req_id;
         const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
         requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:atl06pParams, func:'atl06', start_time: new Date(), end_time: new Date()});
         init(sysConfigStore.getSysConfig());
@@ -86,7 +88,7 @@
                 curReqSumStore.addNumRecs(curFlatRecs.length);
                 recs.push(curFlatRecs);
                 cb_count.value += 1;
-                updateElevationExtremes(curFlatRecs);
+                updateExtremes(curFlatRecs);
                 const flatRecs = recs.flat();
                 //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                 updateElevationLayer(flatRecs,true);
@@ -136,7 +138,7 @@
                     // Log the result to the console
                     // Display a toast message indicating successful completion
                     const flatRecs = recs.flat();
-                    console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+                    console.log(`Final: flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
                     if(flatRecs.length > 0) {
                         updateElevationLayer(flatRecs,true);
                         const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
@@ -154,9 +156,10 @@
                             summary: 'No Data returned', // A short summary of the error
                             detail: status_details, // A more detailed error message
                         });
-                        console.log('No data returned from SlideRule.');
+                        console.log('Final: No more data returned from SlideRule.');
                         requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
                     }
+
                 },
                 error => {
                     // Log the error to the console
@@ -194,8 +197,14 @@
                     detail: 'An error occurred while running SlideRule.', // A more detailed error message
                 });
             })).finally(() => {
-                isLoading.value = false; // for local button control
+                const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
                 if(req.req_id){
+                    console.log('runAtl06 req_id:',req.req_id, ' updating stats');
+                    const extLatLon = {req_id: req.req_id, minLat: curAtl06ReqSumStore.get_lat_Min(), maxLat: curAtl06ReqSumStore.get_lat_Max(), minLon: curAtl06ReqSumStore.get_lon_Min(), maxLon: curAtl06ReqSumStore.get_lon_Max()};
+                    db.addOrUpdateExtLatLon(extLatLon);
+                    const extHMeanData = {req_id: req.req_id, minHMean: curAtl06ReqSumStore.get_h_mean_Min(), maxHMean: curAtl06ReqSumStore.get_h_mean_Max(), lowHMean: curAtl06ReqSumStore.get_h_mean_Low(), highHMean: curAtl06ReqSumStore.get_h_mean_High()};
+                    db.addOrUpdateHMeanStats(extHMeanData);
+                    isLoading.value = false; // for local button control
                     requestsStore.reqIsLoading[req.req_id] = false; 
                 } else {
                     console.error('runAtl06 req_id was undefined?');

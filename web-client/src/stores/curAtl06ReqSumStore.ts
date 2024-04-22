@@ -6,10 +6,10 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         h_mean_max: -100000,
         h_mean_low: 100000,   // 5th percentile
         h_mean_high: -100000, // 95th percentile
-        lat_min: -90,
-        lat_max: 90,
-        lon_min: -180,
-        lon_max: 180,
+        lat_min: 90,
+        lat_max: -90,
+        lon_min: 180,
+        lon_max: -180,
         num_recs: 0,
         req_id: 0,
         duration: 0,

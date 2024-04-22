@@ -25,6 +25,7 @@
   import { type SrLayer } from '@/composables/SrLayers';
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
+  import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
 
 
   const stringifyFunc = createStringXY(4);
@@ -352,11 +353,7 @@
     </ol-map>
   </div>
   <div class="current-view-params">
-    <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
-    <span>currentCenter: {{  mapParamsStore.getCenterLonLat() }}</span><br>
-    <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
-    <span>currentProjection: {{  mapParamsStore.getProjection()}}</span><br>
-    <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>
+    <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
   </div>
 
 </template>

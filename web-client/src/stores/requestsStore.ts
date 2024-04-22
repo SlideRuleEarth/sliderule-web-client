@@ -7,7 +7,7 @@ import { liveQuery } from 'dexie';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
-    currentReqId: '' as string,
+    currentReqId: 0 as number,
     reqs: [] as Request[],
     reqIsLoading: {} as { [reqId: number]: boolean },
     columns: [

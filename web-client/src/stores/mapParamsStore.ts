@@ -21,6 +21,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     drawType: 'undefined',
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
+    showCurrentViewDetails: false,
   }),
   actions:{
     cacheLayer(title:string, layerInstance:any) {
@@ -93,6 +94,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     getExtent() {
       return this.extent;
+    },
+    getShowCurrentViewDetails() {
+      return this.showCurrentViewDetails;
     }
   },
 });
