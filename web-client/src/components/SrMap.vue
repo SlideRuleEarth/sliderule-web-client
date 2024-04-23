@@ -366,6 +366,7 @@
           const plink = mapStore.plink as any;
           map.addControl(plink);
         }
+        updateMapView("onMounted");
         const tgt = map.getViewport() as HTMLDivElement;
         const deckLayer = createDeckGLInstance(tgt);
         if(deckLayer){
@@ -374,7 +375,6 @@
         } else {
             console.error('createDeckGLInstance returned null');
         }
-        updateMapView("onMounted");
 
       } else {
         console.log("Error:map is null");
