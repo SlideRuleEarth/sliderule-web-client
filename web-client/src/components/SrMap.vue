@@ -403,7 +403,6 @@
             //console.log(`skipping layer:`,layer.get('name'));
           }
         });
-        //let baseLayer = layers.value['Esri World Topo'];
         let baseLayer = mapParamsStore.getSelectedBaseLayer();
 
         if(srView.name === 'North'){
@@ -428,16 +427,11 @@
           } else {
             console.log("Error:baseLayer is null");
           }
-
           //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
           let extent = newProj.getExtent();
-          //console.log("projection's extent:",extent);
-          let worldExtent = newProj.getWorldExtent();
-          //console.log("projection's World extent:",worldExtent);
-          
+          //console.log("projection's extent:",extent);          
           const fromLonLat = getTransform('EPSG:4326', newProj);
           //console.log("extent:",extent);
-          //if(extent == null){ // need to populate from our own data
           //console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
           if (srView.bbox){
             // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
@@ -453,17 +447,10 @@
                 worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
               }
               extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-              //worldExtent = extent;
               newProj.setExtent(extent);
-              //newProj.setWorldExtent(worldExtent);
-              //console.log("worldExtent:",worldExtent);
-              //console.log("extent:",extent);
             } else {
               //console.log("projection units pole units:",newProj.getUnits());
             }
-            //} else {
-            //  console.log(`${srProjection.name} Extent is NOT NULL using it's extent:${extent}`);
-            //}
             let center = getExtentCenter(extent);
             //console.log(`extent: ${extent}, center: ${center}`);
             const newView = new View({
@@ -472,29 +459,13 @@
               extent: extent || undefined,
               center:center || undefined,
               zoom: srView.default_zoom,
-              //minZoom: srView.min_zoom,
-              //maxZoom: srView.max_zoom,
             });
-            //console.log(`new projection code: ${newProj.getCode()}`);
             mapParamsStore.setProjection(newProj.getCode());
-            //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
-            //console.log(`newView:`,newView.getProperties());
             map.setView(newView);
             newView.fit(extent);
             updateCurrentParms();
             addLayersForCurrentView();      
-            let thisView = map.getView();
-            //console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
-            thisView.animate({
-              center: center, //srProjection.default_center,
-              duration: 1000,
-              zoom: srView.default_zoom,
-            });
-            //console.log(`z:${srView.default_zoom} view center: ${thisView.getCenter()} center:${center}`);
-            //console.log(`thisView:`,thisView.getProperties());
             map.getView().on('change:resolution', onResolutionChange);
-
-
             // Permalink
             // if(mapStore.plink){
             //   var url = mapStore.plink.getUrlParam('url');
@@ -510,11 +481,9 @@
             //     console.log("No url in permalink");
             //   }
             // }
-
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }
-          
         } else {
           console.error("Error:projection is null");
         }
