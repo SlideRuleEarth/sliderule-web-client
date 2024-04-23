@@ -253,5 +253,17 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
+    async getRequestIds(): Promise<number[]> {
+        try {
+            const requestIds = await this.requests.toArray().then(requests => requests.map(req => req.req_id!));
+            console.log("Retrieved request IDs:", requestIds);
+            return requestIds;
+        } catch (error) {
+            console.error("Failed to retrieve request IDs:", error);
+            throw error;  // Rethrowing the error for further handling if needed
+        }
+    }
+    
+
 }
 export const db = new SlideRuleDexie();

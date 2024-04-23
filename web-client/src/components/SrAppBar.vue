@@ -32,8 +32,8 @@
         </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
-            <Button v-if="!advancedModeStore.advanced" icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
-            <Button v-if="advancedModeStore.advanced" icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
+            <Button icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
+            <Button icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>
         </div>
     </div>

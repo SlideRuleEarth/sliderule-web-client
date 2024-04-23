@@ -324,9 +324,6 @@
           const plink = mapStore.plink as any;
           map.addControl(plink);
         }
-        // const tgt = map.getViewport() as HTMLDivElement; 
-        // const deckLayer = createDeckGLInstance(tgt);
-        // map.addLayer(deckLayer);
         updateMapView("onMounted");
 
       } else {

@@ -1,37 +1,58 @@
 <script setup lang="ts">
-import { onMounted,ref } from 'vue';
-import { useAnalyzeStore } from '@/stores/analyzeStore.js';
+import { onMounted,ref,watch } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuMultiInput from './SrMenuMultiInput.vue';
+import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 
-
 const props = defineProps({
-    reqId: {
-        type: Number,
-        required: true
-    }
+    reqIds: Array as () => SrMenuItem[],
+    defaultMenuItemIndex: String,
 });
-const analyzeStore = useAnalyzeStore();
+
+const selectedReqId = ref();
+
 const reqParamsStore = useReqParamsStore();
 const activeTabIndex = ref([0]); // Opens the first tab by default
 
-onMounted(() => {
-
-    console.log('SrAnalyzeOptSidebar onMounted');
-
+onMounted(async() => {
+    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.defaultMenuItemIndex);
+    if(props.reqIds){
+        if(props.reqIds.length === 0){
+            console.log('No request IDs available');
+            return;
+        }
+        console.log('Setting selectedReqId...');
+        selectedReqId.value = props.reqIds[Number(props.defaultMenuItemIndex)]
+    } else {
+        console.error('No request IDs available');
+    }
 });
 
+
+watch(selectedReqId, (newReqId, oldReqId) => {
+    console.log('Request ID changed from:', oldReqId ,' to:', newReqId);
+    // Optionally update other store or effects as needed
+
+});
 </script>
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
+        <div class="sr-analysis-opt-sidebar-req-menu">
+            <SrMenuInput 
+                label="Request Id" 
+                :menuOptions="reqIds" 
+                v-model="selectedReqId"
+                :defaultOptionIndex="props.defaultMenuItemIndex"
+                tooltipText="Request Id from Record table"/>  
+        </div>
         <div class="sr-analysis-opt-sidebar-map">
-            <SrAnalysisMap :reqId="props.reqId"/>
+            <SrAnalysisMap :reqId="Number(selectedReqId.value)"/>
         </div>
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">

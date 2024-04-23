@@ -29,6 +29,7 @@
   import {db} from '@/db/SlideRuleDb';
 
   const stringifyFunc = createStringXY(4);
+  const mapContainer = ref<HTMLElement | null>(null);
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
@@ -67,6 +68,11 @@
   function onResolutionChange(){
     //console.log("onResolutionChange:",event);
     updateCurrentParms();
+  };
+
+  function fetchAndDisplayRequestData (reqId: number){
+    console.log('fetchAndDisplayRequestData:',reqId);
+
   };
 
   onMounted(() => {
@@ -122,7 +128,10 @@
       } else {
         console.log("Error:map is null");
       } 
+    } else {
+      console.error("Error:map is null");
     }
+
   });
 
   onActivated(() => {

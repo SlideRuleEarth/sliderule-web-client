@@ -118,6 +118,17 @@ export const useRequestsStore = defineStore('requests', {
         console.error('Error fetching requests:', error);
       }
     },
+    async fetchReqIds(): Promise<number[]> {
+      try {
+        const reqIds = await db.getRequestIds();
+        console.log('Request IDs fetched successfully:', reqIds);
+        return reqIds;
+      } catch (error) {
+        console.error('Error fetching request IDs:', error);
+        return [];
+      }
+    },
+
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').toArray())
       .subscribe({
