@@ -26,7 +26,7 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
-
+  import {db} from '@/composables/db';
 
   const stringifyFunc = createStringXY(4);
   const mapRef = ref<{ map: OLMap }>();
@@ -39,6 +39,12 @@
   };
   
   
+  const props = defineProps({
+      reqId: {
+          type: Number,
+          required: true
+      }
+  });
   function updateCurrentParms(){
     const newZoom = mapRef.value?.map.getView().getZoom();
     if (newZoom !== undefined) {
@@ -150,7 +156,7 @@
     }
   };
 
-  const updateMapView = (reason:string) => {
+  const updateMapView = async (reason:string) => {
     console.log(`****** updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
     if(map){
@@ -217,10 +223,7 @@
                 worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
               }
               extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-              //worldExtent = extent;
               newProj.setExtent(extent);
-              //newProj.setWorldExtent(worldExtent);
-              //console.log("worldExtent:",worldExtent);
               //console.log("extent:",extent);
             } else {
               //console.log("projection units pole units:",newProj.getUnits());
@@ -229,7 +232,7 @@
             //  console.log(`${srProjection.name} Extent is NOT NULL using it's extent:${extent}`);
             //}
             let center = getExtentCenter(extent);
-            //console.log(`extent: ${extent}, center: ${center}`);
+            console.log(`extent: ${extent}, center: ${center}`);
             const newView = new View({
               projection: newProj,
               //constrainResolution: true,
@@ -244,16 +247,37 @@
             //console.log(`center: ${srProjection.default_center} zoom: ${srProjection.default_zoom} extent: ${extent}`);
             //console.log(`newView:`,newView.getProperties());
             map.setView(newView);
-            newView.fit(extent);
             updateCurrentParms();
-            addLayersForCurrentView();      
-            let thisView = map.getView();
+            addLayersForCurrentView(); 
+            let reqExtremeLatLon = [0,0,0,0];
+            if(props.reqId > 0){     
+              const extremeLatLon = await db.getExtLatLonByReqId(props.reqId);
+              if (extremeLatLon) {
+                reqExtremeLatLon = [
+                    extremeLatLon.minLon,
+                    extremeLatLon.minLat,
+                    extremeLatLon.maxLon,
+                    extremeLatLon.maxLat
+                ];
+                console.log('Using reqId:',props.reqId,' with extent:',extent);
+              } else {
+                console.error("Error: invalid lat-lon data for request:",props.reqId);
+              } 
+            } else {
+                console.info("no reqId:",props.reqId);
+            }
+            extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
+            center = getExtentCenter(extent);
+
+            console.log('Using extent:',extent);               
+            map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
+
             //console.log(`z:${srProjection.default_zoom} view center: ${thisView.getCenter()} default_center:${srProjection.default_center}`);
-            thisView.animate({
-              center: center, //srProjection.default_center,
-              duration: 1000,
-              zoom: srView.default_zoom,
-            });
+            // map.getView().animate({
+            //   center: center, //srProjection.default_center,
+            //   duration: 1000,
+            //   zoom: srView.default_zoom,
+            // });
             //console.log(`z:${srView.default_zoom} view center: ${thisView.getCenter()} center:${center}`);
             //console.log(`thisView:`,thisView.getProperties());
             map.getView().on('change:resolution', onResolutionChange);

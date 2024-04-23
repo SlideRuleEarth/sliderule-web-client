@@ -236,6 +236,8 @@ export function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, l
     curAtl06ReqSumStore.set_h_mean_Max(localHMax);
     curAtl06ReqSumStore.set_lat_Min(localLatMin);
     curAtl06ReqSumStore.set_lat_Max(localLatMax);
+    curAtl06ReqSumStore.set_lon_Min(localLonMin);
+    curAtl06ReqSumStore.set_lon_Max(localLonMax);
     curAtl06ReqSumStore.setPercentiles()
 }
 

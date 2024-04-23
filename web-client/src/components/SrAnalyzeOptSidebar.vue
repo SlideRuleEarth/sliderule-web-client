@@ -9,6 +9,13 @@ import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 
+
+const props = defineProps({
+    reqId: {
+        type: Number,
+        required: true
+    }
+});
 const analyzeStore = useAnalyzeStore();
 const reqParamsStore = useReqParamsStore();
 const activeTabIndex = ref([0]); // Opens the first tab by default
@@ -24,7 +31,7 @@ onMounted(() => {
 <template>
     <div class="sr-analysis-opt-sidebar-container">
         <div class="sr-analysis-opt-sidebar-map">
-            <SrAnalysisMap />
+            <SrAnalysisMap :reqId="props.reqId"/>
         </div>
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
