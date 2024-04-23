@@ -1,10 +1,7 @@
 import { useMapStore } from '@/stores/mapStore';
-import { Deck } from '@deck.gl/core/typed';
 import { computed } from 'vue';
-import {Layer} from 'ol/layer';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers/typed';
-import { toLonLat} from 'ol/proj';
 import { GeoJSON} from 'ol/format';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import VectorLayer from 'ol/layer/Vector';
@@ -12,7 +9,6 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { useDeckStore } from '@/stores/deckStore';
 import { type Elevation } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 import { db } from "@/db/SlideRuleDb";
@@ -21,7 +17,6 @@ import { db } from "@/db/SlideRuleDb";
 const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
 const geoJsonStore = useGeoJsonStore();
-const deckStore = useDeckStore();
 const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
 
 export const polyCoordsExist = computed(() => {
@@ -96,46 +91,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     return interpolateColor(purple, yellow, factor);
 }
 
-// Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
-// size is an array [width, height] indicating the dimensions of the map's viewport.
-// viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
-// Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
-// Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
-// Sync deck view with OL view
-function renderDeck({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}}){
-    const [width, height] = size;
-    const [longitude, latitude] = toLonLat(viewState.center);
-    const zoom = viewState.zoom - 1;
-    const bearing = (-viewState.rotation * 180) / Math.PI;
-    const deckViewState = {bearing, longitude, latitude, zoom};
-    deckStore.getDeckInstance().setProps({width, height, viewState: deckViewState});
-    deckStore.getDeckInstance().redraw();
-}
-
-export function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
-    try{
-        const deck = new Deck({
-            initialViewState: {longitude: 0, latitude: 0, zoom: 1},
-            controller: false,
-            parent: tgt,
-            style: {pointerEvents: 'none', zIndex: '1'},
-            layers: []
-        });
-        deckStore.setDeckInstance(deck);
-        const layerOptions = {
-            render: renderDeck as any,
-            title: 'DeckGL Layer',
-        }
-        const deckLayer = new Layer({
-            ...layerOptions
-        });
-        return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
-    } catch (error) {
-        console.error('Error creating DeckGL instance:',error);
-        return null;
-    }
-}
-
 export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
     try{
         //console.log('updateElevationLayer:',elevationData);
@@ -154,10 +109,10 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
                 },
                 pointSize: 3,
             });
-        if(deckStore.getDeckInstance()){
-            deckStore.getDeckInstance().setProps({layers:[layer]});
+        if(mapStore.getDeckInstance()){
+            mapStore.getDeckInstance().setProps({layers:[layer]});
         } else {
-            console.error('Error updating elevation deckStore.deckInstance:',deckStore.getDeckInstance());
+            console.error('Error updating elevation mapStore.deckInstance:',mapStore.getDeckInstance());
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);

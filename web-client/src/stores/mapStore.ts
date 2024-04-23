@@ -1,4 +1,3 @@
-// src/stores/mapStore.js
 import { defineStore } from 'pinia';
 import { Map as OLMap } from 'ol';
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
@@ -8,13 +7,14 @@ import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import type { Layer } from 'ol/layer';
+import { Deck } from '@deck.gl/core/typed';
 
 export const useMapStore = defineStore('map', {
   state: () => ({
     map: null as OLMap | null,
-    wmsCapCache: new Map(),
+    wmsCapCache: new Map(), // a javascript Map object
     currentWmsCapProjectionName: 'EPSG:3857' as string,
-    wmtsCapCache: new Map(),
+    wmtsCapCache: new Map(), // a javascript Map object
     currentWmtsCapProjectionName: 'EPSG:3857' as string,
     plink: usePermalink(),
     graticuleState: false,
@@ -30,6 +30,7 @@ export const useMapStore = defineStore('map', {
     }),
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([]),
+    deckInstance: null as any,
     deckLayer: null as Layer | null,
     isLoading: false,
   }),
@@ -101,5 +102,11 @@ export const useMapStore = defineStore('map', {
             this.graticule.setMap(null);
         }
     },
+    setDeckInstance(instance:Deck) {
+      this.deckInstance = instance;
+    },
+    getDeckInstance() {
+      return this.deckInstance;
+    }  
   },
 });

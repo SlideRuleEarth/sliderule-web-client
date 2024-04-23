@@ -3,9 +3,6 @@
     import SrSideBar from "@/components/SrSideBar.vue";
     import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
     import { onMounted,ref } from 'vue';
-    import { useMapStore } from '@/stores/mapStore';
-    import { createDeckGLInstance} from '@/composables/SrMapUtils';
-    import { Map as OLMap } from 'ol';
     import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
     import SrScatterPlot from "@/components/SrScatterPlot.vue";
     import { SrMenuItem } from "@/components/SrMenuInput.vue";
@@ -33,20 +30,6 @@
             defaultMenuItemIndex.value = reqIds.value.findIndex((item) => item.value === route.params.id.toString());
             console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
         });
-        const mapStore = useMapStore();
-        const map = mapStore.getMap() as OLMap ;
-        if (map){
-            const tgt = map.getViewport() as HTMLDivElement; 
-            const deckLayer = createDeckGLInstance(tgt);
-            if(deckLayer){
-                map.addLayer(deckLayer);
-                console.log('deckLayer added:',deckLayer);
-            } else {
-                console.error('createDeckGLInstance returned null');
-            }
-        } else {
-            console.error('map is null');
-        }
         console.log('AnalyzeView onMounted');
     });
 </script>

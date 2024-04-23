@@ -51,7 +51,7 @@ watch(selectedReqId, (newReqId, oldReqId) => {
                 :defaultOptionIndex="props.defaultMenuItemIndex"
                 tooltipText="Request Id from Record table"/>  
         </div>
-        <div class="sr-analysis-opt-sidebar-map">
+        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <SrAnalysisMap :reqId="Number(selectedReqId.value)"/>
         </div>
         <h3>Analysis Options</h3>

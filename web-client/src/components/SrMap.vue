@@ -39,6 +39,8 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
+  import { Deck } from '@deck.gl/core/typed';
+  import { toLonLat} from 'ol/proj';
 
   const srToastStore = useSrToastStore();
 
@@ -83,7 +85,47 @@
     }
   };
 
-  // Function to toggle the DragBox interaction.
+  
+  // Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
+  // size is an array [width, height] indicating the dimensions of the map's viewport.
+  // viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
+  // Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
+  // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
+  // Sync deck view with OL view
+
+  function createDeckGLInstance(tgt:HTMLDivElement): Layer | null{
+      try{
+          const deck = new Deck({
+              initialViewState: {longitude: 0, latitude: 0, zoom: 1},
+              controller: false,
+              parent: tgt,
+              style: {pointerEvents: 'none', zIndex: '1'},
+              layers: []
+          });
+          mapStore.setDeckInstance(deck);
+          const layerOptions = {
+              title: 'DeckGL Layer',
+          }
+          const deckLayer = new Layer({
+              render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
+                  const [width, height] = size;
+                  const [longitude, latitude] = toLonLat(viewState.center);
+                  const zoom = viewState.zoom - 1;
+                  const bearing = (-viewState.rotation * 180) / Math.PI;
+                  const deckViewState = {bearing, longitude, latitude, zoom};
+                  deck.setProps({width, height, viewState: deckViewState});
+                  deck.redraw();
+                  return document.createElement('div');
+              },
+              ...layerOptions
+          });
+          return deckLayer // we just need a 'fake' Layer object with render function and title to marry to Open Layers
+      } catch (error) {
+          console.error('Error creating DeckGL instance:',error);
+          return null;
+      }
+  }
+
 
     // Function to toggle the DragBox interaction.
   function disableDragBox() {
@@ -324,11 +366,21 @@
           const plink = mapStore.plink as any;
           map.addControl(plink);
         }
+        const tgt = map.getViewport() as HTMLDivElement;
+        const deckLayer = createDeckGLInstance(tgt);
+        if(deckLayer){
+            map.addLayer(deckLayer);
+            console.log('deckLayer added:',deckLayer);
+        } else {
+            console.error('createDeckGLInstance returned null');
+        }
         updateMapView("onMounted");
 
       } else {
         console.log("Error:map is null");
       } 
+    } else {
+      console.log("Error:mapRef.value?.map is null");
     }
   });
 
