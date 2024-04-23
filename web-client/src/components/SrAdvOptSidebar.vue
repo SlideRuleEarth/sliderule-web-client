@@ -9,17 +9,17 @@
     import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { updateElevationLayer} from '@/composables/SrMapUtils';
-    import { type Elevation } from '@/composables/db';
+    import { type Elevation } from '@/db/SlideRuleDb';
     import { useMapStore } from '@/stores/mapStore';
     import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { type Request } from '@/composables/db';
+    import { type Request } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { type Atl06pReqParams } from '@/sliderule/icesat2';
-    import { db } from '@/composables/db';
+    import { db } from '@/db/SlideRuleDb';
     import { updateExtremes } from '@/composables/SrMapUtils';
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 

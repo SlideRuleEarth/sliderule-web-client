@@ -13,9 +13,9 @@ import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { useDeckStore } from '@/stores/deckStore';
-import { type Elevation } from '@/composables/db';
+import { type Elevation } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-import { db } from "@/composables/db";
+import { db } from "@/db/SlideRuleDb";
 
 
 const mapParamsStore = useMapParamsStore();

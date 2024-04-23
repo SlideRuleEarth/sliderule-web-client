@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
-import { db, type Request } from '@/composables/db';
+import { db, type Request } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 

@@ -26,7 +26,7 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
-  import {db} from '@/composables/db';
+  import {db} from '@/db/SlideRuleDb';
 
   const stringifyFunc = createStringXY(4);
   const mapRef = ref<{ map: OLMap }>();

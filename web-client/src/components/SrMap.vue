@@ -386,7 +386,7 @@
     }
   };
 
-  const updateMapView = (reason:string) => {
+  const updateMapView = async (reason:string) => {
     console.log(`****** updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
     if(map){
