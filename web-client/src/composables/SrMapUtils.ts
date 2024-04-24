@@ -12,7 +12,10 @@ import { Polygon } from 'ol/geom';
 import { type Elevation } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 import { db } from "@/db/SlideRuleDb";
-
+import { Deck } from '@deck.gl/core/typed';
+import { toLonLat} from 'ol/proj';
+import { Layer as OL_Layer} from 'ol/layer';
+import type OLMap from "ol/Map.js";
 
 const mapParamsStore = useMapParamsStore();
 const mapStore = useMapStore();
@@ -117,6 +120,78 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
     } catch (error) {
         console.error('Error updating elevation layer:',error);
     }
+}
+
+export function createNewDeckLayer(deck:Deck): OL_Layer{
+    const layerOptions = {
+        title: 'DeckGL Layer',
+    }
+    const new_layer = new OL_Layer({
+        render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
+            const [width, height] = size;
+            const [longitude, latitude] = toLonLat(viewState.center);
+            const zoom = viewState.zoom - 1;
+            const bearing = (-viewState.rotation * 180) / Math.PI;
+            const deckViewState = {bearing, longitude, latitude, zoom};
+            deck.setProps({width, height, viewState: deckViewState});
+            deck.redraw();
+            return document.createElement('div');
+        },
+        ...layerOptions
+    }); 
+    mapStore.setDeckLayer(new_layer); 
+    return new_layer;  
+}
+
+// Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
+// size is an array [width, height] indicating the dimensions of the map's viewport.
+// viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
+// Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
+// Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
+// Sync deck view with OL view
+
+export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+    try{
+        const deck = new Deck({
+            initialViewState: {longitude: 0, latitude: 0, zoom: 1},
+            controller: false,
+            parent: tgt,
+            style: {pointerEvents: 'none', zIndex: '1'},
+            layers: []
+        });
+        mapStore.setDeckInstance(deck);
+        return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
+    } catch (error) {
+        console.error('Error creating DeckGL instance:',error);
+        return null;
+    }
+}
+
+
+export function updateDeck(map: OLMap){
+    let deck = mapStore.getDeckInstance();
+    if(deck){
+      console.log('deckGLInstance exists');
+    } else {
+      const tgt = map.getViewport() as HTMLDivElement;
+      deck = createDeckGLInstance(tgt);
+    }
+    if(deck){
+      const current_layer = mapStore.getDeckLayer();
+      if(current_layer){
+        map.removeLayer(current_layer);
+      }
+      const deckLayer = createNewDeckLayer(deck);
+      if(deckLayer){
+          map.addLayer(deckLayer);
+          console.log('deckLayer added:',deckLayer);
+      } else {
+          console.error('createDeckGLInstance returned null');
+      }
+    } else {
+      console.error('deck Instance is null');
+    }
+
 }
 
 export interface SrTimeDelta{

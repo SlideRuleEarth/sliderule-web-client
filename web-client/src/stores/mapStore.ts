@@ -6,7 +6,7 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
-import type { Layer } from 'ol/layer';
+import { Layer as OL_Layer} from 'ol/layer';
 import { Deck } from '@deck.gl/core/typed';
 
 export const useMapStore = defineStore('map', {
@@ -31,7 +31,7 @@ export const useMapStore = defineStore('map', {
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([]),
     deckInstance: null as any,
-    deckLayer: null as Layer | null,
+    theDeckLayer: null as OL_Layer | null,
     isLoading: false,
   }),
   actions: {
@@ -107,6 +107,12 @@ export const useMapStore = defineStore('map', {
     },
     getDeckInstance() {
       return this.deckInstance;
-    }  
+    },
+    setDeckLayer(layer:OL_Layer) {
+      this.theDeckLayer = layer;
+    },
+    getDeckLayer() : OL_Layer | null {
+      return this.theDeckLayer as OL_Layer | null;
+    },  
   },
 });

@@ -27,6 +27,8 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
+  import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+  import { updateDeck } from '@/composables/SrMapUtils';
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -50,7 +52,6 @@
   watch(() => props.reqId, (newReqId, oldReqId) => {
     console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
     updateMapView("New reqId");  
-    fetchAndDisplayRequestData(newReqId); 
   });
 
 
@@ -76,11 +77,6 @@
   function onResolutionChange(){
     //console.log("onResolutionChange:",event);
     updateCurrentParms();
-  };
-
-  function fetchAndDisplayRequestData (reqId: number){
-    console.log('fetchAndDisplayRequestData:',reqId);
-
   };
 
   onMounted(() => {
@@ -252,7 +248,8 @@
             updateCurrentParms();
             addLayersForCurrentView(); 
             let reqExtremeLatLon = [0,0,0,0];
-            if(props.reqId > 0){     
+            if(props.reqId > 0){   
+              console.log('calling db.getExtLatLonByReqId(',props.reqId,')');  
               const extremeLatLon = await db.getExtLatLonByReqId(props.reqId);
               if (extremeLatLon) {
                 reqExtremeLatLon = [
@@ -272,6 +269,9 @@
             console.log('Using extent:',extent);               
             map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
             map.getView().on('change:resolution', onResolutionChange);
+            updateCurrentParms();
+            updateDeck(map);
+            fetchAndUpdateElevationData(props.reqId); 
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }
