@@ -152,6 +152,7 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
 
 export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     try{
+        mapStore.clearDeckInstance(); // Clear any existing instance first
         const deck = new Deck({
             initialViewState: {longitude: 0, latitude: 0, zoom: 1},
             controller: false,
@@ -169,13 +170,9 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
 
 
 export function updateDeck(map: OLMap){
-    let deck = mapStore.getDeckInstance();
-    if(deck){
-      console.log('deckGLInstance exists');
-    } else {
-      const tgt = map.getViewport() as HTMLDivElement;
-      deck = createDeckGLInstance(tgt);
-    }
+    const tgt = map.getViewport() as HTMLDivElement;
+    const deck = createDeckGLInstance(tgt);
+   
     if(deck){
       const current_layer = mapStore.getDeckLayer();
       if(current_layer){

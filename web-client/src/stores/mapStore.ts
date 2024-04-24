@@ -108,7 +108,16 @@ export const useMapStore = defineStore('map', {
     getDeckInstance() {
       return this.deckInstance;
     },
-    setDeckLayer(layer:OL_Layer) {
+    clearDeckInstance() {
+      if (this.deckInstance) {
+          console.log('clearDeckInstance');
+          this.deckInstance.finalize(); // This ensures all resources are properly released.
+          this.deckInstance = null;
+      } else {
+          console.log('deckInstance is null');
+      }
+    },
+      setDeckLayer(layer:OL_Layer) {
       this.theDeckLayer = layer;
     },
     getDeckLayer() : OL_Layer | null {
