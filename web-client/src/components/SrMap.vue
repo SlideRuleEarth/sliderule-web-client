@@ -385,7 +385,7 @@
   };
 
   const updateMapView = async (reason:string) => {
-    console.log(`****** updateMapView for ${reason} ******`);
+    console.log(`****** SrMap updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
     if(map){
       const srView = mapParamsStore.getSrView();
