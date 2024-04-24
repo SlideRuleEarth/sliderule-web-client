@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { useMapStore } from "@/stores/mapStore";
   import { useMapParamsStore } from "@/stores/mapParamsStore";
-  import { ref, onMounted } from "vue";
+  import { ref, onMounted, watch } from "vue";
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -39,13 +39,21 @@
     console.log(event);
   };
   
-  
   const props = defineProps({
       reqId: {
           type: Number,
           required: true
       }
   });
+
+  // Watch for changes on reqId
+  watch(() => props.reqId, (newReqId, oldReqId) => {
+    console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
+    updateMapView("New reqId");  
+    fetchAndDisplayRequestData(newReqId); 
+  });
+
+
   function updateCurrentParms(){
     const newZoom = mapRef.value?.map.getView().getZoom();
     if (newZoom !== undefined) {
@@ -76,7 +84,7 @@
   };
 
   onMounted(() => {
-    console.log("SrAnalysisMap onMounted");
+    console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
     //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
     Object.values(srProjections.value).forEach(projection => {
         //console.log(`Title: ${projection.title}, Name: ${projection.name}`);

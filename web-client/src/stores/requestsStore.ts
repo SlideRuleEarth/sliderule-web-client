@@ -3,6 +3,7 @@ import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
 import { db, type Request } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
+import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 
 
 export const useRequestsStore = defineStore('requests', {
@@ -128,7 +129,12 @@ export const useRequestsStore = defineStore('requests', {
         return [];
       }
     },
-
+    async getMenuItems(): Promise<SrMenuItem[]> {
+      const fetchedReqIds = await this.fetchReqIds();
+      return fetchedReqIds.map((id: number) => {
+          return {name: id.toString(), value: id.toString()};
+      });
+    },
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').toArray())
       .subscribe({

@@ -31,8 +31,8 @@
             default: false
         },
         defaultOptionIndex: {
-            type: String,
-            default: "0"
+            type: Number,
+            default: 0
         },
         tooltipText: {
             type: String,
@@ -65,7 +65,7 @@
     });
 
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        console.log('Mounted Menu:', props.label , 'selected:', selectedMenuItem.value, 'default:', props.defaultOptionIndex);
     });
 </script>
 

@@ -8,29 +8,35 @@ import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useRequestsStore } from '@/stores/requestsStore';
+
+const requestsStore = useRequestsStore();
 
 const props = defineProps({
-    reqIds: Array as () => SrMenuItem[],
-    defaultMenuItemIndex: String,
+    startingReqId: Number,
 });
 
-const selectedReqId = ref();
-
+const defaultMenuItemIndex = ref(0);
+const selectedReqId = ref({name:'0', value:'0'});
 const reqParamsStore = useReqParamsStore();
 const activeTabIndex = ref([0]); // Opens the first tab by default
+const loading = ref(true);
+const reqIds = ref<SrMenuItem[]>([]);
 
 onMounted(async() => {
-    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.defaultMenuItemIndex);
-    if(props.reqIds){
-        if(props.reqIds.length === 0){
-            console.log('No request IDs available');
-            return;
+    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.startingReqId);
+    try {
+        reqIds.value =  await requestsStore.getMenuItems();
+        if (props.startingReqId){
+            const startId = props.startingReqId.toString()
+            defaultMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
+            selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
         }
-        console.log('Setting selectedReqId...');
-        selectedReqId.value = props.reqIds[Number(props.defaultMenuItemIndex)]
-    } else {
-        console.error('No request IDs available');
+        console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
+    } catch (error) {
+        console.error('Failed to load menu items:', error);
     }
+    loading.value = false;
 });
 
 
@@ -38,21 +44,24 @@ watch(selectedReqId, (newReqId, oldReqId) => {
     console.log('Request ID changed from:', oldReqId ,' to:', newReqId);
     // Optionally update other store or effects as needed
 
-});
+}, { deep: true, immediate: true });
 </script>
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
         <div class="sr-analysis-opt-sidebar-req-menu">
+            <div v-if="loading">Loading...</div>
             <SrMenuInput 
+                v-else
                 label="Request Id" 
                 :menuOptions="reqIds" 
                 v-model="selectedReqId"
-                :defaultOptionIndex="props.defaultMenuItemIndex"
+                :defaultOptionIndex="Number(defaultMenuItemIndex)"
                 tooltipText="Request Id from Record table"/>  
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-            <SrAnalysisMap :reqId="Number(selectedReqId.value)"/>
+            <div v-if="loading">Loading...</div>
+            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
