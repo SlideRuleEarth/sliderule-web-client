@@ -90,12 +90,19 @@ export interface Atl06ReqParams {
     maxi: number;
     [key: string]: any; // Other dynamic keys
 }
+
+export interface SrLatLon {
+    lat: number;
+    lon: number;
+  }
+  
+export type SrRegion = SrLatLon[];
   
 export interface Atl06pReqParams {
     atl06Params: Atl06ReqParams;
+    region?: SrRegion; 
     resources: Resource[];
 }
-
 
 //
 // ATL06P

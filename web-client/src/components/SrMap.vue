@@ -40,7 +40,10 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
   import { updateDeck } from "@/composables/SrMapUtils";
+  import { toLonLat } from 'ol/proj';
+  import { useReqParamsStore } from "@/stores/reqParamsStore";
 
+  const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
 
   interface SrDrawControlMethods {
@@ -109,7 +112,32 @@
 
   dragBox.on('boxend', function() {
     const extent = dragBox.getGeometry().getExtent();
-    console.log("boxend:",extent);
+    console.log("Box extent in map coordinates:", extent);
+
+    // Transform extent to geographic coordinates (longitude and latitude)
+    const bottomLeft = toLonLat([extent[0], extent[1]], mapRef.value?.map.getView().getProjection());
+    const topRight = toLonLat([extent[2], extent[3]], mapRef.value?.map.getView().getProjection());
+
+    // Calculate topLeft and bottomRight in geographic coordinates
+    const topLeft = toLonLat([extent[0], extent[3]], mapRef.value?.map.getView().getProjection());
+    const bottomRight = toLonLat([extent[2], extent[1]], mapRef.value?.map.getView().getProjection());
+
+    console.log(`Bottom-left corner in lon/lat: ${bottomLeft}`);
+    console.log(`Top-left corner in lon/lat: ${topLeft}`);
+    console.log(`Top-right corner in lon/lat: ${topRight}`);
+    console.log(`Bottom-right corner in lon/lat: ${bottomRight}`);
+
+    // Create a region array of coordinates
+    const region = [
+      { "lat": topLeft[1], "lon": topLeft[0] },
+      { "lat": bottomLeft[1], "lon": bottomLeft[0] },
+      { "lat": bottomRight[1], "lon": bottomRight[0] },
+      { "lat": topRight[1], "lon": topRight[0] },
+      { "lat": topLeft[1], "lon": topLeft[0] } // close the loop by repeating the first point
+    ];
+    reqParamsStore.region = region;
+    console.log("Region:", region);
+
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
     if(vectorLayer){
       const vectorSource = vectorLayer.getSource();

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { Atl06ReqParams, Atl06pReqParams } from '@/sliderule/icesat2';
+import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
 
 export interface NullReqParams {
   null: null;
@@ -9,12 +9,12 @@ export interface NullReqParams {
 
 export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
 
-
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
         rasterizePolygon: false,
         ignorePolygon: false,
+        region: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
@@ -193,14 +193,22 @@ export const useReqParamsStore = defineStore('reqParams', {
             cnt: this.minimumPhotonCount, 
             len: this.lengthValue,        
             res: this.stepValue,          
-            maxi: this.maxIterations      
+            maxi: this.maxIterations,      
+            region: this.region,
           };
         },
         getAtl06pReqParams(): Atl06pReqParams {
-          return {
-            atl06Params: this.getAtl06ReqParams(),
-            resources: this.resources
-          };
+          if(this.region){
+            return {
+              atl06Params: this.getAtl06ReqParams(),
+              resources: this.resources
+            };
+          } else {
+            return {
+              atl06Params: this.getAtl06ReqParams(),
+              resources: this.resources
+            };
+          }
         },
     },
 })
