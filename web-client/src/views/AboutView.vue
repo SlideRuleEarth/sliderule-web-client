@@ -1,12 +1,16 @@
+<script setup>
+  import SrBuildDate from '@/components/SrBuildDate.vue';
+</script>
+
 <template>
-  <div class="about">
-    <h1 class="light">This is an about page</h1>
+  <div class="sr-about">
+    <SrBuildDate />
   </div>
 </template>
 
-<style>
+<style scoped>
 @media (min-width: 1024px) {
-  .about {
+  .sr-about {
     min-height: 100vh;
     display: flex;
     align-items: center;

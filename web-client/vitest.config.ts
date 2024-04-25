@@ -9,6 +9,9 @@ export default mergeConfig(
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'e2e/*'],
       root: fileURLToPath(new URL('./', import.meta.url))
-    }
+    },
+    define: {
+      'process.env.BUILD_DATE': JSON.stringify(new Date().toISOString()),
+    }    
   })
 )

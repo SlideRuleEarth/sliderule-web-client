@@ -2,48 +2,61 @@
 import {useToast} from "primevue/usetoast";
 import Toast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
-import router from './router';
+import router from './router/index.js';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
+import { useSrToastStore } from "@/stores/srToastStore";
 
+const srToastStore = useSrToastStore()
+
+const advancedModeStore = useAdvancedModeStore();
 
 const toast = useToast();
 
 const logoClick = () => {
   // console.log('logoClick');
-  toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: 3000 });
+  //toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: srToastStore.getLife()});
   router.push('/');
 };
 
-const searchButtonClick = (inputValue: number) => {
-  console.log('searchButtonClick',inputValue);
-  toast.add({ severity: 'info', summary: 'Search Button', detail: 'Search button was pushed', life: 3000 });
-};
+
 
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
-  toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed', life: 3000 });
+  //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
+  advancedModeStore.advanced = true;
+  router.push('/advanced-user');
 };
 
 const popularButtonClick = () => {
   // console.log('popularButtonClick');
-  toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: 3000 });
+  toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: srToastStore.getLife()});
+  router.push('/popular');
+};
+
+const recordButtonClick = () => {
+  // console.log('recordButtonClick');
+  // toast.add({ severity: 'info', summary: 'Record Button', detail: 'Record button was pushed', life: srToastStore.getLife()});
+  router.push('/record');
 };
 
 const aboutButtonClick = () => {
   // console.log('aboutButtonClick');
-  toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed', life: 3000 });
+  //toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed',  life: srToastStore.getLife()});
   router.push('/about');
 };
 </script>
 
 <template>
-  <Toast />
+  <div>
+    <Toast position="top-center"/>
+  </div>  
   <header>
     <SrAppBar 
-      @logoClick="logoClick"
-      @searchButtonClick="searchButtonClick"
-      @toolButtonClick="toolButtonClick"
-      @popularButtonClick="popularButtonClick"
-      @aboutButtonClick="aboutButtonClick"
+      @logo-click="logoClick"
+      @tool-button-click="toolButtonClick"
+      @popular-button-click="popularButtonClick"
+      @record-button-click="recordButtonClick"
+      @about-button-click="aboutButtonClick"
     />
   </header>
   <RouterView />
@@ -54,5 +67,15 @@ header {
   line-height: 1.5;
   max-height: 100vh;
 }
+
+/* .toast-div{ 
+  display: flex;
+  justify-content: center;
+}
+
+:deep(.app .p-toast .p-toast-message.p-toast-message-info)   {
+  color:black; 
+} 
+*/
 
 </style>

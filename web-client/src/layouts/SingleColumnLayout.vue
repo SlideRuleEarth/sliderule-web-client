@@ -4,7 +4,7 @@
 <template>
   <div class="single-column-layout">
     <header>
-      <slot name = "header"></slot>
+      <slot name = "sr-single-col"></slot>
     </header>
 
   </div>
@@ -13,6 +13,9 @@
 <style scoped>
 .single-column-layout {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+
   @media (max-width: 768px) {
     flex-direction: column;
   }
