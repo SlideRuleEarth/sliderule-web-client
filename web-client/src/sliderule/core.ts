@@ -451,6 +451,9 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
+      if (api === 'atl06p') {
+        console.log('source url:', url, 'options:',options);
+      }
       result = await fetchAndProcessResult(url, options, callbacks, stream);
   } catch (error) {
       console.error('Error in fetchAndProcessResult:', error);

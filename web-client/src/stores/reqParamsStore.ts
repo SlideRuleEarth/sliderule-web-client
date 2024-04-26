@@ -14,7 +14,7 @@ export const useReqParamsStore = defineStore('reqParams', {
     state: () => ({
         rasterizePolygon: false,
         ignorePolygon: false,
-        region: null as SrRegion | null,
+        poly: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
@@ -186,29 +186,34 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtl06ReqParams(): Atl06ReqParams {
-          return {
-            cnf: this.signalConfidence,   
-            ats: this.alongTrackSpread,  
-            cnt: this.minimumPhotonCount, 
-            len: this.lengthValue,        
-            res: this.stepValue,          
-            maxi: this.maxIterations,      
-            region: this.region,
-          };
-        },
-        getAtl06pReqParams(): Atl06pReqParams {
-          if(this.region){
+        getAtl06ReqParams(): Atl06ReqParams {          
+          if(this.poly){
             return {
-              atl06Params: this.getAtl06ReqParams(),
-              resources: this.resources
+              cnf: this.signalConfidence,   
+              ats: this.alongTrackSpread,  
+              cnt: this.minimumPhotonCount, 
+              len: this.lengthValue,        
+              res: this.stepValue,          
+              maxi: this.maxIterations,
+              poly: this.poly,      
             };
           } else {
+            console.log('getAtl06ReqParams: poly is null');
             return {
-              atl06Params: this.getAtl06ReqParams(),
-              resources: this.resources
+              cnf: this.signalConfidence,   
+              ats: this.alongTrackSpread,  
+              cnt: this.minimumPhotonCount, 
+              len: this.lengthValue,        
+              res: this.stepValue,          
+              maxi: this.maxIterations,
             };
           }
+        },
+        getAtl06pReqParams(): Atl06pReqParams {
+          return  {
+            parms:this.getAtl06ReqParams(),
+            resources: this.resources,     
+          };
         },
     },
 })
