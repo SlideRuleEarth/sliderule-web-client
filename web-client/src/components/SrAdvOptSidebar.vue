@@ -68,8 +68,7 @@
             return;
         }
         requestsStore.currentReqId = req.req_id;
-        const atl06pParams: Atl06pReqParams = reqParamsStore.getAtl06pReqParams();
-        requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:atl06pParams, func:'atl06', start_time: new Date(), end_time: new Date()});
+        requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:req.parameters, func:'atl06', start_time: new Date(), end_time: new Date()});
         init(sysConfigStore.getSysConfig());
         //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
@@ -131,86 +130,91 @@
             console.log("atl06p cb_count:",cb_count.value)
             isLoading.value = true; // for local button control        
             requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
-            console.log("atl06pParams:",atl06pParams);
-            atl06p(atl06pParams,callbacks)
-            .then(
-                () => { // result
-                    // Log the result to the console
-                    // Display a toast message indicating successful completion
-                    const flatRecs = recs.flat();
-                    console.log(`Final: flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                    if(flatRecs.length > 0) {
-                        updateElevationLayer(flatRecs,true);
-                        const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
-                        toast.add({
-                            severity: 'success', // Use 'success' severity for successful operations
-                            summary: 'Success', // A short summary of the outcome
-                            detail: status_details, // A more detailed message
-                            life: 10000 // Adjust the duration as needed
-                        });
-                        requestsStore.updateReq({req_id: req.req_id,status: 'success' ,status_details: status_details});
-                    } else {
-                        const status_details = 'No data returned from SlideRule.';
+            console.log("atl06pParams:",req.parameters);
+            if(req.parameters){
+                console.log('atl06pParams:',req.parameters);
+                atl06p(req.parameters as Atl06pReqParams,callbacks)
+                .then(
+                    () => { // result
+                        // Log the result to the console
+                        // Display a toast message indicating successful completion
+                        const flatRecs = recs.flat();
+                        console.log(`Final: flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+                        if(flatRecs.length > 0) {
+                            updateElevationLayer(flatRecs,true);
+                            const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
+                            toast.add({
+                                severity: 'success', // Use 'success' severity for successful operations
+                                summary: 'Success', // A short summary of the outcome
+                                detail: status_details, // A more detailed message
+                                life: 10000 // Adjust the duration as needed
+                            });
+                            requestsStore.updateReq({req_id: req.req_id,status: 'success' ,status_details: status_details});
+                        } else {
+                            const status_details = 'No data returned from SlideRule.';
+                            toast.add({
+                                severity: 'error', // Use 'error' severity for error messages
+                                summary: 'No Data returned', // A short summary of the error
+                                detail: status_details, // A more detailed error message
+                            });
+                            console.log('Final: No more data returned from SlideRule.');
+                            requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
+                        }
+
+                    },
+                    error => {
+                        // Log the error to the console
+                        console.log('runSlideRuleClicked Error = ', error);
+                        // Display a toast message indicating the error
+                        const status_details = `An error occurred while running SlideRule: ${error}`;
                         toast.add({
                             severity: 'error', // Use 'error' severity for error messages
-                            summary: 'No Data returned', // A short summary of the error
+                            summary: 'Error', // A short summary of the error
                             detail: status_details, // A more detailed error message
                         });
-                        console.log('Final: No more data returned from SlideRule.');
-                        requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
+                        let emsg = '';
+                        if (navigator.onLine) {
+                            emsg =  'Network error: Possible DNS resolution issue or server down.';
+                        } else {
+                            emsg = 'Network error: your browser appears to be/have been offline.';
+                        }
+                        toast.add({
+                            severity: 'error',   
+                            summary: 'Error',   
+                            detail: emsg,      
+                        });
+                        requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: emsg});
                     }
-
-                },
-                error => {
+                ).catch((error => {
                     // Log the error to the console
-                    console.log('runSlideRuleClicked Error = ', error);
-                    // Display a toast message indicating the error
+                    console.error('runSlideRuleClicked Error = ', error);
                     const status_details = `An error occurred while running SlideRule: ${error}`;
+                    requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: status_details});
+
+                    // Display a toast message indicating the error
                     toast.add({
                         severity: 'error', // Use 'error' severity for error messages
                         summary: 'Error', // A short summary of the error
-                        detail: status_details, // A more detailed error message
+                        detail: 'An error occurred while running SlideRule.', // A more detailed error message
                     });
-                    let emsg = '';
-                    if (navigator.onLine) {
-                        emsg =  'Network error: Possible DNS resolution issue or server down.';
+                })).finally(() => {
+                    const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
+                    if(req.req_id){
+                        console.log('runAtl06 req_id:',req.req_id, ' updating stats');
+                        const extLatLon = {req_id: req.req_id, minLat: curAtl06ReqSumStore.get_lat_Min(), maxLat: curAtl06ReqSumStore.get_lat_Max(), minLon: curAtl06ReqSumStore.get_lon_Min(), maxLon: curAtl06ReqSumStore.get_lon_Max()};
+                        db.addOrUpdateExtLatLon(extLatLon);
+                        const extHMeanData = {req_id: req.req_id, minHMean: curAtl06ReqSumStore.get_h_mean_Min(), maxHMean: curAtl06ReqSumStore.get_h_mean_Max(), lowHMean: curAtl06ReqSumStore.get_h_mean_Low(), highHMean: curAtl06ReqSumStore.get_h_mean_High()};
+                        db.addOrUpdateHMeanStats(extHMeanData);
+                        isLoading.value = false; // for local button control
+                        requestsStore.reqIsLoading[req.req_id] = false; 
                     } else {
-                        emsg = 'Network error: your browser appears to be/have been offline.';
+                        console.error('runAtl06 req_id was undefined?');
                     }
-                    toast.add({
-                        severity: 'error',   
-                        summary: 'Error',   
-                        detail: emsg,      
-                    });
-                    requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: emsg});
-                }
-            ).catch((error => {
-                // Log the error to the console
-                console.error('runSlideRuleClicked Error = ', error);
-                const status_details = `An error occurred while running SlideRule: ${error}`;
-                requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: status_details});
-
-                // Display a toast message indicating the error
-                toast.add({
-                    severity: 'error', // Use 'error' severity for error messages
-                    summary: 'Error', // A short summary of the error
-                    detail: 'An error occurred while running SlideRule.', // A more detailed error message
+                    console.log(`cb_count:${cb_count.value}`)
                 });
-            })).finally(() => {
-                const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
-                if(req.req_id){
-                    console.log('runAtl06 req_id:',req.req_id, ' updating stats');
-                    const extLatLon = {req_id: req.req_id, minLat: curAtl06ReqSumStore.get_lat_Min(), maxLat: curAtl06ReqSumStore.get_lat_Max(), minLon: curAtl06ReqSumStore.get_lon_Min(), maxLon: curAtl06ReqSumStore.get_lon_Max()};
-                    db.addOrUpdateExtLatLon(extLatLon);
-                    const extHMeanData = {req_id: req.req_id, minHMean: curAtl06ReqSumStore.get_h_mean_Min(), maxHMean: curAtl06ReqSumStore.get_h_mean_Max(), lowHMean: curAtl06ReqSumStore.get_h_mean_Low(), highHMean: curAtl06ReqSumStore.get_h_mean_High()};
-                    db.addOrUpdateHMeanStats(extHMeanData);
-                    isLoading.value = false; // for local button control
-                    requestsStore.reqIsLoading[req.req_id] = false; 
-                } else {
-                    console.error('runAtl06 req_id was undefined?');
-                }
-                console.log(`cb_count:${cb_count.value}`)
-            });
+            } else {
+                console.error('runAtl06 req.parameters was undefined');
+            }
         }
     }
 
@@ -224,7 +228,7 @@
             if(missionValue.value.value === 'ICESat-2') {
                 if(iceSat2SelectedAPI.value.value === 'atl06') {
                     console.log('atl06 selected');
-                    req.parameters = reqParamsStore.getAtl06pReqParams();
+                    req.parameters = reqParamsStore.getAtl06pReqParams(false,true);
                     req.start_time = new Date();
                     req.end_time = new Date();
                     await runAtl06(req);

@@ -128,15 +128,15 @@
     console.log(`Bottom-right corner in lon/lat: ${bottomRight}`);
 
     // Create a region array of coordinates
-    const region = [
+    const poly = [
       { "lat": topLeft[1], "lon": topLeft[0] },
       { "lat": bottomLeft[1], "lon": bottomLeft[0] },
       { "lat": bottomRight[1], "lon": bottomRight[0] },
       { "lat": topRight[1], "lon": topRight[0] },
       { "lat": topLeft[1], "lon": topLeft[0] } // close the loop by repeating the first point
     ];
-    reqParamsStore.region = region;
-    console.log("Region:", region);
+    reqParamsStore.poly = poly;
+    console.log("Poly:", poly);
 
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
     if(vectorLayer){
