@@ -33,7 +33,7 @@ onUnmounted(() => {
 
 <template>
     <div class="sr-records-container">
-        <DataTable :value="requestsStore.reqs" tableStyle="min-width: 50rem">
+        <DataTable :value="requestsStore.reqs" tableStyle="min-width: 50rem" scrollable scrollHeight="50rem">
             <Column field="Star" header="">
                 <template #body="slotProps">
                     <i 
