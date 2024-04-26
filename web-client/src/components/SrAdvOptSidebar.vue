@@ -121,7 +121,7 @@
         const map = mapStore.getMap() as OLMap ;
         if (map){
             console.log("atl06p cb_count:",cb_count.value)
-            isLoading.value = true; // for local button control 
+            isLoading.value = true; // controls spinning progress
             if(req.req_id){       
                 requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
                 console.log("atl06pParams:",req.parameters);
@@ -224,6 +224,7 @@
             console.log('handleAtl06WorkerMsg success');
             toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
             mapStore.isLoading = false;
+            isLoading.value = false; // controls spinning progress
             console.log('done... isLoading:',mapStore.isLoading);
             //worker.terminate();
         } else if(workerMsg.status === 'started') {
@@ -240,14 +241,25 @@
         } else if(workerMsg.status === 'error') {
             console.log(`handleAtl06WorkerMsg error event.data.error:${event.data.error}`);
             toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
+            //isLoading.value = false; // controls spinning progress
         }
     }
 
     async function runAtl06Worker(req:Request){
         try{
-            const worker = new Worker(new URL('@/workers/atl06ToDb', import.meta.url), { type: 'module' });
-            worker.onmessage = handleAtl06WorkerMsg;
-            worker.postMessage(JSON.stringify(req));
+            //TBD add a timeout?
+            isLoading.value = true; // controls spinning progress
+            if(req.req_id){
+                requestsStore.currentReqId = req.req_id;
+                requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:req.parameters, func:'atl06', start_time: new Date(), end_time: new Date()});
+                //requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
+                const worker = new Worker(new URL('@/workers/atl06ToDb', import.meta.url), { type: 'module' });
+                worker.onmessage = handleAtl06WorkerMsg;
+                worker.postMessage(JSON.stringify(req));
+            } else {
+                console.error('runAtl06Worker req_id is undefined');
+                toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+            }
         } catch (error) {
             console.error('runAtl06Worker error:',error);
             toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
