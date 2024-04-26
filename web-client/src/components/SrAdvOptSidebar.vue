@@ -228,7 +228,7 @@
             if(missionValue.value.value === 'ICESat-2') {
                 if(iceSat2SelectedAPI.value.value === 'atl06') {
                     console.log('atl06 selected');
-                    req.parameters = reqParamsStore.getAtl06pReqParams(false,true);
+                    req.parameters = reqParamsStore.getAtl06pReqParams();
                     req.start_time = new Date();
                     req.end_time = new Date();
                     await runAtl06(req);
