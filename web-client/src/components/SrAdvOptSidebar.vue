@@ -69,7 +69,6 @@
         }
         requestsStore.currentReqId = req.req_id;
         requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:req.parameters, func:'atl06', start_time: new Date(), end_time: new Date()});
-        init(sysConfigStore.getSysConfig());
         //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
         //console.log("runSlideRuleClicked atl06p:", atl06p);
         let recs:Elevation[] = [];
@@ -221,6 +220,7 @@
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
         mapStore.isLoading = true;
+        init(sysConfigStore.getSysConfig());
         console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
         let req = await requestsStore.createNewReq();
         if(req) {
