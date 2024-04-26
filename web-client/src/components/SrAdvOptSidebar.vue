@@ -226,9 +226,17 @@
             mapStore.isLoading = false;
             console.log('done... isLoading:',mapStore.isLoading);
             //worker.terminate();
+        } else if(workerMsg.status === 'started') {
+            console.log('handleAtl06WorkerMsg started');
+            toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
+        } else if(workerMsg.status === 'server_msg'){
+            console.log('handleAtl06WorkerMsg server_msg');
+            if(workerMsg.msg){
+                requestsStore.setMsg(workerMsg.msg);
+            }
         } else if(workerMsg.status === 'progress') {
             console.log('handleAtl06WorkerMsg progress');
-            toast.add({severity: 'info',summary: 'Info', detail: workerMsg.msg, life: srToastStore.getLife() });
+            toast.add({severity: 'info',summary: 'Progress', detail: workerMsg.msg, life: srToastStore.getLife() });
         } else if(workerMsg.status === 'error') {
             console.log(`handleAtl06WorkerMsg error event.data.error:${event.data.error}`);
             toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });

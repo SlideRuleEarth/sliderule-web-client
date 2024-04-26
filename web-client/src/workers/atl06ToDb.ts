@@ -17,16 +17,16 @@ export interface WorkerError {
     code: string;
     message: string;
 }
-type WorkerStatus = 'started' | 'progress' | 'success' | 'error';
+type WorkerStatus = 'started' | 'progress' | 'success' | 'error' | 'server_msg';
 
 export interface WorkerMessage {
     status: WorkerStatus; 
     progress?: number;      // Percentage for progress updates
-    msg?: String;           // status details
+    msg?: string;           // status details
     error?: WorkerError;    // Error details (if an error occurred)
 }
 
-function sendStatusMsg(status: WorkerStatus, msg: String) {
+function sendStatusMsg(status: WorkerStatus, msg: string) {
     const wmsg: WorkerMessage = { status: status, msg:msg };
     postMessage(wmsg);
 }
@@ -62,21 +62,23 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
 
 onmessage = (event) => {
     try{
+        let numWkChunks = 0;
         let runningCount = 0;
-        let currentThreshold = 50000;
-        const thresholdIncrement = 50000;
+        let currentThreshold = 100000;
+        const thresholdIncrement = 100000;
         const req = JSON.parse(event.data);
         console.log("atl06ToDb req: ", req);
         sendStatusMsg('started', `Starting req_id: ${req.req_id}`);
         const recs:Elevation[] = [];
         const callbacks = {
             atl06rec: (result:any) => {
+                numWkChunks += 1;
                 const currentRecs = result["elevation"];
                 const curFlatRecs = currentRecs.flat();
                 if(curFlatRecs.length > 0) {
                     runningCount += curFlatRecs.length;
                     if(runningCount > currentThreshold) {
-                        sendStatusMsg('progress', `Recieved ${runningCount} pnts`);
+                        sendStatusMsg('progress', `Received ${runningCount} pnts in ${numWkChunks} chunks.`);
                         currentThreshold = runningCount + thresholdIncrement;
                     }
                     recs.push(curFlatRecs);
@@ -111,7 +113,7 @@ onmessage = (event) => {
             },
             eventrec: (result:any) => {
                 console.log('atl06p cb eventrec result:', result);
-                sendStatusMsg('progress', `server msg: ${result.text}`);
+                sendStatusMsg('server_msg', `server msg: ${result.attr}`);
             },
         };
         if(req.req_id){       
