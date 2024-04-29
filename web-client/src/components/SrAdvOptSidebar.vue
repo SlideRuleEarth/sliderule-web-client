@@ -5,24 +5,17 @@
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
-    import { atl06p } from '@/sliderule/icesat2.js';
     import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
-    import { updateElevationLayer} from '@/composables/SrMapUtils';
-    import { type Elevation } from '@/db/SlideRuleDb';
     import { useMapStore } from '@/stores/mapStore';
-    import { Map as OLMap } from 'ol';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { type Request } from '@/db/SlideRuleDb';
+    import { type SrRequest } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
-    import { type Atl06pReqParams } from '@/sliderule/icesat2';
-    import { db } from '@/db/SlideRuleDb';
-    import { updateExtremes } from '@/composables/SrMapUtils';
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-    import { WorkerMessage,WorkerError } from '@/workers/atl06ToDb';
+    import { WorkerMessage } from '@/workers/workerUtils';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -44,8 +37,10 @@
     const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     const isLoading = ref(false);
-    const cb_count = ref(0);
 
+    let worker: Worker | null = null;
+    type TimeoutHandle = ReturnType<typeof setTimeout>;
+    let timeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 
     onMounted(() => {
         console.log('SrAdvOptSidebar onMounted');
@@ -61,201 +56,267 @@
         }
     });
 
-    async function runAtl06(req:Request){
-        console.log('runAtl06 with req:',req);
-        //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
-        //console.log("runSlideRuleClicked atl06p:", atl06p);
-        let recs:Elevation[] = [];
-        const callbacks = {
-            atl06rec: (result:any) => {
-                // if(cb_count.value === 0) {
-                //     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
-                // }
-                const currentRecs = result["elevation"];
-                const curFlatRecs = currentRecs.flat();
-                if(curFlatRecs.length === 0) {
-                    console.log('atl06p cb curFlatRecs.length === 0');
-                    return;
-                }
-                curReqSumStore.addNumRecs(curFlatRecs.length);
-                recs.push(curFlatRecs);
-                cb_count.value += 1;
-                updateExtremes(curFlatRecs);
-                const flatRecs = recs.flat();
-                //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                updateElevationLayer(flatRecs,true);
-                db.transaction('rw', db.elevations, async () => {
-                    try {
-                        // Adding req_id to each record in curFlatRecs
-                        const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
-                            ...rec,
-                            req_id: requestsStore.currentReqId, 
-                        }));
-                        //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
-                        await db.elevations.bulkAdd(updatedFlatRecs);
-                        //console.log('Bulk add successful');
-                    } catch (error) {
-                        console.error('Bulk add failed: ', error);
-                        requestsStore.setMsg('DB txn failed');                    
+    // async function runAtl06(req:SrRequest){
+    //     console.log('runAtl06 with req:',req);
+    //     //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
+    //     //console.log("runSlideRuleClicked atl06p:", atl06p);
+    //     let recs:Elevation[] = [];
+    //     const callbacks = {
+    //         atl06rec: (result:any) => {
+    //             // if(cb_count.value === 0) {
+    //             //     console.log('first atl06p cb result["elevation"]:', result["elevation"]); // result["elevation"] is an array of Elevation');
+    //             // }
+    //             const currentRecs = result["elevation"];
+    //             const curFlatRecs = currentRecs.flat();
+    //             if(curFlatRecs.length === 0) {
+    //                 console.log('atl06p cb curFlatRecs.length === 0');
+    //                 return;
+    //             }
+    //             curReqSumStore.addNumRecs(curFlatRecs.length);
+    //             recs.push(curFlatRecs);
+    //             cb_count.value += 1;
+    //             updateExtremes(curFlatRecs);
+    //             const flatRecs = recs.flat();
+    //             //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+    //             updateElevationLayer(flatRecs,true);
+    //             db.transaction('rw', db.elevations, async () => {
+    //                 try {
+    //                     // Adding req_id to each record in curFlatRecs
+    //                     const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
+    //                         ...rec,
+    //                         req_id: requestsStore.currentReqId, 
+    //                     }));
+    //                     //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
+    //                     await db.elevations.bulkAdd(updatedFlatRecs);
+    //                     //console.log('Bulk add successful');
+    //                 } catch (error) {
+    //                     console.error('Bulk add failed: ', error);
+    //                     requestsStore.setMsg('DB txn failed');                    
+    //                 }
+    //             }).catch((error) => {
+    //                 console.error('Transaction failed: ', error);
+    //                 requestsStore.setMsg('Transaction failed');
+    //                 toast.add({severity: 'error', summary: 'Transaction failed', detail: error.toString(), life: srToastStore.getLife() });
+    //             });            
+    //         },
+    //         exceptrec: (result:any) => {
+    //             console.log('atl06p cb exceptrec result:', result);
+    //             toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
+    //             requestsStore.setMsg(result['text']);
+    //             requestsStore.updateReq({req_id: req.req_id, status:'processing'});
+    //         },
+    //         eventrec: (result:any) => {
+    //             console.log('atl06p cb eventrec result:', result);
+    //             const this_detail = `Level:${result['level']}  ${result['attr']}`;
+    //             //toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
+    //             requestsStore.setMsg(this_detail)
+    //             requestsStore.updateReq({req_id: req.req_id, status:'processing'});
+    //         },
+    //     };
+    //     const map = mapStore.getMap() as OLMap ;
+    //     if (map){
+    //         console.log("atl06p cb_count:",cb_count.value)
+    //         isLoading.value = true; // controls spinning progress
+    //         if(req.req_id){       
+    //             requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
+    //             console.log("atl06pParams:",req.parameters);
+    //             if(req.parameters){
+    //                 console.log('atl06pParams:',req.parameters);
+    //                 atl06p(req.parameters as Atl06pReqParams,callbacks)
+    //                 .then(
+    //                     () => { // result
+    //                         // Log the result to the console
+    //                         // Display a toast message indicating successful completion
+    //                         const flatRecs = recs.flat();
+    //                         console.log(`Final: flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
+    //                         if(flatRecs.length > 0) {
+    //                             updateElevationLayer(flatRecs,true);
+    //                             const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
+    //                             toast.add({
+    //                                 severity: 'success', // Use 'success' severity for successful operations
+    //                                 summary: 'Success', // A short summary of the outcome
+    //                                 detail: status_details, // A more detailed message
+    //                                 life: 10000 // Adjust the duration as needed
+    //                             });
+    //                             requestsStore.updateReq({req_id: req.req_id,status: 'success' ,status_details: status_details});
+    //                         } else {
+    //                             const status_details = 'No data returned from SlideRule.';
+    //                             toast.add({
+    //                                 severity: 'error', // Use 'error' severity for error messages
+    //                                 summary: 'No Data returned', // A short summary of the error
+    //                                 detail: status_details, // A more detailed error message
+    //                             });
+    //                             console.log('Final: No more data returned from SlideRule.');
+    //                             requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
+    //                         }
+
+    //                     },
+    //                     error => {
+    //                         // Log the error to the console
+    //                         console.log('runSlideRuleClicked Error = ', error);
+    //                         // Display a toast message indicating the error
+    //                         const status_details = `An error occurred while running SlideRule: ${error}`;
+    //                         toast.add({
+    //                             severity: 'error', // Use 'error' severity for error messages
+    //                             summary: 'Error', // A short summary of the error
+    //                             detail: status_details, // A more detailed error message
+    //                         });
+    //                         let emsg = '';
+    //                         if (navigator.onLine) {
+    //                             emsg =  'Network error: Possible DNS resolution issue or server down.';
+    //                         } else {
+    //                             emsg = 'Network error: your browser appears to be/have been offline.';
+    //                         }
+    //                         toast.add({
+    //                             severity: 'error',   
+    //                             summary: 'Error',   
+    //                             detail: emsg,      
+    //                         });
+    //                         requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: emsg});
+    //                     }
+    //                 ).catch((error => {
+    //                     // Log the error to the console
+    //                     console.error('runSlideRuleClicked Error = ', error);
+    //                     const status_details = `An error occurred while running SlideRule: ${error}`;
+    //                     requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: status_details});
+
+    //                     // Display a toast message indicating the error
+    //                     toast.add({
+    //                         severity: 'error', // Use 'error' severity for error messages
+    //                         summary: 'Error', // A short summary of the error
+    //                         detail: 'An error occurred while running SlideRule.', // A more detailed error message
+    //                     });
+    //                 })).finally(() => {
+    //                     const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
+    //                     if(req.req_id){
+    //                         console.log('runAtl06 req_id:',req.req_id, ' updating stats');
+    //                         const extLatLon = {req_id: req.req_id, minLat: curAtl06ReqSumStore.get_lat_Min(), maxLat: curAtl06ReqSumStore.get_lat_Max(), minLon: curAtl06ReqSumStore.get_lon_Min(), maxLon: curAtl06ReqSumStore.get_lon_Max()};
+    //                         db.addOrUpdateExtLatLon(extLatLon);
+    //                         const extHMeanData = {req_id: req.req_id, minHMean: curAtl06ReqSumStore.get_h_mean_Min(), maxHMean: curAtl06ReqSumStore.get_h_mean_Max(), lowHMean: curAtl06ReqSumStore.get_h_mean_Low(), highHMean: curAtl06ReqSumStore.get_h_mean_High()};
+    //                         db.addOrUpdateHMeanStats(extHMeanData);
+    //                         isLoading.value = false; // for local button control
+    //                         requestsStore.reqIsLoading[req.req_id] = false; 
+    //                     } else {
+    //                         console.error('runAtl06 req_id was undefined?');
+    //                     }
+    //                     console.log(`cb_count:${cb_count.value}`)
+    //                 });
+    //             } else {
+    //                 console.error('runAtl06 req.parameters was undefined');
+    //             }
+    //         } else {
+    //             console.error('runAtl06 req.req_id was undefined');
+    //         }
+    //     }
+    // }
+
+    const handleAtl06WorkerMsg = (event: MessageEvent) => {
+        if(worker){
+            // Clear the timeout when any conclusive worker message is received
+            if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+                timeoutHandle = null;
+            }
+            const workerMsg:WorkerMessage = event.data;
+            console.log('handleAtl06WorkerMsg Worker event:',event);
+            switch(workerMsg.status){
+                case 'success':
+                    console.log('handleAtl06WorkerMsg success:',workerMsg.msg);
+                    toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    mapStore.isLoading = false;
+                    isLoading.value = false; // controls spinning progress
+                    console.log('done... isLoading:',mapStore.isLoading);
+                    worker.terminate(); // Optionally terminate on success
+                    worker = null;
+                    break;
+                case 'started':
+                    console.log('handleAtl06WorkerMsg started');
+                    toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    break;
+                case 'server_msg':
+                    console.log('handleAtl06WorkerMsg server_msg:',workerMsg.msg);
+                    if(workerMsg.msg){
+                        requestsStore.setMsg(workerMsg.msg);
                     }
-                }).catch((error) => {
-                    console.error('Transaction failed: ', error);
-                    requestsStore.setMsg('Transaction failed');
-                    toast.add({severity: 'error', summary: 'Transaction failed', detail: error.toString(), life: srToastStore.getLife() });
-                });            
-            },
-            exceptrec: (result:any) => {
-                console.log('atl06p cb exceptrec result:', result);
-                toast.add({severity: 'error',summary: 'Exception', detail: result['text'], life: srToastStore.getLife() });
-                requestsStore.setMsg(result['text']);
-                requestsStore.updateReq({req_id: req.req_id, status:'processing'});
-            },
-            eventrec: (result:any) => {
-                console.log('atl06p cb eventrec result:', result);
-                const this_detail = `Level:${result['level']}  ${result['attr']}`;
-                //toast.add({severity: 'info',summary: 'Progress', detail: this_detail, life: srToastStore.getLife() });
-                requestsStore.setMsg(this_detail)
-                requestsStore.updateReq({req_id: req.req_id, status:'processing'});
-            },
-        };
-        const map = mapStore.getMap() as OLMap ;
-        if (map){
-            console.log("atl06p cb_count:",cb_count.value)
-            isLoading.value = true; // controls spinning progress
-            if(req.req_id){       
-                requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
-                console.log("atl06pParams:",req.parameters);
-                if(req.parameters){
-                    console.log('atl06pParams:',req.parameters);
-                    atl06p(req.parameters as Atl06pReqParams,callbacks)
-                    .then(
-                        () => { // result
-                            // Log the result to the console
-                            // Display a toast message indicating successful completion
-                            const flatRecs = recs.flat();
-                            console.log(`Final: flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                            if(flatRecs.length > 0) {
-                                updateElevationLayer(flatRecs,true);
-                                const status_details = `RunSlideRule completed successfully. recieved ${recs.flat().length} pnts`;
-                                toast.add({
-                                    severity: 'success', // Use 'success' severity for successful operations
-                                    summary: 'Success', // A short summary of the outcome
-                                    detail: status_details, // A more detailed message
-                                    life: 10000 // Adjust the duration as needed
-                                });
-                                requestsStore.updateReq({req_id: req.req_id,status: 'success' ,status_details: status_details});
-                            } else {
-                                const status_details = 'No data returned from SlideRule.';
-                                toast.add({
-                                    severity: 'error', // Use 'error' severity for error messages
-                                    summary: 'No Data returned', // A short summary of the error
-                                    detail: status_details, // A more detailed error message
-                                });
-                                console.log('Final: No more data returned from SlideRule.');
-                                requestsStore.updateReq({req_id: req.req_id, status: 'error', status_details: status_details});
-                            }
+                    break;
+                case 'progress':
+                    console.log('handleAtl06WorkerMsg progress:',workerMsg.progress);
+                    if(workerMsg.progress){
+                        curReqSumStore.setNumRecs(workerMsg.progress);  
+                    }
+                    toast.add({severity: 'info',summary: 'Progress', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    break;
+                case 'summary':
+                    console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
+                    if(workerMsg.msg){
+                        console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
 
-                        },
-                        error => {
-                            // Log the error to the console
-                            console.log('runSlideRuleClicked Error = ', error);
-                            // Display a toast message indicating the error
-                            const status_details = `An error occurred while running SlideRule: ${error}`;
-                            toast.add({
-                                severity: 'error', // Use 'error' severity for error messages
-                                summary: 'Error', // A short summary of the error
-                                detail: status_details, // A more detailed error message
-                            });
-                            let emsg = '';
-                            if (navigator.onLine) {
-                                emsg =  'Network error: Possible DNS resolution issue or server down.';
-                            } else {
-                                emsg = 'Network error: your browser appears to be/have been offline.';
-                            }
-                            toast.add({
-                                severity: 'error',   
-                                summary: 'Error',   
-                                detail: emsg,      
-                            });
-                            requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: emsg});
-                        }
-                    ).catch((error => {
-                        // Log the error to the console
-                        console.error('runSlideRuleClicked Error = ', error);
-                        const status_details = `An error occurred while running SlideRule: ${error}`;
-                        requestsStore.updateReq({req_id: req.req_id,status: 'error', status_details: status_details});
-
-                        // Display a toast message indicating the error
-                        toast.add({
-                            severity: 'error', // Use 'error' severity for error messages
-                            summary: 'Error', // A short summary of the error
-                            detail: 'An error occurred while running SlideRule.', // A more detailed error message
-                        });
-                    })).finally(() => {
-                        const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
-                        if(req.req_id){
-                            console.log('runAtl06 req_id:',req.req_id, ' updating stats');
-                            const extLatLon = {req_id: req.req_id, minLat: curAtl06ReqSumStore.get_lat_Min(), maxLat: curAtl06ReqSumStore.get_lat_Max(), minLon: curAtl06ReqSumStore.get_lon_Min(), maxLon: curAtl06ReqSumStore.get_lon_Max()};
-                            db.addOrUpdateExtLatLon(extLatLon);
-                            const extHMeanData = {req_id: req.req_id, minHMean: curAtl06ReqSumStore.get_h_mean_Min(), maxHMean: curAtl06ReqSumStore.get_h_mean_Max(), lowHMean: curAtl06ReqSumStore.get_h_mean_Low(), highHMean: curAtl06ReqSumStore.get_h_mean_High()};
-                            db.addOrUpdateHMeanStats(extHMeanData);
-                            isLoading.value = false; // for local button control
-                            requestsStore.reqIsLoading[req.req_id] = false; 
-                        } else {
-                            console.error('runAtl06 req_id was undefined?');
-                        }
-                        console.log(`cb_count:${cb_count.value}`)
-                    });
-                } else {
-                    console.error('runAtl06 req.parameters was undefined');
-                }
-            } else {
-                console.error('runAtl06 req.req_id was undefined');
+                    }
+                    break;
+                case 'error':
+                    if(workerMsg.error){
+                        console.log('handleAtl06WorkerMsg error:',workerMsg.error);
+                        toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
+                    }
+                    worker.terminate();
+                    worker = null;
+                    isLoading.value = false; // controls spinning progress
+                    mapStore.isLoading = false;
+                    console.log('Error... isLoading:',mapStore.isLoading);
+                    break;
+                default:
+                    console.error('handleAtl06WorkerMsg unknown status?:',workerMsg.msg);
+                    break;
             }
+        } else {
+            console.error('handleAtl06WorkerMsg worker was undefined');
         }
     }
 
-    const handleAtl06WorkerMsg = (event) => {
-        //TBD  - handle code for worker messages, terminate worker on certain errors, etc.
+    function handleError(worker, error, errorMsg) {
+        console.error('Error:', error);
+        toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
+        worker.terminate();
+        isLoading.value = false; // Ensure loading indicator is turned off
+    }
 
-        const workerMsg:WorkerMessage = event.data;
-        console.log('handleAtl06WorkerMsg event:',event);
-        if(workerMsg.status === 'success') {
-            console.log('handleAtl06WorkerMsg success');
-            toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
-            mapStore.isLoading = false;
+    function abortClicked() {
+        if(worker){
+            worker.terminate();
+            worker = null;
             isLoading.value = false; // controls spinning progress
-            console.log('done... isLoading:',mapStore.isLoading);
-            //worker.terminate();
-        } else if(workerMsg.status === 'started') {
-            console.log('handleAtl06WorkerMsg started');
-            toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
-        } else if(workerMsg.status === 'server_msg'){
-            console.log('handleAtl06WorkerMsg server_msg');
-            if(workerMsg.msg){
-                requestsStore.setMsg(workerMsg.msg);
-            }
-        } else if(workerMsg.status === 'progress') {
-            console.log('handleAtl06WorkerMsg progress');
-            toast.add({severity: 'info',summary: 'Progress', detail: workerMsg.msg, life: srToastStore.getLife() });
-        } else if(workerMsg.status === 'error') {
-            console.log(`handleAtl06WorkerMsg error event.data.error:${event.data.error}`);
-            toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
-            //isLoading.value = false; // controls spinning progress
+            console.log('abortClicked isLoading:',isLoading.value);
+            toast.add({severity: 'info',summary: 'Info', detail: 'Worker aborted', life: srToastStore.getLife() });
+        } else {
+            console.error('abortClicked worker was undefined');
+            toast.add({severity: 'error',summary: 'Error', detail: 'Worker was undefined', life: srToastStore.getLife() });
         }
     }
 
-    async function runAtl06Worker(req:Request){
+    async function runAtl06Worker(req:SrRequest){
         try{
-            //TBD add a timeout?
-            isLoading.value = true; // controls spinning progress
             if(req.req_id){
+                isLoading.value = true; // controls spinning progress
                 requestsStore.currentReqId = req.req_id;
-                requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:req.parameters, func:'atl06', start_time: new Date(), end_time: new Date()});
                 //requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
-                const worker = new Worker(new URL('@/workers/atl06ToDb', import.meta.url), { type: 'module' });
+                worker = new Worker(new URL('@/workers/atl06ToDb', import.meta.url), { type: 'module' });
                 worker.onmessage = handleAtl06WorkerMsg;
+                worker.onerror = (error) => {
+                    if(worker){
+                        handleError(worker, error, 'Worker faced an unexpected error');
+                        worker = null;
+                    }
+                };
                 worker.postMessage(JSON.stringify(req));
+                const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
+                timeoutHandle = setTimeout(() => {
+                    if (worker) {
+                        console.error('Timeout: Worker operation timed out in:',timeoutDuration);
+                        handleError(worker, 'Timeout', 'Worker operation timed out');
+                        worker = null;
+                    }
+                }, timeoutDuration);
+
             } else {
                 console.error('runAtl06Worker req_id is undefined');
                 toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
@@ -269,6 +330,7 @@
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
         mapStore.isLoading = true;
+        isLoading.value = true;
         init(sysConfigStore.getSysConfig());
         console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
         let req = await requestsStore.createNewReq();
@@ -286,8 +348,6 @@
                         return;
                     }
                     requestsStore.currentReqId = req.req_id;
-                    requestsStore.updateReq({req_id: req.req_id, status: 'pending', parameters:req.parameters, func:'atl06', start_time: new Date(), end_time: new Date()});
-                    //await runAtl06(req);
                     runAtl06Worker(req);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
@@ -304,6 +364,8 @@
                 toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
             }
         } else {
+            mapStore.isLoading = false;
+            isLoading.value = false;
             console.error('runSlideRuleClicked req was undefined');
             toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
         }
@@ -340,6 +402,7 @@
             />
             <div class="button-spinner-container">
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="isLoading"></Button>
+                <Button label="Abort" @click="abortClicked" v-if:="isLoading"></Button>
                 <ProgressSpinner v-if="isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
                 <span v-if="isLoading">Loading... {{ curReqSumStore.getNumRecs() }}</span>
             </div>

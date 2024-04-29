@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
-import { srTimeDelta, srTimeDeltaString } from '@/composables/SrMapUtils';
-import { db, type Request } from '@/db/SlideRuleDb';
+import { db, type SrRequest } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
@@ -9,7 +8,7 @@ import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
     currentReqId: 0 as number,
-    reqs: [] as Request[],
+    reqs: [] as SrRequest[],
     reqIsLoading: {} as { [reqId: number]: boolean },
     columns: [
       { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
@@ -43,7 +42,7 @@ export const useRequestsStore = defineStore('requests', {
     getConsoleMsg(){
       return this.msg;
     },
-    async createNewReq(): Promise<Request | null>  {
+    async createNewReq(): Promise<SrRequest | null>  {
       // Get the new reqId from the db
       console.log('createNewReq()');
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
@@ -63,49 +62,49 @@ export const useRequestsStore = defineStore('requests', {
     setMsg(msg: string) {
       this.msg = msg;
     },
-    async updateReq(updateParams: Partial<Request>): Promise<void> {
-      const { req_id, ...restParams } = updateParams;
-      console.log('updateReq-->updateParams:', updateParams);
-      try{
-        if(!req_id) throw new Error('Request ID is required to update a request.');
-        this.fetchReqs();
-        const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
-        console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
-        const st = this.reqs[reqIndex].start_time;
-        if(st){
-          const st_date = new Date(st);
-          if (!(st_date instanceof Date )){
-            console.error('start_time is not a Date object st:', st, ' st_date:', st_date);
-            //throw new Error('start_time is not a Date object');
-          }
+    // async updateReq(updateParams: Partial<SrRequest>): Promise<void> {
+    //   const { req_id, ...restParams } = updateParams;
+    //   console.log('updateReq-->updateParams:', updateParams);
+    //   try{
+    //     if(!req_id) throw new Error('SrRequest ID is required to update a request.');
+    //     this.fetchReqs();
+    //     const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
+    //     console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
+    //     const st = this.reqs[reqIndex].start_time;
+    //     if(st){
+    //       const st_date = new Date(st);
+    //       if (!(st_date instanceof Date )){
+    //         console.error('start_time is not a Date object st:', st, ' st_date:', st_date);
+    //         //throw new Error('start_time is not a Date object');
+    //       }
           
-          console.log('start_time is set for request:', req_id, ' st:',st_date, ' setting elapsed_time');
-          updateParams.elapsed_time = srTimeDeltaString(srTimeDelta(st_date, new Date()));
-        } else {
-          console.error('start_time is not set for request:', req_id, ' setting elapsed_time to empty string')
-          updateParams.elapsed_time = '';
-        }
+    //       console.log('start_time is set for request:', req_id, ' st:',st_date, ' setting elapsed_time');
+    //       updateParams.elapsed_time = srTimeDeltaString(srTimeDelta(st_date, new Date()));
+    //     } else {
+    //       console.error('start_time is not set for request:', req_id, ' setting elapsed_time to empty string')
+    //       updateParams.elapsed_time = '';
+    //     }
         
-        if(this.error_in_req[reqIndex] && (updateParams.status != 'error')){
-          // received records from the server after an error, ignore status updates
-          console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updateParams, ' as it was in error state');
-          return;
-        } 
-        console.log('final updateParams:', updateParams);
-        await db.updateRequest(req_id, updateParams);
-        if(updateParams.status == 'error'){
-          this.error_in_req[reqIndex] = true;
-        }
-      } catch (error) {
-        console.error('Failed to update request using params:', updateParams,' with ID:',req_id,' error:', error);
-        throw error; // Rethrowing the error for further handling if needed
-      }
-    },
+    //     if(this.error_in_req[reqIndex] && (updateParams.status != 'error')){
+    //       // received records from the server after an error, ignore status updates
+    //       console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updateParams, ' as it was in error state');
+    //       return;
+    //     } 
+    //     console.log('final updateParams:', updateParams);
+    //     await db.updateRequest(req_id, updateParams);
+    //     if(updateParams.status == 'error'){
+    //       this.error_in_req[reqIndex] = true;
+    //     }
+    //   } catch (error) {
+    //     console.error('Failed to update request using params:', updateParams,' with ID:',req_id,' error:', error);
+    //     throw error; // Rethrowing the error for further handling if needed
+    //   }
+    // },
 
     async deleteReq(reqId: number): Promise<void>{
       try {
         await db.deleteRequest(reqId);
-        console.log('Request deleted successfully');
+        console.log('SrRequest deleted successfully');
       } catch (error) {
         console.error('Error deleting request:', error);
       }
@@ -122,7 +121,7 @@ export const useRequestsStore = defineStore('requests', {
     async fetchReqIds(): Promise<number[]> {
       try {
         const reqIds = await db.getRequestIds();
-        console.log('Request IDs fetched successfully:', reqIds);
+        console.log('SrRequest IDs fetched successfully:', reqIds);
         return reqIds;
       } catch (error) {
         console.error('Error fetching request IDs:', error);

@@ -2,6 +2,13 @@ import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
 
+
+export interface SrTimeDelta{
+    days : number,
+    hours : number,
+    minutes : number,
+    seconds : number
+}
 export interface Elevation {
     req_id?: number;
     cycle: number;
@@ -25,7 +32,7 @@ export interface Elevation {
     y_atc: number;
 };
 
-export interface Request {
+export interface SrRequest {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
     status?: string; // status: 'pending', 'processing', 'success', 'error'
@@ -37,37 +44,18 @@ export interface Request {
     status_details?: string; // status message (details of status)
 }
 
-export interface ExtLatLon {
-    req_id: number;
-    minLat: number;
-    maxLat: number;
-    minLon: number;
-    maxLon: number;
-}
-
-export interface ExtHMean {
-    req_id: number;
-    minHMean: number;
-    maxHMean: number;
-    lowHMean: number;   // 5th percentile
-    highHMean: number;  // 95th percentile
-}
 
 export class SlideRuleDexie extends Dexie {
     // 'elevations' and 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
     elevations!: Table<Elevation>; 
-    requests!: Table<Request>;
-    extLatLon!: Table<ExtLatLon>;
-    extHMean!: Table<ExtHMean>;
+    requests!: Table<SrRequest>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
-            elevations: '++db_id, req_id, cycle, gt, region, rgt, spot', // Primary key and indexed props
+            elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            extLatLon: 'req_id', // req_id 
-            extHMean: 'req_id', // req_id
         });
         this._useMiddleware();
         console.log("Database initialized.");
@@ -123,16 +111,89 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    private _srTimeDelta  (t1:Date, t2:Date):SrTimeDelta {
+        const differenceInMs = t2.getTime() - t1.getTime();
+        const seconds = Math.floor(differenceInMs / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24); 
+        return {days, hours, minutes, seconds}
+    }
+    
+    private _srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
+        const parts: string[] = [];
+    
+        // For each part, if its value is not zero, add it to the parts array with proper pluralization.
+        if (srTimeDelta.days > 0) {
+            parts.push(`${srTimeDelta.days} day${srTimeDelta.days === 1 ? '' : 's'}`);
+        }
+        if (srTimeDelta.hours > 0) {
+            parts.push(`${srTimeDelta.hours} hr${srTimeDelta.hours === 1 ? '' : 's'}`);
+        }
+        if (srTimeDelta.minutes > 0) {
+            parts.push(`${srTimeDelta.minutes} min${srTimeDelta.minutes === 1 ? '' : 's'}`);
+        }
+        if (srTimeDelta.seconds > 0) {
+            parts.push(`${srTimeDelta.seconds} sec${srTimeDelta.seconds === 1 ? '' : 's'}`);
+        }
+    
+        // Join the parts with a comma and a space, or return a default string if no parts are added.
+        return parts.length > 0 ? parts.join(', ') : '0 secs';
+    }
+    
+    async updateRequestRecord(updateParams: Partial<SrRequest>): Promise<void> {
+        const { req_id } = updateParams;
+        if (!req_id) {
+            console.error('Request ID is required to update. updateParams:', updateParams);
+            return;
+        }
+        if(req_id <= 0){
+            console.error('Request ID must be a positive integer. updateParams:', updateParams);
+            return;
+        }
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return;
+            }
+            if (!request.start_time) {
+                console.error(`Request with req_id ${req_id} has no start time.`);
+                return;
+            }
+    
+            // Set the end time to now and calculate elapsed time
+            const endTime = new Date();
+            const startTime = new Date(request.start_time);   
+            const elapsedTime = this._srTimeDelta(startTime, endTime);
+            const elapsedTimeString = this._srTimeDeltaString(elapsedTime);
+    
+            // Prepare the update object
+            const updates = {
+                ...updateParams,
+                end_time: endTime,
+                elapsed_time: elapsedTimeString
+            };
+    
+            await this.updateRequest(req_id, updates);
+            console.log(`SrRequest Record updated for req_id ${req_id} with changes:`, updates);
+        } catch (error) {
+            console.error(`Failed to update req_id ${req_id}:`, error);
+            throw error;
+        }
+
+    }
+            
     // Function to add a new request with status 'pending'
     async addPendingRequest(): Promise<number> {
         try {
             console.log("Adding pending request...");
             const reqId = await this.requests.add({ 
-            status: 'pending', 
-            func: '', 
-            parameters: {} as NullReqParams, 
-            start_time: new Date(), 
-            end_time: new Date()
+                status: 'pending', 
+                func: '', 
+                parameters: {} as NullReqParams, 
+                start_time: new Date(), 
+                end_time: new Date()
             });
             console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;
@@ -144,11 +205,11 @@ export class SlideRuleDexie extends Dexie {
     }
 
     // Function to update any field of a specific request
-    async updateRequest(reqId: number, updates: Partial<Request>): Promise<void> {
+    async updateRequest(reqId: number, updates: Partial<SrRequest>): Promise<void> {
         try {
             console.log("updates:",updates);
             await this.requests.update(reqId, updates);
-            console.log(`Request updated for req_id ${reqId} with changes:`, updates);
+            console.log(`SrRequest updated for req_id ${reqId} with changes:`, updates);
         } catch (error) {
             console.error(`Failed to update request for req_id ${reqId}:`, error);
             throw error; // Rethrowing the error for further handling if needed
@@ -157,88 +218,18 @@ export class SlideRuleDexie extends Dexie {
     // Function to delete a specific request and its related data
     async deleteRequest(reqId: number): Promise<void> {
         try {
-            // Delete associated ExtLatLon entries
-            const extLatLonDeletion = this.extLatLon.where({ req_id: reqId }).delete();
-            // Delete associated ExtHMean entries
-            const extHMeanDeletion = this.extHMean.where({ req_id: reqId }).delete();
             // Delete associated Elevation entries
             const elevationsDeletion = this.elevations.where({ req_id: reqId }).delete();
             // Delete the request itself
             const requestDeletion = this.requests.delete(reqId);
 
             // Await all deletions to ensure they complete before logging
-            await Promise.all([extLatLonDeletion, extHMeanDeletion, elevationsDeletion, requestDeletion]);
+            await Promise.all([ elevationsDeletion, requestDeletion]);
 
             console.log(`All related data deleted for req_id ${reqId}.`);
         } catch (error) {
             console.error(`Failed to delete request and related data for req_id ${reqId}:`, error);
             throw error; // Rethrowing the error for further handling if needed
-        }
-    }
-    async getExtHMeanByReqId(reqId: number): Promise<ExtHMean | undefined> {
-        try {
-            const record = await this.extHMean.get(reqId);
-            if (record) {
-                console.log(`Retrieved ExtHMean for req_id ${reqId}.`, record);
-                return record;
-            } else {
-                console.log(`No ExtHMean found for req_id ${reqId}.`);
-                return undefined;
-            }
-        } catch (error) {
-            console.error(`Failed to retrieve ExtHMean for req_id ${reqId}:`, error);
-            throw error;
-        }
-    }
-    
-    async addOrUpdateHMeanStats(data: ExtHMean): Promise<void> {
-        try {
-            console.log("Adding or updating HMean stats for req_id:", data.req_id);
-            const existingEntry = await this.extHMean.get(data.req_id);
-            if (existingEntry) {
-                await this.extHMean.update(data.req_id, data);
-                console.log(`HMean stats updated for req_id ${data.req_id}.`);
-            } else {
-                await this.extHMean.add(data);
-                console.log(`HMean stats added for req_id ${data.req_id}.`);
-            }
-        } catch (error) {
-            console.error("Failed to add or update HMean stats:", error);
-            throw error;
-        }
-    }
-
-    async getExtLatLonByReqId(reqId: number): Promise<ExtLatLon | undefined> {
-        try {
-            console.log("Retrieving ExtLatLon for req_id:", reqId);
-            const record = await this.extLatLon.get(reqId);
-            if (record) {
-                console.log(`Retrieved ExtLatLon for req_id ${reqId}.`, record);
-                return record;
-            } else {
-                console.log(`No ExtLatLon found for req_id ${reqId}.`);
-                return undefined;
-            }
-        } catch (error) {
-            console.error(`Failed to retrieve ExtLatLon for req_id ${reqId}:`, error);
-            throw error;
-        }
-    }
-
-    async addOrUpdateExtLatLon(data: ExtLatLon): Promise<void> {
-        try {
-            console.log("Adding or updating ExtLatLon for req_id:", data.req_id);
-            const existingEntry = await this.extLatLon.get(data.req_id);
-            if (existingEntry) {
-                await this.extLatLon.update(data.req_id, data);
-                console.log(`ExtLatLon updated for req_id ${data.req_id}.`);
-            } else {
-                await this.extLatLon.add(data);
-                console.log(`ExtLatLon added for req_id ${data.req_id}.`);
-            }
-        } catch (error) {
-            console.error("Failed to add or update ExtLatLon:", error);
-            throw error;  // Rethrowing the error for further handling if needed
         }
     }
 
@@ -264,6 +255,17 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
-
+    async countElevationsByReqId(reqId: number): Promise<number> {
+        try {
+            // This line counts all elevations that match the given req_id
+            const count = await this.elevations.where({ req_id: reqId }).count();
+            console.log(`Number of elevations for req_id ${reqId}: ${count}`);
+            return count;
+        } catch (error) {
+            console.error(`Failed to count elevations for req_id ${reqId}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+    
 }
 export const db = new SlideRuleDexie();

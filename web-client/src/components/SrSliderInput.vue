@@ -150,14 +150,14 @@
         }
     });
 
-    const openTooltipUrl = () => {
-        //console.log('openTooltipUrl:', props.tooltipUrl);
-        if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank').focus();
-        } else {
-            console.warn('No tooltip URL provided');
-        }
-    };
+    // const openTooltipUrl = () => {
+    //     //console.log('openTooltipUrl:', props.tooltipUrl);
+    //     if (props.tooltipUrl) {
+    //         window.open(props.tooltipUrl, '_blank')?.focus();
+    //     } else {
+    //         console.warn('No tooltip URL provided');
+    //     }
+    // };
     // Method to generate the ID for the Slider element using the label and prefix if possible
     const inputId = props.label && props.label.trim() !== '' ? 
         `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}` : props.id;
