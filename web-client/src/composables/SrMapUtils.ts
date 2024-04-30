@@ -191,45 +191,6 @@ export function updateDeck(map: OLMap){
 
 }
 
-// export function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitude:number }[]) {
-//     let localHMin = curAtl06ReqSumStore.get_h_mean_Min();
-//     let localHMax = curAtl06ReqSumStore.get_h_mean_Max();
-//     let localLatMin = curAtl06ReqSumStore.get_lat_Min();
-//     let localLatMax = curAtl06ReqSumStore.get_lat_Max();
-//     let localLonMin = curAtl06ReqSumStore.get_lon_Min();
-//     let localLonMax = curAtl06ReqSumStore.get_lon_Max();
-
-//     curFlatRecs.forEach(rec => {
-//         if (rec.h_mean < localHMin) {
-//             localHMin = rec.h_mean;
-//         }
-//         if (rec.h_mean > localHMax) {
-//             localHMax = rec.h_mean;
-//         }
-//         if (rec.latitude < localLatMin) {
-//             localLatMin = rec.latitude;
-//         }
-//         if (rec.latitude > localLatMax) {
-//             localLatMax = rec.latitude;
-//         }
-//         if (rec.longitude < localLonMin) {
-//             localLonMin = rec.longitude;
-//         }
-//         if (rec.longitude > localLonMax) {
-//             localLonMax = rec.longitude;
-//         }
-//     });
-
-//     curAtl06ReqSumStore.set_h_mean_Min(localHMin);
-//     curAtl06ReqSumStore.set_h_mean_Max(localHMax);
-//     curAtl06ReqSumStore.set_lat_Min(localLatMin);
-//     curAtl06ReqSumStore.set_lat_Max(localLatMax);
-//     curAtl06ReqSumStore.set_lon_Min(localLonMin);
-//     curAtl06ReqSumStore.set_lon_Max(localLonMax);
-// }
-
-
-
 export async function fetchAndUpdateElevationData(reqId: number) {
     try {
         console.log('Fetching and updating elevation data...');
@@ -241,7 +202,7 @@ export async function fetchAndUpdateElevationData(reqId: number) {
             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
             elevationData = elevationData.concat(elevationDataChunk);
             updateElevationLayer(elevationData);     // Update the layer with each chunk
-
+            console.log('elevationDataChunk.length:',elevationDataChunk.length);
             offset += elevationDataChunk.length;
             hasMore = elevationDataChunk.length === chunkSize;
 

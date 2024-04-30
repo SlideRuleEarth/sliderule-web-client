@@ -15,7 +15,8 @@
     import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-    import { WorkerMessage } from '@/workers/workerUtils';
+    import { WorkerSummary } from '@/workers/workerUtils';
+    import { WorkerMessage } from '@/workers/taskQueue';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -252,8 +253,9 @@
                     break;
                 case 'summary':
                     console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
-                    if(workerMsg.summary){
-                        curReqSumStore.setSummary({req_id:workerMsg.req_id, summary:workerMsg.summary});
+                    if(workerMsg){
+                        const sMsg = workerMsg as WorkerSummary;
+                        curReqSumStore.setSummary(sMsg);
                     }
                     break;
                 case 'error':
@@ -302,7 +304,9 @@
                 isLoading.value = true; // controls spinning progress
                 requestsStore.currentReqId = req.req_id;
                 //requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
-                worker = new Worker(new URL('@/workers/atl06ToDb', import.meta.url), { type: 'module' });
+                const theUrl = new URL('@/workers/atl06ToDb', import.meta.url);
+                console.log('runAtl06Worker theUrl:',theUrl);
+                worker = new Worker(theUrl, { type: 'module' });
                 worker.onmessage = handleAtl06WorkerMsg;
                 worker.onerror = (error) => {
                     if(worker){

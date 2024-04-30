@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
+import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
 
 export interface SrTimeDelta{
@@ -44,28 +45,10 @@ export interface SrRequestRecord {
     status_details?: string; // status message (details of status)
 }
 
-
-export interface WorkerSummary {
-    extLatLon: ExtLatLon;
-    extHMean: ExtHMean;
-}
-
-export interface ExtLatLon {
-    minLat: number;
-    maxLat: number;
-    minLon: number;
-    maxLon: number;
-}
-export interface ExtHMean {
-    minHMean: number;
-    maxHMean: number;
-    lowHMean: number;   // 5th percentile
-    highHMean: number;  // 95th percentile
-}
-
 export interface SrRequestSummary {
     req_id?: number;
-    summary?: WorkerSummary;
+    extLatLon: ExtLatLon;
+    extHMean: ExtHMean;
 }
 
 export class SlideRuleDexie extends Dexie {
@@ -146,13 +129,18 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    private _srTimeDelta  (t1:Date, t2:Date):SrTimeDelta {
+    private _srTimeDelta(t1: Date, t2: Date): SrTimeDelta {
         const differenceInMs = t2.getTime() - t1.getTime();
-        const seconds = Math.floor(differenceInMs / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24); 
-        return {days, hours, minutes, seconds}
+        const secondsTotal = Math.floor(differenceInMs / 1000);
+        const minutesTotal = Math.floor(secondsTotal / 60);
+        const hoursTotal = Math.floor(minutesTotal / 60);
+        const days = Math.floor(hoursTotal / 24);
+    
+        const hours = hoursTotal % 24; // Hours remainder after full days
+        const minutes = minutesTotal % 60; // Minutes remainder after full hours
+        const seconds = secondsTotal % 60; // Seconds remainder after full minutes
+    
+        return { days, hours, minutes, seconds };
     }
     
     private _srTimeDeltaString(srTimeDelta: SrTimeDelta): string {
@@ -307,9 +295,10 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async updateSummary(reqId: number, summary: WorkerSummary): Promise<void> {
+    async updateSummary(reqId: number, summary: SrRequestSummary): Promise<void> {
         try {
-            await this.summary.put({ req_id: reqId, summary });
+            console.log(`Updating summary for req_id ${reqId} with:`, summary);
+            await this.summary.put( summary );
             console.log(`Summary updated for req_id ${reqId}.`);
         } catch (error) {
             console.error(`Failed to update summary for req_id ${reqId}:`, error);
@@ -317,18 +306,50 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     // Method to fetch WorkerSummary for a given req_id
-    async getWorkerSummary(reqId: number): Promise<WorkerSummary | undefined> {
+    async getWorkerSummary(reqId: number): Promise<SrRequestSummary | undefined> {
         try {
             const summaryRecord = await this.summary.get(reqId);
             if (!summaryRecord) {
                 console.log(`No summary found for req_id ${reqId}.`);
                 return undefined;
             }
-            console.log(`Retrieved summary for req_id ${reqId}.`);
-            return summaryRecord.summary;
+            console.log(`Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
+            return summaryRecord;
         } catch (error) {
             console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
             throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+    // Function to add multiple elevation records at once for a given req_id
+    async bulkAddElevations(reqId: number, elevations: Elevation[]): Promise<void> {
+        try {
+            if(elevations && reqId){
+                // Validate input
+                if (reqId <= 0) {
+                    throw new Error('Request ID must be a positive integer.');
+                }
+                if (elevations.length === 0) {
+                    throw new Error('Elevation array must not be empty.');
+                }
+
+                // Add req_id to each elevation record if not already present
+                const elevationsWithReqId = elevations.map(elevation => ({
+                    ...elevation,
+                    req_id: elevation.req_id || reqId  // Ensure each record has the correct req_id
+                }));
+
+                // Perform the bulk add operation
+                console.log(`Calling Bulk Add for ${elevations.length} elevation records for req_id ${reqId}...`);
+                await this.elevations.bulkAdd(elevationsWithReqId);
+                console.log(`Bulk Add Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
+
+                console.log(`Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
+            } else {
+                console.error(`bulkAddElevations: undefined elevation records:${elevations} OR req_id:${reqId}`);
+            }
+        } catch (error) {
+            console.error('Failed to bulk add elevation records:', error);
+            throw error; // Rethrow the error for further handling if needed
         }
     }
 

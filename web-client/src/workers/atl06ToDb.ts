@@ -2,9 +2,12 @@ import { db, type SrRequestRecord } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams } from '@/sliderule/icesat2';
-import { type WorkerError, type WorkerMessage } from './workerUtils';
-import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/db/SlideRuleDb';
+import { type WorkerError, type WorkerMessage } from '@/workers/taskQueue';
+import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
+import { TaskQueue } from '@/workers/taskQueue';
+import { type BulkAddToDbWorkerMessage } from '@/workers/bulkAddToDb';
+
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -39,18 +42,17 @@ async function sendProgressMsg(req_id:number, progress:number, msg: string) {
     }
 }
 
-async function sendSummaryMsg(req_id:number, summary:WorkerSummary, msg: string) {
-    const workerSummaryMsg: WorkerMessage = { req_id:req_id, status: 'summary', msg:msg };
+async function sendSummaryMsg(workerSummaryMsg:WorkerSummary, msg: string) {
     try{
-        await db.updateRequestRecord( {req_id:req_id, status: 'summary',status_details: msg});
-        await db.updateSummary(req_id, summary);
+        await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, status: 'summary',status_details: msg});
+        await db.updateSummary(workerSummaryMsg.req_id, workerSummaryMsg);
     } catch (error) {
-        console.error('Failed to update request status to summary:', error, ' for req_id:', req_id);
+        console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);
     }
     try{
         postMessage(workerSummaryMsg);
     } catch (error) {
-        console.error('Failed to postMessage for workerSummary:', error, ' for req_id:', req_id);
+        console.error('Failed to postMessage for workerSummary:', error, ' for req_id:', workerSummaryMsg.req_id);
     }
 }
 
@@ -126,51 +128,45 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
 
 onmessage = (event) => {
     try{
+        const queue = new TaskQueue('bulkAddToDb');
+        // create a queue of tasks to be processed by another worker
         let numWkChunks = 0;
         let runningCount = 0;
-        let currentThreshold = 50000;
-        const thresholdIncrement = 50000;
+        let currentDbThresh = 50000;
+        const currentDbThreshIncrement = 50000;
+        let progThreshold = 1;
+        const progThresholdIncrement = 50000;
         const srRequestRecord:SrRequestRecord = JSON.parse(event.data);;
         const req:ReqParams = srRequestRecord.parameters as ReqParams;
         console.log("atl06ToDb req: ", req);
         const reqID = srRequestRecord.req_id;
+        let recs_cache:Elevation[] = [];
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
-                atl06rec: (result:any) => {
+                atl06rec: async (result:any) => {
                     numWkChunks += 1;
                     const currentRecs = result["elevation"];
                     const curFlatRecs = currentRecs.flat();
                     if(curFlatRecs.length > 0) {
                         runningCount += curFlatRecs.length;
-                        //console.log(`flatRecs.length:${flatRecs.length} lastOne:`,flatRecs[flatRecs.length - 1]);
-                        db.transaction('rw', db.elevations, async () => {
-                            try {
-                                // Adding req_id to each record in curFlatRecs
-                                const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
-                                    ...rec,
-                                    req_id: reqID, 
-                                }));
-                                //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
-                                await db.elevations.bulkAdd(updatedFlatRecs);
-                                //console.log('Bulk add successful');
-                                updateExtremes(curFlatRecs);
-                            } catch (error) {
-                                console.error('Bulk add failed: ', error);
-                                sendErrorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'Bulk add failed' });
-                            }
-                        }).catch((error) => {
-                            console.error('Transaction failed: ', error);
-                            sendErrorMsg(reqID, { type: 'TransactionError', code: 'Transaction', message: 'Transaction failed' });
-                        });
-                        if(runningCount > currentThreshold) {
-                            sendProgressMsg(reqID, runningCount,`Received ${runningCount} pnts in ${numWkChunks} chunks.`);
-                            currentThreshold = runningCount + thresholdIncrement;
+                        recs_cache.push(curFlatRecs);
+                        if(recs_cache.flat().length > currentDbThresh) {
+                            currentDbThresh = runningCount + currentDbThreshIncrement;
+                            updateExtremes(recs_cache.flat());
+                            console.log('bulkAddElevations:',recs_cache.flat().length, 'runningCount:', runningCount);
+                            //await db.bulkAddElevations(reqID, recs_cache.flat());
+                            const bulkAddToDbWorkerMessage = { req_id: reqID, recs: recs_cache.flat() } as BulkAddToDbWorkerMessage ;
+                            queue.addTask({data: bulkAddToDbWorkerMessage});
+                            console.log('bulkAddElevations queued:',recs_cache.length, 'runningCount:', runningCount);
+                            recs_cache = []; // clear the recs array
                         }
-
+                        if(runningCount > progThreshold){
+                            progThreshold += progThresholdIncrement;
+                            sendProgressMsg(reqID, runningCount,`Received ${runningCount} pnts in ${numWkChunks} chunks.`);
+                        }
                     } else {
                         console.log('0 elevation records returned from SlideRule.');
-                        sendProgressMsg(reqID, runningCount,`Received ${runningCount} pnts in ${numWkChunks} chunks.`);
                     }        
                 },
                 exceptrec: (result:any) => {
@@ -193,10 +189,10 @@ onmessage = (event) => {
                 console.log("atl06pParams:",srRequestRecord.parameters);
                 if(srRequestRecord.parameters){
                     console.log('atl06pParams:',srRequestRecord.parameters);
-                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks)
-                    .then(() => { // result
+                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks).then(() => { // result
                             // Log the result to the console
-                            console.log('Final: flatRecs.length: lastOne:', runningCount, 'req_id:', reqID);
+                            console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
+
                             let status_details = 'unknown status_details';
                             if(runningCount > 0) {
                                 status_details = `Received ${runningCount} pnts`;
@@ -204,7 +200,13 @@ onmessage = (event) => {
                                 status_details = 'No data returned from SlideRule.';
                             }
                             console.log('atl06p Success:', status_details);
-                            sendSummaryMsg(reqID,  { extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
+                            let queue_len=queue.getLength();
+
+                            if(recs_cache.length > 0) {
+                                queue_len = queue.addTask({data: { req_id: reqID, recs: recs_cache.flat()}});
+                                status_details += ` queued ${recs_cache.length} chunks for bulkAddElevations. queue_len:${queue_len}`; 
+                            }
+                            sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
                         },
                         error => {
                             // Log the error to the console

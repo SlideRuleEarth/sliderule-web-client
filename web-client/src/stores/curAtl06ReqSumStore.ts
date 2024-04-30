@@ -84,15 +84,15 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
             if(srs.req_id){
                 this.setReqId(srs.req_id);
             }
-            if(srs.summary){
-                this.set_h_mean_Min(srs.summary.extHMean.minHMean);
-                this.set_h_mean_Max(srs.summary.extHMean.maxHMean);
-                this.set_lat_Min(srs.summary.extLatLon.minLat);
-                this.set_lat_Max(srs.summary.extLatLon.maxLat);
-                this.set_lon_Min(srs.summary.extLatLon.minLon);
-                this.set_lon_Max(srs.summary.extLatLon.maxLon);
-                this.set_h_mean_Low(srs.summary.extHMean.lowHMean);
-                this.set_h_mean_High(srs.summary.extHMean.highHMean);
+            if(srs){
+                this.set_h_mean_Min(srs.extHMean.minHMean);
+                this.set_h_mean_Max(srs.extHMean.maxHMean);
+                this.set_lat_Min(srs.extLatLon.minLat);
+                this.set_lat_Max(srs.extLatLon.maxLat);
+                this.set_lon_Min(srs.extLatLon.minLon);
+                this.set_lon_Max(srs.extLatLon.maxLon);
+                this.set_h_mean_Low(srs.extHMean.lowHMean);
+                this.set_h_mean_High(srs.extHMean.highHMean);
             } else {
                 console.error('setSummary() called with null summary:', srs);
             }
