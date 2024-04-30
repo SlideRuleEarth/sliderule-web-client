@@ -12,7 +12,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { type SrRequest } from '@/db/SlideRuleDb';
+    import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { WorkerMessage } from '@/workers/workerUtils';
@@ -56,7 +56,7 @@
         }
     });
 
-    // async function runAtl06(req:SrRequest){
+    // async function runAtl06(req:SrRequestRecord){
     //     console.log('runAtl06 with req:',req);
     //     //console.log("runSlideRuleClicked typeof atl06p:",typeof atl06p);
     //     //console.log("runSlideRuleClicked atl06p:", atl06p);
@@ -242,15 +242,18 @@
                 case 'progress':
                     console.log('handleAtl06WorkerMsg progress:',workerMsg.progress);
                     if(workerMsg.progress){
-                        curReqSumStore.setNumRecs(workerMsg.progress);  
+                        curReqSumStore.setNumRecs(workerMsg.progress); 
+                        if(workerMsg.msg){
+                            requestsStore.setMsg(workerMsg.msg);
+                        } else {
+                            requestsStore.setMsg(`Received ${workerMsg.progress} records`);
+                        }
                     }
-                    toast.add({severity: 'info',summary: 'Progress', detail: workerMsg.msg, life: srToastStore.getLife() });
                     break;
                 case 'summary':
                     console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
-                    if(workerMsg.msg){
-                        console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
-
+                    if(workerMsg.summary){
+                        curReqSumStore.setSummary({req_id:workerMsg.req_id, summary:workerMsg.summary});
                     }
                     break;
                 case 'error':
@@ -293,7 +296,7 @@
         }
     }
 
-    async function runAtl06Worker(req:SrRequest){
+    async function runAtl06Worker(req:SrRequestRecord){
         try{
             if(req.req_id){
                 isLoading.value = true; // controls spinning progress

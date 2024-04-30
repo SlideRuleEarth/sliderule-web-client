@@ -1,19 +1,20 @@
-import { db, type SrRequest } from "@/db/SlideRuleDb";
+import { db, type SrRequestRecord } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams } from '@/sliderule/icesat2';
-import { type WorkerError, type WorkerMessage,type ExtLatLon, type ExtHMean, type WorkerSummary } from './workerUtils';
+import { type WorkerError, type WorkerMessage } from './workerUtils';
+import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/db/SlideRuleDb';
 import type { ReqParams } from "@/stores/reqParamsStore";
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
 
 
-function sendStartedMsg(req_id:number,req_params:ReqParams) {
-    const workerStartedMsg: WorkerMessage =  { status: 'started', msg:`Starting req_id: ${req_id}`};
+async function sendStartedMsg(req_id:number,req_params:ReqParams) {
+    const workerStartedMsg: WorkerMessage =  { req_id:req_id, status: 'started', msg:`Starting req_id: ${req_id}`};
     try{
         // initialize request record in db
-        db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status,func:'atl06p', parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+        await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status,func:'atl06p', parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
     } catch (error) {
         console.error('Failed to update request status to started:', error, ' for req_id:', req_id);
     }
@@ -24,10 +25,10 @@ function sendStartedMsg(req_id:number,req_params:ReqParams) {
     }
 }
 
-function sendProgressMsg(req_id:number, progress:number, msg: string) {
-    const workerProgressMsg: WorkerMessage =  { status: 'progress', progress:progress, msg:msg };
+async function sendProgressMsg(req_id:number, progress:number, msg: string) {
+    const workerProgressMsg: WorkerMessage =  { req_id:req_id, status: 'progress', progress:progress, msg:msg };
     try{
-        db.updateRequestRecord( {req_id:req_id, status: 'progress',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'progress',status_details: msg});
     } catch (error) {
         console.error('Failed to update request status to progress:', error, ' for req_id:', req_id);
     }
@@ -38,10 +39,11 @@ function sendProgressMsg(req_id:number, progress:number, msg: string) {
     }
 }
 
-function sendSummaryMsg(req_id:number, summary:WorkerSummary, msg: string) {
-    const workerSummaryMsg: WorkerMessage = { status: 'summary', msg:msg };
+async function sendSummaryMsg(req_id:number, summary:WorkerSummary, msg: string) {
+    const workerSummaryMsg: WorkerMessage = { req_id:req_id, status: 'summary', msg:msg };
     try{
-        db.updateRequestRecord( {req_id:req_id, status: 'summary',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'summary',status_details: msg});
+        await db.updateSummary(req_id, summary);
     } catch (error) {
         console.error('Failed to update request status to summary:', error, ' for req_id:', req_id);
     }
@@ -52,10 +54,10 @@ function sendSummaryMsg(req_id:number, summary:WorkerSummary, msg: string) {
     }
 }
 
-function sendServerMsg(req_id:number,  msg: string) {
-    const workerServerMsg: WorkerMessage =  { status: 'server_msg', msg:msg };
+async function sendServerMsg(req_id:number,  msg: string) {
+    const workerServerMsg: WorkerMessage =  { req_id:req_id, status: 'server_msg', msg:msg };
     try{
-        db.updateRequestRecord( {req_id:req_id, status: 'server_msg',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'server_msg',status_details: msg});
     } catch (error) {
         console.error('Failed to update request status to server_msg:', error, ' for req_id:', req_id);
     }
@@ -66,11 +68,11 @@ function sendServerMsg(req_id:number,  msg: string) {
     }
 }
 
-function sendErrorMsg(req_id:number=0, workerError: WorkerError) {
-    const workerErrorMsg: WorkerMessage = { status: 'error', error: workerError };
+async function sendErrorMsg(req_id:number=0, workerError: WorkerError) {
+    const workerErrorMsg: WorkerMessage = { req_id:req_id, status: 'error', error: workerError };
     if(req_id > 0) {
         try{
-            db.updateRequestRecord( {req_id:req_id, status: 'error',status_details: workerError.message});
+            await db.updateRequestRecord( {req_id:req_id, status: 'error',status_details: workerError.message});
         } catch (error) {
             console.error('Failed to update request status to error:', error, ' for req_id:', req_id);
         }
@@ -84,10 +86,10 @@ function sendErrorMsg(req_id:number=0, workerError: WorkerError) {
     }
 }
 
-function sendSuccessMsg(req_id:number, msg:string) {
-    const workerSuccessMsg: WorkerMessage = { status: 'success', msg:msg };
+async function sendSuccessMsg(req_id:number, msg:string) {
+    const workerSuccessMsg: WorkerMessage = { req_id:req_id, status: 'success', msg:msg };
     try{
-        db.updateRequestRecord( {req_id:req_id, status: 'success',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'success',status_details: msg});
     } catch (error) {
         console.error('Failed to update request status to success:', error, ' for req_id:', req_id);
     }
@@ -128,10 +130,10 @@ onmessage = (event) => {
         let runningCount = 0;
         let currentThreshold = 50000;
         const thresholdIncrement = 50000;
-        const srRequest:SrRequest = JSON.parse(event.data);;
-        const req:ReqParams = srRequest.parameters as ReqParams;
+        const srRequestRecord:SrRequestRecord = JSON.parse(event.data);;
+        const req:ReqParams = srRequestRecord.parameters as ReqParams;
         console.log("atl06ToDb req: ", req);
-        const reqID = srRequest.req_id;
+        const reqID = srRequestRecord.req_id;
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
@@ -188,10 +190,10 @@ onmessage = (event) => {
                 },
             };
             if(reqID){       
-                console.log("atl06pParams:",srRequest.parameters);
-                if(srRequest.parameters){
-                    console.log('atl06pParams:',srRequest.parameters);
-                    atl06p(srRequest.parameters as Atl06pReqParams,callbacks)
+                console.log("atl06pParams:",srRequestRecord.parameters);
+                if(srRequestRecord.parameters){
+                    console.log('atl06pParams:',srRequestRecord.parameters);
+                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks)
                     .then(() => { // result
                             // Log the result to the console
                             console.log('Final: flatRecs.length: lastOne:', runningCount, 'req_id:', reqID);
@@ -236,8 +238,8 @@ onmessage = (event) => {
                         }
                     });
                 } else {
-                    console.error('runAtl06 srRequest.parameters was undefined');
-                    sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'srRequest.parameters was undefined' });
+                    console.error('runAtl06 srRequestRecord.parameters was undefined');
+                    sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'srRequestRecord.parameters was undefined' });
                 }
             } else {
                 console.error('runAtl06 reqID was undefined');

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { db, type SrRequest } from '@/db/SlideRuleDb';
+import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
@@ -8,7 +8,7 @@ import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
     currentReqId: 0 as number,
-    reqs: [] as SrRequest[],
+    reqs: [] as SrRequestRecord[],
     reqIsLoading: {} as { [reqId: number]: boolean },
     columns: [
       { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
@@ -42,7 +42,7 @@ export const useRequestsStore = defineStore('requests', {
     getConsoleMsg(){
       return this.msg;
     },
-    async createNewReq(): Promise<SrRequest | null>  {
+    async createNewReq(): Promise<SrRequestRecord | null>  {
       // Get the new reqId from the db
       console.log('createNewReq()');
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
@@ -62,11 +62,11 @@ export const useRequestsStore = defineStore('requests', {
     setMsg(msg: string) {
       this.msg = msg;
     },
-    // async updateReq(updateParams: Partial<SrRequest>): Promise<void> {
+    // async updateReq(updateParams: Partial<SrRequestRecord>): Promise<void> {
     //   const { req_id, ...restParams } = updateParams;
     //   console.log('updateReq-->updateParams:', updateParams);
     //   try{
-    //     if(!req_id) throw new Error('SrRequest ID is required to update a request.');
+    //     if(!req_id) throw new Error('SrRequestRecord ID is required to update a request.');
     //     this.fetchReqs();
     //     const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
     //     console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
@@ -104,7 +104,7 @@ export const useRequestsStore = defineStore('requests', {
     async deleteReq(reqId: number): Promise<void>{
       try {
         await db.deleteRequest(reqId);
-        console.log('SrRequest deleted successfully');
+        console.log('SrRequestRecord deleted successfully');
       } catch (error) {
         console.error('Error deleting request:', error);
       }
@@ -121,7 +121,7 @@ export const useRequestsStore = defineStore('requests', {
     async fetchReqIds(): Promise<number[]> {
       try {
         const reqIds = await db.getRequestIds();
-        console.log('SrRequest IDs fetched successfully:', reqIds);
+        console.log('SrRequestRecord IDs fetched successfully:', reqIds);
         return reqIds;
       } catch (error) {
         console.error('Error fetching request IDs:', error);

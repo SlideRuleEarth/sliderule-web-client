@@ -32,7 +32,7 @@ export interface Elevation {
     y_atc: number;
 };
 
-export interface SrRequest {
+export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
     status?: string; // status: 'pending', 'processing', 'success', 'error'
@@ -45,17 +45,42 @@ export interface SrRequest {
 }
 
 
+export interface WorkerSummary {
+    extLatLon: ExtLatLon;
+    extHMean: ExtHMean;
+}
+
+export interface ExtLatLon {
+    minLat: number;
+    maxLat: number;
+    minLon: number;
+    maxLon: number;
+}
+export interface ExtHMean {
+    minHMean: number;
+    maxHMean: number;
+    lowHMean: number;   // 5th percentile
+    highHMean: number;  // 95th percentile
+}
+
+export interface SrRequestSummary {
+    req_id?: number;
+    summary?: WorkerSummary;
+}
+
 export class SlideRuleDexie extends Dexie {
     // 'elevations' and 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
     elevations!: Table<Elevation>; 
-    requests!: Table<SrRequest>;
+    requests!: Table<SrRequestRecord>;
+    summary!: Table<SrRequestSummary>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
             elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
+            summary: 'req_id'     // req_id is the primary key here
         });
         this._useMiddleware();
         console.log("Database initialized.");
@@ -69,44 +94,54 @@ export class SlideRuleDexie extends Dexie {
                 ...downlevelDatabase,
                 table: (tableName: string) => {
                     const downlevelTable: DBCoreTable = downlevelDatabase.table(tableName);
-                    return this._serializeDatesInTable(downlevelTable);
+                    return this._serializeFieldsInTable(downlevelTable);
                 }
             })
         });
     }
  
-    private _serializeDatesInTable(downlevelTable: DBCoreTable): DBCoreTable {
+    private _serializeFieldsInTable(downlevelTable: DBCoreTable): DBCoreTable {
         return {
             ...downlevelTable,
             mutate: async (req: DBCoreMutateRequest): Promise<DBCoreMutateResponse> => {
-                if ('values' in req) {
-                    req.values = req.values.map(value => JSON.parse(JSON.stringify(value, (key, val) => {
-                        if (val instanceof Date) {
-                            return val.toISOString();
-                        } else if (typeof val === 'bigint') {
-                            return val.toString() + "n"; // Append 'n' to differentiate BigInt strings
-                        } else {
-                            return val;
-                        }
-                    })));
+                try{
+                    if ('values' in req) {
+                        req.values = req.values.map(value => JSON.parse(JSON.stringify(value, (key, val) => {
+                            if (val instanceof Date) {
+                                return val.toISOString();
+                            } else if (typeof val === 'bigint') {
+                                return val.toString() + "n"; // Append 'n' to differentiate BigInt strings
+                            } else {
+                                return val;
+                            }
+                        })));
+                    }
+                    return downlevelTable.mutate(req);
+                } catch (error) {
+                    console.error('Error during database mutation:', error);
+                    throw error;
                 }
-                return downlevelTable.mutate(req);
             },
             getMany: async (req: DBCoreGetManyRequest): Promise<any[]> => {
-                const result = await downlevelTable.getMany(req);
-                result.forEach(obj => {
-                    for (const key in obj) {
-                        const value = obj[key];
-                        if (typeof value === 'string') {
-                            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value)) {
-                                obj[key] = new Date(value);
-                            } else if (value.endsWith('n')) {
-                                obj[key] = BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
+                try{
+                    const result = await downlevelTable.getMany(req);
+                    result.forEach(obj => {
+                        for (const key in obj) {
+                            const value = obj[key];
+                            if (typeof value === 'string') {
+                                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value)) {
+                                    obj[key] = new Date(value);
+                                } else if (value.endsWith('n')) {
+                                    obj[key] = BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
+                                }
                             }
                         }
-                    }
-                });
-                return result;
+                    });
+                    return result;
+                } catch (error) {
+                    console.error('Error during database getMany:', error);
+                    throw error;
+                }
             }
         }
     }
@@ -141,7 +176,7 @@ export class SlideRuleDexie extends Dexie {
         return parts.length > 0 ? parts.join(', ') : '0 secs';
     }
     
-    async updateRequestRecord(updateParams: Partial<SrRequest>): Promise<void> {
+    async updateRequestRecord(updateParams: Partial<SrRequestRecord>): Promise<void> {
         const { req_id } = updateParams;
         if (!req_id) {
             console.error('Request ID is required to update. updateParams:', updateParams);
@@ -152,7 +187,9 @@ export class SlideRuleDexie extends Dexie {
             return;
         }
         try {
+            console.log('updateRequestRecord fetching SrRequestRecord with req_id:', req_id, 'updateParams:', updateParams)
             const request = await this.requests.get(req_id);
+            console.log('updateRequestRecord updating request:', request);
             if (!request) {
                 console.error(`No request found with req_id ${req_id}`);
                 return;
@@ -174,14 +211,13 @@ export class SlideRuleDexie extends Dexie {
                 end_time: endTime,
                 elapsed_time: elapsedTimeString
             };
-    
+            console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
             await this.updateRequest(req_id, updates);
-            console.log(`SrRequest Record updated for req_id ${req_id} with changes:`, updates);
+            console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
         } catch (error) {
             console.error(`Failed to update req_id ${req_id}:`, error);
             throw error;
         }
-
     }
             
     // Function to add a new request with status 'pending'
@@ -205,13 +241,17 @@ export class SlideRuleDexie extends Dexie {
     }
 
     // Function to update any field of a specific request
-    async updateRequest(reqId: number, updates: Partial<SrRequest>): Promise<void> {
+    async updateRequest(reqId: number, updates: Partial<SrRequestRecord>): Promise<void> {
         try {
-            console.log("updates:",updates);
-            await this.requests.update(reqId, updates);
-            console.log(`SrRequest updated for req_id ${reqId} with changes:`, updates);
+            console.log("updateRequest: calling update with:",updates);
+            const result = await this.requests.update(reqId, updates);
+            if (result === 0) {
+                console.error(`No request found with req_id ${reqId}.`);
+            } else {
+                console.log(`updateRequest: SrRequestRecord updated for req_id ${reqId} with changes:`, updates);
+            }
         } catch (error) {
-            console.error(`Failed to update request for req_id ${reqId}:`, error);
+            console.error(`updateRequest: Failed to update request for req_id ${reqId}:`, error);
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -266,6 +306,31 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
-    
+
+    async updateSummary(reqId: number, summary: WorkerSummary): Promise<void> {
+        try {
+            await this.summary.put({ req_id: reqId, summary });
+            console.log(`Summary updated for req_id ${reqId}.`);
+        } catch (error) {
+            console.error(`Failed to update summary for req_id ${reqId}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+    // Method to fetch WorkerSummary for a given req_id
+    async getWorkerSummary(reqId: number): Promise<WorkerSummary | undefined> {
+        try {
+            const summaryRecord = await this.summary.get(reqId);
+            if (!summaryRecord) {
+                console.log(`No summary found for req_id ${reqId}.`);
+                return undefined;
+            }
+            console.log(`Retrieved summary for req_id ${reqId}.`);
+            return summaryRecord.summary;
+        } catch (error) {
+            console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
 }
 export const db = new SlideRuleDexie();
