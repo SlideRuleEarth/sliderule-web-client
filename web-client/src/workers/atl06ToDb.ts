@@ -231,7 +231,7 @@ onmessage = (event) => {
                     })).finally(() => {
                         if(reqID){
                             console.log('runAtl06 req_id:',reqID, ' updating stats');
-                            sendSuccessMsg(reqID, `Finished req_id: ${reqID}`);
+                            sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
                         } else {
                             console.error('runAtl06 req_id was undefined?');
                             sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'reqID was undefined' });
