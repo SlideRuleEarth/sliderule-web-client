@@ -1,18 +1,4 @@
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'server_msg';
-
-export interface WorkerError {
-    type: string;
-    code: string;
-    message: string;
-}
-
-export interface WorkerMessage {
-    req_id: number;             // Request ID
-    status: WorkerStatus;       // Status of the worker
-    progress?: number;          // Percentage for progress updates
-    msg?: string;               // status details
-    error?: WorkerError;        // Error details (if an error occurred)
-}
+import { type WorkerMessage } from "./workerUtils";
 
 type Task = {
     data: any;  // Any data that isn't transferable
@@ -51,7 +37,7 @@ export class TaskQueue {
             const task = this.taskQueue.shift()!;
             const worker = this.workerPool[this.activeWorkers++];
             //worker.postMessage({ data: task.data }, [task.buffer]);
-            worker.postMessage(JSON.stringify({ data: task.data }));
+            worker.postMessage(structuredClone({ data: task.data }));
             worker.onmessage = (event) => {
                 const workerMsg:WorkerMessage = event.data;
                 console.log('Worker message:', workerMsg);
@@ -59,6 +45,9 @@ export class TaskQueue {
                 if (task.callback) task.callback(event.data);  // Invoke the task-specific callback
                 if(workerMsg.status === 'success' || workerMsg.status === 'error'){
                     this.processNextTask();
+                } else {
+                    //TBD - clean up queue?
+                    console.log('Received this Worker message:', workerMsg);
                 }
             };
             worker.onerror = (e) => {

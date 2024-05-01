@@ -2,11 +2,11 @@ import { db, type SrRequestRecord } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams } from '@/sliderule/icesat2';
-import { type WorkerError, type WorkerMessage } from '@/workers/taskQueue';
+import { type WorkerError, type WorkerMessage } from '@/workers/workerUtils';
 import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
 import { TaskQueue } from '@/workers/taskQueue';
-import { type BulkAddToDbWorkerMessage } from '@/workers/bulkAddToDb';
+import { type BulkAddToDbMsg } from '@/workers/bulkAddToDb';
 
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
@@ -156,7 +156,7 @@ onmessage = (event) => {
                             updateExtremes(recs_cache.flat());
                             console.log('bulkAddElevations:',recs_cache.flat().length, 'runningCount:', runningCount);
                             //await db.bulkAddElevations(reqID, recs_cache.flat());
-                            const bulkAddToDbWorkerMessage = { req_id: reqID, recs: recs_cache.flat() } as BulkAddToDbWorkerMessage ;
+                            const bulkAddToDbWorkerMessage = { req_id: reqID, recs: recs_cache.flat() } as BulkAddToDbMsg ;
                             queue.addTask({data: bulkAddToDbWorkerMessage});
                             console.log('bulkAddElevations queued:',recs_cache.length, 'runningCount:', runningCount);
                             recs_cache = []; // clear the recs array
