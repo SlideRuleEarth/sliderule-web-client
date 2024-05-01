@@ -16,7 +16,7 @@
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { WorkerSummary } from '@/workers/workerUtils';
-    import { WorkerMessage } from '@/workers/taskQueue';
+    import { WorkerMessage } from '@/workers/workerUtils';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();

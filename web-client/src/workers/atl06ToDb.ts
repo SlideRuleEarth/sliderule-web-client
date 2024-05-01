@@ -7,7 +7,7 @@ import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/wor
 import type { ReqParams } from "@/stores/reqParamsStore";
 import { TaskQueue } from '@/workers/taskQueue';
 import { type BulkAddToDbMsg } from '@/workers/bulkAddToDb';
-
+import Dexie from 'dexie';
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -126,21 +126,19 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
     });
 }
 
-onmessage = (event) => {
+onmessage = async (event) => {
     try{
-        const queue = new TaskQueue('bulkAddToDb');
         // create a queue of tasks to be processed by another worker
         let numWkChunks = 0;
         let runningCount = 0;
-        let currentDbThresh = 50000;
-        const currentDbThreshIncrement = 50000;
         let progThreshold = 1;
         const progThresholdIncrement = 50000;
         const srRequestRecord:SrRequestRecord = JSON.parse(event.data);;
         const req:ReqParams = srRequestRecord.parameters as ReqParams;
         console.log("atl06ToDb req: ", req);
         const reqID = srRequestRecord.req_id;
-        let recs_cache:Elevation[] = [];
+        let bulkAddPromises: Promise<void>[] = [];        
+        const MAX_PROMISES_PER_TRANSACTION = 100; // Adjust as needed
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
@@ -150,17 +148,40 @@ onmessage = (event) => {
                     const curFlatRecs = currentRecs.flat();
                     if(curFlatRecs.length > 0) {
                         runningCount += curFlatRecs.length;
-                        recs_cache.push(curFlatRecs);
-                        if(recs_cache.flat().length > currentDbThresh) {
-                            currentDbThresh = runningCount + currentDbThreshIncrement;
-                            updateExtremes(recs_cache.flat());
-                            console.log('bulkAddElevations:',recs_cache.flat().length, 'runningCount:', runningCount);
-                            //await db.bulkAddElevations(reqID, recs_cache.flat());
-                            const bulkAddToDbWorkerMessage = { req_id: reqID, recs: recs_cache.flat() } as BulkAddToDbMsg ;
-                            queue.addTask({data: bulkAddToDbWorkerMessage});
-                            console.log('bulkAddElevations queued:',recs_cache.length, 'runningCount:', runningCount);
-                            recs_cache = []; // clear the recs array
+                        updateExtremes(curFlatRecs);
+                        console.log('bulkAddElevations:',curFlatRecs.length, 'runningCount:', runningCount);
+
+                        try {
+                            // Adding req_id to each record in curFlatRecs
+                            const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
+                                ...rec,
+                                req_id: reqID, 
+                            }));
+                            //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
+                            const addPromise = db.elevations.bulkAdd(updatedFlatRecs);
+                            //await addPromise;
+                            bulkAddPromises.push(addPromise); 
+                            if (bulkAddPromises.length >= MAX_PROMISES_PER_TRANSACTION) {
+                                await db.transaction('rw', db.elevations, async () => {
+                                    await Promise.all(bulkAddPromises); 
+                                    bulkAddPromises = []; // Clear the array for the next batch
+                                    console.log('Bulk add successful');
+                                }).catch((error) => {
+                                    if (error instanceof Dexie.AbortError) {
+                                        console.log("Transaction was aborted");
+                                    } else {
+                                        console.error('Transaction failed: ', error);
+                                        sendErrorMsg(reqID, { type: 'TransactionError', code: 'Transaction', message: 'Transaction failed' });
+                                    }
+                                });
+                            }
+                          
+                        } catch (error) {
+                            console.error('Bulk add failed: ', error);
+                            sendErrorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'Bulk add failed' });
                         }
+
+                        //await db.transaction('rw', db.elevations, async () => {
                         if(runningCount > progThreshold){
                             progThreshold += progThresholdIncrement;
                             sendProgressMsg(reqID, runningCount,`Received ${runningCount} pnts in ${numWkChunks} chunks.`);
@@ -184,13 +205,30 @@ onmessage = (event) => {
                     console.log('atl06p cb eventrec result:', result);
                     sendServerMsg(reqID, `server msg: ${result.attr}`);
                 },
-            };
+            }; // callbacks...
             if(reqID){       
                 console.log("atl06pParams:",srRequestRecord.parameters);
                 if(srRequestRecord.parameters){
                     console.log('atl06pParams:',srRequestRecord.parameters);
-                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks).then(() => { // result
-                            // Log the result to the console
+                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks).then(async () => { // result
+                        if (bulkAddPromises.length > 0) { // there are leftover promises
+                            await db.transaction('rw', db.elevations, async () => {
+                                await Promise.all(bulkAddPromises); 
+                                bulkAddPromises = []; // Clear the array for the next batch
+                                console.log('Final Bulk add successful');
+                            }).catch((error) => {
+                                if (error instanceof Dexie.AbortError) {
+                                    console.log("Final Db Transaction was aborted");
+                                } else {
+                                    console.error('Final Db Transaction failed: ', error);
+                                    sendErrorMsg(reqID, { type: 'Final Db TransactionError', code: 'Transaction', message: 'Transaction failed' });
+                                }
+                            });
+                        } else {
+                            console.log('No leftover promises');
+                        }
+
+                        // Log the result to the console
                             console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
 
                             let status_details = 'unknown status_details';
@@ -200,13 +238,9 @@ onmessage = (event) => {
                                 status_details = 'No data returned from SlideRule.';
                             }
                             console.log('atl06p Success:', status_details);
-                            let queue_len=queue.getLength();
-
-                            if(recs_cache.length > 0) {
-                                queue_len = queue.addTask({data: { req_id: reqID, recs: recs_cache.flat()}});
-                                status_details += ` queued ${recs_cache.length} chunks for bulkAddElevations. queue_len:${queue_len}`; 
-                            }
                             sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
+                            await Promise.all(bulkAddPromises);
+                            sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
                         },
                         error => {
                             // Log the error to the console
@@ -233,7 +267,7 @@ onmessage = (event) => {
                     })).finally(() => {
                         if(reqID){
                             console.log('runAtl06 req_id:',reqID, ' updating stats');
-                            sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
+                            // Wait for all transaction promises to complete
                         } else {
                             console.error('runAtl06 req_id was undefined?');
                             sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'reqID was undefined' });
