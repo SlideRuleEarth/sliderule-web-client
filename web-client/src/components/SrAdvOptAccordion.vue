@@ -1,5 +1,3 @@
-
-
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import Accordion from 'primevue/accordion';
@@ -102,7 +100,6 @@ onMounted(() => {
                         :min="5"
                         :max="3600" 
                         :decimalPlaces="0"
-                        :defaultValue="600"
                         tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
                     />
@@ -112,7 +109,6 @@ onMounted(() => {
                         :min="1"
                         :max="3600" 
                         :decimalPlaces="0"
-                        :defaultValue="600"
                         tooltipText="total time in seconds for request to be processed"
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
                     />                    

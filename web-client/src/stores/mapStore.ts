@@ -33,6 +33,7 @@ export const useMapStore = defineStore('map', {
     deckInstance: null as any,
     theDeckLayer: null as OL_Layer | null,
     isLoading: false,
+    isAborting: false,
   }),
   actions: {
     setMap(mapInstance: OLMap) {

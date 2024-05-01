@@ -1,4 +1,11 @@
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'server_msg';
+import type { ReqParams } from "@/stores/reqParamsStore";
+export interface WebWorkerCmd {
+    type: string; // 'run', 'abort' 
+    req_id: number;
+    parameters?: ReqParams;
+}
+
+export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'server_msg' | 'aborted';
 
 export interface WorkerError {
     type: string;

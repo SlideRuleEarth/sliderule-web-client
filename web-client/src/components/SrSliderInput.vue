@@ -74,6 +74,7 @@
     onMounted(() => {
         //console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
+
         //console.log('The Slider Step Size:', sliderStepSize.value);
     });
 

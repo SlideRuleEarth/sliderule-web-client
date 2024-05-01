@@ -2,11 +2,9 @@ import { db, type SrRequestRecord } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams } from '@/sliderule/icesat2';
-import { type WorkerError, type WorkerMessage } from '@/workers/workerUtils';
+import { type WebWorkerCmd, type WorkerError, type WorkerMessage } from '@/workers/workerUtils';
 import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
-import { TaskQueue } from '@/workers/taskQueue';
-import { type BulkAddToDbMsg } from '@/workers/bulkAddToDb';
 import Dexie from 'dexie';
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
@@ -25,6 +23,21 @@ async function sendStartedMsg(req_id:number,req_params:ReqParams) {
         postMessage(workerStartedMsg);
     } catch (error) {
         console.error('Failed to postMessage for workerStarted:', error, ' for req_id:', req_id);
+    }
+}
+
+async function sendAbortedMsg(req_id:number, msg: string) {
+    const workerAbortedMsg: WorkerMessage =  { req_id:req_id, status: 'aborted', msg:`Aborting req_id: ${req_id}`};
+    try{
+        // initialize request record in db
+        await db.updateRequestRecord( {req_id:req_id, status: 'aborted',status_details: msg});
+    } catch (error) {
+        console.error('Failed to update request status to aborted:', error, ' for req_id:', req_id);
+    }
+    try{
+        postMessage(workerAbortedMsg);
+    } catch (error) {
+        console.error('Failed to postMessage for sendAbortedMsg:', error, ' for req_id:', req_id);
     }
 }
 
@@ -128,29 +141,40 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
 
 onmessage = async (event) => {
     try{
-        // create a queue of tasks to be processed by another worker
+        let abortRequested = false;
+
+        const cmd:WebWorkerCmd = JSON.parse(event.data);;
+        const reqID = cmd.req_id;
+        if(cmd.type === 'abort'){
+            abortRequested = true;
+            sendAbortedMsg(reqID, 'Processing aborted.');
+            console.log('Abort requested for req_id:', reqID);
+            return;
+        }
+        const req:ReqParams = cmd.parameters as ReqParams;
+        console.log("atl06ToDb req: ", req);
+
         let numWkChunks = 0;
         let runningCount = 0;
         let progThreshold = 1;
         const progThresholdIncrement = 50000;
-        const srRequestRecord:SrRequestRecord = JSON.parse(event.data);;
-        const req:ReqParams = srRequestRecord.parameters as ReqParams;
-        console.log("atl06ToDb req: ", req);
-        const reqID = srRequestRecord.req_id;
         let bulkAddPromises: Promise<void>[] = [];        
         const MAX_PROMISES_PER_TRANSACTION = 100; // Adjust as needed
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
                 atl06rec: async (result:any) => {
+                    if (abortRequested) {
+                        console.log('Processing aborted.');
+                        return; // Stop processing when abort is requested
+                    }
                     numWkChunks += 1;
                     const currentRecs = result["elevation"];
                     const curFlatRecs = currentRecs.flat();
                     if(curFlatRecs.length > 0) {
                         runningCount += curFlatRecs.length;
                         updateExtremes(curFlatRecs);
-                        console.log('bulkAddElevations:',curFlatRecs.length, 'runningCount:', runningCount);
-
+                        //console.log('bulkAddElevations:',curFlatRecs.length, 'runningCount:', runningCount);
                         try {
                             // Adding req_id to each record in curFlatRecs
                             const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
@@ -165,7 +189,7 @@ onmessage = async (event) => {
                                 await db.transaction('rw', db.elevations, async () => {
                                     await Promise.all(bulkAddPromises); 
                                     bulkAddPromises = []; // Clear the array for the next batch
-                                    console.log('Bulk add successful');
+                                    //console.log('Bulk add successful');
                                 }).catch((error) => {
                                     if (error instanceof Dexie.AbortError) {
                                         console.log("Transaction was aborted");
@@ -175,7 +199,6 @@ onmessage = async (event) => {
                                     }
                                 });
                             }
-                          
                         } catch (error) {
                             console.error('Bulk add failed: ', error);
                             sendErrorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'Bulk add failed' });
@@ -207,10 +230,10 @@ onmessage = async (event) => {
                 },
             }; // callbacks...
             if(reqID){       
-                console.log("atl06pParams:",srRequestRecord.parameters);
-                if(srRequestRecord.parameters){
-                    console.log('atl06pParams:',srRequestRecord.parameters);
-                    atl06p(srRequestRecord.parameters as Atl06pReqParams,callbacks).then(async () => { // result
+                console.log("atl06pParams:",cmd.parameters);
+                if(cmd.parameters){
+                    console.log('atl06pParams:',cmd.parameters);
+                    atl06p(cmd.parameters as Atl06pReqParams,callbacks).then(async () => { // result
                         if (bulkAddPromises.length > 0) { // there are leftover promises
                             await db.transaction('rw', db.elevations, async () => {
                                 await Promise.all(bulkAddPromises); 
@@ -229,20 +252,19 @@ onmessage = async (event) => {
                         }
 
                         // Log the result to the console
-                            console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
+                        console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
 
-                            let status_details = 'unknown status_details';
-                            if(runningCount > 0) {
-                                status_details = `Received ${runningCount} pnts`;
-                            } else {
-                                status_details = 'No data returned from SlideRule.';
-                            }
-                            console.log('atl06p Success:', status_details);
-                            sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
-                            await Promise.all(bulkAddPromises);
-                            sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
-                        },
-                        error => {
+                        let status_details = 'unknown status_details';
+                        if(runningCount > 0) {
+                            status_details = `Received ${runningCount} pnts`;
+                        } else {
+                            status_details = 'No data returned from SlideRule.';
+                        }
+                        console.log('atl06p Success:', status_details);
+                        sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
+                        await Promise.all(bulkAddPromises);
+                        sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
+                    },error => { // catch errors during the atl06p call promise (not ones that occur in success block)
                             // Log the error to the console
                             console.log('atl06p Error = ', error);
                             let emsg = '';
@@ -258,8 +280,7 @@ onmessage = async (event) => {
                                 console.error('atl06p Error = ', emsg);
                             }
                             sendErrorMsg(reqID, { type: 'NetworkError', code: code, message: emsg });
-                        }
-                    ).catch((error => {
+                    }).catch((error => { // catch all errors including in then clause of promise
                         // Log the error to the console
                         const status_details = `An unknown error occurred while running atl06p: ${error}`;
                         console.error('atl06p Error = ', status_details);
@@ -274,8 +295,8 @@ onmessage = async (event) => {
                         }
                     });
                 } else {
-                    console.error('runAtl06 srRequestRecord.parameters was undefined');
-                    sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'srRequestRecord.parameters was undefined' });
+                    console.error('runAtl06 cmd.parameters was undefined');
+                    sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'cmd.parameters was undefined' });
                 }
             } else {
                 console.error('runAtl06 reqID was undefined');
