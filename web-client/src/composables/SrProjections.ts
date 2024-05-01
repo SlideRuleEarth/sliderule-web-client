@@ -55,7 +55,7 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     name: "EPSG:3031",
     label: "South",
     proj4def: "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +k=1 +no_defs",
-    default_zoom: 2,
+    default_zoom: 1,
     min_zoom: 0,
     max_zoom: 16,
     bbox: [-60.0,-180.0,-90.0,180.0],

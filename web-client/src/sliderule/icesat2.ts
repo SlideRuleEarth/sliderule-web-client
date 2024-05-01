@@ -79,6 +79,13 @@ const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6
 //------------------------------------
 type Resource = string; 
 
+export interface SrLatLon {
+    lat: number;
+    lon: number;
+  }
+  
+export type SrRegion = SrLatLon[];
+  
 // Define the parameter type for the atl06p function
 export interface Atl06ReqParams {
     asset?: string;
@@ -88,30 +95,27 @@ export interface Atl06ReqParams {
     len: number;
     res: number;
     maxi: number;
+    poly?: SrRegion;
     [key: string]: any; // Other dynamic keys
 }
-  
-export interface Atl06pReqParams {
-    atl06Params: Atl06ReqParams;
-    resources: Resource[];
-}
 
+export interface Atl06pReqParams {
+    parms: Atl06ReqParams;
+    resources: Resource[];
+    poly?: SrRegion; 
+}
 
 //
 // ATL06P
 //
-export async function atl06p(params: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<any[] | void> 
+export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<any[] | void> 
 {
-    console.log("atl06p params: ", params);
+    console.log("atl06p params: ", alt06preqparams);
     console.log("atl06p callbacks: ", callbacks);
     const recs: any[] = [];
-    if (!('asset' in params.atl06Params)) {
-        params.atl06Params['asset'] = 'icesat2';
+    if (!('asset' in alt06preqparams.parms)) { // default this to icesat2
+        alt06preqparams.parms['asset'] = 'icesat2';
     }
-    const rqst = {
-        "parms": params,
-        "resources": params.resources,
-    };
     if (callbacks == null) {
         callbacks = {
             atl06rec: (result) => {
@@ -121,7 +125,8 @@ export async function atl06p(params: Atl06pReqParams, callbacks: core.Callbacks 
         };
     }
     try{
-        const result = await core.source('atl06p', rqst, true, callbacks);
+        console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
+        const result = await core.source('atl06p', alt06preqparams, true, callbacks);
         return result;
     }
     catch (error) {
