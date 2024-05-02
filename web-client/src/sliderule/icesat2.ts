@@ -110,8 +110,8 @@ export interface Atl06pReqParams {
 //
 export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<any[] | void> 
 {
-    console.log("atl06p params: ", alt06preqparams);
-    console.log("atl06p callbacks: ", callbacks);
+    //console.log("atl06p params: ", alt06preqparams);
+    //console.log("atl06p callbacks: ", callbacks);
     const recs: any[] = [];
     if (!('asset' in alt06preqparams.parms)) { // default this to icesat2
         alt06preqparams.parms['asset'] = 'icesat2';
@@ -125,7 +125,7 @@ export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.C
         };
     }
     try{
-        console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
+        //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
         const result = await core.source('atl06p', alt06preqparams, true, callbacks);
         return result;
     }

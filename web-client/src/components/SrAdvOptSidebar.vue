@@ -76,13 +76,13 @@
     const handleAtl06WorkerMsg = (event: MessageEvent) => {
         if(worker){
             const workerMsg:WorkerMessage = event.data;
-            console.log('handleAtl06WorkerMsg Worker event:',event);
+            //console.log('handleAtl06WorkerMsg Worker event:',event);
             switch(workerMsg.status){
                 case 'success':
                     console.log('handleAtl06WorkerMsg success:',workerMsg.msg);
                     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
                     mapStore.isLoading = false;
-                    console.log('done... isLoading:',mapStore.isLoading);
+                    //console.log('done... isLoading:',mapStore.isLoading);
                     cleanUpWorker(worker);
                     break;
                 case 'started':
@@ -113,7 +113,7 @@
                     }
                     break;
                 case 'summary':
-                    console.log('handleAtl06WorkerMsg summary:',workerMsg.msg);
+                    console.log('handleAtl06WorkerMsg summary:',workerMsg);
                     if(workerMsg){
                         const sMsg = workerMsg as WorkerSummary;
                         curReqSumStore.setSummary(sMsg);

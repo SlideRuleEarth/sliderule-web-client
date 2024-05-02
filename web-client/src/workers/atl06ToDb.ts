@@ -198,21 +198,11 @@ onmessage = async (event) => {
                             }));
                             //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
                             const addPromise = db.elevations.bulkAdd(updatedFlatRecs);
-                            //await addPromise;
                             bulkAddPromises.push(addPromise); 
                             if (bulkAddPromises.length >= MAX_PROMISES_PER_TRANSACTION) {
-                                //db.transaction('rw', db.elevations, async () => {
-                                    await Promise.all(bulkAddPromises); 
-                                    bulkAddPromises = []; // Clear the array for the next batch
-                                    //console.log('Bulk add successful');
-                                // }).catch((error) => {
-                                //     if (error instanceof Dexie.AbortError) {
-                                //         console.log("Transaction was aborted");
-                                //     } else {
-                                //         console.error('Transaction failed: ', error);
-                                //         sendErrorMsg(reqID, { type: 'TransactionError', code: 'Transaction', message: 'Transaction failed' });
-                                //     }
-                                // });
+                                await Promise.all(bulkAddPromises); 
+                                bulkAddPromises = []; // Clear the array for the next batch
+                                //console.log('Bulk add successful');
                             }
                         } catch (error) {
                             console.error('Bulk add failed: ', error);
@@ -221,7 +211,7 @@ onmessage = async (event) => {
 
                         //await db.transaction('rw', db.elevations, async () => {
                         if(runningCount > progThreshold){
-                            progThreshold += progThresholdIncrement;
+                            progThreshold = runningCount + progThresholdIncrement;
                             sendProgressMsg(reqID, runningCount,`Received ${runningCount} pnts in ${numWkChunks} chunks.`);
                         }
                     } else {
@@ -229,7 +219,7 @@ onmessage = async (event) => {
                     }        
                 },
                 exceptrec: (result:any) => {
-                    console.log('atl06p cb exceptrec result:', result);
+                    //console.log('atl06p cb exceptrec result:', result);
                     //HACK!!!!!
                     if(result.text.includes('Starting proxy for atl06 to process')){
                         sendServerMsg(reqID, `server msg: ${result.text}`);
@@ -240,14 +230,14 @@ onmessage = async (event) => {
                     } 
                 },
                 eventrec: (result:any) => {
-                    console.log('atl06p cb eventrec result:', result);
+                    //console.log('atl06p cb eventrec result:', result);
                     sendServerMsg(reqID, `server msg: ${result.attr}`);
                 },
             }; // callbacks...
             if(reqID){       
-                console.log("atl06pParams:",cmd.parameters);
+                //console.log("atl06pParams:",cmd.parameters);
                 if(cmd.parameters){
-                    console.log('atl06pParams:',cmd.parameters);
+                    //console.log('atl06pParams:',cmd.parameters);
                     atl06p(cmd.parameters as Atl06pReqParams,callbacks).then(async () => { // result
                         if (bulkAddPromises.length > 0) { // there are leftover promises
                             await db.transaction('rw', db.elevations, async () => {

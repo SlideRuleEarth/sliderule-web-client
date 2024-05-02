@@ -184,9 +184,9 @@ export class SlideRuleDexie extends Dexie {
             return;
         }
         try {
-            console.log('updateRequestRecord fetching SrRequestRecord with req_id:', req_id, 'updateParams:', updateParams)
+            //console.log('updateRequestRecord fetching SrRequestRecord with req_id:', req_id, 'updateParams:', updateParams)
             const request = await this.requests.get(req_id);
-            console.log('updateRequestRecord updating request:', request);
+            //console.log('updateRequestRecord updating request:', request);
             if (!request) {
                 console.error(`No request found with req_id ${req_id}`);
                 return;
@@ -208,9 +208,9 @@ export class SlideRuleDexie extends Dexie {
                 end_time: endTime,
                 elapsed_time: elapsedTimeString
             };
-            console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
+            //console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
             await this.updateRequest(req_id, updates);
-            console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
+            //console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
         } catch (error) {
             console.error(`Failed to update req_id ${req_id}:`, error);
             throw error;
@@ -240,13 +240,14 @@ export class SlideRuleDexie extends Dexie {
     // Function to update any field of a specific request
     async updateRequest(reqId: number, updates: Partial<SrRequestRecord>): Promise<void> {
         try {
-            console.log("updateRequest: calling update with:",updates);
+            //console.log("updateRequest: calling update with:",updates);
             const result = await this.requests.update(reqId, updates);
             if (result === 0) {
                 console.error(`No request found with req_id ${reqId}.`);
-            } else {
-                console.log(`updateRequest: SrRequestRecord updated for req_id ${reqId} with changes:`, updates);
             }
+            // else {
+            //     console.log(`updateRequest: SrRequestRecord updated for req_id ${reqId} with changes:`, updates);
+            // }
         } catch (error) {
             console.error(`updateRequest: Failed to update request for req_id ${reqId}:`, error);
             throw error; // Rethrowing the error for further handling if needed
