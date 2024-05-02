@@ -119,7 +119,7 @@ export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.C
     if (callbacks == null) {
         callbacks = {
             atl06rec: (result) => {
-                console.log("atl06p--< cb...");
+                console.log("atl06p STUBBED --< cb...");
                 recs.push(result["elevation"]);
             },
         };

@@ -31,7 +31,11 @@ type rec_def_Type = Record<string, any> // C.E.U. defined this type
 //
 // Record Definitions
 //
-const recordDefinitions: rec_def_Type = {}
+let recordDefinitions: rec_def_Type = {}
+
+const REC_HDR_SIZE = 8;
+export const REC_VERSION = 2; // Record version for
+export let num_defs_fetched = 0;
 
 // Define types for the constants
 const INT8: number   = 0;
@@ -73,7 +77,22 @@ const fieldtypes:{
 //------------------------------------
 // Local Functions
 //------------------------------------
+export function set_recordDefinitions(data: any) {
+  console.log('set_recordDefinitions data:', data);
+  console.log('set_recordDefinitions before:', recordDefinitions);
+  recordDefinitions = data;
+  console.log('set_recordDefinitions after:', recordDefinitions);
+}
+export function get_recordDefinitions() {
+  return recordDefinitions;
+}
 
+export function get_num_defs_fetched() {
+  return num_defs_fetched;
+}
+export function set_num_defs_fetched(num: number) {
+  num_defs_fetched = num;
+}
 //
 // populateDefinition
 //
@@ -82,11 +101,13 @@ function populateDefinition(rec_type:any):any {
     return recordDefinitions[rec_type];
   }
   else {
+    //console.log(`populateDefinition: ${rec_type} (type: ${typeof rec_type}) not found in recordDefinitions`);
     return new Promise((resolve, reject) => {
+      num_defs_fetched++;
+      console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
       source("definition", {"rectype" : rec_type}).then(
         result => {
           recordDefinitions[rec_type] = result;
-          //console.log("populateDefinition[",rec_type,"] result:",result);
           resolve(recordDefinitions[rec_type]);
         },
         error => {
@@ -218,6 +239,7 @@ async function decodeField(field_def:field_def_Type , buffer:any, offset:number,
 async function decodeRecord(rec_type:string, buffer:any, offset:number, rec_size:number): Promise<any> {
   const rec_obj:rec_def_Type = {}
   const rec_def = await populateDefinition(rec_type);
+  //console.log('decodeRecord rec_type:', rec_type, 'rec_def:', rec_def, 'offset:', offset, 'rec_size:', rec_size);
   // For each field defined in record
   for (const field in rec_def) {
     // Check if not property
@@ -262,8 +284,6 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         let receivedLength = 0; // length of the received  data
         let chunks:any[] = []; // array to store received  chunks
         let num_chunks = 0;
-        const REC_HDR_SIZE = 8;
-        const REC_VERSION = 2;
         const results: Record<string, number> = {};
         let bytes_read = 0;
         let bytes_processed = 0;
@@ -300,8 +320,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   rec_type_size = buffer.readUInt16BE(2);
                   const rec_data_size = buffer.readUInt32BE(4);
                   if (rec_version != REC_VERSION) {
-                    throw new Error(`fetchAndProcessResult invalid record format: ${rec_version}`);
                     loop_done = true;
+                    throw new Error(`fetchAndProcessResult invalid record format: ${rec_version}`);
                   }
                   // Set record attributes
                   rec_size = rec_type_size + rec_data_size;
@@ -451,12 +471,13 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
-      if (api === 'atl06p') {
-        console.log('source url:', url, 'options:',options);
-      }
+      //if (api === 'atl06p') {
+      //  console.log('source url:', url, 'options:',options);
+      //}
       result = await fetchAndProcessResult(url, options, callbacks, stream);
+      //console.log('source url:', url, 'options:',options, 'result:', result);
   } catch (error) {
-      console.error('Error in fetchAndProcessResult:', error);
+      console.error('Error in fetchAndProcessResult source url:', url, 'options:',options,' error:', error);
       throw error; // Rethrow or handle as needed
   }
   return result;
@@ -562,6 +583,19 @@ export function get_values(bytearray: Uint8Array, fieldtype: number):  Array<num
   return values;
 }
 
-//
-// Get Values
-//
+
+// Function to populate all definitions
+export async function populateAllDefinitions(): Promise<any>{
+  const allRecordTypes = ['atl06rec','atl06rec.elevation','exceptrec','eventrec'];
+  try {
+    // Create an array of promises for each record type
+    const definitionPromises = allRecordTypes.map(type => populateDefinition(type));
+    // Wait for all promises to resolve
+    await Promise.all(definitionPromises);
+    //console.log("All record definitions have been populated successfully:",recordDefinitions);
+    return recordDefinitions;
+  } catch (error) {
+    // Handle errors that occur during the population process
+    console.error("Error populating record definitions:", error);
+  }
+}

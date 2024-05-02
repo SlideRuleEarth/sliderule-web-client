@@ -1,4 +1,4 @@
-import { db, type SrRequestRecord } from "@/db/SlideRuleDb";
+import { db } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams } from '@/sliderule/icesat2';
@@ -6,6 +6,8 @@ import { type WebWorkerCmd, type WorkerError, type WorkerMessage } from '@/worke
 import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
 import Dexie from 'dexie';
+import { REC_VERSION, set_recordDefinitions, get_num_defs_fetched, get_recordDefinitions} from '@/sliderule/core';
+
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -141,6 +143,19 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
 
 onmessage = async (event) => {
     try{
+        console.log('atl06ToDb worker received event:', event.data)
+        console.log('Starting with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
+        const recordDefs = await db.getDefinitionsByVersion(REC_VERSION);
+        if(recordDefs.length === 0){
+            console.error('No record definitions fetched');
+        } else if (recordDefs.length === 1) {
+            console.log('Expected-->Single record definition fetched:', recordDefs[0].data);
+            set_recordDefinitions(recordDefs[0].data);
+        } else {
+            console.error('Unexpected size for recordDefs:', recordDefs);
+        }
+        console.log('Proceeding with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
+
         let abortRequested = false;
 
         const cmd:WebWorkerCmd = JSON.parse(event.data);;
@@ -159,7 +174,7 @@ onmessage = async (event) => {
         let progThreshold = 1;
         const progThresholdIncrement = 50000;
         let bulkAddPromises: Promise<void>[] = [];        
-        const MAX_PROMISES_PER_TRANSACTION = 100; // Adjust as needed
+        const MAX_PROMISES_PER_TRANSACTION = 1; // Adjust as needed
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
@@ -186,18 +201,18 @@ onmessage = async (event) => {
                             //await addPromise;
                             bulkAddPromises.push(addPromise); 
                             if (bulkAddPromises.length >= MAX_PROMISES_PER_TRANSACTION) {
-                                await db.transaction('rw', db.elevations, async () => {
+                                //db.transaction('rw', db.elevations, async () => {
                                     await Promise.all(bulkAddPromises); 
                                     bulkAddPromises = []; // Clear the array for the next batch
                                     //console.log('Bulk add successful');
-                                }).catch((error) => {
-                                    if (error instanceof Dexie.AbortError) {
-                                        console.log("Transaction was aborted");
-                                    } else {
-                                        console.error('Transaction failed: ', error);
-                                        sendErrorMsg(reqID, { type: 'TransactionError', code: 'Transaction', message: 'Transaction failed' });
-                                    }
-                                });
+                                // }).catch((error) => {
+                                //     if (error instanceof Dexie.AbortError) {
+                                //         console.log("Transaction was aborted");
+                                //     } else {
+                                //         console.error('Transaction failed: ', error);
+                                //         sendErrorMsg(reqID, { type: 'TransactionError', code: 'Transaction', message: 'Transaction failed' });
+                                //     }
+                                // });
                             }
                         } catch (error) {
                             console.error('Bulk add failed: ', error);
@@ -264,6 +279,7 @@ onmessage = async (event) => {
                         sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
                         await Promise.all(bulkAddPromises);
                         sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
+                        console.log('num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
                     },error => { // catch errors during the atl06p call promise (not ones that occur in success block)
                             // Log the error to the console
                             console.log('atl06p Error = ', error);

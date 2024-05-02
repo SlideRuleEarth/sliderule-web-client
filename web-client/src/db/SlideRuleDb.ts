@@ -51,19 +51,28 @@ export interface SrRequestSummary {
     extHMean: ExtHMean;
 }
 
+
+export interface DefinitionsRecord {
+    id?: number; // auto incrementing
+    data: string; // JSON string of definitions
+    version: number;
+};
+
 export class SlideRuleDexie extends Dexie {
     // 'elevations' and 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
     elevations!: Table<Elevation>; 
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
+    definitions!: Table<DefinitionsRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
             elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: 'req_id'     // req_id is the primary key here
+            summary: 'req_id',     // req_id is the primary key here
+            definitions: '++id, &version', // 'id' is auto-incrementing and 'version' is a unique key
         });
         this._useMiddleware();
         console.log("Database initialized.");
@@ -352,6 +361,37 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrow the error for further handling if needed
         }
     }
+    // Function to add a new definition based on version, and throw an error if the version already exists
+    async addDefinitions(definitionsObject: any, versionNumber: number): Promise<number> {
+        const jsonString = JSON.stringify(definitionsObject);
+        console.log('Attempting to add a new definition:', definitionsObject, 'for version:', versionNumber);
 
+        try {
+            // Attempt to add a new record
+            const defs = await this.definitions.add({
+                data: jsonString,
+                version: versionNumber
+            });
+            console.log(`Definition for version ${versionNumber} added successfully.`);
+            return defs;
+        } catch (error: unknown) {
+            // Check if the error is a ConstraintError, indicating the version already exists
+            if (error instanceof Error && error.name === 'ConstraintError') {
+                console.error(`A record with version ${versionNumber} already exists. Cannot add duplicate.`);
+            } 
+            // Rethrow the error if it's not a ConstraintError
+            throw error; 
+        }
+    }
+
+    
+    async getDefinitionsByVersion(version: number): Promise<any[]> {
+        const records = await this.definitions.where({ version }).toArray();
+        return records.map(record => ({
+            ...record,
+            data: JSON.parse(record.data) // Parse the JSON string back into an object
+        }));
+    }
+    
 }
 export const db = new SlideRuleDexie();

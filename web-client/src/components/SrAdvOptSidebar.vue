@@ -5,14 +5,14 @@
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
-    import { init } from '@/sliderule/core';
+    import { REC_VERSION, init, populateAllDefinitions, set_num_defs_fetched, get_num_defs_fetched } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { type SrRequestRecord } from '@/db/SlideRuleDb';
+    import { db,type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { WorkerSummary } from '@/workers/workerUtils';
@@ -43,9 +43,24 @@
     type TimeoutHandle = ReturnType<typeof setTimeout>;
     let timeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 
-    onMounted(() => {
+    onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
-        mapStore.isAborting = false; 
+        mapStore.isAborting = false;
+        try{
+            let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
+            if(!db_definitions || db_definitions.length === 0){
+                const network_definitions = await populateAllDefinitions()
+                // Once definitions are retrieved from the server, store them in the database
+                const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
+                console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
+            } else {
+                console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+        console.log('num_defs_fetched:',get_num_defs_fetched());
+        set_num_defs_fetched(0);
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
@@ -56,6 +71,7 @@
             gediSelectedAPI.value.value = 'gedi01b'; // Reset to default when mission changes
         }
     });
+
 
     const handleAtl06WorkerMsg = (event: MessageEvent) => {
         if(worker){
@@ -170,6 +186,8 @@
                     }
                 };
                 const cmd = {type:'run',req_id:req.req_id, parameters:req.parameters} as WebWorkerCmd;
+                curReqSumStore.setNumRecs(0)
+                requestsStore.setMsg('Running...');
                 worker.postMessage(JSON.stringify(cmd));
                 const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
                 console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds');
