@@ -19,6 +19,7 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import { type TimeoutHandle } from '@/stores/mapStore';
+    import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -84,6 +85,7 @@
                     mapStore.isLoading = false;
                     //console.log('done... isLoading:',mapStore.isLoading);
                     cleanUpWorker(worker);
+                    fetchAndUpdateElevationData(mapStore.getCurrentReqId());
                     break;
                 case 'started':
                     console.log('handleAtl06WorkerMsg started');
@@ -177,7 +179,6 @@
             if(req.req_id){
                 mapStore.setCurrentReqId(req.req_id);
                 mapStore.isLoading = true; // controls spinning progress
-                //requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
                 const theUrl = new URL('@/workers/atl06ToDb', import.meta.url);
                 console.log('runAtl06Worker theUrl:',theUrl);
                 worker = new Worker(theUrl, { type: 'module' });
