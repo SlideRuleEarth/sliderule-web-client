@@ -191,18 +191,36 @@ export function updateDeck(map: OLMap){
 
 }
 
-export async function fetchAndUpdateElevationData(reqId: number) {
+export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: number) {
     try {
-        console.log('Fetching and updating elevation data...');
-        let offset = 0;
         const chunkSize = 100000; // the size of each chunk
+        let offset = 0;
         let hasMore = true;
-        let elevationData: Elevation[] = []; 
-        while (hasMore) {
+        let elevationData: Elevation[] = [];
+        let maxPointsToUse = chunkSize;
+        // If maxPoints is not provided, fetch it from the database
+        if (maxPoints) {
+            maxPointsToUse = maxPoints;
+            console.log('Using provided maxPoints:', maxPoints);
+        } else {
+            const dbNumPoints = await db.getNumberOfElevationPoints(reqId);
+            if (dbNumPoints !== null) {
+                maxPointsToUse = dbNumPoints;
+                console.log('Fetched maxPoints from DB:', maxPointsToUse);
+            } else {
+                console.error('Failed to fetch maxPoints from DB using default value of:', chunkSize);
+                maxPointsToUse = chunkSize;
+            }
+        }
+
+        console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
+
+        // Loop until we reach the specified number of points or exceed it
+        while (offset < maxPointsToUse && hasMore && !useMapStore().isAborting && !useMapStore().isLoading ){
             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
             elevationData = elevationData.concat(elevationDataChunk);
             updateElevationLayer(elevationData);     // Update the layer with each chunk
-            console.log('elevationDataChunk.length:',elevationDataChunk.length);
+            console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
             offset += elevationDataChunk.length;
             hasMore = elevationDataChunk.length === chunkSize;
 
@@ -214,4 +232,5 @@ export async function fetchAndUpdateElevationData(reqId: number) {
     } catch (error) {
         console.error('Failed to fetch and update elevation data:', error);
     }
+    useMapStore().scheduleDrawElevations();
 }

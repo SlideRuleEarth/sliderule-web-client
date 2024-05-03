@@ -148,13 +148,18 @@ export const useMapStore = defineStore('map', {
     getRedrawElevationsTimeoutHandle() {
       return this.reDrawElevationsTimeoutHandle;
     },
-    redrawElevations() {
+    async drawElevations() {
       if (this.isLoading && !this.isAborting) {
-          console.log('Redrawing elevations every:', this.redrawTimeOutSeconds, 'seconds');
-          fetchAndUpdateElevationData(this.getCurrentReqId());
-          this.setRedrawElevationsTimeoutHandle(setTimeout(this.redrawElevations, this.redrawTimeOutSeconds * 1000));
+          await fetchAndUpdateElevationData(this.getCurrentReqId());
+      } else {
+          console.log('drawElevations: SKIPPED - not loading or aborting');
       }
-  }
+    },
+    scheduleDrawElevations() {
+      this.clearRedrawElevationsTimeoutHandle();
+      this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
+      console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
+    }
 
   },
 });

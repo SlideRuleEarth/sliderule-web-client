@@ -384,7 +384,6 @@ export class SlideRuleDexie extends Dexie {
             throw error; 
         }
     }
-
     
     async getDefinitionsByVersion(version: number): Promise<any[]> {
         const records = await this.definitions.where({ version }).toArray();
@@ -392,6 +391,18 @@ export class SlideRuleDexie extends Dexie {
             ...record,
             data: JSON.parse(record.data) // Parse the JSON string back into an object
         }));
+    }
+
+    async getNumberOfElevationPoints(reqId: number): Promise<number> {
+        try {
+            // Count the number of elevation points for the given reqId
+            const count = await this.elevations.where({ req_id: reqId }).count();
+            console.log(`Number of elevation points for req_id ${reqId}: ${count}`);
+            return count;
+        } catch (error) {
+            console.error(`Failed to get the number of elevation points for req_id ${reqId}:`, error);
+            throw error;
+        }
     }
     
 }

@@ -20,6 +20,7 @@
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import { type TimeoutHandle } from '@/stores/mapStore';
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+    //import Worker from './atl06ToDb.js?worker'; // Use Vite's worker import syntax
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -74,23 +75,22 @@
     });
 
 
-    const handleAtl06WorkerMsg = (event: MessageEvent) => {
+    const handleAtl06WorkerMsg = async (event: MessageEvent) => {
         if(worker){
             const workerMsg:WorkerMessage = event.data;
             //console.log('handleAtl06WorkerMsg Worker event:',event);
             switch(workerMsg.status){
                 case 'success':
                     console.log('handleAtl06WorkerMsg success:',workerMsg.msg);
-                    toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
-                    mapStore.isLoading = false;
-                    //console.log('done... isLoading:',mapStore.isLoading);
+                    toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
+                    await fetchAndUpdateElevationData(mapStore.getCurrentReqId());
                     cleanUpWorker(worker);
-                    fetchAndUpdateElevationData(mapStore.getCurrentReqId());
+                    toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
                     break;
                 case 'started':
                     console.log('handleAtl06WorkerMsg started');
                     toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
-                    mapStore.redrawElevations();
+                    await mapStore.drawElevations();
                     break;
                 case 'aborted':
                     console.log('handleAtl06WorkerMsg aborted');
@@ -179,9 +179,7 @@
             if(req.req_id){
                 mapStore.setCurrentReqId(req.req_id);
                 mapStore.isLoading = true; // controls spinning progress
-                const theUrl = new URL('@/workers/atl06ToDb', import.meta.url);
-                console.log('runAtl06Worker theUrl:',theUrl);
-                worker = new Worker(theUrl, { type: 'module' });
+                worker = new Worker(new URL('../workers/atl06ToDb', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
                 worker.onmessage = handleAtl06WorkerMsg;
                 worker.onerror = (error) => {
                     if(worker){

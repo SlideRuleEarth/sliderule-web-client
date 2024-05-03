@@ -276,7 +276,7 @@
             map.getView().on('change:resolution', onResolutionChange);
             updateCurrentParms();
             updateDeck(map);
-            fetchAndUpdateElevationData(props.reqId); 
+            await fetchAndUpdateElevationData(props.reqId); 
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }
