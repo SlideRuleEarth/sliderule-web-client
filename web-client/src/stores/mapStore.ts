@@ -8,6 +8,9 @@ import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import { Layer as OL_Layer} from 'ol/layer';
 import { Deck } from '@deck.gl/core/typed';
+import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+
+export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 export const useMapStore = defineStore('map', {
   state: () => ({
@@ -34,6 +37,9 @@ export const useMapStore = defineStore('map', {
     theDeckLayer: null as OL_Layer | null,
     isLoading: false,
     isAborting: false,
+    currentReqId: 0 as number,
+    redrawTimeOutSeconds: 5,
+    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null // Handle for the timeout to clear it when necessary
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -123,6 +129,32 @@ export const useMapStore = defineStore('map', {
     },
     getDeckLayer() : OL_Layer | null {
       return this.theDeckLayer as OL_Layer | null;
-    },  
+    }, 
+    getCurrentReqId() {
+      return this.currentReqId;
+    },
+    setCurrentReqId(reqId: number) {
+      this.currentReqId = reqId;
+    },
+    setRedrawElevationsTimeoutHandle(handle: TimeoutHandle) {
+      this.reDrawElevationsTimeoutHandle = handle;
+    },
+    clearRedrawElevationsTimeoutHandle() {
+      if (this.reDrawElevationsTimeoutHandle) {
+        clearTimeout(this.reDrawElevationsTimeoutHandle);
+        this.reDrawElevationsTimeoutHandle = null;
+      }
+    },
+    getRedrawElevationsTimeoutHandle() {
+      return this.reDrawElevationsTimeoutHandle;
+    },
+    redrawElevations() {
+      if (this.isLoading && !this.isAborting) {
+          console.log('Redrawing elevations every:', this.redrawTimeOutSeconds, 'seconds');
+          fetchAndUpdateElevationData(this.getCurrentReqId());
+          this.setRedrawElevationsTimeoutHandle(setTimeout(this.redrawElevations, this.redrawTimeOutSeconds * 1000));
+      }
+  }
+
   },
 });

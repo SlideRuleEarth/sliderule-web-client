@@ -18,6 +18,7 @@
     import { WorkerSummary } from '@/workers/workerUtils';
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
+    import { type TimeoutHandle } from '@/stores/mapStore';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -40,8 +41,7 @@
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
 
     let worker: Worker | null = null;
-    type TimeoutHandle = ReturnType<typeof setTimeout>;
-    let timeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
+    let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 
     onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
@@ -88,6 +88,7 @@
                 case 'started':
                     console.log('handleAtl06WorkerMsg started');
                     toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    mapStore.redrawElevations();
                     break;
                 case 'aborted':
                     console.log('handleAtl06WorkerMsg aborted');
@@ -143,14 +144,16 @@
     }
 
     function cleanUpWorker(worker){
+        //mapStore.unsubscribeLiveElevationQuery();
         if(worker){
             worker.terminate();
             worker = null;
         }
-        if (timeoutHandle) {
-            clearTimeout(timeoutHandle);
-            timeoutHandle = null;
+        if (workerTimeoutHandle) {
+            clearTimeout(workerTimeoutHandle);
+            workerTimeoutHandle = null;
         }
+        mapStore.clearRedrawElevationsTimeoutHandle();
         mapStore.isLoading = false; // controls spinning progress
         mapStore.isAborting = false;
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
@@ -159,7 +162,7 @@
     function abortClicked() {
         if(worker){
             mapStore.isAborting = true; 
-            const cmd = {type:'abort',req_id:requestsStore.currentReqId} as WebWorkerCmd;
+            const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
             worker.postMessage(JSON.stringify(cmd));
             console.log('abortClicked isLoading:',mapStore.isLoading);
             requestsStore.setMsg('Abort Clicked');
@@ -172,8 +175,8 @@
     async function runAtl06Worker(req:SrRequestRecord){
         try{
             if(req.req_id){
+                mapStore.setCurrentReqId(req.req_id);
                 mapStore.isLoading = true; // controls spinning progress
-                requestsStore.currentReqId = req.req_id;
                 //requestsStore.reqIsLoading[req.req_id] = true; // for drawing control
                 const theUrl = new URL('@/workers/atl06ToDb', import.meta.url);
                 console.log('runAtl06Worker theUrl:',theUrl);
@@ -190,15 +193,14 @@
                 requestsStore.setMsg('Running...');
                 worker.postMessage(JSON.stringify(cmd));
                 const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
-                console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds');
-                timeoutHandle = setTimeout(() => {
+                console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',req.req_id);
+                workerTimeoutHandle = setTimeout(() => {
                     if (worker) {
                         console.error('Timeout: Worker operation timed out in:',timeoutDuration);
                         handleError(worker, 'Timeout', 'Worker operation timed out');
                         worker = null;
                     }
                 }, timeoutDuration);
-
             } else {
                 console.error('runAtl06Worker req_id is undefined');
                 toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
@@ -228,7 +230,6 @@
                         toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
                         return;
                     }
-                    requestsStore.currentReqId = req.req_id;
                     runAtl06Worker(req);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');

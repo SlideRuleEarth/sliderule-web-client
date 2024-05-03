@@ -7,7 +7,6 @@ import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
-    currentReqId: 0 as number,
     reqs: [] as SrRequestRecord[],
     reqIsLoading: {} as { [reqId: number]: boolean },
     columns: [
@@ -18,7 +17,7 @@ export const useRequestsStore = defineStore('requests', {
       { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
     ],
     error_in_req: [] as boolean[],
-    liveQuerySubscription: null as any,
+    liveRequestsQuerySubscription: null as any,
     msg:'ready',
     autoFetchError: false,
     autoFetchErrorMsg:'',
@@ -152,7 +151,8 @@ export const useRequestsStore = defineStore('requests', {
         }
       });
       //Store the subscription; you need to unsubscribe later
-      this.liveQuerySubscription = subscription;
-    }
+      this.liveRequestsQuerySubscription = subscription;
+    },
+
   }
 });

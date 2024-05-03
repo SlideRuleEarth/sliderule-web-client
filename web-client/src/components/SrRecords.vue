@@ -26,7 +26,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  requestsStore.liveQuerySubscription.unsubscribe();
+  requestsStore.liveRequestsQuerySubscription.unsubscribe();
 });
 
 </script>

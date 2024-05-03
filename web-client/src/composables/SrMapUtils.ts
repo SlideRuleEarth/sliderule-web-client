@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers/typed';
 import { GeoJSON} from 'ol/format';
-import { useMapParamsStore } from '@/stores/mapParamsStore';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -16,43 +15,41 @@ import { Deck } from '@deck.gl/core/typed';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
+import { useMapParamsStore } from '@/stores/mapParamsStore';
 
-const mapParamsStore = useMapParamsStore();
-const mapStore = useMapStore();
-const geoJsonStore = useGeoJsonStore();
-const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
-    if(geoJsonStore.geoJsonData){
-        console.log('geoJsonStore.geoJsonData:',geoJsonStore.geoJsonData);
+    if(useGeoJsonStore().geoJsonData){
+        console.log('useGeoJsonStore().geoJsonData:',useGeoJsonStore().geoJsonData);
         exist = true;
-    } else if (mapStore.polyCoords.length > 0) {
-        console.log('mapStore.polyCoords:',mapStore.polyCoords);
+    } else if (useMapStore().polyCoords.length > 0) {
+        console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
         exist = true;
     } else {
-        console.log(`mapStore.polyCoords: ${mapStore.polyCoords} and geoJsonStore.geoJsonData: ${geoJsonStore.geoJsonData} do not exist.`);
+        console.log(`useMapStore().polyCoords: ${useMapStore().polyCoords} and useGeoJsonStore().geoJsonData: ${useGeoJsonStore().geoJsonData} do not exist.`);
         exist = false;
     }
     return exist
 });
 export const clearPolyCoords = () => {
-    mapStore.polyCoords = [];
-    if(geoJsonStore.geoJsonData){
-        geoJsonStore.geoJsonData = null;
+    useMapStore().polyCoords = [];
+    if(useGeoJsonStore().geoJsonData){
+        useGeoJsonStore().geoJsonData = null;
     }
 }
 
 export function drawGeoJson(geoJsonData:string) {
-    if(mapStore.map){
-        const vectorLayer = mapStore.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+    const map = useMapStore().map
+    if(map){
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
         if (!vectorLayer) {
             console.error('Vector layer is not defined.');
             return;
         }
         const geoJSON = new GeoJSON(); // Assuming 'ol' is the OpenLayers object
         const features = geoJSON.readFeatures(geoJsonData, {
-            featureProjection: mapParamsStore.projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
+            featureProjection: useMapParamsStore().projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
         }) as Feature<Geometry>[];
         const src = vectorLayer.getSource();
         if(src){
@@ -62,8 +59,8 @@ export function drawGeoJson(geoJsonData:string) {
             const geometry = features[0].getGeometry();
             if (geometry instanceof Polygon) {
                 const nestedCoords = geometry.getCoordinates();
-                mapStore.polyCoords = nestedCoords;
-                console.log('mapStore.polyCoords:',mapStore.polyCoords);
+                useMapStore().polyCoords = nestedCoords;
+                console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
             } else {
                 console.error('The geometry type Polygon is only type supported. got geometry:',geometry);
             }        
@@ -108,14 +105,14 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
                 getNormal: [0, 0, 1],
                 getColor: (d:Elevation) => {
                     if (use_white) return [255, 255, 255, 127];
-                    return getColorForElevation(d.h_mean, curAtl06ReqSumStore.get_h_mean_Low() , curAtl06ReqSumStore.get_h_mean_High()) as [number, number, number, number];
+                    return getColorForElevation(d.h_mean, useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
                 },
                 pointSize: 3,
             });
-        if(mapStore.getDeckInstance()){
-            mapStore.getDeckInstance().setProps({layers:[layer]});
+        if(useMapStore().getDeckInstance()){
+            useMapStore().getDeckInstance().setProps({layers:[layer]});
         } else {
-            console.error('Error updating elevation mapStore.deckInstance:',mapStore.getDeckInstance());
+            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
@@ -139,7 +136,7 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
         },
         ...layerOptions
     }); 
-    mapStore.setDeckLayer(new_layer); 
+    useMapStore().setDeckLayer(new_layer); 
     return new_layer;  
 }
 
@@ -152,7 +149,7 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
 
 export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     try{
-        mapStore.clearDeckInstance(); // Clear any existing instance first
+        useMapStore().clearDeckInstance(); // Clear any existing instance first
         const deck = new Deck({
             initialViewState: {longitude: 0, latitude: 0, zoom: 1},
             controller: false,
@@ -160,7 +157,7 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
             style: {pointerEvents: 'none', zIndex: '1'},
             layers: []
         });
-        mapStore.setDeckInstance(deck);
+        useMapStore().setDeckInstance(deck);
         return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
@@ -174,9 +171,12 @@ export function updateDeck(map: OLMap){
     const deck = createDeckGLInstance(tgt);
    
     if(deck){
-      const current_layer = mapStore.getDeckLayer();
+      const current_layer = useMapStore().getDeckLayer();
       if(current_layer){
+        console.log('Removing current_layer:',current_layer);
         map.removeLayer(current_layer);
+      }else{
+        console.log('No current_layer to remove.');
       }
       const deckLayer = createNewDeckLayer(deck);
       if(deckLayer){
@@ -214,5 +214,4 @@ export async function fetchAndUpdateElevationData(reqId: number) {
     } catch (error) {
         console.error('Failed to fetch and update elevation data:', error);
     }
-  }
-
+}
