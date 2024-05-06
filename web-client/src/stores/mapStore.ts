@@ -8,6 +8,9 @@ import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import { Layer as OL_Layer} from 'ol/layer';
 import { Deck } from '@deck.gl/core/typed';
+import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+
+export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 export const useMapStore = defineStore('map', {
   state: () => ({
@@ -33,6 +36,10 @@ export const useMapStore = defineStore('map', {
     deckInstance: null as any,
     theDeckLayer: null as OL_Layer | null,
     isLoading: false,
+    isAborting: false,
+    currentReqId: 0 as number,
+    redrawTimeOutSeconds: 5,
+    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null // Handle for the timeout to clear it when necessary
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -122,6 +129,37 @@ export const useMapStore = defineStore('map', {
     },
     getDeckLayer() : OL_Layer | null {
       return this.theDeckLayer as OL_Layer | null;
-    },  
+    }, 
+    getCurrentReqId() {
+      return this.currentReqId;
+    },
+    setCurrentReqId(reqId: number) {
+      this.currentReqId = reqId;
+    },
+    setRedrawElevationsTimeoutHandle(handle: TimeoutHandle) {
+      this.reDrawElevationsTimeoutHandle = handle;
+    },
+    clearRedrawElevationsTimeoutHandle() {
+      if (this.reDrawElevationsTimeoutHandle) {
+        clearTimeout(this.reDrawElevationsTimeoutHandle);
+        this.reDrawElevationsTimeoutHandle = null;
+      }
+    },
+    getRedrawElevationsTimeoutHandle() {
+      return this.reDrawElevationsTimeoutHandle;
+    },
+    async drawElevations() {
+      if (this.isLoading && !this.isAborting) {
+          await fetchAndUpdateElevationData(this.getCurrentReqId());
+      } else {
+          console.log('drawElevations: SKIPPED - not loading or aborting');
+      }
+    },
+    scheduleDrawElevations() {
+      this.clearRedrawElevationsTimeoutHandle();
+      this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
+      console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
+    }
+
   },
 });

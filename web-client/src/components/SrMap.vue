@@ -608,13 +608,6 @@
     </ol-vector-layer>
     <ol-attribution-control :collapsible="true" :collapsed="true" />
   </ol-map>
-  <!-- <div class="current-view-params">
-    <span>currentZoom: {{  mapParamsStore.getZoom().toFixed(2) }} </span><br>
-    <span>currentCenter: {{  mapParamsStore.getCenterLonLat() }}</span><br>
-    <span>currentRotation: {{  mapParamsStore.getRotation() }}</span><br>
-    <span>currentProjection: {{  mapParamsStore.getProjection()}}</span><br>
-    <span>currentExtent: {{  mapParamsStore.getExtent() }}</span>
-  </div> -->
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
   </div>

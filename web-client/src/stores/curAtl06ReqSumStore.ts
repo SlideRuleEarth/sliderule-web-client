@@ -1,3 +1,5 @@
+import type { SrRequestSummary } from '@/db/SlideRuleDb';
+import type { set } from 'ol/transform';
 import { defineStore } from 'pinia';
 
 export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
@@ -66,16 +68,34 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         getNumRecs() {
             return this.num_recs;
         },
-        setPercentiles() {
-            const h_mean_range = this.h_mean_max - this.h_mean_min;
-            this.h_mean_low = this.h_mean_min + 0.05 * h_mean_range;
-            this.h_mean_high = this.h_mean_min + 0.95 * h_mean_range;
-        },
         get_h_mean_Low() {
             return this.h_mean_low;
         },
         get_h_mean_High() {
             return this.h_mean_high;
         },
+        set_h_mean_Low(h_mean_low: number) {
+            this.h_mean_low = h_mean_low;
+        },
+        set_h_mean_High(h_mean_high: number) {
+            this.h_mean_high = h_mean_high;
+        },
+        setSummary(srs: SrRequestSummary) {
+            if(srs.req_id){
+                this.setReqId(srs.req_id);
+            }
+            if(srs){
+                this.set_h_mean_Min(srs.extHMean.minHMean);
+                this.set_h_mean_Max(srs.extHMean.maxHMean);
+                this.set_lat_Min(srs.extLatLon.minLat);
+                this.set_lat_Max(srs.extLatLon.maxLat);
+                this.set_lon_Min(srs.extLatLon.minLon);
+                this.set_lon_Max(srs.extLatLon.maxLon);
+                this.set_h_mean_Low(srs.extHMean.lowHMean);
+                this.set_h_mean_High(srs.extHMean.highHMean);
+            } else {
+                console.error('setSummary() called with null summary:', srs);
+            }
+        }
     },
 });

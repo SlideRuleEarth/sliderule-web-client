@@ -249,18 +249,23 @@
             addLayersForCurrentView(); 
             let reqExtremeLatLon = [0,0,0,0];
             if(props.reqId > 0){   
-              console.log('calling db.getExtLatLonByReqId(',props.reqId,')');  
-              const extremeLatLon = await db.getExtLatLonByReqId(props.reqId);
-              if (extremeLatLon) {
-                reqExtremeLatLon = [
-                    extremeLatLon.minLon,
-                    extremeLatLon.minLat,
-                    extremeLatLon.maxLon,
-                    extremeLatLon.maxLat
-                ];
-                console.log('Using reqId:',props.reqId,' with extent:',extent);
+              console.log('calling db.getWorkerSummary(',props.reqId,')');  
+              const workerSummary = await db.getWorkerSummary(props.reqId);
+              if(workerSummary){
+                const extremeLatLon = workerSummary.extLatLon;
+                if (extremeLatLon) {
+                  reqExtremeLatLon = [
+                      extremeLatLon.minLon,
+                      extremeLatLon.minLat,
+                      extremeLatLon.maxLon,
+                      extremeLatLon.maxLat
+                  ];
+                  console.log('Using reqId:',props.reqId,' with extent:',extent);
+                } else {
+                  console.error("Error: invalid lat-lon data for request:",props.reqId);
+                }
               } else {
-                console.error("Error: invalid lat-lon data for request:",props.reqId);
+                console.error("Error: invalid workerSummary for request:",props.reqId);
               } 
             } else {
                 console.info("no reqId:",props.reqId);
@@ -271,7 +276,7 @@
             map.getView().on('change:resolution', onResolutionChange);
             updateCurrentParms();
             updateDeck(map);
-            fetchAndUpdateElevationData(props.reqId); 
+            await fetchAndUpdateElevationData(props.reqId); 
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }

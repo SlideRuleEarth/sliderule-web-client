@@ -24,7 +24,6 @@ const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 
 onMounted(async() => {
-    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.startingReqId);
     try {
         reqIds.value =  await requestsStore.getMenuItems();
         if (props.startingReqId){
@@ -37,6 +36,7 @@ onMounted(async() => {
         console.error('Failed to load menu items:', error);
     }
     loading.value = false;
+    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.startingReqId);
 });
 
 

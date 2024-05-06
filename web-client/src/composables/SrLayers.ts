@@ -5,13 +5,9 @@ import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
 import TileGrid from "ol/tilegrid/TileGrid.js";
 import { useMapStore } from "@/stores/mapStore.js";
-//import { TileArcGISRest, XYZ } from 'ol/source.js';
 import type { ServerType } from 'ol/source/wms.js';
 import { XYZ } from 'ol/source.js';
-//import { add } from "ol/coordinate";
 
-const mapStore = useMapStore();
-//const mapParamsStore = useMapParamsStore();
 
 export const srAttributions = {
   esri: "Tiles © Esri contributors",
@@ -330,8 +326,9 @@ export const addLayersForCurrentView = () => {
     if(!srLayerForView.isBaseLayer){ // base layer is managed by baseLayerControl
       //console.log(`adding non base layer:`,srLayerForView.title);
       const newLayer = getLayer(srLayerForView.title);
-      if(mapStore.map){
-        mapStore.map.addLayer(newLayer);
+      const map = useMapStore().map;
+      if(map){
+        map.addLayer(newLayer);
       } else {
         console.log('map not available');
       }
