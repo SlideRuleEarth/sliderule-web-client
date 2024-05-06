@@ -144,17 +144,17 @@ function updateExtremes(curFlatRecs: { h_mean: number,latitude: number, longitud
 onmessage = async (event) => {
     try{
         console.log('atl06ToDb worker received event:', event.data)
-        console.log('Starting with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
-        const recordDefs = await db.getDefinitionsByVersion(REC_VERSION);
-        if(recordDefs.length === 0){
-            console.error('No record definitions fetched');
-        } else if (recordDefs.length === 1) {
-            console.log('Expected-->Single record definition fetched:', recordDefs[0].data);
-            set_recordDefinitions(recordDefs[0].data);
-        } else {
-            console.error('Unexpected size for recordDefs:', recordDefs);
-        }
-        console.log('Proceeding with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
+        //console.log('Starting with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
+        // const recordDefs = await db.getDefinitionsByVersion(REC_VERSION);
+        // if(recordDefs.length === 0){
+        //     console.error('No record definitions fetched');
+        // } else if (recordDefs.length === 1) {
+        //     console.log('Expected-->Single record definition fetched:', recordDefs[0].data);
+        //     set_recordDefinitions(recordDefs[0].data);
+        // } else {
+        //     console.error('Unexpected size for recordDefs:', recordDefs);
+        // }
+        // console.log('Proceeding with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
 
         let abortRequested = false;
 
@@ -220,7 +220,38 @@ onmessage = async (event) => {
                 },
                 exceptrec: (result:any) => {
                     console.log('atl06p cb exceptrec result:', result);
-                    //HACK!!!!!
+                    switch(result.code){
+                        case 0: // RTE_INFO
+                        {
+                            sendServerMsg(reqID, `server msg: ${result.text}`);
+                            break;
+                        }
+                        case -1: // RTE_ERROR
+                        {
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            break;
+                        }
+                        case -2: // RTE_TIMEOUT
+                        {
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            break;
+                        }
+                        case -3: // RTE_RESOURCE_DOES_NOT_EXIST
+                        {
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            break;
+                        }
+                        case -4: // RTE_EMPTY_SUBSET
+                        {
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            break;
+                        }
+                        case -5: // RTE_SIMPLIFY
+                        {
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            break;
+                        }
+                    }
                     if(result.text.includes('Starting proxy for atl06 to process')){
                         sendServerMsg(reqID, `server msg: ${result.text}`);
                     // } else if(result.text.includes('Successfully completed processing')){

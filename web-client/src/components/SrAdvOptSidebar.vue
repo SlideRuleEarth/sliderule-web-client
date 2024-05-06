@@ -5,7 +5,8 @@
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
-    import { REC_VERSION, init, populateAllDefinitions, set_num_defs_fetched, get_num_defs_fetched } from '@/sliderule/core';
+    //import { REC_VERSION, init, populateAllDefinitions, set_num_defs_fetched, get_num_defs_fetched } from '@/sliderule/core';
+    import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
@@ -48,21 +49,23 @@
     onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        try{
-            let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
-            if(!db_definitions || db_definitions.length === 0){
-                const network_definitions = await populateAllDefinitions()
-                // Once definitions are retrieved from the server, store them in the database
-                const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
-                console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
-            } else {
-                console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-        console.log('num_defs_fetched:',get_num_defs_fetched());
-        set_num_defs_fetched(0);
+        // try{
+        //     console.log('calling db.getDefinitionsByVersion REC_VERSION:',REC_VERSION);
+        //     let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
+        //     console.log('db_definitions:',db_definitions);
+        //     if(!db_definitions || db_definitions.length === 0){
+        //         const network_definitions = await populateAllDefinitions()
+        //         // Once definitions are retrieved from the server, store them in the database
+        //         const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
+        //         console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
+        //     } else {
+        //         console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
+        //     }
+        // } catch (error) {
+        //     console.error('Error:', error);
+        // }
+        //console.log('num_defs_fetched:',get_num_defs_fetched());
+        //set_num_defs_fetched(0);
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
