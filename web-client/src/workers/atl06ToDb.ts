@@ -219,14 +219,14 @@ onmessage = async (event) => {
                     }        
                 },
                 exceptrec: (result:any) => {
-                    //console.log('atl06p cb exceptrec result:', result);
+                    console.log('atl06p cb exceptrec result:', result);
                     //HACK!!!!!
                     if(result.text.includes('Starting proxy for atl06 to process')){
                         sendServerMsg(reqID, `server msg: ${result.text}`);
-                    } else if(result.text.includes('Successfully completed processing')){
-                        sendServerMsg(reqID, `server msg: ${result.text}`);
-                    } else {
-                        sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                    // } else if(result.text.includes('Successfully completed processing')){
+                    //     sendServerMsg(reqID, `server msg: ${result.text}`);
+                    // } else {
+                    //     sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
                     } 
                 },
                 eventrec: (result:any) => {
