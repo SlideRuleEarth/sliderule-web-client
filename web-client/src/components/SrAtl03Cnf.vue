@@ -31,7 +31,7 @@ const props = defineProps({
                 :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
                 @update:value="reqParamsStore.surfaceReferenceType = $event"
                 :default="[
-                    reqParamsStore.surfaceReferenceTypeOptions[3],
+                    reqParamsStore.surfaceReferenceTypeOptions[0],
                 ]"
                 tooltipText="The surface type used in the ATL03 photon classification"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"

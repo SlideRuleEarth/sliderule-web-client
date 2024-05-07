@@ -9,15 +9,19 @@
     import MultiSelect from 'primevue/multiselect';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
-    export interface SrMultiSelectItem {
+    export interface SrMultiSelectTextItem {
         name: string;
         value: string; 
     }
+    export interface SrMultiSelectNumberItem {
+        name: string;
+        value: number; 
+    }
     const props = defineProps({
         label: String,
-        menuOptions: Array as () => SrMultiSelectItem[],
-        default: Array as () => SrMultiSelectItem[],
-        value: Array as () => SrMultiSelectItem[],
+        menuOptions: Array as () => SrMultiSelectTextItem[],
+        default: Array as () => SrMultiSelectTextItem[],
+        value: Array as () => SrMultiSelectTextItem[],
         names: Array as () => string[],
         insensitive: {
             type: Boolean,

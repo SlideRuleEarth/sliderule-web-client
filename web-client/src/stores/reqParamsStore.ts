@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
+import type { SrMultiSelectTextItem } from '@/components/SrMultiSelect.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
 
@@ -39,12 +39,13 @@ export const useReqParamsStore = defineStore('reqParams', {
         sigmaValue: 5.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
-          { name: 'Land', value:'L' },
-          { name: 'Ocean', value:'O' },
-          { name: 'Sea Ice', value:'S'},
-          { name: 'Land Ice', value:'I'},
-          { name: 'Inland Water',value:'W' },
-        ] as SrMultiSelectItem[],
+          { name: 'Dynamic', value:'-1' },
+          { name: 'Land', value:'0' },
+          { name: 'Ocean', value:'1' },
+          { name: 'Sea Ice', value:'2'},
+          { name: 'Land Ice', value:'3'},
+          { name: 'Inland Water',value:'4' },
+        ] as SrMultiSelectTextItem[],
         surfaceReferenceType:[] as string[],
         signalConfidenceOptions: 
         [
@@ -55,7 +56,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Low', value: 'atl03_low' },
           { name: 'Medium', value: 'atl03_medium' },
           { name: 'High', value: 'atl03_high' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         signalConfidence: [ 
           'atl03_background' ,
           'atl03_within_10m' ,
@@ -71,18 +72,18 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:'Canopy', value:'atl08_canopy'},
           {name:'Top of Canopy', value:'atl08_top_of_canopy'},
           {name:'Unclassified', value:'atl08_unclassified'},
-          ] as SrMultiSelectItem[], 
-        landType: [] as SrMultiSelectItem[],
+          ] as SrMultiSelectTextItem[], 
+        landType: [] as SrMultiSelectTextItem[],
         distanceInOptions:[
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
         alongTrackSpread: 20.0,
         minimumPhotonCount: 10,
-        maxIterations: 1,
-        minWindowHeight: 0.0,
+        maxIterations: 6,
+        minWindowHeight: 3.0,
         maxRobustDispersion: 0.0,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
@@ -90,7 +91,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'mean', value: 'mean' },
           { name: 'median', value: 'median' },
           { name: 'center', value: 'center' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         useAbsoluteHeights: false,
         sendWaveforms: false,
         useABoVEClassifier: false,
@@ -189,22 +190,26 @@ export const useReqParamsStore = defineStore('reqParams', {
         getAtl06ReqParams(): Atl06ReqParams {          
           if(this.poly){
             return {
+              srt: -1, // HACK: This is a placeholder 
               cnf: this.signalConfidence,   
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
-              res: this.stepValue,          
+              res: this.stepValue, 
+              sigma_r_max: this.sigmaValue,         
               maxi: this.maxIterations,
               poly: this.poly,      
             };
           } else {
             console.log('getAtl06ReqParams: poly is null');
             return {
+              srt: -1, // HACK: This is a placeholder 
               cnf: this.signalConfidence,   
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
               res: this.stepValue,          
+              sigma_r_max: this.sigmaValue,         
               maxi: this.maxIterations,
             };
           }
