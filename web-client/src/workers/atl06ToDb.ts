@@ -15,17 +15,27 @@ const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, hi
 let num_checks = 0;
 let target_numAtl06Recs = 0;
 let target_num_atl06Exceptions = 0;
-function checkDoneProcessing(reqID:number, state:string, num_atl06Exceptions:number, num_atl06recs_processed:number, runningCount:number){
+function checkDoneProcessing(reqID:number, state:string, num_atl06Exceptions:number, num_atl06recs_processed:number, runningCount:number, bulkAddPromises: Promise<void>[]){
     num_checks++;
     if(state === 'done_reading'){
         if((num_atl06recs_processed >= target_numAtl06Recs) && (num_atl06Exceptions >= target_num_atl06Exceptions)){
             let status_details = 'No data returned from SlideRule.';
             if(target_numAtl06Recs > 0) {
-                status_details = `Received ${target_numAtl06Recs} pnts and Processed ${num_atl06recs_processed} pnts`;
+                status_details = `Received ${target_numAtl06Recs} records and Processed ${num_atl06recs_processed} records`;
             }
-            console.log('atl06p Success:', status_details, 'req_id:', reqID, 'runningCount:', runningCount, 'num_checks:', num_checks);
-            sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
-            sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
+            console.log('atl06p Success:', status_details, 'req_id:', reqID, 'runningCount:', runningCount, 'num_checks:', num_checks, 'num promises:', bulkAddPromises.length);
+            if(bulkAddPromises.length > 0){
+                Promise.all(bulkAddPromises).then(() => {
+                    sendSummaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details);
+                    sendSuccessMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`);
+                }).catch((error) => {
+                    console.error('Failed to complete bulk add promises:', error);
+                    sendErrorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'Bulk add failed' });
+                });
+            } else {
+                console.error('No bulk add promises to process?');
+                sendErrorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'No bulk add promises to process' });
+            }
         }
     }
 
@@ -194,8 +204,7 @@ onmessage = async (event) => {
         let runningCount = 0;
         let progThreshold = 1;
         const progThresholdIncrement = 50000;
-        let bulkAddPromises: Promise<void>[] = [];        
-        const MAX_PROMISES_PER_TRANSACTION = 1; // Adjust as needed
+        const bulkAddPromises: Promise<void>[] = [];        
         if((reqID) && (reqID > 0)){
             sendStartedMsg(reqID,req);
             const callbacks = {
@@ -221,12 +230,11 @@ onmessage = async (event) => {
                                 req_id: reqID, 
                             }));
                             //console.log('flatRecs.length:', updatedFlatRecs.length, 'curFlatRecs:', updatedFlatRecs);
-                            const addPromise = db.elevations.bulkAdd(updatedFlatRecs);
-                            bulkAddPromises.push(addPromise); 
-                            if (bulkAddPromises.length >= MAX_PROMISES_PER_TRANSACTION) {
-                                await Promise.all(bulkAddPromises); 
-                                bulkAddPromises = []; // Clear the array for the next batch
-                                //console.log('Bulk add successful');
+                            try {
+                                const addPromise = db.elevations.bulkAdd(updatedFlatRecs);
+                                bulkAddPromises.push(addPromise);
+                            } catch (error) {
+                                console.error('Error during bulk add preparation:', error);
                             }
                         } catch (error) {
                             console.error('Bulk add failed: ', error);
@@ -242,7 +250,7 @@ onmessage = async (event) => {
                     } else {
                         console.log('0 elevation records returned from SlideRule.');
                     } 
-                    checkDoneProcessing(reqID, state, num_atl06Exceptions, num_atl06recs_processed, runningCount);
+                    checkDoneProcessing(reqID, state, num_atl06Exceptions, num_atl06recs_processed, runningCount, bulkAddPromises);
                 },
                 exceptrec: (result:any) => {
                     num_atl06Exceptions++;
@@ -287,7 +295,7 @@ onmessage = async (event) => {
                         }
                     }
                     console.log('runningCount:', runningCount, ' num_atl06recs_processed:', num_atl06recs_processed, 'num_atl06Exceptions:', num_atl06Exceptions);
-                    checkDoneProcessing(reqID, state, num_atl06Exceptions, num_atl06recs_processed, runningCount);
+                    checkDoneProcessing(reqID, state, num_atl06Exceptions, num_atl06recs_processed, runningCount, bulkAddPromises);
                     console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                 },
                 eventrec: (result:any) => {
@@ -308,14 +316,6 @@ onmessage = async (event) => {
                         }
                         console.log('atl06p Done Reading result:', read_result);
                         state = 'done_reading';
-                        if (bulkAddPromises.length > 0) { // there are leftover promises
-                            await Promise.all(bulkAddPromises); 
-                            bulkAddPromises = []; // Clear the array for the next batch
-                            console.log('Final Bulk add successful');
-                        } else {
-                            console.log('No leftover promises');
-                        }
-
                         // Log the result to the console
                         console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
                         console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());

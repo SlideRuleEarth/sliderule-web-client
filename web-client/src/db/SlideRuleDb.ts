@@ -121,6 +121,10 @@ export class SlideRuleDexie extends Dexie {
                         for (const key in obj) {
                             const value = obj[key];
                             if (typeof value === 'string') {
+                                // Skip processing strings that end with 'min'
+                                if (value.endsWith('min')) {
+                                    continue;
+                                }
                                 if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value)) {
                                     obj[key] = new Date(value);
                                 } else if (value.endsWith('n')) {
