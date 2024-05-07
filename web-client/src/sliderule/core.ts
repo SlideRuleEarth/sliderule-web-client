@@ -27,7 +27,7 @@ type field_def_Type = { // C.E.U. defined this type
 
 type rec_def_Type = Record<string, any> // C.E.U. defined this type
 
-
+export type Sr_Results_type = Record<string, number>;// C.E.U. defined
 //
 // Record Definitions
 //
@@ -36,6 +36,7 @@ let recordDefinitions: rec_def_Type = {}
 const REC_HDR_SIZE = 8;
 export const REC_VERSION = 2; // Record version for
 export let num_defs_fetched = 0;
+export let num_defs_rd_from_cache = 0;
 
 // Define types for the constants
 const INT8: number   = 0;
@@ -93,18 +94,22 @@ export function get_num_defs_fetched() {
 export function set_num_defs_fetched(num: number) {
   num_defs_fetched = num;
 }
+export function get_num_defs_rd_from_cache() {
+  return num_defs_rd_from_cache;
+}
 //
 // populateDefinition
 //
 function populateDefinition(rec_type:any):any {
   if (rec_type in recordDefinitions) {
+    num_defs_rd_from_cache++;
     return recordDefinitions[rec_type];
   }
   else {
     //console.log(`populateDefinition: ${rec_type} (type: ${typeof rec_type}) not found in recordDefinitions`);
     return new Promise((resolve, reject) => {
       num_defs_fetched++;
-      console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
+      //console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
       source("definition", {"rectype" : rec_type}).then(
         result => {
           recordDefinitions[rec_type] = result;
@@ -284,7 +289,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         let receivedLength = 0; // length of the received  data
         let chunks:any[] = []; // array to store received  chunks
         let num_chunks = 0;
-        const results: Record<string, number> = {};
+        const results: Sr_Results_type = {};
         let bytes_read = 0;
         let bytes_processed = 0;
         let bytes_to_process = 0;
@@ -370,9 +375,12 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   break;
                 }
               }
-            } 
+            } else {
+              throw new Error('fetchAndProcessResult invalid content type for streaming');
+            }
           } else {
             empty_chunks++;
+            console.log(`fetchAndProcessResult chunk:${num_chunks} Received empty chunk`);
             if (empty_chunks > 10) {
               loop_done = true;
               console.error('fetchAndProcessResult empty_chunks > 10? Done! ');
@@ -385,7 +393,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             results["bytes_processed"] = bytes_processed;
             results["num_chunks"] = num_chunks;
             results["empty_chunks"] = empty_chunks;
-            //console.log('fetchAndProcessResult read returned done: results:', results);
+            console.log('fetchAndProcessResult read returned done: results:', results);
             break;
           }
         }
@@ -401,7 +409,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         }
         console.log("fetchAndProcessResult final recs_cnt:", recs_cnt, " num_chunks_appended:", num_chunks_appended, "results:", results);
         //console.log('fetchAndProcessResult returning binaryData:', binaryData);
-        return binaryData;
+        //return binaryData;
+        return results;
 
     } else if (contentType == 'application/json' || contentType == 'text/plain') {
       const data = await response.json();

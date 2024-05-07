@@ -86,9 +86,9 @@
                 case 'success':
                     console.log('handleAtl06WorkerMsg success:',workerMsg.msg);
                     toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
-                    await fetchAndUpdateElevationData(mapStore.getCurrentReqId());
-                    cleanUpWorker(worker);
                     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    cleanUpWorker(worker);
+                    fetchAndUpdateElevationData(mapStore.getCurrentReqId());
                     break;
                 case 'started':
                     console.log('handleAtl06WorkerMsg started');
@@ -150,15 +150,15 @@
 
     function cleanUpWorker(worker){
         //mapStore.unsubscribeLiveElevationQuery();
-        if(worker){
-            worker.terminate();
-            worker = null;
-        }
         if (workerTimeoutHandle) {
             clearTimeout(workerTimeoutHandle);
             workerTimeoutHandle = null;
+        }        if(worker){
+            worker.terminate();
+            worker = null;
         }
-        mapStore.clearRedrawElevationsTimeoutHandle();
+
+        //mapStore.clearRedrawElevationsTimeoutHandle();
         mapStore.isLoading = false; // controls spinning progress
         mapStore.isAborting = false;
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);

@@ -108,7 +108,7 @@ export interface Atl06pReqParams {
 //
 // ATL06P
 //
-export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<any[] | void> 
+export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {
     //console.log("atl06p params: ", alt06preqparams);
     //console.log("atl06p callbacks: ", callbacks);
@@ -127,7 +127,7 @@ export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.C
     try{
         //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
         const result = await core.source('atl06p', alt06preqparams, true, callbacks);
-        return result;
+        return result as core.Sr_Results_type;
     }
     catch (error) {
         console.log("atl06p error: ", error);

@@ -232,5 +232,5 @@ export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: num
     } catch (error) {
         console.error('Failed to fetch and update elevation data:', error);
     }
-    useMapStore().scheduleDrawElevations();
+    //useMapStore().scheduleDrawElevations();
 }
