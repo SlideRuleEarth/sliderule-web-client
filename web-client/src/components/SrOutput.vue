@@ -51,7 +51,7 @@ const reqParamsStore = useReqParamsStore();
                 :menuOptions="reqParamsStore.awsRegionOptions"
             />
             <SrCredsFileUpload
-                :insensitive = "!reqParamsStore.saveOutput || reqParamsStore.staged===true"
+                :insensitive = "!(reqParamsStore.outputLocation.value==='S3')"
             />
         </div>
     </div>

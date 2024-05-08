@@ -15,6 +15,9 @@ const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
 
+const props = defineProps({
+  insensitive: Boolean
+});
 
 const customUploader = async (event:any) => {
     console.log('Creds customUploader event:',event);
@@ -92,14 +95,15 @@ const onClear = () => {
                             <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
                         </div>
                         <div class="button-container">
-                            <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
+                            <Button label="Done" text class="done-btn" @click="closeCallback" ></Button>
                         </div>
                     </div>
                 </section>
             </template>
         </Toast>
         <FileUpload mode="basic" 
-                    name="SrCreds" 
+                    name="SrCreds"
+                    :disabled="props.insensitive" 
                     :auto="true" 
                     accept="*" 
                     :maxFileSize="10000000000" 
