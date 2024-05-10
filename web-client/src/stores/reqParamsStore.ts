@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { SrMultiSelectTextItem } from '@/components/SrMultiSelect.vue';
+import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
+import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
 
@@ -39,14 +40,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         sigmaValue: 5.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
-          { name: 'Dynamic', value:'-1' },
-          { name: 'Land', value:'0' },
-          { name: 'Ocean', value:'1' },
-          { name: 'Sea Ice', value:'2'},
-          { name: 'Land Ice', value:'3'},
-          { name: 'Inland Water',value:'4' },
-        ] as SrMultiSelectTextItem[],
-        surfaceReferenceType:[] as string[],
+          { name: 'Dynamic', value: -1 },
+          { name: 'Land', value: 0 },
+          { name: 'Ocean', value: 1 },
+          { name: 'Sea Ice', value: 2 },
+          { name: 'Land Ice', value: 3 },
+          { name: 'Inland Water',value: 4 },
+        ] as SrMultiSelectNumberItem[],
+        surfaceReferenceType:[] as number[],
         signalConfidenceOptions: 
         [
           { name: 'TEP', value: 'atl03_tep' },
@@ -64,6 +65,19 @@ export const useReqParamsStore = defineStore('reqParams', {
           'atl03_medium' ,
           'atl03_high' ,
         ],
+
+        signalConfidenceNumberOptions: 
+        [
+          { name: 'TEP', value: -2 },
+          { name: 'Not Considered', value: -1 },
+          { name: 'Background', value: 0 },
+          { name: 'Within 10m', value: 1 },
+          { name: 'Low', value: 2 },
+          { name: 'Medium', value: 3 },
+          { name: 'High', value: 4 },
+        ] as SrMultiSelectNumberItem[],
+        signalConfidenceNumber: [ 4 ],
+
         qualityPHValue: 0.0,
         enableAtl08Confidence: false,
         atl08LandTypeOptions: [
@@ -190,8 +204,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         getAtl06ReqParams(): Atl06ReqParams {          
           if(this.poly){
             return {
-              srt: -1, // HACK: This is a placeholder 
-              cnf: this.signalConfidence,   
+              srt: this.getSrt(),
+              cnf: this.signalConfidenceNumber,
+              atl08_class: [], // HACK: This is a placeholder
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
@@ -203,8 +218,8 @@ export const useReqParamsStore = defineStore('reqParams', {
           } else {
             console.log('getAtl06ReqParams: poly is null');
             return {
-              srt: -1, // HACK: This is a placeholder 
-              cnf: this.signalConfidence,   
+              srt: this.getSrt(),
+              cnf: this.signalConfidenceNumber,   
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
@@ -213,6 +228,13 @@ export const useReqParamsStore = defineStore('reqParams', {
               maxi: this.maxIterations,
             };
           }
+        },
+        getSrt(): number[] | number {
+          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+            return -1;
+          } else {
+            return this.surfaceReferenceType;
+          }        
         },
         getAtl06pReqParams(): Atl06pReqParams {
           return  {

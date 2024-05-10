@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SrMultiSelect from './SrMultiSelect.vue';
+import SrMultiSelectText from './SrMultiSelectText.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
@@ -24,7 +24,7 @@ const props = defineProps({
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
              />
         </div>
-        <SrMultiSelect
+        <SrMultiSelectText
             v-model="reqParamsStore.landType"
             label = "Land Type(s)"
             aria-label="Select Land Type"

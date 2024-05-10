@@ -89,7 +89,7 @@ export type SrRegion = SrLatLon[];
 // Define the parameter type for the atl06p function
 export interface Atl06ReqParams {
     asset?: string;
-    cnf: string[];
+    cnf: number[];
     ats: number;
     cnt: number;
     len: number;

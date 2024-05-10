@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SrSliderInput from './SrSliderInput.vue';
-import SrMultiSelect from './SrMultiSelect.vue';
+import SrMultiSelectText from './SrMultiSelectText.vue';
+import SrMultiSelectNumber from './SrMultiSelectNumber.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
@@ -24,7 +25,7 @@ const props = defineProps({
             />
         </div>
         <div class="sr-atl03-cnf-body">
-            <SrMultiSelect
+            <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
                 label="Surface Reference Type"
                 ariaLabel="Select Reference Surface Type"
@@ -36,7 +37,7 @@ const props = defineProps({
                 tooltipText="The surface type used in the ATL03 photon classification"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
-            <SrMultiSelect
+            <SrMultiSelectText
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
                 label="Signal Confidence"
                 ariaLabel="Signal Confidence"
@@ -52,6 +53,18 @@ const props = defineProps({
                 tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
+            <SrMultiSelectNumber
+                :insensitive="!reqParamsStore.enableAtl03Confidence"
+                label="Signal Confidence #"
+                ariaLabel="Signal Confidence"
+                :menuOptions="reqParamsStore.signalConfidenceNumberOptions"
+                :default="[
+                    reqParamsStore.signalConfidenceNumberOptions[6]
+                    ]"
+                @update:value="reqParamsStore.signalConfidenceNumber = $event"
+                tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
+            />            
             <SrSliderInput
                 v-model="reqParamsStore.qualityPHValue"
                 label="Quailty PH"

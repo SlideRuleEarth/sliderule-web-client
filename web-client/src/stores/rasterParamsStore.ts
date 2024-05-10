@@ -30,7 +30,7 @@ export const RasterParamsCols = [
 ];
 
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
-import type { SrMultiSelectTextItem } from '@/components/SrMultiSelect.vue';
+import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 // Define the store
 import { defineStore } from 'pinia';
 

@@ -8,7 +8,7 @@ import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 let sysConfig = {
   domain: "testsliderule.org",
   organization: "test-public",
-//  protocol: https,
+  protocol: 'https',
   verbose: true,
   desired_nodes: null,
   time_to_live: 60,
@@ -435,9 +435,9 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 export function init(config: {
   domain?: string;
   organization?: string;
-  //protocol?: https;
+  protocol?: string;
   verbose?: boolean;
-  desired_nodes?: any; // Replace 'any' with a more specific type if possible
+  desired_nodes?: number; 
   time_to_live?: number;
   timeout?: number;
 }): void
@@ -459,7 +459,7 @@ export async function source(
   //console.log('source parm: ', parm);
   const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
   const api_path = 'source/'+ api;
-  const url = 'https://' + host + '/' + api_path;
+  const url = sysConfig.protocol+'://' + host + '/' + api_path;
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
@@ -480,9 +480,9 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
-      //if (api === 'atl06p') {
-      //  console.log('source url:', url, 'options:',options);
-      //}
+      if (api === 'atl06p') {
+        console.log('source url:', url, 'options:',options);
+      }
       result = await fetchAndProcessResult(url, options, callbacks, stream);
       //console.log('source url:', url, 'options:',options, 'result:', result);
   } catch (error) {
