@@ -188,6 +188,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         ],
 
         resources: [] as string[],
+        target_numAtl06Recs: 0,
+        target_numAtl06pRecs: 0,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {
@@ -237,10 +239,17 @@ export const useReqParamsStore = defineStore('reqParams', {
           }        
         },
         getAtl06pReqParams(): Atl06pReqParams {
-          return  {
-            parms:this.getAtl06ReqParams(),
-            resources: this.resources,     
-          };
+          if(this.resources.length > 0){
+            return  {
+              parms:this.getAtl06ReqParams(),
+              resources: this.resources,     
+            };
+          } else {
+            console.log('getAtl06pReqParams: resources is empty');
+            return {
+              parms:this.getAtl06ReqParams(),
+            };
+          }
         },
     },
 })

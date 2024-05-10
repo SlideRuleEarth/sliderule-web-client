@@ -101,7 +101,7 @@ export interface Atl06ReqParams {
 
 export interface Atl06pReqParams {
     parms: Atl06ReqParams;
-    resources: Resource[];
+    resources?: Resource[];
     poly?: SrRegion; 
 }
 

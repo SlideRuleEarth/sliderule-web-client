@@ -13,7 +13,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { db,type SrRequestRecord } from '@/db/SlideRuleDb';
+    import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { WorkerSummary } from '@/workers/workerUtils';
@@ -21,7 +21,7 @@
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import { type TimeoutHandle } from '@/stores/mapStore';
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
-    //import Worker from './atl06ToDb.js?worker'; // Use Vite's worker import syntax
+    import SrProgress  from "@/components/SrProgress.vue";
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -110,7 +110,13 @@
                 case 'progress':
                     console.log('handleAtl06WorkerMsg progress:',workerMsg.progress);
                     if(workerMsg.progress){
-                        curReqSumStore.setNumRecs(workerMsg.progress); 
+                        curReqSumStore.setReadState(workerMsg.progress.read_state);
+                        curReqSumStore.setNumRecs(workerMsg.progress.numAtl06Recs); 
+                        curReqSumStore.setTgtRecs(workerMsg.progress.target_numAtl06Recs);
+                        curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
+                        curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
+                        const sMsg = workerMsg as WorkerSummary;
+                        curReqSumStore.setSummary(sMsg);
                         if(workerMsg.msg){
                             requestsStore.setMsg(workerMsg.msg);
                         } else {
@@ -191,7 +197,10 @@
                     }
                 };
                 const cmd = {type:'run',req_id:req.req_id, parameters:req.parameters} as WebWorkerCmd;
-                curReqSumStore.setNumRecs(0)
+                curReqSumStore.setNumRecs(0);
+                curReqSumStore.setTgtRecs(0);
+                curReqSumStore.setNumExceptions(0);
+                curReqSumStore.setTgtExceptions(0);
                 requestsStore.setMsg('Running...');
                 worker.postMessage(JSON.stringify(cmd));
                 const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
@@ -291,6 +300,9 @@
             </div>
             <div class="sr-svr-msg-console">
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
+            </div>
+            <div class="progress">
+                <SrProgress />
             </div>
             <SrAdvOptAccordion
                 title="Advanced Options"

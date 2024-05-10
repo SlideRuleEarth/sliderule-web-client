@@ -127,7 +127,7 @@ export class SlideRuleDexie extends Dexie {
                                 }
                                 if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value)) {
                                     obj[key] = new Date(value);
-                                } else if (value.endsWith('n')) {
+                                } else if (/^\d+n$/.test(value)) { // Check if all characters are digits followed by 'n'
                                     obj[key] = BigInt(value.slice(0, -1)); // Remove the 'n' and convert back to BigInt
                                 }
                             }
