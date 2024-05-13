@@ -207,7 +207,7 @@
                 console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',req.req_id);
                 workerTimeoutHandle = setTimeout(() => {
                     if (worker) {
-                        console.error('Timeout: Worker operation timed out in:',timeoutDuration);
+                        console.error('Timeout: Worker operation timed out in:',timeoutDuration+30000); // add thirty seconds to the timeout to let server timeout first
                         handleError(worker, 'Timeout', 'Worker operation timed out');
                         worker = null;
                     }

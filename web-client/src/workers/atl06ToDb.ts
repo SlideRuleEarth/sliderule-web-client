@@ -285,7 +285,16 @@ onmessage = async (event) => {
                         case -2: // RTE_TIMEOUT
                         {
                             console.error('atl06p cb exceptrec result:', result.text);
-                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            //sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            const msg =  `Received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                            sendProgressMsg(reqID, 
+                                            {read_state:read_state,
+                                            target_numAtl06Recs:target_numAtl06Recs,
+                                            numAtl06Recs:num_atl06recs_processed,
+                                            target_numAtl06Exceptions:target_numAtl06Exceptions,
+                                            numAtl06Exceptions:num_atl06Exceptions},
+                                            msg);
+                            console.log(msg);
                             break;
                         }
                         case -3: // RTE_RESOURCE_DOES_NOT_EXIST

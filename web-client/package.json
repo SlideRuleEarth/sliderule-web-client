@@ -18,6 +18,7 @@
   "dependencies": {
     "@deck.gl/core": "^8.9.35",
     "@deck.gl/layers": "^8.9.35",
+    "@turf/turf": "^7.0.0-alpha.116",
     "@types/jest": "^29.5.12",
     "@types/ol-ext": "npm:@siedlerchr/types-ol-ext@^3.3.0",
     "@vue/compiler-sfc": "^3.4.21",
