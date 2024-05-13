@@ -16,6 +16,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         rasterizePolygon: false,
         ignorePolygon: false,
         poly: null as SrRegion | null,
+        convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
@@ -204,7 +205,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.resources.splice(index, 1);
         },
         getAtl06ReqParams(): Atl06ReqParams {          
-          if(this.poly){
+          if(this.poly && this.convexHull){
             return {
               srt: this.getSrt(),
               cnf: this.signalConfidenceNumber,
@@ -215,10 +216,11 @@ export const useReqParamsStore = defineStore('reqParams', {
               res: this.stepValue, 
               sigma_r_max: this.sigmaValue,         
               maxi: this.maxIterations,
-              poly: this.poly,      
+              poly: this.poly,
+              cmr: {polygon: this.convexHull},      
             };
           } else {
-            console.log('getAtl06ReqParams: poly is null');
+            console.log('getAtl06ReqParams: poly or convexHull is null');
             return {
               srt: this.getSrt(),
               cnf: this.signalConfidenceNumber,   

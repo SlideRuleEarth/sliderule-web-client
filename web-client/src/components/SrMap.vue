@@ -98,12 +98,10 @@
           lon: coord[0],
           lat: coord[1]
         }));
-
+        reqParamsStore.poly = srLonLatCoordinates;
         console.log('srLonLatCoordinates:',srLonLatCoordinates);
-        const hull = convexHull(srLonLatCoordinates);
-        reqParamsStore.poly = hull;
-        console.log('reqParamsStore.poly:',hull);
-
+        reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+        console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
       } else {
         console.error("Error: Geometry is not a polygon?");
       }

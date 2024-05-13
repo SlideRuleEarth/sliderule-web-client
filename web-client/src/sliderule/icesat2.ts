@@ -96,13 +96,13 @@ export interface Atl06ReqParams {
     res: number;
     maxi: number;
     poly?: SrRegion;
+    cmr?: { polygon: SrRegion };
     [key: string]: any; // Other dynamic keys
 }
 
 export interface Atl06pReqParams {
     parms: Atl06ReqParams;
     resources?: Resource[];
-    poly?: SrRegion; 
 }
 
 //
@@ -110,7 +110,7 @@ export interface Atl06pReqParams {
 //
 export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {
-    //console.log("atl06p params: ", alt06preqparams);
+    console.log("atl06p params: ", alt06preqparams);
     //console.log("atl06p callbacks: ", callbacks);
     const recs: any[] = [];
     if (!('asset' in alt06preqparams.parms)) { // default this to icesat2

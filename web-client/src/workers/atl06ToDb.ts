@@ -1,7 +1,7 @@
 import { db } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
-import { type Atl06pReqParams } from '@/sliderule/icesat2';
+import { type Atl06pReqParams,type Atl06ReqParams } from '@/sliderule/icesat2';
 import { type WebWorkerCmd, type WorkerError, type WorkerMessage, type SrProgress } from '@/workers/workerUtils';
 import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
@@ -193,7 +193,7 @@ onmessage = async (event) => {
             console.log('Abort requested for req_id:', reqID);
             return;
         }
-        const req:ReqParams = cmd.parameters as ReqParams;
+        const req:Atl06ReqParams = cmd.parameters as Atl06ReqParams;
         console.log("atl06ToDb req: ", req);
         let num_atl06recs_processed = 0;
         let num_atl06Exceptions = 0;
@@ -271,21 +271,20 @@ onmessage = async (event) => {
                     switch(result.code){
                         case 0: // RTE_INFO
                         {
-                            console.log('atl06p cb exceptrec result:', result.text);
+                            //console.log('RTE_INFO: atl06p cb exceptrec result:', result.text);
                             sendServerMsg(reqID, `server msg: ${result.text}`);
                             break;
                         }
                         case -1: // RTE_ERROR
                         {
-                            console.log('atl06p cb exceptrec result:', result.text);
-                            console.error('atl06p cb exceptrec result:', result.text);
-                            //sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            console.error('RTE_ERROR: atl06p cb exceptrec result:', result.text);
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
                             break;
                         }
                         case -2: // RTE_TIMEOUT
                         {
-                            console.error('atl06p cb exceptrec result:', result.text);
-                            //sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            console.error('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
+                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
                             const msg =  `Received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
                             sendProgressMsg(reqID, 
                                             {read_state:read_state,
@@ -299,20 +298,21 @@ onmessage = async (event) => {
                         }
                         case -3: // RTE_RESOURCE_DOES_NOT_EXIST
                         {
-                            console.error('atl06p cb exceptrec result:', result.text);
+                            console.error('RTE_RESOURCE_DOES_NOT_EXIST: atl06p cb exceptrec result:', result.text);
                             sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
                             break;
                         }
                         case -4: // RTE_EMPTY_SUBSET
                         {
-                            console.log('atl06p cb exceptrec result:', result.text);
+                            //console.log('RTE_EMPTY_SUBSET: atl06p cb exceptrec result:', result.text);
                             sendServerMsg(reqID, result.text );
                             break;
                         }
                         case -5: // RTE_SIMPLIFY
                         {
-                            console.error('atl06p cb exceptrec result:', result.text);
-                            sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
+                            console.log('RTE_SIMPLIFY: atl06p cb exceptrec req:', req);
+                            console.error('RTE_SIMPLIFY: atl06p cb exceptrec result:', result.text);
+                            //sendErrorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text });
                             break;
                         }
                     }
@@ -330,10 +330,10 @@ onmessage = async (event) => {
                         console.log(msg);
                     }
                     checkDoneProcessing(reqID, read_state, num_atl06Exceptions, num_atl06recs_processed, runningCount, bulkAddPromises);
-                    console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
+                    //console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                 },
                 eventrec: (result:any) => {
-                    console.log('atl06p cb eventrec result (DEPRECATED):', result);
+                    //console.log('atl06p cb eventrec result (DEPRECATED):', result);
                     sendServerMsg(reqID, `server msg (DEPRECATED): ${result.attr}`);
                 },
             }; // callbacks...
@@ -348,7 +348,7 @@ onmessage = async (event) => {
                         numAtl06Recs:num_atl06recs_processed,
                         target_numAtl06Exceptions:target_numAtl06Exceptions,
                         numAtl06Exceptions:num_atl06Exceptions},
-                        'Starting to read ATL06 data.');
+                        'Starting to read ATL06 data.');                  
                     atl06p(cmd.parameters as Atl06pReqParams,callbacks).then(async (result) => { // result
                         if(result){
                             read_result = result as Sr_Results_type;
