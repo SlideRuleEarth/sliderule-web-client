@@ -220,7 +220,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               cmr: {polygon: this.convexHull},      
             };
           } else {
-            console.log('getAtl06ReqParams: poly or convexHull is null');
+            console.log('getAtl06ReqParams: poly:',this.poly,' or convexHull:',this.convexHull,' is null');
             return {
               srt: this.getSrt(),
               cnf: this.signalConfidenceNumber,   

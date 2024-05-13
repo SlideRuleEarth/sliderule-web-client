@@ -165,6 +165,8 @@
     ];
     reqParamsStore.poly = poly;
     console.log("Poly:", poly);
+    reqParamsStore.convexHull = convexHull(poly);
+    console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
 
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
     if(vectorLayer){

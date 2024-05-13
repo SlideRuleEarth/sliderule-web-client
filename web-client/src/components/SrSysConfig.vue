@@ -11,7 +11,7 @@
 </template>
   
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { onMounted, ref } from 'vue';
   import { useSysConfigStore } from '@/stores/sysConfigStore';
   import SrTextInput from '@/components/SrTextInput.vue';
   import SrMenuInput from '@/components/SrMenuInput.vue';
@@ -25,7 +25,10 @@
   }
   
   const sysConfigStore = useSysConfigStore();
-  
+  onMounted(() => {
+    const cfg = sysConfigStore.getSysConfig();
+    console.log('SrSysConfig onMounted cfg:', cfg);
+  });
 
   
   const protocolOptions = ref<ProtocolOption[]>([

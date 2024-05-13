@@ -5,7 +5,7 @@ import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 //
 // System Configuration
 //
-let sysConfig = {
+const globalSysConfig = {
   domain: "testsliderule.org",
   organization: "test-public",
   protocol: 'https',
@@ -442,8 +442,8 @@ export function init(config: {
   timeout?: number;
 }): void
 {
-  sysConfig = Object.assign(sysConfig, config)
-  console.log('sysConfig:', sysConfig); 
+  Object.assign(globalSysConfig, config)
+  console.log('globalSysConfig:', globalSysConfig); 
 };
 export interface Callbacks {
   [key: string]: ((result: any) => void) | undefined; 
@@ -457,9 +457,10 @@ export async function source(
 ): Promise<any>{ // Replace 'any' with a more specific return type if possible
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
-  const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
+  console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
+  const host = globalSysConfig.organization && (globalSysConfig.organization + '.' + globalSysConfig.domain) || globalSysConfig.domain;
   const api_path = 'source/'+ api;
-  const url = sysConfig.protocol+'://' + host + '/' + api_path;
+  const url = globalSysConfig.protocol+'://' + host + '/' + api_path;
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
@@ -557,7 +558,7 @@ export function get_version(): Promise<{
     return source('version').then(
       result => {
         //result['client'] = {version: client_version};
-        result['organization'] = sysConfig.organization;
+        result['organization'] = globalSysConfig.organization;
         return result;
       }
     );
