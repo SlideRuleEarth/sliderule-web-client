@@ -6,7 +6,7 @@ import { type WebWorkerCmd, type WorkerError, type WorkerMessage, type SrProgres
 import { type ExtLatLon, type ExtHMean, type WorkerSummary } from '@/workers/workerUtils';
 import type { ReqParams } from "@/stores/reqParamsStore";
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
-
+import { init } from '@/sliderule/core';
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -191,6 +191,13 @@ onmessage = async (event) => {
             abortRequested = true;
             sendAbortedMsg(reqID, 'Processing aborted.');
             console.log('Abort requested for req_id:', reqID);
+            return;
+        }
+        if (cmd.sysConfig){
+            init(cmd.sysConfig)
+        } else {
+            console.error('cmd.sysConfig was not provided');
+            sendErrorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'cmd.sysConfig was not provided' });
             return;
         }
         const req:Atl06ReqParams = cmd.parameters as Atl06ReqParams;

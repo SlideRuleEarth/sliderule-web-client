@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { g } from 'vitest/dist/suite-a18diDsI.js'
 export const useSysConfigStore = defineStore('sysConfig', {
 
     state: () => ({

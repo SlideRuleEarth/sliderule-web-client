@@ -1,7 +1,9 @@
 import type { ReqParams } from "@/stores/reqParamsStore";
+import type { SysConfig } from "@/sliderule/core"
 export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;
+    sysConfig?: SysConfig;
     parameters?: ReqParams;
 }
 

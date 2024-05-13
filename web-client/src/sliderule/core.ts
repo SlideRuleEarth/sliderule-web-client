@@ -2,6 +2,15 @@
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 //import pkg from './package.json' assert { type: 'json' };
 
+export type SysConfig = {
+  domain: string;
+  organization: string;
+  protocol: string;
+  verbose: boolean;
+  desired_nodes: number | null | undefined;
+  time_to_live: number;
+  timeout: number;
+};
 //
 // System Configuration
 //
@@ -14,6 +23,7 @@ const globalSysConfig = {
   time_to_live: 60,
   timeout: 120000, // milliseconds
 };
+
 
 // Define type for type_code
 type TypeCode = typeof INT8 | typeof INT16 | typeof INT32 | typeof INT64 | typeof UINT8 | typeof UINT16 | typeof UINT32 | typeof UINT64 | typeof BITFIELD | typeof FLOAT | typeof DOUBLE | typeof TIME8 | typeof STRING | typeof USER;
@@ -437,7 +447,7 @@ export function init(config: {
   organization?: string;
   protocol?: string;
   verbose?: boolean;
-  desired_nodes?: number; 
+  desired_nodes?: number|null; 
   time_to_live?: number;
   timeout?: number;
 }): void

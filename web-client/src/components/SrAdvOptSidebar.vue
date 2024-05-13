@@ -22,6 +22,7 @@
     import { type TimeoutHandle } from '@/stores/mapStore';
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
     import SrProgress  from "@/components/SrProgress.vue";
+    import { type SysConfig } from '@/sliderule/core';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -196,7 +197,7 @@
                         worker = null;
                     }
                 };
-                const cmd = {type:'run',req_id:req.req_id, parameters:req.parameters} as WebWorkerCmd;
+                const cmd = {type:'run',req_id:req.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:req.parameters} as WebWorkerCmd;
                 curReqSumStore.setNumRecs(0);
                 curReqSumStore.setTgtRecs(0);
                 curReqSumStore.setNumExceptions(0);
