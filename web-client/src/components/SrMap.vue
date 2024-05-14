@@ -42,6 +42,9 @@
   import { updateDeck } from "@/composables/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
+  import { convexHull } from "@/composables/SrTurfUtils";
+  import { type Coordinate } from "ol/coordinate";
+  import type { SrRegion } from "@/sliderule/icesat2"
 
   const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
@@ -67,25 +70,50 @@
   };
 
   const drawend = (event: any) => {
-    console.log("drawend:",event);
-    // Access the feature that was drawn
-    const feature = event.feature;
-    console.log("feature:",feature);
-    // Get the geometry of the feature
-    const geometry = feature.getGeometry();
 
-    // Check if the geometry is a polygon
-    if (geometry.getType() === 'Polygon') {
-      // Get the coordinates of the polygon
-      mapStore.polyCoords = geometry.getCoordinates();
-      console.log(`polyCoords:${mapStore.polyCoords}`);
-    } else {
-      console.error("Error:geometry is not a polygon?");
-    }
-    if(srDrawControlRef.value){
-      srDrawControlRef.value.resetPicked();
+    try{
+      console.log("drawend:", event);
+      // Access the feature that was drawn
+      const feature = event.feature;
+      console.log("feature:", feature);
+      // Get the geometry of the feature
+      const geometry = feature.getGeometry();
+
+      console.log("geometry:", geometry);
+      // Check if the geometry is a polygon
+      if (geometry.getType() === 'Polygon') {
+        // Get the coordinates of all the rings of the polygon
+        const rings = geometry.getCoordinates(); // This retrieves all rings
+        console.log("Original polyCoords:", rings);
+
+        // Convert each ring's coordinates to lon/lat using toLonLat
+        const convertedRings: Coordinate[][] = rings.map(ring =>
+          ring.map(coord => toLonLat(coord) as Coordinate)
+        );
+
+        mapStore.polyCoords = convertedRings;
+        console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
+        const flatLonLatPairs = convertedRings.flatMap(ring => ring);
+        const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
+          lon: coord[0],
+          lat: coord[1]
+        }));
+        reqParamsStore.poly = srLonLatCoordinates;
+        console.log('srLonLatCoordinates:',srLonLatCoordinates);
+        reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+        console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+      } else {
+        console.error("Error: Geometry is not a polygon?");
+      }
+
+      if (srDrawControlRef.value) {
+        srDrawControlRef.value.resetPicked();
+      }
+    } catch (error) {
+      console.error("Error:drawend:",error);
     }
   };
+
 
   // Function to toggle the DragBox interaction.
   function disableDragBox() {
@@ -137,6 +165,8 @@
     ];
     reqParamsStore.poly = poly;
     console.log("Poly:", poly);
+    reqParamsStore.convexHull = convexHull(poly);
+    console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
 
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
     if(vectorLayer){

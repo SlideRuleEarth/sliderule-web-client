@@ -1,7 +1,9 @@
 import type { ReqParams } from "@/stores/reqParamsStore";
+import type { SysConfig } from "@/sliderule/core"
 export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;
+    sysConfig?: SysConfig;
     parameters?: ReqParams;
 }
 
@@ -13,10 +15,18 @@ export interface WorkerError {
     message: string;
 }
 
+export interface SrProgress {
+    read_state: string;
+    target_numAtl06Recs: number;
+    numAtl06Recs: number;
+    target_numAtl06Exceptions: number;
+    numAtl06Exceptions: number;
+}
+
 export interface WorkerMessage {
     req_id: number;             // Request ID
     status: WorkerStatus;       // Status of the worker
-    progress?: number;          // Percentage for progress updates
+    progress?: SrProgress;          // Percentage for progress updates
     msg?: string;               // status details
     error?: WorkerError;        // Error details (if an error occurred)
 }

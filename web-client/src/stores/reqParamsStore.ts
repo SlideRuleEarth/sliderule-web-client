@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
+import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
+import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
 
@@ -15,6 +16,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         rasterizePolygon: false,
         ignorePolygon: false,
         poly: null as SrRegion | null,
+        convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
@@ -39,13 +41,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         sigmaValue: 5.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
-          { name: 'Land', value:'L' },
-          { name: 'Ocean', value:'O' },
-          { name: 'Sea Ice', value:'S'},
-          { name: 'Land Ice', value:'I'},
-          { name: 'Inland Water',value:'W' },
-        ] as SrMultiSelectItem[],
-        surfaceReferenceType:[] as string[],
+          { name: 'Dynamic', value: -1 },
+          { name: 'Land', value: 0 },
+          { name: 'Ocean', value: 1 },
+          { name: 'Sea Ice', value: 2 },
+          { name: 'Land Ice', value: 3 },
+          { name: 'Inland Water',value: 4 },
+        ] as SrMultiSelectNumberItem[],
+        surfaceReferenceType:[] as number[],
         signalConfidenceOptions: 
         [
           { name: 'TEP', value: 'atl03_tep' },
@@ -55,7 +58,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Low', value: 'atl03_low' },
           { name: 'Medium', value: 'atl03_medium' },
           { name: 'High', value: 'atl03_high' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         signalConfidence: [ 
           'atl03_background' ,
           'atl03_within_10m' ,
@@ -63,6 +66,19 @@ export const useReqParamsStore = defineStore('reqParams', {
           'atl03_medium' ,
           'atl03_high' ,
         ],
+
+        signalConfidenceNumberOptions: 
+        [
+          { name: 'TEP', value: -2 },
+          { name: 'Not Considered', value: -1 },
+          { name: 'Background', value: 0 },
+          { name: 'Within 10m', value: 1 },
+          { name: 'Low', value: 2 },
+          { name: 'Medium', value: 3 },
+          { name: 'High', value: 4 },
+        ] as SrMultiSelectNumberItem[],
+        signalConfidenceNumber: [ 4 ],
+
         qualityPHValue: 0.0,
         enableAtl08Confidence: false,
         atl08LandTypeOptions: [
@@ -71,18 +87,18 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:'Canopy', value:'atl08_canopy'},
           {name:'Top of Canopy', value:'atl08_top_of_canopy'},
           {name:'Unclassified', value:'atl08_unclassified'},
-          ] as SrMultiSelectItem[], 
-        landType: [] as SrMultiSelectItem[],
+          ] as SrMultiSelectTextItem[], 
+        landType: [] as SrMultiSelectTextItem[],
         distanceInOptions:[
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
         alongTrackSpread: 20.0,
         minimumPhotonCount: 10,
-        maxIterations: 1,
-        minWindowHeight: 0.0,
+        maxIterations: 6,
+        minWindowHeight: 3.0,
         maxRobustDispersion: 0.0,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
@@ -90,7 +106,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'mean', value: 'mean' },
           { name: 'median', value: 'median' },
           { name: 'center', value: 'center' },
-        ] as SrMultiSelectItem[],
+        ] as SrMultiSelectTextItem[],
         useAbsoluteHeights: false,
         sendWaveforms: false,
         useABoVEClassifier: false,
@@ -173,6 +189,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         ],
 
         resources: [] as string[],
+        target_numAtl06Recs: 0,
+        target_numAtl06pRecs: 0,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {
@@ -187,33 +205,53 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.resources.splice(index, 1);
         },
         getAtl06ReqParams(): Atl06ReqParams {          
-          if(this.poly){
+          if(this.poly && this.convexHull){
             return {
-              cnf: this.signalConfidence,   
+              srt: this.getSrt(),
+              cnf: this.signalConfidenceNumber,
+              atl08_class: [], // HACK: This is a placeholder
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
-              res: this.stepValue,          
+              res: this.stepValue, 
+              sigma_r_max: this.sigmaValue,         
               maxi: this.maxIterations,
-              poly: this.poly,      
+              poly: this.poly,
+              cmr: {polygon: this.convexHull},      
             };
           } else {
-            console.log('getAtl06ReqParams: poly is null');
+            console.log('getAtl06ReqParams: poly:',this.poly,' or convexHull:',this.convexHull,' is null');
             return {
-              cnf: this.signalConfidence,   
+              srt: this.getSrt(),
+              cnf: this.signalConfidenceNumber,   
               ats: this.alongTrackSpread,  
               cnt: this.minimumPhotonCount, 
               len: this.lengthValue,        
               res: this.stepValue,          
+              sigma_r_max: this.sigmaValue,         
               maxi: this.maxIterations,
             };
           }
         },
+        getSrt(): number[] | number {
+          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+            return -1;
+          } else {
+            return this.surfaceReferenceType;
+          }        
+        },
         getAtl06pReqParams(): Atl06pReqParams {
-          return  {
-            parms:this.getAtl06ReqParams(),
-            resources: this.resources,     
-          };
+          if(this.resources.length > 0){
+            return  {
+              parms:this.getAtl06ReqParams(),
+              resources: this.resources,     
+            };
+          } else {
+            console.log('getAtl06pReqParams: resources is empty');
+            return {
+              parms:this.getAtl06ReqParams(),
+            };
+          }
         },
     },
 })

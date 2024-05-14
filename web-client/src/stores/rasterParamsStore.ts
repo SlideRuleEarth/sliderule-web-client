@@ -30,7 +30,7 @@ export const RasterParamsCols = [
 ];
 
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
-import type { SrMultiSelectItem } from '@/components/SrMultiSelect.vue';
+import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 // Define the store
 import { defineStore } from 'pinia';
 
@@ -84,7 +84,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
       {name:'B1', value:'B1'},
       {name:'B2', value:'B2'},
       {name:'B3', value:'B3'},
-    ] as SrMultiSelectItem[],
+    ] as SrMultiSelectTextItem[],
   }),
   actions: {
     addRasterParams(rasterParams: RasterParams) {

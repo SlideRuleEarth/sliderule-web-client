@@ -5,14 +5,15 @@
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
-    import { REC_VERSION, init, populateAllDefinitions, set_num_defs_fetched, get_num_defs_fetched } from '@/sliderule/core';
+    //import { REC_VERSION, init, populateAllDefinitions, set_num_defs_fetched, get_num_defs_fetched } from '@/sliderule/core';
+    import { init } from '@/sliderule/core';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useSysConfigStore} from "@/stores/sysConfigStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { db,type SrRequestRecord } from '@/db/SlideRuleDb';
+    import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { WorkerSummary } from '@/workers/workerUtils';
@@ -20,7 +21,8 @@
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import { type TimeoutHandle } from '@/stores/mapStore';
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
-    //import Worker from './atl06ToDb.js?worker'; // Use Vite's worker import syntax
+    import SrProgress  from "@/components/SrProgress.vue";
+    import { type SysConfig } from '@/sliderule/core';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -48,21 +50,23 @@
     onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        try{
-            let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
-            if(!db_definitions || db_definitions.length === 0){
-                const network_definitions = await populateAllDefinitions()
-                // Once definitions are retrieved from the server, store them in the database
-                const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
-                console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
-            } else {
-                console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-        console.log('num_defs_fetched:',get_num_defs_fetched());
-        set_num_defs_fetched(0);
+        // try{
+        //     console.log('calling db.getDefinitionsByVersion REC_VERSION:',REC_VERSION);
+        //     let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
+        //     console.log('db_definitions:',db_definitions);
+        //     if(!db_definitions || db_definitions.length === 0){
+        //         const network_definitions = await populateAllDefinitions()
+        //         // Once definitions are retrieved from the server, store them in the database
+        //         const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
+        //         console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
+        //     } else {
+        //         console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
+        //     }
+        // } catch (error) {
+        //     console.error('Error:', error);
+        // }
+        //console.log('num_defs_fetched:',get_num_defs_fetched());
+        //set_num_defs_fetched(0);
     });
 
     watch(() => missionValue,(newValue,oldValue) => {
@@ -83,9 +87,9 @@
                 case 'success':
                     console.log('handleAtl06WorkerMsg success:',workerMsg.msg);
                     toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
-                    await fetchAndUpdateElevationData(mapStore.getCurrentReqId());
-                    cleanUpWorker(worker);
                     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
+                    cleanUpWorker(worker);
+                    fetchAndUpdateElevationData(mapStore.getCurrentReqId());
                     break;
                 case 'started':
                     console.log('handleAtl06WorkerMsg started');
@@ -107,7 +111,13 @@
                 case 'progress':
                     console.log('handleAtl06WorkerMsg progress:',workerMsg.progress);
                     if(workerMsg.progress){
-                        curReqSumStore.setNumRecs(workerMsg.progress); 
+                        curReqSumStore.setReadState(workerMsg.progress.read_state);
+                        curReqSumStore.setNumRecs(workerMsg.progress.numAtl06Recs); 
+                        curReqSumStore.setTgtRecs(workerMsg.progress.target_numAtl06Recs);
+                        curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
+                        curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
+                        const sMsg = workerMsg as WorkerSummary;
+                        curReqSumStore.setSummary(sMsg);
                         if(workerMsg.msg){
                             requestsStore.setMsg(workerMsg.msg);
                         } else {
@@ -147,15 +157,15 @@
 
     function cleanUpWorker(worker){
         //mapStore.unsubscribeLiveElevationQuery();
-        if(worker){
-            worker.terminate();
-            worker = null;
-        }
         if (workerTimeoutHandle) {
             clearTimeout(workerTimeoutHandle);
             workerTimeoutHandle = null;
+        }        if(worker){
+            worker.terminate();
+            worker = null;
         }
-        mapStore.clearRedrawElevationsTimeoutHandle();
+
+        //mapStore.clearRedrawElevationsTimeoutHandle();
         mapStore.isLoading = false; // controls spinning progress
         mapStore.isAborting = false;
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
@@ -187,15 +197,18 @@
                         worker = null;
                     }
                 };
-                const cmd = {type:'run',req_id:req.req_id, parameters:req.parameters} as WebWorkerCmd;
-                curReqSumStore.setNumRecs(0)
+                const cmd = {type:'run',req_id:req.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:req.parameters} as WebWorkerCmd;
+                curReqSumStore.setNumRecs(0);
+                curReqSumStore.setTgtRecs(0);
+                curReqSumStore.setNumExceptions(0);
+                curReqSumStore.setTgtExceptions(0);
                 requestsStore.setMsg('Running...');
                 worker.postMessage(JSON.stringify(cmd));
                 const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
                 console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',req.req_id);
                 workerTimeoutHandle = setTimeout(() => {
                     if (worker) {
-                        console.error('Timeout: Worker operation timed out in:',timeoutDuration);
+                        console.error('Timeout: Worker operation timed out in:',timeoutDuration+30000); // add thirty seconds to the timeout to let server timeout first
                         handleError(worker, 'Timeout', 'Worker operation timed out');
                         worker = null;
                     }
@@ -288,6 +301,9 @@
             </div>
             <div class="sr-svr-msg-console">
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
+            </div>
+            <div class="progress">
+                <SrProgress />
             </div>
             <SrAdvOptAccordion
                 title="Advanced Options"

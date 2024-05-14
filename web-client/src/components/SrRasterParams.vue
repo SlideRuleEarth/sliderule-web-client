@@ -28,7 +28,7 @@
                 tooltipText="boolean whether to calculate and return zonal statistics for the region around the location being sampled"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCheckbox label="With Flags" v-model="rasterParamsStore.withFlag" 
+            <SrCheckbox label="With Flags" v-model="rasterParamsStore.withFlags" 
                 tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
@@ -50,7 +50,7 @@
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"      
             />
             <SrCheckbox label="Use POI Time"
-                v-model="rasterParamsStore.usePoiTime"
+                v-model="rasterParamsStore.use_poi_time"
                 tooltipText="Overrides the “closest_time” setting (or provides one if not set) with the time associated with the point of interest being sampled"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
@@ -64,7 +64,7 @@
             <TextArea  v-model="rasterParamsStore.catalog" rows="3" cols="35" />
             <SrCatalogFileUpload />
         </div>
-        <SrMultiSelect label="Bands" 
+        <SrMultiSelectText label="Bands" 
             :menuOptions="rasterParamsStore.bandOptions" 
             v-model="rasterParamsStore.bands"                         
             :default="[rasterParamsStore.bandOptions[0]]"
@@ -84,7 +84,7 @@
     import SrSliderInput from '@/components/SrSliderInput.vue';
     import SrCheckbox from '@/components/SrCheckbox.vue';
     import SrCalendar from '@/components/SrCalendar.vue';
-    import SrMultiSelect from '@/components/SrMultiSelect.vue';
+    import SrMultiSelectText from '@/components/SrMultiSelectText.vue';
     import { useRasterParamsStore } from '@/stores/rasterParamsStore';
     import type { RasterParams } from '@/stores/rasterParamsStore';
     import SrCatalogFileUpload from './SrCatalogFileUpload.vue';
@@ -98,7 +98,8 @@
             algorithm: rasterParamsStore.algorithm,
             radius: rasterParamsStore.radius,
             zonalStats: rasterParamsStore.zonalStats,
-            withFlag: rasterParamsStore.withFlag,
+            withFlags: rasterParamsStore.withFlags,
+            use_poi_time: rasterParamsStore.use_poi_time,
             t0: rasterParamsStore.t0,
             t1: rasterParamsStore.t1,
             substring: rasterParamsStore.substring,

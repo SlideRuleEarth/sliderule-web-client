@@ -1,5 +1,4 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import type { set } from 'ol/transform';
 import { defineStore } from 'pinia';
 
 export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
@@ -13,6 +12,10 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         lon_min: 180,
         lon_max: -180,
         num_recs: 0,
+        num_exceptions: 0,
+        tgt_recs: 0,
+        tgt_exceptions: 0,
+        read_state: 'idle',
         req_id: 0,
         duration: 0,
     }),
@@ -62,11 +65,35 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         setNumRecs(num_recs: number) {
             this.num_recs = num_recs;
         },
-        addNumRecs(num_recs: number) {
-            this.num_recs += num_recs;
-        },
         getNumRecs() {
             return this.num_recs;
+        },
+        setTgtRecs(tgt_recs: number) {
+            this.tgt_recs = tgt_recs;
+        },
+        getTgtRecs() {
+            return this.tgt_recs;
+        },
+        setNumExceptions(num_exceptions: number) {
+            this.num_exceptions = num_exceptions;
+        },
+        getNumExceptions() {
+            return this.num_exceptions;
+        },
+        setTgtExceptions(tgt_exceptions: number) {
+            this.tgt_exceptions = tgt_exceptions;
+        },
+        getTgtExceptions() {
+            return this.tgt_exceptions;
+        },
+        setReadState(read_state: string) {
+            this.read_state = read_state;
+        },
+        getReadState() {
+            return this.read_state;
+        },
+        addNumRecs(num_recs: number) {
+            this.num_recs += num_recs;
         },
         get_h_mean_Low() {
             return this.h_mean_low;

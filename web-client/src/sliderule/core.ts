@@ -2,18 +2,28 @@
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 //import pkg from './package.json' assert { type: 'json' };
 
+export type SysConfig = {
+  domain: string;
+  organization: string;
+  protocol: string;
+  verbose: boolean;
+  desired_nodes: number | null | undefined;
+  time_to_live: number;
+  timeout: number;
+};
 //
 // System Configuration
 //
-let sysConfig = {
+const globalSysConfig = {
   domain: "testsliderule.org",
   organization: "test-public",
-//  protocol: https,
+  protocol: 'https',
   verbose: true,
   desired_nodes: null,
   time_to_live: 60,
   timeout: 120000, // milliseconds
 };
+
 
 // Define type for type_code
 type TypeCode = typeof INT8 | typeof INT16 | typeof INT32 | typeof INT64 | typeof UINT8 | typeof UINT16 | typeof UINT32 | typeof UINT64 | typeof BITFIELD | typeof FLOAT | typeof DOUBLE | typeof TIME8 | typeof STRING | typeof USER;
@@ -27,7 +37,7 @@ type field_def_Type = { // C.E.U. defined this type
 
 type rec_def_Type = Record<string, any> // C.E.U. defined this type
 
-
+export type Sr_Results_type = Record<string, number>;// C.E.U. defined
 //
 // Record Definitions
 //
@@ -36,6 +46,7 @@ let recordDefinitions: rec_def_Type = {}
 const REC_HDR_SIZE = 8;
 export const REC_VERSION = 2; // Record version for
 export let num_defs_fetched = 0;
+export let num_defs_rd_from_cache = 0;
 
 // Define types for the constants
 const INT8: number   = 0;
@@ -93,18 +104,22 @@ export function get_num_defs_fetched() {
 export function set_num_defs_fetched(num: number) {
   num_defs_fetched = num;
 }
+export function get_num_defs_rd_from_cache() {
+  return num_defs_rd_from_cache;
+}
 //
 // populateDefinition
 //
 function populateDefinition(rec_type:any):any {
   if (rec_type in recordDefinitions) {
+    num_defs_rd_from_cache++;
     return recordDefinitions[rec_type];
   }
   else {
     //console.log(`populateDefinition: ${rec_type} (type: ${typeof rec_type}) not found in recordDefinitions`);
     return new Promise((resolve, reject) => {
       num_defs_fetched++;
-      console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
+      //console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
       source("definition", {"rectype" : rec_type}).then(
         result => {
           recordDefinitions[rec_type] = result;
@@ -284,7 +299,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         let receivedLength = 0; // length of the received  data
         let chunks:any[] = []; // array to store received  chunks
         let num_chunks = 0;
-        const results: Record<string, number> = {};
+        const results: Sr_Results_type = {};
         let bytes_read = 0;
         let bytes_processed = 0;
         let bytes_to_process = 0;
@@ -370,9 +385,12 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   break;
                 }
               }
-            } 
+            } else {
+              throw new Error('fetchAndProcessResult invalid content type for streaming');
+            }
           } else {
             empty_chunks++;
+            console.log(`fetchAndProcessResult chunk:${num_chunks} Received empty chunk`);
             if (empty_chunks > 10) {
               loop_done = true;
               console.error('fetchAndProcessResult empty_chunks > 10? Done! ');
@@ -385,7 +403,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             results["bytes_processed"] = bytes_processed;
             results["num_chunks"] = num_chunks;
             results["empty_chunks"] = empty_chunks;
-            //console.log('fetchAndProcessResult read returned done: results:', results);
+            console.log('fetchAndProcessResult read returned done: results:', results);
             break;
           }
         }
@@ -401,7 +419,8 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
         }
         console.log("fetchAndProcessResult final recs_cnt:", recs_cnt, " num_chunks_appended:", num_chunks_appended, "results:", results);
         //console.log('fetchAndProcessResult returning binaryData:', binaryData);
-        return binaryData;
+        //return binaryData;
+        return results;
 
     } else if (contentType == 'application/json' || contentType == 'text/plain') {
       const data = await response.json();
@@ -426,15 +445,15 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 export function init(config: {
   domain?: string;
   organization?: string;
-  //protocol?: https;
+  protocol?: string;
   verbose?: boolean;
-  desired_nodes?: any; // Replace 'any' with a more specific type if possible
+  desired_nodes?: number|null; 
   time_to_live?: number;
   timeout?: number;
 }): void
 {
-  sysConfig = Object.assign(sysConfig, config)
-  console.log('sysConfig:', sysConfig); 
+  Object.assign(globalSysConfig, config)
+  console.log('globalSysConfig:', globalSysConfig); 
 };
 export interface Callbacks {
   [key: string]: ((result: any) => void) | undefined; 
@@ -448,9 +467,10 @@ export async function source(
 ): Promise<any>{ // Replace 'any' with a more specific return type if possible
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
-  const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
+  console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
+  const host = globalSysConfig.organization && (globalSysConfig.organization + '.' + globalSysConfig.domain) || globalSysConfig.domain;
   const api_path = 'source/'+ api;
-  const url = 'https://' + host + '/' + api_path;
+  const url = globalSysConfig.protocol+'://' + host + '/' + api_path;
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
@@ -471,9 +491,9 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
-      //if (api === 'atl06p') {
-      //  console.log('source url:', url, 'options:',options);
-      //}
+      if (api === 'atl06p') {
+        console.log('source url:', url, 'options:',options);
+      }
       result = await fetchAndProcessResult(url, options, callbacks, stream);
       //console.log('source url:', url, 'options:',options, 'result:', result);
   } catch (error) {
@@ -548,7 +568,7 @@ export function get_version(): Promise<{
     return source('version').then(
       result => {
         //result['client'] = {version: client_version};
-        result['organization'] = sysConfig.organization;
+        result['organization'] = globalSysConfig.organization;
         return result;
       }
     );
