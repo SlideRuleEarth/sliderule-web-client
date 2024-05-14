@@ -184,12 +184,12 @@
         }
     }
 
-    async function runAtl06Worker(req:SrRequestRecord){
+    async function runAtl06Worker(req:SrRequestRecord,path:string){
         try{
             if(req.req_id){
                 mapStore.setCurrentReqId(req.req_id);
                 mapStore.isLoading = true; // controls spinning progress
-                worker = new Worker(new URL('../workers/atl06ToDb', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+                worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
                 worker.onmessage = handleAtl06WorkerMsg;
                 worker.onerror = (error) => {
                     if(worker){
@@ -242,7 +242,13 @@
                         toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
                         return;
                     }
-                    runAtl06Worker(req);
+                    if ( reqParamsStore.saveOutput===true ) {
+                        console.error('atl06ToFile TBD')
+                        //runAtl06Worker(req,'../workers/atl06ToFile');
+                    } else {
+                        runAtl06Worker(req,'../workers/atl06ToDb');
+                    }
+                    
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });

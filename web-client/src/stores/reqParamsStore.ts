@@ -147,7 +147,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         outputFormat: {name:"geoparquet", value:"geoparquet"},
         outputFormatOptions: [
           {name:"geoparquet", value:"geoparquet"},
-          {name:"parquet", value:"parquet"},
           {name:"csv", value:"csv"},
         ],
         outputLocation: {name:"local", value:"local"},
@@ -204,34 +203,27 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtl06ReqParams(): Atl06ReqParams {          
-          if(this.poly && this.convexHull){
-            return {
-              srt: this.getSrt(),
-              cnf: this.signalConfidenceNumber,
-              atl08_class: [], // HACK: This is a placeholder
-              ats: this.alongTrackSpread,  
-              cnt: this.minimumPhotonCount, 
-              len: this.lengthValue,        
-              res: this.stepValue, 
-              sigma_r_max: this.sigmaValue,         
-              maxi: this.maxIterations,
-              poly: this.poly,
-              cmr: {polygon: this.convexHull},      
-            };
-          } else {
-            console.log('getAtl06ReqParams: poly:',this.poly,' or convexHull:',this.convexHull,' is null');
-            return {
-              srt: this.getSrt(),
-              cnf: this.signalConfidenceNumber,   
-              ats: this.alongTrackSpread,  
-              cnt: this.minimumPhotonCount, 
-              len: this.lengthValue,        
-              res: this.stepValue,          
-              sigma_r_max: this.sigmaValue,         
-              maxi: this.maxIterations,
-            };
+        getAtl06ReqParams(): Atl06ReqParams { 
+          const req: Atl06ReqParams = {
+            srt: this.getSrt(),
+            cnf: this.signalConfidenceNumber,
+            atl08_class: [], // HACK: This is a placeholder
+            ats: this.alongTrackSpread,  
+            cnt: this.minimumPhotonCount, 
+            len: this.lengthValue,        
+            res: this.stepValue, 
+            sigma_r_max: this.sigmaValue,         
+            maxi: this.maxIterations,
+            poly: this.poly,
+          };         
+          if(this.poly && this.convexHull)
+          {
+            req.cmr = {polygon: this.convexHull};
           }
+          if (this.saveOutput===true) {
+            req.output.format = {output: this.outputFormat.value};
+          }
+          return req;
         },
         getSrt(): number[] | number {
           if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
