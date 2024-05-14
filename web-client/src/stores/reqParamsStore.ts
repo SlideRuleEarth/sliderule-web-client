@@ -13,6 +13,8 @@ export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
+        using_worker: false,
+        asset: 'icesat2',
         rasterizePolygon: false,
         ignorePolygon: false,
         poly: null as SrRegion | null,
@@ -142,11 +144,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         l2QualityFlag: false,
         l4QualityFlag: false,
         surfaceFlag: false,
-        saveOutput: false,
+        fileOutput: false,
         staged: false,
         outputFormat: {name:"geoparquet", value:"geoparquet"},
         outputFormatOptions: [
           {name:"geoparquet", value:"geoparquet"},
+          {name:"parquet", value:"parquet"},
           {name:"csv", value:"csv"},
         ],
         outputLocation: {name:"local", value:"local"},
@@ -205,6 +208,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         getAtl06ReqParams(): Atl06ReqParams { 
           const req: Atl06ReqParams = {
+            asset: this.asset,
             srt: this.getSrt(),
             cnf: this.signalConfidenceNumber,
             atl08_class: [], // HACK: This is a placeholder
@@ -220,8 +224,16 @@ export const useReqParamsStore = defineStore('reqParams', {
           {
             req.cmr = {polygon: this.convexHull};
           }
-          if (this.saveOutput===true) {
-            req.output.format = {output: this.outputFormat.value};
+          if (this.fileOutput===true) {
+            if(this.outputFormat.value==='geoparquet' || this.outputFormat.value==='parquet'){
+              if(this.outputFormat.value==='geoparquet'){
+                req.output = {format: this.outputFormat.value, as_geo: true};
+              } else {
+                req.output = {format: this.outputFormat.value, as_geo: false};
+              }
+            } else {
+              req.output = {format: this.outputFormat.value};
+            }
           }
           return req;
         },

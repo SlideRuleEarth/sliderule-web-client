@@ -88,7 +88,7 @@ export type SrRegion = SrLatLon[];
   
 // Define the parameter type for the atl06p function
 export interface Atl06ReqParams {
-    asset?: string;
+    asset: string;
     cnf: number[];
     ats: number;
     cnt: number;
@@ -97,6 +97,7 @@ export interface Atl06ReqParams {
     maxi: number;
     poly?: SrRegion | null;
     cmr?: { polygon: SrRegion };
+    output?: {format: string, as_geo?: boolean};
     [key: string]: any; // Other dynamic keys
 }
 
@@ -113,9 +114,7 @@ export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.C
     console.log("atl06p params: ", alt06preqparams);
     //console.log("atl06p callbacks: ", callbacks);
     const recs: any[] = [];
-    if (!('asset' in alt06preqparams.parms)) { // default this to icesat2
-        alt06preqparams.parms['asset'] = 'icesat2';
-    }
+
     if (callbacks == null) {
         callbacks = {
             atl06rec: (result) => {

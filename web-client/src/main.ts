@@ -11,6 +11,7 @@ import Menubar from 'primevue/menubar';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import ToastService from 'primevue/toastservice';
+import Toast from 'primevue/toast';
 import Ripple from 'primevue/ripple';
 import App from './App.vue'
 import router from './router'
@@ -42,6 +43,8 @@ app.use(PrimeVue, {
     }
 });
 app.use(ToastService);
+app.component('SrToast', Toast);
+
 app.use(router)
 app.directive('tooltip', Tooltip);
 app.component('menu-bar', Menubar)

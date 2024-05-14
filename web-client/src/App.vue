@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {useToast} from "primevue/usetoast";
-import Toast from 'primevue/toast';
+import SrToast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
 import router from './router/index.js';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
@@ -48,7 +48,7 @@ const aboutButtonClick = () => {
 
 <template>
   <div>
-    <Toast position="top-center"/>
+    <SrToast position="top-center"/>
   </div>  
   <header>
     <SrAppBar 
