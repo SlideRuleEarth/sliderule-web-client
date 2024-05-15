@@ -77,7 +77,6 @@
         }
     });
 
-
     const handleAtl06WorkerMsgEvent = async (event: MessageEvent) => {
         if(worker){
             const workerMsg:WorkerMessage = event.data;
@@ -86,7 +85,6 @@
             console.error('handleAtl06MsgEvent: worker was undefined?');
         }
     }
-
 
     function abortClicked() {
         if(worker){
@@ -101,16 +99,14 @@
         }
     }
 
-
-
     function handleAtl06Error(error:ErrorEvent, errorMsg:string) {
         console.error('Error:', error);
         toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
         cleanUpWorker();
     }
 
-    function startWorker(path:string){
-        worker =  new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+    function startAtl06Worker(){
+        worker =  new Worker(new URL('../workers/atl06ToDb', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
         const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
         console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
         workerTimeoutHandle = setTimeout(() => {
@@ -214,13 +210,13 @@
     }
 
 
-    async function runAtl06Worker(req:SrRequestRecord,path:string){
+    async function runAtl06Worker(req:SrRequestRecord){
         try{
             if(req.req_id){
                 mapStore.setCurrentReqId(req.req_id);
                 mapStore.isLoading = true; // controls spinning progress
                 //worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
-                worker = startWorker(path);
+                worker = startAtl06Worker();
                 worker.onmessage = handleAtl06WorkerMsgEvent;
                 worker.onerror = (error) => {
                     if(worker){
@@ -368,10 +364,9 @@
                         return;
                     }
                     if ( reqParamsStore.fileOutput===true ) {
-                        //runAtl06Worker(req,'../workers/atl06ToFile');
                         downloadParquetFile(req);
                     } else {
-                        runAtl06Worker(req,'../workers/atl06ToDb');
+                        runAtl06Worker(req);
                     }
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
