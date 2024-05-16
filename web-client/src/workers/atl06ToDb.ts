@@ -2,7 +2,7 @@ import { db } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams,type Atl06ReqParams } from '@/sliderule/icesat2';
-import { type WebWorkerCmd } from '@/workers/workerUtils';
+import { dataMsg, type WebWorkerCmd } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { updateExtremes,abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
@@ -12,40 +12,46 @@ const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, hi
 
 let target_numAtl06Recs = 0;
 let target_numAtl06Exceptions = 0;
-
+let target_numArrowDataRecs = 0;
+let target_numArrowMetaRecs = 0;
 
 let num_checks = 0;
+let num_post_done_checks = 0;
 export async function checkDoneProcessing(  reqID:number, 
                                             read_state:string, 
                                             num_atl06Exceptions:number, 
-                                            num_atl06recs_processed:number, 
-                                            runningCount:number, 
+                                            num_atl06recs_processed:number,
+                                            num_arrow_data_recs_processed:number,
+                                            num_arrow_meta_recs_processed:number, 
+                                            num_el_pnts:number, 
                                             bulkAddPromises: Promise<void>[],
                                             localExtLatLon: ExtLatLon,
                                             localExtHMean: ExtHMean,
                                             target_numAtl06Recs:number,
-                                            target_numAtl06Exceptions:number): Promise<void>{
+                                            target_numAtl06Exceptions:number,
+                                            target_numArrowDataRecs:number,
+                                            target_numArrowMetaRecs:number): Promise<void>{
     num_checks++;
     if((read_state === 'done_reading') || (read_state === 'error')){
-        if((num_atl06recs_processed >= target_numAtl06Recs) && (num_atl06Exceptions >= target_numAtl06Exceptions)){
+        num_post_done_checks++;
+        if((num_atl06recs_processed >= target_numAtl06Recs) && (num_atl06Exceptions >= target_numAtl06Exceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)){
             let status_details = 'No data returned from SlideRule.';
-            if(target_numAtl06Recs > 0) {
-                status_details = `Received ${target_numAtl06Recs} records and Processed ${num_atl06recs_processed} records`;
+            if((target_numAtl06Recs > 0) || (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0)){
+                status_details = `Received atl06rec:${target_numAtl06Recs}  arrow.data:${target_numArrowDataRecs} arrow.meta:${target_numArrowMetaRecs} Processed atl06:${num_atl06recs_processed}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_atl06Exceptions}  num_el_pnts:${num_el_pnts}  num_checks:${num_checks} num_post_done_checks:${num_post_done_checks} bulkAddPromises:${bulkAddPromises.length}`;
             }
-            console.log('atl06p Success:', status_details, 'req_id:', reqID, 'runningCount:', runningCount, 'num_checks:', num_checks, 'num promises:', bulkAddPromises.length);
+            console.log('atl06p Success:', status_details, 'req_id:', reqID, 'num_el_pnts:', num_el_pnts, 'num_checks:', num_checks, 'num promises:', bulkAddPromises.length);
             if(bulkAddPromises.length > 0){
                 Promise.all(bulkAddPromises).then(async () => {
                     postMessage(await summaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details));
-                    postMessage(await successMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`));
+                    postMessage(await successMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${num_el_pnts} points.`));
                 }).catch((error) => {
                     console.error('Failed to complete bulk add promises:', error);
                     postMessage(errorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'Bulk add failed' }));
                 });
             } else {
-                console.log('No bulk add promises to process?');
+                console.log('No bulk add promises to process.');
                 postMessage(await summaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details));
-                postMessage(await successMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${runningCount} points.`));
-                //errorMsg(reqID, { type: 'BulkAddError', code: 'BulkAdd', message: 'No bulk add promises to process' });
+                postMessage(await successMsg(reqID, `Successfully finished reading req_id: ${reqID} with ${num_el_pnts} points.`));
             }
         }
         read_state = 'done';
@@ -89,18 +95,48 @@ onmessage = async (event) => {
         console.log("atl06ToDb req: ", req);
         let num_atl06recs_processed = 0;
         let num_atl06Exceptions = 0;
+        let num_arrow_data_recs_processed = 0;
+        let num_arrow_meta_recs_processed = 0;
         let read_result = {} as Sr_Results_type;
         let read_state = 'idle'
-        let runningCount = 0;
+        let num_el_pnts = 0;
         let recsProgThresh = 1;
         let recsProgThreshInc = 100;
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
-        const bulkAddPromises: Promise<void>[] = [];        
+        const bulkAddPromises: Promise<void>[] = [];
+        const arrowData: Uint8Array[] = [];
+        let arrowMetaData = '';
+        
         if((reqID) && (reqID > 0)){
             num_checks = 0;
             startedMsg(reqID,req);
             const callbacks = {
+                'arrowrec.meta': async (result:any) => {
+                    console.log('atl06p cb arrowrec.meta result:', result);
+                    if(num_arrow_meta_recs_processed === 0){
+                        try{
+                            await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow meta data.'});
+                        } catch (error) {
+                            console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
+                        }
+                    }
+                    num_arrow_meta_recs_processed++;
+                },
+                'arrowrec.data': async (result:any) => {
+                    console.log('atl06p cb arrowrec.data result:', result);
+                    //postMessage({type: 'arrowData', data: result.data}); 
+                    arrowData.push(result.data);
+                    arrowMetaData = result.filename;
+                    if(num_arrow_data_recs_processed === 0){
+                        try{
+                            await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow data.'});
+                        } catch (error) {
+                            console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
+                        }
+                    }
+                    num_arrow_data_recs_processed++;
+                },
                 atl06rec: async (result:any) => {
                     if(num_atl06recs_processed === 0){
                         try{
@@ -114,15 +150,12 @@ onmessage = async (event) => {
                         console.log('Processing aborted.');
                         return; // Stop processing when abort is requested
                     }
-                    if(num_atl06recs_processed === 0){
-                        console.log('atl06p cb atl06rec result:', result);
-                    }
                     const currentRecs = result["elevation"];
                     const curFlatRecs = currentRecs.flat();
                     if(curFlatRecs.length > 0) {
-                        runningCount += curFlatRecs.length;
+                        num_el_pnts += curFlatRecs.length;
                         updateExtremes(curFlatRecs, localExtLatLon, localExtHMean);
-                        //console.log('bulkAddElevations:',curFlatRecs.length, 'runningCount:', runningCount);
+                        //console.log('bulkAddElevations:',curFlatRecs.length, 'num_el_pnts:', num_el_pnts);
                         try {
                             // Adding req_id to each record in curFlatRecs
                             const updatedFlatRecs: Elevation[] = curFlatRecs.map((rec: Elevation) => ({
@@ -146,13 +179,19 @@ onmessage = async (event) => {
                     } 
                     if(num_atl06recs_processed > recsProgThresh){
                         recsProgThresh = num_atl06recs_processed + recsProgThreshInc;
-                        const msg =  `Received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                        const msg =  `Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
                         postMessage(await progressMsg(reqID, 
-                                        {read_state:read_state,
-                                        target_numAtl06Recs:target_numAtl06Recs,
-                                        numAtl06Recs:num_atl06recs_processed,
-                                        target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                        numAtl06Exceptions:num_atl06Exceptions},
+                                        {
+                                            read_state:read_state,
+                                            target_numAtl06Recs:target_numAtl06Recs,
+                                            numAtl06Recs:num_atl06recs_processed,
+                                            target_numAtl06Exceptions:target_numAtl06Exceptions,
+                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numArrowDataRecs:target_numArrowDataRecs,
+                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                            numArrowMetaRecs:num_arrow_meta_recs_processed
+                                        },
                                         msg,
                                         localExtLatLon,
                                         localExtHMean));
@@ -161,13 +200,17 @@ onmessage = async (event) => {
                     await checkDoneProcessing(reqID, 
                                         read_state, 
                                         num_atl06Exceptions, 
-                                        num_atl06recs_processed, 
-                                        runningCount, 
+                                        num_atl06recs_processed,
+                                        num_arrow_data_recs_processed,
+                                        num_arrow_meta_recs_processed, 
+                                        num_el_pnts, 
                                         bulkAddPromises,
                                         localExtLatLon,
                                         localExtHMean,
                                         target_numAtl06Recs,
-                                        target_numAtl06Exceptions);
+                                        target_numAtl06Exceptions,
+                                        target_numArrowDataRecs,
+                                        target_numArrowMetaRecs);
                 },
                 exceptrec: async (result:any) => {
                     num_atl06Exceptions++;
@@ -189,14 +232,18 @@ onmessage = async (event) => {
                         {
                             console.error('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
                             postMessage(await errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text }));
-                            const msg =  `Received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                            const msg =  `RTE_TIMEOUT Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
                             postMessage(await progressMsg(reqID, 
                                             {   
                                                 read_state:read_state,
                                                 target_numAtl06Recs:target_numAtl06Recs,
                                                 numAtl06Recs:num_atl06recs_processed,
                                                 target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                                numAtl06Exceptions:num_atl06Exceptions
+                                                numAtl06Exceptions:num_atl06Exceptions,
+                                                target_numArrowDataRecs:target_numArrowDataRecs,
+                                                numArrowDataRecs:num_arrow_data_recs_processed,
+                                                target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                                numArrowMetaRecs:num_arrow_meta_recs_processed
                                             },
                                             msg,
                                             localExtLatLon,
@@ -224,17 +271,21 @@ onmessage = async (event) => {
                             break;
                         }
                     }
-                    console.log('runningCount:', runningCount, ' num_atl06recs_processed:', num_atl06recs_processed, 'num_atl06Exceptions:', num_atl06Exceptions);
+                    console.log('num_el_pnts:', num_el_pnts, ' num_atl06recs_processed:', num_atl06recs_processed, 'num_atl06Exceptions:', num_atl06Exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed);
                     if(num_atl06Exceptions > exceptionsProgThresh){
                         exceptionsProgThresh = num_atl06Exceptions + exceptionsProgThreshInc;
-                        const msg =  `Received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                        const msg =  `Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} atl06 records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
                         postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
                                             target_numAtl06Recs:target_numAtl06Recs,
                                             numAtl06Recs:num_atl06recs_processed,
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions
+                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numArrowDataRecs:target_numArrowDataRecs,
+                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                            numArrowMetaRecs:num_arrow_meta_recs_processed
                                         },
                                         msg,
                                         localExtLatLon,
@@ -244,13 +295,17 @@ onmessage = async (event) => {
                     await checkDoneProcessing(reqID, 
                                         read_state, 
                                         num_atl06Exceptions, 
-                                        num_atl06recs_processed, 
-                                        runningCount,
+                                        num_atl06recs_processed,
+                                        num_arrow_data_recs_processed,
+                                        num_arrow_meta_recs_processed, 
+                                        num_el_pnts,
                                         bulkAddPromises,
                                         localExtLatLon,
                                         localExtHMean,
                                         target_numAtl06Recs,
-                                        target_numAtl06Exceptions);
+                                        target_numAtl06Exceptions,
+                                        target_numArrowDataRecs,
+                                        target_numArrowMetaRecs);
                     //console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                 },
                 eventrec: (result:any) => {
@@ -269,7 +324,11 @@ onmessage = async (event) => {
                                 target_numAtl06Recs:target_numAtl06Recs,
                                 numAtl06Recs:num_atl06recs_processed,
                                 target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                numAtl06Exceptions:num_atl06Exceptions
+                                numAtl06Exceptions:num_atl06Exceptions,
+                                target_numArrowDataRecs:target_numArrowDataRecs,
+                                numArrowDataRecs:num_arrow_data_recs_processed,
+                                target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                numArrowMetaRecs:num_arrow_meta_recs_processed
                             },
                             'Starting to read ATL06 data.',
                             localExtLatLon,
@@ -277,13 +336,16 @@ onmessage = async (event) => {
                     atl06p(cmd.parameters as Atl06pReqParams,callbacks).then(async (result) => { // result
                         if(result){
                             read_result = result as Sr_Results_type;
-                            target_numAtl06Recs = Number(read_result['atl06rec']);
-                            target_numAtl06Exceptions = Number(read_result['exceptrec']);
-                            console.log('atl06p Done Reading result:', read_result, 'target_numAtl06Recs:', target_numAtl06Recs, 'target_numAtl06Exceptions:', target_numAtl06Exceptions);
+                            target_numAtl06Recs = 'atl06rec' in read_result ? Number(read_result['atl06rec']) : 0;
+                            target_numAtl06Exceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
+                            target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
+                            target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
+                            console.log('atl06p Done Reading result:', read_result, 'target_numAtl06Recs:', target_numAtl06Recs, 'target_numAtl06Exceptions:', target_numAtl06Exceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
                         }
                         console.log('atl06p Done Reading: result:', result);
                         //console.log('atl06p Done Reading: read_result:', read_result);
-                        const msg =  `Done Reading; received ${runningCount} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                        const msg =  `Done Reading; received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
+
                         read_state = 'done_reading';
                         postMessage(await progressMsg(reqID, 
                                         {
@@ -291,7 +353,11 @@ onmessage = async (event) => {
                                             target_numAtl06Recs:target_numAtl06Recs,
                                             numAtl06Recs:num_atl06recs_processed,
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions
+                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numArrowDataRecs:target_numArrowDataRecs,
+                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                            numArrowMetaRecs:num_arrow_meta_recs_processed
                                         },
                                         msg,
                                         localExtLatLon,
@@ -299,7 +365,7 @@ onmessage = async (event) => {
                         recsProgThreshInc = Math.floor(target_numAtl06Recs/10);
                         exceptionsProgThreshInc = Math.floor(target_numAtl06Exceptions/10);
                         // Log the result to the console
-                        console.log('Final:  lastOne:', runningCount, 'req_id:', reqID);
+                        console.log('Final:  lastOne:', num_el_pnts, 'req_id:', reqID);
                         console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                     },error => { // catch errors during the atl06p call promise (not ones that occur in success block)
                             // Log the error to the console
@@ -310,7 +376,11 @@ onmessage = async (event) => {
                                     target_numAtl06Recs:target_numAtl06Recs,
                                     numAtl06Recs:num_atl06recs_processed,
                                     target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                    numAtl06Exceptions:num_atl06Exceptions
+                                    numAtl06Exceptions:num_atl06Exceptions,
+                                    target_numArrowDataRecs:target_numArrowDataRecs,
+                                    numArrowDataRecs:num_arrow_data_recs_processed,
+                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                    numArrowMetaRecs:num_arrow_meta_recs_processed
                                 },
                                 'Error occurred while reading ATL06 data.',
                                 localExtLatLon,
@@ -339,7 +409,11 @@ onmessage = async (event) => {
                                             target_numAtl06Recs:target_numAtl06Recs,
                                             numAtl06Recs:num_atl06recs_processed,
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions
+                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numArrowDataRecs:target_numArrowDataRecs,
+                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                            numArrowMetaRecs:num_arrow_meta_recs_processed
                                         },
                                         status_details,
                                         localExtLatLon,
@@ -359,13 +433,21 @@ onmessage = async (event) => {
                         checkDoneProcessing(reqID, 
                                             read_state, 
                                             num_atl06Exceptions, 
-                                            num_atl06recs_processed, 
-                                            runningCount, 
+                                            num_atl06recs_processed,
+                                            num_arrow_data_recs_processed,
+                                            num_arrow_meta_recs_processed, 
+                                            num_el_pnts, 
                                             bulkAddPromises,
                                             localExtLatLon,
                                             localExtHMean,
                                             target_numAtl06Recs,
-                                            target_numAtl06Exceptions);
+                                            target_numAtl06Exceptions,
+                                            target_numArrowDataRecs,
+                                            target_numArrowMetaRecs);
+                        if(num_arrow_data_recs_processed > 0){
+                            console.log('runAtl06 req_id:',reqID, 'postMessage dataMsg: arrowMetaData:', arrowMetaData, 'arrowData:', arrowData);
+                            postMessage(dataMsg(reqID, arrowMetaData, arrowData));
+                        }
                     });
                 } else {
                     console.error('runAtl06 cmd.parameters was undefined');

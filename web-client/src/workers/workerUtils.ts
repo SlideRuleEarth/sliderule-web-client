@@ -9,7 +9,7 @@ export interface WebWorkerCmd {
     parameters?: ReqParams;
 }
 
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'server_msg' | 'aborted';
+export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'data_rcvd' | 'server_msg' | 'aborted';
 
 export interface WorkerError {
     type: string;
@@ -22,13 +22,19 @@ export interface SrProgress {
     numAtl06Recs: number;
     target_numAtl06Exceptions: number;
     numAtl06Exceptions: number;
+    target_numArrowDataRecs: number;
+    numArrowDataRecs: number;
+    target_numArrowMetaRecs: number;
+    numArrowMetaRecs: number;
 }
 export interface WorkerMessage {
     req_id: number;             // Request ID
     status: WorkerStatus;       // Status of the worker
-    progress?: SrProgress;          // Percentage for progress updates
+    progress?: SrProgress;      // Percentage for progress updates
     msg?: string;               // status details
     error?: WorkerError;        // Error details (if an error occurred)
+    data?: Uint8Array[];         // Data returned by the worker
+    metadata?: string;          // Metadata returned by the worker
 }
 export interface ExtLatLon {
     minLat: number;
@@ -126,6 +132,10 @@ export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): P
     return workerSummaryMsg;
 }
 
+export function dataMsg(req_id:number,filename:string, data: Uint8Array[]): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'data_rcvd', data: data, metadata: filename};
+    return workerDataMsg;
+}
 
 export function updateExtremes( curFlatRecs: { h_mean: number,latitude: number, longitude:number }[],
                                 localExtLatLon: ExtLatLon,

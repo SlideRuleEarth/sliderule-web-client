@@ -354,14 +354,14 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                     result => {
                       if (rec_type in callbacks) {
                         callbacks[rec_type](result);
-                        if (!(rec_type in recs_cnt)) {
-                          recs_cnt[rec_type] = 1;
-                          //console.log('result:', result)
-                        } else {
-                          recs_cnt[rec_type]++;
-                        }              
                       }
-                    }
+                      if (!(rec_type in recs_cnt)) {
+                        recs_cnt[rec_type] = 1;
+                        console.log('rec_type:',rec_type, 'result:', result)
+                      } else {
+                        recs_cnt[rec_type]++;
+                      }              
+                  }
                   ).catch(error => {
                     decode_errors++;
                     console.error(`Error decoding record of type ${rec_type}:`, error, 'decode_errors:', decode_errors);
@@ -493,6 +493,7 @@ export async function source(
   try {
       if (api === 'atl06p') {
         console.log('source url:', url, 'options:',options);
+        console.log('options.body:',options.body);
       }
       result = await fetchAndProcessResult(url, options, callbacks, stream);
       //console.log('source url:', url, 'options:',options, 'result:', result);
@@ -606,7 +607,7 @@ export function get_values(bytearray: Uint8Array, fieldtype: number):  Array<num
 
 // Function to populate all definitions
 export async function populateAllDefinitions(): Promise<any>{
-  const allRecordTypes = ['atl06rec','atl06rec.elevation','exceptrec','eventrec'];
+  const allRecordTypes = ['atl06rec','atl06rec.elevation','exceptrec','eventrec','arrowrec.meta','arrowrec.data'];
   try {
     // Create an array of promises for each record type
     const definitionPromises = allRecordTypes.map(type => populateDefinition(type));

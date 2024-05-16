@@ -41,11 +41,11 @@ export const useRequestsStore = defineStore('requests', {
     getConsoleMsg(){
       return this.msg;
     },
-    async createNewReq(): Promise<SrRequestRecord | null>  {
+    async createNewSrRequestRecord(): Promise<SrRequestRecord | null>  {
       // Get the new reqId from the db
-      console.log('createNewReq()');
+      console.log('createNewSrRequestRecord()');
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
-      console.log('createNewReq() newReqId:', newReqId);
+      console.log('createNewSrRequestRecord() newReqId:', newReqId);
       if(newReqId){
         this.reqs.push({req_id: newReqId, status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
         await this.fetchReqs();  // Fetch the updated requests from the db

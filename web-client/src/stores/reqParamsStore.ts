@@ -206,7 +206,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtl06ReqParams(): Atl06ReqParams { 
+        getAtl06ReqParams(req_id:number): Atl06ReqParams { 
           const req: Atl06ReqParams = {
             asset: this.asset,
             srt: this.getSrt(),
@@ -225,14 +225,25 @@ export const useReqParamsStore = defineStore('reqParams', {
             req.cmr = {polygon: this.convexHull};
           }
           if (this.fileOutput===true) {
+            let path_to_use = this.outputLocationPath;
+            if(this.outputLocation.value==='S3'){
+              path_to_use = `s3://${this.outputLocationPath}`;
+            }
+            if(this.outputLocationPath.length===0){
+              path_to_use = `atl06_${req_id}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+            }
             if(this.outputFormat.value==='geoparquet' || this.outputFormat.value==='parquet'){
+              path_to_use += '.parquet';
               if(this.outputFormat.value==='geoparquet'){
-                req.output = {format: this.outputFormat.value, as_geo: true};
+                req.output = {format: 'parquet', as_geo: true, path: path_to_use};
               } else {
-                req.output = {format: this.outputFormat.value, as_geo: false};
+                req.output = {format: 'parquet', as_geo: false, path: path_to_use};
               }
+            } else if(this.outputFormat.value==='csv'){
+              path_to_use += '.parquet';
+              req.output = {format: this.outputFormat.value, path: path_to_use};
             } else {
-              req.output = {format: this.outputFormat.value};
+              console.error('getAtl06ReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
           return req;
@@ -244,16 +255,16 @@ export const useReqParamsStore = defineStore('reqParams', {
             return this.surfaceReferenceType;
           }        
         },
-        getAtl06pReqParams(): Atl06pReqParams {
+        getAtl06pReqParams(req_id:number): Atl06pReqParams {
           if(this.resources.length > 0){
             return  {
-              parms:this.getAtl06ReqParams(),
+              parms:this.getAtl06ReqParams(req_id),
               resources: this.resources,     
             };
           } else {
             console.log('getAtl06pReqParams: resources is empty');
             return {
-              parms:this.getAtl06ReqParams(),
+              parms:this.getAtl06ReqParams(req_id),
             };
           }
         },

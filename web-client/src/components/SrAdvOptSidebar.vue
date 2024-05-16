@@ -16,10 +16,10 @@
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
     import { type TimeoutHandle } from '@/stores/mapStore';    
-    import { WorkerMessage, startedMsg, errorMsg, successMsg } from '@/workers/workerUtils';
+    import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
-    import { Atl06pReqParams } from "@/sliderule/icesat2";
+    //import { Atl06pReqParams } from "@/sliderule/icesat2";
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
 
     const reqParamsStore = useReqParamsStore();
@@ -141,7 +141,7 @@
     }
 
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
-        //console.log('handleAtl06Msg workerMsg:',workerMsg);
+        console.log('handleAtl06Msg workerMsg:',workerMsg);
         switch(workerMsg.status){
             case 'success':
                 console.log('handleAtl06Msg success:',workerMsg.msg);
@@ -203,6 +203,45 @@
                 }
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
+            case 'data_rcvd':
+
+                // TBD this is a temporary hack!
+
+                console.log('handleAtl06Msg data_rcvd:',workerMsg.data);
+                if(workerMsg.data){
+                    let binaryData: Uint8Array;
+
+                    if (workerMsg.data.length === 1) {
+                        // If there is only one element, use it directly
+                        binaryData = new Uint8Array(workerMsg.data[0]);
+                    } else {
+                        // If there are multiple elements, combine them
+                        let totalLength = 0;
+                        workerMsg.data.forEach((arr: Uint8Array) => totalLength += arr.length);
+
+                        binaryData = new Uint8Array(totalLength);
+                        let offset = 0;
+                        workerMsg.data.forEach((arr: Uint8Array) => {
+                            binaryData.set(arr, offset);
+                            offset += arr.length;
+                        });
+                    }
+
+                    console.log('handleAtl06Msg binaryData:', binaryData);
+
+                    let filename = 'atl06.parquet';
+                    const blob = new Blob([binaryData], { type: 'application/vnd.apache.parquet' });
+
+                    if (workerMsg.metadata) {
+                        filename = workerMsg.metadata;
+                    } else {
+                        console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+                    }
+
+                    triggerDownload(blob,filename);
+                }
+                break;
+
             default:
                 console.error('handleAtl06Msg unknown status?:',workerMsg.msg);
                 break;
@@ -210,10 +249,10 @@
     }
 
 
-    async function runAtl06Worker(req:SrRequestRecord){
+    async function runAtl06Worker(srReqRec:SrRequestRecord){
         try{
-            if(req.req_id){
-                mapStore.setCurrentReqId(req.req_id);
+            if(srReqRec.req_id){
+                mapStore.setCurrentReqId(srReqRec.req_id);
                 mapStore.isLoading = true; // controls spinning progress
                 //worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
                 worker = startAtl06Worker();
@@ -225,7 +264,7 @@
                         cleanUpWorker();
                     }
                 };
-                const cmd = {type:'run',req_id:req.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:req.parameters} as WebWorkerCmd;
+                const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:srReqRec.parameters} as WebWorkerCmd;
                 worker.postMessage(JSON.stringify(cmd));
             } else {
                 console.error('runAtl06Worker req_id is undefined');
@@ -237,89 +276,122 @@
         }
     }
 
+    // Types for the Fetch Initialization Options and Blob Construction
+    //interface DownloadFileOptions extends RequestInit {}
+
+    // Function to download a file and return it as a Blob
+    // async function downloadFile(url: string, options: DownloadFileOptions): Promise<Blob> {
+    //     const response = await fetch(url, options);
+    //     if (!response.ok) {
+    //         throw new Error(`Network response was not ok. Status: ${response.status}`);
+    //     }
+    //     if (!response.body) {
+    //         throw new Error('ReadableStream not supported in this browser.');
+    //     }
+
+    //     const reader = response.body.getReader();
+    //     const chunks: Uint8Array[] = [];
+    //     let loop_done = false;
+    //     while (!loop_done) {
+    //         const { done, value } = await reader.read();
+    //         if (done){
+    //             loop_done = true;
+    //             break;
+    //         }
+    //         chunks.push(value);
+    //     }
+    //     //return new Blob(chunks, { type: 'application/x-parquet' });
+    //     return new Blob(chunks, { type: 'application/vnd.apache.parquet' });
+    // }
+ 
     // Function to handle file downloads
-    const handleDownloadParquetFile = async (url:string, filename: string, srRecord:SrRequestRecord ) => {
-        try {
+    // const handleDownloadParquetFile = async (url:string, filename: string, srRecord:SrRequestRecord ) => {
+    //     try {
             
-            const req:Atl06pReqParams = srRecord.parameters as Atl06pReqParams;
-            if(srRecord.req_id){
-                mapStore.setCurrentReqId(srRecord.req_id);
+    //         const pReqParms:Atl06pReqParams = srRecord.parameters as Atl06pReqParams;
+    //         if(srRecord.req_id){
+    //             mapStore.setCurrentReqId(srRecord.req_id);
             
-                const pparms = {parms: req.parms } as Atl06pReqParams;
-                let contentType=''; // Change MIME type accordingly
-                if(pparms.parms.output?.format==='geoparquet' || pparms.parms.output?.format==='parquet'){
-                    contentType='application/x-parquet'; // Change MIME type accordingly
-                } else if(pparms.parms.output?.format==='csv'){
-                    contentType='text/csv';
-                } else {
-                    throw new Error('Unknown output format');
-                }
-                const options: RequestInit = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': contentType, // Change MIME type accordingly
-                        'x-sliderule-streaming': '1'
-                    },
-                };
-                if (pparms != null) {
-                    options.body = JSON.stringify(pparms);
-                }
-                const startedWorkerMsg = await startedMsg(srRecord.req_id,pparms);
-                await handleAtl06Msg(startedWorkerMsg);
-                const response = await downloadFile(url,options);
-                if(!response.body){
-                    throw new Error('ReadableStream not yet supported in this browser.');
-                }
-                const blob = await streamToBlob(response.body, 'application/x-parquet'); // Change MIME type accordingly
-                triggerDownload(blob, filename);
-                const successWorkerMsg = await successMsg(srRecord.req_id,'Download success');
-                await handleAtl06Msg(successWorkerMsg);
-            } else {
-                console.error('handleDownloadParquetFile req_id is undefined');
-                toast.add({severity: 'error',summary: 'Error', detail: 'There was an error creating record' });
-            }
-        } catch (error) {
-            console.error('Download failed:', error);
-        } finally {
-            mapStore.isLoading = false;
-        }
-    };
+    //             const pparms = {parms: pReqParms.parms } as Atl06pReqParams;
+    //             let contentType=''; 
+    //             if(pparms.parms.output?.format==='geoparquet' || pparms.parms.output?.format==='parquet'){
+    //                 contentType='application/vnd.apache.parquet'; 
+    //             } else if(pparms.parms.output?.format==='csv'){
+    //                 contentType='text/csv';
+    //             } else {
+    //                 throw new Error('Unknown output format');
+    //             }
+    //             const options: RequestInit = {
+    //                 method: 'POST',
+    //                 headers: {
+    //                     'Content-Type': contentType,
+    //                     'x-sliderule-streaming': '1'
+    //                 },
+    //             };
+    //             if (pparms != null) {
+    //                 options.body = JSON.stringify(pparms);
+    //             }
+    //             const startedWorkerMsg = await startedMsg(srRecord.req_id,pparms);
+    //             await handleAtl06Msg(startedWorkerMsg);
+    //             // const response = await downloadFile(url,options);
+    //             // if(!response.body){
+    //             //     throw new Error('ReadableStream not yet supported in this browser.');
+    //             // }
+    //             // //const blob = await streamToBlob(response.body, 'application/x-parquet'); 
+    //             // const blob = await streamToBlob(response.body, 'application/octet-stream');
+    //             triggerDownload(await downloadFile(url,options), filename);
+    //             const successWorkerMsg = await successMsg(srRecord.req_id,'Download success');
+    //             await handleAtl06Msg(successWorkerMsg);
+    //         } else {
+    //             console.error('handleDownloadParquetFile req_id is undefined');
+    //             toast.add({severity: 'error',summary: 'Error', detail: 'There was an error creating record' });
+    //         }
+    //     } catch (error) {
+    //         console.error('Download failed:', error);
+    //     } finally {
+    //         mapStore.isLoading = false;
+    //     }
+    // };
 
-    // Function to initiate fetch streaming
-    async function downloadFile(url: string,options:RequestInit): Promise<Response> {
-        console.log('downloadFile url:',url,' options:',options);
-        const response = await fetch(url,options);
-        if (!response.body) {
-            throw new Error('ReadableStream not yet supported in this browser.');
-        }
-        const reader = response.body.getReader();
-        const stream = new ReadableStream({
-            async start(controller) {
-                let read_done = false;
-                while (!read_done) {
-                    const { done, value } = await reader.read();
-                    if (done){
-                        read_done = true;
-                        break;
-                    };
-                    controller.enqueue(value);
-                }
-                controller.close();
-                reader.releaseLock();
-            }
-        });
+    // // Function to initiate fetch streaming
+    // async function downloadFile(url: string,options:RequestInit): Promise<Response> {
+    //     console.log('downloadFile url:',url,' options:',options);
+    //     const response = await fetch(url,options);
+    //     if (!response.ok) {
+    //         throw new Error('Network response was not ok.');
+    //     }
+    //     if (!response.body) {
+    //         throw new Error('ReadableStream not yet supported in this browser.');
+    //     }
+    //     const reader = response.body.getReader();
+    //     const stream = new ReadableStream({
+    //         async start(controller) {
+    //             let read_done = false;
+    //             while (!read_done) {
+    //                 const { done, value } = await reader.read();
+    //                 if (done){
+    //                     read_done = true;
+    //                     break;
+    //                 };
+    //                 controller.enqueue(value);
+    //             }
+    //             controller.close();
+    //             reader.releaseLock();
+    //         }
+    //     });
 
-        return new Response(stream);
-    }
+    //     return new Response(stream);
+    // }
 
-    // Convert the streamed response to a blob
-    async function streamToBlob(stream: ReadableStream<Uint8Array>, mimeType: string): Promise<Blob> {
-        const blob = await new Response(stream).blob();
-        return new Blob([blob], { type: mimeType });
-    }
+    // // Convert the streamed response to a blob
+    // async function streamToBlob(stream: ReadableStream<Uint8Array>, mimeType: string): Promise<Blob> {
+    //     const blob = await new Response(stream).blob();
+    //     return new Blob([blob], { type: mimeType });
+    // }
 
     // Trigger the download process by creating a temporary download link
     function triggerDownload(blob: Blob, filename: string): void {
+        console.log('triggerDownload filename:',filename,' blob:',blob);
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -330,15 +402,15 @@
         URL.revokeObjectURL(url);
     }
 
-    function downloadParquetFile(req:SrRequestRecord) {
-        const sysConfig = sysConfigStore.getSysConfig();
-        console.log('sysConfig:', JSON.stringify(sysConfig));
-        const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
-        const api_path = 'source/atl06p';
-        const url = sysConfig.protocol+'://' + host + '/' + api_path;
-        const filename = `atl06_${req.req_id}.parquet`;
-        handleDownloadParquetFile(url, filename, req);
-    }
+    // function downloadParquetFile(srReqRec:SrRequestRecord) {
+    //     const sysConfig = sysConfigStore.getSysConfig();
+    //     console.log('sysConfig:', JSON.stringify(sysConfig));
+    //     const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
+    //     const api_path = 'source/atl06p';
+    //     const url = sysConfig.protocol+'://' + host + '/' + api_path;
+    //     const filename = `atl06_${srReqRec.req_id}.parquet`;
+    //     handleDownloadParquetFile(url, filename, srReqRec);
+    // }
 
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
@@ -349,25 +421,26 @@
         curReqSumStore.setNumExceptions(0);
         curReqSumStore.setTgtExceptions(0);
         requestsStore.setMsg('Running...');
-        let req = await requestsStore.createNewReq();
-        if(req) {
-            console.log('runSlideRuleClicked req:',req);
+        let srReqRec = await requestsStore.createNewSrRequestRecord();
+        if(srReqRec) {
+            console.log('runSlideRuleClicked srReqRec:',srReqRec);
             if(missionValue.value.value === 'ICESat-2') {
                 if(iceSat2SelectedAPI.value.value === 'atl06') {
                     console.log('atl06 selected');
-                    req.parameters = reqParamsStore.getAtl06pReqParams();
-                    req.start_time = new Date();
-                    req.end_time = new Date();
-                    if(!req.req_id) {
+                    if(!srReqRec.req_id) {
                         console.error('runAtl06 req_id is undefined');
                         toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
                         return;
                     }
-                    if ( reqParamsStore.fileOutput===true ) {
-                        downloadParquetFile(req);
-                    } else {
-                        runAtl06Worker(req);
-                    }
+                    srReqRec.parameters = reqParamsStore.getAtl06pReqParams(srReqRec.req_id);
+                    srReqRec.start_time = new Date();
+                    srReqRec.end_time = new Date();
+                    // if ( reqParamsStore.fileOutput===true ) {
+                    //     downloadParquetFile(srReqRec);
+                    // } else {
+                    //     runAtl06Worker(srReqRec);
+                    // }
+                    runAtl06Worker(srReqRec);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
@@ -384,7 +457,7 @@
             }
         } else {
             mapStore.isLoading = false;
-            console.error('runSlideRuleClicked req was undefined');
+            console.error('runSlideRuleClicked srReqRec was undefined');
             toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
         }
     };
