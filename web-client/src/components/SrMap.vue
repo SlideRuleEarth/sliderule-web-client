@@ -251,12 +251,12 @@
       
     }
     if (newPickedValue === 'Box'){
-      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: srToastStore.getLife() });
+      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: 5000 });
 
       enableDragBox();
     } else if (newPickedValue === 'Polygon'){
       disableDragBox();
-      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: srToastStore.getLife() });
+      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
 
     } else if (newPickedValue === 'TrashCan'){
       disableDragBox();

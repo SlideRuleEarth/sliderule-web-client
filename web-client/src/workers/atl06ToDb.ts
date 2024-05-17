@@ -105,8 +105,11 @@ onmessage = async (event) => {
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
         const bulkAddPromises: Promise<void>[] = [];
-        const arrowData: Uint8Array[] = [];
-        let arrowMetaData = '';
+        let arrowData: Uint8Array | undefined = undefined;
+        let arrowFilename = '';
+        let arrowDataSize = 0;
+        let arrowDataOffset = 0;
+
         
         if((reqID) && (reqID > 0)){
             num_checks = 0;
@@ -114,6 +117,8 @@ onmessage = async (event) => {
             const callbacks = {
                 'arrowrec.meta': async (result:any) => {
                     console.log('atl06p cb arrowrec.meta result:', result);
+                    arrowFilename = result.filename;
+                    arrowDataSize = Number(result.size);
                     if(num_arrow_meta_recs_processed === 0){
                         try{
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow meta data.'});
@@ -126,20 +131,29 @@ onmessage = async (event) => {
                 'arrowrec.data': async (result:any) => {
                     console.log('atl06p cb arrowrec.data result:', result);
                     //postMessage({type: 'arrowData', data: result.data}); 
-                    arrowData.push(result.data);
-                    arrowMetaData = result.filename;
+                    //arrowData.push(result.data);
+
                     if(num_arrow_data_recs_processed === 0){
                         try{
+                            arrowData = new Uint8Array(arrowDataSize);
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow data.'});
                         } catch (error) {
                             console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
                         }
                     }
-                    num_arrow_data_recs_processed++;
+                    if(arrowData){
+                        arrowData.set(result.data, arrowDataOffset);
+                        arrowDataOffset += result.data.length;
+                        num_arrow_data_recs_processed++;
+                        num_arrow_data_recs_processed++;
+                    } else {
+                        console.error('arrowData was not initialized.');
+                    }  
                 },
                 atl06rec: async (result:any) => {
                     if(num_atl06recs_processed === 0){
                         try{
+
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing ATL06 data.'});
                         } catch (error) {
                             console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
@@ -445,8 +459,12 @@ onmessage = async (event) => {
                                             target_numArrowDataRecs,
                                             target_numArrowMetaRecs);
                         if(num_arrow_data_recs_processed > 0){
-                            console.log('runAtl06 req_id:',reqID, 'postMessage dataMsg: arrowMetaData:', arrowMetaData, 'arrowData:', arrowData);
-                            postMessage(dataMsg(reqID, arrowMetaData, arrowData));
+                            console.log('runAtl06 req_id:',reqID, 'postMessage dataMsg: arrowFilename:', arrowFilename, 'arrowData:', arrowData);
+                            if(arrowData){
+                                postMessage(dataMsg(reqID, arrowFilename, [arrowData]));
+                            } else {
+                                console.error('arrowData was not initialized.');
+                            }
                         }
                     });
                 } else {
