@@ -15,6 +15,7 @@ export const useReqParamsStore = defineStore('reqParams', {
     state: () => ({
         using_worker: false,
         asset: 'icesat2',
+        isArrowStream: false,
         rasterizePolygon: false,
         ignorePolygon: false,
         poly: null as SrRegion | null,
@@ -239,6 +240,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               } else {
                 req.output = {format: 'parquet', as_geo: false, path: path_to_use};
               }
+              this.isArrowStream = true;
             } else if(this.outputFormat.value==='csv'){
               path_to_use += '.parquet';
               req.output = {format: this.outputFormat.value, path: path_to_use};

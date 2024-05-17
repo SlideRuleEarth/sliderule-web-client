@@ -173,10 +173,15 @@
                 console.log('handleAtl06Msg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
-                    curReqSumStore.setNumRecs(workerMsg.progress.numAtl06Recs); 
-                    curReqSumStore.setTgtRecs(workerMsg.progress.target_numAtl06Recs);
+                    curReqSumStore.setNumAtl06Recs(workerMsg.progress.numAtl06Recs); 
+                    curReqSumStore.setTgtAtl06Recs(workerMsg.progress.target_numAtl06Recs);
                     curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
                     curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
+                    curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
+                    curReqSumStore.setTgtArrowDataRecs(workerMsg.progress.target_numArrowDataRecs);
+                    curReqSumStore.setNumArrowMetaRecs(workerMsg.progress.numArrowMetaRecs);
+                    curReqSumStore.setTgtArrowMetaRecs(workerMsg.progress.target_numArrowMetaRecs);
+
                     const sMsg = workerMsg as WorkerSummary;
                     curReqSumStore.setSummary(sMsg);
                     if(workerMsg.msg){
@@ -416,10 +421,15 @@
     async function runSlideRuleClicked() {
         mapStore.isLoading = true;
         console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
-        curReqSumStore.setNumRecs(0);
-        curReqSumStore.setTgtRecs(0);
+        curReqSumStore.setNumAtl06Recs(0);
+        curReqSumStore.setTgtAtl06Recs(0);
         curReqSumStore.setNumExceptions(0);
         curReqSumStore.setTgtExceptions(0);
+        curReqSumStore.setNumArrowDataRecs(0);
+        curReqSumStore.setTgtArrowDataRecs(0);
+        curReqSumStore.setNumArrowMetaRecs(0);
+        curReqSumStore.setTgtArrowMetaRecs(0);
+
         requestsStore.setMsg('Running...');
         let srReqRec = await requestsStore.createNewSrRequestRecord();
         if(srReqRec) {
@@ -433,6 +443,7 @@
                         return;
                     }
                     srReqRec.parameters = reqParamsStore.getAtl06pReqParams(srReqRec.req_id);
+                    curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     // if ( reqParamsStore.fileOutput===true ) {
@@ -495,7 +506,7 @@
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
                 <Button label="Abort" @click="abortClicked" v-if:="mapStore.isLoading" :disabled="mapStore.isAborting"></Button>
                 <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-                <span v-if="mapStore.isLoading">Loading... {{ curReqSumStore.getNumRecs() }}</span>
+                <span v-if="mapStore.isLoading">Loading... {{ curReqSumStore.getNumAtl06Recs() }}</span>
             </div>
             <div class="sr-svr-msg-console">
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>

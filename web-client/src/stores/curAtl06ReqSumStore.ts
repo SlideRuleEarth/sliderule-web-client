@@ -11,13 +11,18 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         lat_max: -90,
         lon_min: 180,
         lon_max: -180,
-        num_recs: 0,
+        num_atl06_recs: 0,
+        num_arrow_data_recs: 0,
+        num_arrow_meta_recs: 0,
         num_exceptions: 0,
-        tgt_recs: 0,
+        tgt_atl06_recs: 0,
+        tgt_arrow_data_recs: 0,
+        tgt_arrow_meta_recs: 0,
         tgt_exceptions: 0,
         read_state: 'idle',
         req_id: 0,
         duration: 0,
+        is_arrow_stream: false,
     }),
     actions: {
         set_h_mean_Min(h_mean_min: number) {
@@ -62,17 +67,41 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         getReqId() {
             return this.req_id;
         },
-        setNumRecs(num_recs: number) {
-            this.num_recs = num_recs;
+        setNumAtl06Recs(num_atl06_recs: number) {
+            this.num_atl06_recs = num_atl06_recs;
         },
-        getNumRecs() {
-            return this.num_recs;
+        getNumAtl06Recs() {
+            return this.num_atl06_recs;
         },
-        setTgtRecs(tgt_recs: number) {
-            this.tgt_recs = tgt_recs;
+        setNumArrowDataRecs(num_arrow_data_recs: number) {
+            this.num_arrow_data_recs = num_arrow_data_recs;
         },
-        getTgtRecs() {
-            return this.tgt_recs;
+        getNumArrowDataRecs() {
+            return this.num_arrow_data_recs;
+        },
+        setNumArrowMetaRecs(num_arrow_meta_recs: number) {
+            this.num_arrow_meta_recs = num_arrow_meta_recs;
+        },
+        getNumArrowMetaRecs() {
+            return this.num_arrow_meta_recs;
+        },
+        setTgtAtl06Recs(tgt_atl06_recs: number) {
+            this.tgt_atl06_recs = tgt_atl06_recs;
+        },
+        getTgtAtl06Recs() {
+            return this.tgt_atl06_recs;
+        },
+        setTgtArrowDataRecs(tgt_arrow_data_recs: number) {
+            this.tgt_arrow_data_recs = tgt_arrow_data_recs;
+        },
+        getTgtArrowDataRecs() {
+            return this.tgt_arrow_data_recs;
+        },
+        setTgtArrowMetaRecs(tgt_arrow_meta_recs: number) {
+            this.tgt_arrow_meta_recs = tgt_arrow_meta_recs;
+        },
+        getTgtArrowMetaRecs() {
+            return this.tgt_arrow_meta_recs;
         },
         setNumExceptions(num_exceptions: number) {
             this.num_exceptions = num_exceptions;
@@ -92,8 +121,11 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         getReadState() {
             return this.read_state;
         },
-        addNumRecs(num_recs: number) {
-            this.num_recs += num_recs;
+        setIsArrowStream(is_arrow_stream: boolean) {
+            this.is_arrow_stream = is_arrow_stream;
+        },
+        getIsArrowStream() {
+            return this.is_arrow_stream;
         },
         get_h_mean_Low() {
             return this.h_mean_low;

@@ -2,10 +2,22 @@
   <div class="sr-progress-panel">
     <div class="sr-progress-panel-content">
         <span>State: {{ readState }}</span>
-        <span>
-            Records: {{ numRecords }}
-            <span v-if="targetRecords !== 0">
-                    / {{ targetRecords }} {{ percentageRecs }}%
+        <span v-if="!isArrowStream">
+            Atl06 Records: {{ numAtl06Records }}
+            <span v-if="targetAtl06Records !== 0">
+                    / {{ targetAtl06Records }} {{ percentageAtl06Recs }}%
+            </span> 
+        </span>
+        <span v-if="isArrowStream">
+            Arrow Data Records: {{ numArrowDataRecords }}
+            <span v-if="targetArrowDataRecords !== 0">
+                    / {{ targetArrowDataRecords }} {{ percentageArrowDataRecs }}%
+            </span> 
+        </span>
+        <span v-if="isArrowStream">
+            Arrow Meta Records: {{ numArrowMetaRecords }}
+            <span v-if="targetArrowDataRecords !== 0">
+                    / {{ targetArrowMetaRecords }} {{ percentageArrowMetaRecs }}%
             </span> 
         </span>
         <span>
@@ -26,11 +38,16 @@ import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 onMounted(() => {
     console.log('SrProgress.vue onMounted ');
 });
-const targetRecords = computed(() => useCurAtl06ReqSumStore().getTgtRecs());
-const numRecords = computed(() => useCurAtl06ReqSumStore().getNumRecs());
+const targetAtl06Records = computed(() => useCurAtl06ReqSumStore().getTgtAtl06Recs());
+const numAtl06Records = computed(() => useCurAtl06ReqSumStore().getNumAtl06Recs());
+const targetArrowDataRecords = computed(() => useCurAtl06ReqSumStore().getTgtArrowDataRecs());
+const numArrowDataRecords = computed(() => useCurAtl06ReqSumStore().getNumArrowDataRecs());
+const targetArrowMetaRecords = computed(() => useCurAtl06ReqSumStore().getTgtArrowMetaRecs());
+const numArrowMetaRecords = computed(() => useCurAtl06ReqSumStore().getNumArrowMetaRecs());
 const targetExceptions = computed(() => useCurAtl06ReqSumStore().getTgtExceptions());
 const numExceptions = computed(() => useCurAtl06ReqSumStore().getNumExceptions());
 const readState = computed(() => useCurAtl06ReqSumStore().getReadState());
+const isArrowStream = computed(() => useCurAtl06ReqSumStore().getIsArrowStream());
 
 const percentageExceptions = computed(() => {
     const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
@@ -39,10 +56,24 @@ const percentageExceptions = computed(() => {
     }
     return 0;
 });
-const percentageRecs = computed(() => {
+const percentageAtl06Recs = computed(() => {
     const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
-    if (curAtl06ReqSumStore.getTgtRecs() > 0) {
-        return (curAtl06ReqSumStore.getNumRecs()/ curAtl06ReqSumStore.getTgtRecs()) * 100;
+    if (curAtl06ReqSumStore.getTgtAtl06Recs() > 0) {
+        return (curAtl06ReqSumStore.getNumAtl06Recs()/ curAtl06ReqSumStore.getTgtAtl06Recs()) * 100;
+    }
+    return 0;
+});
+const percentageArrowDataRecs = computed(() => {
+    const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
+    if (curAtl06ReqSumStore.getTgtArrowDataRecs() > 0) {
+        return (curAtl06ReqSumStore.getNumArrowDataRecs()/ curAtl06ReqSumStore.getTgtArrowDataRecs()) * 100;
+    }
+    return 0;
+});
+const percentageArrowMetaRecs = computed(() => {
+    const curAtl06ReqSumStore = useCurAtl06ReqSumStore();
+    if (curAtl06ReqSumStore.getTgtArrowMetaRecs() > 0) {
+        return (curAtl06ReqSumStore.getNumArrowMetaRecs()/ curAtl06ReqSumStore.getTgtArrowMetaRecs()) * 100;
     }
     return 0;
 });
