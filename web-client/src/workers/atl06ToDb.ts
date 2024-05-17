@@ -145,7 +145,8 @@ onmessage = async (event) => {
                         arrowData.set(result.data, arrowDataOffset);
                         arrowDataOffset += result.data.length;
                         num_arrow_data_recs_processed++;
-                        num_arrow_data_recs_processed++;
+                        target_numArrowDataRecs++;
+                        
                     } else {
                         console.error('arrowData was not initialized.');
                     }  
