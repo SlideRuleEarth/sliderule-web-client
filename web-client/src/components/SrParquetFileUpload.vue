@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useCatalogStore } from '@/stores/catalogStore';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 
-const toast = useToast();
-const catalogStore = useCatalogStore();
+
 
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
@@ -17,63 +15,65 @@ const upload_progress = ref(0);
 
 
 const customUploader = async (event:any) => {
-    console.log('customUploader event:',event);
+    console.log('SrParquetFileUpload customUploader event:',event);
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = async (e) => {
             try {
+                console.error('SrParquetFileUpload  parsing parquet TBD');
+
                 if (e.target === null){
                     console.error('e.target is null');
                     return;
                 } else {
                     //console.log(`e.target.result: ${e.target.result}`);
-                    console.log(`e.target.result type: ${typeof e.target.result}`);
+                    console.log(`SrParquetFileUpload e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
-                        const data = JSON.parse(e.target.result);
-                        catalogStore.setCatalogData(data);
-                        toast.add({ severity: 'info', summary: 'File Load', detail: 'Catalog file successfully loaded', life: 3000});
+                        //const data = JSON.parse(e.target.result);
+                        //catalogStore.setCatalogData(data);
+                        useToast().add({ severity: 'info', summary: 'File Load', detail: 'Catalog file successfully loaded', life: 3000});
                 
                     } else {
-                        console.error('Error parsing GeoJSON:', e.target.result);
-                        toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                        console.error('SrParquetFileUpload Error parsing parquet:', e.target.result);
+                        useToast().add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
                     }
                 }
             } catch (error) {
-                console.error('Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                console.error('SrParquetFileUpload Error parsing GeoJSON:', error);
+                useToast().add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
             }
         };
 
         reader.onprogress = (e) => {
-            console.log('onprogress e:',e);
+            console.log('SrParquetFileUpload onprogress e:',e);
             if (e.lengthComputable) {
-                console.log(`Uploading your file ${e.loaded} of ${e.total}`);
+                console.log(`SrParquetFileUpload Uploading your file ${e.loaded} of ${e.total}`);
                 const percentLoaded = Math.round((e.loaded / e.total) * 100);
                 upload_progress.value = percentLoaded;
                 if (!upload_progress_visible.value) {
                     upload_progress_visible.value = true;
-                    toast.add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
+                    useToast().add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
                 }
             }
         };
     } else {
-        console.error('No file input found');
-        toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
+        console.error('SrParquetFileUpload No file input found');
+        useToast().add({ severity: 'error', summary: 'No file input found', group: 'headless' });
     };
 };
 
 const onSelect = (e:any) => {
-    console.log('onSelect e:',e);
+    console.log('SrParquetFileUpload onSelect e:',e);
 };
 
 const onError = (e:any) => {
-    console.log('onError e:',e);
-    toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
+    console.log('SrParquetFileUpload onError e:',e);
+    useToast().add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
 const onClear = () => {
-    console.log('onClear');
+    console.log('SrParquetFileUpload onClear');
 };
 
 </script>
@@ -101,10 +101,10 @@ const onClear = () => {
         <FileUpload mode="basic" 
                     name="SrCatalog" 
                     :auto="true" 
-                    accept=".smp,.smpr" 
+                    accept=".parquet,.geoparquet" 
                     :maxFileSize="10000000000" 
                     customUpload
-                    chooseLabel="Upload a Catalog File"
+                    chooseLabel="Upload a Parquet File"
                     @uploader="customUploader"
                     @select="onSelect"
                     @error="onError"
