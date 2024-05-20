@@ -97,7 +97,7 @@ export interface Atl06ReqParams {
     maxi: number;
     poly?: SrRegion | null;
     cmr?: { polygon: SrRegion };
-    output?: {format: string, as_geo?: boolean, path: string};
+    output?: {format: string, as_geo?: boolean, path?: string};
     [key: string]: any; // Other dynamic keys
 }
 

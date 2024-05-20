@@ -6,6 +6,7 @@ import { dataMsg, type WebWorkerCmd } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { updateExtremes,abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
+import { tableFromIPC } from "apache-arrow";
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -105,10 +106,14 @@ onmessage = async (event) => {
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
         const bulkAddPromises: Promise<void>[] = [];
-        let arrowData: Uint8Array | undefined = undefined;
-        let arrowFilename = '';
-        let arrowDataSize = 0;
-        let arrowDataOffset = 0;
+        const arrowData: Uint8Array[] = [];
+        const arrowFilename: string [] = [];
+        const arrowDataSize:number[] = [];
+        const arrowDataOffset: number[] = [];
+        let currentDataNdx = -1;
+        let currentMetaNdx = -1;
+        let theMetaNdx = -1;
+        let theDataNdx = -1;
 
         
         if((reqID) && (reqID > 0)){
@@ -117,44 +122,49 @@ onmessage = async (event) => {
             const callbacks = {
                 'arrowrec.meta': async (result:any) => {
                     console.log('atl06p cb arrowrec.meta result:', result);
-                    arrowFilename = result.filename;
-                    arrowDataSize = Number(result.size);
-                    if(num_arrow_meta_recs_processed === 0){
-                        try{
-                            await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow meta data.'});
-                        } catch (error) {
-                            console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
+                    currentMetaNdx++;
+                    arrowFilename[currentMetaNdx] = result.filename;
+                    arrowDataSize[currentMetaNdx] = Number(result.size);
+                        if(num_arrow_meta_recs_processed === 0){
+                            try{
+                                await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow meta data.'});
+                            } catch (error) {
+                                console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
+                            }
                         }
-                    }
+                    
                     num_arrow_meta_recs_processed++;
                 },
                 'arrowrec.data': async (result:any) => {
                     console.log('atl06p cb arrowrec.data result:', result);
-                    //postMessage({type: 'arrowData', data: result.data}); 
-                    //arrowData.push(result.data);
-
                     if(num_arrow_data_recs_processed === 0){
                         try{
-                            arrowData = new Uint8Array(arrowDataSize);
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow data.'});
                         } catch (error) {
                             console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
                         }
                     }
-                    if(arrowData){
-                        arrowData.set(result.data, arrowDataOffset);
-                        arrowDataOffset += result.data.length;
+                    if((currentDataNdx < 0) || result.filename !== arrowFilename[currentDataNdx]){
+                        currentDataNdx++;
+                        arrowData.push(new Uint8Array(arrowDataSize[currentMetaNdx]));
+                        if(arrowFilename[currentDataNdx].includes('_meta')){
+                            theMetaNdx = currentDataNdx;
+                        } else {
+                            theDataNdx = currentDataNdx;
+                        }
+                    }
+                    if(arrowData[currentDataNdx]){
+                        arrowData[currentDataNdx].set(result.data, arrowDataOffset[currentDataNdx]);
+                        arrowDataOffset[currentDataNdx] += result.data.length;
                         num_arrow_data_recs_processed++;
                         target_numArrowDataRecs++;
-                        
                     } else {
-                        console.error('arrowData was not initialized.');
-                    }  
+                        console.error(`arrowData[${currentDataNdx}] was not initialized.`);
+                    } 
                 },
                 atl06rec: async (result:any) => {
                     if(num_atl06recs_processed === 0){
                         try{
-
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing ATL06 data.'});
                         } catch (error) {
                             console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
@@ -460,12 +470,16 @@ onmessage = async (event) => {
                                             target_numArrowDataRecs,
                                             target_numArrowMetaRecs);
                         if(num_arrow_data_recs_processed > 0){
-                            console.log('runAtl06 req_id:',reqID, 'postMessage dataMsg: arrowFilename:', arrowFilename, 'arrowData:', arrowData);
-                            if(arrowData){
-                                postMessage(dataMsg(reqID, arrowFilename, [arrowData]));
-                            } else {
-                                console.error('arrowData was not initialized.');
-                            }
+                            //postMessage(dataMsg(reqID, arrowFilename[i], [arrowData[i]]));
+                            console.log('theMetaNdx:', theMetaNdx, 'theDataNdx:', theDataNdx);
+                            console.log('metaData-> arrowData[',theMetaNdx,']:', arrowData[theMetaNdx]);
+                            console.log('    Data-> arrowData[',theDataNdx,']:', arrowData[theDataNdx]);
+                            //const ipcMessage = [arrowData[theMetaNdx], arrowData[theDataNdx]];
+                            //console.log('ipcMessage:', ipcMessage);
+                            //const table = tableFromIPC(ipcMessage);
+                            //console.log('table:', table);
+                        } else {
+                            console.error('No arrow data records were processed.');
                         }
                     });
                 } else {
