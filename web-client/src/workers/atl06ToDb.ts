@@ -39,7 +39,7 @@ export async function checkDoneProcessing(  reqID:number,
         if((num_atl06recs_processed >= target_numAtl06Recs) && (num_atl06Exceptions >= target_numAtl06Exceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)){
             let status_details = 'No data returned from SlideRule.';
             if((target_numAtl06Recs > 0) || (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0)){
-                status_details = `Received atl06rec:${target_numAtl06Recs}  arrow.data:${target_numArrowDataRecs} arrow.meta:${target_numArrowMetaRecs} Processed atl06:${num_atl06recs_processed}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_atl06Exceptions}  num_el_pnts:${num_el_pnts}  num_checks:${num_checks} num_post_done_checks:${num_post_done_checks} bulkAddPromises:${bulkAddPromises.length}`;
+                status_details = `Received atl06rec:${target_numAtl06Recs} tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} Processed atl06:${num_atl06recs_processed}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_atl06Exceptions}  num_el_pnts:${num_el_pnts}  num_checks:${num_checks} num_post_done_checks:${num_post_done_checks} bulkAddPromises:${bulkAddPromises.length}`;
             }
             console.log('atl06p Success:', status_details, 'req_id:', reqID, 'num_el_pnts:', num_el_pnts, 'num_checks:', num_checks, 'num promises:', bulkAddPromises.length);
             if(bulkAddPromises.length > 0){
@@ -78,7 +78,8 @@ onmessage = async (event) => {
 
         let abortRequested = false;
 
-        const cmd:WebWorkerCmd = JSON.parse(event.data);;
+        const cmd:WebWorkerCmd = JSON.parse(event.data);
+        console.log('atl06ToDb worker received cmd:', cmd);
         const reqID = cmd.req_id;
         if(cmd.type === 'abort'){
             abortRequested = true;
@@ -118,7 +119,7 @@ onmessage = async (event) => {
         let arrowDataFileOffset: number = 0;
         let arrowMetaFileOffset: number = 0;
         let arrowCbNdx = -1;
-
+        const outputFormat = req.parms.output?.format;
         
         if((reqID) && (reqID > 0)){
             num_checks = 0;
@@ -489,20 +490,24 @@ onmessage = async (event) => {
                         } else {
                             console.log('No arrowMetaFile records were processed.');
                         }
+                        console.log('req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset, 'arrowDataFile:', arrowDataFile);
+
                         if(arrowDataFileOffset > 0){
-                            //const ipcMessage = [Buffer.from(schemaJsonString), Buffer.from(arrowData[featherDataFileNdx])];
-                            const ipcMessage = [ Buffer.from(arrowDataFile)];
-                            // Create the Arrow table
-                            const table = tableFromIPC(ipcMessage);
+                            if(outputFormat === 'arrow'){
 
-                            // Get the column names
-                            const columnNames = table.schema.fields.map(field => field.name);
+                                const ipcMessage = [ Buffer.from(arrowDataFile)];
+                                // Create the Arrow table
+                                const table = tableFromIPC(ipcMessage);
+                                // Get the column names
+                                const columnNames = table.schema.fields.map(field => field.name);
+                                // Display the column names
+                                console.log("Column Names:", columnNames);
 
-                            // Display the column names
-                            console.log("Column Names:", columnNames);
-                            //console.log(table.schema);
-                            // Display or work with the table
-                            //console.table([...table]);
+                            } else if((outputFormat === 'geoparquet') || (outputFormat === 'parquet')){
+                                postMessage(dataMsg(reqID, arrowDataFilename, [arrowDataFile]));
+                            } else {
+                                console.error('Unknown format:', req.format);
+                            }
                         } else {
                             console.error('No arrowDataFile records were processed.');
                         }
