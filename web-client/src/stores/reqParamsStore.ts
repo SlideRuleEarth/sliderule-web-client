@@ -245,7 +245,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               this.isArrowStream = true;
             } else if(this.outputFormat.value==='feather'){
               path_to_use += '.feather';
-              req.output = {format: 'feather', path: path_to_use};
+              req.output = {format: 'feather', as_geo: false, path: path_to_use};
               this.isArrowStream = true;
             } else if(this.outputFormat.value==='csv'){
               path_to_use += '.parquet';
