@@ -2,11 +2,11 @@ import { db } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams,type Atl06ReqParams } from '@/sliderule/icesat2';
-import { dataMsg, type WebWorkerCmd } from '@/workers/workerUtils';
+import { geoParquetMsg,featherMsg, type WebWorkerCmd } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { updateExtremes,abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
-import { tableFromIPC } from "apache-arrow";
+import { tableFromIPC,tableToIPC, Uint8Builder } from "apache-arrow";
 import { Buffer } from "buffer";
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
@@ -493,7 +493,7 @@ onmessage = async (event) => {
                         console.log('req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset, 'arrowDataFile:', arrowDataFile);
 
                         if(arrowDataFileOffset > 0){
-                            if(outputFormat === 'arrow'){
+                            if(outputFormat === 'feather'){
 
                                 const ipcMessage = [ Buffer.from(arrowDataFile)];
                                 // Create the Arrow table
@@ -502,9 +502,20 @@ onmessage = async (event) => {
                                 const columnNames = table.schema.fields.map(field => field.name);
                                 // Display the column names
                                 console.log("Column Names:", columnNames);
+                                console.log("Table Data:", table.toArray());
+
+                                // Convert the Arrow table to Feather format (IPC)
+                                const ipcData = tableToIPC(table,"file");
+                                console.log('ipcData:', ipcData);
+                                // Create a Blob from the Uint8Array and create an Object URL
+                                const blob = new Blob([ipcData], { type: 'application/octet-stream' });
+                                postMessage(featherMsg(reqID, arrowDataFilename,blob));
 
                             } else if((outputFormat === 'geoparquet') || (outputFormat === 'parquet')){
-                                postMessage(dataMsg(reqID, arrowDataFilename, [arrowDataFile]));
+                                //postMessage(dataMsg(reqID, arrowDataFilename, [arrowDataFile]));
+                                const blob = new Blob([arrowDataFile], { type: 'application/vnd.apache.parquet' });
+                                postMessage(geoParquetMsg(reqID, arrowDataFilename,blob));
+
                             } else {
                                 console.error('Unknown format:', req.format);
                             }

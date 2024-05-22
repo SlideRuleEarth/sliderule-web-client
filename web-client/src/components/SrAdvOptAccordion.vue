@@ -12,6 +12,7 @@ import SrCalendar from './SrCalendar.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrRasterParamsDataTable from './SrRasterParamsDataTable.vue';
+import SrFeatherFileUpload from './SrFeatherFileUpload.vue';
 import SrRasterParams from './SrRasterParams.vue';
 import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
 import SrResources from './SrResources.vue';
@@ -67,6 +68,7 @@ onMounted(() => {
             <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                 <AccordionTab header="General" >
+                    <SrFeatherFileUpload />
                     <SrMenuInput
                         v-model="mapStore.polygonSource"
                         label = "Polygon Source"

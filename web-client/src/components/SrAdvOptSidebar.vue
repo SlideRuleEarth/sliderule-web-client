@@ -208,47 +208,79 @@
                 }
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
-            case 'data_rcvd':
+            // case 'data_rcvd':
 
-                // TBD this is a temporary hack!
+            //     // TBD this is a temporary hack!
 
-                console.log('handleAtl06Msg data_rcvd:',workerMsg.data);
-                if(workerMsg.data){
-                    let binaryData: Uint8Array;
+            //     console.log('handleAtl06Msg data_rcvd:',workerMsg.data);
+            //     if(workerMsg.data){
+            //         let binaryData: Uint8Array;
 
-                    if (workerMsg.data.length === 1) {
-                        // If there is only one element, use it directly
-                        binaryData = new Uint8Array(workerMsg.data[0]);
-                    } else {
-                        // If there are multiple elements, combine them
-                        let totalLength = 0;
-                        workerMsg.data.forEach((arr: Uint8Array) => totalLength += arr.length);
+            //         if (workerMsg.data.length === 1) {
+            //             // If there is only one element, use it directly
+            //             binaryData = new Uint8Array(workerMsg.data[0]);
+            //         } else {
+            //             // If there are multiple elements, combine them
+            //             let totalLength = 0;
+            //             workerMsg.data.forEach((arr: Uint8Array) => totalLength += arr.length);
 
-                        binaryData = new Uint8Array(totalLength);
-                        let offset = 0;
-                        workerMsg.data.forEach((arr: Uint8Array) => {
-                            binaryData.set(arr, offset);
-                            offset += arr.length;
-                        });
-                    }
+            //             binaryData = new Uint8Array(totalLength);
+            //             let offset = 0;
+            //             workerMsg.data.forEach((arr: Uint8Array) => {
+            //                 binaryData.set(arr, offset);
+            //                 offset += arr.length;
+            //             });
+            //         }
 
-                    console.log('handleAtl06Msg binaryData:', binaryData);
+            //         console.log('handleAtl06Msg binaryData:', binaryData);
 
+            //         let filename = 'atl06.parquet';
+            //         const blob = new Blob([binaryData], { type: 'application/vnd.apache.parquet' });
+
+            //         if (workerMsg.metadata) {
+            //             filename = workerMsg.metadata;
+            //         } else {
+            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+            //         }
+
+            //         triggerDownload(blob,filename);
+            //     }
+            //     break;
+
+            case 'geoParquet_rcvd':
+
+                console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
+                if(workerMsg.blob){
                     let filename = 'atl06.parquet';
-                    const blob = new Blob([binaryData], { type: 'application/vnd.apache.parquet' });
-
                     if (workerMsg.metadata) {
                         filename = workerMsg.metadata;
                     } else {
                         console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
                     }
+                    triggerDownload(workerMsg.blob,filename);
+                } else {
+                    console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
+                }
+                break;
 
-                    triggerDownload(blob,filename);
+            case 'feather_rcvd':
+
+                console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
+                if(workerMsg.blob){
+                    let filename = 'atl06.feather';
+                    if (workerMsg.metadata) {
+                        filename = workerMsg.metadata;
+                    } else {
+                        console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+                    }
+                    triggerDownload(workerMsg.blob,filename);
+                } else {
+                    console.error('handleAtl06Msg feather_rcvd blob is undefined');
                 }
                 break;
 
             default:
-                console.error('handleAtl06Msg unknown status?:',workerMsg.msg);
+                console.error('handleAtl06Msg unknown status?:',workerMsg.status);
                 break;
         }     
     }

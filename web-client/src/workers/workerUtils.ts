@@ -9,7 +9,7 @@ export interface WebWorkerCmd {
     parameters?: ReqParams;
 }
 
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'data_rcvd' | 'server_msg' | 'aborted';
+export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'server_msg' | 'aborted';
 
 export interface WorkerError {
     type: string;
@@ -34,6 +34,7 @@ export interface WorkerMessage {
     msg?: string;               // status details
     error?: WorkerError;        // Error details (if an error occurred)
     data?: Uint8Array[];         // Data returned by the worker
+    blob?: Blob;                // Data returned by the worker
     metadata?: string;          // Metadata returned by the worker
 }
 export interface ExtLatLon {
@@ -132,8 +133,14 @@ export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): P
     return workerSummaryMsg;
 }
 
-export function dataMsg(req_id:number,filename:string, data: Uint8Array[]): WorkerMessage{
-    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'data_rcvd', data: data, metadata: filename};
+export function geoParquetMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'geoParquet_rcvd', blob: blob, metadata: filename};
+    return workerDataMsg;
+}
+
+
+export function featherMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'feather_rcvd', blob: blob, metadata: filename};
     return workerDataMsg;
 }
 
