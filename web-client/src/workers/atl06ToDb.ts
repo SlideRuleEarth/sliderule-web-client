@@ -7,6 +7,7 @@ import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type}
 import { init } from '@/sliderule/core';
 import { updateExtremes,abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
 import { tableFromIPC } from "apache-arrow";
+import { Buffer } from "buffer";
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
@@ -96,8 +97,10 @@ onmessage = async (event) => {
         console.log("atl06ToDb req: ", req);
         let num_atl06recs_processed = 0;
         let num_atl06Exceptions = 0;
-        let num_arrow_data_recs_processed = 0;
-        let num_arrow_meta_recs_processed = 0;
+        let num_arrow_dataFile_data_recs_processed = 0;
+        let num_arrow_dataFile_meta_recs_processed = 0;
+        let num_arrow_metaFile_data_recs_processed = 0;
+        let num_arrow_metaFile_meta_recs_processed = 0;
         let read_result = {} as Sr_Results_type;
         let read_state = 'idle'
         let num_el_pnts = 0;
@@ -106,14 +109,15 @@ onmessage = async (event) => {
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
         const bulkAddPromises: Promise<void>[] = [];
-        const arrowData: Uint8Array[] = [];
-        const arrowFilename: string [] = [];
-        const arrowDataSize:number[] = [];
-        const arrowDataOffset: number[] = [];
-        let currentDataNdx = -1;
-        let currentMetaNdx = -1;
-        let theMetaNdx = -1;
-        let theDataNdx = -1;
+        let arrowDataFile: Uint8Array;
+        let arrowMetaFile: Uint8Array;
+        let arrowDataFilename: string = '';
+        let arrowMetaFilename: string = '';
+        let arrowDataFileSize:number = 0;
+        let arrowMetaFileSize:number = 0;
+        let arrowDataFileOffset: number = 0;
+        let arrowMetaFileOffset: number = 0;
+        let arrowCbNdx = -1;
 
         
         if((reqID) && (reqID > 0)){
@@ -121,46 +125,54 @@ onmessage = async (event) => {
             startedMsg(reqID,req);
             const callbacks = {
                 'arrowrec.meta': async (result:any) => {
-                    console.log('atl06p cb arrowrec.meta result:', result);
-                    currentMetaNdx++;
-                    arrowFilename[currentMetaNdx] = result.filename;
-                    arrowDataSize[currentMetaNdx] = Number(result.size);
-                        if(num_arrow_meta_recs_processed === 0){
+                    arrowCbNdx++;
+                    console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' result.filename:', result.filename, ' result:', result);
+                    if(result.filename.includes('_metadata.json')){
+                        arrowMetaFilename = result.filename;
+                        arrowMetaFileSize = Number(result.size);
+                        arrowMetaFileOffset = 0;
+                        //create the new data array that corresponds to this meta data
+                        arrowMetaFile = new Uint8Array(arrowMetaFileSize);
+                        if(num_arrow_metaFile_meta_recs_processed === 0){
                             try{
                                 await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow meta data.'});
                             } catch (error) {
-                                console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
+                                console.error('Failed to update request status to progress:', error, ' for req_id:', reqID, ' for arrowCbNdx:', arrowCbNdx);
                             }
                         }
-                    
-                    num_arrow_meta_recs_processed++;
+                        num_arrow_metaFile_meta_recs_processed++;
+                        console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowMetaFilename:', arrowMetaFilename, ' arrowMetaFileSize:', arrowMetaFileSize, ' arrowDataFile:', arrowDataFile, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
+                    } else {
+                        arrowDataFilename = result.filename;
+                        arrowDataFileSize = Number(result.size);
+                        arrowDataFileOffset = 0;
+                        //create the new data array that corresponds to this meta data
+                        arrowDataFile = new Uint8Array(arrowDataFileSize);
+                        if(num_arrow_dataFile_meta_recs_processed === 0){
+                            try{
+                                await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow data.'});
+                            } catch (error) {
+                                console.error('Failed to update request status to progress:', error, ' for req_id:', reqID, ' for arrowCbNdx:', arrowCbNdx);
+                            }
+                        }
+                        num_arrow_dataFile_meta_recs_processed++;
+                        console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowDataFilename:', arrowDataFilename, ' arrowDataFileSize:', arrowDataFileSize, ' arrowDataFile:', arrowDataFile, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed);
+                    }
                 },
                 'arrowrec.data': async (result:any) => {
-                    console.log('atl06p cb arrowrec.data result:', result);
-                    if(num_arrow_data_recs_processed === 0){
-                        try{
-                            await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing arrow data.'});
-                        } catch (error) {
-                            console.error('Failed to update request status to progress:', error, ' for req_id:', reqID);
-                        }
-                    }
-                    if((currentDataNdx < 0) || result.filename !== arrowFilename[currentDataNdx]){
-                        currentDataNdx++;
-                        arrowData.push(new Uint8Array(arrowDataSize[currentMetaNdx]));
-                        if(arrowFilename[currentDataNdx].includes('_meta')){
-                            theMetaNdx = currentDataNdx;
-                        } else {
-                            theDataNdx = currentDataNdx;
-                        }
-                    }
-                    if(arrowData[currentDataNdx]){
-                        arrowData[currentDataNdx].set(result.data, arrowDataOffset[currentDataNdx]);
-                        arrowDataOffset[currentDataNdx] += result.data.length;
-                        num_arrow_data_recs_processed++;
-                        target_numArrowDataRecs++;
+                    arrowCbNdx++;
+                    console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' result:', result);
+                    if(result.filename.includes('_metadata.json')){
+                        arrowMetaFile.set(result.data, arrowMetaFileOffset);
+                        arrowMetaFileOffset += result.data.length;
+                        num_arrow_metaFile_data_recs_processed++;
+                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
                     } else {
-                        console.error(`arrowData[${currentDataNdx}] was not initialized.`);
-                    } 
+                        arrowDataFile.set(result.data, arrowDataFileOffset);
+                        arrowDataFileOffset += result.data.length;
+                        num_arrow_dataFile_data_recs_processed++;
+                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowDataFile:', arrowDataFile, 'arrowDataFileOffset:', arrowDataFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                    }
                 },
                 atl06rec: async (result:any) => {
                     if(num_atl06recs_processed === 0){
@@ -213,9 +225,9 @@ onmessage = async (event) => {
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
                                             numAtl06Exceptions:num_atl06Exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_meta_recs_processed
+                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                         },
                                         msg,
                                         localExtLatLon,
@@ -226,8 +238,8 @@ onmessage = async (event) => {
                                         read_state, 
                                         num_atl06Exceptions, 
                                         num_atl06recs_processed,
-                                        num_arrow_data_recs_processed,
-                                        num_arrow_meta_recs_processed, 
+                                        num_arrow_dataFile_data_recs_processed+num_arrow_dataFile_meta_recs_processed,
+                                        num_arrow_metaFile_data_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                         num_el_pnts, 
                                         bulkAddPromises,
                                         localExtLatLon,
@@ -257,7 +269,7 @@ onmessage = async (event) => {
                         {
                             console.error('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
                             postMessage(await errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text }));
-                            const msg =  `RTE_TIMEOUT Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
+                            const msg =  `RTE_TIMEOUT Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
                             postMessage(await progressMsg(reqID, 
                                             {   
                                                 read_state:read_state,
@@ -266,9 +278,9 @@ onmessage = async (event) => {
                                                 target_numAtl06Exceptions:target_numAtl06Exceptions,
                                                 numAtl06Exceptions:num_atl06Exceptions,
                                                 target_numArrowDataRecs:target_numArrowDataRecs,
-                                                numArrowDataRecs:num_arrow_data_recs_processed,
+                                                numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                                numArrowMetaRecs:num_arrow_meta_recs_processed
+                                                numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                             },
                                             msg,
                                             localExtLatLon,
@@ -296,10 +308,10 @@ onmessage = async (event) => {
                             break;
                         }
                     }
-                    console.log('num_el_pnts:', num_el_pnts, ' num_atl06recs_processed:', num_atl06recs_processed, 'num_atl06Exceptions:', num_atl06Exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed);
+                    console.log('num_el_pnts:', num_el_pnts, ' num_atl06recs_processed:', num_atl06recs_processed, 'num_atl06Exceptions:', num_atl06Exceptions, 'num_arrow_data_recs_processed:');
                     if(num_atl06Exceptions > exceptionsProgThresh){
                         exceptionsProgThresh = num_atl06Exceptions + exceptionsProgThreshInc;
-                        const msg =  `Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} atl06 records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
+                        const msg =  `Received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} atl06 records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
                         postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
@@ -308,9 +320,9 @@ onmessage = async (event) => {
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
                                             numAtl06Exceptions:num_atl06Exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_meta_recs_processed
+                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                         },
                                         msg,
                                         localExtLatLon,
@@ -321,8 +333,8 @@ onmessage = async (event) => {
                                         read_state, 
                                         num_atl06Exceptions, 
                                         num_atl06recs_processed,
-                                        num_arrow_data_recs_processed,
-                                        num_arrow_meta_recs_processed, 
+                                        num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                        num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                         num_el_pnts,
                                         bulkAddPromises,
                                         localExtLatLon,
@@ -351,9 +363,9 @@ onmessage = async (event) => {
                                 target_numAtl06Exceptions:target_numAtl06Exceptions,
                                 numAtl06Exceptions:num_atl06Exceptions,
                                 target_numArrowDataRecs:target_numArrowDataRecs,
-                                numArrowDataRecs:num_arrow_data_recs_processed,
+                                numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                 target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                numArrowMetaRecs:num_arrow_meta_recs_processed
+                                numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                             },
                             'Starting to read ATL06 data.',
                             localExtLatLon,
@@ -369,7 +381,7 @@ onmessage = async (event) => {
                         }
                         console.log('atl06p Done Reading: result:', result);
                         //console.log('atl06p Done Reading: read_result:', read_result);
-                        const msg =  `Done Reading; received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_data_recs_processed} num_arrow_meta_recs:${num_arrow_meta_recs_processed}.`;
+                        const msg =  `Done Reading; received ${num_el_pnts} pnts in ${num_atl06recs_processed}/${target_numAtl06Recs} records. ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
 
                         read_state = 'done_reading';
                         postMessage(await progressMsg(reqID, 
@@ -380,9 +392,9 @@ onmessage = async (event) => {
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
                                             numAtl06Exceptions:num_atl06Exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_meta_recs_processed
+                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                         },
                                         msg,
                                         localExtLatLon,
@@ -403,9 +415,9 @@ onmessage = async (event) => {
                                     target_numAtl06Exceptions:target_numAtl06Exceptions,
                                     numAtl06Exceptions:num_atl06Exceptions,
                                     target_numArrowDataRecs:target_numArrowDataRecs,
-                                    numArrowDataRecs:num_arrow_data_recs_processed,
+                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                     target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                    numArrowMetaRecs:num_arrow_meta_recs_processed
+                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                 },
                                 'Error occurred while reading ATL06 data.',
                                 localExtLatLon,
@@ -436,9 +448,9 @@ onmessage = async (event) => {
                                             target_numAtl06Exceptions:target_numAtl06Exceptions,
                                             numAtl06Exceptions:num_atl06Exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_data_recs_processed,
+                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_meta_recs_processed
+                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                         },
                                         status_details,
                                         localExtLatLon,
@@ -459,8 +471,8 @@ onmessage = async (event) => {
                                             read_state, 
                                             num_atl06Exceptions, 
                                             num_atl06recs_processed,
-                                            num_arrow_data_recs_processed,
-                                            num_arrow_meta_recs_processed, 
+                                            num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                            num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                             num_el_pnts, 
                                             bulkAddPromises,
                                             localExtLatLon,
@@ -469,17 +481,30 @@ onmessage = async (event) => {
                                             target_numAtl06Exceptions,
                                             target_numArrowDataRecs,
                                             target_numArrowMetaRecs);
-                        if(num_arrow_data_recs_processed > 0){
-                            //postMessage(dataMsg(reqID, arrowFilename[i], [arrowData[i]]));
-                            console.log('theMetaNdx:', theMetaNdx, 'theDataNdx:', theDataNdx);
-                            console.log('metaData-> arrowData[',theMetaNdx,']:', arrowData[theMetaNdx]);
-                            console.log('    Data-> arrowData[',theDataNdx,']:', arrowData[theDataNdx]);
-                            //const ipcMessage = [arrowData[theMetaNdx], arrowData[theDataNdx]];
-                            //console.log('ipcMessage:', ipcMessage);
-                            //const table = tableFromIPC(ipcMessage);
-                            //console.log('table:', table);
+                        
+                        if(arrowMetaFileOffset > 0){
+                            // Convert schema Uint8Array to JSON string
+                            const jsonString = new TextDecoder().decode(arrowMetaFile);
+                            console.log('arrowMetaFile jsonString:', jsonString);
                         } else {
-                            console.error('No arrow data records were processed.');
+                            console.log('No arrowMetaFile records were processed.');
+                        }
+                        if(arrowDataFileOffset > 0){
+                            //const ipcMessage = [Buffer.from(schemaJsonString), Buffer.from(arrowData[featherDataFileNdx])];
+                            const ipcMessage = [ Buffer.from(arrowDataFile)];
+                            // Create the Arrow table
+                            const table = tableFromIPC(ipcMessage);
+
+                            // Get the column names
+                            const columnNames = table.schema.fields.map(field => field.name);
+
+                            // Display the column names
+                            console.log("Column Names:", columnNames);
+                            //console.log(table.schema);
+                            // Display or work with the table
+                            //console.table([...table]);
+                        } else {
+                            console.error('No arrowDataFile records were processed.');
                         }
                     });
                 } else {
