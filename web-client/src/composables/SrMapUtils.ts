@@ -8,7 +8,7 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { type Elevation } from '@/db/SlideRuleDb';
+import { type Elevation, type ElevationPlottable } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 import { db } from "@/db/SlideRuleDb";
 import { Deck } from '@deck.gl/core/typed';
@@ -94,7 +94,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
 export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
     try{
         //console.log('updateElevationLayer:',elevationData);
-
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
@@ -106,6 +105,33 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
                 getColor: (d:Elevation) => {
                     if (use_white) return [255, 255, 255, 127];
                     return getColorForElevation(d.h_mean, useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
+                },
+                pointSize: 3,
+            });
+        if(useMapStore().getDeckInstance()){
+            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        } else {
+            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+        }
+    } catch (error) {
+        console.error('Error updating elevation layer:',error);
+    }
+}
+
+export function updateElLayer(elevationData:ElevationPlottable[],use_white:boolean = false): void{
+    try{
+        console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData, 'use_white:',use_white);
+        const layer =     
+            new PointCloudLayer({
+                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
+                data: elevationData,
+                getPosition: (d:ElevationPlottable) => {
+                    return [d[0], d[1], d[2]]
+                },
+                getNormal: [0, 0, 1],
+                getColor: (d:ElevationPlottable) => {
+                    if (use_white) return [255, 255, 255, 127];
+                    return getColorForElevation(d[2], useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
                 },
                 pointSize: 3,
             });

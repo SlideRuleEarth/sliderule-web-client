@@ -30,6 +30,7 @@
     "chart.js": "^4.4.2",
     "dexie": "^4.0.4",
     "events": "^3.3.0",
+    "hyparquet": "^0.9.5",
     "mitt": "^3.0.1",
     "ol": "^8.2.0",
     "ol-contextmenu": "^5.3.0",

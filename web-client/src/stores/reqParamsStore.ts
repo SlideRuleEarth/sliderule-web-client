@@ -146,10 +146,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         l2QualityFlag: false,
         l4QualityFlag: false,
         surfaceFlag: false,
-        fileOutput: false,
+        fileOutput: true, // always fetch data as a parquet file
         staged: false,
-        outputFormat: {name:"feather", value:"feather"},
-        outputFormatOptions: [
+        outputFormat: {name:"parquet", value:"parquet"},
+        outputFormatOptions: [ // TBD. Alway fet data as a parquet file. This will eventually be used for an Export feature
           {name:"feather", value:"feather"},
           {name:"geoparquet", value:"geoparquet"},
           {name:"parquet", value:"parquet"},

@@ -20,8 +20,10 @@
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
     import { tableFromIPC } from 'apache-arrow';
-    import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
-    import { db } from '@/db/SlideRuleDb';
+    import { fetchAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
+    import { db,ElevationPlottable } from '@/db/SlideRuleDb';
+    import { parquetMetadata, parquetRead } from 'hyparquet'
+    import { updateElevationLayer } from "@/composables/SrMapUtils";
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -141,21 +143,46 @@
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
     }
 
-    const processOpfsFile = async (workerMsg:WorkerMessage) => {
-        if(!workerMsg.metadata){
+
+    const processOpfsFile = async (workerMsg: WorkerMessage) => {
+        if (!workerMsg.metadata) {
             console.error('processOpfsFile metadata is undefined');
             return;
         }
         const opfsRoot = await navigator.storage.getDirectory();
         const fileHandle = await opfsRoot.getFileHandle(workerMsg.metadata, { create: false });
-        const file = await fileHandle.getFile();
-        const table = tableFromIPC(await file.arrayBuffer());
-        console.log('Feather table:', table);
-        // Get the column names
-        const columnNames = table.schema.fields.map(field => field.name);
-        // Display the column names
-        console.log("Column Names:", columnNames);
+        const file1 = await fileHandle.getFile();
+        const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
 
+        if (workerMsg.metadata.endsWith('.parquet')) {
+            console.log('Parquet file:', file1);
+            const metadata = parquetMetadata(arrayBuffer);
+            console.log('Parquet metadata:', metadata);
+
+            const chunkSize = 2000000;
+            let rowStart = 0;
+            let rowEnd = chunkSize;
+            let hasMoreData = true;
+
+            while (hasMoreData) {
+                await parquetRead({
+                    file: arrayBuffer,
+                    columns: ['longitude', 'latitude', 'h_mean'],
+                    rowStart: rowStart,
+                    rowEnd: rowEnd,
+                    onComplete: data => {
+                        console.log('data.length:',data.length,'data:', data);
+                        updateElLayer(data as ElevationPlottable[]);
+                        hasMoreData = data.length === chunkSize;
+                    }
+                });
+
+                rowStart += chunkSize;
+                rowEnd += chunkSize;
+            }
+        } else {
+            console.error('Unknown file type:', workerMsg.metadata);
+        }
     }
 
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
@@ -268,6 +295,9 @@
             case 'geoParquet_rcvd':
 
                 console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
+                if(worker){
+                    cleanUpWorker();
+                }
                 if(workerMsg.blob){
                     let filename = 'atl06.parquet';
                     if (workerMsg.metadata) {
@@ -285,6 +315,9 @@
             case 'feather_rcvd':
 
                 console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
+                if(worker){
+                    cleanUpWorker();
+                }
                 if(workerMsg.blob){
                     let filename = 'atl06.feather';
                     if (workerMsg.metadata) {
@@ -301,6 +334,9 @@
 
             case 'opfs_ready':
                 console.log('handleAtl06Msg opfs_ready');
+                if(worker){
+                    cleanUpWorker();
+                }
                 processOpfsFile(workerMsg)
                 break;
 

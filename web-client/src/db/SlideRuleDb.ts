@@ -33,6 +33,8 @@ export interface Elevation {
     y_atc: number;
 };
 
+export type ElevationPlottable = [number, number, number];
+
 export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
