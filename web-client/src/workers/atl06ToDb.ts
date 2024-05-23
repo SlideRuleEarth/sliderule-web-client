@@ -192,7 +192,7 @@ onmessage = async (event) => {
                         console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx, 'AFTER write arrowDataFileOffset:', arrowDataFileOffset, ' result.data.length:', result.data.length, ' result:', result);
                     }
                 },
-                atl06rec: async (result:any) => {
+                atl06rec: async (result:any) => { // DEPRECATED
                     if(num_atl06recs_processed === 0){
                         try{
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing ATL06 data.'});

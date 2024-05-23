@@ -18,12 +18,10 @@
     import { type TimeoutHandle } from '@/stores/mapStore';    
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
-    import type { WorkerSummary } from '@/workers/workerUtils';
-    import { tableFromIPC } from 'apache-arrow';
+    import type { WorkerSummary,ExtLatLon,ExtHMean } from '@/workers/workerUtils';
     import { fetchAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
     import { db,ElevationPlottable } from '@/db/SlideRuleDb';
     import { parquetMetadata, parquetRead } from 'hyparquet'
-    import { updateElevationLayer } from "@/composables/SrMapUtils";
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -143,6 +141,32 @@
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
     }
 
+    function updateExtremeLatLon(elevationData:ElevationPlottable[],
+                                    localExtLatLon: ExtLatLon,
+                                    localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
+    elevationData.forEach(d => {
+        if (d[2] < localExtHMean.minHMean) {
+            localExtHMean.minHMean = d[2];
+        }
+        if (d[2] > localExtHMean.maxHMean) {
+            localExtHMean.maxHMean = d[2];
+        }
+        if (d[1] < localExtLatLon.minLat) {
+            localExtLatLon.minLat = d[1];
+        }
+        if (d[1] > localExtLatLon.maxLat) {
+            localExtLatLon.maxLat = d[1];
+        }
+        if (d[0] < localExtLatLon.minLon) {
+            localExtLatLon.minLon = d[0];
+        }
+        if (d[0] > localExtLatLon.maxLon) {
+            localExtLatLon.maxLon = d[0];
+        }
+    });
+    return {extLatLon:localExtLatLon,extHMean:localExtHMean};
+}
+
 
     const processOpfsFile = async (workerMsg: WorkerMessage) => {
         if (!workerMsg.metadata) {
@@ -163,6 +187,8 @@
             let rowStart = 0;
             let rowEnd = chunkSize;
             let hasMoreData = true;
+            const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
+            const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
 
             while (hasMoreData) {
                 await parquetRead({
@@ -172,10 +198,12 @@
                     rowEnd: rowEnd,
                     onComplete: data => {
                         console.log('data.length:',data.length,'data:', data);
+                        updateExtremeLatLon(data as ElevationPlottable[],localExtLatLon,localExtHMean);
                         updateElLayer(data as ElevationPlottable[]);
                         hasMoreData = data.length === chunkSize;
                     }
                 });
+                curReqSumStore.setSummary({req_id:workerMsg.req_id, extLatLon:localExtLatLon, extHMean: localExtHMean });
 
                 rowStart += chunkSize;
                 rowEnd += chunkSize;
@@ -253,46 +281,8 @@
                 }
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
-            // case 'data_rcvd':
 
-            //     // TBD this is a temporary hack!
-
-            //     console.log('handleAtl06Msg data_rcvd:',workerMsg.data);
-            //     if(workerMsg.data){
-            //         let binaryData: Uint8Array;
-
-            //         if (workerMsg.data.length === 1) {
-            //             // If there is only one element, use it directly
-            //             binaryData = new Uint8Array(workerMsg.data[0]);
-            //         } else {
-            //             // If there are multiple elements, combine them
-            //             let totalLength = 0;
-            //             workerMsg.data.forEach((arr: Uint8Array) => totalLength += arr.length);
-
-            //             binaryData = new Uint8Array(totalLength);
-            //             let offset = 0;
-            //             workerMsg.data.forEach((arr: Uint8Array) => {
-            //                 binaryData.set(arr, offset);
-            //                 offset += arr.length;
-            //             });
-            //         }
-
-            //         console.log('handleAtl06Msg binaryData:', binaryData);
-
-            //         let filename = 'atl06.parquet';
-            //         const blob = new Blob([binaryData], { type: 'application/vnd.apache.parquet' });
-
-            //         if (workerMsg.metadata) {
-            //             filename = workerMsg.metadata;
-            //         } else {
-            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
-            //         }
-
-            //         triggerDownload(blob,filename);
-            //     }
-            //     break;
-
-            case 'geoParquet_rcvd':
+            case 'geoParquet_rcvd': //DEPRECATED
 
                 console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
                 if(worker){
@@ -312,7 +302,7 @@
                 }
                 break;
 
-            case 'feather_rcvd':
+            case 'feather_rcvd': // DEPRECATED
 
                 console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
                 if(worker){
