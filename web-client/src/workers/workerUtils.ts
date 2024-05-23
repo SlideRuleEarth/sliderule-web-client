@@ -9,7 +9,7 @@ export interface WebWorkerCmd {
     parameters?: ReqParams;
 }
 
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'server_msg' | 'aborted';
+export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'opfs_ready' | 'server_msg' | 'aborted';
 
 export interface WorkerError {
     type: string;
@@ -138,9 +138,13 @@ export function geoParquetMsg(req_id:number,filename:string, blob:Blob): WorkerM
     return workerDataMsg;
 }
 
-
 export function featherMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
     const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'feather_rcvd', blob: blob, metadata: filename};
+    return workerDataMsg;
+}
+
+export function opfsReadyMsg(req_id:number,filename:string): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'opfs_ready',  metadata: filename};
     return workerDataMsg;
 }
 

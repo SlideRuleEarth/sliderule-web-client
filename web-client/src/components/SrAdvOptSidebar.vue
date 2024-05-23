@@ -19,8 +19,9 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
-    //import { Atl06pReqParams } from "@/sliderule/icesat2";
+    import { tableFromIPC } from 'apache-arrow';
     import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+    import { db } from '@/db/SlideRuleDb';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -138,6 +139,23 @@
         mapStore.isAborting = false;
         reqParamsStore.using_worker = false;
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
+    }
+
+    const processOpfsFile = async (workerMsg:WorkerMessage) => {
+        if(!workerMsg.metadata){
+            console.error('processOpfsFile metadata is undefined');
+            return;
+        }
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(workerMsg.metadata, { create: false });
+        const file = await fileHandle.getFile();
+        const table = tableFromIPC(await file.arrayBuffer());
+        console.log('Feather table:', table);
+        // Get the column names
+        const columnNames = table.schema.fields.map(field => field.name);
+        // Display the column names
+        console.log("Column Names:", columnNames);
+
     }
 
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
@@ -258,6 +276,7 @@
                         console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
                     }
                     triggerDownload(workerMsg.blob,filename);
+                    db.updateRequest(workerMsg.req_id,{file:filename});
                 } else {
                     console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
                 }
@@ -274,9 +293,15 @@
                         console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
                     }
                     triggerDownload(workerMsg.blob,filename);
+                    db.updateRequest(workerMsg.req_id,{file:filename});
                 } else {
                     console.error('handleAtl06Msg feather_rcvd blob is undefined');
                 }
+                break;
+
+            case 'opfs_ready':
+                console.log('handleAtl06Msg opfs_ready');
+                processOpfsFile(workerMsg)
                 break;
 
             default:
@@ -478,11 +503,6 @@
                     curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
-                    // if ( reqParamsStore.fileOutput===true ) {
-                    //     downloadParquetFile(srReqRec);
-                    // } else {
-                    //     runAtl06Worker(srReqRec);
-                    // }
                     runAtl06Worker(srReqRec);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');

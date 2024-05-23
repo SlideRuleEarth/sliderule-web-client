@@ -43,6 +43,7 @@ export interface SrRequestRecord {
     end_time?: Date; //end time of request
     elapsed_time?: string; //  elapsed time
     status_details?: string; // status message (details of status)
+    file?: string; // file name
 }
 
 export interface SrRequestSummary {

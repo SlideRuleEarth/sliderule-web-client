@@ -2,7 +2,7 @@ import { db } from "@/db/SlideRuleDb";
 import { type Elevation } from '@/db/SlideRuleDb';
 import { atl06p } from '@/sliderule/icesat2.js';
 import { type Atl06pReqParams,type Atl06ReqParams } from '@/sliderule/icesat2';
-import { geoParquetMsg,featherMsg, type WebWorkerCmd } from '@/workers/workerUtils';
+import { geoParquetMsg,featherMsg, type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { updateExtremes,abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
@@ -119,8 +119,22 @@ onmessage = async (event) => {
         let arrowDataFileOffset: number = 0;
         let arrowMetaFileOffset: number = 0;
         let arrowCbNdx = -1;
+
+        const fileName = req.parms.output?.path;
         const outputFormat = req.parms.output?.format;
-        
+        const opfsRoot = await navigator.storage.getDirectory();
+        console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
+        let syncAccessHandle: any;
+        if(fileName){
+            const fileHandle = await opfsRoot.getFileHandle(fileName, {
+                create: true,
+            });
+            console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' fileHandle:', fileHandle);
+            syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
+            console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' syncAccessHandle:', syncAccessHandle);
+        } else {
+            console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName was not provided.');
+        }
         if((reqID) && (reqID > 0)){
             num_checks = 0;
             startedMsg(reqID,req);
@@ -169,10 +183,13 @@ onmessage = async (event) => {
                         num_arrow_metaFile_data_recs_processed++;
                         console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
                     } else {
-                        arrowDataFile.set(result.data, arrowDataFileOffset);
+                        //arrowDataFile.set(result.data, arrowDataFileOffset);
+                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' BEFORE write arrowDataFileOffset:', arrowDataFileOffset,' type:', typeof result.data , ' result.data.length:', result.data.length, ' result:', result, ' is ArrayBuffer?:', (result.data instanceof ArrayBuffer || ArrayBuffer.isView(result.data)));
+                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' syncAccessHandle:',syncAccessHandle);
+                        syncAccessHandle.write(new Uint8Array(result.data), { at: arrowMetaFileOffset });
                         arrowDataFileOffset += result.data.length;
                         num_arrow_dataFile_data_recs_processed++;
-                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowDataFile:', arrowDataFile, 'arrowDataFileOffset:', arrowDataFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx, 'AFTER write arrowDataFileOffset:', arrowDataFileOffset, ' result.data.length:', result.data.length, ' result:', result);
                     }
                 },
                 atl06rec: async (result:any) => {
@@ -493,32 +510,32 @@ onmessage = async (event) => {
                         console.log('req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset, 'arrowDataFile:', arrowDataFile);
 
                         if(arrowDataFileOffset > 0){
-                            if(outputFormat === 'feather'){
+                            syncAccessHandle.flush();
+                            console.log('fileName:', fileName, "size:",syncAccessHandle.getSize(), "offset:", arrowDataFileOffset);
+                            postMessage(opfsReadyMsg(reqID, fileName));
+                            // if(outputFormat === 'feather'){
+                            //     const ipcMessage = [ Buffer.from(arrowDataFile)];
+                            //     // Create the Arrow table
+                            //     const table = tableFromIPC(ipcMessage);
+                            //     // Get the column names
+                            //     const columnNames = table.schema.fields.map(field => field.name);
+                            //     // Display the column names
+                            //     console.log("Column Names:", columnNames);
+                            //     console.log("Table Data:", table.toArray());
+                            //     // Convert the Arrow table to Feather format (IPC)
+                            //     const ipcData = tableToIPC(table,"file");
+                            //     console.log('ipcData:', ipcData);
+                            //     // Create a Blob from the Uint8Array and create an Object URL
+                            //     const blob = new Blob([ipcData], { type: 'application/octet-stream' });
+                            //     postMessage(featherMsg(reqID, arrowDataFilename,blob));
+                            // } else if((outputFormat === 'geoparquet') || (outputFormat === 'parquet')){
+                            //     //postMessage(dataMsg(reqID, arrowDataFilename, [arrowDataFile]));
+                            //     const blob = new Blob([arrowDataFile], { type: 'application/vnd.apache.parquet' });
+                            //     postMessage(geoParquetMsg(reqID, arrowDataFilename,blob));
 
-                                const ipcMessage = [ Buffer.from(arrowDataFile)];
-                                // Create the Arrow table
-                                const table = tableFromIPC(ipcMessage);
-                                // Get the column names
-                                const columnNames = table.schema.fields.map(field => field.name);
-                                // Display the column names
-                                console.log("Column Names:", columnNames);
-                                console.log("Table Data:", table.toArray());
-
-                                // Convert the Arrow table to Feather format (IPC)
-                                const ipcData = tableToIPC(table,"file");
-                                console.log('ipcData:', ipcData);
-                                // Create a Blob from the Uint8Array and create an Object URL
-                                const blob = new Blob([ipcData], { type: 'application/octet-stream' });
-                                postMessage(featherMsg(reqID, arrowDataFilename,blob));
-
-                            } else if((outputFormat === 'geoparquet') || (outputFormat === 'parquet')){
-                                //postMessage(dataMsg(reqID, arrowDataFilename, [arrowDataFile]));
-                                const blob = new Blob([arrowDataFile], { type: 'application/vnd.apache.parquet' });
-                                postMessage(geoParquetMsg(reqID, arrowDataFilename,blob));
-
-                            } else {
-                                console.error('Unknown format:', req.format);
-                            }
+                            // } else {
+                            //     console.error('Unknown format:', req.format);
+                            // }
                         } else {
                             console.error('No arrowDataFile records were processed.');
                         }

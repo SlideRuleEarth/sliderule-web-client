@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 
-import { Table, tableFromIPC } from 'apache-arrow';
+import { tableFromIPC } from 'apache-arrow';
 
 const toast = useToast();
 ////////////// upload toast items
@@ -50,8 +50,8 @@ const customUploader = async (event:any) => {
 
                 }
             } catch (error) {
-                console.error('SrFeatherFileUpload Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                console.error('SrFeatherFileUpload Error ', error);
+                toast.add({ severity: 'error', summary: 'Failed to read file', group: 'headless' });
             }
         };
 
@@ -108,7 +108,7 @@ const onClear = () => {
             </template>
         </SrToast>
         <FileUpload mode="basic" 
-                    name="SrCatalog" 
+                    name="SrFeatherFileUpload" 
                     :auto="true" 
                     accept=".feather" 
                     :maxFileSize="10000000000" 

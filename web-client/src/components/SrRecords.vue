@@ -52,6 +52,8 @@ onUnmounted(() => {
             </Column>
             <Column field="func" header="Function"></Column>
             <Column field="parameters" header="Parameters"></Column>
+            <Column field="cached" header="Cached?"></Column>
+            <Column field="file" header="File"></Column>
             <Column field="elapsed_time" header="Elapsed Time"></Column>
             <!-- <Column v-for="col in filteredColumns" :key="col.field" :field="col.field" >
                 <template #header="">
