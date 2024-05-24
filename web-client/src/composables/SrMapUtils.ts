@@ -88,7 +88,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     const purple = [128, 0, 128]; // RGB for purple
     const yellow = [255, 255, 0]; // RGB for yellow
     const factor = (elevation - minElevation) / (maxElevation - minElevation);
-    console.log('getColorForElevation:',elevation,minElevation,maxElevation,factor);
     return interpolateColor(purple, yellow, factor);
 }
 

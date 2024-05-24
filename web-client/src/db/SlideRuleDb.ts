@@ -291,7 +291,7 @@ export class SlideRuleDexie extends Dexie {
     }
     async getRequestIds(): Promise<number[]> {
         try {
-            const requestIds = await this.requests.toArray().then(requests => requests.map(req => req.req_id!));
+            const requestIds = await this.requests.orderBy('req_id').reverse().toArray().then(requests => requests.map(req => req.req_id!));
             console.log("Retrieved request IDs:", requestIds);
             return requestIds;
         } catch (error) {

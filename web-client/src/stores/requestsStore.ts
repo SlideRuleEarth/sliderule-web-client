@@ -111,7 +111,7 @@ export const useRequestsStore = defineStore('requests', {
     },
     async fetchReqs(): Promise<void> {
       try {
-        this.reqs = await db.table('requests').toArray();
+        this.reqs = await db.table('requests').orderBy('req_id').reverse().toArray();
         console.log('Requests fetched successfully:', this.reqs);
       } catch (error) {
         console.error('Error fetching requests:', error);
