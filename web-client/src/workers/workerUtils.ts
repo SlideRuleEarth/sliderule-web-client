@@ -126,7 +126,7 @@ export async function successMsg(req_id:number, msg:string): Promise<WorkerMessa
 export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): Promise<WorkerMessage> {
     try{
         await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, status: 'summary',status_details: msg});
-        await db.updateSummary(workerSummaryMsg.req_id, workerSummaryMsg);
+        await db.updateSummary(workerSummaryMsg);
     } catch (error) {
         console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);
     }
