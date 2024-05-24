@@ -26,6 +26,9 @@
                  / {{ targetExceptions }} {{percentageExceptions}}%
             </span>
         </span>
+        <span>
+            {{ useCurAtl06ReqSumStore().getPercentComplete() }} % complete 
+        </span>
     </div>
   </div>
 </template>

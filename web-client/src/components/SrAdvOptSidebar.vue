@@ -18,10 +18,9 @@
     import { type TimeoutHandle } from '@/stores/mapStore';    
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
-    import type { WorkerSummary,ExtLatLon,ExtHMean } from '@/workers/workerUtils';
+    import type { WorkerSummary } from '@/workers/workerUtils';
     import { fetchAndUpdateElevationData, readAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
-    import { db,ElevationPlottable } from '@/db/SlideRuleDb';
-    import { parquetMetadata, parquetRead } from 'hyparquet'
+    import { db } from '@/db/SlideRuleDb';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -44,6 +43,7 @@
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     let worker: Worker | null = null;
     let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
+    let percentComplete: number | null = null;
 
     onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
@@ -149,6 +149,21 @@
         readAndUpdateElevationData(workerMsg.req_id);
     }
 
+    function parseCompletionPercentage(message: string): number | null {
+        const regex = /\[(\d+) out of (\d+)\]/;
+        const match = message.match(regex);
+
+        if (match && match.length === 3) {
+            const completed = parseInt(match[1], 10);
+            const total = parseInt(match[2], 10);
+
+            if (!isNaN(completed) && !isNaN(total) && total !== 0) {
+                return (completed / total) * 100;
+            }
+        }
+        return null; // Return null if the message does not match the expected format or total is zero
+    }
+
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
         console.log('handleAtl06Msg workerMsg:',workerMsg);
         switch(workerMsg.status){
@@ -176,6 +191,10 @@
                 console.log('handleAtl06Msg server_msg:',workerMsg.msg);
                 if(workerMsg.msg){
                     requestsStore.setMsg(workerMsg.msg);
+                    percentComplete = parseCompletionPercentage(workerMsg.msg);
+                    if (percentComplete !== null) {
+                        curReqSumStore.setPercentComplete(percentComplete);
+                    } 
                 }
                 break;
             case 'progress':

@@ -23,6 +23,7 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         req_id: 0,
         duration: 0,
         is_arrow_stream: false,
+        percentComplete: 0,
     }),
     actions: {
         set_h_mean_Min(h_mean_min: number) {
@@ -155,6 +156,12 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
             } else {
                 console.error('setSummary() called with null summary:', srs);
             }
+        },
+        setPercentComplete(percentComplete: number) {
+            this.percentComplete = percentComplete;
+        },
+        getPercentComplete() {
+            return Math.floor(this.percentComplete);
         }
     },
 });
