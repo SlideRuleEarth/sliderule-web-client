@@ -120,7 +120,7 @@ onmessage = async (event) => {
         let arrowMetaFileOffset: number = 0;
         let arrowCbNdx = -1;
 
-        const fileName = req.parms.output?.path;
+        const fileName = `atl06_${reqID}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}.parquet`;
         const outputFormat = req.parms.output?.format;
         const opfsRoot = await navigator.storage.getDirectory();
         console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
@@ -132,6 +132,7 @@ onmessage = async (event) => {
             console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' fileHandle:', fileHandle);
             syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
             console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' syncAccessHandle:', syncAccessHandle);
+            await db.updateRequestRecord( {req_id:reqID, file:fileName});
         } else {
             console.log('atl06p',' arrowCbNdx:',arrowCbNdx,' fileName was not provided.');
         }
@@ -192,7 +193,7 @@ onmessage = async (event) => {
                         console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx, 'AFTER write arrowDataFileOffset:', arrowDataFileOffset, ' result.data.length:', result.data.length, ' result:', result);
                     }
                 },
-                atl06rec: async (result:any) => { // DEPRECATED
+                atl06rec: async (result:any) => { // Use of this here is DEPRECATED
                     if(num_atl06recs_processed === 0){
                         try{
                             await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'Started processing ATL06 data.'});

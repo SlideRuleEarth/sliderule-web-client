@@ -49,6 +49,7 @@ export interface SrRequestRecord {
 }
 
 export interface SrRequestSummary {
+    db_id?: number; // auto incrementing
     req_id?: number;
     extLatLon: ExtLatLon;
     extHMean: ExtHMean;
@@ -74,7 +75,7 @@ export class SlideRuleDexie extends Dexie {
         this.version(1).stores({
             elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: 'req_id',     // req_id is the primary key here
+            summary: '++db_id, req_id',     
             //definitions: '++id, &version', // 'id' is auto-incrementing and 'version' is a unique key
         });
         this._useMiddleware();
@@ -179,7 +180,20 @@ export class SlideRuleDexie extends Dexie {
         // Join the parts with a comma and a space, or return a default string if no parts are added.
         return parts.length > 0 ? parts.join(', ') : '0 secs';
     }
-    
+    async getFilename(reqId: number): Promise<string> {
+        try {
+            const request = await this.requests.get(reqId);
+            if (!request) {
+                console.error(`No request found with req_id ${reqId}`);
+                return '';
+            }
+            return request.file || '';
+        } catch (error) {
+            console.error(`Failed to get filename for req_id ${reqId}:`, error);
+            throw error;
+        }
+    }
+
     async updateRequestRecord(updateParams: Partial<SrRequestRecord>): Promise<void> {
         const { req_id } = updateParams;
         if (!req_id) {
@@ -312,20 +326,36 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async updateSummary(reqId: number, summary: SrRequestSummary): Promise<void> {
+    async updateSummary(summary: SrRequestSummary): Promise<void> {
         try {
-            console.log(`Updating summary for req_id ${reqId} with:`, summary);
+            console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.put( summary );
-            console.log(`Summary updated for req_id ${reqId}.`);
+            console.log(`Summary updated for req_id ${summary.req_id}.`);
         } catch (error) {
-            console.error(`Failed to update summary for req_id ${reqId}:`, error);
+            console.error(`Failed to update summary for req_id ${summary.req_id}:`, error);
             throw error; // Rethrowing the error for further handling if needed
         }
     }
+
+    async addNewSummary(summary: SrRequestSummary): Promise<void> {
+        try {
+            console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
+            await this.summary.add( summary );
+            console.log(`Summary added for req_id ${summary.req_id}.`);
+        } catch (error) {
+            console.error(`Failed to add summary for req_id ${summary.req_id}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
     // Method to fetch WorkerSummary for a given req_id
     async getWorkerSummary(reqId: number): Promise<SrRequestSummary | undefined> {
         try {
-            const summaryRecord = await this.summary.get(reqId);
+            const count = await this.summary.where('req_id').equals(reqId).count();
+            if (count > 1) {
+                throw new Error(`Multiple summaries found for req_id ${reqId}??`);
+            }
+            const summaryRecord = await this.summary.where('req_id').equals(reqId).first();
             if (!summaryRecord) {
                 console.log(`No summary found for req_id ${reqId}.`);
                 return undefined;

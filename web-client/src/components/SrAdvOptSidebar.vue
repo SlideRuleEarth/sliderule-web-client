@@ -19,7 +19,7 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary,ExtLatLon,ExtHMean } from '@/workers/workerUtils';
-    import { fetchAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
+    import { fetchAndUpdateElevationData, readAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
     import { db,ElevationPlottable } from '@/db/SlideRuleDb';
     import { parquetMetadata, parquetRead } from 'hyparquet'
 
@@ -141,101 +141,12 @@
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
     }
 
-    function updateExtremeLatLon(elevationData:ElevationPlottable[],
-                                    localExtLatLon: ExtLatLon,
-                                    localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
-    elevationData.forEach(d => {
-        if (d[2] < localExtHMean.minHMean) {
-            localExtHMean.minHMean = d[2];
-        }
-        if (d[2] > localExtHMean.maxHMean) {
-            localExtHMean.maxHMean = d[2];
-        }
-        if (d[2] < localExtHMean.lowHMean) { // TBD fix this
-            localExtHMean.lowHMean = d[2];
-        }
-        if (d[2] > localExtHMean.highHMean) { // TBD fix this
-            localExtHMean.highHMean = d[2];
-        }
-        if (d[1] < localExtLatLon.minLat) {
-            localExtLatLon.minLat = d[1];
-        }
-        if (d[1] > localExtLatLon.maxLat) {
-            localExtLatLon.maxLat = d[1];
-        }
-        if (d[0] < localExtLatLon.minLon) {
-            localExtLatLon.minLon = d[0];
-        }
-        if (d[0] > localExtLatLon.maxLon) {
-            localExtLatLon.maxLon = d[0];
-        }
-    });
-    return {extLatLon:localExtLatLon,extHMean:localExtHMean};
-}
-
-
     const processOpfsFile = async (workerMsg: WorkerMessage) => {
         if (!workerMsg.metadata) {
             console.error('processOpfsFile metadata is undefined');
             return;
         }
-        const opfsRoot = await navigator.storage.getDirectory();
-        const fileHandle = await opfsRoot.getFileHandle(workerMsg.metadata, { create: false });
-        const file1 = await fileHandle.getFile();
-        const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
-
-        if (workerMsg.metadata.endsWith('.parquet')) {
-            console.log('Parquet file:', file1);
-            const metadata = parquetMetadata(arrayBuffer);
-            console.log('Parquet metadata:', metadata);
-            let localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
-            let localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
-            const chunkSize = 2000000;
-
-            let rowStart = 0;
-            let rowEnd = chunkSize;
-            let hasMoreData = true;
-            while (hasMoreData) { // First find extreme values for legend
-                await parquetRead({
-                    file: arrayBuffer,
-                    columns: ['longitude', 'latitude', 'h_mean'],
-                    rowStart: rowStart,
-                    rowEnd: rowEnd,
-                    onComplete: data => {
-                        console.log('data.length:',data.length,'data:', data);
-                        const updatedExtremes = updateExtremeLatLon(data as ElevationPlottable[], localExtLatLon, localExtHMean);
-                        localExtLatLon = updatedExtremes.extLatLon;
-                        localExtHMean = updatedExtremes.extHMean;
-                        hasMoreData = data.length === chunkSize;
-                    }
-                });
-                rowStart += chunkSize;
-                rowEnd += chunkSize;
-            }
-            curReqSumStore.setSummary({req_id:workerMsg.req_id, extLatLon:localExtLatLon, extHMean: localExtHMean });
-
-            rowStart = 0;
-            rowEnd = chunkSize;
-            hasMoreData = true;
-            while (hasMoreData) { // now plot data with color extremes set
-                await parquetRead({
-                    file: arrayBuffer,
-                    columns: ['longitude', 'latitude', 'h_mean'],
-                    rowStart: rowStart,
-                    rowEnd: rowEnd,
-                    onComplete: data => {
-                        console.log('data.length:',data.length,'data:', data);
-                        updateElLayer(data as ElevationPlottable[]);
-                        hasMoreData = data.length === chunkSize;
-                    }
-                });
-                rowStart += chunkSize;
-                rowEnd += chunkSize;
-            }
-
-        } else {
-            console.error('Unknown file type:', workerMsg.metadata);
-        }
+        readAndUpdateElevationData(workerMsg.req_id);
     }
 
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
