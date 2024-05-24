@@ -88,6 +88,7 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     const purple = [128, 0, 128]; // RGB for purple
     const yellow = [255, 255, 0]; // RGB for yellow
     const factor = (elevation - minElevation) / (maxElevation - minElevation);
+    console.log('getColorForElevation:',elevation,minElevation,maxElevation,factor);
     return interpolateColor(purple, yellow, factor);
 }
 
@@ -120,7 +121,7 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
 
 export function updateElLayer(elevationData:ElevationPlottable[],use_white:boolean = false): void{
     try{
-        console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData, 'use_white:',use_white);
+        //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
@@ -239,22 +240,22 @@ export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: num
             }
         }
 
-        console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
+        //console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
 
         // Loop until we reach the specified number of points or exceed it
         while (offset < maxPointsToUse && hasMore && !useMapStore().isAborting && !useMapStore().isLoading ){
             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
             elevationData = elevationData.concat(elevationDataChunk);
             updateElevationLayer(elevationData);     // Update the layer with each chunk
-            console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
+            //console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
             offset += elevationDataChunk.length;
             hasMore = elevationDataChunk.length === chunkSize;
 
             // allow the UI thread to update
             await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
-            console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
+            //console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
         }
-        console.log('Elevation data fetched and updated:', elevationData.length);
+        //console.log('Elevation data fetched and updated:', elevationData.length);
     } catch (error) {
         console.error('Failed to fetch and update elevation data:', error);
     }

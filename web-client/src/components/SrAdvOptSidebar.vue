@@ -151,6 +151,12 @@
         if (d[2] > localExtHMean.maxHMean) {
             localExtHMean.maxHMean = d[2];
         }
+        if (d[2] < localExtHMean.lowHMean) { // TBD fix this
+            localExtHMean.lowHMean = d[2];
+        }
+        if (d[2] > localExtHMean.highHMean) { // TBD fix this
+            localExtHMean.highHMean = d[2];
+        }
         if (d[1] < localExtLatLon.minLat) {
             localExtLatLon.minLat = d[1];
         }
@@ -182,15 +188,14 @@
             console.log('Parquet file:', file1);
             const metadata = parquetMetadata(arrayBuffer);
             console.log('Parquet metadata:', metadata);
-
+            let localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
+            let localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
             const chunkSize = 2000000;
+
             let rowStart = 0;
             let rowEnd = chunkSize;
             let hasMoreData = true;
-            const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
-            const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
-
-            while (hasMoreData) {
+            while (hasMoreData) { // First find extreme values for legend
                 await parquetRead({
                     file: arrayBuffer,
                     columns: ['longitude', 'latitude', 'h_mean'],
@@ -198,16 +203,36 @@
                     rowEnd: rowEnd,
                     onComplete: data => {
                         console.log('data.length:',data.length,'data:', data);
-                        updateExtremeLatLon(data as ElevationPlottable[],localExtLatLon,localExtHMean);
+                        const updatedExtremes = updateExtremeLatLon(data as ElevationPlottable[], localExtLatLon, localExtHMean);
+                        localExtLatLon = updatedExtremes.extLatLon;
+                        localExtHMean = updatedExtremes.extHMean;
+                        hasMoreData = data.length === chunkSize;
+                    }
+                });
+                rowStart += chunkSize;
+                rowEnd += chunkSize;
+            }
+            curReqSumStore.setSummary({req_id:workerMsg.req_id, extLatLon:localExtLatLon, extHMean: localExtHMean });
+
+            rowStart = 0;
+            rowEnd = chunkSize;
+            hasMoreData = true;
+            while (hasMoreData) { // now plot data with color extremes set
+                await parquetRead({
+                    file: arrayBuffer,
+                    columns: ['longitude', 'latitude', 'h_mean'],
+                    rowStart: rowStart,
+                    rowEnd: rowEnd,
+                    onComplete: data => {
+                        console.log('data.length:',data.length,'data:', data);
                         updateElLayer(data as ElevationPlottable[]);
                         hasMoreData = data.length === chunkSize;
                     }
                 });
-                curReqSumStore.setSummary({req_id:workerMsg.req_id, extLatLon:localExtLatLon, extHMean: localExtHMean });
-
                 rowStart += chunkSize;
                 rowEnd += chunkSize;
             }
+
         } else {
             console.error('Unknown file type:', workerMsg.metadata);
         }
