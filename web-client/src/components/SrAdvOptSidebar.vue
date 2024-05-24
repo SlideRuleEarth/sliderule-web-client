@@ -182,8 +182,6 @@
                 console.log('handleAtl06Msg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
-                    curReqSumStore.setNumAtl06Recs(workerMsg.progress.numAtl06Recs); 
-                    curReqSumStore.setTgtAtl06Recs(workerMsg.progress.target_numAtl06Recs);
                     curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
                     curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);

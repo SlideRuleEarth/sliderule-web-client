@@ -18,8 +18,6 @@ export interface WorkerError {
 }
 export interface SrProgress {
     read_state: string;
-    target_numAtl06Recs: number;
-    numAtl06Recs: number;
     target_numAtl06Exceptions: number;
     numAtl06Exceptions: number;
     target_numArrowDataRecs: number;
@@ -84,7 +82,7 @@ export async function progressMsg(  req_id:number,
                                     localExtLatLon: ExtLatLon,
                                     localExtHMean: ExtHMean): Promise<WorkerMessage> {
     const workerProgressMsg: WorkerSummary =  { req_id:req_id, status: 'progress', progress:progress,extLatLon: localExtLatLon, extHMean: localExtHMean, msg:msg };
-    console.log(msg)
+    //console.log(msg)
     //console.log('progressMsg  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
     return workerProgressMsg;
 }
