@@ -22,8 +22,9 @@ import SrSysConfig from './SrSysConfig.vue';
 import SrExtents from './SrExtents.vue';
 import SrAncillaryFields from './SrAncillaryFields.vue';
 import SrSurfaceElevation from './SrSurfaceElevation.vue';
-import SrOutput from './SrOutput.vue';
 import SrStorgaeUsage from './SrStorageUsage.vue';
+import SrProgressCnts from "./SrProgressCnts.vue";
+
 const reqParamsStore = useReqParamsStore();
 
 const mapStore = useMapStore();
@@ -273,11 +274,12 @@ onMounted(() => {
                 <AccordionTab header="SysConfig">
                     <SrSysConfig />
                 </AccordionTab>
-                <AccordionTab header="Output">
+                <!-- <AccordionTab header="Output">
                     <SrOutput />
-                </AccordionTab>
+                </AccordionTab> -->
                 <AccordionTab header="Debug">
                 <SrStorgaeUsage />
+                <SrProgressCnts />
                 </AccordionTab>
             </Accordion>
         </div>

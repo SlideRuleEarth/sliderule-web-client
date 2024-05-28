@@ -27,7 +27,7 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
-  import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+  import { fetchAndUpdateElevationData, readAndUpdateElevationData } from '@/composables/SrMapUtils';
   import { updateDeck } from '@/composables/SrMapUtils';
 
   const stringifyFunc = createStringXY(4);
@@ -276,7 +276,8 @@
             map.getView().on('change:resolution', onResolutionChange);
             updateCurrentParms();
             updateDeck(map);
-            await fetchAndUpdateElevationData(props.reqId); 
+            //await fetchAndUpdateElevationData(props.reqId); 
+            await readAndUpdateElevationData(props.reqId);
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }

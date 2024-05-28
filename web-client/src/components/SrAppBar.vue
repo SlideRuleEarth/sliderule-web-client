@@ -1,25 +1,27 @@
 <script setup lang="ts">
-    import { useAdvancedModeStore } from "@/stores/advancedModeStore";  
     import Button from 'primevue/button';
 
-    const advancedModeStore = useAdvancedModeStore();
 
-    const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','record-button-click','about-button-click']);
+    const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','record-button-click', 'analysis-button-click', 'about-button-click']);
 
     const handleLogoClick = () => {
-    emit('logo-click');
+        emit('logo-click');
     };
     const handleToolButtonClick = () => {
-    emit('tool-button-click');
+        emit('tool-button-click');
     };
     const handlePopularButtonClick = () => {
-    emit('popular-button-click');
+        emit('popular-button-click');
     };
     const handleRecordButtonClick = () => {
-    emit('record-button-click');
+        emit('record-button-click');
     };
+    const handleAnalysisButtonClick = () => {
+        emit('analysis-button-click');
+    };
+
     const handleAboutButtonClick = () => {
-    emit('about-button-click');
+        emit('about-button-click');
     };
 
 </script>
@@ -34,6 +36,7 @@
             <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
             <Button icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
             <Button icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
+            <Button icon="pi pi-chart-line" label="Analysis" class="p-button-rounded p-button-text" @click="handleAnalysisButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>
         </div>
     </div>

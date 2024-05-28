@@ -2,7 +2,6 @@
 
     import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
-    import SrProgress from "./SrProgress.vue";
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
@@ -19,8 +18,9 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
-    //import { Atl06pReqParams } from "@/sliderule/icesat2";
-    import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+    import { fetchAndUpdateElevationData, readAndUpdateElevationData } from '@/composables/SrMapUtils';
+    import { db } from '@/db/SlideRuleDb';
+    import ProgressBar from 'primevue/progressbar';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -43,6 +43,7 @@
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     let worker: Worker | null = null;
     let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
+    let percentComplete: number | null = null;
 
     onMounted(async () => {
         console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
@@ -140,6 +141,29 @@
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
     }
 
+    const processOpfsFile = async (workerMsg: WorkerMessage) => {
+        if (!workerMsg.metadata) {
+            console.error('processOpfsFile metadata is undefined');
+            return;
+        }
+        readAndUpdateElevationData(workerMsg.req_id);
+    }
+
+    function parseCompletionPercentage(message: string): number | null {
+        const regex = /\[(\d+) out of (\d+)\]/;
+        const match = message.match(regex);
+
+        if (match && match.length === 3) {
+            const completed = parseInt(match[1], 10);
+            const total = parseInt(match[2], 10);
+
+            if (!isNaN(completed) && !isNaN(total) && total !== 0) {
+                return (completed / total) * 100;
+            }
+        }
+        return null; // Return null if the message does not match the expected format or total is zero
+    }
+
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
         console.log('handleAtl06Msg workerMsg:',workerMsg);
         switch(workerMsg.status){
@@ -167,14 +191,16 @@
                 console.log('handleAtl06Msg server_msg:',workerMsg.msg);
                 if(workerMsg.msg){
                     requestsStore.setMsg(workerMsg.msg);
+                    percentComplete = parseCompletionPercentage(workerMsg.msg);
+                    if (percentComplete !== null) {
+                        curReqSumStore.setPercentComplete(percentComplete);
+                    } 
                 }
                 break;
             case 'progress':
                 console.log('handleAtl06Msg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
-                    curReqSumStore.setNumAtl06Recs(workerMsg.progress.numAtl06Recs); 
-                    curReqSumStore.setTgtAtl06Recs(workerMsg.progress.target_numAtl06Recs);
                     curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
                     curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
@@ -208,47 +234,57 @@
                 }
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
-            case 'data_rcvd':
 
-                // TBD this is a temporary hack!
+            case 'geoParquet_rcvd': //DEPRECATED
 
-                console.log('handleAtl06Msg data_rcvd:',workerMsg.data);
-                if(workerMsg.data){
-                    let binaryData: Uint8Array;
-
-                    if (workerMsg.data.length === 1) {
-                        // If there is only one element, use it directly
-                        binaryData = new Uint8Array(workerMsg.data[0]);
-                    } else {
-                        // If there are multiple elements, combine them
-                        let totalLength = 0;
-                        workerMsg.data.forEach((arr: Uint8Array) => totalLength += arr.length);
-
-                        binaryData = new Uint8Array(totalLength);
-                        let offset = 0;
-                        workerMsg.data.forEach((arr: Uint8Array) => {
-                            binaryData.set(arr, offset);
-                            offset += arr.length;
-                        });
-                    }
-
-                    console.log('handleAtl06Msg binaryData:', binaryData);
-
+                console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
+                if(worker){
+                    cleanUpWorker();
+                }
+                if(workerMsg.blob){
                     let filename = 'atl06.parquet';
-                    const blob = new Blob([binaryData], { type: 'application/vnd.apache.parquet' });
-
                     if (workerMsg.metadata) {
                         filename = workerMsg.metadata;
                     } else {
                         console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
                     }
-
-                    triggerDownload(blob,filename);
+                    triggerDownload(workerMsg.blob,filename);
+                    db.updateRequest(workerMsg.req_id,{file:filename});
+                } else {
+                    console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
                 }
                 break;
 
+            case 'feather_rcvd': // DEPRECATED
+
+                console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
+                if(worker){
+                    cleanUpWorker();
+                }
+                if(workerMsg.blob){
+                    let filename = 'atl06.feather';
+                    if (workerMsg.metadata) {
+                        filename = workerMsg.metadata;
+                    } else {
+                        console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+                    }
+                    triggerDownload(workerMsg.blob,filename);
+                    db.updateRequest(workerMsg.req_id,{file:filename});
+                } else {
+                    console.error('handleAtl06Msg feather_rcvd blob is undefined');
+                }
+                break;
+
+            case 'opfs_ready':
+                console.log('handleAtl06Msg opfs_ready');
+                if(worker){
+                    cleanUpWorker();
+                }
+                processOpfsFile(workerMsg)
+                break;
+
             default:
-                console.error('handleAtl06Msg unknown status?:',workerMsg.msg);
+                console.error('handleAtl06Msg unknown status?:',workerMsg.status);
                 break;
         }     
     }
@@ -446,11 +482,6 @@
                     curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
-                    // if ( reqParamsStore.fileOutput===true ) {
-                    //     downloadParquetFile(srReqRec);
-                    // } else {
-                    //     runAtl06Worker(srReqRec);
-                    // }
                     runAtl06Worker(srReqRec);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
@@ -506,13 +537,13 @@
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
                 <Button label="Abort" @click="abortClicked" v-if:="mapStore.isLoading" :disabled="mapStore.isAborting"></Button>
                 <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-                <span v-if="mapStore.isLoading">Loading... {{ curReqSumStore.getNumAtl06Recs() }}</span>
             </div>
-            <div class="sr-svr-msg-console">
+            <div class="sr-progressbar-panel ">
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
-            </div>
-            <div class="progress">
-                <SrProgress />
+                <div class="sr-progressbar">
+                    <span></span>
+                    <ProgressBar v-if="mapStore.isLoading" :value="useCurAtl06ReqSumStore().getPercentComplete()" />
+                </div>  
             </div>
             <SrAdvOptAccordion
                 title="Advanced Options"
@@ -551,7 +582,19 @@
         flex-direction: column;
         margin: 2rem;
     }
-    .sr-svr-msg-console {
+
+    .sr-svr-msg {
+        display: block;
+        font-size: x-small;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 15rem; 
+        justify-content:center;
+        align-items: left;
+    } 
+
+    .sr-progressbar-panel {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -560,11 +603,17 @@
         padding: 0.25rem;
         overflow-x: auto;
         overflow-y: hidden;
-        max-width: 20rem;
-        height: 2rem;
-    } 
-    .sr-svr-msg {
+        max-width: 15rem;
+        min-width: 15rem;
+        height: 3rem;
+    }
+
+    .sr-progressbar {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: left;
         font-size: x-small;
-        white-space: nowrap;
-    }  
+        min-width: 15rem;
+    } 
 </style>

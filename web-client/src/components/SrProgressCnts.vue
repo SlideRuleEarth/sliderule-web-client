@@ -26,14 +26,21 @@
                  / {{ targetExceptions }} {{percentageExceptions}}%
             </span>
         </span>
+        <span>
+            {{ useCurAtl06ReqSumStore().getPercentComplete() }} % complete 
+        </span>
     </div>
+    <div class="sr-progress">
+        <ProgressBar :value="useCurAtl06ReqSumStore().getPercentComplete()" />
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-
+import ProgressBar from 'primevue/progressbar';
 
 onMounted(() => {
     console.log('SrProgress.vue onMounted ');
@@ -93,9 +100,5 @@ const percentageArrowMetaRecs = computed(() => {
   justify-content: space-between;
   align-items: left;
   font-size: smaller;
-}
-.sr-progress-panel-bb {
-  display: flex;
-  justify-content: center;
 }
 </style>

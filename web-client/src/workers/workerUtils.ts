@@ -9,7 +9,7 @@ export interface WebWorkerCmd {
     parameters?: ReqParams;
 }
 
-export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'data_rcvd' | 'server_msg' | 'aborted';
+export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'opfs_ready' | 'server_msg' | 'aborted';
 
 export interface WorkerError {
     type: string;
@@ -18,8 +18,6 @@ export interface WorkerError {
 }
 export interface SrProgress {
     read_state: string;
-    target_numAtl06Recs: number;
-    numAtl06Recs: number;
     target_numAtl06Exceptions: number;
     numAtl06Exceptions: number;
     target_numArrowDataRecs: number;
@@ -34,6 +32,7 @@ export interface WorkerMessage {
     msg?: string;               // status details
     error?: WorkerError;        // Error details (if an error occurred)
     data?: Uint8Array[];         // Data returned by the worker
+    blob?: Blob;                // Data returned by the worker
     metadata?: string;          // Metadata returned by the worker
 }
 export interface ExtLatLon {
@@ -83,7 +82,7 @@ export async function progressMsg(  req_id:number,
                                     localExtLatLon: ExtLatLon,
                                     localExtHMean: ExtHMean): Promise<WorkerMessage> {
     const workerProgressMsg: WorkerSummary =  { req_id:req_id, status: 'progress', progress:progress,extLatLon: localExtLatLon, extHMean: localExtHMean, msg:msg };
-    console.log(msg)
+    //console.log(msg)
     //console.log('progressMsg  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
     return workerProgressMsg;
 }
@@ -125,15 +124,25 @@ export async function successMsg(req_id:number, msg:string): Promise<WorkerMessa
 export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): Promise<WorkerMessage> {
     try{
         await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, status: 'summary',status_details: msg});
-        await db.updateSummary(workerSummaryMsg.req_id, workerSummaryMsg);
+        await db.updateSummary(workerSummaryMsg);
     } catch (error) {
         console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);
     }
     return workerSummaryMsg;
 }
 
-export function dataMsg(req_id:number,filename:string, data: Uint8Array[]): WorkerMessage{
-    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'data_rcvd', data: data, metadata: filename};
+export function geoParquetMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'geoParquet_rcvd', blob: blob, metadata: filename};
+    return workerDataMsg;
+}
+
+export function featherMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'feather_rcvd', blob: blob, metadata: filename};
+    return workerDataMsg;
+}
+
+export function opfsReadyMsg(req_id:number,filename:string): WorkerMessage{
+    const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'opfs_ready',  metadata: filename};
     return workerDataMsg;
 }
 

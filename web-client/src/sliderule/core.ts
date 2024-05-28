@@ -350,18 +350,20 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                   const buffer = Buffer.concat(chunks);
                   const rec_type = buffer.toString('utf8', 0, rec_type_size - 1);
                   //console.log('fetchAndProcessResult rec_type:', rec_type, 'rec_size:', rec_size, 'rec_type_size:', rec_type_size, 'bytes_to_process:', bytes_to_process, 'bytes_processed:', bytes_processed);
+                  if (!(rec_type in recs_cnt)) {
+                    recs_cnt[rec_type] = 1;
+                  } else {
+                    recs_cnt[rec_type]++;
+                  }              
                   decodeRecord(rec_type, buffer, rec_type_size, rec_size).then(
                     result => {
                       if (rec_type in callbacks) {
                         callbacks[rec_type](result);
-                      }
-                      if (!(rec_type in recs_cnt)) {
-                        recs_cnt[rec_type] = 1;
-                        console.log('rec_type:',rec_type, 'result:', result)
                       } else {
-                        recs_cnt[rec_type]++;
-                      }              
-                  }
+                        console.warn('NO callback for rec_type:',rec_type, 'result:', result)
+                      }
+                      console.log('rec_type:',rec_type, 'result:', result)
+                    }
                   ).catch(error => {
                     decode_errors++;
                     console.error(`Error decoding record of type ${rec_type}:`, error, 'decode_errors:', decode_errors);

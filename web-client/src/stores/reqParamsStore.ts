@@ -16,6 +16,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         using_worker: false,
         asset: 'icesat2',
         isArrowStream: false,
+        isFeatherStream: false,
         rasterizePolygon: false,
         ignorePolygon: false,
         poly: null as SrRegion | null,
@@ -145,10 +146,11 @@ export const useReqParamsStore = defineStore('reqParams', {
         l2QualityFlag: false,
         l4QualityFlag: false,
         surfaceFlag: false,
-        fileOutput: false,
+        fileOutput: true, // always fetch data as a parquet file
         staged: false,
-        outputFormat: {name:"geoparquet", value:"geoparquet"},
-        outputFormatOptions: [
+        outputFormat: {name:"parquet", value:"parquet"},
+        outputFormatOptions: [ // TBD. Alway fet data as a parquet file. This will eventually be used for an Export feature
+          {name:"feather", value:"feather"},
           {name:"geoparquet", value:"geoparquet"},
           {name:"parquet", value:"parquet"},
           {name:"csv", value:"csv"},
@@ -240,6 +242,10 @@ export const useReqParamsStore = defineStore('reqParams', {
               } else {
                 req.output = {format: 'parquet', as_geo: false, path: path_to_use};
               }
+              this.isArrowStream = true;
+            } else if(this.outputFormat.value==='feather'){
+              path_to_use += '.feather';
+              req.output = {format: 'feather', as_geo: false, path: path_to_use};
               this.isArrowStream = true;
             } else if(this.outputFormat.value==='csv'){
               path_to_use += '.parquet';

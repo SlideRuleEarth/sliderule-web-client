@@ -5,6 +5,7 @@ import SrAppBar from "./components/SrAppBar.vue";
 import router from './router/index.js';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { useSrToastStore } from "@/stores/srToastStore";
+import { useCurAtl06ReqSumStore } from "@/stores/curAtl06ReqSumStore";
 
 const srToastStore = useSrToastStore()
 
@@ -18,8 +19,6 @@ const logoClick = () => {
   router.push('/');
 };
 
-
-
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
   //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
@@ -28,20 +27,20 @@ const toolButtonClick = () => {
 };
 
 const popularButtonClick = () => {
-  // console.log('popularButtonClick');
   toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: srToastStore.getLife()});
   router.push('/popular');
 };
 
 const recordButtonClick = () => {
-  // console.log('recordButtonClick');
-  // toast.add({ severity: 'info', summary: 'Record Button', detail: 'Record button was pushed', life: srToastStore.getLife()});
   router.push('/record');
 };
 
+const analysisButtonClick = () => {
+  console.log('analysisButtonClick req_id: ', useCurAtl06ReqSumStore().req_id);
+  router.push(`/analyze/${useCurAtl06ReqSumStore().req_id}`);
+};
+
 const aboutButtonClick = () => {
-  // console.log('aboutButtonClick');
-  //toast.add({ severity: 'info', summary: 'About Button', detail: 'About button was pushed',  life: srToastStore.getLife()});
   router.push('/about');
 };
 </script>
@@ -56,6 +55,7 @@ const aboutButtonClick = () => {
       @tool-button-click="toolButtonClick"
       @popular-button-click="popularButtonClick"
       @record-button-click="recordButtonClick"
+      @analysis-button-click="analysisButtonClick"
       @about-button-click="aboutButtonClick"
     />
   </header>
