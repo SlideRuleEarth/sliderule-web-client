@@ -8,7 +8,7 @@ import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import { Layer as OL_Layer} from 'ol/layer';
 import { Deck } from '@deck.gl/core/typed';
-import { fetchAndUpdateElevationData } from '@/composables/SrMapUtils';
+//import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -148,18 +148,18 @@ export const useMapStore = defineStore('map', {
     getRedrawElevationsTimeoutHandle() {
       return this.reDrawElevationsTimeoutHandle;
     },
-    async drawElevations() {
-      if (this.isLoading && !this.isAborting) {
-          await fetchAndUpdateElevationData(this.getCurrentReqId());
-      } else {
-          console.log('drawElevations: SKIPPED - not loading or aborting');
-      }
-    },
-    scheduleDrawElevations() {
-      this.clearRedrawElevationsTimeoutHandle();
-      this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
-      console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
-    }
+    // async drawElevations() {
+    //   if (this.isLoading && !this.isAborting) {
+    //       await fetchAndUpdateElevationData(this.getCurrentReqId());
+    //   } else {
+    //       console.log('drawElevations: SKIPPED - not loading or aborting');
+    //   }
+    // },
+    // scheduleDrawElevations() {
+    //   this.clearRedrawElevationsTimeoutHandle();
+    //   this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
+    //   console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
+    // }
 
   },
 });

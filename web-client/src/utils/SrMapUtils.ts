@@ -1,5 +1,5 @@
 import { useMapStore } from '@/stores/mapStore';
-import { computed } from 'vue';
+import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers/typed';
 import { GeoJSON} from 'ol/format';
@@ -8,7 +8,6 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { type Elevation, type ElevationPlottable } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 import { db } from "@/db/SlideRuleDb";
 import { Deck } from '@deck.gl/core/typed';
@@ -19,6 +18,8 @@ import { useMapParamsStore } from '@/stores/mapParamsStore';
 import { parquetMetadata, parquetRead } from 'hyparquet'
 import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
+
+
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -93,32 +94,32 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     return interpolateColor(purple, yellow, factor);
 }
 
-export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
-    try{
-        //console.log('updateElevationLayer:',elevationData);
-        const layer =     
-            new PointCloudLayer({
-                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-                data: elevationData,
-                getPosition: (d:Elevation) => {
-                    return [d.longitude, d.latitude, d.h_mean]
-                },
-                getNormal: [0, 0, 1],
-                getColor: (d:Elevation) => {
-                    if (use_white) return [255, 255, 255, 127];
-                    return getColorForElevation(d.h_mean, useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
-                },
-                pointSize: 3,
-            });
-        if(useMapStore().getDeckInstance()){
-            useMapStore().getDeckInstance().setProps({layers:[layer]});
-        } else {
-            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
-        }
-    } catch (error) {
-        console.error('Error updating elevation layer:',error);
-    }
-}
+// export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
+//     try{
+//         //console.log('updateElevationLayer:',elevationData);
+//         const layer =     
+//             new PointCloudLayer({
+//                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
+//                 data: elevationData,
+//                 getPosition: (d:Elevation) => {
+//                     return [d.longitude, d.latitude, d.h_mean]
+//                 },
+//                 getNormal: [0, 0, 1],
+//                 getColor: (d:Elevation) => {
+//                     if (use_white) return [255, 255, 255, 127];
+//                     return getColorForElevation(d.h_mean, useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
+//                 },
+//                 pointSize: 3,
+//             });
+//         if(useMapStore().getDeckInstance()){
+//             useMapStore().getDeckInstance().setProps({layers:[layer]});
+//         } else {
+//             console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+//         }
+//     } catch (error) {
+//         console.error('Error updating elevation layer:',error);
+//     }
+// }
 
 interface TooltipParams {
     x: number;
@@ -160,28 +161,28 @@ const tooltipStyle = `
 const styleSheet = document.createElement("style");
 styleSheet.type = "text/css";
 styleSheet.innerText = tooltipStyle;
-document.head.appendChild(styleSheet);
+//document.head.appendChild(styleSheet);
 
 const tooltipDiv = document.createElement('div');
 tooltipDiv.id = 'tooltip';
-document.body.appendChild(tooltipDiv);
+//document.body.appendChild(tooltipDiv);
 
 
 
-export function updateElLayer(elevationData:ElevationPlottable[],use_white:boolean = false): void{
+export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number,use_white:boolean = false): void{
     try{
-        //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData, 'use_white:',use_white);
+        console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
                 data: elevationData,
-                getPosition: (d:ElevationPlottable) => {
-                    return [d[0], d[1], d[2]]
+                getPosition: (d:number[]) => {
+                    return [d[lonNdx], d[latNdx], d[hMeanNdx]]
                 },
                 getNormal: [0, 0, 1],
-                getColor: (d:ElevationPlottable) => {
+                getColor: (d:number[]) => {
                     if (use_white) return [255, 255, 255, 127];
-                    return getColorForElevation(d[2], useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
+                    return getColorForElevation(d[hMeanNdx], useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
                 },
                 pointSize: 3,
                 pickable: true, // Enable picking
@@ -250,7 +251,6 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     }
 }
 
-
 export function updateDeck(map: OLMap){
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = createDeckGLInstance(tgt);
@@ -276,84 +276,87 @@ export function updateDeck(map: OLMap){
 
 }
 
-export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: number) {
-    try {
-        const chunkSize = 100000; // the size of each chunk
-        let offset = 0;
-        let hasMore = true;
-        let elevationData: Elevation[] = [];
-        let maxPointsToUse = chunkSize;
-        // If maxPoints is not provided, fetch it from the database
-        if (maxPoints) {
-            maxPointsToUse = maxPoints;
-            console.log('Using provided maxPoints:', maxPoints);
-        } else {
-            const dbNumPoints = await db.getNumberOfElevationPoints(reqId);
-            if (dbNumPoints !== null) {
-                maxPointsToUse = dbNumPoints;
-                console.log('Fetched maxPoints from DB:', maxPointsToUse);
-            } else {
-                console.error('Failed to fetch maxPoints from DB using default value of:', chunkSize);
-                maxPointsToUse = chunkSize;
-            }
-        }
+// export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: number) {
+//     try {
+//         const chunkSize = 100000; // the size of each chunk
+//         let offset = 0;
+//         let hasMore = true;
+//         let elevationData: Elevation[] = [];
+//         let maxPointsToUse = chunkSize;
+//         // If maxPoints is not provided, fetch it from the database
+//         if (maxPoints) {
+//             maxPointsToUse = maxPoints;
+//             console.log('Using provided maxPoints:', maxPoints);
+//         } else {
+//             const dbNumPoints = await db.getNumberOfElevationPoints(reqId);
+//             if (dbNumPoints !== null) {
+//                 maxPointsToUse = dbNumPoints;
+//                 console.log('Fetched maxPoints from DB:', maxPointsToUse);
+//             } else {
+//                 console.error('Failed to fetch maxPoints from DB using default value of:', chunkSize);
+//                 maxPointsToUse = chunkSize;
+//             }
+//         }
 
-        //console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
+//         //console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
 
-        // Loop until we reach the specified number of points or exceed it
-        while (offset < maxPointsToUse && hasMore && !useMapStore().isAborting && !useMapStore().isLoading ){
-            const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
-            elevationData = elevationData.concat(elevationDataChunk);
-            updateElevationLayer(elevationData);     // Update the layer with each chunk
-            //console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
-            offset += elevationDataChunk.length;
-            hasMore = elevationDataChunk.length === chunkSize;
+//         // Loop until we reach the specified number of points or exceed it
+//         while (offset < maxPointsToUse && hasMore && !useMapStore().isAborting && !useMapStore().isLoading ){
+//             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
+//             elevationData = elevationData.concat(elevationDataChunk);
+//             updateElevationLayer(elevationData);     // Update the layer with each chunk
+//             //console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
+//             offset += elevationDataChunk.length;
+//             hasMore = elevationDataChunk.length === chunkSize;
 
-            // allow the UI thread to update
-            await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
-            //console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
-        }
-        //console.log('Elevation data fetched and updated:', elevationData.length);
-    } catch (error) {
-        console.error('Failed to fetch and update elevation data:', error);
-    }
-    //useMapStore().scheduleDrawElevations();
-}
+//             // allow the UI thread to update
+//             await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
+//             //console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
+//         }
+//         //console.log('Elevation data fetched and updated:', elevationData.length);
+//     } catch (error) {
+//         console.error('Failed to fetch and update elevation data:', error);
+//     }
+//     //useMapStore().scheduleDrawElevations();
+// }
 
 
-function updateExtremeLatLon(elevationData:ElevationPlottable[],
+function updateExtremeLatLon(elevationData:any[][],
+                                    hMeanNdx:number,
+                                    latNdx:number,
+                                    lonNdx:number,
                                     localExtLatLon: ExtLatLon,
                                     localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
     elevationData.forEach(d => {
         if (d[2] < localExtHMean.minHMean) {
-            localExtHMean.minHMean = d[2];
+            localExtHMean.minHMean = d[hMeanNdx];
         }
         if (d[2] > localExtHMean.maxHMean) {
-            localExtHMean.maxHMean = d[2];
+            localExtHMean.maxHMean = d[hMeanNdx];
         }
         if (d[2] < localExtHMean.lowHMean) { // TBD fix this
-            localExtHMean.lowHMean = d[2];
+            localExtHMean.lowHMean = d[hMeanNdx];
         }
         if (d[2] > localExtHMean.highHMean) { // TBD fix this
-            localExtHMean.highHMean = d[2];
+            localExtHMean.highHMean = d[hMeanNdx];
         }
         if (d[1] < localExtLatLon.minLat) {
-            localExtLatLon.minLat = d[1];
+            localExtLatLon.minLat = d[latNdx];
         }
         if (d[1] > localExtLatLon.maxLat) {
-            localExtLatLon.maxLat = d[1];
+            localExtLatLon.maxLat = d[latNdx];
         }
         if (d[0] < localExtLatLon.minLon) {
-            localExtLatLon.minLon = d[0];
+            localExtLatLon.minLon = d[lonNdx];
         }
         if (d[0] > localExtLatLon.maxLon) {
-            localExtLatLon.maxLon = d[0];
+            localExtLatLon.maxLon = d[lonNdx];
         }
     });
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
-export async function readAndCacheSummary(req_id:number) : Promise<SrRequestSummary | undefined>{
+export async function readAndCacheSummary(req_id:number, allFieldNames:string[],hMeanNdx:number,latNdx:number,lonNdx:number) : Promise<SrRequestSummary | undefined>{
     const opfsRoot = await navigator.storage.getDirectory();
     const filename = await db.getFilename(req_id);
     const fileHandle = await opfsRoot.getFileHandle(filename, { create: false });
@@ -372,12 +375,12 @@ export async function readAndCacheSummary(req_id:number) : Promise<SrRequestSumm
         while (hasMoreData) { // First find extreme values for legend
             await parquetRead({
                 file: arrayBuffer,
-                columns: ['longitude', 'latitude', 'h_mean'],
+                columns: allFieldNames,
                 rowStart: rowStart,
                 rowEnd: rowEnd,
                 onComplete: data => {
                     //console.log('data.length:',data.length,'data:', data);
-                    const updatedExtremes = updateExtremeLatLon(data as ElevationPlottable[], localExtLatLon, localExtHMean);
+                    const updatedExtremes = updateExtremeLatLon(data as any[][],hMeanNdx,latNdx,lonNdx, localExtLatLon, localExtHMean);
                     localExtLatLon = updatedExtremes.extLatLon;
                     localExtHMean = updatedExtremes.extHMean;
                     hasMoreData = data.length === chunkSize;
@@ -393,7 +396,7 @@ export async function readAndCacheSummary(req_id:number) : Promise<SrRequestSumm
     }
 }
 
-export async function readAndUpdateElevationData(req_id:number, maxPoints: number = 200000) {
+export async function readAndUpdateElevationData(req_id:number, allFieldNames:string[], hMeanNdx:number, latNdx:number, lonNdx:number, maxPoints: number = 200000) {
 
     const opfsRoot = await navigator.storage.getDirectory();
     const filename = await db.getFilename(req_id);
@@ -405,7 +408,7 @@ export async function readAndUpdateElevationData(req_id:number, maxPoints: numbe
 
         let summary = await db.getWorkerSummary(req_id)
         if(summary === undefined) {
-            summary = await readAndCacheSummary(req_id)
+            summary = await readAndCacheSummary(req_id,allFieldNames,hMeanNdx,latNdx,lonNdx)
         }
         if(summary){
             useCurAtl06ReqSumStore().setSummary(summary);
@@ -418,21 +421,26 @@ export async function readAndUpdateElevationData(req_id:number, maxPoints: numbe
         let rowEnd = chunkSize;
         let hasMoreData = true;
         while (hasMoreData) { // now plot data with color extremes set
-            await parquetRead({
-                file: arrayBuffer,
-                columns: ['longitude', 'latitude', 'h_mean'],
-                rowStart: rowStart,
-                rowEnd: rowEnd,
-                onComplete: data => {
-                    //console.log('data.length:',data.length,'data:', data);
-                    updateElLayer(data as ElevationPlottable[]);
-                    hasMoreData = data.length === chunkSize;
-                }
-            });
-            rowStart += chunkSize;
-            rowEnd += chunkSize;
+            try{
+                await parquetRead({
+                    file: arrayBuffer,
+                    columns: allFieldNames,
+                    rowStart: rowStart,
+                    rowEnd: rowEnd,
+                    onComplete: data => {
+                        console.log('data.length:',data.length,'data:', data);
+                        updateElLayer(data as any[][],hMeanNdx,latNdx,lonNdx);
+                        hasMoreData = data.length === chunkSize;
+                    }
+                });
+                rowStart += chunkSize;
+                rowEnd += chunkSize;
+            } catch (error) {
+                console.error('Error reading parquet:',error);
+                break;
+            }
         }
-
+        console.log('Elevation data read and updated for req_id:', req_id);
     } else {
         console.error('Unknown file type:', filename);
     }

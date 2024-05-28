@@ -53,6 +53,10 @@ export async function checkDoneProcessing(  reqID:number,
 }
 
 
+function mysleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 onmessage = async (event) => {
     try{
         console.log('atl06ToDb worker received event:', event.data)
@@ -85,6 +89,7 @@ onmessage = async (event) => {
             errorMsg(reqID, { type: 'runAtl06Error', code: 'WEBWORKER', message: 'cmd.sysConfig was not provided' });
             return;
         }
+
         const req:Atl06ReqParams = cmd.parameters as Atl06ReqParams;
         console.log("atl06ToDb req: ", req);
         //let num_atl06recs_processed = 0;
@@ -350,6 +355,21 @@ onmessage = async (event) => {
                                         localExtLatLon,
                                         localExtHMean));
                         exceptionsProgThreshInc = Math.floor(target_numAtl06Exceptions/10);
+                        let num_retries_left = 3;
+                        let gotit = false;
+                        while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
+                            console.log('Waiting for final CBs atl06p num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                            if(num_arrow_dataFile_data_recs_processed === target_numArrowDataRecs){
+                                gotit = true;
+                                break;
+                            }
+                            num_retries_left--;
+                            await mysleep(1000);
+                        } 
+                        if(!gotit){
+                            console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                        }
+                        console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
                         // Log the result to the console
                         console.log('Done - req_id:', reqID);
                         console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());

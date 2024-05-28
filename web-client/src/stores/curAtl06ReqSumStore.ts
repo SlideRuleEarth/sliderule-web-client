@@ -1,4 +1,5 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
+import type { SrParquetPathTypeJsType } from '@/utils/SrParquetUtils';
 import { defineStore } from 'pinia';
 
 export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
@@ -24,6 +25,11 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         duration: 0,
         is_arrow_stream: false,
         percentComplete: 0,
+        allFieldTypes: [] as SrParquetPathTypeJsType[],
+        allFieldNames: [] as string[],
+        hMeanNdx: -1,
+        latNdx: -1,
+        lonNdx: -1,
     }),
     actions: {
         set_h_mean_Min(h_mean_min: number) {
@@ -162,6 +168,36 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         },
         getPercentComplete() {
             return Math.floor(this.percentComplete);
+        },
+        setAllFieldNameTypes(allFieldTypes: SrParquetPathTypeJsType[]) {
+            this.allFieldTypes = allFieldTypes;
+        },
+        getAllFieldNameTypes() {
+            return this.allFieldTypes;
+        },
+        setAllFieldNames(allFieldNames: string[]) {
+            this.allFieldNames = allFieldNames;
+        },
+        getAllFieldNames() {
+            return this.allFieldNames;
+        },
+        sethMeanNdx(hMeanNdx: number) {
+            this.hMeanNdx = hMeanNdx;
+        },
+        gethMeanNdx() {
+            return this.hMeanNdx;
+        },
+        setlatNdx(latNdx: number) {
+            this.latNdx = latNdx;
+        },
+        getlatNdx() {
+            return this.latNdx;
+        },
+        setlonNdx(lonNdx: number) {
+            this.lonNdx = lonNdx;
+        },
+        getlonNdx() {
+            return this.lonNdx;
         }
     },
 });

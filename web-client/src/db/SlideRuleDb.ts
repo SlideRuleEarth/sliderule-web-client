@@ -10,31 +10,54 @@ export interface SrTimeDelta{
     minutes : number,
     seconds : number
 }
-export interface Elevation {
-    req_id?: number;
-    cycle: number;
-    dh_fit_dx: number;
-    extent_id: bigint;
-    gt: number;
-    h_mean: number;
-    h_sigma: number;
-    latitude: number;
-    longitude: number;
-    n_fit_photons: number;
-    pflags: number;
-    region: number;
-    rgt: number;
-    rms_misfit: number;
-    segment_id: number;
-    spot: number;
-    time: Date;
-    w_surface_window_final: number;
-    x_atc: number;
-    y_atc: number;
-};
 
-export type ElevationPlottable = [number, number, number];
 
+// export interface Elevation {
+//     req_id?: number;
+//     cycle: number;
+//     dh_fit_dx: number;
+//     extent_id: bigint;
+//     gt: number;
+//     h_mean: number;
+//     h_sigma: number;
+//     latitude: number;
+//     longitude: number;
+//     n_fit_photons: number;
+//     pflags: number;
+//     region: number;
+//     rgt: number;
+//     rms_misfit: number;
+//     segment_id: number;
+//     spot: number;
+//     time: Date;
+//     w_surface_window_final: number;
+//     x_atc: number;
+//     y_atc: number;
+// };
+
+// export type ElevationPlottable = 
+// [
+//     number, // longitude
+//     number, // latitude
+//     number, // h_mean
+//     number, // req_id
+//     number, // cycle
+//     number, // dh_fit_dx
+//     //bigint, // extent_id
+//     number, // gt
+//     number, // h_sigma
+//     number, // n_fit_photons
+//     number, // pflags
+//     number, // region
+//     number, // rgt
+//     number, // rms_misfit
+//     number, // segment_id
+//     number, // spot
+//     Date,   // time
+//     number, // w_surface_window_final
+//     number, // x_atc
+//     number  // y_atc
+// ];
 export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
@@ -56,6 +79,7 @@ export interface SrRequestSummary {
 }
 
 
+
 // export interface DefinitionsRecord {
 //     id?: number; // auto incrementing
 //     data: string; // JSON string of definitions
@@ -65,7 +89,7 @@ export interface SrRequestSummary {
 export class SlideRuleDexie extends Dexie {
     // 'elevations' and 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
-    elevations!: Table<Elevation>; 
+    //elevations!: Table<Elevation>; 
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
     //definitions!: Table<DefinitionsRecord>;
@@ -278,12 +302,12 @@ export class SlideRuleDexie extends Dexie {
     async deleteRequest(reqId: number): Promise<void> {
         try {
             // Delete associated Elevation entries
-            const elevationsDeletion = this.elevations.where({ req_id: reqId }).delete();
+            //const elevationsDeletion = this.elevations.where({ req_id: reqId }).delete();
             // Delete the request itself
             const requestDeletion = this.requests.delete(reqId);
 
             // Await all deletions to ensure they complete before logging
-            await Promise.all([ elevationsDeletion, requestDeletion]);
+            await Promise.all([requestDeletion]);
 
             console.log(`All related data deleted for req_id ${reqId}.`);
         } catch (error) {
@@ -293,16 +317,16 @@ export class SlideRuleDexie extends Dexie {
     }
 
     // Method to fetch elevation data in chunks
-    async getElevationsChunk(reqId:number, offset: number, chunkSize: number): Promise<Elevation[]> {
-        try {
-            // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
-            const elevationsChunk: Elevation[] = await this.elevations.where({ req_id: reqId }).offset(offset).limit(chunkSize).toArray();
-            return elevationsChunk;
-        } catch (error) {
-            console.error("Failed to fetch elevation chunk:", error);
-            throw error; // Rethrowing the error for further handling if needed
-        }
-    }
+    // async getElevationsChunk(reqId:number, offset: number, chunkSize: number): Promise<Elevation[]> {
+    //     try {
+    //         // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
+    //         const elevationsChunk: Elevation[] = await this.elevations.where({ req_id: reqId }).offset(offset).limit(chunkSize).toArray();
+    //         return elevationsChunk;
+    //     } catch (error) {
+    //         console.error("Failed to fetch elevation chunk:", error);
+    //         throw error; // Rethrowing the error for further handling if needed
+    //     }
+    // }
     async getRequestIds(): Promise<number[]> {
         try {
             const requestIds = await this.requests.orderBy('req_id').reverse().toArray().then(requests => requests.map(req => req.req_id!));
@@ -314,17 +338,17 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
-    async countElevationsByReqId(reqId: number): Promise<number> {
-        try {
-            // This line counts all elevations that match the given req_id
-            const count = await this.elevations.where({ req_id: reqId }).count();
-            console.log(`Number of elevations for req_id ${reqId}: ${count}`);
-            return count;
-        } catch (error) {
-            console.error(`Failed to count elevations for req_id ${reqId}:`, error);
-            throw error; // Rethrowing the error for further handling if needed
-        }
-    }
+    // async countElevationsByReqId(reqId: number): Promise<number> {
+    //     try {
+    //         // This line counts all elevations that match the given req_id
+    //         const count = await this.elevations.where({ req_id: reqId }).count();
+    //         console.log(`Number of elevations for req_id ${reqId}: ${count}`);
+    //         return count;
+    //     } catch (error) {
+    //         console.error(`Failed to count elevations for req_id ${reqId}:`, error);
+    //         throw error; // Rethrowing the error for further handling if needed
+    //     }
+    // }
 
     async updateSummary(summary: SrRequestSummary): Promise<void> {
         try {
@@ -368,38 +392,38 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     // Function to add multiple elevation records at once for a given req_id
-    async bulkAddElevations(reqId: number, elevations: Elevation[]): Promise<void> {
-        try {
-            if(elevations && reqId){
-                // Validate input
-                if (reqId <= 0) {
-                    throw new Error('Request ID must be a positive integer.');
-                }
-                if (elevations.length === 0) {
-                    throw new Error('Elevation array must not be empty.');
-                }
+    // async bulkAddElevations(reqId: number, elevations: Elevation[]): Promise<void> {
+    //     try {
+    //         if(elevations && reqId){
+    //             // Validate input
+    //             if (reqId <= 0) {
+    //                 throw new Error('Request ID must be a positive integer.');
+    //             }
+    //             if (elevations.length === 0) {
+    //                 throw new Error('Elevation array must not be empty.');
+    //             }
 
-                // Add req_id to each elevation record if not already present
-                const elevationsWithReqId = elevations.map(elevation => ({
-                    ...elevation,
-                    req_id: elevation.req_id || reqId  // Ensure each record has the correct req_id
-                }));
+    //             // Add req_id to each elevation record if not already present
+    //             const elevationsWithReqId = elevations.map(elevation => ({
+    //                 ...elevation,
+    //                 req_id: elevation.req_id || reqId  // Ensure each record has the correct req_id
+    //             }));
 
-                // Perform the bulk add operation
-                console.log(`Calling Bulk Add for ${elevations.length} elevation records for req_id ${reqId}...`);
-                await this.elevations.bulkAdd(elevationsWithReqId);
-                console.log(`Bulk Add Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
+    //             // Perform the bulk add operation
+    //             console.log(`Calling Bulk Add for ${elevations.length} elevation records for req_id ${reqId}...`);
+    //             await this.elevations.bulkAdd(elevationsWithReqId);
+    //             console.log(`Bulk Add Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
 
-                console.log(`Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
-            } else {
-                console.error(`bulkAddElevations: undefined elevation records:${elevations} OR req_id:${reqId}`);
-            }
-        } catch (error) {
-            console.error('Failed to bulk add elevation records:', error);
-            throw error; // Rethrow the error for further handling if needed
-        }
-    }
-    // Function to add a new definition based on version, and throw an error if the version already exists
+    //             console.log(`Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
+    //         } else {
+    //             console.error(`bulkAddElevations: undefined elevation records:${elevations} OR req_id:${reqId}`);
+    //         }
+    //     } catch (error) {
+    //         console.error('Failed to bulk add elevation records:', error);
+    //         throw error; // Rethrow the error for further handling if needed
+    //     }
+    // }
+    // // Function to add a new definition based on version, and throw an error if the version already exists
     // async addDefinitions(definitionsObject: any, versionNumber: number): Promise<number> {
     //     const jsonString = JSON.stringify(definitionsObject);
     //     console.log('Attempting to add a new definition:', definitionsObject, 'for version:', versionNumber);
@@ -437,17 +461,17 @@ export class SlideRuleDexie extends Dexie {
     //     }
     // }
 
-    async getNumberOfElevationPoints(reqId: number): Promise<number> {
-        try {
-            // Count the number of elevation points for the given reqId
-            const count = await this.elevations.where({ req_id: reqId }).count();
-            console.log(`Number of elevation points for req_id ${reqId}: ${count}`);
-            return count;
-        } catch (error) {
-            console.error(`Failed to get the number of elevation points for req_id ${reqId}:`, error);
-            throw error;
-        }
-    }
+    // async getNumberOfElevationPoints(reqId: number): Promise<number> {
+    //     try {
+    //         // Count the number of elevation points for the given reqId
+    //         const count = await this.elevations.where({ req_id: reqId }).count();
+    //         console.log(`Number of elevation points for req_id ${reqId}: ${count}`);
+    //         return count;
+    //     } catch (error) {
+    //         console.error(`Failed to get the number of elevation points for req_id ${reqId}:`, error);
+    //         throw error;
+    //     }
+    // }
     
 }
 export const db = new SlideRuleDexie();

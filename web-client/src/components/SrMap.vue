@@ -34,12 +34,12 @@
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
-  import { clearPolyCoords } from "@/composables/SrMapUtils";
+  import { clearPolyCoords } from "@/utils/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
-  import { updateDeck } from "@/composables/SrMapUtils";
+  import { updateDeck } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
   import { convexHull } from "@/composables/SrTurfUtils";
