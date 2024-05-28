@@ -589,7 +589,7 @@
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
-    style="height: 800px; border-radius: 15px; overflow: hidden;"
+    style="height: 50rem; border-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >
     <ol-layerswitcher-control 

@@ -546,7 +546,7 @@
                 </div>  
             </div>
             <SrAdvOptAccordion
-                title="Advanced Options"
+                title="Options"
                 ariaTitle="advanced-options"
                 :mission="missionValue"
                 :iceSat2SelectedAPI="iceSat2SelectedAPI"

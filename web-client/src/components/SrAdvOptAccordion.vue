@@ -291,10 +291,16 @@ onMounted(() => {
 .adv-opt-header {
     justify-content: center;
     align-items: center;
+    margin-top: 0rem;
 }
 
 .adv-opt-card {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0.125rem;
+    margin-top: 0rem;
 }
 .adv-opts-wrapper{
     display: flex;
