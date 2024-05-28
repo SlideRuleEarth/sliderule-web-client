@@ -23,6 +23,8 @@ import SrExtents from './SrExtents.vue';
 import SrAncillaryFields from './SrAncillaryFields.vue';
 import SrSurfaceElevation from './SrSurfaceElevation.vue';
 import SrStorgaeUsage from './SrStorageUsage.vue';
+import SrProgressCnts from "./SrProgressCnts.vue";
+
 const reqParamsStore = useReqParamsStore();
 
 const mapStore = useMapStore();
@@ -277,6 +279,7 @@ onMounted(() => {
                 </AccordionTab> -->
                 <AccordionTab header="Debug">
                 <SrStorgaeUsage />
+                <SrProgressCnts />
                 </AccordionTab>
             </Accordion>
         </div>

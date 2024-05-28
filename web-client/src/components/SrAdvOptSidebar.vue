@@ -2,7 +2,6 @@
 
     import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
-    import SrProgress from "./SrProgress.vue";
     import Button from 'primevue/button';
     import { onMounted, ref, watch } from 'vue';
     import {useToast} from "primevue/usetoast";
@@ -19,8 +18,9 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
-    import { fetchAndUpdateElevationData, readAndUpdateElevationData, updateElLayer } from '@/composables/SrMapUtils';
+    import { fetchAndUpdateElevationData, readAndUpdateElevationData } from '@/composables/SrMapUtils';
     import { db } from '@/db/SlideRuleDb';
+    import ProgressBar from 'primevue/progressbar';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -537,13 +537,13 @@
                 <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
                 <Button label="Abort" @click="abortClicked" v-if:="mapStore.isLoading" :disabled="mapStore.isAborting"></Button>
                 <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-                <span v-if="mapStore.isLoading">Loading... {{ curReqSumStore.getNumAtl06Recs() }}</span>
             </div>
-            <div class="sr-svr-msg-console">
+            <div class="sr-progressbar-panel ">
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
-            </div>
-            <div class="progress">
-                <SrProgress />
+                <div class="sr-progressbar">
+                    <span></span>
+                    <ProgressBar v-if="mapStore.isLoading" :value="useCurAtl06ReqSumStore().getPercentComplete()" />
+                </div>  
             </div>
             <SrAdvOptAccordion
                 title="Advanced Options"
@@ -582,7 +582,19 @@
         flex-direction: column;
         margin: 2rem;
     }
-    .sr-svr-msg-console {
+
+    .sr-svr-msg {
+        display: block;
+        font-size: x-small;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 15rem; 
+        justify-content:center;
+        align-items: left;
+    } 
+
+    .sr-progressbar-panel {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -591,11 +603,17 @@
         padding: 0.25rem;
         overflow-x: auto;
         overflow-y: hidden;
-        max-width: 20rem;
-        height: 2rem;
-    } 
-    .sr-svr-msg {
+        max-width: 15rem;
+        min-width: 15rem;
+        height: 3rem;
+    }
+
+    .sr-progressbar {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: left;
         font-size: x-small;
-        white-space: nowrap;
-    }  
+        min-width: 15rem;
+    } 
 </style>

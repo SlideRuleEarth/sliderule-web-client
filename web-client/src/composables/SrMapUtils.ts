@@ -120,6 +120,54 @@ export function updateElevationLayer(elevationData:Elevation[],use_white:boolean
     }
 }
 
+interface TooltipParams {
+    x: number;
+    y: number;
+    tooltip: string;
+}
+
+// Utility functions to show and hide tooltip
+function showTooltip({ x, y, tooltip }: TooltipParams):void {
+    const tooltipEl = document.getElementById('tooltip');
+    if (tooltipEl) {
+        tooltipEl.innerHTML = tooltip;
+        tooltipEl.style.display = 'block';
+        tooltipEl.style.left = `${x}px`;
+        tooltipEl.style.top = `${y}px`;
+    }
+}
+
+function hideTooltip():void {
+    const tooltipEl = document.getElementById('tooltip');
+    if (tooltipEl) {
+        tooltipEl.style.display = 'none';
+    }
+}
+
+// tooltip element 
+const tooltipStyle = `
+    #tooltip {
+        position: absolute;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px;
+        border-radius: 3px;
+        pointer-events: none;
+        font-size: 12px;
+    }
+`;
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = tooltipStyle;
+document.head.appendChild(styleSheet);
+
+const tooltipDiv = document.createElement('div');
+tooltipDiv.id = 'tooltip';
+document.body.appendChild(tooltipDiv);
+
+
+
 export function updateElLayer(elevationData:ElevationPlottable[],use_white:boolean = false): void{
     try{
         //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData, 'use_white:',use_white);
@@ -136,6 +184,15 @@ export function updateElLayer(elevationData:ElevationPlottable[],use_white:boole
                     return getColorForElevation(d[2], useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
                 },
                 pointSize: 3,
+                pickable: true, // Enable picking
+                onHover: ({ object, x, y }) => {
+                    if (object) {
+                        const tooltip = `Elevation: ${object[2]}`;
+                        showTooltip({ x, y, tooltip });
+                    } else {
+                        hideTooltip();
+                    }
+                },
             });
         if(useMapStore().getDeckInstance()){
             useMapStore().getDeckInstance().setProps({layers:[layer]});
