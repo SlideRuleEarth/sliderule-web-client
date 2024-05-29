@@ -8,6 +8,10 @@
       <div class="sr-storage-panel-bb">
         <Button size="small" label="Refresh" @click="fetchStorageEstimate"></Button>
       </div>
+      <ConfirmDialog></ConfirmDialog>
+      <div class="sr-delete-storage-bb">
+        <Button class="sr-delete-all-storage-btn" size="small" label="Delete All Data" @click="deleteAllData"></Button>
+      </div>
     </div>
   </div>
 </template>
@@ -15,6 +19,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from "primevue/useconfirm";
+
+import { useToast } from "primevue/usetoast";
+import { db } from '@/db/SlideRuleDb';
+
+const confirm = useConfirm();
+const toast = useToast();
 
 const storageEstimate = ref({ quota: 0, usage: 0 });
 
@@ -24,6 +36,28 @@ const fetchStorageEstimate = async () => {
     storageEstimate.value.quota = estimate.quota ?? 0;
     storageEstimate.value.usage = estimate.usage ?? 0;
   }
+};
+
+const deleteAllData = async () => {
+  console.log('######### Delete all data #########');
+  confirm.require({
+    message: 'Are you sure you want to delete all data?',
+    header: 'Must Confirm',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete All Data',
+
+    accept: () => {
+      console.log('accept: Deleting all data');
+      db.deleteDatabase();
+      toast.add({ severity: 'warn', summary: 'Confirmed', detail: 'You have delete all the data', life: 3000 });
+    },
+    reject: () => {
+      console.log('reject: No data was deleted');
+      toast.add({ severity: 'info', summary: 'Rejected', detail: 'No data was deleted', life: 3000 });
+    }  
+  });
+  console.log('%%%%%%%%%%% Delete all data %%%%%%%%%%%');
 };
 
 onMounted(() => {
@@ -74,5 +108,19 @@ function formatBytes(bytes: number, decimals = 2): string {
   display: flex;
   justify-content: center;
   margin-top: 0.5rem;
+}
+.sr-delete-all-storage {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.sr-delete-storage-bb {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.sr-delete-all-storage-btn {
+  background-color: red;
+  color: white;
 }
 </style>

@@ -47,13 +47,18 @@ export const useRequestsStore = defineStore('requests', {
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
       console.log('createNewSrRequestRecord() newReqId:', newReqId);
       if(newReqId){
-        this.reqs.push({req_id: newReqId, status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
-        await this.fetchReqs();  // Fetch the updated requests from the db
-        const newReq = this.getReqById(newReqId);
-        console.log('New req created:', newReq);
-        return newReq;
+        try{
+          this.reqs.push({req_id: newReqId, status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+          await this.fetchReqs();  // Fetch the updated requests from the db
+          const newReq = this.getReqById(newReqId);
+          console.log('New req created:', newReq);
+          return newReq;
+        } catch (error) {
+          console.error('createNewSrRequestRecord Failed to create new request:', error);
+          throw error;
+        }
       } else {
-        const errorMsg = 'Error creating new request, undefined reqId ?';
+        const errorMsg = 'createNewSrRequestRecord Error creating new request, undefined reqId ?';
         console.error(errorMsg);
         throw new Error(errorMsg);
       } 
@@ -103,11 +108,23 @@ export const useRequestsStore = defineStore('requests', {
     async deleteReq(reqId: number): Promise<void>{
       try {
         await db.deleteRequest(reqId);
+        await db.deleteRequestSummary(reqId);
         console.log('SrRequestRecord deleted successfully');
       } catch (error) {
         console.error('Error deleting request:', error);
+        throw error;
       }
     
+    },
+    async deleteAllReqs(): Promise<void>{
+      try {
+        await db.deleteAllRequests();
+        await db.deleteAllRequestSummaries();
+        console.log('All SrRequestRecords deleted successfully');
+      } catch (error) {
+        console.error('Error deleting all requests:', error);
+        throw error;
+      }
     },
     async fetchReqs(): Promise<void> {
       try {
@@ -115,6 +132,7 @@ export const useRequestsStore = defineStore('requests', {
         console.log('Requests fetched successfully:', this.reqs);
       } catch (error) {
         console.error('Error fetching requests:', error);
+        throw error;
       }
     },
     async fetchReqIds(): Promise<number[]> {

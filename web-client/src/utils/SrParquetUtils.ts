@@ -1,6 +1,7 @@
 import { parquetMetadata, parquetSchema, type FileMetaData } from 'hyparquet'
-import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-import { db } from '@/db/SlideRuleDb';  
+import { db } from '@/db/SlideRuleDb'; 
+import { parquetRead } from 'hyparquet';
+import { updateElLayer } from '@/utils/SrMapUtils';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -155,16 +156,27 @@ async function getColumnMinMax(metadata: FileMetaData, columnIndex: number): Pro
 
     return { min: globalMin, max: globalMax };
 }
-
-
-export const processOpfsFile = async (req_id:number,filename:string) => {
-    console.log('processOpfsFile filename:',filename);
-    if (!filename) {
-        console.error('processOpfsFile metadata is undefined');
-        return;
+export const deleteOpfsFile = async (filename:string) => {
+    try{
+        console.log('deleteOpfsFile filename:',filename);
+        if (!filename) {
+            console.error('deleteOpfsFile metadata is undefined');
+            return;
+        }
+        const opfsRoot = await navigator.storage.getDirectory();
+        opfsRoot.removeEntry(filename);
+    } catch (error) {
+        const errorMsg = `Failed to delete file: ${filename} error: ${error}`;
+        console.error('deleteOpfsFile error:',errorMsg);
+        throw new Error(errorMsg);
     }
+}
+
+export const readAndUpdateElevationData = async (req_id:number) => {
+    console.log('readAndUpdateElevationData req_id:',req_id);
+    const fileName = await db.getFilename(req_id);
     const opfsRoot = await navigator.storage.getDirectory();
-    const fileHandle = await opfsRoot.getFileHandle(filename, {create:false});
+    const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
     const file = await fileHandle.getFile();
     const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
     const metadata = parquetMetadata(arrayBuffer)
@@ -173,23 +185,20 @@ export const processOpfsFile = async (req_id:number,filename:string) => {
     console.log('processOpfsFile schema:',schema);
 
     const allFieldNameTypes = recurseTree(schema);
-    useCurAtl06ReqSumStore().setAllFieldNameTypes(allFieldNameTypes);
-    console.log('processOpfsFile allFieldNameTypes:',useCurAtl06ReqSumStore().getAllFieldNameTypes());
-    useCurAtl06ReqSumStore().setAllFieldNames(getFieldNames(allFieldNameTypes));
-    console.log('processOpfsFile allFieldNames:',useCurAtl06ReqSumStore().getAllFieldNames());
-    useCurAtl06ReqSumStore().sethMeanNdx(findHMeanNdx(allFieldNameTypes));
-    useCurAtl06ReqSumStore().setlatNdx(findLatNdx(allFieldNameTypes));
-    useCurAtl06ReqSumStore().setlonNdx(findLongNdx(allFieldNameTypes));
+    const allFieldNames = getFieldNames(allFieldNameTypes);
+    const lonNdx = findLongNdx(allFieldNameTypes);
+    const latNdx = findLatNdx(allFieldNameTypes);
+    const hMeanNdx = findHMeanNdx(allFieldNameTypes);
 
-    const latMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().getlatNdx());
-    const lonMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().getlonNdx());
+    const latMinMax = await getColumnMinMax(metadata, latNdx);
+    const lonMinMax = await getColumnMinMax(metadata, lonNdx);
     const extLatLon = {
         minLat: latMinMax.min,
         maxLat: latMinMax.max,
         minLon: lonMinMax.min,
         maxLon: lonMinMax.max
     };
-    const hMeanMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().gethMeanNdx());
+    const hMeanMinMax = await getColumnMinMax(metadata, hMeanNdx);
     const extHMean = {
         minHMean: hMeanMinMax.min,
         maxHMean: hMeanMinMax.max,
@@ -204,5 +213,30 @@ export const processOpfsFile = async (req_id:number,filename:string) => {
     } else {
         await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
     }
-    console.log('processOpfsFile hMeanNdx:',useCurAtl06ReqSumStore().gethMeanNdx(),' latNdx:',useCurAtl06ReqSumStore().getlatNdx(),' lonNdx:',useCurAtl06ReqSumStore().getlonNdx(),' summary:',summary);
+    console.log('processOpfsFile hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
+    const chunkSize = 1000000; 
+    let rowStart = 0;
+    let rowEnd = chunkSize;
+    let hasMoreData = true;
+    let datalen = 0;
+    
+    console.log('processOpsFile allFieldNames:',allFieldNames);
+    while (hasMoreData) { // now plot data with color extremes set
+        await parquetRead({
+            file: arrayBuffer,
+            columns: allFieldNames,
+            rowStart: rowStart,
+            rowEnd: rowEnd,
+            onComplete: data => {
+                console.log('data.length:',data.length,'data:', data);
+                updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
+                datalen = data.length;
+                hasMoreData = data.length === chunkSize;
+            }
+        });
+        rowStart += chunkSize;
+        rowEnd += chunkSize;
+        console.log('processOpfsFile rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+    }
+   
 }

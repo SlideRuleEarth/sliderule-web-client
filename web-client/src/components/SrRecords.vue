@@ -6,6 +6,8 @@ import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
+import { db } from '@/db/SlideRuleDb';
+import { deleteOpfsFile } from '@/utils/SrParquetUtils';
 
 const requestsStore = useRequestsStore();
 
@@ -18,6 +20,35 @@ const sourceCodePopup = (id:number) => {
     console.log('Source code ', id);
 };
 
+const deleteReq = async (id:number) => {
+    try{
+        console.log('Delete ', id);
+        const fn = await db.getFilename(id);
+        await deleteOpfsFile(fn);
+        requestsStore.deleteReq(id);
+    } catch (error) {
+        console.error(`Failed to delete request for id:${id}`, error);
+        throw error;
+    }
+};
+
+const deleteAllReqs = () => {
+    console.log('Delete all');
+    requestsStore.reqs.forEach(async (req) => {
+        try {
+            if(req.req_id) {
+                const fn = await db.getFilename(req.req_id);
+                await deleteOpfsFile(fn);
+            } else {
+                console.error(`Request id is missing for request:`, req);
+            }
+        } catch (error) {
+            console.error(`Failed to delete request for id:${req.req_id}`, error);
+            throw error;
+        }
+    });
+    requestsStore.deleteAllReqs();
+};
 
 onMounted(() => {
     console.log('SrRecords mounted');
@@ -76,11 +107,18 @@ onUnmounted(() => {
                     ></i>
                 </template>
             </Column>
-            <Column field="Actions" header="" class="sr-delete">
+            <Column field="Actions" header="Delete All" class="sr-delete">
+                <template #header>
+                    <i 
+                      :class="PrimeIcons.TRASH"
+                      @click="deleteAllReqs()"
+                      v-tooltip="'Delete all reqs'"
+                    ></i>
+                </template>
                 <template #body="slotProps">
                     <i 
                       :class="PrimeIcons.TRASH"
-                      @click="() => requestsStore.deleteReq(slotProps.data.req_id)"
+                      @click="deleteReq(slotProps.data.req_id)"
                       v-tooltip="'Delete req'"
                     ></i>
                 </template>

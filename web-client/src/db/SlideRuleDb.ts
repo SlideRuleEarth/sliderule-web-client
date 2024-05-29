@@ -78,8 +78,6 @@ export interface SrRequestSummary {
     extHMean: ExtHMean;
 }
 
-
-
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
@@ -305,18 +303,39 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
+    async deleteAllRequests(): Promise<void> {
+        try {
+            // Delete all requests
+            await this.requests.clear();
+            console.log("All requests deleted successfully.");
+        } catch (error) {
+            console.error("Failed to delete all requests:", error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
 
-    // Method to fetch elevation data in chunks
-    // async getElevationsChunk(reqId:number, offset: number, chunkSize: number): Promise<Elevation[]> {
-    //     try {
-    //         // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
-    //         const elevationsChunk: Elevation[] = await this.elevations.where({ req_id: reqId }).offset(offset).limit(chunkSize).toArray();
-    //         return elevationsChunk;
-    //     } catch (error) {
-    //         console.error("Failed to fetch elevation chunk:", error);
-    //         throw error; // Rethrowing the error for further handling if needed
-    //     }
-    // }
+    async deleteRequestSummary(reqId: number): Promise<void> {
+        try {
+            // Delete the request summary
+            await this.summary.where('req_id').equals(reqId).delete();
+            console.log(`Request summary deleted for req_id ${reqId}.`);
+        } catch (error) {
+            console.error(`Failed to delete request summary for req_id ${reqId}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
+    async deleteAllRequestSummaries(): Promise<void> {
+        try {
+            // Delete all request summaries
+            await this.summary.clear();
+            console.log("All request summaries deleted successfully.");
+        } catch (error) {
+            console.error("Failed to delete all request summaries:", error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
     async getRequestIds(): Promise<number[]> {
         try {
             const requestIds = await this.requests.orderBy('req_id').reverse().toArray().then(requests => requests.map(req => req.req_id!));
@@ -384,6 +403,7 @@ export class SlideRuleDexie extends Dexie {
 
     async deleteDatabase(): Promise<void> {
         try {
+            console.log(`Deleting database ${this.name}...`);
             this.close();
             await Dexie.delete(this.name);
             console.log(`Database ${this.name} deleted successfully.`);

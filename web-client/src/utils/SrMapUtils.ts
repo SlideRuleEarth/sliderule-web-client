@@ -166,8 +166,8 @@ tooltipDiv.id = 'tooltip';
 //document.body.appendChild(tooltipDiv);
 
 
-
-export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number,use_white:boolean = false): void{
+//export type ElevationPlottable = [any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any];
+export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, use_white:boolean = false): void{
     try{
         console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     
@@ -175,12 +175,13 @@ export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:numbe
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
                 data: elevationData,
                 getPosition: (d:number[]) => {
+                    console.log('lon: d[',lonNdx,']:',d[lonNdx],' lat: d[',latNdx,']:',d[latNdx],' hMean: d[',hMeanNdx,']:',d[hMeanNdx]);
                     return [d[lonNdx], d[latNdx], d[hMeanNdx]]
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d:number[]) => {
                     if (use_white) return [255, 255, 255, 127];
-                    return getColorForElevation(d[hMeanNdx], useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
+                    return getColorForElevation(d[hMeanNdx], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 },
                 pointSize: 3,
                 pickable: true, // Enable picking

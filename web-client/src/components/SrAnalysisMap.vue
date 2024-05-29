@@ -28,7 +28,7 @@
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
   import { updateDeck } from '@/utils/SrMapUtils';
-  import { processOpfsFile } from "@/utils/SrParquetUtils";
+  import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
   
 
   const stringifyFunc = createStringXY(4);
@@ -274,11 +274,11 @@
             console.log('reqExtremeLatLon:',reqExtremeLatLon);
             extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
             console.log('Using extent:',extent);               
-            //map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
+            map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
             map.getView().on('change:resolution', onResolutionChange);
             updateCurrentParms();
             updateDeck(map);
-            await processOpfsFile(props.reqId,await db.getFilename(props.reqId));
+            await readAndUpdateElevationData(props.reqId);
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
           }

@@ -168,36 +168,6 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         },
         getPercentComplete() {
             return Math.floor(this.percentComplete);
-        },
-        setAllFieldNameTypes(allFieldTypes: SrParquetPathTypeJsType[]) {
-            this.allFieldTypes = allFieldTypes;
-        },
-        getAllFieldNameTypes() {
-            return this.allFieldTypes;
-        },
-        setAllFieldNames(allFieldNames: string[]) {
-            this.allFieldNames = allFieldNames;
-        },
-        getAllFieldNames() {
-            return this.allFieldNames;
-        },
-        sethMeanNdx(hMeanNdx: number) {
-            this.hMeanNdx = hMeanNdx;
-        },
-        gethMeanNdx() {
-            return this.hMeanNdx;
-        },
-        setlatNdx(latNdx: number) {
-            this.latNdx = latNdx;
-        },
-        getlatNdx() {
-            return this.latNdx;
-        },
-        setlonNdx(lonNdx: number) {
-            this.lonNdx = lonNdx;
-        },
-        getlonNdx() {
-            return this.lonNdx;
         }
     },
 });

@@ -19,7 +19,7 @@
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
     import ProgressBar from 'primevue/progressbar';
-    import { processOpfsFile } from '@/utils/SrParquetUtils';
+    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
 
 
     const reqParamsStore = useReqParamsStore();
@@ -268,16 +268,11 @@
             //     break;
 
             case 'opfs_ready':
-                console.log('handleAtl06Msg opfs_ready');
+                console.log('handleAtl06Msg opfs_ready for req_id:',workerMsg.req_id);
                 if(worker){
                     cleanUpWorker();
                 }
-                ;
-                if (!workerMsg.metadata) { // filename
-                    console.error('handleAtl06Msg metadata is undefined');
-                    return;
-                }
-                await processOpfsFile(workerMsg.req_id,workerMsg.metadata)
+                await readAndUpdateElevationData(workerMsg.req_id);
                 break;
 
             default:
