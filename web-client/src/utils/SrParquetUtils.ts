@@ -1,6 +1,6 @@
-import { readAndUpdateElevationData } from '@/utils/SrMapUtils';
-import { parquetMetadata, parquetSchema } from 'hyparquet'
+import { parquetMetadata, parquetSchema, type FileMetaData } from 'hyparquet'
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+import { db } from '@/db/SlideRuleDb';  
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -98,7 +98,6 @@ export function getFieldNames(fieldAndType: SrParquetPathTypeJsType[]):string[] 
     return fieldAndType.map((f) => f.path.join('.'));
 }   
 
-
 export function findHMeanNdx(fieldAndType: SrParquetPathTypeJsType[]):number {
     return fieldAndType.findIndex((f) => f.path.join('.').includes('h_mean'));
 }
@@ -114,6 +113,49 @@ export function findLatNdx(fieldAndType: SrParquetPathTypeJsType[]):number {
 export function getTypes(fieldAndType: SrParquetPathTypeJsType[]):string[] {
     return fieldAndType.map((f) => f.jstype);
 }
+
+
+async function getColumnMinMax(metadata: FileMetaData, columnIndex: number): Promise<{ min: any, max: any }> {
+    let globalMin: any = null;
+    let globalMax: any = null;
+
+    for (let rowGroupIndex = 0; rowGroupIndex < metadata.row_groups.length; rowGroupIndex++) {
+        const rowGroup = metadata.row_groups[rowGroupIndex];
+        const columnChunk = rowGroup.columns[columnIndex];
+        if (columnChunk.meta_data) {
+            const stats = columnChunk.meta_data.statistics;
+            if (stats) {
+                const colMin = stats.min_value;
+                const colMax = stats.max_value;
+                if (colMin !== undefined && colMin !== null) {
+                    if (globalMin === null || colMin < globalMin) {
+                        globalMin = colMin;
+                    }
+                } else {
+                    console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: min_value is undefined or null`);
+                }
+                if (colMax !== undefined && colMax !== null) {
+                    if (globalMax === null || colMax > globalMax) {
+                        globalMax = colMax;
+                    }
+                } else {
+                    console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: max_value is undefined or null`);
+                }
+            } else {
+                console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: statistics is undefined`);
+            }
+        } else {
+            console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: meta_data is undefined`);
+        }
+    }
+
+    if (globalMin === null || globalMax === null) {
+        throw new Error(`Unable to determine min and/or max values for column index ${columnIndex}`);
+    }
+
+    return { min: globalMin, max: globalMax };
+}
+
 
 export const processOpfsFile = async (req_id:number,filename:string) => {
     console.log('processOpfsFile filename:',filename);
@@ -138,6 +180,29 @@ export const processOpfsFile = async (req_id:number,filename:string) => {
     useCurAtl06ReqSumStore().sethMeanNdx(findHMeanNdx(allFieldNameTypes));
     useCurAtl06ReqSumStore().setlatNdx(findLatNdx(allFieldNameTypes));
     useCurAtl06ReqSumStore().setlonNdx(findLongNdx(allFieldNameTypes));
-    console.log('processOpfsFile hMeanNdx:',useCurAtl06ReqSumStore().gethMeanNdx(),' latNdx:',useCurAtl06ReqSumStore().getlatNdx(),' lonNdx:',useCurAtl06ReqSumStore().getlonNdx());
-    readAndUpdateElevationData(req_id, useCurAtl06ReqSumStore().allFieldNames, useCurAtl06ReqSumStore().hMeanNdx, useCurAtl06ReqSumStore().latNdx, useCurAtl06ReqSumStore().lonNdx);
+
+    const latMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().getlatNdx());
+    const lonMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().getlonNdx());
+    const extLatLon = {
+        minLat: latMinMax.min,
+        maxLat: latMinMax.max,
+        minLon: lonMinMax.min,
+        maxLon: lonMinMax.max
+    };
+    const hMeanMinMax = await getColumnMinMax(metadata, useCurAtl06ReqSumStore().gethMeanNdx());
+    const extHMean = {
+        minHMean: hMeanMinMax.min,
+        maxHMean: hMeanMinMax.max,
+        lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
+        highHMean: hMeanMinMax.max // TBD: get 95th percentile?
+    };
+    const summary = await db.getWorkerSummary(req_id);
+    if (summary) {
+        summary.extLatLon = extLatLon;
+        summary.extHMean = extHMean;
+        await db.updateSummary(summary);
+    } else {
+        await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
+    }
+    console.log('processOpfsFile hMeanNdx:',useCurAtl06ReqSumStore().gethMeanNdx(),' latNdx:',useCurAtl06ReqSumStore().getlatNdx(),' lonNdx:',useCurAtl06ReqSumStore().getlonNdx(),' summary:',summary);
 }

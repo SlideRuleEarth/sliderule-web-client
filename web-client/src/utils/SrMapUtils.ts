@@ -15,9 +15,7 @@ import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
-import { parquetMetadata, parquetRead } from 'hyparquet'
 import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
-import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 
 
@@ -356,92 +354,15 @@ function updateExtremeLatLon(elevationData:any[][],
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
-export async function readAndCacheSummary(req_id:number, allFieldNames:string[],hMeanNdx:number,latNdx:number,lonNdx:number) : Promise<SrRequestSummary | undefined>{
-    const opfsRoot = await navigator.storage.getDirectory();
-    const filename = await db.getFilename(req_id);
-    const fileHandle = await opfsRoot.getFileHandle(filename, { create: false });
-    const file1 = await fileHandle.getFile();
-    const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
+// Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
+export function swapLongLatToLatLong(coordString: string): string {
+    // Split the coordinate string into an array
+    const coords = coordString.split(',');
 
-    if (filename.endsWith('.parquet')) {
+    // Trim any whitespace and convert to numbers
+    const long = parseFloat(coords[0].trim());
+    const lat = parseFloat(coords[1].trim());
 
-        let localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
-        let localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
-        const chunkSize = 200000;
-
-        let rowStart = 0;
-        let rowEnd = chunkSize;
-        let hasMoreData = true;
-        while (hasMoreData) { // First find extreme values for legend
-            await parquetRead({
-                file: arrayBuffer,
-                columns: allFieldNames,
-                rowStart: rowStart,
-                rowEnd: rowEnd,
-                onComplete: data => {
-                    //console.log('data.length:',data.length,'data:', data);
-                    const updatedExtremes = updateExtremeLatLon(data as any[][],hMeanNdx,latNdx,lonNdx, localExtLatLon, localExtHMean);
-                    localExtLatLon = updatedExtremes.extLatLon;
-                    localExtHMean = updatedExtremes.extHMean;
-                    hasMoreData = data.length === chunkSize;
-                }
-            });
-            rowStart += chunkSize;
-            rowEnd += chunkSize;
-        }
-        await db.addNewSummary({req_id:req_id, extLatLon: localExtLatLon, extHMean: localExtHMean});
-        return await db.getWorkerSummary(req_id);
-    } else {
-        console.error('Unknown file type:', filename);
-    }
-}
-
-export async function readAndUpdateElevationData(req_id:number, allFieldNames:string[], hMeanNdx:number, latNdx:number, lonNdx:number, maxPoints: number = 200000) {
-
-    const opfsRoot = await navigator.storage.getDirectory();
-    const filename = await db.getFilename(req_id);
-    const fileHandle = await opfsRoot.getFileHandle(filename, { create: false });
-    const file1 = await fileHandle.getFile();
-    const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
-
-    if (filename.endsWith('.parquet')) {
-
-        let summary = await db.getWorkerSummary(req_id)
-        if(summary === undefined) {
-            summary = await readAndCacheSummary(req_id,allFieldNames,hMeanNdx,latNdx,lonNdx)
-        }
-        if(summary){
-            useCurAtl06ReqSumStore().setSummary(summary);
-        } else {
-            console.error('Failed to fetch summary for req_id:',req_id);
-        }
-
-        const chunkSize = maxPoints;
-        let rowStart = 0;
-        let rowEnd = chunkSize;
-        let hasMoreData = true;
-        while (hasMoreData) { // now plot data with color extremes set
-            try{
-                await parquetRead({
-                    file: arrayBuffer,
-                    columns: allFieldNames,
-                    rowStart: rowStart,
-                    rowEnd: rowEnd,
-                    onComplete: data => {
-                        console.log('data.length:',data.length,'data:', data);
-                        updateElLayer(data as any[][],hMeanNdx,latNdx,lonNdx);
-                        hasMoreData = data.length === chunkSize;
-                    }
-                });
-                rowStart += chunkSize;
-                rowEnd += chunkSize;
-            } catch (error) {
-                console.error('Error reading parquet:',error);
-                break;
-            }
-        }
-        console.log('Elevation data read and updated for req_id:', req_id);
-    } else {
-        console.error('Unknown file type:', filename);
-    }
+    // Return the swapped coordinates as a string
+    return `${lat.toFixed(4)}, ${long.toFixed(4)}`;
 }

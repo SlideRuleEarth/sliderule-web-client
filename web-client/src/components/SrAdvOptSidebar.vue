@@ -277,7 +277,7 @@
                     console.error('handleAtl06Msg metadata is undefined');
                     return;
                 }
-                processOpfsFile(workerMsg.req_id,workerMsg.metadata)
+                await processOpfsFile(workerMsg.req_id,workerMsg.metadata)
                 break;
 
             default:

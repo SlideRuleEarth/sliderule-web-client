@@ -45,6 +45,7 @@
   import { convexHull } from "@/composables/SrTurfUtils";
   import { type Coordinate } from "ol/coordinate";
   import type { SrRegion } from "@/sliderule/icesat2"
+  import {format} from 'ol/coordinate.js';
 
   const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
@@ -53,7 +54,10 @@
     resetPicked: () => void;
   }
   const geoCoderStore = useGeoCoderStore();
-  const stringifyFunc = createStringXY(4);
+  const template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0';
+  const stringifyFunc = (coordinate: Coordinate) => {
+    return format(coordinate, template, 4);
+  };
   const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();

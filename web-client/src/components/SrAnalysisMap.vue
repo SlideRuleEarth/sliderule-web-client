@@ -27,9 +27,8 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
-  import { readAndUpdateElevationData } from '@/utils/SrMapUtils';
   import { updateDeck } from '@/utils/SrMapUtils';
-import { processOpfsFile } from "@/utils/SrParquetUtils";
+  import { processOpfsFile } from "@/utils/SrParquetUtils";
   
 
   const stringifyFunc = createStringXY(4);

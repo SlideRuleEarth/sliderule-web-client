@@ -80,27 +80,17 @@ export interface SrRequestSummary {
 
 
 
-// export interface DefinitionsRecord {
-//     id?: number; // auto incrementing
-//     data: string; // JSON string of definitions
-//     version: number;
-// };
-
 export class SlideRuleDexie extends Dexie {
-    // 'elevations' and 'requests' are added by dexie when declaring the stores()
+    // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
-    //elevations!: Table<Elevation>; 
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
-    //definitions!: Table<DefinitionsRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
-            elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, req_id',     
-            //definitions: '++id, &version', // 'id' is auto-incrementing and 'version' is a unique key
         });
         this._useMiddleware();
         console.log("Database initialized.");
@@ -391,87 +381,16 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
-    // Function to add multiple elevation records at once for a given req_id
-    // async bulkAddElevations(reqId: number, elevations: Elevation[]): Promise<void> {
-    //     try {
-    //         if(elevations && reqId){
-    //             // Validate input
-    //             if (reqId <= 0) {
-    //                 throw new Error('Request ID must be a positive integer.');
-    //             }
-    //             if (elevations.length === 0) {
-    //                 throw new Error('Elevation array must not be empty.');
-    //             }
 
-    //             // Add req_id to each elevation record if not already present
-    //             const elevationsWithReqId = elevations.map(elevation => ({
-    //                 ...elevation,
-    //                 req_id: elevation.req_id || reqId  // Ensure each record has the correct req_id
-    //             }));
-
-    //             // Perform the bulk add operation
-    //             console.log(`Calling Bulk Add for ${elevations.length} elevation records for req_id ${reqId}...`);
-    //             await this.elevations.bulkAdd(elevationsWithReqId);
-    //             console.log(`Bulk Add Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
-
-    //             console.log(`Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
-    //         } else {
-    //             console.error(`bulkAddElevations: undefined elevation records:${elevations} OR req_id:${reqId}`);
-    //         }
-    //     } catch (error) {
-    //         console.error('Failed to bulk add elevation records:', error);
-    //         throw error; // Rethrow the error for further handling if needed
-    //     }
-    // }
-    // // Function to add a new definition based on version, and throw an error if the version already exists
-    // async addDefinitions(definitionsObject: any, versionNumber: number): Promise<number> {
-    //     const jsonString = JSON.stringify(definitionsObject);
-    //     console.log('Attempting to add a new definition:', definitionsObject, 'for version:', versionNumber);
-
-    //     try {
-    //         // Attempt to add a new record
-    //         const defs = await this.definitions.add({
-    //             data: jsonString,
-    //             version: versionNumber
-    //         });
-    //         console.log(`Definition for version ${versionNumber} added successfully.`);
-    //         return defs;
-    //     } catch (error: unknown) {
-    //         // Check if the error is a ConstraintError, indicating the version already exists
-    //         if (error instanceof Error && error.name === 'ConstraintError') {
-    //             console.error(`A record with version ${versionNumber} already exists. Cannot add duplicate.`);
-    //         } 
-    //         // Rethrow the error if it's not a ConstraintError
-    //         throw error; 
-    //     }
-    // }
-    
-    // async getDefinitionsByVersion(version: number): Promise<any[]> {
-    //     console.log(`Fetching definitions for version ${version}...`);
-    //     try{
-    //         const records = await this.definitions.where({ version }).toArray();
-    //         console.log(`Definitions fetched for version ${version}:`, records);
-    //         return records.map(record => ({
-    //             ...record,
-    //             data: JSON.parse(record.data) // Parse the JSON string back into an object
-    //      }))
-    //     } catch (error) {
-    //         console.error(`Failed to fetch definitions for version ${version}:`, error);
-    //         throw error; // Rethrow the error for further handling if needed
-    //     }
-    // }
-
-    // async getNumberOfElevationPoints(reqId: number): Promise<number> {
-    //     try {
-    //         // Count the number of elevation points for the given reqId
-    //         const count = await this.elevations.where({ req_id: reqId }).count();
-    //         console.log(`Number of elevation points for req_id ${reqId}: ${count}`);
-    //         return count;
-    //     } catch (error) {
-    //         console.error(`Failed to get the number of elevation points for req_id ${reqId}:`, error);
-    //         throw error;
-    //     }
-    // }
-    
+    async deleteDatabase(): Promise<void> {
+        try {
+            this.close();
+            await Dexie.delete(this.name);
+            console.log(`Database ${this.name} deleted successfully.`);
+        } catch (error) {
+            console.error(`Error deleting database ${this.name}:`, error);
+            throw error;
+        }
+    }
 }
 export const db = new SlideRuleDexie();
