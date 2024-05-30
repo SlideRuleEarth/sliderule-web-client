@@ -27,8 +27,10 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
-  import { fetchAndUpdateElevationData, readAndUpdateElevationData } from '@/composables/SrMapUtils';
-  import { updateDeck } from '@/composables/SrMapUtils';
+  import { updateDeck } from '@/utils/SrMapUtils';
+  import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
+  import  SrLegendControl  from "./SrLegendControl.vue";
+
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -168,6 +170,16 @@
     }
   };
 
+  const handleLegendControlCreated = (legendControl: any) => {
+    //console.log(legendControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding legendControl");
+      map.addControl(legendControl);
+    } else {
+      console.error("Error:map is null");
+    }
+  };
   const updateMapView = async (reason:string) => {
     console.log(`****** SrAnalysisMap updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
@@ -270,13 +282,13 @@
             } else {
                 console.info("no reqId:",props.reqId);
             }
+            console.log('reqExtremeLatLon:',reqExtremeLatLon);
             extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
             console.log('Using extent:',extent);               
             map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
             map.getView().on('change:resolution', onResolutionChange);
             updateCurrentParms();
             updateDeck(map);
-            //await fetchAndUpdateElevationData(props.reqId); 
             await readAndUpdateElevationData(props.reqId);
           } else {
             console.error("Error: invalid projection bbox:",srView.bbox);
@@ -351,6 +363,7 @@
       />
 
       <ol-scaleline-control />
+      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
       <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
       <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
       <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >

@@ -6,6 +6,9 @@ import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
+import { db } from '@/db/SlideRuleDb';
+import { deleteOpfsFile } from '@/utils/SrParquetUtils';
+import { a } from 'vitest/dist/suite-a18diDsI';
 
 const requestsStore = useRequestsStore();
 
@@ -18,6 +21,64 @@ const sourceCodePopup = (id:number) => {
     console.log('Source code ', id);
 };
 
+const deleteReq = async (id:number) => {
+    try{
+        console.log('Delete ', id);
+        const fn = await db.getFilename(id);
+        await deleteOpfsFile(fn);
+        requestsStore.deleteReq(id);
+    } catch (error) {
+        console.error(`Failed to delete request for id:${id}`, error);
+        throw error;
+    }
+};
+
+const exportFile = async (req_id:number) => {
+    console.log('Exporting file for req_id', req_id);
+    try{
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        // Create a download link and click it programmatically
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke the object URL
+        URL.revokeObjectURL(url);
+        const msg = `File ${fileName} exported successfully!`;
+        console.log(msg);
+        alert(msg);
+
+    } catch (error) {
+        console.error(`Failed to export request for id:${req_id}`, error);
+        alert(`Failed to export request for ID:${req_id}`);
+        throw error;
+    }
+};
+
+const deleteAllReqs = () => {
+    console.log('Delete all');
+    requestsStore.reqs.forEach(async (req) => {
+        try {
+            if(req.req_id) {
+                const fn = await db.getFilename(req.req_id);
+                await deleteOpfsFile(fn);
+            } else {
+                console.error(`Request id is missing for request:`, req);
+            }
+        } catch (error) {
+            console.error(`Failed to delete request for id:${req.req_id}`, error);
+            throw error;
+        }
+    });
+    requestsStore.deleteAllReqs();
+};
 
 onMounted(() => {
     console.log('SrRecords mounted');
@@ -77,11 +138,27 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="Actions" header="" class="sr-delete">
+                <template #header>
+                    <i 
+                      :class="PrimeIcons.TRASH"
+                      @click="deleteAllReqs()"
+                      v-tooltip="'Delete ALL reqs'"
+                    ></i>
+                </template>
                 <template #body="slotProps">
                     <i 
                       :class="PrimeIcons.TRASH"
-                      @click="() => requestsStore.deleteReq(slotProps.data.req_id)"
+                      @click="deleteReq(slotProps.data.req_id)"
                       v-tooltip="'Delete req'"
+                    ></i>
+                </template>
+            </Column>
+            <Column field="Actions" header="" class="sr-export">
+                <template #body="slotProps">
+                    <i 
+                      class="pi pi-file-export sr-file-export-icon "
+                      @click="exportFile(slotProps.data.req_id)"
+                      v-tooltip="'Export file'"
                     ></i>
                 </template>
             </Column>

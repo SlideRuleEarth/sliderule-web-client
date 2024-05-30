@@ -34,17 +34,18 @@
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
-  import { clearPolyCoords } from "@/composables/SrMapUtils";
+  import { clearPolyCoords } from "@/utils/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
-  import { updateDeck } from "@/composables/SrMapUtils";
+  import { updateDeck } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
   import { convexHull } from "@/composables/SrTurfUtils";
   import { type Coordinate } from "ol/coordinate";
   import type { SrRegion } from "@/sliderule/icesat2"
+  import {format} from 'ol/coordinate.js';
 
   const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
@@ -53,7 +54,10 @@
     resetPicked: () => void;
   }
   const geoCoderStore = useGeoCoderStore();
-  const stringifyFunc = createStringXY(4);
+  const template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0';
+  const stringifyFunc = (coordinate: Coordinate) => {
+    return format(coordinate, template, 4);
+  };
   const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();

@@ -1,4 +1,5 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
+import type { SrParquetPathTypeJsType } from '@/utils/SrParquetUtils';
 import { defineStore } from 'pinia';
 
 export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
@@ -24,6 +25,11 @@ export const useCurAtl06ReqSumStore = defineStore('curAtl06ReqSum', {
         duration: 0,
         is_arrow_stream: false,
         percentComplete: 0,
+        allFieldTypes: [] as SrParquetPathTypeJsType[],
+        allFieldNames: [] as string[],
+        hMeanNdx: -1,
+        latNdx: -1,
+        lonNdx: -1,
     }),
     actions: {
         set_h_mean_Min(h_mean_min: number) {

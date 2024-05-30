@@ -16,6 +16,7 @@ import Ripple from 'primevue/ripple';
 import App from './App.vue'
 import router from './router'
 import StyleClass from 'primevue/styleclass';
+import ConfirmationService from 'primevue/confirmationservice';
 import OpenLayersMap, {
     type Vue3OpenlayersGlobalOptions,
   } from "vue3-openlayers";
@@ -42,6 +43,7 @@ app.use(PrimeVue, {
         nonce: 'nonce-SR-test-nonce'
     }
 });
+app.use(ConfirmationService);
 app.use(ToastService);
 app.component('SrToast', Toast);
 

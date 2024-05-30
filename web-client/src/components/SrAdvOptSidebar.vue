@@ -18,9 +18,9 @@
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
     import type { WorkerSummary } from '@/workers/workerUtils';
-    import { fetchAndUpdateElevationData, readAndUpdateElevationData } from '@/composables/SrMapUtils';
-    import { db } from '@/db/SlideRuleDb';
     import ProgressBar from 'primevue/progressbar';
+    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -141,14 +141,6 @@
         console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
     }
 
-    const processOpfsFile = async (workerMsg: WorkerMessage) => {
-        if (!workerMsg.metadata) {
-            console.error('processOpfsFile metadata is undefined');
-            return;
-        }
-        readAndUpdateElevationData(workerMsg.req_id);
-    }
-
     function parseCompletionPercentage(message: string): number | null {
         const regex = /\[(\d+) out of (\d+)\]/;
         const match = message.match(regex);
@@ -167,19 +159,19 @@
     const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
         console.log('handleAtl06Msg workerMsg:',workerMsg);
         switch(workerMsg.status){
-            case 'success':
-                console.log('handleAtl06Msg success:',workerMsg.msg);
-                toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
-                toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
-                if(worker){
-                    cleanUpWorker();
-                }
-                fetchAndUpdateElevationData(mapStore.getCurrentReqId());
-                break;
+            // case 'success':// Deprecated
+            //     console.log('handleAtl06Msg success:',workerMsg.msg);
+            //     toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
+            //     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
+            //     if(worker){
+            //         cleanUpWorker();
+            //     }
+            //     //fetchAndUpdateElevationData(mapStore.getCurrentReqId());
+            //     break;
             case 'started':
                 console.log('handleAtl06Msg started');
                 toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
-                await mapStore.drawElevations();
+                //await mapStore.drawElevations();
                 break;
             case 'aborted':
                 console.log('handleAtl06Msg aborted');
@@ -235,52 +227,52 @@
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
 
-            case 'geoParquet_rcvd': //DEPRECATED
+            // case 'geoParquet_rcvd': //DEPRECATED
 
-                console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
-                if(worker){
-                    cleanUpWorker();
-                }
-                if(workerMsg.blob){
-                    let filename = 'atl06.parquet';
-                    if (workerMsg.metadata) {
-                        filename = workerMsg.metadata;
-                    } else {
-                        console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
-                    }
-                    triggerDownload(workerMsg.blob,filename);
-                    db.updateRequest(workerMsg.req_id,{file:filename});
-                } else {
-                    console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
-                }
-                break;
+            //     console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
+            //     if(worker){
+            //         cleanUpWorker();
+            //     }
+            //     if(workerMsg.blob){
+            //         let filename = 'atl06.parquet';
+            //         if (workerMsg.metadata) {
+            //             filename = workerMsg.metadata;
+            //         } else {
+            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+            //         }
+            //         triggerDownload(workerMsg.blob,filename);
+            //         db.updateRequest(workerMsg.req_id,{file:filename});
+            //     } else {
+            //         console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
+            //     }
+            //     break;
 
-            case 'feather_rcvd': // DEPRECATED
+            // case 'feather_rcvd': // DEPRECATED
 
-                console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
-                if(worker){
-                    cleanUpWorker();
-                }
-                if(workerMsg.blob){
-                    let filename = 'atl06.feather';
-                    if (workerMsg.metadata) {
-                        filename = workerMsg.metadata;
-                    } else {
-                        console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
-                    }
-                    triggerDownload(workerMsg.blob,filename);
-                    db.updateRequest(workerMsg.req_id,{file:filename});
-                } else {
-                    console.error('handleAtl06Msg feather_rcvd blob is undefined');
-                }
-                break;
+            //     console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
+            //     if(worker){
+            //         cleanUpWorker();
+            //     }
+            //     if(workerMsg.blob){
+            //         let filename = 'atl06.feather';
+            //         if (workerMsg.metadata) {
+            //             filename = workerMsg.metadata;
+            //         } else {
+            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
+            //         }
+            //         triggerDownload(workerMsg.blob,filename);
+            //         db.updateRequest(workerMsg.req_id,{file:filename});
+            //     } else {
+            //         console.error('handleAtl06Msg feather_rcvd blob is undefined');
+            //     }
+            //     break;
 
             case 'opfs_ready':
-                console.log('handleAtl06Msg opfs_ready');
+                console.log('handleAtl06Msg opfs_ready for req_id:',workerMsg.req_id);
                 if(worker){
                     cleanUpWorker();
                 }
-                processOpfsFile(workerMsg)
+                await readAndUpdateElevationData(workerMsg.req_id);
                 break;
 
             default:

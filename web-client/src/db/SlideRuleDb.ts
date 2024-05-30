@@ -10,31 +10,54 @@ export interface SrTimeDelta{
     minutes : number,
     seconds : number
 }
-export interface Elevation {
-    req_id?: number;
-    cycle: number;
-    dh_fit_dx: number;
-    extent_id: bigint;
-    gt: number;
-    h_mean: number;
-    h_sigma: number;
-    latitude: number;
-    longitude: number;
-    n_fit_photons: number;
-    pflags: number;
-    region: number;
-    rgt: number;
-    rms_misfit: number;
-    segment_id: number;
-    spot: number;
-    time: Date;
-    w_surface_window_final: number;
-    x_atc: number;
-    y_atc: number;
-};
 
-export type ElevationPlottable = [number, number, number];
 
+// export interface Elevation {
+//     req_id?: number;
+//     cycle: number;
+//     dh_fit_dx: number;
+//     extent_id: bigint;
+//     gt: number;
+//     h_mean: number;
+//     h_sigma: number;
+//     latitude: number;
+//     longitude: number;
+//     n_fit_photons: number;
+//     pflags: number;
+//     region: number;
+//     rgt: number;
+//     rms_misfit: number;
+//     segment_id: number;
+//     spot: number;
+//     time: Date;
+//     w_surface_window_final: number;
+//     x_atc: number;
+//     y_atc: number;
+// };
+
+// export type ElevationPlottable = 
+// [
+//     number, // longitude
+//     number, // latitude
+//     number, // h_mean
+//     number, // req_id
+//     number, // cycle
+//     number, // dh_fit_dx
+//     //bigint, // extent_id
+//     number, // gt
+//     number, // h_sigma
+//     number, // n_fit_photons
+//     number, // pflags
+//     number, // region
+//     number, // rgt
+//     number, // rms_misfit
+//     number, // segment_id
+//     number, // spot
+//     Date,   // time
+//     number, // w_surface_window_final
+//     number, // x_atc
+//     number  // y_atc
+// ];
 export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
@@ -55,28 +78,17 @@ export interface SrRequestSummary {
     extHMean: ExtHMean;
 }
 
-
-// export interface DefinitionsRecord {
-//     id?: number; // auto incrementing
-//     data: string; // JSON string of definitions
-//     version: number;
-// };
-
 export class SlideRuleDexie extends Dexie {
-    // 'elevations' and 'requests' are added by dexie when declaring the stores()
+    // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
-    elevations!: Table<Elevation>; 
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
-    //definitions!: Table<DefinitionsRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
-            elevations: '++db_id, req_id, cycle, gt, region, rgt, spot, h_mean, latitude, longitude', // Primary key and indexed props
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, req_id',     
-            //definitions: '++id, &version', // 'id' is auto-incrementing and 'version' is a unique key
         });
         this._useMiddleware();
         console.log("Database initialized.");
@@ -278,12 +290,12 @@ export class SlideRuleDexie extends Dexie {
     async deleteRequest(reqId: number): Promise<void> {
         try {
             // Delete associated Elevation entries
-            const elevationsDeletion = this.elevations.where({ req_id: reqId }).delete();
+            //const elevationsDeletion = this.elevations.where({ req_id: reqId }).delete();
             // Delete the request itself
             const requestDeletion = this.requests.delete(reqId);
 
             // Await all deletions to ensure they complete before logging
-            await Promise.all([ elevationsDeletion, requestDeletion]);
+            await Promise.all([requestDeletion]);
 
             console.log(`All related data deleted for req_id ${reqId}.`);
         } catch (error) {
@@ -291,18 +303,39 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
-
-    // Method to fetch elevation data in chunks
-    async getElevationsChunk(reqId:number, offset: number, chunkSize: number): Promise<Elevation[]> {
+    async deleteAllRequests(): Promise<void> {
         try {
-            // Fetch a chunk of elevations starting from 'offset' and limited by 'chunkSize'
-            const elevationsChunk: Elevation[] = await this.elevations.where({ req_id: reqId }).offset(offset).limit(chunkSize).toArray();
-            return elevationsChunk;
+            // Delete all requests
+            await this.requests.clear();
+            console.log("All requests deleted successfully.");
         } catch (error) {
-            console.error("Failed to fetch elevation chunk:", error);
+            console.error("Failed to delete all requests:", error);
             throw error; // Rethrowing the error for further handling if needed
         }
     }
+
+    async deleteRequestSummary(reqId: number): Promise<void> {
+        try {
+            // Delete the request summary
+            await this.summary.where('req_id').equals(reqId).delete();
+            console.log(`Request summary deleted for req_id ${reqId}.`);
+        } catch (error) {
+            console.error(`Failed to delete request summary for req_id ${reqId}:`, error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
+    async deleteAllRequestSummaries(): Promise<void> {
+        try {
+            // Delete all request summaries
+            await this.summary.clear();
+            console.log("All request summaries deleted successfully.");
+        } catch (error) {
+            console.error("Failed to delete all request summaries:", error);
+            throw error; // Rethrowing the error for further handling if needed
+        }
+    }
+
     async getRequestIds(): Promise<number[]> {
         try {
             const requestIds = await this.requests.orderBy('req_id').reverse().toArray().then(requests => requests.map(req => req.req_id!));
@@ -314,17 +347,17 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
-    async countElevationsByReqId(reqId: number): Promise<number> {
-        try {
-            // This line counts all elevations that match the given req_id
-            const count = await this.elevations.where({ req_id: reqId }).count();
-            console.log(`Number of elevations for req_id ${reqId}: ${count}`);
-            return count;
-        } catch (error) {
-            console.error(`Failed to count elevations for req_id ${reqId}:`, error);
-            throw error; // Rethrowing the error for further handling if needed
-        }
-    }
+    // async countElevationsByReqId(reqId: number): Promise<number> {
+    //     try {
+    //         // This line counts all elevations that match the given req_id
+    //         const count = await this.elevations.where({ req_id: reqId }).count();
+    //         console.log(`Number of elevations for req_id ${reqId}: ${count}`);
+    //         return count;
+    //     } catch (error) {
+    //         console.error(`Failed to count elevations for req_id ${reqId}:`, error);
+    //         throw error; // Rethrowing the error for further handling if needed
+    //     }
+    // }
 
     async updateSummary(summary: SrRequestSummary): Promise<void> {
         try {
@@ -367,87 +400,17 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
-    // Function to add multiple elevation records at once for a given req_id
-    async bulkAddElevations(reqId: number, elevations: Elevation[]): Promise<void> {
+
+    async deleteDatabase(): Promise<void> {
         try {
-            if(elevations && reqId){
-                // Validate input
-                if (reqId <= 0) {
-                    throw new Error('Request ID must be a positive integer.');
-                }
-                if (elevations.length === 0) {
-                    throw new Error('Elevation array must not be empty.');
-                }
-
-                // Add req_id to each elevation record if not already present
-                const elevationsWithReqId = elevations.map(elevation => ({
-                    ...elevation,
-                    req_id: elevation.req_id || reqId  // Ensure each record has the correct req_id
-                }));
-
-                // Perform the bulk add operation
-                console.log(`Calling Bulk Add for ${elevations.length} elevation records for req_id ${reqId}...`);
-                await this.elevations.bulkAdd(elevationsWithReqId);
-                console.log(`Bulk Add Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
-
-                console.log(`Successfully added ${elevations.length} elevation records for req_id ${reqId}.`);
-            } else {
-                console.error(`bulkAddElevations: undefined elevation records:${elevations} OR req_id:${reqId}`);
-            }
+            console.log(`Deleting database ${this.name}...`);
+            this.close();
+            await Dexie.delete(this.name);
+            console.log(`Database ${this.name} deleted successfully.`);
         } catch (error) {
-            console.error('Failed to bulk add elevation records:', error);
-            throw error; // Rethrow the error for further handling if needed
-        }
-    }
-    // Function to add a new definition based on version, and throw an error if the version already exists
-    // async addDefinitions(definitionsObject: any, versionNumber: number): Promise<number> {
-    //     const jsonString = JSON.stringify(definitionsObject);
-    //     console.log('Attempting to add a new definition:', definitionsObject, 'for version:', versionNumber);
-
-    //     try {
-    //         // Attempt to add a new record
-    //         const defs = await this.definitions.add({
-    //             data: jsonString,
-    //             version: versionNumber
-    //         });
-    //         console.log(`Definition for version ${versionNumber} added successfully.`);
-    //         return defs;
-    //     } catch (error: unknown) {
-    //         // Check if the error is a ConstraintError, indicating the version already exists
-    //         if (error instanceof Error && error.name === 'ConstraintError') {
-    //             console.error(`A record with version ${versionNumber} already exists. Cannot add duplicate.`);
-    //         } 
-    //         // Rethrow the error if it's not a ConstraintError
-    //         throw error; 
-    //     }
-    // }
-    
-    // async getDefinitionsByVersion(version: number): Promise<any[]> {
-    //     console.log(`Fetching definitions for version ${version}...`);
-    //     try{
-    //         const records = await this.definitions.where({ version }).toArray();
-    //         console.log(`Definitions fetched for version ${version}:`, records);
-    //         return records.map(record => ({
-    //             ...record,
-    //             data: JSON.parse(record.data) // Parse the JSON string back into an object
-    //      }))
-    //     } catch (error) {
-    //         console.error(`Failed to fetch definitions for version ${version}:`, error);
-    //         throw error; // Rethrow the error for further handling if needed
-    //     }
-    // }
-
-    async getNumberOfElevationPoints(reqId: number): Promise<number> {
-        try {
-            // Count the number of elevation points for the given reqId
-            const count = await this.elevations.where({ req_id: reqId }).count();
-            console.log(`Number of elevation points for req_id ${reqId}: ${count}`);
-            return count;
-        } catch (error) {
-            console.error(`Failed to get the number of elevation points for req_id ${reqId}:`, error);
+            console.error(`Error deleting database ${this.name}:`, error);
             throw error;
         }
     }
-    
 }
 export const db = new SlideRuleDexie();

@@ -22,8 +22,9 @@ import SrSysConfig from './SrSysConfig.vue';
 import SrExtents from './SrExtents.vue';
 import SrAncillaryFields from './SrAncillaryFields.vue';
 import SrSurfaceElevation from './SrSurfaceElevation.vue';
-import SrStorgaeUsage from './SrStorageUsage.vue';
+import SrStorageUsage from './SrStorageUsage.vue';
 import SrProgressCnts from "./SrProgressCnts.vue";
+import SrSelectParquetReader from './SrSelectParquetReader.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -277,9 +278,12 @@ onMounted(() => {
                 <!-- <AccordionTab header="Output">
                     <SrOutput />
                 </AccordionTab> -->
+                <AccordionTab header="Storage">
+                    <SrStorageUsage />
+                </AccordionTab>
                 <AccordionTab header="Debug">
-                <SrStorgaeUsage />
-                <SrProgressCnts />
+                    <SrProgressCnts />
+                    <SrSelectParquetReader />
                 </AccordionTab>
             </Accordion>
         </div>

@@ -38,7 +38,7 @@
   import SrRadioButton from './SrRadioButton.vue';
   import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { useMapStore } from "@/stores/mapStore.js";
-  import { polyCoordsExist } from "@/composables/SrMapUtils.js";
+  //import { polyCoordsExist } from "@/utils/SrMapUtils";
 
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();

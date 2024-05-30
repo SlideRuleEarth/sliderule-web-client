@@ -4,7 +4,7 @@ import { useCredsStore } from '@/stores/credsStore';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
-import SrToast from 'primevue/toast';
+import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 
 const toast = useToast();
@@ -83,7 +83,7 @@ const onClear = () => {
 
 <template>
     <div class="file-upload-panel">
-        <SrToast position="top-center" group="headless" @close="upload_progress_visible = false">
+        <Toast position="top-center" group="headless" @close="upload_progress_visible = false">
             <template #container="{ message, closeCallback }">
                 <section class="toast-container">
                     <i class="upload-icon"></i>
@@ -100,7 +100,7 @@ const onClear = () => {
                     </div>
                 </section>
             </template>
-        </SrToast>
+        </Toast>
         <FileUpload mode="basic" 
                     name="SrCreds"
                     :disabled="props.insensitive" 
