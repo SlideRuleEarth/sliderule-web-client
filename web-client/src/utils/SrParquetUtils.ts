@@ -227,7 +227,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         useCurAtl06ReqSumStore().set_lon_Max(extLatLon.maxLon);
         useCurAtl06ReqSumStore().set_h_mean_Low(extHMean.lowHMean);
         useCurAtl06ReqSumStore().set_h_mean_High(extHMean.highHMean);
-        
+
 
         console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
         if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
@@ -248,7 +248,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
                         rowEnd: rowEnd,
                         onComplete: data => {
                             //console.log('data.length:',data.length,'data:', data);
-                            updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
+                            updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean, allFieldNames);
                             datalen = data.length;
                             hasMoreData = data.length === chunkSize;
                         }

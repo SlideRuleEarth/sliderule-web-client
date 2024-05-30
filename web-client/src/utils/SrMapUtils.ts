@@ -117,6 +117,22 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
 //     }
 // }
 
+function replaceKeysWithLabels(
+        originalObject: { [key: string]: any },
+        fieldNames: string[]
+    ): { [key: string]: any } {
+    const newObject: { [key: string]: any } = {};
+
+    Object.keys(originalObject).forEach((key) => {
+        const newKey = fieldNames[parseInt(key, 10)];
+        if (newKey !== undefined) {
+            newObject[newKey] = originalObject[key];
+        }
+    });
+    
+    return newObject;
+}
+
 interface TooltipParams {
     x: number;
     y: number;
@@ -157,15 +173,15 @@ const tooltipStyle = `
 const styleSheet = document.createElement("style");
 styleSheet.type = "text/css";
 styleSheet.innerText = tooltipStyle;
-//document.head.appendChild(styleSheet);
+document.head.appendChild(styleSheet);
 
 const tooltipDiv = document.createElement('div');
 tooltipDiv.id = 'tooltip';
-//document.body.appendChild(tooltipDiv);
+document.body.appendChild(tooltipDiv);
 
 
 //export type ElevationPlottable = [any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any];
-export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, use_white:boolean = false): void{
+export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
     try{
         console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     
@@ -184,13 +200,23 @@ export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,l
                 pointSize: 3,
                 pickable: true, // Enable picking
                 onHover: ({ object, x, y }) => {
+                    //console.log('onHover object:',object,' x:',x,' y:',y);
                     if (object) {
-                        const tooltip = `Elevation: ${object[2]}`;
+                        const newObject = replaceKeysWithLabels(object, fieldNames);
+                        //console.log('object',object,'newObject:',newObject);
+                        const tooltip = `Elevation: ${newObject}`;
                         showTooltip({ x, y, tooltip });
                     } else {
                         hideTooltip();
                     }
                 },
+                onClick: ({ object, x, y }) => {
+                    console.log('onclick object:',object,' x:',x,' y:',y);
+                    if (object) {
+                        const newObject = replaceKeysWithLabels(object, fieldNames);
+                        console.log('Clicked:',newObject);
+                    }
+                }
             });
         if(useMapStore().getDeckInstance()){
             useMapStore().getDeckInstance().setProps({layers:[layer]});
