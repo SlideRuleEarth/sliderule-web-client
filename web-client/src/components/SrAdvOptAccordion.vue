@@ -24,6 +24,7 @@ import SrAncillaryFields from './SrAncillaryFields.vue';
 import SrSurfaceElevation from './SrSurfaceElevation.vue';
 import SrStorageUsage from './SrStorageUsage.vue';
 import SrProgressCnts from "./SrProgressCnts.vue";
+import SrSelectParquetReader from './SrSelectParquetReader.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -282,6 +283,7 @@ onMounted(() => {
                 </AccordionTab>
                 <AccordionTab header="Debug">
                     <SrProgressCnts />
+                    <SrSelectParquetReader />
                 </AccordionTab>
             </Accordion>
         </div>

@@ -29,7 +29,8 @@
   import {db} from '@/db/SlideRuleDb';
   import { updateDeck } from '@/utils/SrMapUtils';
   import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
-  
+  import  SrLegendControl  from "./SrLegendControl.vue";
+
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -169,6 +170,16 @@
     }
   };
 
+  const handleLegendControlCreated = (legendControl: any) => {
+    //console.log(legendControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding legendControl");
+      map.addControl(legendControl);
+    } else {
+      console.error("Error:map is null");
+    }
+  };
   const updateMapView = async (reason:string) => {
     console.log(`****** SrAnalysisMap updateMapView for ${reason} ******`);
     const map = mapRef.value?.map;
@@ -352,6 +363,7 @@
       />
 
       <ol-scaleline-control />
+      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
       <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
       <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
       <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >

@@ -2,6 +2,8 @@ import { parquetMetadata, parquetSchema, type FileMetaData } from 'hyparquet'
 import { db } from '@/db/SlideRuleDb'; 
 import { parquetRead } from 'hyparquet';
 import { updateElLayer } from '@/utils/SrMapUtils';
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -177,11 +179,13 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         console.log('readAndUpdateElevationData req_id:',req_id);
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
+        console.log('readAndUpdateElevationData opfsRoot:',opfsRoot);
         const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        console.log('readAndUpdateElevationData fileHandle:',fileHandle);
         const file = await fileHandle.getFile();
         const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
         const metadata = parquetMetadata(arrayBuffer)
-        console.warn('processOpfsFile metadata:',metadata);
+        console.log('processOpfsFile metadata:',metadata);
         const schema = parquetSchema(metadata);
         console.log('processOpfsFile schema:',schema);
 
@@ -215,34 +219,50 @@ export const readAndUpdateElevationData = async (req_id:number) => {
             await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
         }
         console.log('readAndUpdateElevationData hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
-        const chunkSize = 1000000; 
-        let rowStart = 0;
-        let rowEnd = chunkSize;
-        let hasMoreData = true;
-        let datalen = 0;
+        useCurAtl06ReqSumStore().set_h_mean_Min(extHMean.minHMean);
+        useCurAtl06ReqSumStore().set_h_mean_Max(extHMean.maxHMean);
+        useCurAtl06ReqSumStore().set_lat_Min(extLatLon.minLat);
+        useCurAtl06ReqSumStore().set_lat_Max(extLatLon.maxLat);
+        useCurAtl06ReqSumStore().set_lon_Min(extLatLon.minLon);
+        useCurAtl06ReqSumStore().set_lon_Max(extLatLon.maxLon);
+        useCurAtl06ReqSumStore().set_h_mean_Low(extHMean.lowHMean);
+        useCurAtl06ReqSumStore().set_h_mean_High(extHMean.highHMean);
         
-        console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
-        while (hasMoreData) { // now plot data with color extremes set
-            try{
-                await parquetRead({
-                    file: arrayBuffer,
-                    columns: allFieldNames,
-                    rowStart: rowStart,
-                    rowEnd: rowEnd,
-                    onComplete: data => {
-                        console.log('data.length:',data.length,'data:', data);
-                        updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
-                        datalen = data.length;
-                        hasMoreData = data.length === chunkSize;
-                    }
-                });
-            } catch (error) {
-                console.error('readAndUpdateElevationData error:',error);
-                throw error;
+
+        console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
+        if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
+            const chunkSize = 100000; 
+            let rowStart = 0;
+            let rowEnd = chunkSize;
+            let hasMoreData = true;
+            let datalen = 0;
+            
+            console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
+            while (hasMoreData) { // now plot data with color extremes set
+                try{
+                    console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
+                    await parquetRead({
+                        file: arrayBuffer,
+                        columns: allFieldNames,
+                        rowStart: rowStart,
+                        rowEnd: rowEnd,
+                        onComplete: data => {
+                            //console.log('data.length:',data.length,'data:', data);
+                            updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
+                            datalen = data.length;
+                            hasMoreData = data.length === chunkSize;
+                        }
+                    });
+                } catch (error) {
+                    console.error('readAndUpdateElevationData error:',error);
+                    throw error;
+                }
+                rowStart += chunkSize;
+                rowEnd += chunkSize;
+                console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
             }
-            rowStart += chunkSize;
-            rowEnd += chunkSize;
-            console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+        } else {
+            console.error('readAndUpdateElevationData parquetReader:',useSrParquetCfgStore().getParquetReader().name,' not supported');
         }
     } catch (error) {
         const errorMsg = `readAndUpdateElevationData Failed with error: ${error}`;

@@ -9,6 +9,9 @@ import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useRequestsStore } from '@/stores/requestsStore';
+import SrSelectParquetReader from './SrSelectParquetReader.vue';
+import { db } from '@/db/SlideRuleDb';
+import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
 
 const requestsStore = useRequestsStore();
 
@@ -40,10 +43,22 @@ onMounted(async() => {
 });
 
 
-watch(selectedReqId, (newReqId, oldReqId) => {
+watch(selectedReqId, async (newReqId, oldReqId) => {
     console.log('Request ID changed from:', oldReqId ,' to:', newReqId);
     // Optionally update other store or effects as needed
-
+    const summary = await db.getWorkerSummary(Number(newReqId.value));
+    if(summary){
+        useCurAtl06ReqSumStore().set_h_mean_Min(summary.extHMean.minHMean);
+        useCurAtl06ReqSumStore().set_h_mean_Max(summary.extHMean.maxHMean);
+        useCurAtl06ReqSumStore().set_lat_Min(summary.extLatLon.minLat);
+        useCurAtl06ReqSumStore().set_lat_Max(summary.extLatLon.maxLat);
+        useCurAtl06ReqSumStore().set_lon_Min(summary.extLatLon.minLon);
+        useCurAtl06ReqSumStore().set_lon_Max(summary.extLatLon.maxLon);
+        useCurAtl06ReqSumStore().set_h_mean_Low(summary.extHMean.lowHMean);
+        useCurAtl06ReqSumStore().set_h_mean_High(summary.extHMean.highHMean);
+    } else {
+        console.error('Failed to get summary for request:', newReqId);
+    }
 }, { deep: true, immediate: true });
 </script>
 
@@ -65,6 +80,9 @@ watch(selectedReqId, (newReqId, oldReqId) => {
         </div>
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
+            <div>
+                <SrSelectParquetReader />
+            </div>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" :activeIndex="activeTabIndex" >
                 <AccordionTab header="General" >
                     <SrMenuMultiInput
