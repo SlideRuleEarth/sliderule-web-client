@@ -133,6 +133,12 @@ function replaceKeysWithLabels(
     return newObject;
 }
 
+
+function formatObject(obj: { [key: string]: any }): string {
+    return Object.entries(obj)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+  }
 interface TooltipParams {
     x: number;
     y: number;
@@ -204,7 +210,7 @@ export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,l
                     if (object) {
                         const newObject = replaceKeysWithLabels(object, fieldNames);
                         //console.log('object',object,'newObject:',newObject);
-                        const tooltip = `Elevation: ${newObject}`;
+                        const tooltip = formatObject(newObject);
                         showTooltip({ x, y, tooltip });
                     } else {
                         hideTooltip();
