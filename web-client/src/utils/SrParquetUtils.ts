@@ -173,70 +173,80 @@ export const deleteOpfsFile = async (filename:string) => {
 }
 
 export const readAndUpdateElevationData = async (req_id:number) => {
-    console.log('readAndUpdateElevationData req_id:',req_id);
-    const fileName = await db.getFilename(req_id);
-    const opfsRoot = await navigator.storage.getDirectory();
-    const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
-    const file = await fileHandle.getFile();
-    const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
-    const metadata = parquetMetadata(arrayBuffer)
-    console.warn('processOpfsFile metadata:',metadata);
-    const schema = parquetSchema(metadata);
-    console.log('processOpfsFile schema:',schema);
+    try{
+        console.log('readAndUpdateElevationData req_id:',req_id);
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const file = await fileHandle.getFile();
+        const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
+        const metadata = parquetMetadata(arrayBuffer)
+        console.warn('processOpfsFile metadata:',metadata);
+        const schema = parquetSchema(metadata);
+        console.log('processOpfsFile schema:',schema);
 
-    const allFieldNameTypes = recurseTree(schema);
-    const allFieldNames = getFieldNames(allFieldNameTypes);
-    const lonNdx = findLongNdx(allFieldNameTypes);
-    const latNdx = findLatNdx(allFieldNameTypes);
-    const hMeanNdx = findHMeanNdx(allFieldNameTypes);
+        const allFieldNameTypes = recurseTree(schema);
+        const allFieldNames = getFieldNames(allFieldNameTypes);
+        const lonNdx = findLongNdx(allFieldNameTypes);
+        const latNdx = findLatNdx(allFieldNameTypes);
+        const hMeanNdx = findHMeanNdx(allFieldNameTypes);
 
-    const latMinMax = await getColumnMinMax(metadata, latNdx);
-    const lonMinMax = await getColumnMinMax(metadata, lonNdx);
-    const extLatLon = {
-        minLat: latMinMax.min,
-        maxLat: latMinMax.max,
-        minLon: lonMinMax.min,
-        maxLon: lonMinMax.max
-    };
-    const hMeanMinMax = await getColumnMinMax(metadata, hMeanNdx);
-    const extHMean = {
-        minHMean: hMeanMinMax.min,
-        maxHMean: hMeanMinMax.max,
-        lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
-        highHMean: hMeanMinMax.max // TBD: get 95th percentile?
-    };
-    const summary = await db.getWorkerSummary(req_id);
-    if (summary) {
-        summary.extLatLon = extLatLon;
-        summary.extHMean = extHMean;
-        await db.updateSummary(summary);
-    } else {
-        await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
-    }
-    console.log('processOpfsFile hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
-    const chunkSize = 1000000; 
-    let rowStart = 0;
-    let rowEnd = chunkSize;
-    let hasMoreData = true;
-    let datalen = 0;
-    
-    console.log('processOpsFile allFieldNames:',allFieldNames);
-    while (hasMoreData) { // now plot data with color extremes set
-        await parquetRead({
-            file: arrayBuffer,
-            columns: allFieldNames,
-            rowStart: rowStart,
-            rowEnd: rowEnd,
-            onComplete: data => {
-                console.log('data.length:',data.length,'data:', data);
-                updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
-                datalen = data.length;
-                hasMoreData = data.length === chunkSize;
+        const latMinMax = await getColumnMinMax(metadata, latNdx);
+        const lonMinMax = await getColumnMinMax(metadata, lonNdx);
+        const extLatLon = {
+            minLat: latMinMax.min,
+            maxLat: latMinMax.max,
+            minLon: lonMinMax.min,
+            maxLon: lonMinMax.max
+        };
+        const hMeanMinMax = await getColumnMinMax(metadata, hMeanNdx);
+        const extHMean = {
+            minHMean: hMeanMinMax.min,
+            maxHMean: hMeanMinMax.max,
+            lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
+            highHMean: hMeanMinMax.max // TBD: get 95th percentile?
+        };
+        const summary = await db.getWorkerSummary(req_id);
+        if (summary) {
+            summary.extLatLon = extLatLon;
+            summary.extHMean = extHMean;
+            await db.updateSummary(summary);
+        } else {
+            await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
+        }
+        console.log('readAndUpdateElevationData hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
+        const chunkSize = 1000000; 
+        let rowStart = 0;
+        let rowEnd = chunkSize;
+        let hasMoreData = true;
+        let datalen = 0;
+        
+        console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
+        while (hasMoreData) { // now plot data with color extremes set
+            try{
+                await parquetRead({
+                    file: arrayBuffer,
+                    columns: allFieldNames,
+                    rowStart: rowStart,
+                    rowEnd: rowEnd,
+                    onComplete: data => {
+                        console.log('data.length:',data.length,'data:', data);
+                        updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean);
+                        datalen = data.length;
+                        hasMoreData = data.length === chunkSize;
+                    }
+                });
+            } catch (error) {
+                console.error('readAndUpdateElevationData error:',error);
+                throw error;
             }
-        });
-        rowStart += chunkSize;
-        rowEnd += chunkSize;
-        console.log('processOpfsFile rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+            rowStart += chunkSize;
+            rowEnd += chunkSize;
+            console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+        }
+    } catch (error) {
+        const errorMsg = `readAndUpdateElevationData Failed with error: ${error}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
     }
-   
 }

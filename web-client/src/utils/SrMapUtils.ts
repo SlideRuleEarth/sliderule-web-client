@@ -8,8 +8,6 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
-import { db } from "@/db/SlideRuleDb";
 import { Deck } from '@deck.gl/core/typed';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
@@ -175,8 +173,8 @@ export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,l
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
                 data: elevationData,
                 getPosition: (d:number[]) => {
-                    console.log('lon: d[',lonNdx,']:',d[lonNdx],' lat: d[',latNdx,']:',d[latNdx],' hMean: d[',hMeanNdx,']:',d[hMeanNdx]);
-                    return [d[lonNdx], d[latNdx], d[hMeanNdx]]
+                    //console.log('lon: d[',lonNdx,']:',d[lonNdx],' lat: d[',latNdx,']:',d[latNdx],' hMean: d[',hMeanNdx,']:',d[hMeanNdx]);
+                    return [d[lonNdx], d[latNdx], 0]// d[hMeanNdx]]
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d:number[]) => {

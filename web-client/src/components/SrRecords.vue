@@ -8,6 +8,7 @@ import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path ba
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
 import { deleteOpfsFile } from '@/utils/SrParquetUtils';
+import { a } from 'vitest/dist/suite-a18diDsI';
 
 const requestsStore = useRequestsStore();
 
@@ -28,6 +29,35 @@ const deleteReq = async (id:number) => {
         requestsStore.deleteReq(id);
     } catch (error) {
         console.error(`Failed to delete request for id:${id}`, error);
+        throw error;
+    }
+};
+
+const exportFile = async (req_id:number) => {
+    console.log('Exporting file for req_id', req_id);
+    try{
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        // Create a download link and click it programmatically
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke the object URL
+        URL.revokeObjectURL(url);
+        const msg = `File ${fileName} exported successfully!`;
+        console.log(msg);
+        alert(msg);
+
+    } catch (error) {
+        console.error(`Failed to export request for id:${req_id}`, error);
+        alert(`Failed to export request for ID:${req_id}`);
         throw error;
     }
 };
@@ -107,12 +137,12 @@ onUnmounted(() => {
                     ></i>
                 </template>
             </Column>
-            <Column field="Actions" header="Delete All" class="sr-delete">
+            <Column field="Actions" header="" class="sr-delete">
                 <template #header>
                     <i 
                       :class="PrimeIcons.TRASH"
                       @click="deleteAllReqs()"
-                      v-tooltip="'Delete all reqs'"
+                      v-tooltip="'Delete ALL reqs'"
                     ></i>
                 </template>
                 <template #body="slotProps">
@@ -120,6 +150,15 @@ onUnmounted(() => {
                       :class="PrimeIcons.TRASH"
                       @click="deleteReq(slotProps.data.req_id)"
                       v-tooltip="'Delete req'"
+                    ></i>
+                </template>
+            </Column>
+            <Column field="Actions" header="" class="sr-export">
+                <template #body="slotProps">
+                    <i 
+                      class="pi pi-file-export sr-file-export-icon "
+                      @click="exportFile(slotProps.data.req_id)"
+                      v-tooltip="'Export file'"
                     ></i>
                 </template>
             </Column>
