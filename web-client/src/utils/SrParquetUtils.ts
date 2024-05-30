@@ -179,15 +179,15 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         console.log('readAndUpdateElevationData req_id:',req_id);
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
-        console.log('readAndUpdateElevationData opfsRoot:',opfsRoot);
+        //console.log('readAndUpdateElevationData opfsRoot:',opfsRoot);
         const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
-        console.log('readAndUpdateElevationData fileHandle:',fileHandle);
+        //console.log('readAndUpdateElevationData fileHandle:',fileHandle);
         const file = await fileHandle.getFile();
         const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
         const metadata = parquetMetadata(arrayBuffer)
-        console.log('processOpfsFile metadata:',metadata);
+        //console.log('processOpfsFile metadata:',metadata);
         const schema = parquetSchema(metadata);
-        console.log('processOpfsFile schema:',schema);
+        //console.log('processOpfsFile schema:',schema);
 
         const allFieldNameTypes = recurseTree(schema);
         const allFieldNames = getFieldNames(allFieldNameTypes);
@@ -218,7 +218,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         } else {
             await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
         }
-        console.log('readAndUpdateElevationData hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
+        //console.log('readAndUpdateElevationData hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
         useCurAtl06ReqSumStore().set_h_mean_Min(extHMean.minHMean);
         useCurAtl06ReqSumStore().set_h_mean_Max(extHMean.maxHMean);
         useCurAtl06ReqSumStore().set_lat_Min(extLatLon.minLat);
@@ -237,10 +237,10 @@ export const readAndUpdateElevationData = async (req_id:number) => {
             let hasMoreData = true;
             let datalen = 0;
             
-            console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
+            //console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
             while (hasMoreData) { // now plot data with color extremes set
                 try{
-                    console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
+                    //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
                     await parquetRead({
                         file: arrayBuffer,
                         columns: allFieldNames,
@@ -259,7 +259,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
                 }
                 rowStart += chunkSize;
                 rowEnd += chunkSize;
-                console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+                //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
             }
         } else {
             console.error('readAndUpdateElevationData parquetReader:',useSrParquetCfgStore().getParquetReader().name,' not supported');

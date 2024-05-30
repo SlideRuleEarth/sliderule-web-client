@@ -38,7 +38,7 @@
     const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
     const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
     const iceSat2SelectedAPI = ref({name:'atl06',value:'atl06'});
-    const iceSat2APIsItems = ref([{name:'atl06',value:'atl06'},{name:'atl06s',value:'atl06s'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24s',value:'atl24s'}]);
+    const iceSat2APIsItems = ref([{name:'atl06',value:'atl06'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24',value:'atl24'}]);
     const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
     const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
     let worker: Worker | null = null;

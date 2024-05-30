@@ -20,13 +20,13 @@ import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
 export const polyCoordsExist = computed(() => {
     let exist = false;
     if(useGeoJsonStore().geoJsonData){
-        console.log('useGeoJsonStore().geoJsonData:',useGeoJsonStore().geoJsonData);
+        //console.log('useGeoJsonStore().geoJsonData:',useGeoJsonStore().geoJsonData);
         exist = true;
     } else if (useMapStore().polyCoords.length > 0) {
-        console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
+        //console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
         exist = true;
     } else {
-        console.log(`useMapStore().polyCoords: ${useMapStore().polyCoords} and useGeoJsonStore().geoJsonData: ${useGeoJsonStore().geoJsonData} do not exist.`);
+        //console.log(`useMapStore().polyCoords: ${useMapStore().polyCoords} and useGeoJsonStore().geoJsonData: ${useGeoJsonStore().geoJsonData} do not exist.`);
         exist = false;
     }
     return exist
@@ -59,7 +59,7 @@ export function drawGeoJson(geoJsonData:string) {
             if (geometry instanceof Polygon) {
                 const nestedCoords = geometry.getCoordinates();
                 useMapStore().polyCoords = nestedCoords;
-                console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
+                //console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
             } else {
                 console.error('The geometry type Polygon is only type supported. got geometry:',geometry);
             }        
@@ -189,7 +189,7 @@ document.body.appendChild(tooltipDiv);
 //export type ElevationPlottable = [any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any];
 export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
     try{
-        console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
+        //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
@@ -217,7 +217,7 @@ export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,l
                     }
                 },
                 onClick: ({ object, x, y }) => {
-                    console.log('onclick object:',object,' x:',x,' y:',y);
+                    //console.log('onclick object:',object,' x:',x,' y:',y);
                     if (object) {
                         const newObject = replaceKeysWithLabels(object, fieldNames);
                         console.log('Clicked:',newObject);
@@ -287,15 +287,15 @@ export function updateDeck(map: OLMap){
     if(deck){
       const current_layer = useMapStore().getDeckLayer();
       if(current_layer){
-        console.log('Removing current_layer:',current_layer);
+        //console.log('Removing current_layer:',current_layer);
         map.removeLayer(current_layer);
       }else{
-        console.log('No current_layer to remove.');
+        //console.log('No current_layer to remove.');
       }
       const deckLayer = createNewDeckLayer(deck);
       if(deckLayer){
           map.addLayer(deckLayer);
-          console.log('deckLayer added:',deckLayer);
+          //console.log('deckLayer added:',deckLayer);
       } else {
           console.error('createDeckGLInstance returned null');
       }
@@ -305,85 +305,40 @@ export function updateDeck(map: OLMap){
 
 }
 
-// export async function fetchAndUpdateElevationData(reqId: number, maxPoints?: number) {
-//     try {
-//         const chunkSize = 100000; // the size of each chunk
-//         let offset = 0;
-//         let hasMore = true;
-//         let elevationData: Elevation[] = [];
-//         let maxPointsToUse = chunkSize;
-//         // If maxPoints is not provided, fetch it from the database
-//         if (maxPoints) {
-//             maxPointsToUse = maxPoints;
-//             console.log('Using provided maxPoints:', maxPoints);
-//         } else {
-//             const dbNumPoints = await db.getNumberOfElevationPoints(reqId);
-//             if (dbNumPoints !== null) {
-//                 maxPointsToUse = dbNumPoints;
-//                 console.log('Fetched maxPoints from DB:', maxPointsToUse);
-//             } else {
-//                 console.error('Failed to fetch maxPoints from DB using default value of:', chunkSize);
-//                 maxPointsToUse = chunkSize;
-//             }
+// function updateExtremeLatLon(elevationData:any[][],
+//                                     hMeanNdx:number,
+//                                     latNdx:number,
+//                                     lonNdx:number,
+//                                     localExtLatLon: ExtLatLon,
+//                                     localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
+//     elevationData.forEach(d => {
+//         if (d[2] < localExtHMean.minHMean) {
+//             localExtHMean.minHMean = d[hMeanNdx];
 //         }
-
-//         //console.log('Fetching and updating elevation data for request:', reqId, 'maxPointsToUse:', maxPointsToUse);
-
-//         // Loop until we reach the specified number of points or exceed it
-//         while (offset < maxPointsToUse && hasMore && !useMapStore().isAborting && !useMapStore().isLoading ){
-//             const elevationDataChunk = await db.getElevationsChunk(reqId, offset, chunkSize);
-//             elevationData = elevationData.concat(elevationDataChunk);
-//             updateElevationLayer(elevationData);     // Update the layer with each chunk
-//             //console.log('maxPointsToUse:',maxPointsToUse,'elevationDataChunk.length:', elevationDataChunk.length);
-//             offset += elevationDataChunk.length;
-//             hasMore = elevationDataChunk.length === chunkSize;
-
-//             // allow the UI thread to update
-//             await new Promise(resolve => setTimeout(resolve, 0)); // Small delay to allow UI updates
-//             //console.log(`Fetched ${offset} elevation data points hasMore:${hasMore}`);
+//         if (d[2] > localExtHMean.maxHMean) {
+//             localExtHMean.maxHMean = d[hMeanNdx];
 //         }
-//         //console.log('Elevation data fetched and updated:', elevationData.length);
-//     } catch (error) {
-//         console.error('Failed to fetch and update elevation data:', error);
-//     }
-//     //useMapStore().scheduleDrawElevations();
+//         if (d[2] < localExtHMean.lowHMean) { // TBD fix this
+//             localExtHMean.lowHMean = d[hMeanNdx];
+//         }
+//         if (d[2] > localExtHMean.highHMean) { // TBD fix this
+//             localExtHMean.highHMean = d[hMeanNdx];
+//         }
+//         if (d[1] < localExtLatLon.minLat) {
+//             localExtLatLon.minLat = d[latNdx];
+//         }
+//         if (d[1] > localExtLatLon.maxLat) {
+//             localExtLatLon.maxLat = d[latNdx];
+//         }
+//         if (d[0] < localExtLatLon.minLon) {
+//             localExtLatLon.minLon = d[lonNdx];
+//         }
+//         if (d[0] > localExtLatLon.maxLon) {
+//             localExtLatLon.maxLon = d[lonNdx];
+//         }
+//     });
+//     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 // }
-
-
-function updateExtremeLatLon(elevationData:any[][],
-                                    hMeanNdx:number,
-                                    latNdx:number,
-                                    lonNdx:number,
-                                    localExtLatLon: ExtLatLon,
-                                    localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
-    elevationData.forEach(d => {
-        if (d[2] < localExtHMean.minHMean) {
-            localExtHMean.minHMean = d[hMeanNdx];
-        }
-        if (d[2] > localExtHMean.maxHMean) {
-            localExtHMean.maxHMean = d[hMeanNdx];
-        }
-        if (d[2] < localExtHMean.lowHMean) { // TBD fix this
-            localExtHMean.lowHMean = d[hMeanNdx];
-        }
-        if (d[2] > localExtHMean.highHMean) { // TBD fix this
-            localExtHMean.highHMean = d[hMeanNdx];
-        }
-        if (d[1] < localExtLatLon.minLat) {
-            localExtLatLon.minLat = d[latNdx];
-        }
-        if (d[1] > localExtLatLon.maxLat) {
-            localExtLatLon.maxLat = d[latNdx];
-        }
-        if (d[0] < localExtLatLon.minLon) {
-            localExtLatLon.minLon = d[lonNdx];
-        }
-        if (d[0] > localExtLatLon.maxLon) {
-            localExtLatLon.maxLon = d[lonNdx];
-        }
-    });
-    return {extLatLon:localExtLatLon,extHMean:localExtHMean};
-}
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {

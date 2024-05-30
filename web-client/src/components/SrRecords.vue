@@ -8,7 +8,6 @@ import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path ba
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
 import { deleteOpfsFile } from '@/utils/SrParquetUtils';
-import { a } from 'vitest/dist/suite-a18diDsI';
 
 const requestsStore = useRequestsStore();
 

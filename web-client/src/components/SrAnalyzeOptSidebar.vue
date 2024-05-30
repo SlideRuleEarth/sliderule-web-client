@@ -29,24 +29,39 @@ const reqIds = ref<SrMenuItem[]>([]);
 onMounted(async() => {
     try {
         reqIds.value =  await requestsStore.getMenuItems();
+        //console.log('props.startingReqId:',props.startingReqId)
         if (props.startingReqId){
             const startId = props.startingReqId.toString()
             defaultMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
+            //console.log('defaultMenuItemIndex:', defaultMenuItemIndex.value);
             selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
         }
-        console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
+        //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
     } catch (error) {
         console.error('Failed to load menu items:', error);
     }
     loading.value = false;
-    console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:', props.startingReqId);
+    //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
+    selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+    //console.log('selectedReqId:', selectedReqId);
 });
 
 
-watch(selectedReqId, async (newReqId, oldReqId) => {
-    console.log('Request ID changed from:', oldReqId ,' to:', newReqId);
+watch(selectedReqId, async (newSelection, oldSelection) => {
+    //console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
+    if(reqIds.value.length === 0) {
+        reqIds.value =  await requestsStore.getMenuItems();
+    }
+    //console.log('reqIds:', reqIds.value);
+    const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
+    //console.log('selectionNdx:', selectionNdx);
+    if (selectionNdx === -1) { // i.e. not found
+        newSelection = reqIds.value[0];  
+    }
+    //console.log('Using filtered newSelection:', newSelection);
     // Optionally update other store or effects as needed
-    const summary = await db.getWorkerSummary(Number(newReqId.value));
+    const summary = await db.getWorkerSummary(Number(newSelection.value));
+    //console.log('summary:', summary);
     if(summary){
         useCurAtl06ReqSumStore().set_h_mean_Min(summary.extHMean.minHMean);
         useCurAtl06ReqSumStore().set_h_mean_Max(summary.extHMean.maxHMean);
@@ -57,7 +72,7 @@ watch(selectedReqId, async (newReqId, oldReqId) => {
         useCurAtl06ReqSumStore().set_h_mean_Low(summary.extHMean.lowHMean);
         useCurAtl06ReqSumStore().set_h_mean_High(summary.extHMean.highHMean);
     } else {
-        console.error('Failed to get summary for request:', newReqId);
+        console.error('Failed to get summary for request:', newSelection);
     }
 }, { deep: true, immediate: true });
 </script>
