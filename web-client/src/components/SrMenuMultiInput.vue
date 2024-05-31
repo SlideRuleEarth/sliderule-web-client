@@ -1,12 +1,37 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
-        <!-- <label for="srSelectMultiMenu-{{ label }}" class="sr-menu-multi-input-label" :title="tooltipText">{{ label }}</label> -->
-        <SrLabelInfoIconButton :label="label"  :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" :labelFontSize="labelFontSize"/>
-        <div ref="menuElement" :class="{'sr-menu-multi-input-menu-control':!insensitive, 'sr-menu-multi-input-menu-control-insensitive':insensitive}">
-            <SrCheckbox v-model="selectAll" label="All" :default="true" @update:modelValue="handleSelectAllItems"  :insensitive=insensitive />
+        <SrLabelInfoIconButton 
+            :label="label"  
+            :tooltipText="tooltipText" 
+            :tooltipUrl="tooltipUrl" 
+            :insensitive="insensitive" 
+            :labelFontSize="labelFontSize"/>
+        <div ref="menuElement" 
+            :class="{
+                'sr-menu-multi-input-menu-control':!insensitive, 
+                'sr-menu-multi-input-menu-control-insensitive':insensitive
+            }"
+            >
+            <SrCheckbox 
+                v-model="localSelectAll" 
+                label="All" 
+                :default="true" 
+                @update:modelValue="handleSelectAllItems"  
+                :insensitive=insensitive 
+            />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
-                <select v-model="selectedMenuItems" class="sr-menu-multi-input-select-default" name="sr-select-multi-menu" id="srSelectMultiMenu-{{ label }}" multiple :disabled="insensitive">
-                    <option v-for="item in menuOptions" :value="item" :key="item">
+                <select 
+                    v-model="localSelectedMenuItems" 
+                    class="sr-menu-multi-input-select-default" 
+                    name="sr-select-multi-menu" 
+                    :id="`srSelectMultiMenu-{{ label }}`" 
+                    multiple 
+                    :disabled="insensitive"
+                >
+                    <option 
+                        v-for="item in menuOptions" 
+                        :value="item" 
+                        :key="item">
                         {{ item }}
                     </option>
                 </select>
@@ -22,8 +47,14 @@
 
     const props = defineProps({
         label: String,
-        menuOptions: Array as () => string[],
-        default: Array as () => string[],
+            menuOptions: {
+            type: Array as () => string[],
+            default: () => []
+        },
+        default: { // TBD use in onMounted?
+            type: Array as () => string[],
+            default: () => []
+        },
         insensitive: {
             type: Boolean,
             default: false
@@ -40,52 +71,60 @@
             type: String,
             default: 'small' // default font size if not passed
         },
+        selectAll: {
+            type: Boolean,
+            default: false
+        },
+        selectedMenuItems: {
+            type: Array as () => string[],
+            default: () => []
+        }
     });
 
-    const selectAll = ref(true);
+    const emit = defineEmits(['update:selectAll', 'update:selectedMenuItems']);
+
+    const localSelectAll = ref(props.selectAll);
+    const localSelectedMenuItems = ref([...props.selectedMenuItems]);
 
     const handleSelectAllItems = (newValue: boolean) => {
-        console.log('CheckSelectAll:', newValue);
-        selectAll.value = newValue;
-        if(props.menuOptions){
-            if (selectAll.value) {
-                selectedMenuItems.value = [...props.menuOptions];
-            } else {
-                selectedMenuItems.value = [];
-            }
+        localSelectAll.value = newValue;
+        if (props.menuOptions) {
+            localSelectedMenuItems.value = newValue ? [...props.menuOptions] : [];
         } else {
-            console.error('No menu options to select?');
-            selectedMenuItems.value = [];
+            localSelectedMenuItems.value = [];
         }
-        console.log('Selected Items:', selectedMenuItems.value);
+            emit('update:selectAll', localSelectAll.value);
+        emit('update:selectedMenuItems', localSelectedMenuItems.value);
     };
-    // Update to manage an array of selected items
-    const selectedMenuItems = ref(props.default);
-
     // Watcher to update selectAll based on selected items
-    watch(selectedMenuItems, (currentSelection) => {
-        console.log('Selected Items:', currentSelection);
-        // If the length of selected items is equal to the length of menu options, set selectAll to true, otherwise false
-        if (currentSelection && props.menuOptions){
-            console.log('Menu Options:', props.menuOptions);
-            selectAll.value = currentSelection.length === props.menuOptions.length;
-        } else {
-            console.error('No menu options to select?');
-            selectAll.value = false;
-        }
-        console.log('Select All:', selectAll.value);
+    watch(localSelectedMenuItems, (currentSelection) => {
+        const newSelectAllValue = currentSelection.length === props.menuOptions.length;
+        localSelectAll.value = newSelectAllValue;
+        emit('update:selectAll', newSelectAllValue);
+        emit('update:selectedMenuItems', currentSelection);
     }, { deep: true });
+
+
+    // watch(() => props.selectAll,(newValue) => {
+    //     localSelectAll.value = newValue;
+    // });
+
+    // watch(() => props.selectedMenuItems,(newValue) => {
+    //     localSelectedMenuItems.value = [...newValue];
+    // });
 
     const openTooltipUrl = () => {
         console.log('openTooltipUrl:', props.tooltipUrl);
         if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank').focus();
+            window.open(props.tooltipUrl, '_blank')?.focus();
         } else {
             console.warn('No tooltip URL provided');
         }
     };
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
+        localSelectAll.value = props.selectAll;
+        localSelectedMenuItems.value = [...props.selectedMenuItems];
     });
 </script>
 

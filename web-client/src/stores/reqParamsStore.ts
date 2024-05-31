@@ -24,7 +24,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
-        allTracks: true,
+        selectAllTracks: false,
         beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
         beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
         rgtValue: 1,
@@ -292,6 +292,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setTracks(tracks:string[]) {
           this.tracks = tracks;
+        },
+        setSelectAllTracks(selectAllTracks:boolean) {
+          this.selectAllTracks = selectAllTracks;
         }
 
     },
