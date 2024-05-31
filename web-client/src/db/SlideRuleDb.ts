@@ -91,7 +91,7 @@ export class SlideRuleDexie extends Dexie {
             summary: '++db_id, req_id',     
         });
         this._useMiddleware();
-        console.log("Database initialized.");
+        //console.log("Database initialized.");
     }
 
     private _useMiddleware(): void {
@@ -253,7 +253,7 @@ export class SlideRuleDexie extends Dexie {
     // Function to add a new request with status 'pending'
     async addPendingRequest(): Promise<number> {
         try {
-            console.log("Adding pending request...");
+            //console.log("Adding pending request...");
             const reqId = await this.requests.add({ 
                 status: 'pending', 
                 func: '', 
@@ -261,7 +261,7 @@ export class SlideRuleDexie extends Dexie {
                 start_time: new Date(), 
                 end_time: new Date()
             });
-            console.log(`Pending request added with req_id ${reqId}.`);
+            //console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;
         } catch (error) {
             console.error("Failed to add pending request:", error);
@@ -307,7 +307,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Delete all requests
             await this.requests.clear();
-            console.log("All requests deleted successfully.");
+            console.warn("All requests deleted successfully.");
         } catch (error) {
             console.error("Failed to delete all requests:", error);
             throw error; // Rethrowing the error for further handling if needed
@@ -339,7 +339,7 @@ export class SlideRuleDexie extends Dexie {
     async getRequestIds(): Promise<number[]> {
         try {
             const requestIds = await this.requests.orderBy('req_id').reverse().toArray().then(requests => requests.map(req => req.req_id!));
-            console.log("Retrieved request IDs:", requestIds);
+            //console.log("Retrieved request IDs:", requestIds);
             return requestIds;
         } catch (error) {
             console.error("Failed to retrieve request IDs:", error);
@@ -361,9 +361,9 @@ export class SlideRuleDexie extends Dexie {
 
     async updateSummary(summary: SrRequestSummary): Promise<void> {
         try {
-            console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
+            //console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.put( summary );
-            console.log(`Summary updated for req_id ${summary.req_id}.`);
+            //console.log(`Summary updated for req_id ${summary.req_id}.`);
         } catch (error) {
             console.error(`Failed to update summary for req_id ${summary.req_id}:`, error);
             throw error; // Rethrowing the error for further handling if needed
@@ -372,9 +372,9 @@ export class SlideRuleDexie extends Dexie {
 
     async addNewSummary(summary: SrRequestSummary): Promise<void> {
         try {
-            console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
+            //console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.add( summary );
-            console.log(`Summary added for req_id ${summary.req_id}.`);
+            //console.log(`Summary added for req_id ${summary.req_id}.`);
         } catch (error) {
             console.error(`Failed to add summary for req_id ${summary.req_id}:`, error);
             throw error; // Rethrowing the error for further handling if needed
@@ -390,10 +390,10 @@ export class SlideRuleDexie extends Dexie {
             }
             const summaryRecord = await this.summary.where('req_id').equals(reqId).first();
             if (!summaryRecord) {
-                console.log(`No summary found for req_id ${reqId}.`);
+                //console.log(`No summary found for req_id ${reqId}.`);
                 return undefined;
             }
-            console.log(`Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
+            //console.log(`Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
             return summaryRecord;
         } catch (error) {
             console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
@@ -403,10 +403,10 @@ export class SlideRuleDexie extends Dexie {
 
     async deleteDatabase(): Promise<void> {
         try {
-            console.log(`Deleting database ${this.name}...`);
+            console.warn(`Deleting database ${this.name}...`);
             this.close();
             await Dexie.delete(this.name);
-            console.log(`Database ${this.name} deleted successfully.`);
+            console.warn(`Database ${this.name} deleted successfully.`);
         } catch (error) {
             console.error(`Error deleting database ${this.name}:`, error);
             throw error;

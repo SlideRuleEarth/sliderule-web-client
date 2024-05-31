@@ -1,21 +1,55 @@
 <template>
     <div class="sr-checkbox">
-        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" :labelFontSize="labelFontSize"/>
-        <input :id="'sr-checkbox-' + label" type="checkbox" :checked="props.modelValue" @change="toggleChecked" :disabled="insensitive"/>
+        <template v-if="labelOnRight">
+            <input 
+                :id="'sr-checkbox-' + label" 
+                type="checkbox" 
+                v-model="checked" 
+                :disabled="insensitive"
+                @change="emitChange"
+            />
+        </template>
+        <template v-if="tooltipText || tooltipUrl">
+            <SrLabelInfoIconButton 
+                :label="label" 
+                :tooltipText="tooltipText" 
+                :tooltipUrl="tooltipUrl" 
+                :insensitive="insensitive" 
+                :labelFontSize="labelFontSize"
+            />
+        </template>
+        <template v-else>
+            <label 
+                :for="'sr-checkbox-' + label" 
+                :class="['sr-checkbox-label', { 'sr-checkbox-label-insensitive': insensitive }]"
+                :style="{ fontSize: labelFontSize }"
+            >
+                {{ label }}
+            </label>
+        </template>
+        <template v-if="!labelOnRight">
+            <input 
+                :id="'sr-checkbox-' + label" 
+                type="checkbox" 
+                v-model="checked" 
+                :disabled="insensitive"
+                @change="emitChange"
+            />
+        </template>
+
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+
 const props = defineProps({
-    label: {type:String,
-            default: 'undefined'
+    label: {
+        type: String,
+        default: ''
     },
     modelValue: {
-        type: Boolean,
-        default: false
-    },
-    default: {
         type: Boolean,
         default: false
     },
@@ -25,7 +59,7 @@ const props = defineProps({
     },
     tooltipText: {
         type: String,
-        default: 'tooltip text'
+        default: ''
     },
     tooltipUrl: {
         type: String,
@@ -33,17 +67,24 @@ const props = defineProps({
     },
     labelFontSize: {
         type: String,
-        default: 'small' // default font size if not passed
+        default: 'small'
     },
+    labelOnRight: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const emit = defineEmits(['update:modelValue']);
+const checked = ref(props.modelValue);
 
-const toggleChecked = (e:any) => {
-    console.log(`SrCheckbox: ${props.label}: ${props.modelValue}`);
-    console.log(`SrCheckbox e.target.checked: ${props.label}: ${e.target.checked}`);
-    emit('update:modelValue', e.target.checked);
-}
+watch(checked, (newValue) => {
+    emit('update:modelValue', newValue);
+});
+
+const emitChange = () => {
+    console.log(`SrCheckbox: ${props.label}: ${checked.value}`);
+};
 </script>
 
 <style scoped>
@@ -61,6 +102,6 @@ const toggleChecked = (e:any) => {
 
 .sr-checkbox-label-insensitive {
     white-space: nowrap;
-    color: #888; /*  grey color */
+    color: #888; /* grey color */
 }
 </style>

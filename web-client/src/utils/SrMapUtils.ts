@@ -13,9 +13,10 @@ import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
-import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
+import type { ExtHMean } from '@/workers/workerUtils';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 
-
+const reqParams = useReqParamsStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -90,32 +91,6 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
     return interpolateColor(purple, yellow, factor);
 }
 
-// export function updateElevationLayer(elevationData:Elevation[],use_white:boolean = false): void{
-//     try{
-//         //console.log('updateElevationLayer:',elevationData);
-//         const layer =     
-//             new PointCloudLayer({
-//                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-//                 data: elevationData,
-//                 getPosition: (d:Elevation) => {
-//                     return [d.longitude, d.latitude, d.h_mean]
-//                 },
-//                 getNormal: [0, 0, 1],
-//                 getColor: (d:Elevation) => {
-//                     if (use_white) return [255, 255, 255, 127];
-//                     return getColorForElevation(d.h_mean, useCurAtl06ReqSumStore().get_h_mean_Low() , useCurAtl06ReqSumStore().get_h_mean_High()) as [number, number, number, number];
-//                 },
-//                 pointSize: 3,
-//             });
-//         if(useMapStore().getDeckInstance()){
-//             useMapStore().getDeckInstance().setProps({layers:[layer]});
-//         } else {
-//             console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
-//         }
-//     } catch (error) {
-//         console.error('Error updating elevation layer:',error);
-//     }
-// }
 
 function replaceKeysWithLabels(
         originalObject: { [key: string]: any },
@@ -221,6 +196,11 @@ export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,l
                     if (object) {
                         const newObject = replaceKeysWithLabels(object, fieldNames);
                         console.log('Clicked:',newObject);
+                        reqParams.setReqion(newObject.region);
+                        useReqParamsStore().setRgt(newObject.rgt);
+                        useReqParamsStore().setCycle(newObject.cycle);
+                        useReqParamsStore().setTracks(newObject.track);
+                        useReqParamsStore().setBeams(newObject.beams);
                     }
                 }
             });

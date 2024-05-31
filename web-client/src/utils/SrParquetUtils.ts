@@ -229,13 +229,12 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         useCurAtl06ReqSumStore().set_h_mean_High(extHMean.highHMean);
 
 
-        console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
+        //console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
         if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
             const chunkSize = 100000; 
             let rowStart = 0;
             let rowEnd = chunkSize;
             let hasMoreData = true;
-            let datalen = 0;
             
             //console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
             while (hasMoreData) { // now plot data with color extremes set
@@ -249,7 +248,6 @@ export const readAndUpdateElevationData = async (req_id:number) => {
                         onComplete: data => {
                             //console.log('data.length:',data.length,'data:', data);
                             updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean, allFieldNames);
-                            datalen = data.length;
                             hasMoreData = data.length === chunkSize;
                         }
                     });

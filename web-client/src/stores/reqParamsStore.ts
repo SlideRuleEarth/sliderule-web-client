@@ -24,6 +24,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         urlValue: 'slideruleearth.io',
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
         tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
+        allTracks: true,
         beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
         beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
         rgtValue: 1,
@@ -254,6 +255,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               console.error('getAtl06ReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
+
           return req;
         },
         getSrt(): number[] | number {
@@ -276,6 +278,22 @@ export const useReqParamsStore = defineStore('reqParams', {
             };
           }
         },
+        setReqion(reqionValue:number) {
+          this.regionValue = reqionValue;
+        },
+        setRgt(rgtValue:number) {
+          this.rgtValue = rgtValue;
+        },
+        setCycle(cycleValue:number) {
+          this.cycleValue = cycleValue;
+        },
+        setBeams(beams:string[]) {
+          this.beams = beams;
+        },
+        setTracks(tracks:string[]) {
+          this.tracks = tracks;
+        }
+
     },
 })
 

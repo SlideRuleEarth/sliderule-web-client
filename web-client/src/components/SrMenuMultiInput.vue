@@ -75,6 +75,7 @@
         }
         console.log('Select All:', selectAll.value);
     }, { deep: true });
+
     const openTooltipUrl = () => {
         console.log('openTooltipUrl:', props.tooltipUrl);
         if (props.tooltipUrl) {

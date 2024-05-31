@@ -3,26 +3,20 @@ import SrSliderInput from './SrSliderInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrMenuInput from './SrMenuInput.vue';
 import SrCheckBox from './SrCheckbox.vue';
-import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();
 
-const props = defineProps({
-    label: String,
-    insensitive: {
-            type: Boolean,
-            default: false
-        },
-    });
 </script>
 
 <template>
   <div class="sr-yapc-container">
     <div class="sr-yapc-header">
-      <SrLabelInfoIconButton v-if="label != ''" label="YAPC" tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" :insensitive="insensitive" labelFontSize="large"/>
       <SrCheckBox
           v-model="reqParamsStore.YAPC"
-          label=""
+          label="YAPC" 
+          tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" 
+          labelFontSize="large"          
           :min="1"
           :max="100" 
           :decimalPlaces="0"
