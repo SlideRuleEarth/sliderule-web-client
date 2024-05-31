@@ -6,7 +6,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCalendar from './SrCalendar.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
-
+import SrCheckbox from './SrCheckbox.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -18,7 +18,7 @@ onUnmounted(() => {
 });
 
 
-const { selectAllTracks, tracks } = storeToRefs(reqParamsStore);
+const { selectAllTracks, tracks, selectAllBeams, beams  } = storeToRefs(reqParamsStore);
 
 const updateSelectAllTracks = (value: boolean) => {
   reqParamsStore.setSelectAllTracks(value);
@@ -28,32 +28,57 @@ const updateTracks = (items: string[]) => {
   reqParamsStore.setTracks(items);
 };
 
+const updateSelectAllBeams = (value: boolean) => {
+  reqParamsStore.setSelectAllBeams(value);
+};
+
+const updateBeams = (items: string[]) => {
+  reqParamsStore.setBeams(items);
+};
+
 </script>
 
 <template>
-    <div class="sr-granule-selection">
-        <SrMenuMultiInput
-            v-model:selectedMenuItems="tracks"
-            v-model:selectAll="selectAllTracks"
-            @update:selectAll="updateSelectAllTracks"
-            @update:selectedMenuItems="updateTracks"
-            label = "Track(s)"
-            aria-label="Select Tracks"
-            :menuOptions="reqParamsStore.tracksOptions"
-            :default="reqParamsStore.tracksOptions"
-            tooltipText="Each track has both a weak and a strong spot"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-        />
-        <SrMenuMultiInput
-            v-model="reqParamsStore.beams"
-            label = "Beam(s)"
-            aria-label="Select Beams"
-            :menuOptions="reqParamsStore.beamsOptions"
-            :default="reqParamsStore.beamsOptions"
-            tooltipText="Weak and strong spots are determined by orientation of the satellite"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-        />
+    <div class="sr-granule-selection-container">
+        <div class="sr-granule-selection-header">
+            <SrCheckbox
+                v-model="reqParamsStore.enableGranuleSelection"
+                label="Granule Selection"
+                labelFontSize="large"
+                tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed." 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#overview"
+            />
+        </div>
+        <div class="sr-granule-tracks-beams-div"> 
+            <SrMenuMultiInput class="sr-granule-tracks-div"
+                :insensitive="!reqParamsStore.enableGranuleSelection"
+                v-model:selectedMenuItems="tracks"
+                v-model:selectAll="selectAllTracks"
+                @update:selectAll="updateSelectAllTracks"
+                @update:selectedMenuItems="updateTracks"
+                label = "Track(s)"
+                aria-label="Select Tracks"
+                :menuOptions="reqParamsStore.tracksOptions"
+                :default="reqParamsStore.tracksOptions"
+                tooltipText="Each track has both a weak and a strong spot"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+            />
+            <SrMenuMultiInput class="sr-granule-beams-div"
+                :insensitive="!reqParamsStore.enableGranuleSelection"
+                v-model:selectBeams="beams"
+                v-model:selectAll="selectAllBeams"
+                @update:selectAll="updateSelectAllBeams"
+                @update:selectedMenuItems="updateBeams"
+                label = "Beam(s)"
+                aria-label="Select Beams"
+                :menuOptions="reqParamsStore.beamsOptions"
+                :default="reqParamsStore.beamsOptions"
+                tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+            />
+        </div> 
         <SrSwitchedSliderInput
+            :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.rgtValue"
             label="RGT"
             :min="1"
@@ -63,6 +88,7 @@ const updateTracks = (items: string[]) => {
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
         />
         <SrSliderInput
+            :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.cycleValue"
             label="Cycle"
             :min="1"
@@ -72,21 +98,24 @@ const updateTracks = (items: string[]) => {
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
         />
         <SrSliderInput
+            :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.regionValue"
-            label="Region"
-            :min="1"
-            :max="100" 
+            label="Atl03 Granule Region"
+            :min="0"
+            :max="14" 
             :decimalPlaces="0"
-            tooltipText="geographic region for corresponding standard product (defaults to all if not specified)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
+            tooltipUrl="https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf"
         />
         <SrCalendar
+            :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.t0Value"
             label="T0"
             tooltipText="Start Time for filtering granules"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
         />
         <SrCalendar
+            :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.t1Value"
             label="T1"
             tooltipText="End Time for filtering granules"
@@ -96,3 +125,32 @@ const updateTracks = (items: string[]) => {
     </div>
 
 </template>
+
+<style scoped>
+
+.sr-granule-selection-container {
+    margin-bottom: 1rem;
+    padding: 0.25rem;
+    border: 1px solid grey;
+    border-radius: var(--border-radius);
+}
+.sr-granule-selection-header{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    margin-bottom: 1rem;
+}
+.sr-granule-tracks-beams-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.sr-granule-tracks-div {
+    margin-right: 1rem;
+}
+.sr-granule-beams-div {
+    margin-left: 1rem;
+}
+</style>

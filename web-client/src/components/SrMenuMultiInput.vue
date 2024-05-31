@@ -6,12 +6,7 @@
             :tooltipUrl="tooltipUrl" 
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
-        <div ref="menuElement" 
-            :class="{
-                'sr-menu-multi-input-menu-control':!insensitive, 
-                'sr-menu-multi-input-menu-control-insensitive':insensitive
-            }"
-            >
+        <div ref="menuElement" :class="menuClass" >
             <SrCheckbox 
                 v-model="localSelectAll" 
                 label="All" 
@@ -41,7 +36,7 @@
 </template>
   
 <script setup lang="ts">
-    import { ref, onMounted, watch } from 'vue';
+    import { ref, onMounted, watch, computed } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
@@ -126,6 +121,12 @@
         localSelectAll.value = props.selectAll;
         localSelectedMenuItems.value = [...props.selectedMenuItems];
     });
+
+    const menuClass = computed(() => ({
+        'sr-menu-multi-input-select-default': true,
+        'sr-menu-multi-input-select-insensitive': props.insensitive
+    }));
+
 </script>
 
 <style scoped>
@@ -135,29 +136,14 @@
     margin-bottom: 1rem;
 }
 
-.sr-menu-multi-input-menu-control {
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    width: 90%;
-    margin: 0.25rem;
-}
 .sr-menu-multi-input-label {
     white-space: nowrap;
     font-size: small;
 }
 
-.sr-menu-multi-input-select-item {
-    display: flex;
-    max-width: fit-content;
-}
 
-.sr-menu-multi-input-menu-control-insensitive {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    color: #888; /*  grey color */
+.sr-menu-multi-input-select-insensitive {
+    color: #888; /* grey color */
 }
 
 .sr-menu-multi-input-select-default {
@@ -172,6 +158,8 @@
 }
 
 .sr-menu-multi-input-select-item {
+    display: flex;
+    max-width: fit-content;
     width: 100%;
     min-width: 4rem;
     height: auto;

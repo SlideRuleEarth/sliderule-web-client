@@ -20,7 +20,7 @@
     import type { WorkerSummary } from '@/workers/workerUtils';
     import ProgressBar from 'primevue/progressbar';
     import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
-
+    import SrReqDisplay from '@/components/SrReqDisplay.vue';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -536,6 +536,9 @@
                     <span></span>
                     <ProgressBar v-if="mapStore.isLoading" :value="useCurAtl06ReqSumStore().getPercentComplete()" />
                 </div>  
+            </div>
+            <div>
+                <SrReqDisplay />
             </div>
             <SrAdvOptAccordion
                 title="Options"

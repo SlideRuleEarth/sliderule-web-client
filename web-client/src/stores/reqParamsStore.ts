@@ -22,11 +22,13 @@ export const useReqParamsStore = defineStore('reqParams', {
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
+        enableGranuleSelection: false,
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
-        tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
+        tracksOptions: ['1', '2', '3'],
         selectAllTracks: false,
         beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
         beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
+        selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,
         regionValue: 1,
@@ -244,18 +246,18 @@ export const useReqParamsStore = defineStore('reqParams', {
                 req.output = {format: 'parquet', as_geo: false, path: path_to_use};
               }
               this.isArrowStream = true;
-            } else if(this.outputFormat.value==='feather'){
-              path_to_use += '.feather';
-              req.output = {format: 'feather', as_geo: false, path: path_to_use};
-              this.isArrowStream = true;
-            } else if(this.outputFormat.value==='csv'){
-              path_to_use += '.parquet';
-              req.output = {format: this.outputFormat.value, path: path_to_use};
             } else {
               console.error('getAtl06ReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
-
+          if(this.enableGranuleSelection===true){
+            if(this.tracks.length>0){
+              req.tracks = this.tracks;
+            }
+            if(this.beams.length>0){
+              req.beams = this.beams;
+            }
+          }
           return req;
         },
         getSrt(): number[] | number {
@@ -295,7 +297,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setSelectAllTracks(selectAllTracks:boolean) {
           this.selectAllTracks = selectAllTracks;
-        }
+        },
+        setSelectAllBeams(selectAllBeams:boolean) {
+          this.selectAllBeams = selectAllBeams;
+        },
 
     },
 })
