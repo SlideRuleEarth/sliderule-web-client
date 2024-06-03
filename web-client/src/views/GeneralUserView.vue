@@ -4,6 +4,7 @@ import SrSideBarLayout from "@/layouts/SrSideBarLayout.vue";
 import SrMap from "@/components/SrMap.vue";
 import { onMounted } from 'vue';
 import SrModeSelect from "@/components/SrModeSelect.vue";
+import SrGenUserSidebar from "@/components/SrGenUserSidebar.vue";
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
 const advancedModeStore = useAdvancedModeStore();
@@ -19,17 +20,7 @@ onMounted(() => {
         <template v-slot:sidebar-col>
             <SrSideBarLayout>
                 <template v-slot:sr-sidebar-body>
-                    <div class="card flex justify-content-center ">
-                        <div class = "banner-margin">
-                            <span>Recommended Settings for You</span>
-                        </div>
-                        <div class="card flex justify-content-center m-3">
-                            <span>Surface Type</span>
-                        </div> 
-                        <div class="card flex justify-content-center">
-                            <span>Filter Type</span>
-                        </div>
-                    </div>
+                    <SrGenUserSidebar/>
                 </template>
                 <template v-slot:sr-sidebar-footer>
                     <SrModeSelect /> 

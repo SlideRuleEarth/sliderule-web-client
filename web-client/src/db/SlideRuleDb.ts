@@ -34,6 +34,7 @@ export interface SrTimeDelta{
 //     x_atc: number;
 //     y_atc: number;
 // };
+export type ElevationPlottable = [number, number, number];
 
 // export type ElevationPlottable = 
 // [

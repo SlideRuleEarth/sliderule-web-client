@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 // Note: using route level code-splitting
 // this generates a separate chunk (<route>.[hash].js) for this route
 // which is lazy-loaded when the route is visited.
@@ -42,12 +41,13 @@ const router = createRouter({
     {
       path: '/advanced-user',
       name: 'advanced-user',
-      component: () => import('@/views/AdvancedUserView.vue')
+      component: () => import('@/views/AdvancedUserView.vue'),
     },
     {
       path: '/analyze/:id',
       name: 'analyze',
-      component: () => import('@/views/AnalyzeView.vue')
+      component: () => import('@/views/AnalyzeView.vue'),
+      props: true
     },
     {
       path: '/:pathMatch(.*)*',

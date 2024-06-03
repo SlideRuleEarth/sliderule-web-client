@@ -4,6 +4,9 @@ import { parquetRead } from 'hyparquet';
 import { updateElLayer } from '@/utils/SrMapUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
+import type { SrRequestSummary } from '@/db/SlideRuleDb';
+import type { ElevationPlottable } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -101,8 +104,8 @@ export function getFieldNames(fieldAndType: SrParquetPathTypeJsType[]):string[] 
     return fieldAndType.map((f) => f.path.join('.'));
 }   
 
-export function findHMeanNdx(fieldAndType: SrParquetPathTypeJsType[]):number {
-    return fieldAndType.findIndex((f) => f.path.join('.').includes('h_mean'));
+export function findHeightNdx(fieldAndType: SrParquetPathTypeJsType[],height_fieldname:string):number {
+    return fieldAndType.findIndex((f) => f.path.join('.').includes(height_fieldname));
 }
 
 export function findLongNdx(fieldAndType: SrParquetPathTypeJsType[]):number {   
@@ -118,46 +121,48 @@ export function getTypes(fieldAndType: SrParquetPathTypeJsType[]):string[] {
 }
 
 
-async function getColumnMinMax(metadata: FileMetaData, columnIndex: number): Promise<{ min: any, max: any }> {
-    let globalMin: any = null;
-    let globalMax: any = null;
+// async function getColumnMinMaxFromMeta(metadata: FileMetaData, columnIndex: number): Promise<{ min: any, max: any }> {
+//     let globalMin: any = null;
+//     let globalMax: any = null;
+//     console.log('getColumnMinMaxFromMeta metadata:',metadata,' columnIndex:',columnIndex);
+//     for (let rowGroupIndex = 0; rowGroupIndex < metadata.row_groups.length; rowGroupIndex++) {
+//         const rowGroup = metadata.row_groups[rowGroupIndex];
+//         const columnChunk = rowGroup.columns[columnIndex];
+//         console.log("getColumnMinMaxFromMeta rowGroupIndex:",rowGroupIndex," columnChunk:",columnChunk)
+//         if (columnChunk.meta_data) {
+//             const stats = columnChunk.meta_data.statistics;
+//             if (stats) {
+//                 const colMin = stats.min_value;
+//                 const colMax = stats.max_value;
+//                 if (colMin !== undefined && colMin !== null) {
+//                     if (globalMin === null || colMin < globalMin) {
+//                         globalMin = colMin;
+//                     }
+//                 } else {
+//                     console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: min_value is undefined or null`);
+//                 }
+//                 if (colMax !== undefined && colMax !== null) {
+//                     if (globalMax === null || colMax > globalMax) {
+//                         globalMax = colMax;
+//                     }
+//                 } else {
+//                     console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: max_value is undefined or null`);
+//                 }
+//             } else {
+//                 console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: statistics is undefined`);
+//             }
+//         } else {
+//             console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: meta_data is undefined`);
+//         }
+//     }
 
-    for (let rowGroupIndex = 0; rowGroupIndex < metadata.row_groups.length; rowGroupIndex++) {
-        const rowGroup = metadata.row_groups[rowGroupIndex];
-        const columnChunk = rowGroup.columns[columnIndex];
-        if (columnChunk.meta_data) {
-            const stats = columnChunk.meta_data.statistics;
-            if (stats) {
-                const colMin = stats.min_value;
-                const colMax = stats.max_value;
-                if (colMin !== undefined && colMin !== null) {
-                    if (globalMin === null || colMin < globalMin) {
-                        globalMin = colMin;
-                    }
-                } else {
-                    console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: min_value is undefined or null`);
-                }
-                if (colMax !== undefined && colMax !== null) {
-                    if (globalMax === null || colMax > globalMax) {
-                        globalMax = colMax;
-                    }
-                } else {
-                    console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: max_value is undefined or null`);
-                }
-            } else {
-                console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: statistics is undefined`);
-            }
-        } else {
-            console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: meta_data is undefined`);
-        }
-    }
+//     if (globalMin === null || globalMax === null) {
+//         throw new Error(`Unable to determine min and/or max values for column index ${columnIndex}`);
+//     }
 
-    if (globalMin === null || globalMax === null) {
-        throw new Error(`Unable to determine min and/or max values for column index ${columnIndex}`);
-    }
+//     return { min: globalMin, max: globalMax };
+// }
 
-    return { min: globalMin, max: globalMax };
-}
 export const deleteOpfsFile = async (filename:string) => {
     try{
         console.log('deleteOpfsFile filename:',filename);
@@ -174,7 +179,118 @@ export const deleteOpfsFile = async (filename:string) => {
     }
 }
 
-export const readAndUpdateElevationData = async (req_id:number) => {
+function updateExtremeLatLon(   elevationData:ElevationPlottable[],
+                                localExtLatLon: ExtLatLon,
+                                localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
+    elevationData.forEach(d => {
+        if (d[2] < localExtHMean.minHMean) {
+            localExtHMean.minHMean = d[2];
+        }
+        if (d[2] > localExtHMean.maxHMean) {
+            localExtHMean.maxHMean = d[2];
+        }
+        if (d[2] < localExtHMean.lowHMean) { // TBD fix this
+            localExtHMean.lowHMean = d[2];
+        }
+        if (d[2] > localExtHMean.highHMean) { // TBD fix this
+            localExtHMean.highHMean = d[2];
+        }
+        if (d[1] < localExtLatLon.minLat) {
+            localExtLatLon.minLat = d[1];
+        }
+        if (d[1] > localExtLatLon.maxLat) {
+            localExtLatLon.maxLat = d[1];
+        }
+        if (d[0] < localExtLatLon.minLon) {
+            localExtLatLon.minLon = d[0];
+        }
+        if (d[0] > localExtLatLon.maxLon) {
+            localExtLatLon.maxLon = d[0];
+        }
+    });
+    return {extLatLon:localExtLatLon,extHMean:localExtHMean};
+}
+
+export async function readOrCacheSummary(req_id:number,height_fieldname:string) : Promise<SrRequestSummary | undefined>{
+    const opfsRoot = await navigator.storage.getDirectory();
+    const filename = await db.getFilename(req_id);
+    const fileHandle = await opfsRoot.getFileHandle(filename, { create: false });
+    const file1 = await fileHandle.getFile();
+    const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
+    const summary = await db.getWorkerSummary(req_id);
+    if (summary) {
+        return summary;
+    } else {
+
+        let localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
+        let localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
+        const chunkSize = 200000;
+        let rowStart = 0;
+        let rowEnd = chunkSize;
+        let hasMoreData = true;
+        while (hasMoreData) { // First find extreme values for legend
+            await parquetRead({
+                file: arrayBuffer,
+                columns: ['longitude', 'latitude', height_fieldname],
+                rowStart: rowStart,
+                rowEnd: rowEnd,
+                onComplete: data => {
+                    //console.log('data.length:',data.length,'data:', data);
+                    const updatedExtremes = updateExtremeLatLon(data as [any,any,any], localExtLatLon, localExtHMean);
+                    localExtLatLon = updatedExtremes.extLatLon;
+                    localExtHMean = updatedExtremes.extHMean;
+                    hasMoreData = data.length === chunkSize;
+                }
+            });
+            rowStart += chunkSize;
+            rowEnd += chunkSize;
+        }
+        await db.addNewSummary({req_id:req_id, extLatLon: localExtLatLon, extHMean: localExtHMean});
+        return await db.getWorkerSummary(req_id);
+    }
+}
+
+export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:ArrayBuffer) => {
+    try{
+        const metadata = parquetMetadata(arrayBuffer);
+
+        console.log('processOpfsFile metadata:',metadata);
+        const schema = parquetSchema(metadata);
+        console.log('processOpfsFile schema:',schema);
+
+        const allFieldNameTypes = recurseTree(schema);
+        const allFieldNames = getFieldNames(allFieldNameTypes);
+        const lonNdx = findLongNdx(allFieldNameTypes);
+        const latNdx = findLatNdx(allFieldNameTypes);
+        const hMeanNdx = findHeightNdx(allFieldNameTypes,height_fieldname);
+        console.log('readAndUpdateElevationData lonNdx:',lonNdx,' latNdx:',latNdx,' hMeanNdx:',hMeanNdx);
+        return {allFieldNames, hMeanNdx, latNdx, lonNdx};
+    } catch (error) { 
+        const errorMsg = `readOpsfFileMetadata Failed with error: ${error}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+    }
+}
+
+        // This would be used if the metadata contained statistics for the columns
+
+        //const latMinMax = await getColumnMinMaxFromMeta(metadata, latNdx);
+        //const lonMinMax = await getColumnMinMaxFromMeta(metadata, lonNdx);
+        // const extLatLon = {
+        //     minLat: latMinMax.min,
+        //     maxLat: latMinMax.max,
+        //     minLon: lonMinMax.min,
+        //     maxLon: lonMinMax.max
+        // };
+        // const hMeanMinMax = await getColumnMinMaxFromMeta(metadata, hMeanNdx);
+        // const extHMean = {
+        //     minHMean: hMeanMinMax.min,
+        //     maxHMean: hMeanMinMax.max,
+        //     lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
+        //     highHMean: hMeanMinMax.max // TBD: get 95th percentile?
+        // };
+
+export const readAndUpdateElevationData = async (req_id:number,height_fieldname:string) => {
     try{
         console.log('readAndUpdateElevationData req_id:',req_id);
         const fileName = await db.getFilename(req_id);
@@ -184,83 +300,46 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         //console.log('readAndUpdateElevationData fileHandle:',fileHandle);
         const file = await fileHandle.getFile();
         const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
-        const metadata = parquetMetadata(arrayBuffer)
-        //console.log('processOpfsFile metadata:',metadata);
-        const schema = parquetSchema(metadata);
-        //console.log('processOpfsFile schema:',schema);
-
-        const allFieldNameTypes = recurseTree(schema);
-        const allFieldNames = getFieldNames(allFieldNameTypes);
-        const lonNdx = findLongNdx(allFieldNameTypes);
-        const latNdx = findLatNdx(allFieldNameTypes);
-        const hMeanNdx = findHMeanNdx(allFieldNameTypes);
-
-        const latMinMax = await getColumnMinMax(metadata, latNdx);
-        const lonMinMax = await getColumnMinMax(metadata, lonNdx);
-        const extLatLon = {
-            minLat: latMinMax.min,
-            maxLat: latMinMax.max,
-            minLon: lonMinMax.min,
-            maxLon: lonMinMax.max
-        };
-        const hMeanMinMax = await getColumnMinMax(metadata, hMeanNdx);
-        const extHMean = {
-            minHMean: hMeanMinMax.min,
-            maxHMean: hMeanMinMax.max,
-            lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
-            highHMean: hMeanMinMax.max // TBD: get 95th percentile?
-        };
-        const summary = await db.getWorkerSummary(req_id);
-        if (summary) {
-            summary.extLatLon = extLatLon;
-            summary.extHMean = extHMean;
-            await db.updateSummary(summary);
-        } else {
-            await db.addNewSummary({req_id:req_id, extLatLon: extLatLon, extHMean: extHMean});
-        }
-        //console.log('readAndUpdateElevationData hMeanNdx:',hMeanNdx,' latNdx:',latNdx,' lonNdx:',lonNdx,' summary:',summary);
-        useCurAtl06ReqSumStore().set_h_mean_Min(extHMean.minHMean);
-        useCurAtl06ReqSumStore().set_h_mean_Max(extHMean.maxHMean);
-        useCurAtl06ReqSumStore().set_lat_Min(extLatLon.minLat);
-        useCurAtl06ReqSumStore().set_lat_Max(extLatLon.maxLat);
-        useCurAtl06ReqSumStore().set_lon_Min(extLatLon.minLon);
-        useCurAtl06ReqSumStore().set_lon_Max(extLatLon.maxLon);
-        useCurAtl06ReqSumStore().set_h_mean_Low(extHMean.lowHMean);
-        useCurAtl06ReqSumStore().set_h_mean_High(extHMean.highHMean);
-
-
+        const metadata = await readOpsfFileMetadata(height_fieldname,arrayBuffer);
         //console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
-        if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
-            const chunkSize = 100000; 
-            let rowStart = 0;
-            let rowEnd = chunkSize;
-            let hasMoreData = true;
+        const summary = await readOrCacheSummary(req_id,height_fieldname);
+        if(summary){
+            useCurAtl06ReqSumStore().setSummary(summary);
             
-            //console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
-            while (hasMoreData) { // now plot data with color extremes set
-                try{
-                    //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
-                    await parquetRead({
-                        file: arrayBuffer,
-                        columns: allFieldNames,
-                        rowStart: rowStart,
-                        rowEnd: rowEnd,
-                        onComplete: data => {
-                            //console.log('data.length:',data.length,'data:', data);
-                            updateElLayer(data as [][], hMeanNdx, lonNdx, latNdx, extHMean, allFieldNames);
-                            hasMoreData = data.length === chunkSize;
-                        }
-                    });
-                } catch (error) {
-                    console.error('readAndUpdateElevationData error:',error);
-                    throw error;
+            if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
+                const chunkSize = 100000; 
+                let rowStart = 0;
+                let rowEnd = chunkSize;
+                let hasMoreData = true;
+                
+                //console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
+                while (hasMoreData) { // now plot data with color extremes set
+                    try{
+                        //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
+                        await parquetRead({
+                            file: arrayBuffer,
+                            columns: metadata.allFieldNames,
+                            rowStart: rowStart,
+                            rowEnd: rowEnd,
+                            onComplete: data => {
+                                //console.log('data.length:',data.length,'data:', data);
+                                updateElLayer(data as [][], metadata.hMeanNdx, metadata.lonNdx, metadata.latNdx, summary.extHMean, metadata.allFieldNames);
+                                hasMoreData = data.length === chunkSize;
+                            }
+                        });
+                    } catch (error) {
+                        console.error('readAndUpdateElevationData error:',error);
+                        throw error;
+                    }
+                    rowStart += chunkSize;
+                    rowEnd += chunkSize;
+                    //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
                 }
-                rowStart += chunkSize;
-                rowEnd += chunkSize;
-                //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd,' hasMoreData:',hasMoreData, ' chunkSize:',chunkSize, ' datalen:',datalen);
+            } else {
+                console.error('readAndUpdateElevationData parquetReader:',useSrParquetCfgStore().getParquetReader().name,' not supported');
             }
         } else {
-            console.error('readAndUpdateElevationData parquetReader:',useSrParquetCfgStore().getParquetReader().name,' not supported');
+            console.error('readAndUpdateElevationData summary is undefined');
         }
     } catch (error) {
         const errorMsg = `readAndUpdateElevationData Failed with error: ${error}`;

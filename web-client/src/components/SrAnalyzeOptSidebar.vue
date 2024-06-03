@@ -10,8 +10,9 @@ import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrSelectParquetReader from './SrSelectParquetReader.vue';
-import { db } from '@/db/SlideRuleDb';
 import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+import router from '@/router/index.js';
+import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
 
 const requestsStore = useRequestsStore();
 
@@ -28,52 +29,62 @@ const reqIds = ref<SrMenuItem[]>([]);
 
 onMounted(async() => {
     try {
+        console.log('onMounted SrAnalyzeOptSidebar');
         reqIds.value =  await requestsStore.getMenuItems();
-        //console.log('props.startingReqId:',props.startingReqId)
-        if (props.startingReqId){
+        if(reqIds.value.length === 0) {
+            console.warn('No requests found');
+            return;
+        }
+        console.log('onMounted props.startingReqId:',props.startingReqId)
+        if (props.startingReqId){ // from the route parameter
             const startId = props.startingReqId.toString()
             defaultMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
             //console.log('defaultMenuItemIndex:', defaultMenuItemIndex.value);
             selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+        } else {
+            defaultMenuItemIndex.value = 0;
+            selectedReqId.value = reqIds.value[0];
         }
         //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
     } catch (error) {
-        console.error('Failed to load menu items:', error);
+        console.error('onMounted Failed to load menu items:', error);
     }
     loading.value = false;
     //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
-    selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
-    //console.log('selectedReqId:', selectedReqId);
+    //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+    console.log('onMounted selectedReqId:', selectedReqId.value);
 });
 
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
-    //console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
-    if(reqIds.value.length === 0) {
+    console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
+
+    try{
         reqIds.value =  await requestsStore.getMenuItems();
+        if(reqIds.value.length === 0) {
+            console.warn('No requests found');
+            return;
+        }        
+        //console.log('reqIds:', reqIds.value);
+
+        const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
+        //console.log('selectionNdx:', selectionNdx);
+        if (selectionNdx === -1) { // i.e. not found
+            newSelection = reqIds.value[0];  
+        }
+        //console.log('Using filtered newSelection:', newSelection);
+        useCurAtl06ReqSumStore().set_req_id(Number(newSelection.value));
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
     }
-    //console.log('reqIds:', reqIds.value);
-    const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
-    //console.log('selectionNdx:', selectionNdx);
-    if (selectionNdx === -1) { // i.e. not found
-        newSelection = reqIds.value[0];  
+    try {
+        console.log('pushing selectedReqId:', newSelection.value);
+        router.push(`/analyze/${useCurAtl06ReqSumStore().get_req_id()}`);
+        console.log('Successfully navigated to analyze:', useCurAtl06ReqSumStore().get_req_id());
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
     }
-    //console.log('Using filtered newSelection:', newSelection);
-    // Optionally update other store or effects as needed
-    const summary = await db.getWorkerSummary(Number(newSelection.value));
-    //console.log('summary:', summary);
-    if(summary){
-        useCurAtl06ReqSumStore().set_h_mean_Min(summary.extHMean.minHMean);
-        useCurAtl06ReqSumStore().set_h_mean_Max(summary.extHMean.maxHMean);
-        useCurAtl06ReqSumStore().set_lat_Min(summary.extLatLon.minLat);
-        useCurAtl06ReqSumStore().set_lat_Max(summary.extLatLon.maxLat);
-        useCurAtl06ReqSumStore().set_lon_Min(summary.extLatLon.minLon);
-        useCurAtl06ReqSumStore().set_lon_Max(summary.extLatLon.maxLon);
-        useCurAtl06ReqSumStore().set_h_mean_Low(summary.extHMean.lowHMean);
-        useCurAtl06ReqSumStore().set_h_mean_High(summary.extHMean.highHMean);
-    } else {
-        console.error('Failed to get summary for request:', newSelection);
-    }
+
 }, { deep: true, immediate: true });
 </script>
 
