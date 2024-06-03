@@ -206,6 +206,20 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+    async getFunc(req_id:number): Promise<string> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return '';
+            }
+            return request.func || '';
+        } catch (error) {
+            console.error(`Failed to get function name for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
 
     async updateRequestRecord(updateParams: Partial<SrRequestRecord>): Promise<void> {
         const { req_id } = updateParams;

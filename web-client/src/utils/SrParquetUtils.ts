@@ -290,9 +290,18 @@ export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:
         //     highHMean: hMeanMinMax.max // TBD: get 95th percentile?
         // };
 
-export const readAndUpdateElevationData = async (req_id:number,height_fieldname:string) => {
+export const getHeightFieldname = async (req_id:number) => {
+    if (await db.getFunc(req_id) === 'atl06p') {
+        return 'h_mean';
+    } else {
+        return 'height';
+    }
+}
+
+export const readAndUpdateElevationData = async (req_id:number) => {
     try{
         console.log('readAndUpdateElevationData req_id:',req_id);
+        const height_fieldname = await getHeightFieldname(req_id);
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
         //console.log('readAndUpdateElevationData opfsRoot:',opfsRoot);

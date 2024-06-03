@@ -291,7 +291,7 @@
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               updateDeck(map);
-              await readAndUpdateElevationData(props.reqId,'h_mean');
+              await readAndUpdateElevationData(props.reqId);
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);
             }

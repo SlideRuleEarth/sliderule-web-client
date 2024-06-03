@@ -205,7 +205,7 @@
                 if(worker){
                     cleanUpWorker();
                 }
-                await readAndUpdateElevationData(workerMsg.req_id,'h_mean');
+                await readAndUpdateElevationData(workerMsg.req_id);
                 break;
 
             default:

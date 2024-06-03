@@ -35,12 +35,8 @@
     const curReqSumStore = useCurAtl06ReqSumStore();
 
     const toast = useToast();
-    const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
-    const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
-    const iceSat2SelectedAPI = ref({name:'atl06',value:'atl06'});
-    const iceSat2APIsItems = ref([{name:'atl06',value:'atl06'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24',value:'atl24'}]);
-    const gediSelectedAPI = ref({name:'gedi01b',value:'gedi01b'});
-    const gediAPIsItems = ref([{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}]);
+    //const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
+    //const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
     let worker: Worker | null = null;
     let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
     let percentComplete: number | null = null;
@@ -67,13 +63,13 @@
         //set_num_defs_fetched(0);
     });
 
-    watch(() => missionValue,(newValue,oldValue) => {
+    watch(() => useReqParamsStore().missionValue,(newValue,oldValue) => {
         console.log(`missionValue changed from ${oldValue} to ${newValue}`);
-        if (newValue.value.value === 'ICESat-2') {
-            iceSat2SelectedAPI.value.value = 'atl06'; // Reset to default when mission changes
+        if (newValue.value === 'ICESat-2') {
+            useReqParamsStore().iceSat2SelectedAPI = useReqParamsStore().iceSat2APIsItems[0]; // Reset to default when mission changes
             reqParamsStore.asset ='icesat2';
-        } else if (newValue.value.value === 'GEDI') {
-            gediSelectedAPI.value.value = 'gedi01b'; // Reset to default when mission changes
+        } else if (newValue.value === 'GEDI') {
+            useReqParamsStore().gediSelectedAPI = useReqParamsStore().gediAPIsItems[0]; // Reset to default when mission changes
             reqParamsStore.asset ='gedi';
         }
     });
@@ -272,7 +268,7 @@
                 if(worker){
                     cleanUpWorker();
                 }
-                await readAndUpdateElevationData(workerMsg.req_id,'h_mean');
+                await readAndUpdateElevationData(workerMsg.req_id);
                 break;
 
             default:
@@ -462,8 +458,8 @@
         let srReqRec = await requestsStore.createNewSrRequestRecord();
         if(srReqRec) {
             console.log('runSlideRuleClicked srReqRec:',srReqRec);
-            if(missionValue.value.value === 'ICESat-2') {
-                if(iceSat2SelectedAPI.value.value === 'atl06') {
+            if(useReqParamsStore().missionValue.value === 'ICESat-2') {
+                if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl06') {
                     console.log('atl06 selected');
                     if(!srReqRec.req_id) {
                         console.error('runAtl06 req_id is undefined');
@@ -475,17 +471,17 @@
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     runAtl06Worker(srReqRec);
-                } else if(iceSat2SelectedAPI.value.value === 'atl03') {
+                } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
                     console.log('atl03 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
-                } else if(iceSat2SelectedAPI.value.value === 'atl08') {
+                } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
                     console.log('atl08 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
-                } else if(iceSat2SelectedAPI.value.value === 'atl24s') {
+                } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24s') {
                     console.log('atl24s TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });
                 }
-            } else if(missionValue.value.value === 'GEDI') {
+            } else if(useReqParamsStore().missionValue.value === 'GEDI') {
                 console.log('GEDI TBD');
                 toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
             }
@@ -501,27 +497,27 @@
     <div class="sr-adv-option-sidebar-container">
         <div class="sr-adv-option-sidebar-options">
             <SrMenuInput
-                v-model="missionValue"
+                v-model="useReqParamsStore().missionValue"
                 label="Mission:"
-                :menuOptions="missionItems"
+                :menuOptions="useReqParamsStore().missionItems"
                 tooltipText="Select a mission to determine which APIs are available."
                 tooltipUrl="https://slideruleearth.io/web/rtd/index.html" 
             />
             <SrMenuInput
-                v-model="iceSat2SelectedAPI"
-                v-if="missionValue.value === 'ICESat-2'"
+                v-model="useReqParamsStore().iceSat2SelectedAPI"
+                v-if="useReqParamsStore().missionValue.value === 'ICESat-2'"
                 label="ICESat-2 Api:"
-                :menuOptions="iceSat2APIsItems"
-                :initial-value="iceSat2APIsItems[0]" 
+                :menuOptions="useReqParamsStore().iceSat2APIsItems"
+                :initial-value="useReqParamsStore().iceSat2APIsItems[0]" 
                 tootipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
             />
             <SrMenuInput
-                v-model="gediSelectedAPI"
-                v-if="missionValue.value === 'GEDI'"
+                v-model="useReqParamsStore().gediSelectedAPI"
+                v-if="useReqParamsStore().missionValue.value === 'GEDI'"
                 label="GEDI Api:"
-                :menuOptions="gediAPIsItems"
-                :initial-value="gediAPIsItems[0]" 
+                :menuOptions="useReqParamsStore().gediAPIsItems"
+                :initial-value="useReqParamsStore().gediAPIsItems[0]" 
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
             />
@@ -543,9 +539,9 @@
             <SrAdvOptAccordion
                 title="Options"
                 ariaTitle="advanced-options"
-                :mission="missionValue"
-                :iceSat2SelectedAPI="iceSat2SelectedAPI"
-                :gediSelectedAPI="gediSelectedAPI"
+                :mission="useReqParamsStore().missionValue"
+                :iceSat2SelectedAPI="useReqParamsStore().iceSat2SelectedAPI"
+                :gediSelectedAPI="useReqParamsStore().gediSelectedAPI"
             />
             <SrGraticuleSelect @graticule-click="graticuleClick"/>
         </div>  

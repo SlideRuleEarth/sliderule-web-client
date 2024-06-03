@@ -13,6 +13,12 @@ export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
+        missionValue: {name: 'ICESat-2', value: 'ICESat-2'},
+        missionItems:[{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}],
+        iceSat2SelectedAPI: {name: 'atl06', value: 'atl06'},
+        iceSat2APIsItems: [{name:'atl06',value:'atl06'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24',value:'atl24'}],
+        gediSelectedAPI: {name:'gedi01b',value:'gedi01b'},
+        gediAPIsItems: [{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}],
         using_worker: false,
         asset: 'icesat2',
         isArrowStream: false,
