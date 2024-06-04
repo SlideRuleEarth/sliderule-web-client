@@ -21,7 +21,7 @@ import OpenLayersMap, {
     type Vue3OpenlayersGlobalOptions,
   } from "vue3-openlayers";
 
-const app = createApp(App)
+export const app = createApp(App)
 app.config.errorHandler = (err, vm, info) => {
   console.error('Global Vue Error Handler:', err, info);
 };

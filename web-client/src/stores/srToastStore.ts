@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import {app} from '@/main';
 
 export const useSrToastStore = defineStore('srToast', {
     state: () => ({
@@ -10,6 +11,18 @@ export const useSrToastStore = defineStore('srToast', {
         },
         getLife(): number{
             return this.life;
-        }
+        },
+        error(title: string = 'I am title', body: string = 'I am body'): void {
+            app.config.globalProperties.$toast.add({severity: 'error', summary: title, detail: body, life: this.life});
+        },
+        success(title: string = 'I am title', body: string = 'I am body'): void {
+            app.config.globalProperties.$toast.add({severity: 'success', summary: title, detail: body, life: this.life});
+        },
+        info(title: string = 'I am title', body: string = 'I am body'): void {
+            app.config.globalProperties.$toast.add({severity: 'info', summary: title, detail: body, life: this.life});
+        },
+        warn(title: string = 'I am title', body: string = 'I am body'): void {
+            app.config.globalProperties.$toast.add({severity: 'warn', summary: title, detail: body, life: this.life});
+        },
     },
 });

@@ -44,8 +44,11 @@ export async function checkDoneProcessing(  reqID:number,
             let msg = `Successfully finished reading/writing req_id: ${reqID}`;
             if(abortRequested){ // Abort requested
                 msg = `Aborted processing req_id: ${reqID}`
-            };
-            postMessage(await successMsg(reqID, msg));
+            } else {
+                if(read_state === 'done_reading'){
+                    postMessage(await successMsg(reqID, msg));
+                }
+            }
             console.log(msg);
         }
     }
@@ -77,7 +80,7 @@ onmessage = async (event) => {
         const reqID = cmd.req_id;
         if(cmd.type === 'abort'){
             abortRequested = true;
-            abortedMsg(reqID, 'Processing aborted.');
+            postMessage(await abortedMsg(reqID, 'Processing aborted.'));
             console.log('Abort requested for req_id:', reqID);
             return;
         }
@@ -365,10 +368,10 @@ onmessage = async (event) => {
                                 // Log the result to the console
                                 console.log('Done - req_id:', reqID);
                                 console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                            },error => { // catch errors during the atl06p call promise (not ones that occur in success block)
+                            }, async error =>  { // catch errors during the atl06p call promise (not ones that occur in success block)
                                     // Log the error to the console
                                     read_state = 'error';
-                                    postMessage(progressMsg(reqID, 
+                                    postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
                                             target_numSvrExceptions:target_numSvrExceptions,
@@ -383,23 +386,33 @@ onmessage = async (event) => {
                                         localExtHMean));
                                     console.log(cmd.func,'  Error = ', error);
                                     let emsg = '';
+                                    emsg = String(error);
                                     let code = '';
-                                    if (navigator.onLine) {
-                                        code = 'NETWORK';
-                                        emsg =  'Network error: Possible DNS resolution issue or server down.';
+                                    //console.warn('Error:', error);
+                                    //console.warn('emsg:', emsg);
+                                    if(emsg.includes("SlideRuleError")){
+                                        code = 'SLIDERULE';
                                     } else {
-                                        code = 'OFFLINE';
-                                        emsg = 'Network error: your browser appears to be/have been offline.';
+                                        if (navigator.onLine) {
+                                            code = 'NETWORK';
+                                            emsg = 'Network error: Possible DNS resolution issue or server down.';
+                                        } else {
+                                            code = 'OFFLINE';
+                                            emsg = 'Network error: your browser appears to be/have been offline.';
+                                        }
                                     }
                                     if(emsg !== '') {
                                         console.error(cmd.func,'  Error = ', emsg);
                                     }
-                                    postMessage(errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
-                            }).catch((error => { // catch all errors including in then clause of promise
+                                    postMessage(await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
+                            }).catch((async error => { // catch all errors including in then clause of promise
                                 // Log the error to the console
                                 const status_details = `An unknown error occurred while running atl06p: ${error}`;
                                 read_state = 'error';
-                                postMessage(progressMsg(reqID, 
+                                console.log(cmd.func,'  Error = ', error);
+                                console.error(cmd.func,'  Error = ', status_details);
+                                postMessage(await errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: 'an error has occured while running atl06p:'+error }));
+                                postMessage(await progressMsg(reqID, 
                                                 {
                                                     read_state:read_state,
                                                     target_numSvrExceptions:target_numSvrExceptions,
@@ -412,17 +425,14 @@ onmessage = async (event) => {
                                                 status_details,
                                                 localExtLatLon,
                                                 localExtHMean));
-                                console.log(cmd.func,'  Error = ', error);
-                                console.error(cmd.func,'  Error = ', status_details);
-                                postMessage(errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: 'an error has occured while running atl06p' }));
-                            })).finally(() => {
+                            })).finally(async () => {
                                 if(reqID){
                                     console.log('finally req_id:',reqID, ' updating stats');
                                     // Wait for all transaction promises to complete
                                     console.log('finally num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                                 } else {
                                     console.error('finally req_id was undefined?');
-                                    errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' });
+                                    await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' });
                                 }
                                 if(arrowMetaFileOffset > 0){
                                     // Convert schema Uint8Array to JSON string
@@ -438,7 +448,7 @@ onmessage = async (event) => {
                                 } else {
                                     console.error('finally No arrow Data File data records were processed.');
                                 }
-                                checkDoneProcessing(reqID, 
+                                await checkDoneProcessing(reqID, 
                                                     read_state, 
                                                     num_svr_exceptions, 
                                                     num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
@@ -494,10 +504,10 @@ onmessage = async (event) => {
                                 // Log the result to the console
                                 console.log('Done - req_id:', reqID);
                                 console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                            },error => { // catch errors during the atl03p call promise (not ones that occur in success block)
+                            },async error => { // catch errors during the atl03p call promise (not ones that occur in success block)
                                     // Log the error to the console
                                     read_state = 'error';
-                                    postMessage(progressMsg(reqID, 
+                                    postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
                                             target_numSvrExceptions:target_numSvrExceptions,
@@ -523,12 +533,12 @@ onmessage = async (event) => {
                                     if(emsg !== '') {
                                         console.error('atl06p Error = ', emsg);
                                     }
-                                    postMessage(errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
-                            }).catch((error => { // catch all errors including in then clause of promise
+                                    postMessage(await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
+                            }).catch((async error => { // catch all errors including in then clause of promise
                                 // Log the error to the console
                                 const status_details = `An unknown error occurred while running atl06p: ${error}`;
                                 read_state = 'error';
-                                postMessage(progressMsg(reqID, 
+                                postMessage(await progressMsg(reqID, 
                                                 {
                                                     read_state:read_state,
                                                     target_numSvrExceptions:target_numSvrExceptions,
@@ -543,15 +553,15 @@ onmessage = async (event) => {
                                                 localExtHMean));
                                 console.log(cmd.func,'  Error = ', error);
                                 console.error(cmd.func,'  Error = ', status_details);
-                                postMessage(errorMsg(reqID, { type: 'atl03pError', code: 'ATL03P', message: 'an error has occured while running atl03p' }));
-                            })).finally(() => {
+                                postMessage(await errorMsg(reqID, { type: 'atl03pError', code: 'ATL03P', message: 'an error has occured while running atl03p' }));
+                            })).finally(async () => {
                                 if(reqID){
                                     console.log('finally req_id:',reqID, ' updating stats');
                                     // Wait for all transaction promises to complete
                                     console.log('finally num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                                 } else {
                                     console.error('finally req_id was undefined?');
-                                    errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' });
+                                    postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' }));
                                 }
                                 if(arrowMetaFileOffset > 0){
                                     // Convert schema Uint8Array to JSON string
@@ -567,16 +577,16 @@ onmessage = async (event) => {
                                 } else {
                                     console.error('finally No arrow Data File data records were processed.');
                                 }
-                                checkDoneProcessing(reqID, 
-                                                    read_state, 
-                                                    num_svr_exceptions, 
-                                                    num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                    localExtLatLon,
-                                                    localExtHMean,
-                                                    target_numSvrExceptions,
-                                                    target_numArrowDataRecs,
-                                                    target_numArrowMetaRecs);
+                                await checkDoneProcessing(  reqID, 
+                                                            read_state, 
+                                                            num_svr_exceptions, 
+                                                            num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                                            num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
+                                                            localExtLatLon,
+                                                            localExtHMean,
+                                                            target_numSvrExceptions,
+                                                            target_numArrowDataRecs,
+                                                            target_numArrowMetaRecs);
                             });
                         } else {
                             console.error('Unknown cmd.func provided');
