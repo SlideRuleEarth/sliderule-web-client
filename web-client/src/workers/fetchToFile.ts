@@ -5,12 +5,11 @@ import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
-import { a } from "vitest/dist/suite-a18diDsI.js";
 
 const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
 const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
 
-let target_numAtl06Exceptions = 0;
+let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
 let target_numArrowMetaRecs = 0;
 let abortRequested = false;
@@ -20,27 +19,27 @@ let num_post_done_checks = 0;
 
 export async function checkDoneProcessing(  reqID:number, 
                                             read_state:string, 
-                                            num_atl06Exceptions:number, 
+                                            num_svr_exceptions:number, 
                                             num_arrow_data_recs_processed:number,
                                             num_arrow_meta_recs_processed:number, 
                                             localExtLatLon: ExtLatLon,
                                             localExtHMean: ExtHMean,
-                                            target_numAtl06Exceptions:number,
+                                            target_numSvrExceptions:number,
                                             target_numArrowDataRecs:number,
                                             target_numArrowMetaRecs:number): Promise<void>{
     num_checks++;
-    console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_atl06Exceptions:', num_atl06Exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numAtl06Exceptions:', target_numAtl06Exceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+    console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
     if((read_state === 'done_reading') || (read_state === 'error') || abortRequested){
         num_post_done_checks++;
-        if( ((num_atl06Exceptions >= target_numAtl06Exceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
+        if( ((num_svr_exceptions >= target_numSvrExceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
             let status_details = 'No data returned from SlideRule.';
-            if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numAtl06Exceptions > 0)){
-                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numAtl06Exceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_atl06Exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
+            if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
+                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
                 read_state = 'done';
                 const fileName = await db.getFilename(reqID);
                 postMessage(opfsReadyMsg(reqID, fileName));
             }
-            console.log('atl06p Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
+            console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
             postMessage(await summaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details));
             let msg = `Successfully finished reading/writing req_id: ${reqID}`;
             if(abortRequested){ // Abort requested
@@ -59,7 +58,7 @@ function mysleep(ms: number): Promise<void> {
 
 onmessage = async (event) => {
     try{
-        console.log('atl06ToDb worker received event:', event.data)
+        console.log('fetchToFile worker received event:', event.data)
         // console.log('Starting with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
         // const recordDefs = await db.getDefinitionsByVersion(REC_VERSION);
         // if(recordDefs.length === 0){
@@ -74,7 +73,7 @@ onmessage = async (event) => {
 
 
         const cmd:WebWorkerCmd = JSON.parse(event.data);
-        console.log('atl06ToDb worker received cmd:', cmd);
+        console.log('fetchToFile worker received cmd:', cmd);
         const reqID = cmd.req_id;
         if(cmd.type === 'abort'){
             abortRequested = true;
@@ -91,9 +90,9 @@ onmessage = async (event) => {
         }
 
         const req:Atl06ReqParams = cmd.parameters as Atl06ReqParams;
-        console.log("atl06ToDb req: ", req);
+        console.log("fetchToFile req: ", req);
         //let num_atl06recs_processed = 0;
-        let num_atl06Exceptions = 0;
+        let num_svr_exceptions = 0;
         let num_arrow_dataFile_data_recs_processed = 0;
         let num_arrow_dataFile_meta_recs_processed = 0;
         let num_arrow_metaFile_data_recs_processed = 0;
@@ -192,12 +191,12 @@ onmessage = async (event) => {
                     }
                     await checkDoneProcessing(  reqID, 
                                                 read_state, 
-                                                num_atl06Exceptions, 
+                                                num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                                 localExtLatLon,
                                                 localExtHMean,
-                                                target_numAtl06Exceptions,
+                                                target_numSvrExceptions,
                                                 target_numArrowDataRecs,
                                                 target_numArrowMetaRecs);
                         },
@@ -209,7 +208,7 @@ onmessage = async (event) => {
                     }
                 },
                 exceptrec: async (result:any) => {
-                    num_atl06Exceptions++;
+                    num_svr_exceptions++;
                     console.log('atl06p cb exceptrec result:', result);
                     if (abortRequested) {
                         console.log('Processing aborted.');
@@ -233,12 +232,12 @@ onmessage = async (event) => {
                         {
                             console.error('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
                             postMessage(await errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: result.text }));
-                            const msg =  `RTE_TIMEOUT Received ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                            const msg =  `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
                             postMessage(await progressMsg(reqID, 
                                             {   
                                                 read_state:read_state,
-                                                target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                                numAtl06Exceptions:num_atl06Exceptions,
+                                                target_numSvrExceptions:target_numSvrExceptions,
+                                                numAtl06Exceptions:num_svr_exceptions,
                                                 target_numArrowDataRecs:target_numArrowDataRecs,
                                                 numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -270,15 +269,15 @@ onmessage = async (event) => {
                             break;
                         }
                     }
-                    console.log( 'num_atl06Exceptions:', num_atl06Exceptions, 'num_arrow_data_recs_processed:',num_arrow_dataFile_data_recs_processed, 'num_arrow_meta_recs_processed:',num_arrow_metaFile_meta_recs_processed, 'num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks );
-                    if(num_atl06Exceptions > exceptionsProgThresh){
-                        exceptionsProgThresh = num_atl06Exceptions + exceptionsProgThreshInc;
-                        const msg =  `Received ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions.`;
+                    console.log( 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:',num_arrow_dataFile_data_recs_processed, 'num_arrow_meta_recs_processed:',num_arrow_metaFile_meta_recs_processed, 'num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks );
+                    if(num_svr_exceptions > exceptionsProgThresh){
+                        exceptionsProgThresh = num_svr_exceptions + exceptionsProgThreshInc;
+                        const msg =  `Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
                         postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
-                                            target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numSvrExceptions:target_numSvrExceptions,
+                                            numAtl06Exceptions:num_svr_exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
                                             numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -291,12 +290,12 @@ onmessage = async (event) => {
                     }
                     await checkDoneProcessing(  reqID, 
                                                 read_state, 
-                                                num_atl06Exceptions, 
+                                                num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                                 localExtLatLon,
                                                 localExtHMean,
-                                                target_numAtl06Exceptions,
+                                                target_numSvrExceptions,
                                                 target_numArrowDataRecs,
                                                 target_numArrowMetaRecs);
                     //console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
@@ -318,8 +317,8 @@ onmessage = async (event) => {
                     postMessage(await progressMsg(reqID, 
                             {
                                 read_state:read_state,
-                                target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                numAtl06Exceptions:num_atl06Exceptions,
+                                target_numSvrExceptions:target_numSvrExceptions,
+                                numAtl06Exceptions:num_svr_exceptions,
                                 target_numArrowDataRecs:target_numArrowDataRecs,
                                 numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                 target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -331,21 +330,21 @@ onmessage = async (event) => {
                     atl06p(cmd.parameters as Atl06pReqParams,callbacks).then(async (result) => { // result
                         if(result){
                             read_result = result as Sr_Results_type;
-                            target_numAtl06Exceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
+                            target_numSvrExceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
                             target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
                             target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
-                            console.log('atl06p Done Reading result:', read_result, 'target_numAtl06Exceptions:', target_numAtl06Exceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
+                            console.log('atl06p Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
                         }
                         console.log('atl06p Done Reading: result:', result);
                         //console.log('atl06p Done Reading: read_result:', read_result);
-                        const msg =  `Done Reading; received  ${num_atl06Exceptions}/${target_numAtl06Exceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
+                        const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
 
                         read_state = 'done_reading';
                         postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
-                                            target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numSvrExceptions:target_numSvrExceptions,
+                                            numAtl06Exceptions:num_svr_exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
                                             numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -354,7 +353,7 @@ onmessage = async (event) => {
                                         msg,
                                         localExtLatLon,
                                         localExtHMean));
-                        exceptionsProgThreshInc = Math.floor(target_numAtl06Exceptions/10);
+                        exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
                         let num_retries_left = 3;
                         let gotit = false;
                         while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
@@ -379,8 +378,8 @@ onmessage = async (event) => {
                             postMessage(progressMsg(reqID, 
                                 {
                                     read_state:read_state,
-                                    target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                    numAtl06Exceptions:num_atl06Exceptions,
+                                    target_numSvrExceptions:target_numSvrExceptions,
+                                    numAtl06Exceptions:num_svr_exceptions,
                                     target_numArrowDataRecs:target_numArrowDataRecs,
                                     numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                     target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -410,8 +409,8 @@ onmessage = async (event) => {
                         postMessage(progressMsg(reqID, 
                                         {
                                             read_state:read_state,
-                                            target_numAtl06Exceptions:target_numAtl06Exceptions,
-                                            numAtl06Exceptions:num_atl06Exceptions,
+                                            target_numSvrExceptions:target_numSvrExceptions,
+                                            numAtl06Exceptions:num_svr_exceptions,
                                             target_numArrowDataRecs:target_numArrowDataRecs,
                                             numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
@@ -448,12 +447,12 @@ onmessage = async (event) => {
                         }
                         checkDoneProcessing(reqID, 
                                             read_state, 
-                                            num_atl06Exceptions, 
+                                            num_svr_exceptions, 
                                             num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                             num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
                                             localExtLatLon,
                                             localExtHMean,
-                                            target_numAtl06Exceptions,
+                                            target_numSvrExceptions,
                                             target_numArrowDataRecs,
                                             target_numArrowMetaRecs);
                     });

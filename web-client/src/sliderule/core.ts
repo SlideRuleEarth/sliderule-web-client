@@ -493,7 +493,7 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
-      if (api === 'atl06p') {
+      if (api.includes('atl')) {
         console.log('source url:', url, 'options:',options);
         console.log('options.body:',options.body);
       }

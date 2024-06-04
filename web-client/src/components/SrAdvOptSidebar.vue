@@ -13,7 +13,7 @@
     import { useRequestsStore } from "@/stores/requestsStore";
     import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
-    import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { type TimeoutHandle } from '@/stores/mapStore';    
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
@@ -32,7 +32,7 @@
     const graticuleClick = () => {
         mapStore.toggleGraticule();
     }
-    const curReqSumStore = useCurAtl06ReqSumStore();
+    const curReqSumStore = useCurReqSumStore();
 
     const toast = useToast();
     //const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
@@ -74,12 +74,12 @@
         }
     });
 
-    const handleAtl06WorkerMsgEvent = async (event: MessageEvent) => {
+    const handleWorkerMsgEvent = async (event: MessageEvent) => {
         if(worker){
             const workerMsg:WorkerMessage = event.data;
-            handleAtl06Msg(workerMsg);
+            handleWorkerMsg(workerMsg);
         } else {
-            console.error('handleAtl06MsgEvent: worker was undefined?');
+            console.error('handleWorkerMsgEvent: worker was undefined?');
         }
     }
 
@@ -102,10 +102,10 @@
         cleanUpWorker();
     }
 
-    function startAtl06Worker(){
-        worker =  new Worker(new URL('../workers/atl06ToDb', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+    function startWorker(){
+        worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
         const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
-        console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
+        console.log('runWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
         workerTimeoutHandle = setTimeout(() => {
             if (worker) {
                 const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
@@ -152,11 +152,11 @@
         return null; // Return null if the message does not match the expected format or total is zero
     }
 
-    const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
-        console.log('handleAtl06Msg workerMsg:',workerMsg);
+    const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
+        console.log('handleWorkerMsg workerMsg:',workerMsg);
         switch(workerMsg.status){
             // case 'success':// Deprecated
-            //     console.log('handleAtl06Msg success:',workerMsg.msg);
+            //     console.log('handleWorkerMsg success:',workerMsg.msg);
             //     toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
             //     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
             //     if(worker){
@@ -165,18 +165,18 @@
             //     //fetchAndUpdateElevationData(mapStore.getCurrentReqId());
             //     break;
             case 'started':
-                console.log('handleAtl06Msg started');
+                console.log('handleWorkerMsg started');
                 toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
                 //await mapStore.drawElevations();
                 break;
             case 'aborted':
-                console.log('handleAtl06Msg aborted');
+                console.log('handleWorkerMsg aborted');
                 toast.add({severity: 'warn',summary: 'Aborted', detail: workerMsg.msg, life: srToastStore.getLife() });
                 requestsStore.setMsg('Job aborted');
                 cleanUpWorker();
                 break;
             case 'server_msg':
-                console.log('handleAtl06Msg server_msg:',workerMsg.msg);
+                console.log('handleWorkerMsg server_msg:',workerMsg.msg);
                 if(workerMsg.msg){
                     requestsStore.setMsg(workerMsg.msg);
                     percentComplete = parseCompletionPercentage(workerMsg.msg);
@@ -186,11 +186,11 @@
                 }
                 break;
             case 'progress':
-                console.log('handleAtl06Msg progress:',workerMsg.progress);
+                console.log('handleWorkerMsg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
                     curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
-                    curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
+                    curReqSumStore.setTgtExceptions(workerMsg.progress.target_numSvrExceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
                     curReqSumStore.setTgtArrowDataRecs(workerMsg.progress.target_numArrowDataRecs);
                     curReqSumStore.setNumArrowMetaRecs(workerMsg.progress.numArrowMetaRecs);
@@ -206,7 +206,7 @@
                 }
                 break;
             case 'summary':
-                console.log('handleAtl06Msg summary:',workerMsg);
+                console.log('handleWorkerMsg summary:',workerMsg);
                 if(workerMsg){
                     const sMsg = workerMsg as WorkerSummary;
                     curReqSumStore.setSummary(sMsg);
@@ -214,7 +214,7 @@
                 break;
             case 'error':
                 if(workerMsg.error){
-                    console.log('handleAtl06Msg error:',workerMsg.error);
+                    console.log('handleWorkerMsg error:',workerMsg.error);
                     toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
                 }
                 if(worker){
@@ -223,48 +223,8 @@
                 console.log('Error... isLoading:',mapStore.isLoading);
                 break;
 
-            // case 'geoParquet_rcvd': //DEPRECATED
-
-            //     console.log('handleAtl06Msg geoParquet_rcvd blob:',workerMsg.blob);
-            //     if(worker){
-            //         cleanUpWorker();
-            //     }
-            //     if(workerMsg.blob){
-            //         let filename = 'atl06.parquet';
-            //         if (workerMsg.metadata) {
-            //             filename = workerMsg.metadata;
-            //         } else {
-            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
-            //         }
-            //         triggerDownload(workerMsg.blob,filename);
-            //         db.updateRequest(workerMsg.req_id,{file:filename});
-            //     } else {
-            //         console.error('handleAtl06Msg geoParquet_rcvd blob is undefined');
-            //     }
-            //     break;
-
-            // case 'feather_rcvd': // DEPRECATED
-
-            //     console.log('handleAtl06Msg feather_rcvd blob:',workerMsg.blob);
-            //     if(worker){
-            //         cleanUpWorker();
-            //     }
-            //     if(workerMsg.blob){
-            //         let filename = 'atl06.feather';
-            //         if (workerMsg.metadata) {
-            //             filename = workerMsg.metadata;
-            //         } else {
-            //             console.error('handleAtl06Msg metadata is undefined using default filename:', filename);
-            //         }
-            //         triggerDownload(workerMsg.blob,filename);
-            //         db.updateRequest(workerMsg.req_id,{file:filename});
-            //     } else {
-            //         console.error('handleAtl06Msg feather_rcvd blob is undefined');
-            //     }
-            //     break;
-
             case 'opfs_ready':
-                console.log('handleAtl06Msg opfs_ready for req_id:',workerMsg.req_id);
+                console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
                 if(worker){
                     cleanUpWorker();
                 }
@@ -272,20 +232,20 @@
                 break;
 
             default:
-                console.error('handleAtl06Msg unknown status?:',workerMsg.status);
+                console.error('handleWorkerMsg unknown status?:',workerMsg.status);
                 break;
         }     
     }
 
 
-    async function runAtl06Worker(srReqRec:SrRequestRecord){
+    async function runWorker(srReqRec:SrRequestRecord){
         try{
             if(srReqRec.req_id){
                 mapStore.setCurrentReqId(srReqRec.req_id);
                 mapStore.isLoading = true; // controls spinning progress
                 //worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
-                worker = startAtl06Worker();
-                worker.onmessage = handleAtl06WorkerMsgEvent;
+                worker = startWorker();
+                worker.onmessage = handleWorkerMsgEvent;
                 worker.onerror = (error) => {
                     if(worker){
                         console.error('Worker error:', error);
@@ -296,127 +256,14 @@
                 const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:srReqRec.parameters} as WebWorkerCmd;
                 worker.postMessage(JSON.stringify(cmd));
             } else {
-                console.error('runAtl06Worker req_id is undefined');
+                console.error('runWorker req_id is undefined');
                 toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             }
         } catch (error) {
-            console.error('runAtl06Worker error:',error);
+            console.error('runWorker error:',error);
             toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         }
     }
-
-    // Types for the Fetch Initialization Options and Blob Construction
-    //interface DownloadFileOptions extends RequestInit {}
-
-    // Function to download a file and return it as a Blob
-    // async function downloadFile(url: string, options: DownloadFileOptions): Promise<Blob> {
-    //     const response = await fetch(url, options);
-    //     if (!response.ok) {
-    //         throw new Error(`Network response was not ok. Status: ${response.status}`);
-    //     }
-    //     if (!response.body) {
-    //         throw new Error('ReadableStream not supported in this browser.');
-    //     }
-
-    //     const reader = response.body.getReader();
-    //     const chunks: Uint8Array[] = [];
-    //     let loop_done = false;
-    //     while (!loop_done) {
-    //         const { done, value } = await reader.read();
-    //         if (done){
-    //             loop_done = true;
-    //             break;
-    //         }
-    //         chunks.push(value);
-    //     }
-    //     //return new Blob(chunks, { type: 'application/x-parquet' });
-    //     return new Blob(chunks, { type: 'application/vnd.apache.parquet' });
-    // }
- 
-    // Function to handle file downloads
-    // const handleDownloadParquetFile = async (url:string, filename: string, srRecord:SrRequestRecord ) => {
-    //     try {
-            
-    //         const pReqParms:Atl06pReqParams = srRecord.parameters as Atl06pReqParams;
-    //         if(srRecord.req_id){
-    //             mapStore.setCurrentReqId(srRecord.req_id);
-            
-    //             const pparms = {parms: pReqParms.parms } as Atl06pReqParams;
-    //             let contentType=''; 
-    //             if(pparms.parms.output?.format==='geoparquet' || pparms.parms.output?.format==='parquet'){
-    //                 contentType='application/vnd.apache.parquet'; 
-    //             } else if(pparms.parms.output?.format==='csv'){
-    //                 contentType='text/csv';
-    //             } else {
-    //                 throw new Error('Unknown output format');
-    //             }
-    //             const options: RequestInit = {
-    //                 method: 'POST',
-    //                 headers: {
-    //                     'Content-Type': contentType,
-    //                     'x-sliderule-streaming': '1'
-    //                 },
-    //             };
-    //             if (pparms != null) {
-    //                 options.body = JSON.stringify(pparms);
-    //             }
-    //             const startedWorkerMsg = await startedMsg(srRecord.req_id,pparms);
-    //             await handleAtl06Msg(startedWorkerMsg);
-    //             // const response = await downloadFile(url,options);
-    //             // if(!response.body){
-    //             //     throw new Error('ReadableStream not yet supported in this browser.');
-    //             // }
-    //             // //const blob = await streamToBlob(response.body, 'application/x-parquet'); 
-    //             // const blob = await streamToBlob(response.body, 'application/octet-stream');
-    //             triggerDownload(await downloadFile(url,options), filename);
-    //             const successWorkerMsg = await successMsg(srRecord.req_id,'Download success');
-    //             await handleAtl06Msg(successWorkerMsg);
-    //         } else {
-    //             console.error('handleDownloadParquetFile req_id is undefined');
-    //             toast.add({severity: 'error',summary: 'Error', detail: 'There was an error creating record' });
-    //         }
-    //     } catch (error) {
-    //         console.error('Download failed:', error);
-    //     } finally {
-    //         mapStore.isLoading = false;
-    //     }
-    // };
-
-    // // Function to initiate fetch streaming
-    // async function downloadFile(url: string,options:RequestInit): Promise<Response> {
-    //     console.log('downloadFile url:',url,' options:',options);
-    //     const response = await fetch(url,options);
-    //     if (!response.ok) {
-    //         throw new Error('Network response was not ok.');
-    //     }
-    //     if (!response.body) {
-    //         throw new Error('ReadableStream not yet supported in this browser.');
-    //     }
-    //     const reader = response.body.getReader();
-    //     const stream = new ReadableStream({
-    //         async start(controller) {
-    //             let read_done = false;
-    //             while (!read_done) {
-    //                 const { done, value } = await reader.read();
-    //                 if (done){
-    //                     read_done = true;
-    //                     break;
-    //                 };
-    //                 controller.enqueue(value);
-    //             }
-    //             controller.close();
-    //             reader.releaseLock();
-    //         }
-    //     });
-
-    //     return new Response(stream);
-    // }
-
-    // // Convert the streamed response to a blob
-    // async function streamToBlob(stream: ReadableStream<Uint8Array>, mimeType: string): Promise<Blob> {
-    //     const blob = await new Response(stream).blob();
-    //     return new Blob([blob], { type: mimeType });
-    // }
 
     // Trigger the download process by creating a temporary download link
     function triggerDownload(blob: Blob, filename: string): void {
@@ -431,22 +278,10 @@
         URL.revokeObjectURL(url);
     }
 
-    // function downloadParquetFile(srReqRec:SrRequestRecord) {
-    //     const sysConfig = sysConfigStore.getSysConfig();
-    //     console.log('sysConfig:', JSON.stringify(sysConfig));
-    //     const host = sysConfig.organization && (sysConfig.organization + '.' + sysConfig.domain) || sysConfig.domain;
-    //     const api_path = 'source/atl06p';
-    //     const url = sysConfig.protocol+'://' + host + '/' + api_path;
-    //     const filename = `atl06_${srReqRec.req_id}.parquet`;
-    //     handleDownloadParquetFile(url, filename, srReqRec);
-    // }
-
     // Function that is called when the "Run SlideRule" button is clicked
     async function runSlideRuleClicked() {
         mapStore.isLoading = true;
         console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
-        curReqSumStore.setNumAtl06Recs(0);
-        curReqSumStore.setTgtAtl06Recs(0);
         curReqSumStore.setNumExceptions(0);
         curReqSumStore.setTgtExceptions(0);
         curReqSumStore.setNumArrowDataRecs(0);
@@ -470,7 +305,7 @@
                     curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
-                    runAtl06Worker(srReqRec);
+                    runWorker(srReqRec);
                 } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
                     console.log('atl03 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
@@ -530,7 +365,7 @@
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
                 <div class="sr-progressbar">
                     <span></span>
-                    <ProgressBar v-if="mapStore.isLoading" :value="useCurAtl06ReqSumStore().getPercentComplete()" />
+                    <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
                 </div>  
             </div>
             <div>

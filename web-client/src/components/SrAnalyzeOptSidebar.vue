@@ -10,7 +10,7 @@ import AccordionTab  from 'primevue/accordiontab';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrSelectParquetReader from './SrSelectParquetReader.vue';
-import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
 
@@ -73,14 +73,14 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             newSelection = reqIds.value[0];  
         }
         //console.log('Using filtered newSelection:', newSelection);
-        useCurAtl06ReqSumStore().set_req_id(Number(newSelection.value));
+        useCurReqSumStore().set_req_id(Number(newSelection.value));
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
     try {
         console.log('pushing selectedReqId:', newSelection.value);
-        router.push(`/analyze/${useCurAtl06ReqSumStore().get_req_id()}`);
-        console.log('Successfully navigated to analyze:', useCurAtl06ReqSumStore().get_req_id());
+        router.push(`/analyze/${useCurReqSumStore().get_req_id()}`);
+        console.log('Successfully navigated to analyze:', useCurReqSumStore().get_req_id());
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
     }

@@ -3,7 +3,7 @@ import { db } from '@/db/SlideRuleDb';
 import { parquetRead } from 'hyparquet';
 import { updateElLayer } from '@/utils/SrMapUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import type { ExtLatLon,ExtHMean } from '@/workers/workerUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import type { ElevationPlottable } from '@/db/SlideRuleDb';
@@ -291,10 +291,13 @@ export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:
         // };
 
 export const getHeightFieldname = async (req_id:number) => {
-    if (await db.getFunc(req_id) === 'atl06p') {
+    const result = await db.getFunc(req_id);
+    if (result.includes('atl06')) {
         return 'h_mean';
-    } else {
+    } else if (result.includes('atl03')){
         return 'height';
+    } else {
+        throw new Error(`Unknown height fieldname for ${result} in getHeightFieldname`);
     }
 }
 
@@ -313,7 +316,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         //console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
         const summary = await readOrCacheSummary(req_id,height_fieldname);
         if(summary){
-            useCurAtl06ReqSumStore().setSummary(summary);
+            useCurReqSumStore().setSummary(summary);
             
             if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
                 const chunkSize = 100000; 

@@ -13,7 +13,7 @@
     import { useRequestsStore } from "@/stores/requestsStore";
     import { type SrRequestRecord } from '@/db/SlideRuleDb';
     import { useSrToastStore } from "@/stores/srToastStore";
-    import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { type TimeoutHandle } from '@/stores/mapStore';    
     import { WorkerMessage } from '@/workers/workerUtils';
     import { WebWorkerCmd } from "@/workers/workerUtils";
@@ -32,7 +32,7 @@
     const graticuleClick = () => {
         mapStore.toggleGraticule();
     }
-    const curReqSumStore = useCurAtl06ReqSumStore();
+    const curReqSumStore = useCurReqSumStore();
 
     const toast = useToast();
     const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
@@ -51,12 +51,12 @@
     });
 
 
-    const handleAtl06WorkerMsgEvent = async (event: MessageEvent) => {
+    const handleWorkerMsgEvent = async (event: MessageEvent) => {
         if(worker){
             const workerMsg:WorkerMessage = event.data;
-            handleAtl06Msg(workerMsg);
+            handleWorkerMsg(workerMsg);
         } else {
-            console.error('handleAtl06MsgEvent: worker was undefined?');
+            console.error('handleWorkerMsgEvent: worker was undefined?');
         }
     }
 
@@ -79,10 +79,10 @@
         cleanUpWorker();
     }
 
-    function startAtl06Worker(){
-        worker =  new Worker(new URL('../workers/atl06ToDb', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+    function startWorker(){
+        worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
         const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
-        console.log('runAtl06Worker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
+        console.log('runWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
         workerTimeoutHandle = setTimeout(() => {
             if (worker) {
                 const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
@@ -129,11 +129,11 @@
         return null; // Return null if the message does not match the expected format or total is zero
     }
 
-    const handleAtl06Msg = async (workerMsg:WorkerMessage) => {
-        //console.log('handleAtl06Msg workerMsg:',workerMsg);
+    const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
+        //console.log('handleWorkerMsg workerMsg:',workerMsg);
         switch(workerMsg.status){
             // case 'success':// Deprecated
-            //     console.log('handleAtl06Msg success:',workerMsg.msg);
+            //     console.log('handleWorkerMsg success:',workerMsg.msg);
             //     toast.add({severity: 'info',summary: 'Download success', detail: 'loading rest of points into db...', life: srToastStore.getLife() });
             //     toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
             //     if(worker){
@@ -142,18 +142,18 @@
             //     //fetchAndUpdateElevationData(mapStore.getCurrentReqId());
             //     break;
             case 'started':
-                //console.log('handleAtl06Msg started');
+                //console.log('handleWorkerMsg started');
                 toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
                 //await mapStore.drawElevations();
                 break;
             case 'aborted':
-                //console.log('handleAtl06Msg aborted');
+                //console.log('handleWorkerMsg aborted');
                 toast.add({severity: 'warn',summary: 'Aborted', detail: workerMsg.msg, life: srToastStore.getLife() });
                 requestsStore.setMsg('Job aborted');
                 cleanUpWorker();
                 break;
             case 'server_msg':
-                //console.log('handleAtl06Msg server_msg:',workerMsg.msg);
+                //console.log('handleWorkerMsg server_msg:',workerMsg.msg);
                 if(workerMsg.msg){
                     requestsStore.setMsg(workerMsg.msg);
                     percentComplete = parseCompletionPercentage(workerMsg.msg);
@@ -163,11 +163,11 @@
                 }
                 break;
             case 'progress':
-                //console.log('handleAtl06Msg progress:',workerMsg.progress);
+                //console.log('handleWorkerMsg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
                     curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
-                    curReqSumStore.setTgtExceptions(workerMsg.progress.target_numAtl06Exceptions);
+                    curReqSumStore.setTgtExceptions(workerMsg.progress.target_numSvrExceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
                     curReqSumStore.setTgtArrowDataRecs(workerMsg.progress.target_numArrowDataRecs);
                     curReqSumStore.setNumArrowMetaRecs(workerMsg.progress.numArrowMetaRecs);
@@ -183,7 +183,7 @@
                 }
                 break;
             case 'summary':
-                //console.log('handleAtl06Msg summary:',workerMsg);
+                //console.log('handleWorkerMsg summary:',workerMsg);
                 if(workerMsg){
                     const sMsg = workerMsg as WorkerSummary;
                     curReqSumStore.setSummary(sMsg);
@@ -191,7 +191,7 @@
                 break;
             case 'error':
                 if(workerMsg.error){
-                    console.log('handleAtl06Msg error:',workerMsg.error);
+                    console.log('handleWorkerMsg error:',workerMsg.error);
                     toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
                 }
                 if(worker){
@@ -201,7 +201,7 @@
                 break;
 
             case 'opfs_ready':
-                //console.log('handleAtl06Msg opfs_ready for req_id:',workerMsg.req_id);
+                //console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
                 if(worker){
                     cleanUpWorker();
                 }
@@ -209,20 +209,20 @@
                 break;
 
             default:
-                console.error('handleAtl06Msg unknown status?:',workerMsg.status);
+                console.error('handleWorkerMsg unknown status?:',workerMsg.status);
                 break;
         }     
     }
 
 
-    async function runAtl06Worker(srReqRec:SrRequestRecord){
+    async function runWorker(srReqRec:SrRequestRecord){
         try{
             if(srReqRec.req_id){
                 mapStore.setCurrentReqId(srReqRec.req_id);
                 mapStore.isLoading = true; // controls spinning progress
                 //worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
-                worker = startAtl06Worker();
-                worker.onmessage = handleAtl06WorkerMsgEvent;
+                worker = startWorker();
+                worker.onmessage = handleWorkerMsgEvent;
                 worker.onerror = (error) => {
                     if(worker){
                         console.error('Worker error:', error);
@@ -233,11 +233,11 @@
                 const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:srReqRec.parameters} as WebWorkerCmd;
                 worker.postMessage(JSON.stringify(cmd));
             } else {
-                console.error('runAtl06Worker req_id is undefined');
+                console.error('runWorker req_id is undefined');
                 toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             }
         } catch (error) {
-            console.error('runAtl06Worker error:',error);
+            console.error('runWorker error:',error);
             toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         }
     }
@@ -261,8 +261,6 @@
     async function runSlideRuleClicked() {
         mapStore.isLoading = true;
         //console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
-        curReqSumStore.setNumAtl06Recs(0);
-        curReqSumStore.setTgtAtl06Recs(0);
         curReqSumStore.setNumExceptions(0);
         curReqSumStore.setTgtExceptions(0);
         curReqSumStore.setNumArrowDataRecs(0);
@@ -286,7 +284,7 @@
                     curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
-                    runAtl06Worker(srReqRec);
+                    runWorker(srReqRec);
                 } else if(iceSat2SelectedAPI.value.value === 'atl03') {
                     console.log('atl03 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
@@ -322,7 +320,7 @@
                 <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
                 <div class="sr-progressbar">
                     <span></span>
-                    <ProgressBar v-if="mapStore.isLoading" :value="useCurAtl06ReqSumStore().getPercentComplete()" />
+                    <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
                 </div>  
             </div>
             <SrGraticuleSelect @graticule-click="graticuleClick"/>

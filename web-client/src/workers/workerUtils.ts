@@ -18,7 +18,7 @@ export interface WorkerError {
 }
 export interface SrProgress {
     read_state: string;
-    target_numAtl06Exceptions: number;
+    target_numSvrExceptions: number;
     numAtl06Exceptions: number;
     target_numArrowDataRecs: number;
     numArrowDataRecs: number;
