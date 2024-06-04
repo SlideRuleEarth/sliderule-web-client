@@ -2,13 +2,13 @@
   <div class="sr-progress-panel">
     <div class="sr-progress-panel-content">
         <span>State: {{ readState }}</span>
-        <span v-if="isArrowStream">
+        <span>
             Arrow Data Records: {{ numArrowDataRecords }}
             <span v-if="targetArrowDataRecords !== 0">
                     / {{ targetArrowDataRecords }} {{ percentageArrowDataRecs }}%
             </span> 
         </span>
-        <span v-if="isArrowStream">
+        <span>
             Arrow Meta Records: {{ numArrowMetaRecords }}
             <span v-if="targetArrowDataRecords !== 0">
                     / {{ targetArrowMetaRecords }} {{ percentageArrowMetaRecs }}%
@@ -46,7 +46,6 @@ const numArrowMetaRecords = computed(() => useCurReqSumStore().getNumArrowMetaRe
 const targetExceptions = computed(() => useCurReqSumStore().getTgtExceptions());
 const numExceptions = computed(() => useCurReqSumStore().getNumExceptions());
 const readState = computed(() => useCurReqSumStore().getReadState());
-const isArrowStream = computed(() => useCurReqSumStore().getIsArrowStream());
 
 const percentageExceptions = computed(() => {
     const curReqSumStore = useCurReqSumStore();

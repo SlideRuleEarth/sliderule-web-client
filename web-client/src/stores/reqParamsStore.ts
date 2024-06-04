@@ -2,13 +2,13 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlpReqParams, SrRegion } from '@/sliderule/icesat2';
 
 export interface NullReqParams {
   null: null;
 }
 
-export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
+export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
 
 export const useReqParamsStore = defineStore('reqParams', {
 
@@ -218,8 +218,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtl06ReqParams(req_id:number): Atl06ReqParams { 
-          const req: Atl06ReqParams = {
+        getAtlReqParams(req_id:number): AtlReqParams { 
+          const req: AtlReqParams = {
             asset: this.asset,
             srt: this.getSrt(),
             cnf: this.signalConfidenceNumber,
@@ -253,7 +253,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               }
               this.isArrowStream = true;
             } else {
-              console.error('getAtl06ReqParams: outputFormat not recognized:', this.outputFormat.value);
+              console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
           if(this.enableGranuleSelection===true){
@@ -273,16 +273,16 @@ export const useReqParamsStore = defineStore('reqParams', {
             return this.surfaceReferenceType;
           }        
         },
-        getAtl06pReqParams(req_id:number): Atl06pReqParams {
+        getAtlpReqParams(req_id:number): AtlpReqParams {
           if(this.resources.length > 0){
             return  {
-              parms:this.getAtl06ReqParams(req_id),
+              parms:this.getAtlReqParams(req_id),
               resources: this.resources,     
             };
           } else {
-            console.log('getAtl06pReqParams: resources is empty');
+            console.log('getAtlpReqParams: resources is empty');
             return {
-              parms:this.getAtl06ReqParams(req_id),
+              parms:this.getAtlReqParams(req_id),
             };
           }
         },

@@ -22,7 +22,7 @@
     const reqParamsStore = useReqParamsStore();
     const showReqParms = ref(false);
     const reqParms = computed(() => {
-        return  JSON.stringify(reqParamsStore.getAtl06ReqParams(0),null,2);
+        return  JSON.stringify(reqParamsStore.getAtlReqParams(0),null,2);
     });
   </script>
   

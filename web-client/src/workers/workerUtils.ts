@@ -6,6 +6,7 @@ export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;
     sysConfig?: SysConfig;
+    func?: string;
     parameters?: ReqParams;
 }
 
@@ -19,7 +20,7 @@ export interface WorkerError {
 export interface SrProgress {
     read_state: string;
     target_numSvrExceptions: number;
-    numAtl06Exceptions: number;
+    numSvrExceptions: number;
     target_numArrowDataRecs: number;
     numArrowDataRecs: number;
     target_numArrowMetaRecs: number;
@@ -58,7 +59,7 @@ export async function startedMsg(req_id:number,req_params:ReqParams): Promise<Wo
     const workerStartedMsg: WorkerMessage =  { req_id:req_id, status: 'started', msg:`Starting req_id: ${req_id}`};
     try{
         // initialize request record in db
-        await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status,func:'atl06p', parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+        await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status, parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
     } catch (error) {
         console.error('Failed to update request status to started:', error, ' for req_id:', req_id);
     }

@@ -21,6 +21,7 @@
     import ProgressBar from 'primevue/progressbar';
     import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
+    import { db } from '@/db/SlideRuleDb';
 
     const reqParamsStore = useReqParamsStore();
     const sysConfigStore = useSysConfigStore();
@@ -35,8 +36,6 @@
     const curReqSumStore = useCurReqSumStore();
 
     const toast = useToast();
-    //const missionValue = ref({name:'ICESat-2',value:'ICESat-2'});
-    //const missionItems = ref([{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}]);
     let worker: Worker | null = null;
     let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
     let percentComplete: number | null = null;
@@ -96,7 +95,7 @@
         }
     }
 
-    function handleAtl06Error(error:ErrorEvent, errorMsg:string) {
+    function handleWorkerError(error:ErrorEvent, errorMsg:string) {
         console.error('Error:', error);
         toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
         cleanUpWorker();
@@ -189,7 +188,7 @@
                 console.log('handleWorkerMsg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
-                    curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
+                    curReqSumStore.setNumExceptions(workerMsg.progress.numSvrExceptions);
                     curReqSumStore.setTgtExceptions(workerMsg.progress.target_numSvrExceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
                     curReqSumStore.setTgtArrowDataRecs(workerMsg.progress.target_numArrowDataRecs);
@@ -236,24 +235,23 @@
                 break;
         }     
     }
-
-
     async function runWorker(srReqRec:SrRequestRecord){
         try{
+            //console.log('runWorker srReqRec:',srReqRec);
             if(srReqRec.req_id){
+                await db.updateRequest(srReqRec.req_id,srReqRec); 
                 mapStore.setCurrentReqId(srReqRec.req_id);
                 mapStore.isLoading = true; // controls spinning progress
-                //worker = new Worker(new URL(path, import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
                 worker = startWorker();
                 worker.onmessage = handleWorkerMsgEvent;
                 worker.onerror = (error) => {
                     if(worker){
                         console.error('Worker error:', error);
-                        handleAtl06Error(error, 'Worker faced an unexpected error');
+                        handleWorkerError(error, 'Worker faced an unexpected error');
                         cleanUpWorker();
                     }
                 };
-                const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), parameters:srReqRec.parameters} as WebWorkerCmd;
+                const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
                 worker.postMessage(JSON.stringify(cmd));
             } else {
                 console.error('runWorker req_id is undefined');
@@ -263,19 +261,6 @@
             console.error('runWorker error:',error);
             toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         }
-    }
-
-    // Trigger the download process by creating a temporary download link
-    function triggerDownload(blob: Blob, filename: string): void {
-        console.log('triggerDownload filename:',filename,' blob:',blob);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
     }
 
     // Function that is called when the "Run SlideRule" button is clicked
@@ -301,14 +286,23 @@
                         toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
                         return;
                     }
-                    srReqRec.parameters = reqParamsStore.getAtl06pReqParams(srReqRec.req_id);
-                    curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
+                    srReqRec.func = 'atl06';
+                    srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     runWorker(srReqRec);
                 } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
-                    console.log('atl03 TBD');
-                    toast.add({severity: 'info',summary: 'Info', detail: 'atl03 TBD', life: srToastStore.getLife() });
+                    console.log('atl03 selected');
+                    if(!srReqRec.req_id) {
+                        console.error('runAtl03 req_id is undefined');
+                        toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+                        return;
+                    }
+                    srReqRec.func = 'atl03';
+                    srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
+                    srReqRec.start_time = new Date();
+                    srReqRec.end_time = new Date();
+                    runWorker(srReqRec);
                 } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
                     console.log('atl08 TBD');
                     toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });

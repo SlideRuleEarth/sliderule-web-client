@@ -166,7 +166,7 @@
                 //console.log('handleWorkerMsg progress:',workerMsg.progress);
                 if(workerMsg.progress){
                     curReqSumStore.setReadState(workerMsg.progress.read_state);
-                    curReqSumStore.setNumExceptions(workerMsg.progress.numAtl06Exceptions);
+                    curReqSumStore.setNumExceptions(workerMsg.progress.numSvrExceptions);
                     curReqSumStore.setTgtExceptions(workerMsg.progress.target_numSvrExceptions);
                     curReqSumStore.setNumArrowDataRecs(workerMsg.progress.numArrowDataRecs);
                     curReqSumStore.setTgtArrowDataRecs(workerMsg.progress.target_numArrowDataRecs);
@@ -280,8 +280,7 @@
                         toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
                         return;
                     }
-                    srReqRec.parameters = reqParamsStore.getAtl06pReqParams(srReqRec.req_id);
-                    curReqSumStore.setIsArrowStream(reqParamsStore.isArrowStream);
+                    srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     runWorker(srReqRec);

@@ -21,7 +21,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
         read_state: 'idle',
         req_id: 0,
         duration: 0,
-        is_arrow_stream: false,
         percentComplete: 0,
         allFieldTypes: [] as SrParquetPathTypeJsType[],
         allFieldNames: [] as string[],
@@ -113,12 +112,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
         },
         getReadState() {
             return this.read_state;
-        },
-        setIsArrowStream(is_arrow_stream: boolean) {
-            this.is_arrow_stream = is_arrow_stream;
-        },
-        getIsArrowStream() {
-            return this.is_arrow_stream;
         },
         get_h_mean_Low() {
             return this.h_mean_low;
