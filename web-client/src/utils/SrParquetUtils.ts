@@ -218,34 +218,48 @@ export async function readOrCacheSummary(req_id:number,height_fieldname:string) 
     const file1 = await fileHandle.getFile();
     const arrayBuffer = await file1.arrayBuffer(); // Convert the file to an ArrayBuffer
     const summary = await db.getWorkerSummary(req_id);
+    console.log('readOrCacheSummary req_id:',req_id,' summary:',summary);
     if (summary) {
         return summary;
     } else {
-
         let localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
         let localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
         const chunkSize = 200000;
         let rowStart = 0;
         let rowEnd = chunkSize;
         let hasMoreData = true;
-        while (hasMoreData) { // First find extreme values for legend
-            await parquetRead({
-                file: arrayBuffer,
-                columns: ['longitude', 'latitude', height_fieldname],
-                rowStart: rowStart,
-                rowEnd: rowEnd,
-                onComplete: data => {
-                    //console.log('data.length:',data.length,'data:', data);
-                    const updatedExtremes = updateExtremeLatLon(data as [any,any,any], localExtLatLon, localExtHMean);
-                    localExtLatLon = updatedExtremes.extLatLon;
-                    localExtHMean = updatedExtremes.extHMean;
-                    hasMoreData = data.length === chunkSize;
-                }
-            });
-            rowStart += chunkSize;
-            rowEnd += chunkSize;
+        let datalen = 0;
+        try{
+            while (hasMoreData) { // First find extreme values for legend
+                console.log('readOrCacheSummary rowStart:',rowStart,' rowEnd:',rowEnd,' height_fieldname:',height_fieldname);
+                await parquetRead({
+                    file: arrayBuffer,
+                    columns: ['longitude', 'latitude', height_fieldname],
+                    rowStart: rowStart,
+                    rowEnd: rowEnd,
+                    onComplete: data => {
+                        console.log('data.length:',data.length,'data:', data);
+                        const updatedExtremes = updateExtremeLatLon(data as [any,any,any], localExtLatLon, localExtHMean);
+                        localExtLatLon = updatedExtremes.extLatLon;
+                        localExtHMean = updatedExtremes.extHMean;
+                        hasMoreData = data.length === chunkSize;
+                        datalen += data.length;
+                    }
+                });
+                rowStart += chunkSize;
+                rowEnd += chunkSize;
+            }
+        } catch (error) {
+            console.error('readOrCacheSummary error:',error);
+            throw error;
         }
-        await db.addNewSummary({req_id:req_id, extLatLon: localExtLatLon, extHMean: localExtHMean});
+        if (datalen > 0) {
+            await db.addNewSummary({req_id:req_id, extLatLon: localExtLatLon, extHMean: localExtHMean});
+        } else {
+            const errMsg = `readOrCacheSummary datalen is 0 for req_id:${req_id}`;
+            console.error(errMsg);
+            throw new Error(errMsg);
+        }
         return await db.getWorkerSummary(req_id);
     }
 }

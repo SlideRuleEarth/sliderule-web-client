@@ -40,10 +40,9 @@ export async function checkDoneProcessing(  reqID:number,
                 postMessage(opfsReadyMsg(reqID, fileName));
             }
             console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
-            postMessage(await summaryMsg({req_id:reqID, status:'summary', extLatLon: localExtLatLon, extHMean: localExtHMean }, status_details));
-            let msg = `Successfully finished reading/writing req_id: ${reqID}`;
+            let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
             if(abortRequested){ // Abort requested
-                msg = `Aborted processing req_id: ${reqID}`
+                msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
             } else {
                 if(read_state === 'done_reading'){
                     postMessage(await successMsg(reqID, msg));
@@ -105,7 +104,7 @@ onmessage = async (event) => {
         //let recsProgThresh = 1;
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
-        let arrowMetaFile: Uint8Array;
+        let arrowMetaFile: Uint8Array | undefined = undefined;
         let arrowDataFilename: string = '';
         let arrowMetaFilename: string = '';
         let arrowDataFileSize:number = 0;
@@ -179,10 +178,14 @@ onmessage = async (event) => {
                         return; // Stop processing when abort is requested
                     }
                     if(result.filename.includes('_metadata.json')){
-                        arrowMetaFile.set(result.data, arrowMetaFileOffset);
-                        arrowMetaFileOffset += result.data.length;
-                        num_arrow_metaFile_data_recs_processed++;
-                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                        if(arrowMetaFile){
+                            arrowMetaFile.set(result.data, arrowMetaFileOffset);
+                            arrowMetaFileOffset += result.data.length;
+                            num_arrow_metaFile_data_recs_processed++;
+                            console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                        } else {
+                            console.error('arrowMetaFile was not initialized.');
+                        }
                     } else {
                         arrowDataFileOffset += result.data.length;
                         console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' BEFORE write arrowDataFileOffset:', arrowDataFileOffset,' type:', typeof result.data , ' result.data.length:', result.data.length, ' result:', result, ' is ArrayBuffer?:', (result.data instanceof ArrayBuffer || ArrayBuffer.isView(result.data)));
@@ -310,287 +313,141 @@ onmessage = async (event) => {
                     //console.log('atl06pParams:',cmd.parameters);
                     read_state = 'reading';
                     postMessage(await progressMsg(reqID, 
-                            {
-                                read_state:read_state,
-                                target_numSvrExceptions:target_numSvrExceptions,
-                                numSvrExceptions:num_svr_exceptions,
-                                target_numArrowDataRecs:target_numArrowDataRecs,
-                                numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                            },
-                            `Starting to read ${cmd.func} data.`,
-                            localExtLatLon,
-                            localExtHMean));
+                                                {
+                                                    read_state:read_state,
+                                                    target_numSvrExceptions:target_numSvrExceptions,
+                                                    numSvrExceptions:num_svr_exceptions,
+                                                    target_numArrowDataRecs:target_numArrowDataRecs,
+                                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
+                                                },
+                                                `Starting to read ${cmd.func} data.`,
+                                                localExtLatLon,
+                                                localExtHMean));
                     if(cmd.func){
-                        if(cmd.func.includes('atl06')){                  
-                            atl06(cmd.parameters as AtlpReqParams,callbacks).then(async (result) => { // result
-                                if(result){
-                                    read_result = result as Sr_Results_type;
-                                    target_numSvrExceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
-                                    target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
-                                    target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
-                                    console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
-                                }
-                                console.log(cmd.func,'  Done Reading: result:', result);
-                                const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
+                        let result:Sr_Results_type = {} as Sr_Results_type; 
+                        try{  
+                            if(cmd.func.includes('atl06')){  
+                                result = await atl06(cmd.parameters as AtlpReqParams,callbacks);
+                            } else if(cmd.func.includes('atl03')){
+                                result = await atl03(cmd.parameters as AtlpReqParams,callbacks);
+                            } else {
+                                console.error('Unknown cmd.func provided');
+                                postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Unknown cmd.func provided' }));
+                            }
+                            if(result){
+                                read_result = result as Sr_Results_type;
+                                target_numSvrExceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
+                                target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
+                                target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
+                                console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
+                            }
+                            console.log(cmd.func,'  Done Reading: result:', result);
+                            const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
 
-                                read_state = 'done_reading';
-                                postMessage(await progressMsg(reqID, 
-                                                {
-                                                    read_state:read_state,
-                                                    target_numSvrExceptions:target_numSvrExceptions,
-                                                    numSvrExceptions:num_svr_exceptions,
-                                                    target_numArrowDataRecs:target_numArrowDataRecs,
-                                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                                },
-                                                msg,
-                                                localExtLatLon,
-                                                localExtHMean));
-                                exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
-                                let num_retries_left = 3;
-                                let gotit = false;
-                                while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
-                                    console.log('Waiting for final CBs atl06p num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                    if(num_arrow_dataFile_data_recs_processed === target_numArrowDataRecs){
-                                        gotit = true;
-                                        break;
-                                    }
-                                    num_retries_left--;
-                                    await mysleep(1000);
-                                } 
-                                if(!gotit){
-                                    console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                }
-                                console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                // Log the result to the console
-                                console.log('Done - req_id:', reqID);
-                                console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                            }, async error =>  { // catch errors during the atl06p call promise (not ones that occur in success block)
-                                    // Log the error to the console
-                                    read_state = 'error';
-                                    postMessage(await progressMsg(reqID, 
-                                        {
-                                            read_state:read_state,
-                                            target_numSvrExceptions:target_numSvrExceptions,
-                                            numSvrExceptions:num_svr_exceptions,
-                                            target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                        },
-                                        'Error occurred while reading ATL06 data.',
-                                        localExtLatLon,
-                                        localExtHMean));
-                                    console.log(cmd.func,'  Error = ', error);
-                                    let emsg = '';
-                                    emsg = String(error);
-                                    let code = '';
-                                    //console.warn('Error:', error);
-                                    //console.warn('emsg:', emsg);
-                                    if(emsg.includes("SlideRuleError")){
-                                        code = 'SLIDERULE';
-                                    } else {
-                                        if (navigator.onLine) {
-                                            code = 'NETWORK';
-                                            emsg = 'Network error: Possible DNS resolution issue or server down.';
-                                        } else {
-                                            code = 'OFFLINE';
-                                            emsg = 'Network error: your browser appears to be/have been offline.';
-                                        }
-                                    }
-                                    if(emsg !== '') {
-                                        console.error(cmd.func,'  Error = ', emsg);
-                                    }
-                                    postMessage(await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
-                            }).catch((async error => { // catch all errors including in then clause of promise
-                                // Log the error to the console
-                                const status_details = `An unknown error occurred while running atl06p: ${error}`;
-                                read_state = 'error';
-                                console.log(cmd.func,'  Error = ', error);
-                                console.error(cmd.func,'  Error = ', status_details);
-                                postMessage(await errorMsg(reqID, { type: 'atl06pError', code: 'ATL06P', message: 'an error has occured while running atl06p:'+error }));
-                                postMessage(await progressMsg(reqID, 
-                                                {
-                                                    read_state:read_state,
-                                                    target_numSvrExceptions:target_numSvrExceptions,
-                                                    numSvrExceptions:num_svr_exceptions,
-                                                    target_numArrowDataRecs:target_numArrowDataRecs,
-                                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                                },
-                                                status_details,
-                                                localExtLatLon,
-                                                localExtHMean));
-                            })).finally(async () => {
-                                if(reqID){
-                                    console.log('finally req_id:',reqID, ' updating stats');
-                                    // Wait for all transaction promises to complete
-                                    console.log('finally num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                                } else {
-                                    console.error('finally req_id was undefined?');
-                                    await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' });
-                                }
-                                if(arrowMetaFileOffset > 0){
-                                    // Convert schema Uint8Array to JSON string
-                                    const jsonString = new TextDecoder().decode(arrowMetaFile);
-                                    console.log('finally arrowMetaFile jsonString:', jsonString);
-                                } else {
-                                    console.log('finally No arrowMetaFile records were processed.');
-                                }
-                                console.log('finally req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset);
-
-                                if(arrowDataFileOffset > 0){
-                                    console.log('finally fileName:', fileName, "size:",syncAccessHandle.getSize(), "offset:", arrowDataFileOffset);
-                                } else {
-                                    console.error('finally No arrow Data File data records were processed.');
-                                }
-                                await checkDoneProcessing(reqID, 
-                                                    read_state, 
-                                                    num_svr_exceptions, 
-                                                    num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                    localExtLatLon,
-                                                    localExtHMean,
-                                                    target_numSvrExceptions,
-                                                    target_numArrowDataRecs,
-                                                    target_numArrowMetaRecs);
-                            });
-                        } else if(cmd.func.includes('atl03')){
-                            atl03(cmd.parameters as AtlpReqParams,callbacks).then(async (result) => { // result
-                                if(result){
-                                    read_result = result as Sr_Results_type;
-                                    target_numSvrExceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
-                                    target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
-                                    target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
-                                    console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
-                                }
-                                console.log(cmd.func,'  Done Reading: result:', result);
-                                const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
-
-                                read_state = 'done_reading';
-                                postMessage(await progressMsg(reqID, 
-                                                {
-                                                    read_state:read_state,
-                                                    target_numSvrExceptions:target_numSvrExceptions,
-                                                    numSvrExceptions:num_svr_exceptions,
-                                                    target_numArrowDataRecs:target_numArrowDataRecs,
-                                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                                },
-                                                msg,
-                                                localExtLatLon,
-                                                localExtHMean));
-                                exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
-                                let num_retries_left = 3;
-                                let gotit = false;
-                                while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
-                                    console.log('Waiting for final CBs atl03p num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                    if(num_arrow_dataFile_data_recs_processed === target_numArrowDataRecs){
-                                        gotit = true;
-                                        break;
-                                    }
-                                    num_retries_left--;
-                                    await mysleep(1000);
-                                } 
-                                if(!gotit){
-                                    console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                }
-                                console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                // Log the result to the console
-                                console.log('Done - req_id:', reqID);
-                                console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                            },async error => { // catch errors during the atl03p call promise (not ones that occur in success block)
-                                    // Log the error to the console
-                                    read_state = 'error';
-                                    postMessage(await progressMsg(reqID, 
-                                        {
-                                            read_state:read_state,
-                                            target_numSvrExceptions:target_numSvrExceptions,
-                                            numSvrExceptions:num_svr_exceptions,
-                                            target_numArrowDataRecs:target_numArrowDataRecs,
-                                            numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                            target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                            numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                        },
-                                        'Error occurred while reading ATL06 data.',
-                                        localExtLatLon,
-                                        localExtHMean));
-                                    console.log(cmd.func,'  Error = ', error);
-                                    let emsg = '';
-                                    let code = '';
-                                    if (navigator.onLine) {
-                                        code = 'NETWORK';
-                                        emsg =  'Network error: Possible DNS resolution issue or server down.';
-                                    } else {
-                                        code = 'OFFLINE';
-                                        emsg = 'Network error: your browser appears to be/have been offline.';
-                                    }
-                                    if(emsg !== '') {
-                                        console.error('atl06p Error = ', emsg);
-                                    }
-                                    postMessage(await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
-                            }).catch((async error => { // catch all errors including in then clause of promise
-                                // Log the error to the console
-                                const status_details = `An unknown error occurred while running atl06p: ${error}`;
-                                read_state = 'error';
-                                postMessage(await progressMsg(reqID, 
-                                                {
-                                                    read_state:read_state,
-                                                    target_numSvrExceptions:target_numSvrExceptions,
-                                                    numSvrExceptions:num_svr_exceptions,
-                                                    target_numArrowDataRecs:target_numArrowDataRecs,
-                                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
-                                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
-                                                },
-                                                status_details,
-                                                localExtLatLon,
-                                                localExtHMean));
-                                console.log(cmd.func,'  Error = ', error);
-                                console.error(cmd.func,'  Error = ', status_details);
-                                postMessage(await errorMsg(reqID, { type: 'atl03pError', code: 'ATL03P', message: 'an error has occured while running atl03p' }));
-                            })).finally(async () => {
-                                if(reqID){
-                                    console.log('finally req_id:',reqID, ' updating stats');
-                                    // Wait for all transaction promises to complete
-                                    console.log('finally num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
-                                } else {
-                                    console.error('finally req_id was undefined?');
-                                    postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' }));
-                                }
-                                if(arrowMetaFileOffset > 0){
-                                    // Convert schema Uint8Array to JSON string
-                                    const jsonString = new TextDecoder().decode(arrowMetaFile);
-                                    console.log('finally arrowMetaFile jsonString:', jsonString);
-                                } else {
-                                    console.log('finally No arrowMetaFile records were processed.');
-                                }
-                                console.log('finally req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset);
-
-                                if(arrowDataFileOffset > 0){
-                                    console.log('finally fileName:', fileName, "size:",syncAccessHandle.getSize(), "offset:", arrowDataFileOffset);
-                                } else {
-                                    console.error('finally No arrow Data File data records were processed.');
-                                }
-                                await checkDoneProcessing(  reqID, 
-                                                            read_state, 
-                                                            num_svr_exceptions, 
-                                                            num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                            num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
+                            read_state = 'done_reading';
+                            postMessage(await progressMsg(reqID, 
+                                                            {
+                                                                read_state:read_state,
+                                                                target_numSvrExceptions:target_numSvrExceptions,
+                                                                numSvrExceptions:num_svr_exceptions,
+                                                                target_numArrowDataRecs:target_numArrowDataRecs,
+                                                                numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                                                target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                                                numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
+                                                            },
+                                                            msg,
                                                             localExtLatLon,
-                                                            localExtHMean,
-                                                            target_numSvrExceptions,
-                                                            target_numArrowDataRecs,
-                                                            target_numArrowMetaRecs);
-                            });
-                        } else {
-                            console.error('Unknown cmd.func provided');
-                            postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Unknown cmd.func provided' }));
+                                                            localExtHMean));
+                            exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
+                            let num_retries_left = 3;
+                            let gotit = false;
+                            while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
+                                console.log('Waiting for final CBs num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                                if(num_arrow_dataFile_data_recs_processed === target_numArrowDataRecs){
+                                    gotit = true;
+                                    break;
+                                }
+                                num_retries_left--;
+                                await mysleep(1000);
+                            } 
+                            if(!gotit){
+                                console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                            }
+                            console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                            // Log the result to the console
+                            console.log('Done - req_id:', reqID);
+                            console.log('req_id:',reqID, 'num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
+                        } catch (error) {
+                            read_state = 'error';
+                            postMessage(await progressMsg(reqID, 
+                                {
+                                    read_state:read_state,
+                                    target_numSvrExceptions:target_numSvrExceptions,
+                                    numSvrExceptions:num_svr_exceptions,
+                                    target_numArrowDataRecs:target_numArrowDataRecs,
+                                    numArrowDataRecs:num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                    target_numArrowMetaRecs:target_numArrowMetaRecs,
+                                    numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
+                                },
+                                'Error occurred while reading ATL0n data.',
+                                localExtLatLon,
+                                localExtHMean));
+                            console.log(cmd.func,'  Error = ', error);
+                            let emsg = '';
+                            emsg = String(error);
+                            let code = '';
+                            //console.warn('Error:', error);
+                            //console.warn('emsg:', emsg);
+                            if(emsg.includes("SlideRuleError")){
+                                code = 'SLIDERULE';
+                            } else {
+                                if (navigator.onLine) {
+                                    code = 'NETWORK';
+                                    emsg = 'Network error: Possible DNS resolution issue or server down.';
+                                } else {
+                                    code = 'OFFLINE';
+                                    emsg = 'Network error: your browser appears to be/have been offline.';
+                                }
+                            }
+                            if(emsg !== '') {
+                                console.error(cmd.func,'  Error = ', emsg);
+                            }
+                            postMessage(await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg }));
+                        } finally {
+                            if(reqID){
+                                console.log('finally req_id:',reqID, ' updating stats');
+                                // Wait for all transaction promises to complete
+                                console.log('finally num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
+                            } else {
+                                console.error('finally req_id was undefined?');
+                                await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'reqID was undefined' });
+                            }
+                            if(arrowMetaFileOffset > 0){
+                                // Convert schema Uint8Array to JSON string
+                                const jsonString = new TextDecoder().decode(arrowMetaFile);
+                                console.log('finally arrowMetaFile jsonString:', jsonString);
+                            } else {
+                                console.log('finally No arrowMetaFile records were processed.');
+                            }
+                            console.log('finally req:',req,'outputFormat:', outputFormat, 'arrowDataFileOffset:', arrowDataFileOffset);
+
+                            if(arrowDataFileOffset > 0){
+                                console.log('finally fileName:', fileName, "size:",syncAccessHandle.getSize(), "offset:", arrowDataFileOffset);
+                            } else {
+                                console.error('finally No arrow Data File data records were processed.');
+                            }
+                            await checkDoneProcessing(reqID, 
+                                                        read_state, 
+                                                        num_svr_exceptions, 
+                                                        num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                                        num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
+                                                        localExtLatLon,
+                                                        localExtHMean,
+                                                        target_numSvrExceptions,
+                                                        target_numArrowDataRecs,
+                                                        target_numArrowMetaRecs);
                         }
                     } else {
                         console.error('cmd.func was not provided');

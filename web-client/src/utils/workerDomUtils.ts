@@ -87,8 +87,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 curReqSumStore.setNumArrowMetaRecs(workerMsg.progress.numArrowMetaRecs);
                 curReqSumStore.setTgtArrowMetaRecs(workerMsg.progress.target_numArrowMetaRecs);
 
-                const sMsg = workerMsg as WorkerSummary;
-                curReqSumStore.setSummary(sMsg);
                 if(workerMsg.msg){
                     requestsStore.setMsg(workerMsg.msg);
                 } else {

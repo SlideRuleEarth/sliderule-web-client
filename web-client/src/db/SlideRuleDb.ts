@@ -389,7 +389,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             //console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.add( summary );
-            //console.log(`Summary added for req_id ${summary.req_id}.`);
+            console.log(`Summary added for req_id ${summary.req_id}.`);
         } catch (error) {
             console.error(`Failed to add summary for req_id ${summary.req_id}:`, error);
             throw error; // Rethrowing the error for further handling if needed
@@ -399,16 +399,17 @@ export class SlideRuleDexie extends Dexie {
     // Method to fetch WorkerSummary for a given req_id
     async getWorkerSummary(reqId: number): Promise<SrRequestSummary | undefined> {
         try {
+            //console.log(`getWorkerSummary for req_id ${reqId}...`);
             const count = await this.summary.where('req_id').equals(reqId).count();
             if (count > 1) {
-                throw new Error(`Multiple summaries found for req_id ${reqId}??`);
+                throw new Error(`getWorkerSummary Multiple summaries found for req_id ${reqId}??`);
             }
             const summaryRecord = await this.summary.where('req_id').equals(reqId).first();
             if (!summaryRecord) {
-                //console.log(`No summary found for req_id ${reqId}.`);
+                //console.log(`getWorkerSummary No summary found for req_id ${reqId}.`);
                 return undefined;
             }
-            //console.log(`Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
+            console.log(`getWorkerSummary Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
             return summaryRecord;
         } catch (error) {
             console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
