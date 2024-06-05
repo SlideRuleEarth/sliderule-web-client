@@ -225,7 +225,8 @@ export const useReqParamsStore = defineStore('reqParams', {
             cnf: this.signalConfidenceNumber,
             atl08_class: [], // HACK: This is a placeholder
             ats: this.alongTrackSpread,  
-            cnt: this.minimumPhotonCount, 
+            cnt: this.minimumPhotonCount,
+            H_min_win: this.minWindowHeight, 
             len: this.lengthValue,        
             res: this.stepValue, 
             sigma_r_max: this.sigmaValue,         

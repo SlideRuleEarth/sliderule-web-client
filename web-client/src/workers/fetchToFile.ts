@@ -4,10 +4,7 @@ import { type AtlpReqParams,type AtlReqParams } from '@/sliderule/icesat2';
 import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
-import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg,summaryMsg, type ExtHMean, type ExtLatLon } from '@/workers/workerUtils';
-
-const localExtLatLon = {minLat: 90, maxLat: -90, minLon: 180, maxLon: -180} as ExtLatLon;
-const localExtHMean = {minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000} as ExtHMean;
+import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '@/workers/workerUtils';
 
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
@@ -22,8 +19,6 @@ export async function checkDoneProcessing(  reqID:number,
                                             num_svr_exceptions:number, 
                                             num_arrow_data_recs_processed:number,
                                             num_arrow_meta_recs_processed:number, 
-                                            localExtLatLon: ExtLatLon,
-                                            localExtHMean: ExtHMean,
                                             target_numSvrExceptions:number,
                                             target_numArrowDataRecs:number,
                                             target_numArrowMetaRecs:number): Promise<void>{
@@ -33,22 +28,22 @@ export async function checkDoneProcessing(  reqID:number,
         num_post_done_checks++;
         if( ((num_svr_exceptions >= target_numSvrExceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
             let status_details = 'No data returned from SlideRule.';
-            if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
+            if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
                 status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
-                read_state = 'done';
                 const fileName = await db.getFilename(reqID);
                 postMessage(opfsReadyMsg(reqID, fileName));
-            }
-            console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
-            let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
-            if(abortRequested){ // Abort requested
-                msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
-            } else {
-                if(read_state === 'done_reading'){
-                    postMessage(await successMsg(reqID, msg));
+                let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
+                if(abortRequested){ // Abort requested
+                    msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
+                } else {
+                    if(read_state === 'done_reading'){
+                        console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
+                        postMessage(await successMsg(reqID, msg));
+                    }
                 }
+                read_state = 'done';
+                console.log(msg);
             }
-            console.log(msg);
         }
     }
 }
@@ -100,8 +95,6 @@ onmessage = async (event) => {
         let num_arrow_metaFile_meta_recs_processed = 0;
         let read_result = {} as Sr_Results_type;
         let read_state = 'idle'
-        //let num_el_pnts = 0;
-        //let recsProgThresh = 1;
         let exceptionsProgThresh = 1;
         let exceptionsProgThreshInc = 1;
         let arrowMetaFile: Uint8Array | undefined = undefined;
@@ -199,8 +192,6 @@ onmessage = async (event) => {
                                                 num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                localExtLatLon,
-                                                localExtHMean,
                                                 target_numSvrExceptions,
                                                 target_numArrowDataRecs,
                                                 target_numArrowMetaRecs);
@@ -241,9 +232,7 @@ onmessage = async (event) => {
                                                 target_numArrowMetaRecs:target_numArrowMetaRecs,
                                                 numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                             },
-                                            msg,
-                                            localExtLatLon,
-                                            localExtHMean));
+                                            msg));
                             console.log(msg);
                             break;
                         }
@@ -281,9 +270,7 @@ onmessage = async (event) => {
                                             target_numArrowMetaRecs:target_numArrowMetaRecs,
                                             numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                         },
-                                        msg,
-                                        localExtLatLon,
-                                        localExtHMean));
+                                        msg));
                         console.log(msg);
                     }
                     await checkDoneProcessing(  reqID, 
@@ -291,8 +278,6 @@ onmessage = async (event) => {
                                                 num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                 num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                localExtLatLon,
-                                                localExtHMean,
                                                 target_numSvrExceptions,
                                                 target_numArrowDataRecs,
                                                 target_numArrowMetaRecs);
@@ -322,9 +307,8 @@ onmessage = async (event) => {
                                                     target_numArrowMetaRecs:target_numArrowMetaRecs,
                                                     numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                                 },
-                                                `Starting to read ${cmd.func} data.`,
-                                                localExtLatLon,
-                                                localExtHMean));
+                                                `Starting to read ${cmd.func} data.`
+                                            ));
                     if(cmd.func){
                         let result:Sr_Results_type = {} as Sr_Results_type; 
                         try{  
@@ -358,8 +342,7 @@ onmessage = async (event) => {
                                                                 numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                                             },
                                                             msg,
-                                                            localExtLatLon,
-                                                            localExtHMean));
+                                                        ));
                             exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
                             let num_retries_left = 3;
                             let gotit = false;
@@ -391,9 +374,8 @@ onmessage = async (event) => {
                                     target_numArrowMetaRecs:target_numArrowMetaRecs,
                                     numArrowMetaRecs:num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed
                                 },
-                                'Error occurred while reading ATL0n data.',
-                                localExtLatLon,
-                                localExtHMean));
+                                'Error occurred while reading ATL0n data.'
+                                ));
                             console.log(cmd.func,'  Error = ', error);
                             let emsg = '';
                             emsg = String(error);
@@ -443,8 +425,6 @@ onmessage = async (event) => {
                                                         num_svr_exceptions, 
                                                         num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
                                                         num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                        localExtLatLon,
-                                                        localExtHMean,
                                                         target_numSvrExceptions,
                                                         target_numArrowDataRecs,
                                                         target_numArrowMetaRecs);

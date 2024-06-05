@@ -120,15 +120,16 @@ export async function atl06(alt06preqparams: AtlpReqParams, callbacks: core.Call
         //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
         if((alt06preqparams.resources && alt06preqparams.resources.length > 0) || (alt06preqparams.parms.poly && alt06preqparams.parms.poly.length > 0)){
             const result = await core.source('atl06p', alt06preqparams, true, callbacks);
+            console.log("atl06p result: ", result);
             return result as core.Sr_Results_type;
         } else {
+            console.error("atl06p error: ", "atl06 requires either a polygon or a resource parameter");
             throw new Error("SlideRuleError: atl06 requires either a polygon or a resource parameter");
         }
     } catch (error) {
         console.log("atl06 error: ", error);
         throw error;
     }
-
 };
 
 //
@@ -142,12 +143,13 @@ export async function atl03(alt03preqparams: AtlpReqParams, callbacks: core.Call
         throw new Error("atl03 requires a callback function");
     }
     try{
-        //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
+        console.log("atl03sp rqst: ", JSON.stringify(alt03preqparams));
         const result = await core.source('atl03sp', alt03preqparams, true, callbacks);
+        console.log("atl03sp result: ", result);
         return result as core.Sr_Results_type;
     }
     catch (error) {
-        console.log("atl03 error: ", error);
+        console.error("atl03 error: ", error);
         throw error;
     }
 

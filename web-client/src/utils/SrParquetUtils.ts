@@ -277,8 +277,9 @@ export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:
         const lonNdx = findLongNdx(allFieldNameTypes);
         const latNdx = findLatNdx(allFieldNameTypes);
         const hMeanNdx = findHeightNdx(allFieldNameTypes,height_fieldname);
+        const numRows = metadata.num_rows;
         console.log('readAndUpdateElevationData lonNdx:',lonNdx,' latNdx:',latNdx,' hMeanNdx:',hMeanNdx);
-        return {allFieldNames, hMeanNdx, latNdx, lonNdx};
+        return {allFieldNames, hMeanNdx, latNdx, lonNdx, numRows};
     } catch (error) { 
         const errorMsg = `readOpsfFileMetadata Failed with error: ${error}`;
         console.error(errorMsg);
@@ -327,7 +328,9 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         const file = await fileHandle.getFile();
         const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
         const metadata = await readOpsfFileMetadata(height_fieldname,arrayBuffer);
-        //console.warn('parquetReader:',useSrParquetCfgStore().getParquetReader().name);
+        const numberOfRows = Number(metadata.numRows)-1;
+
+        console.log('readAndUpdateElevationData metadata:',metadata);
         const summary = await readOrCacheSummary(req_id,height_fieldname);
         if(summary){
             useCurReqSumStore().setSummary(summary);
@@ -338,18 +341,21 @@ export const readAndUpdateElevationData = async (req_id:number) => {
                 let rowEnd = chunkSize;
                 let hasMoreData = true;
                 
-                //console.log('readAndUpdateElevationData allFieldNames:',allFieldNames);
+                console.log('readAndUpdateElevationData numberOfRows:',numberOfRows, ' summary.extHMean:',summary.extHMean);
                 while (hasMoreData) { // now plot data with color extremes set
                     try{
+                        rowEnd = Math.min(rowEnd, numberOfRows);
                         //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
                         await parquetRead({
                             file: arrayBuffer,
-                            columns: metadata.allFieldNames,
+                            //columns: metadata.allFieldNames,
+                            columns: ['longitude', 'latitude', height_fieldname],
                             rowStart: rowStart,
                             rowEnd: rowEnd,
                             onComplete: data => {
                                 //console.log('data.length:',data.length,'data:', data);
-                                updateElLayer(data as [][], metadata.hMeanNdx, metadata.lonNdx, metadata.latNdx, summary.extHMean, metadata.allFieldNames);
+                                //updateElLayer(data as [][], metadata.hMeanNdx, metadata.lonNdx, metadata.latNdx, summary.extHMean, metadata.allFieldNames);
+                                updateElLayer(data as [][], 2, 0, 1, summary.extHMean, ['longitude', 'latitude', height_fieldname]);
                                 hasMoreData = data.length === chunkSize;
                             }
                         });
