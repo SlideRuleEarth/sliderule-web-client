@@ -34,7 +34,7 @@
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
-  import { clearPolyCoords } from "@/utils/SrMapUtils";
+  import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
@@ -42,7 +42,7 @@
   import { updateDeck } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
-  import { convexHull } from "@/composables/SrTurfUtils";
+  import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
   import { type Coordinate } from "ol/coordinate";
   import type { SrRegion } from "@/sliderule/icesat2"
   import {format} from 'ol/coordinate.js';
@@ -102,10 +102,29 @@
           lon: coord[0],
           lat: coord[1]
         }));
-        reqParamsStore.poly = srLonLatCoordinates;
+        if(isClockwise(srLonLatCoordinates)){
+          console.log('poly is clockwise, reversing');
+          reqParamsStore.poly = srLonLatCoordinates.reverse();
+        } else {
+          console.log('poly is counter-clockwise');
+          reqParamsStore.poly = srLonLatCoordinates;
+        }
         console.log('srLonLatCoordinates:',srLonLatCoordinates);
         reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
         console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+          // Create GeoJSON from reqParamsStore.convexHull
+          const geoJson = {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+            },
+            properties: {
+              name: "Convex Hull Polygon"
+            }
+          };
+        console.log('GeoJSON:', JSON.stringify(geoJson));
+        drawGeoJson(JSON.stringify(geoJson));
       } else {
         console.error("Error: Geometry is not a polygon?");
       }

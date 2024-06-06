@@ -15,6 +15,7 @@ import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { Style, Fill, Stroke } from 'ol/style';
 
 const reqParams = useReqParamsStore();
 
@@ -40,6 +41,7 @@ export const clearPolyCoords = () => {
 }
 
 export function drawGeoJson(geoJsonData:string) {
+    console.log('drawGeoJson:',geoJsonData);
     const map = useMapStore().map
     if(map){
         const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
@@ -47,15 +49,34 @@ export function drawGeoJson(geoJsonData:string) {
             console.error('Vector layer is not defined.');
             return;
         }
-        const geoJSON = new GeoJSON(); // Assuming 'ol' is the OpenLayers object
+        const geoJSON = new GeoJSON(); 
         const features = geoJSON.readFeatures(geoJsonData, {
-            featureProjection: useMapParamsStore().projection, //'EPSG:3857' // Assuming the map projection is Web Mercator
+            featureProjection: useMapParamsStore().projection, 
         }) as Feature<Geometry>[];
         const src = vectorLayer.getSource();
         if(src){
             // Add the features to the vector layer source
             src.clear(); // Optional: Remove existing features
             src.addFeatures(features);
+
+
+            // Define a style with the desired colors
+            const style = new Style({
+                fill: new Fill({
+                color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+                }),
+                stroke: new Stroke({
+                color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
+                width: 2,
+                }),
+            });
+
+            // Apply the style to each feature
+            features.forEach(feature => {
+                feature.setStyle(style);
+            });
+
+
             const geometry = features[0].getGeometry();
             if (geometry instanceof Polygon) {
                 const nestedCoords = geometry.getCoordinates();

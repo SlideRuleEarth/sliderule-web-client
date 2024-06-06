@@ -223,7 +223,6 @@ export const useReqParamsStore = defineStore('reqParams', {
             asset: this.asset,
             srt: this.getSrt(),
             cnf: this.signalConfidenceNumber,
-            atl08_class: [], // HACK: This is a placeholder
             ats: this.alongTrackSpread,  
             cnt: this.minimumPhotonCount,
             H_min_win: this.minWindowHeight, 
@@ -233,10 +232,6 @@ export const useReqParamsStore = defineStore('reqParams', {
             maxi: this.maxIterations,
             poly: this.poly,
           };         
-          if(this.poly && this.convexHull)
-          {
-            req.cmr = {polygon: this.convexHull};
-          }
           if (this.fileOutput===true) {
             let path_to_use = this.outputLocationPath;
             if(this.outputLocation.value==='S3'){
@@ -265,6 +260,9 @@ export const useReqParamsStore = defineStore('reqParams', {
               req.beams = this.beams;
             }
           }
+          if (this.poly && this.convexHull) {
+            req.cmr = { polygon: this.convexHull };
+          }
           return req;
         },
         getSrt(): number[] | number {
@@ -274,19 +272,21 @@ export const useReqParamsStore = defineStore('reqParams', {
             return this.surfaceReferenceType;
           }        
         },
-        getAtlpReqParams(req_id:number): AtlpReqParams {
-          if(this.resources.length > 0){
-            return  {
-              parms:this.getAtlReqParams(req_id),
-              resources: this.resources,     
-            };
-          } else {
-            console.log('getAtlpReqParams: resources is empty');
-            return {
-              parms:this.getAtlReqParams(req_id),
-            };
+        getAtlpReqParams(req_id: number): AtlpReqParams {
+          const baseParams:AtlpReqParams = {
+            parms: this.getAtlReqParams(req_id),
+          };
+      
+          if (this.resources.length > 0) {
+            baseParams['resources'] = this.resources;
           }
+      
+          // if (this.poly && this.convexHull) {
+          //   baseParams['cmr'] = { polygon: this.convexHull };
+          // }
+          return baseParams;
         },
+        
         setReqion(reqionValue:number) {
           this.regionValue = reqionValue;
         },
