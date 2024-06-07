@@ -120,54 +120,11 @@ export function getTypes(fieldAndType: SrParquetPathTypeJsType[]):string[] {
     return fieldAndType.map((f) => f.jstype);
 }
 
-
-// async function getColumnMinMaxFromMeta(metadata: FileMetaData, columnIndex: number): Promise<{ min: any, max: any }> {
-//     let globalMin: any = null;
-//     let globalMax: any = null;
-//     console.log('getColumnMinMaxFromMeta metadata:',metadata,' columnIndex:',columnIndex);
-//     for (let rowGroupIndex = 0; rowGroupIndex < metadata.row_groups.length; rowGroupIndex++) {
-//         const rowGroup = metadata.row_groups[rowGroupIndex];
-//         const columnChunk = rowGroup.columns[columnIndex];
-//         console.log("getColumnMinMaxFromMeta rowGroupIndex:",rowGroupIndex," columnChunk:",columnChunk)
-//         if (columnChunk.meta_data) {
-//             const stats = columnChunk.meta_data.statistics;
-//             if (stats) {
-//                 const colMin = stats.min_value;
-//                 const colMax = stats.max_value;
-//                 if (colMin !== undefined && colMin !== null) {
-//                     if (globalMin === null || colMin < globalMin) {
-//                         globalMin = colMin;
-//                     }
-//                 } else {
-//                     console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: min_value is undefined or null`);
-//                 }
-//                 if (colMax !== undefined && colMax !== null) {
-//                     if (globalMax === null || colMax > globalMax) {
-//                         globalMax = colMax;
-//                     }
-//                 } else {
-//                     console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: max_value is undefined or null`);
-//                 }
-//             } else {
-//                 console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: statistics is undefined`);
-//             }
-//         } else {
-//             console.warn(`Row group ${rowGroupIndex}, column ${columnIndex}: meta_data is undefined`);
-//         }
-//     }
-
-//     if (globalMin === null || globalMax === null) {
-//         throw new Error(`Unable to determine min and/or max values for column index ${columnIndex}`);
-//     }
-
-//     return { min: globalMin, max: globalMax };
-// }
-
 export const deleteOpfsFile = async (filename:string) => {
     try{
         console.log('deleteOpfsFile filename:',filename);
         if (!filename) {
-            console.error('deleteOpfsFile metadata is undefined');
+            console.error('deleteOpfsFile filename is undefined');
             return;
         }
         const opfsRoot = await navigator.storage.getDirectory();
@@ -264,7 +221,7 @@ export async function readOrCacheSummary(req_id:number,height_fieldname:string) 
     }
 }
 
-export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:ArrayBuffer) => {
+export const readOpsfFileHeader = async (height_fieldname:string, arrayBuffer:ArrayBuffer) => {
     try{
         const metadata = parquetMetadata(arrayBuffer);
 
@@ -278,10 +235,10 @@ export const readOpsfFileMetadata = async (height_fieldname:string, arrayBuffer:
         const latNdx = findLatNdx(allFieldNameTypes);
         const hMeanNdx = findHeightNdx(allFieldNameTypes,height_fieldname);
         const numRows = metadata.num_rows;
-        console.log('readAndUpdateElevationData lonNdx:',lonNdx,' latNdx:',latNdx,' hMeanNdx:',hMeanNdx);
-        return {allFieldNames, hMeanNdx, latNdx, lonNdx, numRows};
+        //console.log('readAndUpdateElevationData lonNdx:',lonNdx,' latNdx:',latNdx,' hMeanNdx:',hMeanNdx);
+        return {metadata,allFieldNames, hMeanNdx, latNdx, lonNdx, numRows};
     } catch (error) { 
-        const errorMsg = `readOpsfFileMetadata Failed with error: ${error}`;
+        const errorMsg = `readOpsfFileHeader Failed with error: ${error}`;
         console.error(errorMsg);
         throw new Error(errorMsg);
     }
@@ -327,36 +284,40 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         //console.log('readAndUpdateElevationData fileHandle:',fileHandle);
         const file = await fileHandle.getFile();
         const arrayBuffer = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
-        const metadata = await readOpsfFileMetadata(height_fieldname,arrayBuffer);
-        const numberOfRows = Number(metadata.numRows)-1;
+        const header = await readOpsfFileHeader(height_fieldname,arrayBuffer);
+        const numberOfRows = Number(header.numRows)-1;
 
-        console.log('readAndUpdateElevationData metadata:',metadata);
+        console.log('readAndUpdateElevationData header:',header);
         const summary = await readOrCacheSummary(req_id,height_fieldname);
         if(summary){
             useCurReqSumStore().setSummary(summary);
             
             if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
-                const chunkSize = 100000; 
+                const chunkSize = 1000000; 
                 let rowStart = 0;
                 let rowEnd = chunkSize;
                 let hasMoreData = true;
                 
                 console.log('readAndUpdateElevationData numberOfRows:',numberOfRows, ' summary.extHMean:',summary.extHMean);
+                console.log('header.allFieldNames:',header.allFieldNames,' header.hMeanNdx:',header.hMeanNdx,' header.lonNdx:',header.lonNdx,' header.latNdx:',header.latNdx);
                 while (hasMoreData) { // now plot data with color extremes set
                     try{
                         rowEnd = Math.min(rowEnd, numberOfRows);
-                        //console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
+                        console.log('readAndUpdateElevationData rowStart:',rowStart,' rowEnd:',rowEnd);
+                        const arrayBuffer2 = await file.arrayBuffer(); // Convert the file to an ArrayBuffer
                         await parquetRead({
-                            file: arrayBuffer,
-                            //columns: metadata.allFieldNames,
-                            columns: ['longitude', 'latitude', height_fieldname],
+                            file: arrayBuffer2,
+                            //columns: header.allFieldNames,
+                            //columns: ['longitude', 'latitude', height_fieldname],
                             rowStart: rowStart,
                             rowEnd: rowEnd,
+                            metadata: header.metadata,
                             onComplete: data => {
-                                //console.log('data.length:',data.length,'data:', data);
-                                //updateElLayer(data as [][], metadata.hMeanNdx, metadata.lonNdx, metadata.latNdx, summary.extHMean, metadata.allFieldNames);
-                                updateElLayer(data as [][], 2, 0, 1, summary.extHMean, ['longitude', 'latitude', height_fieldname]);
-                                hasMoreData = data.length === chunkSize;
+                                console.log('data.length:',data.length,'data:', data);
+                                updateElLayer(data as [][], header.hMeanNdx, header.lonNdx, header.latNdx, summary.extHMean, header.allFieldNames);
+                                //updateElLayer(data as [][], 2, 0, 1, summary.extHMean, ['longitude', 'latitude', height_fieldname]);
+                                //hasMoreData = data.length === chunkSize;
+                                hasMoreData = false;
                             }
                         });
                     } catch (error) {

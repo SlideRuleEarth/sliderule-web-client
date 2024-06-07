@@ -9,6 +9,9 @@ import { useReqParamsStore } from "@/stores/reqParamsStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
+import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
+
+const consoleStore = useSrSvrConsoleStore();
 
 const sysConfigStore = useSysConfigStore();
 const curReqSumStore = useCurReqSumStore();
@@ -42,7 +45,7 @@ function startWorker(){
 } 
 
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
-    console.log('handleWorkerMsg workerMsg:',workerMsg);
+    //console.log('handleWorkerMsg workerMsg:',workerMsg);
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
@@ -67,7 +70,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             cleanUpWorker();
             break;
         case 'server_msg':
-            console.log('handleWorkerMsg server_msg:',workerMsg.msg);
+            //console.log('handleWorkerMsg server_msg:',workerMsg.msg);
+            if(workerMsg.msg){
+                consoleStore.addLine(workerMsg.msg);
+            }
             if(workerMsg.msg){
                 requestsStore.setMsg(workerMsg.msg);
                 percentComplete = parseCompletionPercentage(workerMsg.msg);
@@ -77,7 +83,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             }
             break;
         case 'progress':
-            console.log('handleWorkerMsg progress:',workerMsg.progress);
+            //console.log('handleWorkerMsg progress:',workerMsg.progress);
             if(workerMsg.progress){
                 curReqSumStore.setReadState(workerMsg.progress.read_state);
                 curReqSumStore.setNumExceptions(workerMsg.progress.numSvrExceptions);
@@ -103,7 +109,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             break;
         case 'error':
             if(workerMsg.error){
-                console.log('handleWorkerMsg error:',workerMsg.error);
+                console.error('handleWorkerMsg error:',workerMsg.error);
                 //toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
                 useSrToastStore().error(workerMsg.error?.type,workerMsg.error?.message);
             }

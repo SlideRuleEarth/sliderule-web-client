@@ -7,6 +7,12 @@
             <div class="sr-select-parquet-reader">
                 <SrSelectParquetReader />
             </div>
+            <!-- <div class="sr-opfs">
+                <SrOpfs />
+            </div> -->
+            <div>
+              <SrSvrConsoleTerminal />
+            </div>
         </div>
     </div>
   </template>
@@ -14,6 +20,8 @@
   <script setup lang="ts">
     import SrProgressCnts from './SrProgressCnts.vue';
     import SrSelectParquetReader from './SrSelectParquetReader.vue';
+    //import SrOpfs from './SrOpfs.vue';
+    import SrSvrConsoleTerminal from './SrSvrConsoleTerminal.vue';
   </script>
   
   <style>

@@ -274,7 +274,7 @@
                         extremeLatLon.maxLon,
                         extremeLatLon.maxLat
                     ];
-                    console.log('Using reqId:',props.reqId,' with extent:',extent);
+                    //console.log('Using reqId:',props.reqId,' with extent:',extent);
                   } else {
                     console.error("Error: invalid lat-lon data for request:",props.reqId);
                   }
@@ -284,9 +284,9 @@
               } else {
                   console.info("no reqId:",props.reqId);
               }
-              console.log('reqExtremeLatLon:',reqExtremeLatLon);
+              //console.log('reqExtremeLatLon:',reqExtremeLatLon);
               extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
-              console.log('Using extent:',extent);               
+              //console.log('Using extent:',extent);               
               map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();

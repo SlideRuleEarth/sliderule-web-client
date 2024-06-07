@@ -230,7 +230,8 @@ export const useReqParamsStore = defineStore('reqParams', {
             res: this.stepValue, 
             sigma_r_max: this.sigmaValue,         
             maxi: this.maxIterations,
-            poly: this.poly,
+            //poly: this.poly,
+            poly: this.convexHull // for now pass the convexHull until we figure out how to get cmr working
           };         
           if (this.fileOutput===true) {
             let path_to_use = this.outputLocationPath;
@@ -260,9 +261,9 @@ export const useReqParamsStore = defineStore('reqParams', {
               req.beams = this.beams;
             }
           }
-          if (this.poly && this.convexHull) {
-            req.cmr = { polygon: this.convexHull };
-          }
+          // if (this.poly && this.convexHull) {
+          //   req.cmr = { polygon: this.convexHull };
+          // }
           return req;
         },
         getSrt(): number[] | number {

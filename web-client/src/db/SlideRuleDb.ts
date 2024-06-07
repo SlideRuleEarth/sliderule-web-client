@@ -389,7 +389,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             //console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.add( summary );
-            console.log(`Summary added for req_id ${summary.req_id}.`);
+            //console.log(`Summary added for req_id ${summary.req_id}.`);
         } catch (error) {
             console.error(`Failed to add summary for req_id ${summary.req_id}:`, error);
             throw error; // Rethrowing the error for further handling if needed
@@ -409,7 +409,7 @@ export class SlideRuleDexie extends Dexie {
                 //console.log(`getWorkerSummary No summary found for req_id ${reqId}.`);
                 return undefined;
             }
-            console.log(`getWorkerSummary Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
+            //console.log(`getWorkerSummary Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
             return summaryRecord;
         } catch (error) {
             console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
