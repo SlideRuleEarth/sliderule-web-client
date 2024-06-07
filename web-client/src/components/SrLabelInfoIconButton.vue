@@ -1,8 +1,17 @@
 <template>
     <div class="sr-label-info-icon-button">
-        <label :for="labelFor" :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" :title="tooltipText" :style="{ fontSize: labelFontSize, whitespace: 'no-wrap' }">{{ label }}</label>
+        <label :for="labelFor" 
+                :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
+                :title="tooltipText" 
+                :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }">
+            {{ label }}
+        </label>
         <!-- Info Icon with Tooltip -->
-        <Button icon="pi pi-info-circle" class="p-button-rounded p-button-text p-button-plain sr-info-button " :title="tooltipUrl" @click="openTooltipUrl"></Button>
+        <Button icon="pi pi-info-circle" 
+            class="p-button-rounded p-button-text p-button-plain sr-info-button " 
+            :title="tooltipUrl" 
+            @click="openTooltipUrl">
+        </Button>
     </div>
 </template>
 
@@ -34,7 +43,6 @@
         },
     });
     const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
         if (props.tooltipUrl) {
             const newWindow = window.open(props.tooltipUrl, '_blank');
             if (newWindow) {
@@ -57,7 +65,6 @@
     margin-right: 0rem;
     white-space: nowrap;
     font-size: small;
-    white-space: nowrap;
     background-color: transparent;
 }
 
@@ -85,7 +92,6 @@
 :deep(.sr-info-button .pi) {
     margin-left: 0rem;
     padding: 0rem;
-    padding-left: 0rem;
     height: 0.75rem;
     width: 0.75rem;
     font-size: smaller;

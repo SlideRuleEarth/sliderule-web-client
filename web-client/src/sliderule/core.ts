@@ -89,10 +89,10 @@ const fieldtypes:{
 // Local Functions
 //------------------------------------
 export function set_recordDefinitions(data: any) {
-  console.log('set_recordDefinitions data:', data);
-  console.log('set_recordDefinitions before:', recordDefinitions);
+  //console.log('set_recordDefinitions data:', data);
+  //console.log('set_recordDefinitions before:', recordDefinitions);
   recordDefinitions = data;
-  console.log('set_recordDefinitions after:', recordDefinitions);
+  //console.log('set_recordDefinitions after:', recordDefinitions);
 }
 export function get_recordDefinitions() {
   return recordDefinitions;
@@ -362,7 +362,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                       } else {
                         console.warn('NO callback for rec_type:',rec_type, 'result:', result)
                       }
-                      console.log('rec_type:',rec_type, 'result:', result)
+                      //console.log('rec_type:',rec_type, 'result:', result)
                     }
                   ).catch(error => {
                     decode_errors++;
@@ -455,7 +455,7 @@ export function init(config: {
 }): void
 {
   Object.assign(globalSysConfig, config)
-  console.log('globalSysConfig:', globalSysConfig); 
+  //console.log('globalSysConfig:', globalSysConfig); 
 };
 export interface Callbacks {
   [key: string]: ((result: any) => void) | undefined; 
@@ -469,7 +469,7 @@ export async function source(
 ): Promise<any>{ // Replace 'any' with a more specific return type if possible
   //console.log('source api: ', api);
   //console.log('source parm: ', parm);
-  console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
+  //console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
   const host = globalSysConfig.organization && (globalSysConfig.organization + '.' + globalSysConfig.domain) || globalSysConfig.domain;
   const api_path = 'source/'+ api;
   const url = globalSysConfig.protocol+'://' + host + '/' + api_path;
@@ -493,7 +493,7 @@ export async function source(
   // Await the fetchAndProcessResult call
   let result;
   try {
-      if (api === 'atl06p') {
+      if (api.includes('atl')) {
         console.log('source url:', url, 'options:',options);
         console.log('options.body:',options.body);
       }

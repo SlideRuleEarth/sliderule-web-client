@@ -5,7 +5,7 @@ import SrAppBar from "./components/SrAppBar.vue";
 import router from './router/index.js';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { useSrToastStore } from "@/stores/srToastStore";
-import { useCurAtl06ReqSumStore } from "@/stores/curAtl06ReqSumStore";
+import { useCurReqSumStore } from "@/stores/curReqSumStore";
 
 const srToastStore = useSrToastStore()
 
@@ -36,8 +36,8 @@ const recordButtonClick = () => {
 };
 
 const analysisButtonClick = () => {
-  console.log('analysisButtonClick req_id: ', useCurAtl06ReqSumStore().req_id);
-  router.push(`/analyze/${useCurAtl06ReqSumStore().req_id}`);
+  console.log('analysisButtonClick req_id: ', useCurReqSumStore().req_id);
+  router.push(`/analyze/${useCurReqSumStore().req_id}`);
 };
 
 const aboutButtonClick = () => {

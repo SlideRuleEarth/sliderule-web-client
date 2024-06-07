@@ -12,9 +12,9 @@
 
 <script setup lang="ts">
   import { onMounted } from 'vue'
-  import { useCurAtl06ReqSumStore } from '@/stores/curAtl06ReqSumStore';
+  import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
-  const curReqSumStore = useCurAtl06ReqSumStore();
+  const curReqSumStore = useCurReqSumStore();
   const emit = defineEmits(['legendbox-created', 'picked-changed']);
   
   onMounted(() => {

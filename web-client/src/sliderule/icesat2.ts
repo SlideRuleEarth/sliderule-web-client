@@ -87,7 +87,7 @@ export interface SrLatLon {
 export type SrRegion = SrLatLon[];
   
 // Define the parameter type for the atl06p function
-export interface Atl06ReqParams {
+export interface AtlReqParams {
     asset: string;
     cnf: number[];
     ats: number;
@@ -101,40 +101,59 @@ export interface Atl06ReqParams {
     [key: string]: any; // Other dynamic keys
 }
 
-export interface Atl06pReqParams {
-    parms: Atl06ReqParams;
+export interface AtlpReqParams {
+    parms: AtlReqParams;
     resources?: Resource[];
 }
 
 //
 // ATL06P
 //
-export async function atl06p(alt06preqparams: Atl06pReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
+export async function atl06(alt06preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {
-    console.log("atl06p params: ", alt06preqparams);
-    //console.log("atl06p callbacks: ", callbacks);
-    const recs: any[] = [];
+    console.log("atl06 params: ", alt06preqparams);
 
     if (callbacks == null) {
-        callbacks = {
-            atl06rec: (result) => {
-                console.log("atl06p STUBBED --< cb...");
-                recs.push(result["elevation"]);
-            },
-        };
+        throw new Error("SlideRuleError: atl06 requires a callback function");
+    }
+    try {
+        //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
+        if((alt06preqparams.resources && alt06preqparams.resources.length > 0) || (alt06preqparams.parms.poly && alt06preqparams.parms.poly.length > 0)){
+            const result = await core.source('atl06p', alt06preqparams, true, callbacks);
+            console.log("atl06p result: ", result);
+            return result as core.Sr_Results_type;
+        } else {
+            console.error("atl06p error: ", "atl06 requires either a polygon or a resource parameter");
+            throw new Error("SlideRuleError: atl06 requires either a polygon or a resource parameter");
+        }
+    } catch (error) {
+        console.log("atl06 error: ", error);
+        throw error;
+    }
+};
+
+//
+// ATL06P
+//
+export async function atl03(alt03preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
+{
+    console.log("atl03 params: ", alt03preqparams);
+
+    if (callbacks == null) {
+        throw new Error("atl03 requires a callback function");
     }
     try{
-        //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
-        const result = await core.source('atl06p', alt06preqparams, true, callbacks);
+        console.log("atl03sp rqst: ", JSON.stringify(alt03preqparams));
+        const result = await core.source('atl03sp', alt03preqparams, true, callbacks);
+        console.log("atl03sp result: ", result);
         return result as core.Sr_Results_type;
     }
     catch (error) {
-        console.log("atl06p error: ", error);
+        console.error("atl03 error: ", error);
         throw error;
     }
 
 };
-
 // Export any other constants or functions if necessary
 export {
     CNF_POSSIBLE_TEP,

@@ -8,13 +8,22 @@ import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path ba
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
 import { deleteOpfsFile } from '@/utils/SrParquetUtils';
-import { a } from 'vitest/dist/suite-a18diDsI';
 
 const requestsStore = useRequestsStore();
 
 const analyze = (id:number) => {
-    console.log('Analyze ', id);
-    router.push(`/analyze/${id}`);
+    try{
+        console.log('Analyze ', id);
+        if(!id) {
+            console.error('Request id is missing for analyze request');
+            return;
+        }
+        router.push(`/analyze/${id}`);
+        console.log('Navigate for Analyze request for id:', id, ' is successful');
+    } catch (error) {
+        console.error(`Failed to analyze request for id:${id}`, error);
+        throw error;
+    }
 };
 
 const sourceCodePopup = (id:number) => {

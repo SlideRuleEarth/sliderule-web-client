@@ -2,17 +2,23 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { Atl06ReqParams, Atl06pReqParams, SrRegion } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlpReqParams, SrRegion } from '@/sliderule/icesat2';
 
 export interface NullReqParams {
   null: null;
 }
 
-export type ReqParams = Atl06ReqParams | Atl06pReqParams | NullReqParams;
+export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
 
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
+        missionValue: {name: 'ICESat-2', value: 'ICESat-2'},
+        missionItems:[{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}],
+        iceSat2SelectedAPI: {name: 'atl06', value: 'atl06'},
+        iceSat2APIsItems: [{name:'atl06',value:'atl06'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24',value:'atl24'}],
+        gediSelectedAPI: {name:'gedi01b',value:'gedi01b'},
+        gediAPIsItems: [{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}],
         using_worker: false,
         asset: 'icesat2',
         isArrowStream: false,
@@ -22,10 +28,13 @@ export const useReqParamsStore = defineStore('reqParams', {
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
+        enableGranuleSelection: false,
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
-        tracksOptions: ['Track 1', 'Track 2', 'Track 3'],
+        tracksOptions: ['1', '2', '3'],
+        selectAllTracks: false,
         beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
         beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
+        selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,
         regionValue: 1,
@@ -209,24 +218,21 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtl06ReqParams(req_id:number): Atl06ReqParams { 
-          const req: Atl06ReqParams = {
+        getAtlReqParams(req_id:number): AtlReqParams { 
+          const req: AtlReqParams = {
             asset: this.asset,
             srt: this.getSrt(),
             cnf: this.signalConfidenceNumber,
-            atl08_class: [], // HACK: This is a placeholder
             ats: this.alongTrackSpread,  
-            cnt: this.minimumPhotonCount, 
+            cnt: this.minimumPhotonCount,
+            H_min_win: this.minWindowHeight, 
             len: this.lengthValue,        
             res: this.stepValue, 
             sigma_r_max: this.sigmaValue,         
             maxi: this.maxIterations,
-            poly: this.poly,
+            //poly: this.poly,
+            poly: this.convexHull // for now pass the convexHull until we figure out how to get cmr working
           };         
-          if(this.poly && this.convexHull)
-          {
-            req.cmr = {polygon: this.convexHull};
-          }
           if (this.fileOutput===true) {
             let path_to_use = this.outputLocationPath;
             if(this.outputLocation.value==='S3'){
@@ -243,17 +249,21 @@ export const useReqParamsStore = defineStore('reqParams', {
                 req.output = {format: 'parquet', as_geo: false, path: path_to_use};
               }
               this.isArrowStream = true;
-            } else if(this.outputFormat.value==='feather'){
-              path_to_use += '.feather';
-              req.output = {format: 'feather', as_geo: false, path: path_to_use};
-              this.isArrowStream = true;
-            } else if(this.outputFormat.value==='csv'){
-              path_to_use += '.parquet';
-              req.output = {format: this.outputFormat.value, path: path_to_use};
             } else {
-              console.error('getAtl06ReqParams: outputFormat not recognized:', this.outputFormat.value);
+              console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
+          if(this.enableGranuleSelection===true){
+            if(this.tracks.length>0){
+              req.tracks = this.tracks;
+            }
+            if(this.beams.length>0){
+              req.beams = this.beams;
+            }
+          }
+          // if (this.poly && this.convexHull) {
+          //   req.cmr = { polygon: this.convexHull };
+          // }
           return req;
         },
         getSrt(): number[] | number {
@@ -263,19 +273,43 @@ export const useReqParamsStore = defineStore('reqParams', {
             return this.surfaceReferenceType;
           }        
         },
-        getAtl06pReqParams(req_id:number): Atl06pReqParams {
-          if(this.resources.length > 0){
-            return  {
-              parms:this.getAtl06ReqParams(req_id),
-              resources: this.resources,     
-            };
-          } else {
-            console.log('getAtl06pReqParams: resources is empty');
-            return {
-              parms:this.getAtl06ReqParams(req_id),
-            };
+        getAtlpReqParams(req_id: number): AtlpReqParams {
+          const baseParams:AtlpReqParams = {
+            parms: this.getAtlReqParams(req_id),
+          };
+      
+          if (this.resources.length > 0) {
+            baseParams['resources'] = this.resources;
           }
+      
+          // if (this.poly && this.convexHull) {
+          //   baseParams['cmr'] = { polygon: this.convexHull };
+          // }
+          return baseParams;
         },
+        
+        setReqion(reqionValue:number) {
+          this.regionValue = reqionValue;
+        },
+        setRgt(rgtValue:number) {
+          this.rgtValue = rgtValue;
+        },
+        setCycle(cycleValue:number) {
+          this.cycleValue = cycleValue;
+        },
+        setBeams(beams:string[]) {
+          this.beams = beams;
+        },
+        setTracks(tracks:string[]) {
+          this.tracks = tracks;
+        },
+        setSelectAllTracks(selectAllTracks:boolean) {
+          this.selectAllTracks = selectAllTracks;
+        },
+        setSelectAllBeams(selectAllBeams:boolean) {
+          this.selectAllBeams = selectAllBeams;
+        },
+
     },
 })
 

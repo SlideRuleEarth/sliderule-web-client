@@ -6,6 +6,7 @@ export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;
     sysConfig?: SysConfig;
+    func?: string;
     parameters?: ReqParams;
 }
 
@@ -18,8 +19,8 @@ export interface WorkerError {
 }
 export interface SrProgress {
     read_state: string;
-    target_numAtl06Exceptions: number;
-    numAtl06Exceptions: number;
+    target_numSvrExceptions: number;
+    numSvrExceptions: number;
     target_numArrowDataRecs: number;
     numArrowDataRecs: number;
     target_numArrowMetaRecs: number;
@@ -58,7 +59,7 @@ export async function startedMsg(req_id:number,req_params:ReqParams): Promise<Wo
     const workerStartedMsg: WorkerMessage =  { req_id:req_id, status: 'started', msg:`Starting req_id: ${req_id}`};
     try{
         // initialize request record in db
-        await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status,func:'atl06p', parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+        await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status, parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
     } catch (error) {
         console.error('Failed to update request status to started:', error, ' for req_id:', req_id);
     }
@@ -78,10 +79,8 @@ export async function abortedMsg(req_id:number, msg: string): Promise<WorkerMess
 
 export async function progressMsg(  req_id:number, 
                                     progress:SrProgress, 
-                                    msg: string,
-                                    localExtLatLon: ExtLatLon,
-                                    localExtHMean: ExtHMean): Promise<WorkerMessage> {
-    const workerProgressMsg: WorkerSummary =  { req_id:req_id, status: 'progress', progress:progress,extLatLon: localExtLatLon, extHMean: localExtHMean, msg:msg };
+                                    msg: string): Promise<WorkerMessage> {
+    const workerProgressMsg: WorkerMessage =  { req_id:req_id, status: 'progress', progress:progress, msg:msg };
     //console.log(msg)
     //console.log('progressMsg  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
     return workerProgressMsg;
@@ -146,27 +145,3 @@ export function opfsReadyMsg(req_id:number,filename:string): WorkerMessage{
     return workerDataMsg;
 }
 
-export function updateExtremes( curFlatRecs: { h_mean: number,latitude: number, longitude:number }[],
-                                localExtLatLon: ExtLatLon,
-                                localExtHMean: ExtHMean) {
-    curFlatRecs.forEach(rec => {
-        if (rec.h_mean < localExtHMean.minHMean) {
-            localExtHMean.minHMean = rec.h_mean;
-        }
-        if (rec.h_mean > localExtHMean.maxHMean) {
-            localExtHMean.maxHMean = rec.h_mean;
-        }
-        if (rec.latitude < localExtLatLon.minLat) {
-            localExtLatLon.minLat = rec.latitude;
-        }
-        if (rec.latitude > localExtLatLon.maxLat) {
-            localExtLatLon.maxLat = rec.latitude;
-        }
-        if (rec.longitude < localExtLatLon.minLon) {
-            localExtLatLon.minLon = rec.longitude;
-        }
-        if (rec.longitude > localExtLatLon.maxLon) {
-            localExtLatLon.maxLon = rec.longitude;
-        }
-    });
-}

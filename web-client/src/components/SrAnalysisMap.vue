@@ -28,7 +28,7 @@
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import {db} from '@/db/SlideRuleDb';
   import { updateDeck } from '@/utils/SrMapUtils';
-  import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
+  import { readAndUpdateElevationData, readOrCacheSummary } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
 
 
@@ -182,130 +182,139 @@
   };
   const updateMapView = async (reason:string) => {
     console.log(`****** SrAnalysisMap updateMapView for ${reason} ******`);
-    const map = mapRef.value?.map;
-    if(map){
-      const srView = mapParamsStore.getSrView();
-      let newProj = getProjection('EPSG:4326'); 
-      if (newProj ) {
 
-        map.getAllLayers().forEach((layer: Layer) => {
-          // drawiing Layer is never changed/removed
-          if(layer.get('name') !== 'Drawing Layer'){
-            console.log(`removing layer:`,layer.get('title'));
-            map.removeLayer(layer);
-          } else {
-            //console.log(`skipping layer:`,layer.get('name'));
-          }
-        });
-        let baseLayer = mapParamsStore.getSelectedBaseLayer();
+    try {
+      const map = mapRef.value?.map;
+      if(map){
+        const srView = mapParamsStore.getSrView();
+        let newProj = getProjection('EPSG:4326'); 
+        if (newProj ) {
 
-        if(srView.name === 'North'){
-          //baseLayer = layers.value['Artic Ocean Base'];
-          //baseLayer = layers.value['Esri World Topo'];
-          //newProj = getProjection('EPSG:5936');
-          //newProj = getProjection('EPSG:4326'); // Web default
-          //newProj = getProjection('EPSG:3857'); // default openlayers projection
-          //newProj = getProjection('EPSG:5936');
-        } else if(srView.name === 'South'){
-          newProj = getProjection('EPSG:3031');
-        //} else if(srView.name === 'North Sea Ice'){
-        //  newProj = getProjection('EPSG:3413');
-        } else {
-          newProj = getProjection('EPSG:3857');
-        }
-        if(newProj){
-          if(baseLayer){
-            //console.log('adding Base Layer', baseLayer);
-            const layer = getLayer(baseLayer.title);
-            map.addLayer(layer);
-          } else {
-            console.log("Error:baseLayer is null");
-          }
-          //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
-          let extent = newProj.getExtent();
-          //console.log("projection's extent:",extent);         
-          const fromLonLat = getTransform('EPSG:4326', newProj);
-          //console.log("extent:",extent);
-          //console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
-          if (srView.bbox){
-            // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
-            if ((newProj.getCode() == 'EPSG:5936') || (newProj.getCode() == 'EPSG:3031') || (newProj.getCode() == 'EPSG:3413')){
-              //if(projection.getUnits() == 'm'){
-              //console.log("srView.bbox:",srView.bbox);
-              let worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3], srView.bbox[0]];
-              //projection.setWorldExtent(worldExtent);
-              // approximate calculation of projection extent,
-              // checking if the world extent crosses the dateline
-              if (srView.bbox[1] > srView.bbox[3]) {
-                //console.log("crosses the dateline");
-                worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
-              }
-              extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-              newProj.setExtent(extent);
-              //console.log("extent:",extent);
+          map.getAllLayers().forEach((layer: Layer) => {
+            // drawiing Layer is never changed/removed
+            if(layer.get('name') !== 'Drawing Layer'){
+              console.log(`removing layer:`,layer.get('title'));
+              map.removeLayer(layer);
             } else {
-              //console.log("projection units pole units:",newProj.getUnits());
+              //console.log(`skipping layer:`,layer.get('name'));
             }
-            let center = getExtentCenter(extent);
-            console.log(`extent: ${extent}, center: ${center}`);
-            const newView = new View({
-              projection: newProj,
-              //constrainResolution: true,
-              extent: extent || undefined,
-              center:center || undefined,
-              zoom: srView.default_zoom,
-            });
-            mapParamsStore.setProjection(newProj.getCode());
-            map.setView(newView);
-            updateCurrentParms();
-            addLayersForCurrentView(); 
-            let reqExtremeLatLon = [0,0,0,0];
-            if(props.reqId > 0){   
-              console.log('calling db.getWorkerSummary(',props.reqId,')');  
-              const workerSummary = await db.getWorkerSummary(props.reqId);
-              if(workerSummary){
-                const extremeLatLon = workerSummary.extLatLon;
-                if (extremeLatLon) {
-                  reqExtremeLatLon = [
-                      extremeLatLon.minLon,
-                      extremeLatLon.minLat,
-                      extremeLatLon.maxLon,
-                      extremeLatLon.maxLat
-                  ];
-                  console.log('Using reqId:',props.reqId,' with extent:',extent);
-                } else {
-                  console.error("Error: invalid lat-lon data for request:",props.reqId);
+          });
+          let baseLayer = mapParamsStore.getSelectedBaseLayer();
+
+          if(srView.name === 'North'){
+            //baseLayer = layers.value['Artic Ocean Base'];
+            //baseLayer = layers.value['Esri World Topo'];
+            //newProj = getProjection('EPSG:5936');
+            //newProj = getProjection('EPSG:4326'); // Web default
+            //newProj = getProjection('EPSG:3857'); // default openlayers projection
+            //newProj = getProjection('EPSG:5936');
+          } else if(srView.name === 'South'){
+            newProj = getProjection('EPSG:3031');
+          //} else if(srView.name === 'North Sea Ice'){
+          //  newProj = getProjection('EPSG:3413');
+          } else {
+            newProj = getProjection('EPSG:3857');
+          }
+          if(newProj){
+            if(baseLayer){
+              //console.log('adding Base Layer', baseLayer);
+              const layer = getLayer(baseLayer.title);
+              map.addLayer(layer);
+            } else {
+              console.log("Error:baseLayer is null");
+            }
+            //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
+            let extent = newProj.getExtent();
+            //console.log("projection's extent:",extent);         
+            const fromLonLat = getTransform('EPSG:4326', newProj);
+            //console.log("extent:",extent);
+            //console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
+            if (srView.bbox){
+              // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
+              if ((newProj.getCode() == 'EPSG:5936') || (newProj.getCode() == 'EPSG:3031') || (newProj.getCode() == 'EPSG:3413')){
+                //if(projection.getUnits() == 'm'){
+                //console.log("srView.bbox:",srView.bbox);
+                let worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3], srView.bbox[0]];
+                //projection.setWorldExtent(worldExtent);
+                // approximate calculation of projection extent,
+                // checking if the world extent crosses the dateline
+                if (srView.bbox[1] > srView.bbox[3]) {
+                  //console.log("crosses the dateline");
+                  worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
                 }
+                extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
+                newProj.setExtent(extent);
+                //console.log("extent:",extent);
               } else {
-                console.error("Error: invalid workerSummary for request:",props.reqId);
-              } 
+                //console.log("projection units pole units:",newProj.getUnits());
+              }
+              let center = getExtentCenter(extent);
+              console.log(`extent: ${extent}, center: ${center}`);
+              const newView = new View({
+                projection: newProj,
+                //constrainResolution: true,
+                extent: extent || undefined,
+                center:center || undefined,
+                zoom: srView.default_zoom,
+              });
+              mapParamsStore.setProjection(newProj.getCode());
+              map.setView(newView);
+              updateCurrentParms();
+              addLayersForCurrentView(); 
+              let reqExtremeLatLon = [0,0,0,0];
+              if(props.reqId > 0){   
+                console.log('calling readOrCacheSummary(',props.reqId,')');  
+                const workerSummary = await readOrCacheSummary(props.reqId,'h_mean');
+                if(workerSummary){
+                  const extremeLatLon = workerSummary.extLatLon;
+                  if (extremeLatLon) {
+                    reqExtremeLatLon = [
+                        extremeLatLon.minLon,
+                        extremeLatLon.minLat,
+                        extremeLatLon.maxLon,
+                        extremeLatLon.maxLat
+                    ];
+                    //console.log('Using reqId:',props.reqId,' with extent:',extent);
+                  } else {
+                    console.error("Error: invalid lat-lon data for request:",props.reqId);
+                  }
+                } else {
+                  console.error("Error: invalid workerSummary for request:",props.reqId);
+                } 
+              } else {
+                  console.info("no reqId:",props.reqId);
+              }
+              //console.log('reqExtremeLatLon:',reqExtremeLatLon);
+              extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
+              //console.log('Using extent:',extent);               
+              map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
+              map.getView().on('change:resolution', onResolutionChange);
+              updateCurrentParms();
+              updateDeck(map);
+              await readAndUpdateElevationData(props.reqId);
             } else {
-                console.info("no reqId:",props.reqId);
+              console.error("Error: invalid projection bbox:",srView.bbox);
             }
-            console.log('reqExtremeLatLon:',reqExtremeLatLon);
-            extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
-            console.log('Using extent:',extent);               
-            map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
-            map.getView().on('change:resolution', onResolutionChange);
-            updateCurrentParms();
-            updateDeck(map);
-            await readAndUpdateElevationData(props.reqId);
           } else {
-            console.error("Error: invalid projection bbox:",srView.bbox);
+            console.error("Error:projection is null");
           }
         } else {
           console.error("Error:projection is null");
         }
       } else {
-        console.error("Error:projection is null");
+        console.error("Error:map is null");
       }
-    } else {
-      console.error("Error:map is null");
+      // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
+      //   console.log(`layer:`,layer.getProperties());
+      // });
+      //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
+
+    } catch (error) {
+      console.error(`Error: updateMapView failed for ${reason}`,error);
     }
-    // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-    //   console.log(`layer:`,layer.getProperties());
-    // });
-    //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
+
+    console.log(`------ SrAnalysisMap updateMapView Done for ${reason} ******`);
+
   };
 
   const handleUpdateView = (srView: SrView) => {

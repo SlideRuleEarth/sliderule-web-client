@@ -5,8 +5,6 @@
     import SrAdvOptSidebar from "@/components/SrAdvOptSidebar.vue";
     import { onMounted } from 'vue';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
-    import { useMapStore } from '@/stores/mapStore';
-    import { Map as OLMap } from 'ol';
     import SrModeSelect from "@/components/SrModeSelect.vue";
  
 
