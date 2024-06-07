@@ -218,19 +218,19 @@ onmessage = async (event) => {
                     switch(result.code){
                         case 0: // RTE_INFO
                         {
-                            postMessage(await serverMsg(reqID, `server RTE_INFO msg: ${result.text}`));
+                            postMessage(await serverMsg(reqID, `RTE_INFO msg: ${result.text}`));
                             break;
                         }
                         case -1: // RTE_ERROR
                         {
                             //console.warn('RTE_ERROR: atl06p cb exceptrec result:', result.text);
-                            postMessage(await serverMsg(reqID, `server RTE_ERROR msg:${result.text}`));
+                            postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`));
                             break;
                         }
                         case -2: // RTE_TIMEOUT
                         {
                             //console.warn('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
-                            postMessage(await serverMsg(reqID,`server RTE_TIMEOUT msg: ${result.text}`));
+                            postMessage(await serverMsg(reqID,`RTE_TIMEOUT msg: ${result.text}`));
                             const msg =  `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
                             postMessage(await progressMsg(reqID, 
                                             {   
@@ -249,19 +249,19 @@ onmessage = async (event) => {
                         case -3: // RTE_RESOURCE_DOES_NOT_EXIST
                         {
                             //console.warn('RTE_RESOURCE_DOES_NOT_EXIST: atl06p cb exceptrec result:', result.text);
-                            postMessage(await serverMsg(reqID, `server RTE_RESOURCE_DOES_NOT_EXIST msg:${result.text}`));
+                            postMessage(await serverMsg(reqID, `RTE_RESOURCE_DOES_NOT_EXIST msg:${result.text}`));
                             break;
                         }
                         case -4: // RTE_EMPTY_SUBSET
                         {
                             //console.warn('RTE_EMPTY_SUBSET: atl06p cb exceptrec result:', result.text);
-                            postMessage(await serverMsg(reqID, `server RTE_EMPTY_SUBSET msg:${result.text}`));
+                            postMessage(await serverMsg(reqID, `RTE_EMPTY_SUBSET msg:${result.text}`));
                             break;
                         }
                         case -5: // RTE_SIMPLIFY
                         {
                             //console.warn('RTE_SIMPLIFY: atl06p cb exceptrec result:', result.text);
-                            postMessage(await serverMsg(reqID, `server RTE_SIMPLIFY msg:${result.text}`));
+                            postMessage(await serverMsg(reqID, `RTE_SIMPLIFY msg:${result.text}`));
                             break;
                         }
                     }

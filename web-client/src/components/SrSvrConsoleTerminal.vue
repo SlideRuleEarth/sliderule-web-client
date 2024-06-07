@@ -1,6 +1,8 @@
 // src/components/ConsoleTerminal.vue
 <template>
-  <div class="terminal" ref="terminalContent">
+
+    <h3 class="term-hdr"> Server Console Terminal </h3>
+    <div class="terminal" ref="terminalContent">
     <div class="terminal-content">
       <div v-for="(line, index) in lines" :key="index" class="terminal-line">
         {{ line }}
@@ -34,20 +36,31 @@ const lines = consoleStore.lines;
 </script>
 
 <style scoped>
+.term-hdr {
+  font-size:medium;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
 .terminal {
-  height: 400px;
+  max-height: 20rem;
   width: 100%;
   background-color: #000;
   color: #0f0;
   font-family: 'Courier New', Courier, monospace;
   overflow-y: auto;
-  padding: 10px;
-}
+  overflow-x: auto; 
+  padding: 0.625rem;
+  min-width: 10rem;
+  max-width: 15rem; 
+} 
+
 .terminal-content {
   display: flex;
   flex-direction: column;
 }
 .terminal-line {
-  white-space: pre-wrap;
+  white-space: nowrap;
 }
 </style>
