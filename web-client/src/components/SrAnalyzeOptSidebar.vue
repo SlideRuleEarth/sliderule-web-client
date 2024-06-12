@@ -12,7 +12,9 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import SrSelectParquetReader from './SrSelectParquetReader.vue';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
-import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+import { useToast } from "primevue/usetoast";
+import SrParquetFileUpload from './SrParquetFileUpload.vue';
+const toast = useToast();
 
 const requestsStore = useRequestsStore();
 
@@ -23,9 +25,15 @@ const props = defineProps({
 const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const reqParamsStore = useReqParamsStore();
-const activeTabIndex = ref([0]); // Opens the first tab by default
+//const activeTabIndex = ref([0]); // Opens the first tab by default
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
+
+
+
+const onUpload = () => {
+    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded', life: 3000 });
+};
 
 onMounted(async() => {
     try {
@@ -104,60 +112,64 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             <div v-if="loading">Loading...</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
+        <div class="sr-select-analyze-reader">
+            <SrSelectParquetReader/>
+            <SrParquetFileUpload @upload="onUpload"/>
+        </div>
+
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
-                <SrSelectParquetReader />
-            </div>
-            <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" :activeIndex="activeTabIndex" >
-                <AccordionTab header="General" >
-                    <SrMenuMultiInput
-                            v-model="reqParamsStore.tracks"
-                            label = "Track(s)"
-                            aria-label="Select Tracks"
-                            :menuOptions="reqParamsStore.tracksOptions"
-                            :default="reqParamsStore.tracksOptions"
-                            tooltipText="Each track has both a weak and a strong spot"
+                <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                    <AccordionTab header="General" >
+                        <SrMenuMultiInput
+                                v-model="reqParamsStore.tracks"
+                                label = "Track(s)"
+                                aria-label="Select Tracks"
+                                :menuOptions="reqParamsStore.tracksOptions"
+                                :default="reqParamsStore.tracksOptions"
+                                tooltipText="Each track has both a weak and a strong spot"
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        />
+                        <SrMenuMultiInput
+                            v-model="reqParamsStore.beams"
+                            label = "Beam(s)"
+                            aria-label="Select Beams"
+                            :menuOptions="reqParamsStore.beamsOptions"
+                            :default="reqParamsStore.beamsOptions"
+                            tooltipText="Weak and strong spots are determined by orientation of the satellite"
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                    />
-                    <SrMenuMultiInput
-                        v-model="reqParamsStore.beams"
-                        label = "Beam(s)"
-                        aria-label="Select Beams"
-                        :menuOptions="reqParamsStore.beamsOptions"
-                        :default="reqParamsStore.beamsOptions"
-                        tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                    />
-                    <SrSwitchedSliderInput
-                        v-model="reqParamsStore.rgtValue"
-                        label="RGT"
-                        :min="1"
-                        :max="10000" 
-                        :decimalPlaces="0"
-                        tooltipText="RGT is the reference ground track: defaults to all if not specified"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                    />
-                    <SrSliderInput
-                        v-model="reqParamsStore.cycleValue"
-                        label="Cycle"
-                        :min="1"
-                        :max="100" 
-                        :decimalPlaces="0"
-                        tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                    />
-                    <SrSliderInput
-                        v-model="reqParamsStore.regionValue"
-                        label="Region"
-                        :min="1"
-                        :max="100" 
-                        :decimalPlaces="0"
-                        tooltipText="geographic region for corresponding standard product (defaults to all if not specified)"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                    />
-                </AccordionTab>
-            </Accordion>
+                        />
+                        <SrSwitchedSliderInput
+                            v-model="reqParamsStore.rgtValue"
+                            label="RGT"
+                            :min="1"
+                            :max="10000" 
+                            :decimalPlaces="0"
+                            tooltipText="RGT is the reference ground track: defaults to all if not specified"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                        />
+                        <SrSliderInput
+                            v-model="reqParamsStore.cycleValue"
+                            label="Cycle"
+                            :min="1"
+                            :max="100" 
+                            :decimalPlaces="0"
+                            tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                        />
+                        <SrSliderInput
+                            v-model="reqParamsStore.regionValue"
+                            label="Region"
+                            :min="1"
+                            :max="100" 
+                            :decimalPlaces="0"
+                            tooltipText="geographic region for corresponding standard product (defaults to all if not specified)"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                        />
+                    </AccordionTab>
+                </Accordion>
+            </div>
         </div>
     </div>
 </template>
@@ -194,5 +206,10 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         max-height: 30%;
         min-width: 30vw;
         width: 100%;
+    }
+    .sr-select-analyze-reader {
+        display: flex;
+        justify-content: center;
+        margin-top: 0.5rem;
     }
 </style>

@@ -26,11 +26,11 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
-  import {db} from '@/db/SlideRuleDb';
   import { updateDeck } from '@/utils/SrMapUtils';
-  import { readAndUpdateElevationData, readOrCacheSummary } from "@/utils/SrParquetUtils";
+  import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
-
+  import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+  import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -53,9 +53,15 @@
   // Watch for changes on reqId
   watch(() => props.reqId, (newReqId, oldReqId) => {
     console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
-    updateMapView("New reqId");  
+    updateAnalysisMapView("New reqId");  
   });
 
+
+  // Watch for changes on parquetReader
+  watch(() => useSrParquetCfgStore().parquetReader, (newReader, oldReader) => {
+    console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
+    updateAnalysisMapView("New parquetReader");
+  });
 
   function updateCurrentParms(){
     const newZoom = mapRef.value?.map.getView().getZoom();
@@ -129,7 +135,7 @@
         }
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
 
-        updateMapView("onMounted");
+        updateAnalysisMapView("onMounted");
 
       } else {
         console.log("Error:map is null");
@@ -180,8 +186,9 @@
       console.error("Error:map is null");
     }
   };
-  const updateMapView = async (reason:string) => {
-    console.log(`****** SrAnalysisMap updateMapView for ${reason} ******`);
+  
+  const updateAnalysisMapView = async (reason:string) => {
+    console.log(`****** SrAnalysisMap updateAnalysisMapView for ${reason} ******`);
 
     try {
       const map = mapRef.value?.map;
@@ -310,16 +317,16 @@
       //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
 
     } catch (error) {
-      console.error(`Error: updateMapView failed for ${reason}`,error);
+      console.error(`Error: updateAnalysisMapView failed for ${reason}`,error);
     }
 
-    console.log(`------ SrAnalysisMap updateMapView Done for ${reason} ******`);
+    console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ******`);
 
   };
 
   const handleUpdateView = (srView: SrView) => {
     console.log(`handleUpdateView: |${srView.name}|`);
-    updateMapView("handleUpdateView");
+    updateAnalysisMapView("handleUpdateView");
   };
 
   const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
@@ -338,7 +345,7 @@
       console.log("Error:handleUpdateBaseLayer srLayer is null");
     }
     console.log(`handleUpdateBaseLayer from |${oldSrLayer.title}| to |${newSrLayer.title}|`);
-    updateMapView("handleUpdateBaseLayer");
+    updateAnalysisMapView("handleUpdateBaseLayer");
   };
 
 </script>

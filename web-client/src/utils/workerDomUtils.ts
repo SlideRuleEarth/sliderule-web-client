@@ -10,6 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
+import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 
 const consoleStore = useSrSvrConsoleStore();
 
@@ -46,6 +47,7 @@ function startWorker(){
 
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
+    let fileName:string;
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
@@ -121,6 +123,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
         case 'opfs_ready':
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
+            fileName = await db.getFilename(workerMsg.req_id);
+            await duckDbLoadOpfsParquetFile(fileName);
             await readAndUpdateElevationData(workerMsg.req_id);
             if(worker){
                 cleanUpWorker();
