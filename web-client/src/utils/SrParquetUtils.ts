@@ -221,8 +221,12 @@ export const readAndUpdateElevationData = async (req_id:number) => {
             duckDbReadAndUpdateElevationData(req_id);
             const tbls = await duckDbClient.describeTables();
             console.log('readAndUpdateElevationData tbls:',tbls);
-            const cols = duckDbClient.describeColumns(tbls[0].name);
-            console.log('readAndUpdateElevationData cols:',cols);
+            if (tbls.length > 0) {
+                const cols = duckDbClient.describeColumns({table:tbls[0].name});
+                console.log('readAndUpdateElevationData cols:',cols);
+            } else {
+                console.error('readAndUpdateElevationData no tables found');
+            }
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }

@@ -1,10 +1,10 @@
 import { defineStore } from "pinia";
 export const useSrParquetCfgStore = defineStore("srParquetCfg", {
     state: () => ({
-        parquetReader:{name:'hyparquet',value:'hyparquet'},
+        parquetReader:{name:'duckDb',value:'duckDb'},
         parquetReaderOptions: [
-            { name: 'hyparquet', value: 'hyparquet' },
             { name: 'duckDb', value: 'duckDb' },
+            { name: 'hyparquet', value: 'hyparquet' },
         ],
     }),
     actions:{

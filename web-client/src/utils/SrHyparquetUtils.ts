@@ -1,6 +1,6 @@
 import { parquetMetadata,parquetRead, parquetSchema, type FileMetaData } from 'hyparquet'
 import { getHeightFieldname,getFieldNames,findHeightNdx,findLatNdx,findLongNdx,recurseTree,updateExtremeLatLon } from "./SrParquetUtils";
-import { updateElLayer } from '@/utils/SrMapUtils';
+import { updateElLayerWithArray } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { db } from '@/db/SlideRuleDb'; 
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
@@ -126,8 +126,8 @@ export const hyparquetReadAndUpdateElevationData = async (req_id:number) => {
                             metadata: header.metadata,
                             onComplete: data => {
                                 console.log('data.length:',data.length,'data:', data);
-                                updateElLayer(data as [][], header.hMeanNdx, header.lonNdx, header.latNdx, summary.extHMean, header.allFieldNames);
-                                //updateElLayer(data as [][], 2, 0, 1, summary.extHMean, ['longitude', 'latitude', height_fieldname]);
+                                updateElLayerWithArray(data as [][], header.hMeanNdx, header.lonNdx, header.latNdx, summary.extHMean, header.allFieldNames);
+                                //updateElLayerWithArray(data as [][], 2, 0, 1, summary.extHMean, ['longitude', 'latitude', height_fieldname]);
                                 //hasMoreData = data.length === chunkSize;
                                 hasMoreData = false;
                             }

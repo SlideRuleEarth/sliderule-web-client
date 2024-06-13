@@ -182,9 +182,9 @@ tooltipDiv.id = 'tooltip';
 document.body.appendChild(tooltipDiv);
 
 
-export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
+export function updateElLayerWithArray(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
     try{
-        //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
+        console.log('updateElLayerWithArray elevationData.length:',elevationData.length,'elevationData:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
@@ -221,6 +221,59 @@ export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:numbe
                         useReqParamsStore().setCycle(newObject.cycle);
                         useReqParamsStore().setTracks(newObject.track);
                         useReqParamsStore().setBeams(newObject.beams);
+                    }
+                }
+            });
+        if(useMapStore().getDeckInstance()){
+            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        } else {
+            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+        }
+    } catch (error) {
+        console.error('Error updating elevation layer:',error);
+    }
+}
+
+export interface ElevationDataItem {
+    [key: string]: any; // This allows indexing by any string key
+}
+export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
+    try{
+        console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
+        const layer =     
+            new PointCloudLayer({
+                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
+                data: elevationData,
+                getPosition: (d) => {
+                    console.log('lon:',d['longitude'],' lat:',d['latitude'],' hMean:',d[heightFieldName]);
+                    return [d['longitude'], d['latitude'], 0];
+                },
+                getNormal: [0, 0, 1],
+                getColor: (d) => {
+                    if (use_white) return [255, 255, 255, 127];
+                    return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+                },
+                pointSize: 3,
+                pickable: true, // Enable picking
+                onHover: ({ object, x, y }) => {
+                    //console.log('onHover object:',object,' x:',x,' y:',y);
+                    if (object) {
+                        //console.log('object',object,'newObject:',newObject);
+                        const tooltip = formatObject(object);
+                        showTooltip({ x, y, tooltip });
+                    } else {
+                        hideTooltip();
+                    }
+                },
+                onClick: ({ object, x, y }) => {
+                    //console.log('onclick object:',object,' x:',x,' y:',y);
+                    if (object) {
+                        console.log('Clicked:',object);
+                        reqParams.setReqion(object.region);
+                        useReqParamsStore().setRgt(object.rgt);
+                        useReqParamsStore().setCycle(object.cycle);
+                        useReqParamsStore().setTracks(object.track);
+                        useReqParamsStore().setBeams(object.beams);
                     }
                 }
             });

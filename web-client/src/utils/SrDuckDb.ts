@@ -7,13 +7,13 @@ import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url'
 import * as arrow from 'apache-arrow';
 
 // Define the interface for QueryResult
-interface QueryResult {
+export interface QueryResult {
   schema: { name: string; type: string; databaseType: string }[];
   readRows(): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
 
 // Define the interface for Row
-interface Row {
+export interface Row {
   [key: string]: any;
 }
 
@@ -175,6 +175,7 @@ export class DuckDBClient {
     const conn = await this._db!.connect();
     try {
       const tables = (await conn.query(`SHOW TABLES`)).toArray();
+      console.log('describeTables tables:',tables);
       return tables.map(({ name }) => ({ name }));
     } finally {
       await conn.close();
@@ -183,6 +184,7 @@ export class DuckDBClient {
 
   // Method to describe columns of a table
   async describeColumns({ table = 'default_table' }: { table?: string } = {}) {
+    console.log('describeColumns table:',table);
     const conn = await this._db!.connect();
     try {
       const columns = (await conn.query(`DESCRIBE ${table}`)).toArray();
