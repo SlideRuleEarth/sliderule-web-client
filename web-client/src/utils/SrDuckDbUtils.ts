@@ -95,10 +95,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             for await (const row of results.readRows()) {
                 rows.push(row);
             }
-            console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
+            //console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
             const fieldNames = Object.keys(rows[0][0]);
 
-            console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
+            //console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
             // Process and update the elevation data as needed
             if (rows.length > 0) {
 

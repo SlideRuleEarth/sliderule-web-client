@@ -64,18 +64,7 @@ const onClear = () => {
                 </section>
             </template>
         </SrToast>
-        <FileUpload mode="basic" 
-                    name="SrCatalog" 
-                    :auto="true" 
-                    accept=".parquet,.geoparquet" 
-                    :maxFileSize="10000000000" 
-                    customUpload
-                    chooseLabel="Upload a Parquet File"
-                    @uploader="customUploader"
-                    @select="onSelect"
-                    @error="onError"
-                    @clear="onClear"
-        />
+ 
     </div>
 </template>
 

@@ -239,13 +239,12 @@ export interface ElevationDataItem {
 }
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
     try{
-        console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
+        //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
                 data: elevationData,
                 getPosition: (d) => {
-                    console.log('lon:',d['longitude'],' lat:',d['latitude'],' hMean:',d[heightFieldName]);
                     return [d['longitude'], d['latitude'], 0];
                 },
                 getNormal: [0, 0, 1],
