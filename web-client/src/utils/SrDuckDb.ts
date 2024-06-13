@@ -4,20 +4,33 @@ import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
 import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
 import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
+import * as arrow from 'apache-arrow';
 
+// Define the interface for QueryResult
+interface QueryResult {
+  schema: { name: string; type: string; databaseType: string }[];
+  readRows(): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
+}
 
+// Define the interface for Row
+interface Row {
+  [key: string]: any;
+}
+
+// Define the manual bundles for DuckDB
 export const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
   mvp: {
-      mainModule: duckdb_wasm,
-      mainWorker: mvp_worker,
+    mainModule: duckdb_wasm,
+    mainWorker: mvp_worker,
   },
   eh: {
-      mainModule: duckdb_wasm_eh,
-      mainWorker: eh_worker,
+    mainModule: duckdb_wasm_eh,
+    mainWorker: eh_worker,
   },
 };
 
-const getType = (type:string) => {
+// Function to map database types to application types
+const getType = (type: string) => {
   const typeLower = type.toLowerCase();
   switch (typeLower) {
     case "bigint":
@@ -61,7 +74,7 @@ const getType = (type:string) => {
       return "boolean";
 
     case "date":
-    case "interval": // date or time delta
+    case "interval":
     case "time":
     case "timestamp":
     case "timestamp with time zone":
@@ -75,18 +88,17 @@ const getType = (type:string) => {
     case "bpchar":
     case "text":
     case "string":
-    case "utf8": // this type is unlisted in the `types`, but is returned by the db as `column_type`...
+    case "utf8":
       return "string";
+      
     default:
       return "other";
   }
 };
 
-
-export async function createDb(){
-  // Select a bundle based on browser checks
+// Function to create the DuckDB instance
+export async function createDb(): Promise<AsyncDuckDB> {
   const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-  // Instantiate the asynchronus version of DuckDB-wasm
   const worker = new Worker(bundle.mainWorker!);
   const logger = new duckdb.ConsoleLogger();
   const duckDb = new duckdb.AsyncDuckDB(logger, worker);
@@ -94,12 +106,18 @@ export async function createDb(){
   return duckDb;
 }
 
+// DuckDBClient class
 export class DuckDBClient {
-  private _db: AsyncDuckDB;
-  constructor(db: AsyncDuckDB) {
-    this._db = db;
+  private _db: AsyncDuckDB | null = null;
+
+  constructor(db?: AsyncDuckDB) {
+    if (db) {
+      this._db = db;
+    }
   }
-  async duckDB() {
+
+  // Method to initialize the database if not already done
+  async duckDB(): Promise<AsyncDuckDB> {
     if (!this._db) {
       this._db = await createDb();
       await this._db.open({
@@ -110,65 +128,80 @@ export class DuckDBClient {
     }
     return this._db;
   }
-  async query(query:string, params:any) {
-    const conn = await this._db.connect();
-    let result;
 
-    if (params) {
-      const stmt = await conn.prepare(query);
-      result = await stmt.query(...params);
-    } else {
-      result = await conn.query(query);
+  // Method to execute queries
+  async query(query: string, params?: any): Promise<QueryResult> {
+    const conn = await this._db!.connect();
+    let tbl: arrow.Table<any>;
+
+    try {
+      if (params) {
+        const stmt = await conn.prepare(query);
+        tbl = await stmt.query(...params);
+      } else {
+        tbl = await conn.query(query);
+      }
+
+      const schema = tbl.schema.fields.map(({ name, type }) => ({
+        name,
+        type: getType(String(type)),
+        databaseType: String(type),
+      }));
+
+      return {
+        schema,
+        async *readRows() {
+          const rows = tbl.toArray().map((r) => Object.fromEntries(r));
+          yield rows;
+        },
+      };
+    } finally {
+      await conn.close();
     }
-
-    const schema = result.schema.fields.map(({ name, type }) => ({
-      name,
-      type: getType(String(type)),
-      databaseType: String(type),
-    }));
-    return {
-      schema,
-      async *readRows() {
-        const rows = result.toArray().map((r) => Object.fromEntries(r));
-        yield rows;
-      },
-    };
   }
 
-  queryTag(strings:TemplateStringsArray, ...params: any[]) {
+  // Method for constructing query templates
+  queryTag(strings: TemplateStringsArray, ...params: any[]) {
     return [strings.join("?"), params];
   }
 
+  // Method to escape names
   escape(name: string) {
     return `"${name}"`;
   }
 
+  // Method to describe tables in the database
   async describeTables() {
-    const conn = await this._db.connect();
-    const tables = (await conn.query(`SHOW TABLES`)).toArray();
-    return tables.map(({ name }) => ({ name }));
+    const conn = await this._db!.connect();
+    try {
+      const tables = (await conn.query(`SHOW TABLES`)).toArray();
+      return tables.map(({ name }) => ({ name }));
+    } finally {
+      await conn.close();
+    }
   }
 
+  // Method to describe columns of a table
   async describeColumns({ table = 'default_table' }: { table?: string } = {}) {
-    const conn = await this._db.connect();
-    const columns = (await conn.query(`DESCRIBE ${table}`)).toArray();
-    return columns.map(({ column_name, column_type }) => {
-      return {
+    const conn = await this._db!.connect();
+    try {
+      const columns = (await conn.query(`DESCRIBE ${table}`)).toArray();
+      return columns.map(({ column_name, column_type }) => ({
         name: column_name,
         type: getType(column_type),
         databaseType: column_type,
-      };
-    });
+      }));
+    } finally {
+      await conn.close();
+    }
   }
-  async insertOpfsParquet(name:string) {
-    try{
+
+  // Method to insert a Parquet file from OPFS
+  async insertOpfsParquet(name: string) {
+    try {
       const duckDB = await this.duckDB();
-      //const res = await fetch(`./${name}`);
-      //const buffer = await res.arrayBuffer();
-      //await duckDB.registerFileBuffer(name, new Uint8Array(buffer));
-      
       const opfsRoot = await navigator.storage.getDirectory();
-      const fileHandle = await opfsRoot.getFileHandle(name, {create:false});
+      const fileHandle = await opfsRoot.getFileHandle(name, { create: false });
       const file = await fileHandle.getFile();
       const url = URL.createObjectURL(file);
 
@@ -183,18 +216,30 @@ export class DuckDBClient {
       await conn.query(
         `CREATE VIEW IF NOT EXISTS '${name}' AS SELECT * FROM parquet_scan('${name}')`,
       );
-      await conn.close();
     } catch (error) {
-      console.error('insertOpfsParquet error:',error);
+      console.error('insertOpfsParquet error:', error);
       throw error;
     }
+  }
 
-    return this;
+  // Method to execute SQL queries
+  async sql(strings: TemplateStringsArray, ...args: any[]): Promise<Row[]> {
+    const query = strings.join("?");
+    const results: QueryResult = await this.query(query, args);
+    const rows: Row[] = [];
+
+    for await (const row of results.readRows()) {
+      rows.push(Object.fromEntries(Object.entries(row)));
+    }
+
+    (rows as any).columns = results.schema.map((d) => d.name);
+
+    return rows;
   }
 }
 
-export async function createDuckDbClient(){
+// Factory function to create a DuckDB client
+export async function createDuckDbClient(): Promise<DuckDBClient> {
   const duckDb = await createDb();
-  const duckDbClient = new DuckDBClient(duckDb);
-  return duckDbClient;
+  return new DuckDBClient(duckDb);
 }

@@ -182,7 +182,7 @@ tooltipDiv.id = 'tooltip';
 document.body.appendChild(tooltipDiv);
 
 
-export function updateElLayer(elevationData:[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
+export function updateElLayer(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
     try{
         //console.log('updateElLayer.length:',elevationData.length,'updateElLayer:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
         const layer =     

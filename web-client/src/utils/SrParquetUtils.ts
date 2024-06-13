@@ -5,6 +5,7 @@ import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from 
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
+import { duckDbClient } from '@/utils/SrDuckDbUtils';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -218,6 +219,10 @@ export const readAndUpdateElevationData = async (req_id:number) => {
             hyparquetReadAndUpdateElevationData(req_id);
         } else if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             duckDbReadAndUpdateElevationData(req_id);
+            const tbls = await duckDbClient.describeTables();
+            console.log('readAndUpdateElevationData tbls:',tbls);
+            const cols = duckDbClient.describeColumns(tbls[0].name);
+            console.log('readAndUpdateElevationData cols:',cols);
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }
