@@ -50,7 +50,7 @@ const deleteAllData = async () => {
     accept: () => {
       console.log('accept: Deleting all data');
       db.deleteDatabase();
-      toast.add({ severity: 'warn', summary: 'Confirmed', detail: 'You have delete all the data', life: 3000 });
+      toast.add({ severity: 'warn', summary: 'Confirmed', detail: 'You have delete all the data in the indexedDB', life: 3000 });
     },
     reject: () => {
       console.log('reject: No data was deleted');

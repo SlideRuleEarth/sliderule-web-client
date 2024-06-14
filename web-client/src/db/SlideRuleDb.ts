@@ -387,7 +387,7 @@ export class SlideRuleDexie extends Dexie {
 
     async addNewSummary(summary: SrRequestSummary): Promise<void> {
         try {
-            //console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
+            console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
             await this.summary.add( summary );
             //console.log(`Summary added for req_id ${summary.req_id}.`);
         } catch (error) {

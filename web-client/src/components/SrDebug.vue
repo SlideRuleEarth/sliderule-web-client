@@ -10,6 +10,7 @@
             <!-- <div class="sr-opfs">
                 <SrOpfs />
             </div> -->
+            
             <div>
               <SrSvrConsoleTerminal />
             </div>

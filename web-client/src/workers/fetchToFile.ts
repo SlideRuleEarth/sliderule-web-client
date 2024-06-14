@@ -26,27 +26,32 @@ export async function checkDoneProcessing(  reqID:number,
     num_checks++;
     //console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
     if((read_state === 'done_reading') || (read_state === 'error') || abortRequested){
+        console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         num_post_done_checks++;
-        if( ((num_svr_exceptions >= target_numSvrExceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
-            let status_details = 'No data returned from SlideRule.';
-            if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
-                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
-                const fileName = await db.getFilename(reqID);
-                postMessage(opfsReadyMsg(reqID, fileName));
-                let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
-                if(abortRequested){ // Abort requested
-                    msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
-                } else {
-                    if(read_state === 'done_reading'){
-                        console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
-                        postMessage(await successMsg(reqID, msg));
+        if(num_post_done_checks == 1){
+            if( ((num_svr_exceptions >= target_numSvrExceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
+                let status_details = 'No data returned from SlideRule.';
+                if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
+                    status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
+                    let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
+                    if(abortRequested){ // Abort requested
+                        msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
+                    } else {
+                        if(read_state === 'done_reading'){
+                            console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
+                            postMessage(await successMsg(reqID, msg));
+                        }
                     }
+                    read_state = 'done';
+                    syncAccessHandle.flush();
+                    syncAccessHandle.close();
+                    const fileName = await db.getFilename(reqID);
+                    postMessage(opfsReadyMsg(reqID, fileName));
+                    console.log(msg);
                 }
-                read_state = 'done';
-                syncAccessHandle.flush();
-                syncAccessHandle.close();
-                console.log(msg);
             }
+        } else {
+            console.warn('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
     }
 }

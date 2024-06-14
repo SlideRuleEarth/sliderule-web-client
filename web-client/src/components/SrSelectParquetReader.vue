@@ -13,8 +13,14 @@
 
 <script setup>
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import SrMenuInput from './SrMenuInput.vue';
+import SrMenuInput from '@/components/SrMenuInput.vue';
+import { onMounted } from 'vue';
+
 const srParquetCfgStore = useSrParquetCfgStore();
+  onMounted(() => {
+    console.log('Mounted SrSelectParquetReader');
+  });
+
 </script>
 <style scoped>
     .sr-reader-container {

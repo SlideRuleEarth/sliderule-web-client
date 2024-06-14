@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-
+import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 const consoleStore = useSrSvrConsoleStore();
 
 const sysConfigStore = useSysConfigStore();
@@ -19,12 +19,9 @@ const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
 const reqParamsStore = useReqParamsStore();
 
-
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
-
-
 
 function startWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
@@ -46,6 +43,8 @@ function startWorker(){
 
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
+    let fileName:string;
+    let tbls:any;
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
@@ -121,6 +120,9 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
         case 'opfs_ready':
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
+            fileName = await db.getFilename(workerMsg.req_id);
+            await duckDbLoadOpfsParquetFile(fileName);
+            
             await readAndUpdateElevationData(workerMsg.req_id);
             if(worker){
                 cleanUpWorker();

@@ -69,6 +69,9 @@ onMounted(() => {
         <div class="adv-opts-wrapper">
             <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                <AccordionTab header="Debug">
+                    <SrDebug />
+                </AccordionTab>
                 <AccordionTab header="General" >
                     <SrMenuInput
                         v-model="mapStore.polygonSource"
@@ -224,9 +227,6 @@ onMounted(() => {
                 </AccordionTab> -->
                 <AccordionTab header="Storage">
                     <SrStorageUsage />
-                </AccordionTab>
-                <AccordionTab header="Debug">
-                    <SrDebug />
                 </AccordionTab>
                 <AccordionTab header="Current Req">
                     <SrReqDisplay />
