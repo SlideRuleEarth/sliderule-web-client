@@ -6,7 +6,6 @@ import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
-export const duckDbClient = await createDuckDbClient();
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
     try {
@@ -24,7 +23,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
             try {
                 console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
 
-                const query = `
+                const results = await duckDbClient.query(`
                     SELECT
                         MIN(latitude) as minLat,
                         MAX(latitude) as maxLat,
@@ -34,24 +33,29 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         MAX(${duckDbClient.escape(height_fieldname)}) as maxHMean
                     FROM
                         '${filename}'
-                `;
-
-                const results = await duckDbClient.sql`${query}`;
-                if (results.length > 0) {
-                    const result = results[0];
-                    localExtLatLon.minLat = result.minLat;
-                    localExtLatLon.maxLat = result.maxLat;
-                    localExtLatLon.minLon = result.minLon;
-                    localExtLatLon.maxLon = result.maxLon;
-                    localExtHMean.minHMean = result.minHMean;
-                    localExtHMean.maxHMean = result.maxHMean;
-
-                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
-                } else {
-                    const errMsg = `duckDbReadOrCacheSummary datalen is 0 for req_id:${req_id}`;
-                    console.error(errMsg);
-                    throw new Error(errMsg);
+                `);
+                console.log('duckDbReadOrCacheSummary results:', results);
+                // Read all rows from the QueryResult
+                let ndx=0;
+                for await (const row of results.readRows()) {
+                    console.log('duckDbReadOrCacheSummary row:', row);
+                    if(results.schema[ndx].name === 'minLat'){
+                        localExtLatLon.minLat = row[ndx] as unknown as number;
+                    } else if(results.schema[ndx].name === 'maxLat'){
+                        localExtLatLon.maxLat = row[ndx] as unknown as number;
+                    } else if(results.schema[ndx].name === 'minLon'){
+                        localExtLatLon.minLon = row[ndx] as unknown as number;
+                    } else if(results.schema[ndx].name === 'maxLon'){
+                        localExtLatLon.maxLon = row[ndx] as unknown as number;
+                    } else if(results.schema[ndx].name === 'minHMean'){
+                        localExtHMean.minHMean = row[ndx] as unknown as number;
+                    } else if(results.schema[ndx].name === 'maxHMean'){
+                        localExtHMean.maxHMean = row[ndx] as unknown as number;
+                    }
+                    ndx++;
                 }
+                console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
+                await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
             } catch (error) {
                 console.error('duckDbReadOrCacheSummary error:', error);
                 throw error;
@@ -84,7 +88,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
             // Step 4: Execute a SQL query to retrieve the elevation data
-            //const results: QueryResult = await duckDbClient.query(`SELECT * FROM ${filename} ;`);
 
             // Execute the query
             const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
@@ -148,6 +151,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
 export async function duckDbLoadOpfsParquetFile(fileName: string) {
     try{
         console.log('duckDbLoadOpfsParquetFile');
+        const duckDbClient = await createDuckDbClient();
 
         await duckDbClient.insertOpfsParquet(fileName);
 

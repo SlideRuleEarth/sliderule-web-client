@@ -5,7 +5,7 @@ import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from 
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { duckDbClient } from '@/utils/SrDuckDbUtils';
+import { createDuckDbClient} from './SrDuckDb';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -167,25 +167,6 @@ export function updateExtremeLatLon(elevationData:ElevationPlottable[],
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
-
-        // This might be used if the metadata contains statistics for the columns
-
-        //const latMinMax = await getColumnMinMaxFromMeta(metadata, latNdx);
-        //const lonMinMax = await getColumnMinMaxFromMeta(metadata, lonNdx);
-        // const extLatLon = {
-        //     minLat: latMinMax.min,
-        //     maxLat: latMinMax.max,
-        //     minLon: lonMinMax.min,
-        //     maxLon: lonMinMax.max
-        // };
-        // const hMeanMinMax = await getColumnMinMaxFromMeta(metadata, hMeanNdx);
-        // const extHMean = {
-        //     minHMean: hMeanMinMax.min,
-        //     maxHMean: hMeanMinMax.max,
-        //     lowHMean: hMeanMinMax.min, // TBD: get 5th percentile?
-        //     highHMean: hMeanMinMax.max // TBD: get 95th percentile?
-        // };
-
 export const getHeightFieldname = async (req_id:number) => {
     const result = await db.getFunc(req_id);
     if (result.includes('atl06')) {
@@ -219,6 +200,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
             hyparquetReadAndUpdateElevationData(req_id);
         } else if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             duckDbReadAndUpdateElevationData(req_id);
+            const duckDbClient = await createDuckDbClient();
             const tbls = await duckDbClient.describeTables();
             console.log('readAndUpdateElevationData tbls:',tbls);
             if (tbls.length > 0) {
