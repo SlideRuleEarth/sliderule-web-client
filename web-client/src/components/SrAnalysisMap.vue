@@ -354,7 +354,7 @@
   <div class="current-zoom">
     {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
-  <div ref="mapContainer" style="min-height: 15rem; min-width: 15rem; width: 100%; border-radius: 0.25rem; overflow: hidden;">
+  <div ref="mapContainer" class="sr-map-container" >
     <ol-map ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
@@ -399,6 +399,7 @@
       </ol-vector-layer>
       <ol-attribution-control :collapsible="true" :collapsed="true" />
     </ol-map>
+    <div class="sr-tooltip-style" id="tooltip"></div>
   </div>
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
@@ -408,6 +409,24 @@
 
 <style scoped>
 
+.sr-map-container {
+  min-height: 15rem;
+  min-width: 15rem; 
+  width: 100%; 
+  border-radius: 
+  0.25rem; 
+  overflow: hidden;
+}
+.sr-tooltip-style {
+  position: absolute;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 0.3rem;
+    border-radius: 0.5rem;
+    pointer-events: none;
+    font-size: 1rem;
+}
 :deep(.ol-overlaycontainer-stopevent) {
   position: relative;
   display: flex !important;

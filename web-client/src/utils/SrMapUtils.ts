@@ -159,29 +159,6 @@ function hideTooltip():void {
     }
 }
 
-// tooltip element 
-const tooltipStyle = `
-    #tooltip {
-        position: absolute;
-        z-index: 10;
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 5px;
-        border-radius: 3px;
-        pointer-events: none;
-        font-size: 12px;
-    }
-`;
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = tooltipStyle;
-document.head.appendChild(styleSheet);
-
-const tooltipDiv = document.createElement('div');
-tooltipDiv.id = 'tooltip';
-document.body.appendChild(tooltipDiv);
-
-
 export function updateElLayerWithArray(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
     try{
         console.log('updateElLayerWithArray elevationData.length:',elevationData.length,'elevationData:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);

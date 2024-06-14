@@ -6,6 +6,14 @@ import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
+interface SummaryRowData {
+    minLat: number;
+    maxLat: number;
+    minLon: number;
+    maxLon: number;
+    minHMean: number;
+    maxHMean: number;
+}
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
     try {
@@ -34,34 +42,41 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     FROM
                         '${filename}'
                 `);
-                console.log('duckDbReadOrCacheSummary results:', results);
-                // Read all rows from the QueryResult
-                let ndx=0;
+                // Collect rows from the async generator
+                const rows: SummaryRowData[] = [];
                 for await (const row of results.readRows()) {
-                    console.log('duckDbReadOrCacheSummary row:', row);
-                    if(results.schema[ndx].name === 'minLat'){
-                        localExtLatLon.minLat = row[ndx] as unknown as number;
-                    } else if(results.schema[ndx].name === 'maxLat'){
-                        localExtLatLon.maxLat = row[ndx] as unknown as number;
-                    } else if(results.schema[ndx].name === 'minLon'){
-                        localExtLatLon.minLon = row[ndx] as unknown as number;
-                    } else if(results.schema[ndx].name === 'maxLon'){
-                        localExtLatLon.maxLon = row[ndx] as unknown as number;
-                    } else if(results.schema[ndx].name === 'minHMean'){
-                        localExtHMean.minHMean = row[ndx] as unknown as number;
-                    } else if(results.schema[ndx].name === 'maxHMean'){
-                        localExtHMean.maxHMean = row[ndx] as unknown as number;
-                    }
-                    ndx++;
+                    const rowData = row[0]; // Assuming readRows returns an array of rows
+                    const typedRow: SummaryRowData = {
+                        minLat: rowData.minLat,
+                        maxLat: rowData.maxLat,
+                        minLon: rowData.minLon,
+                        maxLon: rowData.maxLon,
+                        minHMean: rowData.minHMean,
+                        maxHMean: rowData.maxHMean,
+                    };
+                    console.log('duckDbReadOrCacheSummary typedRow:', typedRow);
+                    rows.push(typedRow);
+                    console.log('duckDbReadOrCacheSummary rows:', rows);
                 }
-                console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
-                await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
+                if (rows.length > 0) {
+                    const row = rows[0];
+                    console.log('duckDbReadOrCacheSummary row:', row);
+                    localExtLatLon.minLat = row.minLat;
+                    localExtLatLon.maxLat = row.maxLat;
+                    localExtLatLon.minLon = row.minLon;
+                    localExtLatLon.maxLon = row.maxLon;
+                    localExtHMean.minHMean = row.minHMean;
+                    localExtHMean.maxHMean = row.maxHMean;
+                    console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
+                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
+                } else {
+                    throw new Error('No rows returned');
+                }
+                return await indexedDb.getWorkerSummary(req_id);
             } catch (error) {
                 console.error('duckDbReadOrCacheSummary error:', error);
                 throw error;
             }
-
-            return await indexedDb.getWorkerSummary(req_id);
         }
     } catch (error) {
         console.error('duckDbReadOrCacheSummary error:', error);

@@ -661,6 +661,7 @@
     </ol-vector-layer>
     <ol-attribution-control :collapsible="true" :collapsed="true" />
   </ol-map>
+  <div class="sr-tooltip-style" id="tooltip"></div>
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
   </div>
@@ -668,7 +669,16 @@
 </template>
 
 <style scoped>
-
+.sr-tooltip-style {
+  position: absolute;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 0.3rem;
+    border-radius: 0.5rem;
+    pointer-events: none;
+    font-size: 1rem;
+}
 :deep(.ol-overlaycontainer-stopevent) {
   position: relative;
   display: flex !important;
