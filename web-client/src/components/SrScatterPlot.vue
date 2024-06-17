@@ -1,36 +1,64 @@
 <template>
-    <div>
-      <ScatterChart :data="chartData" :options="chartOptions" />
-    </div>
-  </template>
-  
-  <script setup lang="ts">
-  import { ref } from 'vue';
-  import { Chart as ChartJS, Title, Tooltip, Legend, LinearScale, PointElement } from 'chart.js';
-  import { Scatter as ScatterChart } from 'vue-chartjs';
-  import type { ChartData, ChartOptions } from 'chart.js';
-  
-  // Registering components that we will use from Chart.js
-  ChartJS.register(Title, Tooltip, Legend, LinearScale, PointElement);
-  
-  // Setup chart data
-  const chartData = ref<ChartData<'scatter'>>({
-    datasets: [
-      {
-        label: 'Scatter Dataset1',
-        data: Array.from({ length: 50 }, () => ({
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-        })),
-        backgroundColor: 'rgba(255, 99, 132, 1)',
-      },
-    ],
-  });
-  
-  // Setup chart options
-  const chartOptions = ref<ChartOptions<'scatter'>>({
-    responsive: true,
-  });
-  
-  </script>
-  
+  <v-chart class="chart" :option="option" />
+</template>
+
+<script setup>
+import { use } from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import { ScatterChart } from "echarts/charts";
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent
+} from "echarts/components";
+import VChart, { THEME_KEY } from "vue-echarts";
+import { ref, provide, watch } from "vue";
+import { useChartData } from '@/composables/useChartData'; 
+
+use([
+  CanvasRenderer,
+  ScatterChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent
+]);
+
+provide(THEME_KEY, "dark");
+
+const { chartData } = useChartData();
+
+const option = ref({
+  title: {
+    text: "Scatter Plot",
+    left: "center"
+  },
+  tooltip: {
+    trigger: "item",
+    formatter: "({c})"
+  },
+  legend: {
+    data: ['Scatter'],
+    left: 'left'
+  },
+  xAxis: {},
+  yAxis: {},
+  series: [
+    {
+      name: 'Scatter',
+      type: 'scatter',
+      data: chartData.value,
+    }
+  ]
+});
+
+watch(chartData, (newData) => {
+  option.value.series[0].data = newData;
+});
+</script>
+
+<style scoped>
+.chart {
+  max-height: 50rem;
+  max-width: 50rem;
+}
+</style>

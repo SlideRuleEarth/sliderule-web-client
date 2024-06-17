@@ -50,6 +50,7 @@
     });
 
     onMounted(() => {
+        console.log('Mounted Menu:', props.label);
         selectedMenuItems.value = props.default;
         if(selectedMenuItems.value){
             const values = selectedMenuItems.value.map(item => item.value);

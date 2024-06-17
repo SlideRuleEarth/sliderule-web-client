@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { onMounted,ref,watch } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
-import SrMenuMultiInput from './SrMenuMultiInput.vue';
+import SrMenuMultiInputNumber from './SrMenuMultiInputNumber.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
-import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
@@ -121,26 +120,28 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         <div class="sr-analysis-opt-sidebar-options">
             <div>
                 <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                    <AccordionTab header="General" >
-                        <SrMenuMultiInput
-                                v-model="reqParamsStore.tracks"
-                                label = "Track(s)"
-                                aria-label="Select Tracks"
-                                :menuOptions="reqParamsStore.tracksOptions"
-                                :default="reqParamsStore.tracksOptions"
-                                tooltipText="Each track has both a weak and a strong spot"
+                    <AccordionTab header="Filter" >
+                        <div class="sr-tracks-beams">
+                            <SrMenuMultiInputNumber
+                                    v-model="reqParamsStore.tracks"
+                                    label = "Track(s)"
+                                    aria-label="Select Tracks"
+                                    :menuOptions="reqParamsStore.tracksOptions"
+                                    :default="reqParamsStore.tracksOptions"
+                                    tooltipText="Each track has both a weak and a strong spot"
+                                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                            />
+                            <SrMenuMultiInputNumber
+                                v-model="reqParamsStore.beams"
+                                label = "Beam(s)"
+                                aria-label="Select Beams"
+                                :menuOptions="reqParamsStore.beamsOptions"
+                                :default="reqParamsStore.beamsOptions"
+                                tooltipText="Weak and strong spots are determined by orientation of the satellite"
                                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        />
-                        <SrMenuMultiInput
-                            v-model="reqParamsStore.beams"
-                            label = "Beam(s)"
-                            aria-label="Select Beams"
-                            :menuOptions="reqParamsStore.beamsOptions"
-                            :default="reqParamsStore.beamsOptions"
-                            tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        />
-                        <SrSwitchedSliderInput
+                            />
+                        </div>
+                        <SrSliderInput
                             v-model="reqParamsStore.rgtValue"
                             label="RGT"
                             :min="1"
@@ -210,6 +211,12 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     .sr-select-analyze-reader {
         display: flex;
         justify-content: center;
+        margin-top: 0.5rem;
+    }
+    .sr-tracks-beams {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
         margin-top: 0.5rem;
     }
 </style>

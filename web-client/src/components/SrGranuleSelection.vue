@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import SrMenuMultiInput from './SrMenuMultiInput.vue';
+import SrMenuMultiInputNumber from './SrMenuMultiInputNumber.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCalendar from './SrCalendar.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -24,16 +24,8 @@ const updateSelectAllTracks = (value: boolean) => {
   reqParamsStore.setSelectAllTracks(value);
 };
 
-const updateTracks = (items: string[]) => {
-  reqParamsStore.setTracks(items);
-};
-
 const updateSelectAllBeams = (value: boolean) => {
   reqParamsStore.setSelectAllBeams(value);
-};
-
-const updateBeams = (items: string[]) => {
-  reqParamsStore.setBeams(items);
 };
 
 </script>
@@ -50,12 +42,11 @@ const updateBeams = (items: string[]) => {
             />
         </div>
         <div class="sr-granule-tracks-beams-div"> 
-            <SrMenuMultiInput class="sr-granule-tracks-div"
+            <SrMenuMultiInputNumber class="sr-granule-tracks-div"
                 :insensitive="!reqParamsStore.enableGranuleSelection"
-                v-model:selectedMenuItems="tracks"
+                v-model="reqParamsStore.tracks"
                 v-model:selectAll="selectAllTracks"
                 @update:selectAll="updateSelectAllTracks"
-                @update:selectedMenuItems="updateTracks"
                 label = "Track(s)"
                 aria-label="Select Tracks"
                 :menuOptions="reqParamsStore.tracksOptions"
@@ -63,12 +54,11 @@ const updateBeams = (items: string[]) => {
                 tooltipText="Each track has both a weak and a strong spot"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
             />
-            <SrMenuMultiInput class="sr-granule-beams-div"
+            <SrMenuMultiInputNumber class="sr-granule-beams-div"
                 :insensitive="!reqParamsStore.enableGranuleSelection"
-                v-model:selectBeams="beams"
+                v-model="reqParamsStore.beams"
                 v-model:selectAll="selectAllBeams"
                 @update:selectAll="updateSelectAllBeams"
-                @update:selectedMenuItems="updateBeams"
                 label = "Beam(s)"
                 aria-label="Select Beams"
                 :menuOptions="reqParamsStore.beamsOptions"

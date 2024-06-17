@@ -30,10 +30,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks:  ['Track 1', 'Track 2', 'Track 3'],
-        tracksOptions: ['1', '2', '3'],
+        tracksOptions: [
+          { name: 'Track 1' ,value: 1 }, 
+          { name: 'Track 2' , value: 2 },
+          { name: 'Track 3' , value: 3 }
+        ] as SrMultiSelectTextItem[],
         selectAllTracks: false,
-        beams: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'],
-        beamsOptions: ['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r'], 
+        beams: [{name:'gt1l',value: 10}, {name:'gt1r',value:20}, {name:'gt2l',value:30}, {name:'gt2r',value:40}, {name:'gt3l',value:50}, {name:'gt3r',value:60}],
+        beamsOptions: [{name:'gt1l',value: 10}, {name:'gt1r',value:20}, {name:'gt2l',value:30}, {name:'gt2r',value:40}, {name:'gt3l',value:50}, {name:'gt3r',value:60}], 
         selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,

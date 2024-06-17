@@ -15,9 +15,11 @@ import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 
 const reqParams = useReqParamsStore();
+const filterParams = useAtl06ChartFilterStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -232,12 +234,15 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 pointSize: 3,
                 pickable: true, // Enable picking
                 onHover: ({ object, x, y }) => {
+                    const canvas = document.querySelector('canvas');
                     //console.log('onHover object:',object,' x:',x,' y:',y);
                     if (object) {
                         //console.log('object',object,'newObject:',newObject);
+                        canvas.style.cursor = 'pointer'; // Change cursor to pointer
                         const tooltip = formatObject(object);
                         showTooltip({ x, y, tooltip });
                     } else {
+                        canvas.style.cursor = 'grab';
                         hideTooltip();
                     }
                 },
@@ -247,9 +252,13 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                         console.log('Clicked:',object);
                         reqParams.setReqion(object.region);
                         useReqParamsStore().setRgt(object.rgt);
+                        useAtl06ChartFilterStore().setRgt(object.rgt);
                         useReqParamsStore().setCycle(object.cycle);
-                        useReqParamsStore().setTracks(object.track);
-                        useReqParamsStore().setBeams(object.beams);
+                        useAtl06ChartFilterStore().setCycle(object.cycle);
+                        useReqParamsStore().setTracksWithSpot(object.spot); // use spot to determine track and beam 
+                        useAtl06ChartFilterStore().setTracksWithSpot(object.spot);
+                        useReqParamsStore().setBeamsWithSpot(object.spot); // use spot to determine track and beam
+                        useAtl06ChartFilterStore().setBeamsWithSpot(object.spot);
                     }
                 }
             });
