@@ -13,6 +13,8 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import { useToast } from "primevue/usetoast";
 import SrParquetFileUpload from './SrParquetFileUpload.vue';
+import {tracksOptions, beamsOptions} from '@/utils/parmUtils';
+
 const toast = useToast();
 
 const requestsStore = useRequestsStore();
@@ -37,6 +39,7 @@ const onUpload = () => {
 onMounted(async() => {
     try {
         console.log('onMounted SrAnalyzeOptSidebar');
+        console.log("beamsOptions:", beamsOptions);
         reqIds.value =  await requestsStore.getMenuItems();
         if(reqIds.value.length === 0) {
             console.warn('No requests found');
@@ -126,8 +129,8 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                                     v-model="reqParamsStore.tracks"
                                     label = "Track(s)"
                                     aria-label="Select Tracks"
-                                    :menuOptions="reqParamsStore.tracksOptions"
-                                    :default="reqParamsStore.tracksOptions"
+                                    :menuOptions="tracksOptions"
+                                    :default="tracksOptions"
                                     tooltipText="Each track has both a weak and a strong spot"
                                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                             />
@@ -135,8 +138,8 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                                 v-model="reqParamsStore.beams"
                                 label = "Beam(s)"
                                 aria-label="Select Beams"
-                                :menuOptions="reqParamsStore.beamsOptions"
-                                :default="reqParamsStore.beamsOptions"
+                                :menuOptions="beamsOptions"
+                                :default="beamsOptions"
                                 tooltipText="Weak and strong spots are determined by orientation of the satellite"
                                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                             />

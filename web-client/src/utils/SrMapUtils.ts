@@ -108,7 +108,7 @@ function interpolateColor(color1: number[], color2: number[], factor: number = 0
   
 // Function to get color for elevation
 function getColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
-    const purple = [128, 0, 128]; // RGB for purple
+    const purple = [100, 0, 100]; // RGB for purple
     const yellow = [255, 255, 0]; // RGB for yellow
     const factor = (elevation - minElevation) / (maxElevation - minElevation);
     return interpolateColor(purple, yellow, factor);
@@ -218,6 +218,7 @@ export interface ElevationDataItem {
 }
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
     try{
+        const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
@@ -229,12 +230,12 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 getNormal: [0, 0, 1],
                 getColor: (d) => {
                     if (use_white) return [255, 255, 255, 127];
+                    //console.log('d[heightFieldName]:',d[heightFieldName],'extHMean.lowHMean:',extHMean.lowHMean,'extHMean.highHMean:',extHMean.highHMean);
                     return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 },
                 pointSize: 3,
                 pickable: true, // Enable picking
                 onHover: ({ object, x, y }) => {
-                    const canvas = document.querySelector('canvas');
                     //console.log('onHover object:',object,' x:',x,' y:',y);
                     if (object) {
                         //console.log('object',object,'newObject:',newObject);
@@ -255,10 +256,8 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                         useAtl06ChartFilterStore().setRgt(object.rgt);
                         useReqParamsStore().setCycle(object.cycle);
                         useAtl06ChartFilterStore().setCycle(object.cycle);
-                        useReqParamsStore().setTracksWithSpot(object.spot); // use spot to determine track and beam 
-                        useAtl06ChartFilterStore().setTracksWithSpot(object.spot);
-                        useReqParamsStore().setBeamsWithSpot(object.spot); // use spot to determine track and beam
-                        useAtl06ChartFilterStore().setBeamsWithSpot(object.spot);
+                        useReqParamsStore().setBeamsAndTracksWithGt(object.gt); // use spot to determine track and beam
+                        useAtl06ChartFilterStore().setBeamsAndTracksWithGt(object.gt);
                     }
                 }
             });

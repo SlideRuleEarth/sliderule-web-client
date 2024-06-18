@@ -7,6 +7,7 @@ import SrCalendar from './SrCalendar.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
+import {tracksOptions, beamsOptions} from '@/utils/parmUtils';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -49,8 +50,8 @@ const updateSelectAllBeams = (value: boolean) => {
                 @update:selectAll="updateSelectAllTracks"
                 label = "Track(s)"
                 aria-label="Select Tracks"
-                :menuOptions="reqParamsStore.tracksOptions"
-                :default="reqParamsStore.tracksOptions"
+                :menuOptions="tracksOptions"
+                :default="tracksOptions"
                 tooltipText="Each track has both a weak and a strong spot"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
             />
@@ -61,8 +62,8 @@ const updateSelectAllBeams = (value: boolean) => {
                 @update:selectAll="updateSelectAllBeams"
                 label = "Beam(s)"
                 aria-label="Select Beams"
-                :menuOptions="reqParamsStore.beamsOptions"
-                :default="reqParamsStore.beamsOptions"
+                :menuOptions="beamsOptions"
+                :default="beamsOptions"
                 tooltipText="Weak and strong spots are determined by orientation of the satellite"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
             />

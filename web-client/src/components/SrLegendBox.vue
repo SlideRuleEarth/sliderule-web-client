@@ -4,8 +4,8 @@
     <div class = "sr-legend-gradient-box">
     </div>
     <div class="sr-legend-minmax">
-        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) }}m</span>
-        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) }}m</span>
+        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Low().toFixed(1)) }}m</span>
+        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_High().toFixed(1)) }}m</span>
     </div>
 </div> 
 </template>

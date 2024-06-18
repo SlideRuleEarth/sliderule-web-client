@@ -24,9 +24,9 @@
                     :disabled="insensitive"
                 >
                     <option 
-                        v-for="item in menuOptions" 
-                        :value="item" 
-                        :key="item">
+                        v-for="item in props.menuOptions" 
+                        :value="item.value" 
+                        :key="item.value">
                         {{ item.name }}
                     </option>
                 </select>
@@ -40,7 +40,7 @@
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
-    const props = defineProps({
+    const props = defineProps({ // runtime declaration here
         label: String,
         menuOptions: {
             type: Array as () => SrMultiSelectNumberItem[],
@@ -70,21 +70,24 @@
 
     const emit = defineEmits(['update:selectAll', 'update:selectedMenuItems']);
 
-    const localSelectAll = ref(props.selectAll);
-    const localSelectedMenuItems = ref(props.default);
+    const localSelectAll = ref(false);
+    const localSelectedMenuItems = ref([]);
 
-    const handleSelectAllItems = (newValue: boolean) => {
+    const handleSelectAllItems = (newValue) => {
         localSelectAll.value = newValue;
-        if (props.menuOptions) {
-            localSelectedMenuItems.value = newValue ? [...props.menuOptions] : [];
+        if (newValue) {
+            localSelectedMenuItems.value = props.menuOptions.map(item => item.value);
         } else {
             localSelectedMenuItems.value = [];
         }
+        console.log('newValue:', newValue, 'localSelectedMenuItems:', localSelectedMenuItems.value);
         emit('update:selectAll', localSelectAll.value);
         emit('update:selectedMenuItems', localSelectedMenuItems.value);
     };
+
     // Watcher to update selectAll based on selected items
     watch(localSelectedMenuItems, (currentSelection) => {
+        console.log('localSelectedMenuItems changed:', currentSelection);
         if(currentSelection){        
             const newSelectAllValue = currentSelection.length === props.menuOptions.length;
             localSelectAll.value = newSelectAllValue;
@@ -92,11 +95,17 @@
         } else {
             console.error('No selected items?');
         }
+        console.log('localSelectAll:', localSelectAll.value);
     }, { deep: true });
 
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
-        localSelectedMenuItems.value = props.default;       
+        console.log ('props:',props)
+        console.log(JSON.stringify(props, null, 2));
+        localSelectedMenuItems.value = props.default.map(item => item.value);
+        localSelectAll.value = currentSelection.length === props.menuOptions.length;
+        console.log('localSelectedMenuItems:', localSelectedMenuItems.value);
+        console.log('localSelectAll:', localSelectAll.value);
     });
 
     const openTooltipUrl = () => {

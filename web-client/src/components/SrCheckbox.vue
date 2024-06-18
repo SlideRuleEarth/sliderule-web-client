@@ -4,7 +4,7 @@
             <input 
                 :id="'sr-checkbox-' + label" 
                 type="checkbox" 
-                v-model="checked" 
+                v-model="localChecked" 
                 :disabled="insensitive"
                 @change="emitChange"
             />
@@ -31,7 +31,7 @@
             <input 
                 :id="'sr-checkbox-' + label" 
                 type="checkbox" 
-                v-model="checked" 
+                v-model="localChecked" 
                 :disabled="insensitive"
                 @change="emitChange"
             />
@@ -76,14 +76,18 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
-const checked = ref(props.modelValue);
+const localChecked = ref(props.modelValue);
 
-watch(checked, (newValue) => {
+watch(() => props.modelValue, (newValue) => {
+    localChecked.value = newValue;
+});
+
+watch(localChecked, (newValue) => {
     emit('update:modelValue', newValue);
 });
 
 const emitChange = () => {
-    console.log(`SrCheckbox: ${props.label}: ${checked.value}`);
+    console.log(`SrCheckbox: ${props.label}: ${localChecked.value}`);
 };
 </script>
 

@@ -38,10 +38,18 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         MIN(longitude) as minLon,
                         MAX(longitude) as maxLon,
                         MIN(${duckDbClient.escape(height_fieldname)}) as minHMean,
-                        MAX(${duckDbClient.escape(height_fieldname)}) as maxHMean
+                        MAX(${duckDbClient.escape(height_fieldname)}) as maxHMean,
+                        PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc10HMean,
+                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc90HMean
                     FROM
                         '${filename}'
                 `);
+                
+
+
+
+
+
                 // Collect rows from the async generator
                 const rows: SummaryRowData[] = [];
                 for await (const row of results.readRows()) {
@@ -53,6 +61,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         maxLon: rowData.maxLon,
                         minHMean: rowData.minHMean,
                         maxHMean: rowData.maxHMean,
+                        lowHMean: rowData.perc10HMean,
+                        highHMean: rowData.perc90HMean
                     };
                     console.log('duckDbReadOrCacheSummary typedRow:', typedRow);
                     rows.push(typedRow);
@@ -67,6 +77,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtLatLon.maxLon = row.maxLon;
                     localExtHMean.minHMean = row.minHMean;
                     localExtHMean.maxHMean = row.maxHMean;
+                    localExtHMean.lowHMean = row.lowHMean;
+                    localExtHMean.highHMean = row.highHMean;
                     console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
                     await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
                 } else {

@@ -48,7 +48,7 @@
 </div> 
 </template>
 <script setup lang="ts">
-import SrMenuMultiInputText from './SrMenuMultiInput.vue';
+import SrMenuMultiInputText from './SrMenuMultiInputText.vue';
 import SrMenuMultiCheckInput from './SrMenuMultiCheckInput.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();

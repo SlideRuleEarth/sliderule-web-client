@@ -3,6 +3,7 @@ import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlpReqParams, SrRegion } from '@/sliderule/icesat2';
+import { getBeamsAndTracksWithGt } from '@/utils/parmUtils';
 
 export interface NullReqParams {
   null: null;
@@ -29,15 +30,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
-        tracks:  ['Track 1', 'Track 2', 'Track 3'],
-        tracksOptions: [
-          { name: 'Track 1' ,value: 1 }, 
-          { name: 'Track 2' , value: 2 },
-          { name: 'Track 3' , value: 3 }
-        ] as SrMultiSelectTextItem[],
+        tracks:  [] as SrMultiSelectNumberItem[],
         selectAllTracks: false,
-        beams: [{name:'gt1l',value: 10}, {name:'gt1r',value:20}, {name:'gt2l',value:30}, {name:'gt2r',value:40}, {name:'gt3l',value:50}, {name:'gt3r',value:60}],
-        beamsOptions: [{name:'gt1l',value: 10}, {name:'gt1r',value:20}, {name:'gt2l',value:30}, {name:'gt2r',value:40}, {name:'gt3l',value:50}, {name:'gt3r',value:60}], 
+        beams: [] as SrMultiSelectNumberItem[],
         selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,
@@ -128,24 +123,24 @@ export const useReqParamsStore = defineStore('reqParams', {
         sendWaveforms: false,
         useABoVEClassifier: false,
         gediBeams: [
-          {name:'0',value:'0'}, 
-          {name:'1',value:'1'},
-          {name:'2',value:'2'},
-          {name:'3',value:'3'},
-          {name:'5',value:'5'},
-          {name:'6',value:'6'},
-          {name:'8',value:'8'},
-          {name:'11',value:'11'},
+          {name:'0',value:0}, 
+          {name:'1',value:1},
+          {name:'2',value:2},
+          {name:'3',value:3},
+          {name:'5',value:5},
+          {name:'6',value:6},
+          {name:'8',value:8},
+          {name:'11',value:11},
         ],
         gediBeamsOptions: [
-          {name:'0',value:'0'}, 
-          {name:'1',value:'1'},
-          {name:'2',value:'2'},
-          {name:'3',value:'3'},
-          {name:'5',value:'5'},
-          {name:'6',value:'6'},
-          {name:'8',value:'8'},
-          {name:'11',value:'11'},
+          {name:'0',value:0}, 
+          {name:'1',value:1},
+          {name:'2',value:2},
+          {name:'3',value:3},
+          {name:'5',value:5},
+          {name:'6',value:6},
+          {name:'8',value:8},
+          {name:'11',value:11},
         ],
         ATL03GeoSpatialFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
         ATL03PhotonFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
@@ -303,6 +298,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setBeams(beams:string[]) {
           this.beams = beams;
+        },
+        setBeamsAndTracksWithGt(gt:number) {
+          console.log('setBeamsAndTracksWithGt:', gt);
+          const parms = getBeamsAndTracksWithGt(gt);
+          this.beams = parms.beams;
+          this.tracks = parms.tracks;
         },
         setTracks(tracks:string[]) {
           this.tracks = tracks;
