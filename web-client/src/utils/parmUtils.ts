@@ -14,18 +14,23 @@ export const beamsOptions = [
   ] as SrMultiSelectNumberItem[];
 
   export function getBeamsAndTracksWithGt(gt:number) {
-    const tracks = [] as SrMultiSelectTextItem[];
-    const beams = beamsOptions.filter(beam => beam.value === gt);
-    if(beams.length===1){
-      for(const track of tracksOptions){
-        if(Number(beams[0].name.charAt(2)) === track.value){
-          tracks.push(track);
-          break;
-        }
+    const beams = [] as number[];
+    let beam_name='';
+    for (const beam of beamsOptions) {
+      if (beam.value === gt) {
+        beams.push(beam.value);
+        beam_name = beam.name;
+        break;
       }
-    } else {
-      console.error('setBeamsWithGt: beams.length not equal to 1:', this.beams.length);
     }
+    const tracks = [] as number[];
+    for(const track of tracksOptions){
+        if(Number(beam_name.charAt(2)) === track.value){
+            tracks.push(track.value);
+            break;
+        }
+    }
+    
     console.log(`getBeamsAndTracksWithGt(${gt}) -> beams:`,beams,'tracks:',tracks);
     return {beams, tracks};
   }

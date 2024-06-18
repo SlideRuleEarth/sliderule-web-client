@@ -1,14 +1,14 @@
 import { useMapStore } from '@/stores/mapStore';
 import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-import { PointCloudLayer } from '@deck.gl/layers/typed';
+import { PointCloudLayer } from '@deck.gl/layers';
 import { GeoJSON} from 'ol/format';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { Deck } from '@deck.gl/core/typed';
+import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";

@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { tracksOptions, beamsOptions,getBeamsAndTracksWithGt } from '@/utils/parmUtils'
+import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
-        tracks:  [] as SrMultiSelectNumberItem[],
+        tracks:  [] as number[],
         selectAllTracks: false,
-        beams: [] as SrMultiSelectNumberItem[],
+        beams: [] as number[],
         selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,
@@ -31,13 +31,13 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         getCycle() {
           return this.cycleValue;
         },
-        setBeams(beams:string[]) {
+        setBeams(beams:number[]) {
           this.beams = beams;
         },
         getBeams() {
           return this.beams;
         },
-        setTracks(tracks:string[]) {
+        setTracks(tracks:number[]) {
           this.tracks = tracks;
         },
         getTracks() {
@@ -56,10 +56,12 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           return this.selectAllBeams;
         },
         setBeamsAndTracksWithGt(gt:number) {
-          console.log('setBeamsAndTracksWithGt:', gt);
           const parms = getBeamsAndTracksWithGt(gt);
-          this.beams = parms.beams;
-          this.tracks = parms.tracks;
+          console.log('setBeamsAndTracksWithGt:', gt, 'parms.beams:', parms.beams, 'parms.tracks:', parms.tracks);
+          this.setBeams(parms.beams);
+          this.setTracks(parms.tracks);
+          console.log('setBeamsAndTracksWithGt:', gt, 'beams:', this.beams);
+          console.log('setBeamsAndTracksWithGt:', gt, 'tracks:', this.tracks);
         },
     },
 })

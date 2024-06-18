@@ -41,6 +41,10 @@
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     const props = defineProps({ // runtime declaration here
+        modelValue: {
+            type: Array as () => SrMultiSelectNumberItem[],
+            default: () => []
+        },
         label: String,
         menuOptions: {
             type: Array as () => SrMultiSelectNumberItem[],
@@ -68,7 +72,7 @@
         }
     });
 
-    const emit = defineEmits(['update:selectAll', 'update:selectedMenuItems']);
+    const emit = defineEmits(['update:modelValue', 'update:selectAll']);
 
     const localSelectAll = ref(false);
     const localSelectedMenuItems = ref([]);
@@ -81,21 +85,19 @@
             localSelectedMenuItems.value = [];
         }
         console.log('newValue:', newValue, 'localSelectedMenuItems:', localSelectedMenuItems.value);
-        emit('update:selectAll', localSelectAll.value);
-        emit('update:selectedMenuItems', localSelectedMenuItems.value);
+        emit('update:modelValue', localSelectedMenuItems.value);
+        emit('update:selectAll', newValue);
     };
 
     // Watcher to update selectAll based on selected items
     watch(localSelectedMenuItems, (currentSelection) => {
-        console.log('localSelectedMenuItems changed:', currentSelection);
-        if(currentSelection){        
-            const newSelectAllValue = currentSelection.length === props.menuOptions.length;
-            localSelectAll.value = newSelectAllValue;
-            emit('update:selectAll', newSelectAllValue);
-        } else {
-            console.error('No selected items?');
-        }
+        console.log(props.label,' localSelectedMenuItems changed:', currentSelection);
+        const newSelectAllValue = currentSelection.length === props.menuOptions.length;
+        localSelectAll.value = newSelectAllValue;
+        emit('update:modelValue', currentSelection);
+        emit('update:selectAll', newSelectAllValue);
         console.log('localSelectAll:', localSelectAll.value);
+        console.log('currentSelection:', currentSelection);
     }, { deep: true });
 
     onMounted(() => {
@@ -103,7 +105,7 @@
         console.log ('props:',props)
         console.log(JSON.stringify(props, null, 2));
         localSelectedMenuItems.value = props.default.map(item => item.value);
-        localSelectAll.value = currentSelection.length === props.menuOptions.length;
+        localSelectAll.value = localSelectedMenuItems.value.length === props.menuOptions.length;
         console.log('localSelectedMenuItems:', localSelectedMenuItems.value);
         console.log('localSelectAll:', localSelectAll.value);
     });

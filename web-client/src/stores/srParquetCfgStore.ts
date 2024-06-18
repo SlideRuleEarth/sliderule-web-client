@@ -4,7 +4,7 @@ export const useSrParquetCfgStore = defineStore("srParquetCfg", {
         parquetReader:{name:'duckDb',value:'duckDb'},
         parquetReaderOptions: [
             { name: 'duckDb', value: 'duckDb' },
-            { name: 'hyparquet', value: 'hyparquet' },
+            // { name: 'hyparquet', value: 'hyparquet' },
         ],
     }),
     actions:{

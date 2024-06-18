@@ -6,7 +6,7 @@ import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
+import {useAtl06ChartFilterStore} from '@/stores/atl06ChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrSelectParquetReader from './SrSelectParquetReader.vue';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
@@ -25,7 +25,7 @@ const props = defineProps({
 
 const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
-const reqParamsStore = useReqParamsStore();
+const atl06ChartFilterStore = useAtl06ChartFilterStore();
 //const activeTabIndex = ref([0]); // Opens the first tab by default
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
@@ -122,11 +122,11 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
-                <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                <Accordion :multiple="true" :activeIndex="[0]" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                     <AccordionTab header="Filter" >
                         <div class="sr-tracks-beams">
                             <SrMenuMultiInputNumber
-                                    v-model="reqParamsStore.tracks"
+                                    v-model="atl06ChartFilterStore.tracks"
                                     label = "Track(s)"
                                     aria-label="Select Tracks"
                                     :menuOptions="tracksOptions"
@@ -135,7 +135,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                             />
                             <SrMenuMultiInputNumber
-                                v-model="reqParamsStore.beams"
+                                v-model="atl06ChartFilterStore.beams"
                                 label = "Beam(s)"
                                 aria-label="Select Beams"
                                 :menuOptions="beamsOptions"
@@ -145,7 +145,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             />
                         </div>
                         <SrSliderInput
-                            v-model="reqParamsStore.rgtValue"
+                            v-model="atl06ChartFilterStore.rgtValue"
                             label="RGT"
                             :min="1"
                             :max="10000" 
@@ -154,7 +154,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                         />
                         <SrSliderInput
-                            v-model="reqParamsStore.cycleValue"
+                            v-model="atl06ChartFilterStore.cycleValue"
                             label="Cycle"
                             :min="1"
                             :max="100" 
@@ -163,7 +163,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                         />
                         <SrSliderInput
-                            v-model="reqParamsStore.regionValue"
+                            v-model="atl06ChartFilterStore.regionValue"
                             label="Region"
                             :min="1"
                             :max="100" 

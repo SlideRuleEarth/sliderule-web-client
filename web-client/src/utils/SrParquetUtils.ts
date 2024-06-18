@@ -1,7 +1,7 @@
 import { db } from '@/db/SlideRuleDb'; 
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
-import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from '@/utils/SrHyparquetUtils';
+//import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from '@/utils/SrHyparquetUtils';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
@@ -180,9 +180,7 @@ export const getHeightFieldname = async (req_id:number) => {
 
 export const readOrCacheSummary = async (req_id:number,height_fieldname:string) : Promise<SrRequestSummary | undefined> => {
     try{
-        if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
-            return await hyparquetReadOrCacheSummary(req_id,height_fieldname);
-        } else if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
@@ -196,9 +194,8 @@ export const readOrCacheSummary = async (req_id:number,height_fieldname:string) 
 export const readAndUpdateElevationData = async (req_id:number) => {
     try{
         console.log('readAndUpdateElevationData req_id:',req_id);
-        if(useSrParquetCfgStore().getParquetReader().name === 'hyparquet'){
-            hyparquetReadAndUpdateElevationData(req_id);
-        } else if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+
+        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             duckDbReadAndUpdateElevationData(req_id);
             const duckDbClient = await createDuckDbClient();
             const tbls = await duckDbClient.describeTables();
