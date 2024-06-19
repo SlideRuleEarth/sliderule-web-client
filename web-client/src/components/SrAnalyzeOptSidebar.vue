@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted,ref,watch } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
-import SrMenuMultiInputNumber from './SrMenuMultiInputNumber.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
@@ -13,8 +12,8 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import { useToast } from "primevue/usetoast";
 import SrParquetFileUpload from './SrParquetFileUpload.vue';
-import {tracksOptions, beamsOptions} from '@/utils/parmUtils';
 import SrFilterBeams from './SrFilterBeams.vue';
+import SrFilterTracks from './SrFilterTracks.vue';
 
 const toast = useToast();
 
@@ -40,7 +39,6 @@ const onUpload = () => {
 onMounted(async() => {
     try {
         console.log('onMounted SrAnalyzeOptSidebar');
-        console.log("beamsOptions:", beamsOptions);
         reqIds.value =  await requestsStore.getMenuItems();
         if(reqIds.value.length === 0) {
             console.warn('No requests found');
@@ -126,15 +124,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                 <Accordion :multiple="true" :activeIndex="[0]" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                     <AccordionTab header="Filter" >
                         <div class="sr-tracks-beams">
-                            <SrMenuMultiInputNumber
-                                    v-model="atl06ChartFilterStore.tracks"
-                                    label = "Track(s)"
-                                    aria-label="Select Tracks"
-                                    :menuOptions="tracksOptions"
-                                    :default="tracksOptions"
-                                    tooltipText="Each track has both a weak and a strong spot"
-                                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                            />
+                            <SrFilterTracks/>
                             <SrFilterBeams/>
                         </div>
                         <SrSliderInput

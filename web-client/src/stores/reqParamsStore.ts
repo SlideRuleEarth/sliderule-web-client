@@ -302,8 +302,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         setBeamsAndTracksWithGt(gt:number) {
           console.log('setBeamsAndTracksWithGt:', gt);
           const parms = getBeamsAndTracksWithGt(gt);
-          this.beams = parms.beams;
-          this.tracks = parms.tracks;
+          this.setBeams(parms.beams);
+          this.setTracks(parms.tracks);
         },
         setTracks(tracks:string[]) {
           this.tracks = tracks;
