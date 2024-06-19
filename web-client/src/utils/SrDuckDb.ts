@@ -98,22 +98,35 @@ const getType = (type: string) => {
 
 // Function to create the DuckDB instance
 export async function createDb(): Promise<AsyncDuckDB> {
+  console.log('createDb');
   const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
   const worker = new Worker(bundle.mainWorker!);
   const logger = new duckdb.ConsoleLogger();
-  const duckDb = new duckdb.AsyncDuckDB(logger, worker);
-  await duckDb.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  return duckDb;
+  const duckDB = new duckdb.AsyncDuckDB(logger, worker);
+  await duckDB.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  return duckDB;
 }
 
 // DuckDBClient class
 export class DuckDBClient {
   private _db: AsyncDuckDB | null = null;
-
+  private static _instance: DuckDBClient | null = null;
+  private _filesInDb: Set<string> = new Set(); // Use a set to store registered files
   constructor(db?: AsyncDuckDB) {
     if (db) {
       this._db = db;
     }
+  }
+
+  // Method to get the singleton instance of DuckDBClient
+  public static async getInstance(): Promise<DuckDBClient> {
+    if (!this._instance) {
+      console.log('----- DuckDBClient.getInstance -----');
+      const db = await createDb();
+      this._instance = new DuckDBClient(db);
+      await this._instance.duckDB();
+    }
+    return this._instance;
   }
 
   // Method to initialize the database if not already done
@@ -200,24 +213,31 @@ export class DuckDBClient {
 
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
+    console.log('insertOpfsParquet name:',name);
     try {
-      const duckDB = await this.duckDB();
-      const opfsRoot = await navigator.storage.getDirectory();
-      const fileHandle = await opfsRoot.getFileHandle(name, { create: false });
-      const file = await fileHandle.getFile();
-      const url = URL.createObjectURL(file);
+      if (!this._filesInDb.has(name)) {
+        const duckDB = await this.duckDB();
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(name, { create: false });
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
 
-      await duckDB.registerFileURL(
-        name,
-        url,
-        duckdb.DuckDBDataProtocol.HTTP,
-        false,
-      );
+        await duckDB.registerFileURL(
+          name,
+          url,
+          duckdb.DuckDBDataProtocol.HTTP,
+          false,
+        );
 
-      const conn = await duckDB.connect();
-      await conn.query(
-        `CREATE VIEW IF NOT EXISTS '${name}' AS SELECT * FROM parquet_scan('${name}')`,
-      );
+        const conn = await duckDB.connect();
+        await conn.query(
+          `CREATE VIEW IF NOT EXISTS '${name}' AS SELECT * FROM parquet_scan('${name}')`,
+        );
+        // Add the file to the set of registered files
+        this._filesInDb.add(name);
+      } else {
+        console.log(`File ${name} already registered`);
+      }
     } catch (error) {
       console.error('insertOpfsParquet error:', error);
       throw error;
@@ -242,5 +262,5 @@ export class DuckDBClient {
 
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
-  return new DuckDBClient();
+  return DuckDBClient.getInstance();
 }

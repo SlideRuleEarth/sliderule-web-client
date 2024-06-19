@@ -197,15 +197,15 @@ export const readAndUpdateElevationData = async (req_id:number) => {
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             duckDbReadAndUpdateElevationData(req_id);
-            const duckDbClient = await createDuckDbClient();
-            const tbls = await duckDbClient.describeTables();
-            console.log('readAndUpdateElevationData tbls:',tbls);
-            if (tbls.length > 0) {
-                const cols = duckDbClient.describeColumns({table:tbls[0].name});
-                console.log('readAndUpdateElevationData cols:',cols);
-            } else {
-                console.error('readAndUpdateElevationData no tables found');
-            }
+            // const duckDbClient = await createDuckDbClient();
+            // const tbls = await duckDbClient.describeTables();
+            // console.log('readAndUpdateElevationData tbls:',tbls);
+            // if (tbls.length > 0) {
+            //     const cols = duckDbClient.describeColumns({table:tbls[0].name});
+            //     console.log('readAndUpdateElevationData cols:',cols);
+            // } else {
+            //     console.error('readAndUpdateElevationData no tables found');
+            // }
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }
