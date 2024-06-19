@@ -242,6 +242,5 @@ export class DuckDBClient {
 
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
-  const duckDb = await createDb();
-  return new DuckDBClient(duckDb);
+  return new DuckDBClient();
 }
