@@ -14,6 +14,7 @@ import router from '@/router/index.js';
 import { useToast } from "primevue/usetoast";
 import SrParquetFileUpload from './SrParquetFileUpload.vue';
 import {tracksOptions, beamsOptions} from '@/utils/parmUtils';
+import SrFilterBeams from './SrFilterBeams.vue';
 
 const toast = useToast();
 
@@ -134,15 +135,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                                     tooltipText="Each track has both a weak and a strong spot"
                                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                             />
-                            <SrMenuMultiInputNumber
-                                v-model="atl06ChartFilterStore.beams"
-                                label = "Beam(s)"
-                                aria-label="Select Beams"
-                                :menuOptions="beamsOptions"
-                                :default="beamsOptions"
-                                tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                            />
+                            <SrFilterBeams/>
                         </div>
                         <SrSliderInput
                             v-model="atl06ChartFilterStore.rgtValue"

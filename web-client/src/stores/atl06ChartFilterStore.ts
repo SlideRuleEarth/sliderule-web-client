@@ -4,10 +4,10 @@ import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
-        tracks:  [] as number[],
-        selectAllTracks: false,
-        beams: [] as number[],
-        selectAllBeams: false,
+        tracks:  [1,2,3] as number[],
+        selectAllTracks: true,
+        beams: [10,20,30,40,50,60] as number[],
+        selectAllBeams: true,
         rgtValue: 1,
         cycleValue: 1,
         regionValue: 1
