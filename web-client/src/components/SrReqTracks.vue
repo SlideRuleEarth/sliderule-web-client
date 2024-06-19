@@ -8,7 +8,7 @@
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="menuClass" >
             <SrCheckbox 
-                v-model="localSelectAll" 
+                v-model="reqParamsStore.selectAllTracks" 
                 label="All" 
                 :default="true" 
                 @update:modelValue="handleSelectAllItems"  
@@ -16,7 +16,8 @@
             />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
-                    v-model="localSelectedMenuItems" 
+                    v-model="reqParamsStore.tracks" 
+                    @input="handleSelectionChange"
                     class="sr-menu-multi-input-select-default" 
                     name="sr-select-multi-menu" 
                     :id="`srSelectMultiMenu-{{ label }}`" 
@@ -24,7 +25,7 @@
                     :disabled="insensitive"
                 >
                     <option 
-                        v-for="item in props.menuOptions" 
+                        v-for="item in tracksOptions" 
                         :value="item.value" 
                         :key="item.value">
                         {{ item.name }}
@@ -36,23 +37,18 @@
 </template>
   
 <script setup lang="ts">
-    import { ref, onMounted, watch, computed } from 'vue';
+    import {  onMounted,computed } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+    import { tracksOptions } from '@/utils/parmUtils';
+    import { useReqParamsStore } from '@/stores/reqParamsStore';
+    
+    const reqParamsStore = useReqParamsStore();
 
     const props = defineProps({ // runtime declaration here
-        modelValue: {
-            type: Array as () => SrMultiSelectNumberItem[],
-            default: () => []
-        },
-        label: String,
-        menuOptions: {
-            type: Array as () => SrMultiSelectNumberItem[],
-            default: () => []
-        },
-        default: {
-            type: Array as () => SrMultiSelectNumberItem[],
-            default: () => []
+        label: {
+            type: String,
+            default: 'Track(s)'
         },
         insensitive: {
             type: Boolean,
@@ -60,11 +56,11 @@
         },
         tooltipText: {
             type: String,
-            default: 'tooltip text'
+            default: 'Each track has both a weak and a strong spot'
         },
         tooltipUrl: {
             type: String,
-            default: ''
+            default: 'https://slideruleearth.io/web/rtd/user_guide/Background.html'
         },
         labelFontSize: {
             type: String,
@@ -72,42 +68,23 @@
         }
     });
 
-    const emit = defineEmits(['update:modelValue', 'update:selectAll']);
-
-    const localSelectAll = ref(false);
-    const localSelectedMenuItems = ref([]);
-
     const handleSelectAllItems = (newValue) => {
-        localSelectAll.value = newValue;
         if (newValue) {
-            localSelectedMenuItems.value = props.menuOptions.map(item => item.value);
+            reqParamsStore.tracks = tracksOptions.map(item => item.value);
         } else {
-            localSelectedMenuItems.value = [];
+            reqParamsStore.tracks = [];
         }
-        console.log('newValue:', newValue, 'localSelectedMenuItems:', localSelectedMenuItems.value);
-        emit('update:modelValue', localSelectedMenuItems.value);
-        emit('update:selectAll', newValue);
+        console.log('newValue:', newValue, ' reqParamsStore.tracks:', reqParamsStore.tracks);
     };
 
-    // Watcher to update selectAll based on selected items
-    watch(localSelectedMenuItems, (currentSelection) => {
-        console.log(props.label,' localSelectedMenuItems changed:', currentSelection);
-        const newSelectAllValue = currentSelection.length === props.menuOptions.length;
-        localSelectAll.value = newSelectAllValue;
-        emit('update:modelValue', currentSelection);
-        emit('update:selectAll', newSelectAllValue);
-        console.log('localSelectAll:', localSelectAll.value);
-        console.log('currentSelection:', currentSelection);
-    }, { deep: true });
+    const handleSelectionChange = (event) => {
+        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
+        console.log('handleSelectionChange newValue:', newValue);
+        reqParamsStore.selectAllTracks = newValue.length === tracksOptions.length;
+    };
 
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
-        console.log ('props:',props)
-        console.log(JSON.stringify(props, null, 2));
-        localSelectedMenuItems.value = props.default.map(item => item.value);
-        localSelectAll.value = localSelectedMenuItems.value.length === props.menuOptions.length;
-        console.log('localSelectedMenuItems:', localSelectedMenuItems.value);
-        console.log('localSelectAll:', localSelectAll.value);
     });
 
     const openTooltipUrl = () => {
@@ -152,6 +129,7 @@
     border-radius: var(--border-radius);
     height: auto; /* Adjust height to fit multiple selections */
     overflow-y: auto; /* Allows scrolling through options */
+    min-height: 6.5rem;
 }
 
 .sr-menu-multi-input-select-item {

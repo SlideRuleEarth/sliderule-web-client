@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import SrMenuMultiInputNumber from './SrMenuMultiInputNumber.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCalendar from './SrCalendar.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
-import {tracksOptions, beamsOptions} from '@/utils/parmUtils';
+import SrReqTracks from './SrReqTracks.vue';
+import SrReqBeams from './SrReqBeams.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -18,16 +18,6 @@ onUnmounted(() => {
     console.log('Unmounted SrGranuleSelection');
 });
 
-
-const { selectAllTracks, tracks, selectAllBeams, beams  } = storeToRefs(reqParamsStore);
-
-const updateSelectAllTracks = (value: boolean) => {
-  reqParamsStore.setSelectAllTracks(value);
-};
-
-const updateSelectAllBeams = (value: boolean) => {
-  reqParamsStore.setSelectAllBeams(value);
-};
 
 </script>
 
@@ -43,30 +33,8 @@ const updateSelectAllBeams = (value: boolean) => {
             />
         </div>
         <div class="sr-granule-tracks-beams-div"> 
-            <SrMenuMultiInputNumber class="sr-granule-tracks-div"
-                :insensitive="!reqParamsStore.enableGranuleSelection"
-                v-model="reqParamsStore.tracks"
-                v-model:selectAll="selectAllTracks"
-                @update:selectAll="updateSelectAllTracks"
-                label = "Track(s)"
-                aria-label="Select Tracks"
-                :menuOptions="tracksOptions"
-                :default="tracksOptions"
-                tooltipText="Each track has both a weak and a strong spot"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-            />
-            <SrMenuMultiInputNumber class="sr-granule-beams-div"
-                :insensitive="!reqParamsStore.enableGranuleSelection"
-                v-model="reqParamsStore.beams"
-                v-model:selectAll="selectAllBeams"
-                @update:selectAll="updateSelectAllBeams"
-                label = "Beam(s)"
-                aria-label="Select Beams"
-                :menuOptions="beamsOptions"
-                :default="beamsOptions"
-                tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-            />
+            <SrReqTracks/>
+            <SrReqBeams/>
         </div> 
         <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
