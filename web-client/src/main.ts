@@ -15,6 +15,7 @@ import Toast from 'primevue/toast';
 import Ripple from 'primevue/ripple';
 import App from './App.vue'
 import router from './router'
+import 'echarts/lib/chart/scatter';
 import StyleClass from 'primevue/styleclass';
 import ConfirmationService from 'primevue/confirmationservice';
 import OpenLayersMap, {

@@ -7,7 +7,7 @@ import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import { Layer as OL_Layer} from 'ol/layer';
-import { Deck } from '@deck.gl/core/typed';
+import { Deck } from '@deck.gl/core';
 //import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;

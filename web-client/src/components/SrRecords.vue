@@ -121,13 +121,14 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="func" header="Function"></Column>
-            <Column field="parameters" header="Parameters"></Column>
-            <Column field="elapsed_time" header="Elapsed Time"></Column>
-            <!-- <Column v-for="col in filteredColumns" :key="col.field" :field="col.field" >
-                <template #header="">
-                    <span v-tooltip="col.tooltip">{{ col.header }}</span>
+            <Column field="parameters" header="Parameters" >
+                <template #body="slotProps">
+                    <div class="sr-col-par-style">
+                        {{ slotProps.data.parameters }}
+                    </div>
                 </template>
-            </Column> -->
+            </Column>
+            <Column field="elapsed_time" header="Elapsed Time"></Column>
             <Column field="Actions" header="" class="sr-analyze">
                 <template #body="slotProps">
                     <i 
@@ -202,4 +203,10 @@ onUnmounted(() => {
     margin-top: 1rem;
 }
 
+:deep(.sr-col-par-style) {
+    min-width: 20rem;
+    max-width: 40rem;
+    max-height: 10rem;
+    overflow: auto;
+}
 </style>

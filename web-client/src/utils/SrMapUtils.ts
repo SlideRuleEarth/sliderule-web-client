@@ -1,23 +1,25 @@
 import { useMapStore } from '@/stores/mapStore';
 import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-import { PointCloudLayer } from '@deck.gl/layers/typed';
+import { PointCloudLayer } from '@deck.gl/layers';
 import { GeoJSON} from 'ol/format';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
-import { Deck } from '@deck.gl/core/typed';
+import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 
 const reqParams = useReqParamsStore();
+const filterParams = useAtl06ChartFilterStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -106,7 +108,7 @@ function interpolateColor(color1: number[], color2: number[], factor: number = 0
   
 // Function to get color for elevation
 function getColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
-    const purple = [128, 0, 128]; // RGB for purple
+    const purple = [100, 0, 100]; // RGB for purple
     const yellow = [255, 255, 0]; // RGB for yellow
     const factor = (elevation - minElevation) / (maxElevation - minElevation);
     return interpolateColor(purple, yellow, factor);
@@ -216,6 +218,7 @@ export interface ElevationDataItem {
 }
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
     try{
+        const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
@@ -227,6 +230,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 getNormal: [0, 0, 1],
                 getColor: (d) => {
                     if (use_white) return [255, 255, 255, 127];
+                    //console.log('d[heightFieldName]:',d[heightFieldName],'extHMean.lowHMean:',extHMean.lowHMean,'extHMean.highHMean:',extHMean.highHMean);
                     return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 },
                 pointSize: 3,
@@ -235,9 +239,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                     //console.log('onHover object:',object,' x:',x,' y:',y);
                     if (object) {
                         //console.log('object',object,'newObject:',newObject);
+                        canvas.style.cursor = 'pointer'; // Change cursor to pointer
                         const tooltip = formatObject(object);
                         showTooltip({ x, y, tooltip });
                     } else {
+                        canvas.style.cursor = 'grab';
                         hideTooltip();
                     }
                 },
@@ -247,9 +253,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                         console.log('Clicked:',object);
                         reqParams.setReqion(object.region);
                         useReqParamsStore().setRgt(object.rgt);
+                        useAtl06ChartFilterStore().setRgt(object.rgt);
                         useReqParamsStore().setCycle(object.cycle);
-                        useReqParamsStore().setTracks(object.track);
-                        useReqParamsStore().setBeams(object.beams);
+                        useAtl06ChartFilterStore().setCycle(object.cycle);
+                        useReqParamsStore().setBeamsAndTracksWithGt(object.gt); // use spot to determine track and beam
+                        useAtl06ChartFilterStore().setBeamsAndTracksWithGt(object.gt);
                     }
                 }
             });

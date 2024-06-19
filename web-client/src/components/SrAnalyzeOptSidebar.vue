@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { onMounted,ref,watch } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
-import SrMenuMultiInput from './SrMenuMultiInput.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
-import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab  from 'primevue/accordiontab';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
+import {useAtl06ChartFilterStore} from '@/stores/atl06ChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrSelectParquetReader from './SrSelectParquetReader.vue';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import { useToast } from "primevue/usetoast";
 import SrParquetFileUpload from './SrParquetFileUpload.vue';
+import SrFilterBeams from './SrFilterBeams.vue';
+import SrFilterTracks from './SrFilterTracks.vue';
+
 const toast = useToast();
 
 const requestsStore = useRequestsStore();
@@ -24,7 +25,7 @@ const props = defineProps({
 
 const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
-const reqParamsStore = useReqParamsStore();
+const atl06ChartFilterStore = useAtl06ChartFilterStore();
 //const activeTabIndex = ref([0]); // Opens the first tab by default
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
@@ -120,28 +121,14 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
-                <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                    <AccordionTab header="General" >
-                        <SrMenuMultiInput
-                                v-model="reqParamsStore.tracks"
-                                label = "Track(s)"
-                                aria-label="Select Tracks"
-                                :menuOptions="reqParamsStore.tracksOptions"
-                                :default="reqParamsStore.tracksOptions"
-                                tooltipText="Each track has both a weak and a strong spot"
-                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        />
-                        <SrMenuMultiInput
-                            v-model="reqParamsStore.beams"
-                            label = "Beam(s)"
-                            aria-label="Select Beams"
-                            :menuOptions="reqParamsStore.beamsOptions"
-                            :default="reqParamsStore.beamsOptions"
-                            tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        />
-                        <SrSwitchedSliderInput
-                            v-model="reqParamsStore.rgtValue"
+                <Accordion :multiple="true" :activeIndex="[0]" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                    <AccordionTab header="Filter" >
+                        <div class="sr-tracks-beams">
+                            <SrFilterTracks/>
+                            <SrFilterBeams/>
+                        </div>
+                        <SrSliderInput
+                            v-model="atl06ChartFilterStore.rgtValue"
                             label="RGT"
                             :min="1"
                             :max="10000" 
@@ -150,7 +137,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                         />
                         <SrSliderInput
-                            v-model="reqParamsStore.cycleValue"
+                            v-model="atl06ChartFilterStore.cycleValue"
                             label="Cycle"
                             :min="1"
                             :max="100" 
@@ -159,7 +146,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                         />
                         <SrSliderInput
-                            v-model="reqParamsStore.regionValue"
+                            v-model="atl06ChartFilterStore.regionValue"
                             label="Region"
                             :min="1"
                             :max="100" 
@@ -210,6 +197,12 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     .sr-select-analyze-reader {
         display: flex;
         justify-content: center;
+        margin-top: 0.5rem;
+    }
+    .sr-tracks-beams {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
         margin-top: 0.5rem;
     }
 </style>

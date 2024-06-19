@@ -1,6 +1,6 @@
 <template>
 <div class="sr-ancillary-fields-container">
-    <SrMenuMultiInput
+    <SrMenuMultiInputText
         v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
         label="ATL03 GeoSpatial Fields"
@@ -11,7 +11,7 @@
         tooltipText='Fields in the “geolocation” and “geophys_corr” groups of the ATL03 granule'
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     />  
-    <SrMenuMultiInput
+    <SrMenuMultiInputText
         v-if="props.iceSat2SelectedAPI.value==='atl03' || props.iceSat2SelectedAPI.value==='atl06'"
         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
         label="ATL03 Photon Fields"
@@ -22,7 +22,7 @@
         tooltipText='Fields in the "heights"  groups of the ATL03 granule'
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     /> 
-    <SrMenuMultiInput
+    <SrMenuMultiInputText
         v-if="props.iceSat2SelectedAPI.value==='atl06s'"
         v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
         label="ATL03 IceSegment Fields"
@@ -48,7 +48,7 @@
 </div> 
 </template>
 <script setup lang="ts">
-import SrMenuMultiInput from './SrMenuMultiInput.vue';
+import SrMenuMultiInputText from './SrMenuMultiInputText.vue';
 import SrMenuMultiCheckInput from './SrMenuMultiCheckInput.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 const reqParamsStore = useReqParamsStore();

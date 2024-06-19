@@ -22,6 +22,7 @@
   }
 
   .sidebar-col {
+    flex-grow: 1;
     flex-basis: 20%;
     margin-top: 0.5rem;
     flex-direction: column;
@@ -29,7 +30,7 @@
   }
 
   main {
-    flex-basis: 80%;
+    flex-grow: 8;
     margin-top: 0.5rem;
     padding: 1 rem;
     border-radius: 2rem;
