@@ -1,10 +1,14 @@
+import { ref } from 'vue';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient,type QueryResult, type Row } from './SrDuckDb';
+import { createDuckDbClient, type QueryResult, type Row } from './SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+
+const atl06ChartFilterStore = useAtl06ChartFilterStore();
 
 interface SummaryRowData {
     minLat: number;
@@ -13,6 +17,8 @@ interface SummaryRowData {
     maxLon: number;
     minHMean: number;
     maxHMean: number;
+    lowHMean: number;
+    highHMean: number;
 }
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
@@ -45,11 +51,6 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         '${filename}'
                 `);
                 
-
-
-
-
-
                 // Collect rows from the async generator
                 const rows: SummaryRowData[] = [];
                 for await (const row of results.readRows()) {
@@ -64,13 +65,13 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         lowHMean: rowData.perc10HMean,
                         highHMean: rowData.perc90HMean
                     };
-                    console.log('duckDbReadOrCacheSummary typedRow:', typedRow);
+                    //console.log('duckDbReadOrCacheSummary typedRow:', typedRow);
                     rows.push(typedRow);
-                    console.log('duckDbReadOrCacheSummary rows:', rows);
+                    //console.log('duckDbReadOrCacheSummary rows:', rows);
                 }
                 if (rows.length > 0) {
                     const row = rows[0];
-                    console.log('duckDbReadOrCacheSummary row:', row);
+                    //console.log('duckDbReadOrCacheSummary row:', row);
                     localExtLatLon.minLat = row.minLat;
                     localExtLatLon.maxLat = row.maxLat;
                     localExtLatLon.minLon = row.minLon;
@@ -79,7 +80,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.maxHMean = row.maxHMean;
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
-                    console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
+                    //console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
                     await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
                 } else {
                     throw new Error('No rows returned');
@@ -144,7 +145,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
                 const use_white = false; // or set this based on your requirement
                 console.log('duckDbReadAndUpdateElevationData  hMeanNdx:', hMeanNdx, ' lonNdx:', lonNdx, ' latNdx:', latNdx, ' summary.extHMean:', summary.extHMean);
                 console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames, ' use_white:', use_white);
-                updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname, use_white);
+                updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname, use_white);//TBD rows[0] is really rowsChuck[0] iter thru both!
 
 
                 // const results = await duckDbClient.sql`SELECT * FROM '${filename}'`;//<----this fails in prepare because of dashes in name
@@ -201,4 +202,126 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
     }
+}
+
+export async function duckDbReadAndUpdateScatterData(req_id:number){
+
+}
+
+export interface SrScatterChartData { value: number[] };
+
+async function fetchScatterData(){
+    
+    const duckDbClient = await createDuckDbClient();
+    const chartData = ref<SrScatterChartData[]>([]);
+    const fileName = atl06ChartFilterStore.getFileName();
+
+    const x = 'x_atc';
+    const y = 'h_mean';
+        
+    try{
+        const beams = atl06ChartFilterStore.getBeams();
+        const rgt = atl06ChartFilterStore.getRgt();
+
+        if (!beams.length) {
+            throw new Error('No beams found in the filter store.');
+        }
+        console.log('fetchData filename:', fileName);
+        console.log('fetchData beams:', beams);
+        console.log('fetchData rgt:', rgt);
+        const query = `
+            SELECT 
+                ${x}, 
+                ${y}
+            FROM '${fileName}'
+            WHERE gt = ${beams[0]} AND rgt = ${rgt}
+        `;
+        const queryResult:QueryResult = await duckDbClient.query(query);
+        console.log('fetchData query:', query);
+        console.log('fetchData QueryResult:', queryResult);
+
+        for await (const rowChunk of queryResult.readRows()) {
+            console.log('fetchData rowChunk:', rowChunk);
+            for(const row of rowChunk){
+                if(row){
+                    //console.log('fetchData row:', row);
+                    const typedRow: SrScatterChartData = {
+                        value: [row.x_atc,row.h_mean]
+                    };
+                    chartData.value.push(typedRow);
+                } else {
+                    console.warn('fetchData rowData is null');
+                }
+            }
+        }
+       
+
+        const query2 = `
+            SELECT 
+                MIN(${x}) as min_x,
+                MAX(${x}) as max_x,
+                MIN(${y}) as min_y,
+                MAX(${y}) as max_y
+            FROM '${fileName}'
+            WHERE gt = ${beams[0]} AND rgt = ${rgt}
+        `;
+        const queryResult2:QueryResult = await duckDbClient.query(query2);
+        console.log('fetchData query2:', query2);
+        console.log('fetchData QueryResult2:', queryResult2);
+
+        for await (const rowChunk of queryResult2.readRows()) {
+            console.log('fetchData rowChunk:', rowChunk);
+            for(const row of rowChunk){
+                if(row){
+                    atl06ChartFilterStore.setMinX(row.min_x);
+                    atl06ChartFilterStore.setMaxX(row.max_x);
+                    atl06ChartFilterStore.setMinY(row.min_y);
+                    atl06ChartFilterStore.setMaxY(row.max_y);                   
+                } else {
+                    console.warn('fetchData rowData is null');
+                }
+            }
+            console.log('fetchData min_x:',atl06ChartFilterStore.getMinX(),' max_x:',atl06ChartFilterStore.getMaxX(),' min_y:',atl06ChartFilterStore.getMinY(),' max_y:',atl06ChartFilterStore.getMaxY());
+        }
+        console.log('fetchData chartData:', chartData);
+        return chartData.value;
+    } catch (error) {
+      console.error('fetchData Error fetching data:', error);
+    }
+};
+
+
+export async function getScatterOptions(){
+    const scatterData = await fetchScatterData();
+    const options = {
+        title: {
+          text: "Scatter Plot",
+          left: "center"
+        },
+        tooltip: {
+          trigger: "item",
+          formatter: "({c})"
+        },
+        legend: {
+          data: ['Scatter'],
+          left: 'left'
+        },
+        xAxis: {
+            min: atl06ChartFilterStore.getMinX(),
+            max: atl06ChartFilterStore.getMaxX()
+        },
+        yAxis: {
+            min: atl06ChartFilterStore.getMinY(),
+            max: atl06ChartFilterStore.getMaxY()
+        },
+        series: [
+          {
+            name: 'Scatter',
+            type: 'scatter',
+            data: scatterData,
+          }
+        ]
+    } 
+    console.log('getScatterOptions options:',options);
+    return options;   
 }

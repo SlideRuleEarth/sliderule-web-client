@@ -110,7 +110,7 @@ export async function createDb(): Promise<AsyncDuckDB> {
 // DuckDBClient class
 export class DuckDBClient {
   private _db: AsyncDuckDB | null = null;
-  private static _instance: DuckDBClient | null = null;
+  private static _instance: Promise<DuckDBClient> | null = null;
   private _filesInDb: Set<string> = new Set(); // Use a set to store registered files
   constructor(db?: AsyncDuckDB) {
     if (db) {
@@ -121,16 +121,19 @@ export class DuckDBClient {
   // Method to get the singleton instance of DuckDBClient
   public static async getInstance(): Promise<DuckDBClient> {
     if (!this._instance) {
-      console.log('----- DuckDBClient.getInstance -----');
-      const db = await createDb();
-      this._instance = new DuckDBClient(db);
-      await this._instance.duckDB();
+      this._instance = (async () => {
+        const db = await createDb();
+        const instance = new DuckDBClient(db);
+        await instance.duckDB();
+        return instance;
+      })();
     }
     return this._instance;
   }
 
+
   // Method to initialize the database if not already done
-  async duckDB(): Promise<AsyncDuckDB> {
+  private async duckDB(): Promise<AsyncDuckDB> {
     if (!this._db) {
       this._db = await createDb();
       await this._db.open({
@@ -213,7 +216,6 @@ export class DuckDBClient {
 
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
-    console.log('insertOpfsParquet name:',name);
     try {
       if (!this._filesInDb.has(name)) {
         const duckDB = await this.duckDB();
@@ -235,8 +237,9 @@ export class DuckDBClient {
         );
         // Add the file to the set of registered files
         this._filesInDb.add(name);
+        console.log('insertOpfsParquet inserted name:',name);
       } else {
-        console.log(`File ${name} already registered`);
+        console.log(`insertOpfsParquet File ${name} already registered`);
       }
     } catch (error) {
       console.error('insertOpfsParquet error:', error);
@@ -262,5 +265,6 @@ export class DuckDBClient {
 
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
+  console.log('createDuckDbClient');
   return DuckDBClient.getInstance();
 }

@@ -218,7 +218,7 @@ export interface ElevationDataItem {
 }
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
     try{
-        const canvas = document.querySelector('canvas');
+        //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
         const layer =     
             new PointCloudLayer({
@@ -239,11 +239,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                     //console.log('onHover object:',object,' x:',x,' y:',y);
                     if (object) {
                         //console.log('object',object,'newObject:',newObject);
-                        canvas.style.cursor = 'pointer'; // Change cursor to pointer
+                        //canvas.style.cursor = 'pointer'; // Change cursor to pointer
                         const tooltip = formatObject(object);
                         showTooltip({ x, y, tooltip });
                     } else {
-                        canvas.style.cursor = 'grab';
+                        //canvas.style.cursor = 'grab';
                         hideTooltip();
                     }
                 },

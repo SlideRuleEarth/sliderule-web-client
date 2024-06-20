@@ -1,8 +1,10 @@
+import { type SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
+
 export const tracksOptions = [
     { name: 'Track 1' , value: 1 }, 
     { name: 'Track 2' , value: 2 },
     { name: 'Track 3' , value: 3 }
-  ] as SrMultiSelectTextItem[];
+  ] as SrMultiSelectNumberItem[];
 
 export const beamsOptions = [
     {name:'gt1l',value:10}, 
