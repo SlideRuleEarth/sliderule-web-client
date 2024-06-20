@@ -3,7 +3,7 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 //import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from '@/utils/SrHyparquetUtils';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, duckDbReadAndUpdateScatterData } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient} from './SrDuckDb';
 
@@ -197,20 +197,26 @@ export const readAndUpdateElevationData = async (req_id:number) => {
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             duckDbReadAndUpdateElevationData(req_id);
-            // const duckDbClient = await createDuckDbClient();
-            // const tbls = await duckDbClient.describeTables();
-            // console.log('readAndUpdateElevationData tbls:',tbls);
-            // if (tbls.length > 0) {
-            //     const cols = duckDbClient.describeColumns({table:tbls[0].name});
-            //     console.log('readAndUpdateElevationData cols:',cols);
-            // } else {
-            //     console.error('readAndUpdateElevationData no tables found');
-            // }
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }
     } catch (error) {
         console.error('readAndUpdateElevationData error:',error);
+        throw error;
+    }
+}
+
+export const readAndUpdateScatterData = async (req_id:number) => {
+    try{
+        console.log('readAndUpdateScatterData req_id:',req_id);
+
+        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+            duckDbReadAndUpdateScatterData(req_id);
+        } else {
+            throw new Error('readAndUpdateScatterData unknown reader');
+        }
+    } catch (error) {
+        console.error('readAndUpdateScatterData error:',error);
         throw error;
     }
 }

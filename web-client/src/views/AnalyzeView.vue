@@ -26,7 +26,7 @@ onMounted(async () => {
             </SrSideBar>
         </template>
         <template v-slot:main>
-            <SrScatterPlot />
+            <SrScatterPlot/>
         </template>
     </TwoColumnLayout>
 </template>

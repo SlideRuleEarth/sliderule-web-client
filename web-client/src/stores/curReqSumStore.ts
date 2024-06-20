@@ -147,12 +147,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
         },
         getPercentComplete() {
             return Math.floor(this.percentComplete);
-        },
-        set_req_id(req_id: number) {
-            this.req_id = req_id;
-        },
-        get_req_id() {
-            return this.req_id;
-        },
+        }
     },
 });

@@ -14,18 +14,19 @@ import { useToast } from "primevue/usetoast";
 import SrParquetFileUpload from './SrParquetFileUpload.vue';
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
+import { db } from '@/db/SlideRuleDb';
 
 const toast = useToast();
 
 const requestsStore = useRequestsStore();
-
+const curReqSumStore = useCurReqSumStore();
+const atl06ChartFilterStore = useAtl06ChartFilterStore();
 const props = defineProps({
     startingReqId: Number,
 });
 
 const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
-const atl06ChartFilterStore = useAtl06ChartFilterStore();
 //const activeTabIndex = ref([0]); // Opens the first tab by default
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
@@ -82,14 +83,16 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             newSelection = reqIds.value[0];  
         }
         //console.log('Using filtered newSelection:', newSelection);
-        useCurReqSumStore().set_req_id(Number(newSelection.value));
+        curReqSumStore.setReqId(Number(newSelection.value));
+        atl06ChartFilterStore.setReqId(Number(newSelection.value));
+        atl06ChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
     try {
         console.log('pushing selectedReqId:', newSelection.value);
-        router.push(`/analyze/${useCurReqSumStore().get_req_id()}`);
-        console.log('Successfully navigated to analyze:', useCurReqSumStore().get_req_id());
+        router.push(`/analyze/${useCurReqSumStore().getReqId()}`);
+        console.log('Successfully navigated to analyze:', useCurReqSumStore().getReqId());
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
     }

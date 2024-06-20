@@ -1,8 +1,8 @@
 <template>
-  <v-chart class="chart" :option="option" />
+  <v-chart class="chart" :option="option" autoresize />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
@@ -12,8 +12,13 @@ import {
   LegendComponent
 } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { ref, provide, watch } from "vue";
-import { useChartData } from '@/composables/useChartData'; 
+import { shallowRef, provide, watch,onMounted,type Ref } from "vue";
+import { useCurReqSumStore } from "@/stores/curReqSumStore";
+import { useAtl06ChartFilterStore } from "@/stores/atl06ChartFilterStore";
+import { getScatterOptions } from "@/utils/SrDuckDbUtils";
+const atl06ChartFilterStore = useAtl06ChartFilterStore();
+const curReqSumStore = useCurReqSumStore();
+
 
 use([
   CanvasRenderer,
@@ -25,35 +30,44 @@ use([
 
 provide(THEME_KEY, "dark");
 
-const { chartData } = useChartData();
 
-const option = ref({
-  title: {
-    text: "Scatter Plot",
-    left: "center"
-  },
-  tooltip: {
-    trigger: "item",
-    formatter: "({c})"
-  },
-  legend: {
-    data: ['Scatter'],
-    left: 'left'
-  },
-  xAxis: {},
-  yAxis: {},
-  series: [
-    {
-      name: 'Scatter',
-      type: 'scatter',
-      data: chartData.value,
-    }
-  ]
+let option = shallowRef();
+
+
+// const loadChartData = async (reqId: number) => {
+//   try {
+//     const filename = await db.getFilename(reqId);
+//     chartData.value = useParquetFileData(filename);
+//   } catch (error) {
+//     console.error('Error loading chart data:', error);
+//   }
+// };
+
+onMounted(async () => {
+  const reqId = curReqSumStore.getReqId();
+  console.log('SrScatterPlot onMounted Loading SrScatterPlot with ID:', reqId);
+  if(reqId){
+    option.value = await getScatterOptions();
+  } else {
+    console.warn('reqId is undefined');
+  }
 });
 
-watch(chartData, (newData) => {
-  option.value.series[0].data = newData;
+
+
+watch(() => atl06ChartFilterStore.$state, async (newState, oldState) => {
+    console.log('SrScatterPlot watch atl06ChartFilterStore oldState:', oldState);
+    console.log('SrScatterPlot watch atl06ChartFilterStore newState:', newState);
+    option.value = await getScatterOptions();
+},{ deep: true }// Ensure deep watching of nested properties
+);
+
+// Watch for changes on reqId
+watch(() => atl06ChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
+  console.log(`SrScatterPlot reqId changed from ${oldReqId} to ${newReqId}`);
+  option.value = await  getScatterOptions();
 });
+
 </script>
 
 <style scoped>
