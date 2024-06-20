@@ -222,6 +222,7 @@ async function fetchScatterData(){
     try{
         const beams = atl06ChartFilterStore.getBeams();
         const rgt = atl06ChartFilterStore.getRgt();
+        const cycle = atl06ChartFilterStore.getCycle();
 
         if (!beams.length) {
             throw new Error('No beams found in the filter store.');
@@ -234,7 +235,7 @@ async function fetchScatterData(){
                 ${x}, 
                 ${y}
             FROM '${fileName}'
-            WHERE gt = ${beams[0]} AND rgt = ${rgt}
+            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}    
         `;
         const queryResult:QueryResult = await duckDbClient.query(query);
         console.log('fetchData query:', query);
