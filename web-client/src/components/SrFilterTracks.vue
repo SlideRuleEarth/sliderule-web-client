@@ -6,17 +6,16 @@
             :tooltipUrl="tooltipUrl" 
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
+        <Button 
+            label="all" 
+            size="small"
+            outlined 
+            @click="handleSelectAllItems">
+        </Button>
         <div ref="menuElement" :class="menuClass" >
-            <SrCheckbox 
-                v-model="atl06ChartFilterStore.selectAllTracks" 
-                label="All" 
-                :default="true" 
-                @update:modelValue="handleSelectAllItems"  
-                :insensitive=insensitive 
-            />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
-                    v-model="atl06ChartFilterStore.tracks" 
+                    v-model="localTracks" 
                     @input="handleSelectionChange"
                     class="sr-menu-multi-input-select-default" 
                     name="sr-select-multi-menu" 
@@ -37,14 +36,14 @@
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed } from 'vue';
-    import SrCheckbox from './SrCheckbox.vue';
+    import {  onMounted,computed,ref,watch } from 'vue';
+    import Button from 'primevue/button';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { tracksOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
     
     const atl06ChartFilterStore = useAtl06ChartFilterStore();
-
+    const localTracks = ref<number[]>(tracksOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
             type: String,
@@ -56,7 +55,7 @@
         },
         tooltipText: {
             type: String,
-            default: 'Each track has both a weak and a strong spot'
+            default: 'Weak and strong spots are determined by orientation of the satellite'
         },
         tooltipUrl: {
             type: String,
@@ -68,19 +67,17 @@
         }
     });
 
-    const handleSelectAllItems = (newValue) => {
-        if (newValue) {
-            atl06ChartFilterStore.tracks = tracksOptions.map(item => item.value);
-        } else {
-            atl06ChartFilterStore.tracks = [];
-        }
-        console.log('newValue:', newValue, ' atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
+    const handleSelectAllItems = (newValue: boolean) => {
+        localTracks.value = newValue ? tracksOptions.map(item => item.value) : [];
+        atl06ChartFilterStore.tracks = localTracks.value;
+        console.log('handleSelectAllItems newValue:', newValue, ' atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
     };
-
-    const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
-        console.log('handleSelectionChange newValue:', newValue);
-        atl06ChartFilterStore.selectAllTracks = newValue.length === tracksOptions.length;
+    
+    const handleSelectionChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
+        atl06ChartFilterStore.setTracks(newValue)
+        console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
@@ -100,6 +97,13 @@
         'sr-menu-multi-input-select-default': true,
         'sr-menu-multi-input-select-insensitive': props.insensitive
     }));
+
+
+    watch(() => atl06ChartFilterStore.tracks, (newTracks, oldTracks) => {
+        console.log('SrFilterTracks watch atl06ChartFilterStore oldTracks:', oldTracks);
+        console.log('SrFilterTracks watch atl06ChartFilterStore newTracks:', newTracks);
+        localTracks.value = newTracks;
+    });
 
 </script>
 

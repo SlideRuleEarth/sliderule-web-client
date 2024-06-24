@@ -6,17 +6,16 @@
             :tooltipUrl="tooltipUrl" 
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
+        <Button 
+            label="all" 
+            size="small"
+            outlined 
+            @click="handleSelectAllItems">
+        </Button> 
         <div ref="menuElement" :class="menuClass" >
-            <SrCheckbox 
-                v-model="atl06ChartFilterStore.selectAllBeams" 
-                label="All" 
-                :default="true" 
-                @update:modelValue="handleSelectAllItems"  
-                :insensitive=insensitive 
-            />
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
-                    v-model="atl06ChartFilterStore.beams" 
+                    v-model="localBeams" 
                     @input="handleSelectionChange"
                     class="sr-menu-multi-input-select-default" 
                     name="sr-select-multi-menu" 
@@ -37,14 +36,14 @@
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed } from 'vue';
-    import SrCheckbox from './SrCheckbox.vue';
+    import {  onMounted,computed,ref,watch,nextTick } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { beamsOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+    import Button from 'primevue/button';
     
     const atl06ChartFilterStore = useAtl06ChartFilterStore();
-
+    const localBeams = ref<number[]>(beamsOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
             type: String,
@@ -68,19 +67,17 @@
         }
     });
 
-    const handleSelectAllItems = (newValue) => {
-        if (newValue) {
-            atl06ChartFilterStore.beams = beamsOptions.map(item => item.value);
-        } else {
-            atl06ChartFilterStore.beams = [];
-        }
-        console.log('newValue:', newValue, ' atl06ChartFilterStore.beams:', atl06ChartFilterStore.beams);
+    function handleSelectAllItems() {
+        localBeams.value = beamsOptions.map(item => item.value);
+        atl06ChartFilterStore.beams = localBeams.value;
+        console.log('handleSelectAllItems atl06ChartFilterStore.beams:', atl06ChartFilterStore.beams);
     };
-
-    const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
-        console.log('handleSelectionChange newValue:', newValue);
-        atl06ChartFilterStore.selectAllBeams = newValue.length === beamsOptions.length;
+    
+    const handleSelectionChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
+        atl06ChartFilterStore.setBeams(newValue)
+        console.log('SrFilterBeams handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
@@ -100,6 +97,15 @@
         'sr-menu-multi-input-select-default': true,
         'sr-menu-multi-input-select-insensitive': props.insensitive
     }));
+
+
+    watch(() => atl06ChartFilterStore.beams, (newBeams, oldBeams) => {
+        nextTick(() => {
+            console.log('SrFilterBeams watch atl06ChartFilterStore oldBeams:', oldBeams);
+            console.log('SrFilterBeams watch atl06ChartFilterStore newBeams:', newBeams);
+            localBeams.value = newBeams;
+        });
+    });
 
 </script>
 

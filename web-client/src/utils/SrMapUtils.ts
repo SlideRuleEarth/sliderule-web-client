@@ -17,9 +17,8 @@ import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
+import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 
-const reqParams = useReqParamsStore();
-const filterParams = useAtl06ChartFilterStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -115,21 +114,21 @@ function getColorForElevation(elevation:number, minElevation:number, maxElevatio
 }
 
 
-function replaceKeysWithLabels(
-        originalObject: { [key: string]: any },
-        fieldNames: string[]
-    ): { [key: string]: any } {
-    const newObject: { [key: string]: any } = {};
+// function replaceKeysWithLabels(
+//         originalObject: { [key: string]: any },
+//         fieldNames: string[]
+//     ): { [key: string]: any } {
+//     const newObject: { [key: string]: any } = {};
 
-    Object.keys(originalObject).forEach((key) => {
-        const newKey = fieldNames[parseInt(key, 10)];
-        if (newKey !== undefined) {
-            newObject[newKey] = originalObject[key];
-        }
-    });
+//     Object.keys(originalObject).forEach((key) => {
+//         const newKey = fieldNames[parseInt(key, 10)];
+//         if (newKey !== undefined) {
+//             newObject[newKey] = originalObject[key];
+//         }
+//     });
     
-    return newObject;
-}
+//     return newObject;
+// }
 
 
 function formatObject(obj: { [key: string]: any }): string {
@@ -161,62 +160,79 @@ function hideTooltip():void {
     }
 }
 
-export function updateElLayerWithArray(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
-    try{
-        console.log('updateElLayerWithArray elevationData.length:',elevationData.length,'elevationData:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
-        const layer =     
-            new PointCloudLayer({
-                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-                data: elevationData,
-                getPosition: (d:number[]) => {
-                    //console.log('lon: d[',lonNdx,']:',d[lonNdx],' lat: d[',latNdx,']:',d[latNdx],' hMean: d[',hMeanNdx,']:',d[hMeanNdx]);
-                    return [d[lonNdx], d[latNdx], 0]// d[hMeanNdx]]
-                },
-                getNormal: [0, 0, 1],
-                getColor: (d:number[]) => {
-                    if (use_white) return [255, 255, 255, 127];
-                    return getColorForElevation(d[hMeanNdx], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                },
-                pointSize: 3,
-                pickable: true, // Enable picking
-                onHover: ({ object, x, y }) => {
-                    //console.log('onHover object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        const newObject = replaceKeysWithLabels(object, fieldNames);
-                        //console.log('object',object,'newObject:',newObject);
-                        const tooltip = formatObject(newObject);
-                        showTooltip({ x, y, tooltip });
-                    } else {
-                        hideTooltip();
-                    }
-                },
-                onClick: ({ object, x, y }) => {
-                    //console.log('onclick object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        const newObject = replaceKeysWithLabels(object, fieldNames);
-                        console.log('Clicked:',newObject);
-                        reqParams.setReqion(newObject.region);
-                        useReqParamsStore().setRgt(newObject.rgt);
-                        useReqParamsStore().setCycle(newObject.cycle);
-                        useReqParamsStore().setTracks(newObject.track);
-                        useReqParamsStore().setBeams(newObject.beams);
-                    }
-                }
-            });
-        if(useMapStore().getDeckInstance()){
-            useMapStore().getDeckInstance().setProps({layers:[layer]});
-        } else {
-            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
-        }
-    } catch (error) {
-        console.error('Error updating elevation layer:',error);
-    }
-}
+// export function updateElLayerWithArray(elevationData:any[][],hMeanNdx:number,lonNdx:number,latNdx:number, extHMean: ExtHMean, fieldNames:string[], use_white:boolean = false): void{
+//     try{
+//         console.log('updateElLayerWithArray elevationData.length:',elevationData.length,'elevationData:',elevationData,'hMeanNdx:',hMeanNdx,'lonNdx:',lonNdx,'latNdx:',latNdx, 'use_white:',use_white);
+//         const layer =     
+//             new PointCloudLayer({
+//                 id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
+//                 data: elevationData,
+//                 getPosition: (d:number[]) => {
+//                     //console.log('lon: d[',lonNdx,']:',d[lonNdx],' lat: d[',latNdx,']:',d[latNdx],' hMean: d[',hMeanNdx,']:',d[hMeanNdx]);
+//                     return [d[lonNdx], d[latNdx], 0]// d[hMeanNdx]]
+//                 },
+//                 getNormal: [0, 0, 1],
+//                 getColor: (d:number[]) => {
+//                     if (use_white) return [255, 255, 255, 127];
+//                     return getColorForElevation(d[hMeanNdx], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+//                 },
+//                 pointSize: 3,
+//                 pickable: true, // Enable picking
+//                 onHover: ({ object, x, y }) => {
+//                     //console.log('onHover object:',object,' x:',x,' y:',y);
+//                     if (object) {
+//                         const newObject = replaceKeysWithLabels(object, fieldNames);
+//                         //console.log('object',object,'newObject:',newObject);
+//                         const tooltip = formatObject(newObject);
+//                         showTooltip({ x, y, tooltip });
+//                     } else {
+//                         hideTooltip();
+//                     }
+//                 },
+//                 onClick: ({ object, x, y }) => {
+//                     //console.log('onclick object:',object,' x:',x,' y:',y);
+//                     if (object) {
+//                         const newObject = replaceKeysWithLabels(object, fieldNames);
+//                         console.log('Clicked:',newObject);
+//                         reqParams.setReqion(newObject.region);
+//                         useReqParamsStore().setRgt(newObject.rgt);
+//                         useReqParamsStore().setCycle(newObject.cycle);
+//                         useReqParamsStore().setTracks(newObject.track);
+//                         useReqParamsStore().setBeams(newObject.beams);
+//                     }
+//                 }
+//             });
+//         if(useMapStore().getDeckInstance()){
+//             useMapStore().getDeckInstance().setProps({layers:[layer]});
+//         } else {
+//             console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+//         }
+//     } catch (error) {
+//         console.error('Error updating elevation layer:',error);
+//     }
+// }
 
 export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
-export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, use_white:boolean = false): void{
+
+function clicked(d:ElevationDataItem): void {
+    console.log('Clicked:',d);
+    useReqParamsStore().setRgt(d.rgt);
+    useAtl06ChartFilterStore().setRgt(d.rgt);
+    useReqParamsStore().setCycle(d.cycle);
+    useAtl06ChartFilterStore().setCycle(d.cycle);
+    useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
+    useAtl06ChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+    useAtl06ChartFilterStore().setUpdateScatterPlot();
+}
+
+function checkFilter(d:ElevationDataItem): boolean {
+    const parms = getBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
+    return (useAtl06ChartFilterStore().getRgt() == d.rgt && useAtl06ChartFilterStore().getCycle() == d.cycle && parms.beams.includes(d.gt));
+}
+
+export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     try{
         //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
@@ -229,8 +245,9 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d) => {
-                    if (use_white) return [255, 255, 255, 127];
-                    //console.log('d[heightFieldName]:',d[heightFieldName],'extHMean.lowHMean:',extHMean.lowHMean,'extHMean.highHMean:',extHMean.highHMean);
+                    if(checkFilter(d)){
+                        return [255, 0, 0, 127];
+                    }
                     return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 },
                 pointSize: 3,
@@ -250,14 +267,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 onClick: ({ object, x, y }) => {
                     //console.log('onclick object:',object,' x:',x,' y:',y);
                     if (object) {
-                        console.log('Clicked:',object);
-                        reqParams.setReqion(object.region);
-                        useReqParamsStore().setRgt(object.rgt);
-                        useAtl06ChartFilterStore().setRgt(object.rgt);
-                        useReqParamsStore().setCycle(object.cycle);
-                        useAtl06ChartFilterStore().setCycle(object.cycle);
-                        useReqParamsStore().setBeamsAndTracksWithGt(object.gt); // use spot to determine track and beam
-                        useAtl06ChartFilterStore().setBeamsAndTracksWithGt(object.gt);
+                        clicked(object);
                     }
                 }
             });
@@ -317,25 +327,31 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     }
 }
 
+export function removeDeckLayer(map: OLMap){
+    const current_layer = useMapStore().getDeckLayer();
+    if(current_layer){
+        map.removeLayer(current_layer);
+    } else {
+        //console.error('No current_layer to remove.');
+    }
+}
+
+export function addDeckLayer(map: OLMap, deck:Deck){
+    const deckLayer = createNewDeckLayer(deck);
+    if(deckLayer){
+        map.addLayer(deckLayer);
+    } else {
+        //console.error('No current_layer to add.');
+    }
+}
+
 export function updateDeck(map: OLMap){
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = createDeckGLInstance(tgt);
    
     if(deck){
-      const current_layer = useMapStore().getDeckLayer();
-      if(current_layer){
-        //console.log('Removing current_layer:',current_layer);
-        map.removeLayer(current_layer);
-      }else{
-        //console.log('No current_layer to remove.');
-      }
-      const deckLayer = createNewDeckLayer(deck);
-      if(deckLayer){
-          map.addLayer(deckLayer);
-          //console.log('deckLayer added:',deckLayer);
-      } else {
-          console.error('createDeckGLInstance returned null');
-      }
+        removeDeckLayer(map);
+        addDeckLayer(map,deck);        
     } else {
       console.error('deck Instance is null');
     }

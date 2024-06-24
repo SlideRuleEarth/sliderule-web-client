@@ -33,6 +33,6 @@ export const beamsOptions = [
         }
     }
     
-    console.log(`getBeamsAndTracksWithGt(${gt}) -> beams:`,beams,'tracks:',tracks);
+    //console.log(`getBeamsAndTracksWithGt(${gt}) -> beams:`,beams,'tracks:',tracks);
     return {beams, tracks};
   }

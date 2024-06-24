@@ -141,28 +141,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
                 const lonNdx = fieldNames.indexOf('longitude');
                 const latNdx = fieldNames.indexOf('latitude');
 
- 
-                const use_white = false; // or set this based on your requirement
                 console.log('duckDbReadAndUpdateElevationData  hMeanNdx:', hMeanNdx, ' lonNdx:', lonNdx, ' latNdx:', latNdx, ' summary.extHMean:', summary.extHMean);
-                console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames, ' use_white:', use_white);
-                updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname, use_white);//TBD rows[0] is really rowsChuck[0] iter thru both!
-
-
-                // const results = await duckDbClient.sql`SELECT * FROM '${filename}'`;//<----this fails in prepare because of dashes in name
-                // console.log('duckDbReadAndUpdateElevationData results:',results);
-                // // Step 5: Process and update the elevation data as needed
-                // // Extract field names from the first row (assuming all rows have the same structure)
-                // const fieldNames = Object.keys(results[0]);
-
-                // // Find the indexes for hMean, latitude, and longitude
-                // const hMeanNdx = fieldNames.indexOf(height_fieldname);
-                // const lonNdx = fieldNames.indexOf('longitude');
-                // const latNdx = fieldNames.indexOf('latitude');
-
-                // // Map results to elevationData array containing all fields
-                // const elevationData: any[][] = results.map((row: any) => {
-                //     return fieldNames.map(fieldName => row[fieldName]);
-                // });
+                console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames);
+                updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname);//TBD rows[0] is really rowsChunk[0] iter thru both!
             } else {
                 console.warn('duckDbReadAndUpdateElevationData rows is empty');
             }
@@ -210,7 +191,7 @@ export async function duckDbReadAndUpdateScatterData(req_id:number){
 
 export interface SrScatterChartData { value: number[] };
 
-async function fetchScatterData(){
+async function fetchScatterData(beams:number[],rgt:number,cycle:number){
     
     const duckDbClient = await createDuckDbClient();
     const chartData = ref<SrScatterChartData[]>([]);
@@ -220,13 +201,6 @@ async function fetchScatterData(){
     const y = 'h_mean';
         
     try{
-        const beams = atl06ChartFilterStore.getBeams();
-        const rgt = atl06ChartFilterStore.getRgt();
-        const cycle = atl06ChartFilterStore.getCycle();
-
-        if (!beams.length) {
-            throw new Error('No beams found in the filter store.');
-        }
         console.log('fetchData filename:', fileName);
         console.log('fetchData beams:', beams);
         console.log('fetchData rgt:', rgt);
@@ -292,37 +266,46 @@ async function fetchScatterData(){
 };
 
 
-export async function getScatterOptions(){
-    const scatterData = await fetchScatterData();
-    const options = {
-        title: {
-          text: "Scatter Plot",
-          left: "center"
-        },
-        tooltip: {
-          trigger: "item",
-          formatter: "({c})"
-        },
-        legend: {
-          data: ['Scatter'],
-          left: 'left'
-        },
-        xAxis: {
-            min: atl06ChartFilterStore.getMinX(),
-            max: atl06ChartFilterStore.getMaxX()
-        },
-        yAxis: {
-            min: atl06ChartFilterStore.getMinY(),
-            max: atl06ChartFilterStore.getMaxY()
-        },
-        series: [
-          {
-            name: 'Scatter',
-            type: 'scatter',
-            data: scatterData,
-          }
-        ]
-    } 
+export async function getScatterOptions() : Promise<any>{
+
+    const beams = atl06ChartFilterStore.getBeams();
+    const rgt = atl06ChartFilterStore.getRgt();
+    const cycle = atl06ChartFilterStore.getCycle();
+    let options = null;
+    if (beams.length && rgt && cycle) {
+        const scatterData = await fetchScatterData(beams,rgt,cycle);
+        options = {
+            title: {
+            text: "Scatter Plot",
+            left: "center"
+            },
+            tooltip: {
+            trigger: "item",
+            formatter: "({c})"
+            },
+            legend: {
+            data: ['Scatter'],
+            left: 'left'
+            },
+            xAxis: {
+                min: atl06ChartFilterStore.getMinX(),
+                max: atl06ChartFilterStore.getMaxX()
+            },
+            yAxis: {
+                min: atl06ChartFilterStore.getMinY(),
+                max: atl06ChartFilterStore.getMaxY()
+            },
+            series: [
+            {
+                name: 'Scatter',
+                type: 'scatter',
+                data: scatterData,
+            }
+            ]
+        } 
+    } else {
+        console.warn('getScatterOptions beams:',beams,' rgt:',rgt,' cycle:',cycle);
+    }
     console.log('getScatterOptions options:',options);
     return options;   
 }

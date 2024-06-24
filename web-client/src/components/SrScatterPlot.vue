@@ -47,7 +47,12 @@ onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
   console.log('SrScatterPlot onMounted Loading SrScatterPlot with ID:', reqId);
   if(reqId){
-    option.value = await getScatterOptions();
+    const scatterOptions = await getScatterOptions();
+    if(scatterOptions){
+      option.value = scatterOptions;
+    } else {
+      console.warn('Failed to get scatter options');
+    }
   } else {
     console.warn('reqId is undefined');
   }
@@ -55,10 +60,19 @@ onMounted(async () => {
 
 
 
-watch(() => atl06ChartFilterStore.$state, async (newState, oldState) => {
-    console.log('SrScatterPlot watch atl06ChartFilterStore oldState:', oldState);
-    console.log('SrScatterPlot watch atl06ChartFilterStore newState:', newState);
+// watch(() => atl06ChartFilterStore.$state, async (newState, oldState) => {
+//     console.log('SrScatterPlot watch atl06ChartFilterStore oldState:', oldState);
+//     console.log('SrScatterPlot watch atl06ChartFilterStore newState:', newState);
+//     option.value = await getScatterOptions();
+// },{ deep: true }// Ensure deep watching of nested properties
+// );
+
+watch(() => atl06ChartFilterStore.getUpdateScatterPlot(), async (newState, oldState) => {
+  console.log(`SrScatterPlot watch atl06ChartFilterStore updateScatterPlot oldState:'${oldState} to newState:'${newState}`);
+  if(newState){
     option.value = await getScatterOptions();
+    atl06ChartFilterStore.resetUpdateScatterPlot();
+  }
 },{ deep: true }// Ensure deep watching of nested properties
 );
 

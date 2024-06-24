@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
-import { db } from '@/db/SlideRuleDb'
-import { set } from 'ol/transform';
+import type { get } from 'http';
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
         tracks:  [1,2,3] as number[],
         selectAllTracks: true,
         beams: [10,20,30,40,50,60] as number[],
-        selectAllBeams: true,
         rgtValue: 1,
         cycleValue: 1,
         regionValue: 1,
@@ -18,6 +16,7 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         max_x: 0,
         min_y: 0,
         max_y: 0,
+        updateScatterPlot: false,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -40,12 +39,14 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         setBeams(beams:number[]) {
           this.beams = beams;
+          console.log('atl06ChartFilterStore setBeams:', beams);
         },
         getBeams() {
           return this.beams;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;
+          console.log('atl06ChartFilterStore setTracks:', tracks);
         },
         getTracks() {
           return this.tracks;
@@ -55,12 +56,6 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         getSelectAllTracks() {
           return this.selectAllTracks;
-        },
-        setSelectAllBeams(selectAllBeams:boolean) {
-          this.selectAllBeams = selectAllBeams;
-        },
-        getSelectAllBeams() {
-          return this.selectAllBeams;
         },
         setBeamsAndTracksWithGt(gt:number) {
           const parms = getBeamsAndTracksWithGt(gt);
@@ -106,6 +101,15 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         getMaxY() {
           return this.max_y;
         },
+        setUpdateScatterPlot(){
+          this.updateScatterPlot = true;
+        },
+        getUpdateScatterPlot() {
+          return this.updateScatterPlot;
+        },
+        resetUpdateScatterPlot() {
+          this.updateScatterPlot = false;
+        }
     },
 })
 

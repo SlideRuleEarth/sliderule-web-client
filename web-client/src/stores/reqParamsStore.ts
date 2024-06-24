@@ -290,14 +290,31 @@ export const useReqParamsStore = defineStore('reqParams', {
         setReqion(reqionValue:number) {
           this.regionValue = reqionValue;
         },
+        getRegion() {
+          return this.regionValue;
+        },
         setRgt(rgtValue:number) {
           this.rgtValue = rgtValue;
+        },
+        getRgt() {
+          return this.rgtValue;
         },
         setCycle(cycleValue:number) {
           this.cycleValue = cycleValue;
         },
-        setBeams(beams:string[]) {
+        getCycle() {
+          this.cycleValue;
+        },
+        setBeams(beams:number[]) {
+          if(beams.length === 6) {
+            this.selectAllBeams = true;
+          } else {
+            this.selectAllBeams = false;
+          }
           this.beams = beams;
+        },
+        getBeams() {
+          return this.beams;
         },
         setBeamsAndTracksWithGt(gt:number) {
           console.log('setBeamsAndTracksWithGt:', gt);
@@ -305,16 +322,29 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.setBeams(parms.beams);
           this.setTracks(parms.tracks);
         },
-        setTracks(tracks:string[]) {
+        setTracks(tracks:number[]) {
+          if(tracks.length === 3) {
+            this.selectAllTracks = true;
+          } else {
+            this.selectAllTracks = false;
+          }
           this.tracks = tracks;
+        },
+        getTracks() {
+          return this.tracks;
         },
         setSelectAllTracks(selectAllTracks:boolean) {
           this.selectAllTracks = selectAllTracks;
         },
+        getSelectAllTracks() {
+          return this.selectAllTracks;
+        },
         setSelectAllBeams(selectAllBeams:boolean) {
           this.selectAllBeams = selectAllBeams;
         },
-
+        getSelectAllBeams() {
+          return this.selectAllBeams;
+        },
     },
 })
 
