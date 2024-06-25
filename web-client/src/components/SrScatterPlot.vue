@@ -1,5 +1,5 @@
 <template>
-  <v-chart class="chart" :option="option" autoresize />
+  <v-chart class="scatter-chart" :option="option" autoresize />
 </template>
 
 <script setup lang="ts">
@@ -32,17 +32,6 @@ provide(THEME_KEY, "dark");
 
 
 let option = shallowRef();
-
-
-// const loadChartData = async (reqId: number) => {
-//   try {
-//     const filename = await db.getFilename(reqId);
-//     chartData.value = useParquetFileData(filename);
-//   } catch (error) {
-//     console.error('Error loading chart data:', error);
-//   }
-// };
-
 onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
   console.log('SrScatterPlot onMounted Loading SrScatterPlot with ID:', reqId);
@@ -76,7 +65,7 @@ watch(() => atl06ChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
 </script>
 
 <style scoped>
-  .chart {
+  .scatter-chart {
     margin: 0.5rem;
     padding: 1rem;
     max-height: 50rem;

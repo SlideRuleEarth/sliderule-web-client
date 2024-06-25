@@ -118,11 +118,8 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-select-analyze-reader">
-            <SrSelectParquetReader/>
             <SrParquetFileUpload @upload="onUpload"/>
         </div>
-
-        <h3>Analysis Options</h3>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
                 <Accordion :multiple="true" :activeIndex="[0]" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
@@ -147,15 +144,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                             :max="100" 
                             :decimalPlaces="0"
                             tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                        />
-                        <SrSliderInput
-                            v-model="atl06ChartFilterStore.regionValue"
-                            label="Region"
-                            :min="1"
-                            :max="100" 
-                            :decimalPlaces="0"
-                            tooltipText="geographic region for corresponding standard product (defaults to all if not specified)"
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                         />
                     </AccordionTab>
