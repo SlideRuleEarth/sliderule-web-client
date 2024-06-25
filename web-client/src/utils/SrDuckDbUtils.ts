@@ -293,8 +293,9 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt}
         `;
+        console.log('fetchScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-
+        console.log('fetchScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -308,7 +309,7 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
                 }
             }
         }
-
+        console.log('fetchScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchData Error fetching data:', error);
@@ -340,38 +341,45 @@ export async function getScatterOptions(title: string): Promise<any> {
     const x = 'x_atc';
     const y = ['h_mean'];
     const fileName = atl06ChartFilterStore.getFileName();
-
     let options = null;
-    if (beams.length && rgt && cycle) {
-        const seriesData = await getSeries('Atl06', fileName, x, y, beams, rgt, cycle);
 
-        options = {
-            title: {
-                text: title,
-                left: "center"
-            },
-            tooltip: {
-                trigger: "item",
-                formatter: "({c})"
-            },
-            legend: {
-                data: seriesData.map(series => series.series.name),
-                left: 'left'
-            },
-            xAxis: {
-                min: atl06ChartFilterStore.getMinX(),
-                max: atl06ChartFilterStore.getMaxX()
-            },
-            yAxis: seriesData.map((series, index) => ({
-                min: series.min,
-                max: series.max,
-                type: 'value',
-                name: y[index]
-            })),
-            series: seriesData.map(series => series.series)
-        };
+    if(fileName){
+        if (beams.length && rgt && cycle) {
+            const seriesData = await getSeries('Atl06', fileName, x, y, beams, rgt, cycle);
+            options = {
+                title: {
+                    text: title,
+                    left: "center"
+                },
+                tooltip: {
+                    trigger: "item",
+                    formatter: "({c})"
+                },
+                legend: {
+                    data: seriesData.map(series => series.series.name),
+                    left: 'left'
+                },
+                xAxis: {
+                    min: atl06ChartFilterStore.getMinX(),
+                    max: atl06ChartFilterStore.getMaxX()
+                },
+                yAxis: seriesData.map((series, index) => ({
+                    type: 'value',
+                    name: y[index],
+                    min: seriesData[index].min,
+                    max: seriesData[index].max,
+                    scale: true,  // Add this to ensure the axis scales correctly
+                    axisLabel: {
+                        formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
+                    }
+                })),
+                series: seriesData.map(series => series.series)
+            };
+        } else {
+            console.warn('getScatterOptions beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+        }
     } else {
-        console.warn('getScatterOptions beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+        console.warn('getScatterOptions fileName is null');
     }
     console.log('getScatterOptions options:', options);
     return options;

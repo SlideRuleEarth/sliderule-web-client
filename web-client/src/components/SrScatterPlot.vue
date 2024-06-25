@@ -76,8 +76,10 @@ watch(() => atl06ChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
 </script>
 
 <style scoped>
-.chart {
-  max-height: 50rem;
-  max-width: 50rem;
-}
+  .chart {
+    margin: 0.5rem;
+    padding: 1rem;
+    max-height: 50rem;
+    max-width: 50rem;
+  }
 </style>
