@@ -17,8 +17,10 @@ import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
-import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 
+const atl06ChartFiltertore = useAtl06ChartFilterStore();
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -45,7 +47,7 @@ export function drawGeoJson(geoJsonData:string) {
     console.log('drawGeoJson:',geoJsonData);
     const map = useMapStore().map
     if(map){
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<Feature<Geometry>>;
         if (!vectorLayer) {
             console.error('Vector layer is not defined.');
             return;
@@ -225,11 +227,12 @@ function clicked(d:ElevationDataItem): void {
     useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
     useAtl06ChartFilterStore().setBeamsAndTracksWithGt(d.gt);
     useAtl06ChartFilterStore().setUpdateScatterPlot();
+    duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
-    const parms = getBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
-    return (useAtl06ChartFilterStore().getRgt() == d.rgt && useAtl06ChartFilterStore().getCycle() == d.cycle && parms.beams.includes(d.gt));
+    const matched = ((useAtl06ChartFilterStore().getRgt() == d.rgt) && (useAtl06ChartFilterStore().getCycle() == d.cycle) && (useAtl06ChartFilterStore().getBeams().includes(d.gt)));
+    return matched;
 }
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
@@ -245,10 +248,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
                 },
                 getNormal: [0, 0, 1],
                 getColor: (d) => {
-                    if(checkFilter(d)){
+                    if(checkFilter(d)==true){
                         return [255, 0, 0, 127];
+                    } else {
+                        return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                     }
-                    return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 },
                 pointSize: 3,
                 pickable: true, // Enable picking

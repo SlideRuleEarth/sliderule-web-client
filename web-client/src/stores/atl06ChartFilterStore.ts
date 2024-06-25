@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
-import type { get } from 'http';
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
@@ -17,6 +16,7 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         min_y: 0,
         max_y: 0,
         updateScatterPlot: false,
+        debugCnt: 0,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -109,6 +109,15 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         resetUpdateScatterPlot() {
           this.updateScatterPlot = false;
+        },
+        incrementDebugCnt() {
+          return ++this.debugCnt;
+        },
+        getDebugCnt() {
+          return this.debugCnt;
+        },
+        setDebugCnt(cnt:number) {
+          this.debugCnt = cnt;
         }
     },
 })

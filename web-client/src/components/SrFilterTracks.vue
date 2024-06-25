@@ -6,13 +6,14 @@
             :tooltipUrl="tooltipUrl" 
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
-        <Button 
-            label="all" 
-            size="small"
-            outlined 
-            @click="handleSelectAllItems">
-        </Button>
         <div ref="menuElement" :class="menuClass" >
+            <Button 
+                label="all" 
+                size="small"
+                class="sr-menu-select-all-button"
+                outlined 
+                @click="handleSelectAllItems">
+            </Button>
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
                     v-model="localTracks" 
@@ -21,8 +22,7 @@
                     name="sr-select-multi-menu" 
                     :id="`srSelectMultiMenu-{{ label }}`" 
                     multiple 
-                    :disabled="insensitive"
-                >
+                    :disabled="insensitive">
                     <option 
                         v-for="item in tracksOptions" 
                         :value="item.value" 
@@ -67,10 +67,10 @@
         }
     });
 
-    const handleSelectAllItems = (newValue: boolean) => {
-        localTracks.value = newValue ? tracksOptions.map(item => item.value) : [];
+    function handleSelectAllItems(){
+        localTracks.value = tracksOptions.map(item => item.value);
         atl06ChartFilterStore.tracks = localTracks.value;
-        console.log('handleSelectAllItems newValue:', newValue, ' atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
+        console.log('handleSelectAllItems atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
     };
     
     const handleSelectionChange = (event: Event) => {
@@ -114,11 +114,16 @@
     margin-bottom: 1rem;
 }
 
+.sr-menu-select-all-button {
+    padding: 0.25rem;
+    height: 1.3rem;
+    min-width: 100%;
+    color: var(--primary-300);
+}
 .sr-menu-multi-input-label {
     white-space: nowrap;
     font-size: small;
 }
-
 
 .sr-menu-multi-input-select-insensitive {
     color: #888; /* grey color */

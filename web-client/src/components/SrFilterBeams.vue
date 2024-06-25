@@ -6,13 +6,14 @@
             :tooltipUrl="tooltipUrl" 
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
-        <Button 
-            label="all" 
-            size="small"
-            outlined 
-            @click="handleSelectAllItems">
-        </Button> 
         <div ref="menuElement" :class="menuClass" >
+            <Button 
+                label="all" 
+                size="small"
+                class="sr-menu-select-all-button"
+                outlined 
+                @click="handleSelectAllItems">
+            </Button> 
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
                     v-model="localBeams" 
@@ -121,6 +122,12 @@
     font-size: small;
 }
 
+.sr-menu-select-all-button {
+    padding: 0.25rem;
+    height: 1.3rem;
+    min-width: 100%;
+    color: var(--primary-300);
+}
 
 .sr-menu-multi-input-select-insensitive {
     color: #888; /* grey color */

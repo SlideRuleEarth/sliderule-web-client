@@ -40,6 +40,7 @@ const onUpload = () => {
 onMounted(async() => {
     try {
         console.log('onMounted SrAnalyzeOptSidebar');
+        useAtl06ChartFilterStore().setDebugCnt(0);
         reqIds.value =  await requestsStore.getMenuItems();
         if(reqIds.value.length === 0) {
             console.warn('No requests found');
