@@ -1,11 +1,9 @@
 import { db } from '@/db/SlideRuleDb'; 
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
-//import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from '@/utils/SrHyparquetUtils';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, duckDbReadAndUpdateScatterData } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient} from './SrDuckDb';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -202,21 +200,6 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         }
     } catch (error) {
         console.error('readAndUpdateElevationData error:',error);
-        throw error;
-    }
-}
-
-export const readAndUpdateScatterData = async (req_id:number) => {
-    try{
-        console.log('readAndUpdateScatterData req_id:',req_id);
-
-        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            duckDbReadAndUpdateScatterData(req_id);
-        } else {
-            throw new Error('readAndUpdateScatterData unknown reader');
-        }
-    } catch (error) {
-        console.error('readAndUpdateScatterData error:',error);
         throw error;
     }
 }

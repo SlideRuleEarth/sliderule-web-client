@@ -104,7 +104,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
         const summary = await duckDbReadOrCacheSummary(req_id,height_fieldname);
         //console.log('duckDbReadAndUpdateElevationData summary:',summary);
         if(summary){
-            console.log('duckDbReadAndUpdateElevationData summary:',summary);
+            //console.log('duckDbReadAndUpdateElevationData summary:',summary);
             useCurReqSumStore().setSummary(summary);
 
             // Step 1: Initialize the DuckDB client
@@ -119,7 +119,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
 
             // Execute the query
             const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
-            console.log('duckDbReadAndUpdateElevationData results:', results);
+            //console.log('duckDbReadAndUpdateElevationData results:', results);
 
             // Read all rows from the QueryResult
             const rows: ElevationDataItem[] = [];
@@ -141,8 +141,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
                 const lonNdx = fieldNames.indexOf('longitude');
                 const latNdx = fieldNames.indexOf('latitude');
 
-                console.log('duckDbReadAndUpdateElevationData  hMeanNdx:', hMeanNdx, ' lonNdx:', lonNdx, ' latNdx:', latNdx, ' summary.extHMean:', summary.extHMean);
-                console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames);
+                //console.log('duckDbReadAndUpdateElevationData  hMeanNdx:', hMeanNdx, ' lonNdx:', lonNdx, ' latNdx:', latNdx, ' summary.extHMean:', summary.extHMean);
+                //console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames);
                 updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname);//TBD rows[0] is really rowsChunk[0] iter thru both!
             } else {
                 console.warn('duckDbReadAndUpdateElevationData rows is empty');
@@ -164,148 +164,215 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
 
         await duckDbClient.insertOpfsParquet(fileName);
 
-//         await duckDb.registerFileHandle('test.parquet', file, DuckDBDataProtocol.BROWSER_FILEREADER, true);
-//         await duckDb_connection.query(`CREATE TABLE parquet_table AS SELECT * FROM read_parquet('test.parquet');`);
-//         const data = await duckDb_connection.query(`SELECT * FROM parquet_table`);
-//         console.log('SrParquetFileUpload data:',data);
-//         //const metadata = await duckDb_connection.query(`SELECT * FROM parquet_metadata('test.parquet');`)
-//         //console.log('SrParquetFileUpload tbl:',metadata);
-//         //const schema = await duckDb_connection.query(`SELECT * FROM parquet_schema('test.parquet')`);
-//         //console.log('SrParquetFileUpload schema:',schema);
-//         const columnNames = await duckDb_connection.query(`DESCRIBE SELECT * FROM 'test.parquet';`)
-//         console.log('SrParquetFileUpload columnNames:',columnNames);
-//         //const data = await duckDb_connection.query(`SELECT * FROM read_parquet('test.parquet');`);
-//         //console.log('SrParquetFileUpload data:',data);
-//         const data3 = await duckDb_connection.query(`SELECT latitude,longitude,h_mean FROM parquet_table`);
-//         console.log('SrParquetFileUpload data3:',data3);
-    
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
     }
 }
 
-export async function duckDbReadAndUpdateScatterData(req_id:number){
-
-}
-
 export interface SrScatterChartData { value: number[] };
 
-async function fetchScatterData(beams:number[],rgt:number,cycle:number){
+// async function fetchScatterData(fileName:string, x:string, y:string, beams:number[], rgt:number,cycle:number){
     
-    const duckDbClient = await createDuckDbClient();
-    const chartData = ref<SrScatterChartData[]>([]);
-    const fileName = atl06ChartFilterStore.getFileName();
-
-    const x = 'x_atc';
-    const y = 'h_mean';
+//     const duckDbClient = await createDuckDbClient();
+//     const chartData = ref<SrScatterChartData[]>([]);
+//     //const fileName = atl06ChartFilterStore.getFileName();
         
-    try{
-        console.log('fetchData filename:', fileName);
-        console.log('fetchData beams:', beams);
-        console.log('fetchData rgt:', rgt);
+//     try{
+//         //console.log('fetchData filename:', fileName);
+//         //console.log('fetchData beams:', beams);
+//         //console.log('fetchData rgt:', rgt);
+//         const query = `
+//             SELECT 
+//                 ${x}, 
+//                 ${y}
+//             FROM '${fileName}'
+//             WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}    
+//         `;
+//         const queryResult:QueryResult = await duckDbClient.query(query);
+//         //console.log('fetchData query:', query);
+//         //console.log('fetchData QueryResult:', queryResult);
+
+//         for await (const rowChunk of queryResult.readRows()) {
+//             //console.log('fetchData rowChunk:', rowChunk);
+//             for(const row of rowChunk){
+//                 if(row){
+//                     //console.log('fetchData row:', row);
+//                     const typedRow: SrScatterChartData = {
+//                         value: [row.x_atc,row.h_mean]
+//                     };
+//                     chartData.value.push(typedRow);
+//                 } else {
+//                     console.warn('fetchData rowData is null');
+//                 }
+//             }
+//         }
+       
+
+//         const query2 = `
+//             SELECT 
+//                 MIN(${x}) as min_x,
+//                 MAX(${x}) as max_x,
+//                 MIN(${y}) as min_y,
+//                 MAX(${y}) as max_y
+//             FROM '${fileName}'
+//             WHERE gt = ${beams[0]} AND rgt = ${rgt}
+//         `;
+//         const queryResult2:QueryResult = await duckDbClient.query(query2);
+//         //console.log('fetchData query2:', query2);
+//         //console.log('fetchData QueryResult2:', queryResult2);
+
+//         for await (const rowChunk of queryResult2.readRows()) {
+//             //console.log('fetchData rowChunk:', rowChunk);
+//             for(const row of rowChunk){
+//                 if(row){
+//                     atl06ChartFilterStore.setMinX(row.min_x);
+//                     atl06ChartFilterStore.setMaxX(row.max_x);
+//                     atl06ChartFilterStore.setMinY(row.min_y);
+//                     atl06ChartFilterStore.setMaxY(row.max_y);                   
+//                 } else {
+//                     console.warn('fetchData rowData is null');
+//                 }
+//             }
+//             //console.log('fetchData min_x:',atl06ChartFilterStore.getMinX(),' max_x:',atl06ChartFilterStore.getMaxX(),' min_y:',atl06ChartFilterStore.getMinY(),' max_y:',atl06ChartFilterStore.getMaxY());
+//         }
+//         //console.log('fetchData chartData:', chartData);
+//         return chartData.value;
+//     } catch (error) {
+//       console.error('fetchData Error fetching data:', error);
+//     }
+// };
+
+// async function getSeries(name:string,fileName:string,x:string,y:string[],beams:number[],rgt:number,cycle:number) {
+//     return [
+//         {
+//             name: name,
+//             type: 'scatter',
+//             data: await fetchScatterData(fileName,x, y, beams, rgt, cycle),
+//         }
+//     ]   
+// }
+async function fetchScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+    const duckDbClient = await createDuckDbClient();
+    const chartData: { [key: string]: SrScatterChartData[] } = {};
+    const minMaxValues: { [key: string]: { min: number, max: number } } = {};
+
+    try {
+        const yColumns = y.join(", ");
         const query = `
             SELECT 
                 ${x}, 
-                ${y}
+                ${yColumns}
             FROM '${fileName}'
-            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}    
+            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        const queryResult:QueryResult = await duckDbClient.query(query);
-        console.log('fetchData query:', query);
-        console.log('fetchData QueryResult:', queryResult);
+        const queryResult: QueryResult = await duckDbClient.query(query);
 
         for await (const rowChunk of queryResult.readRows()) {
-            console.log('fetchData rowChunk:', rowChunk);
-            for(const row of rowChunk){
-                if(row){
-                    //console.log('fetchData row:', row);
-                    const typedRow: SrScatterChartData = {
-                        value: [row.x_atc,row.h_mean]
-                    };
-                    chartData.value.push(typedRow);
+            for (const row of rowChunk) {
+                if (row) {
+                    y.forEach((yName) => {
+                        if (!chartData[yName]) {
+                            chartData[yName] = [];
+                        }
+                        chartData[yName].push({
+                            value: [row[x], row[yName]]
+                        });
+                    });
                 } else {
                     console.warn('fetchData rowData is null');
                 }
             }
         }
-       
 
         const query2 = `
             SELECT 
                 MIN(${x}) as min_x,
                 MAX(${x}) as max_x,
-                MIN(${y}) as min_y,
-                MAX(${y}) as max_y
+                ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt}
         `;
-        const queryResult2:QueryResult = await duckDbClient.query(query2);
-        console.log('fetchData query2:', query2);
-        console.log('fetchData QueryResult2:', queryResult2);
+        const queryResult2: QueryResult = await duckDbClient.query(query2);
 
         for await (const rowChunk of queryResult2.readRows()) {
-            console.log('fetchData rowChunk:', rowChunk);
-            for(const row of rowChunk){
-                if(row){
+            for (const row of rowChunk) {
+                if (row) {
                     atl06ChartFilterStore.setMinX(row.min_x);
                     atl06ChartFilterStore.setMaxX(row.max_x);
-                    atl06ChartFilterStore.setMinY(row.min_y);
-                    atl06ChartFilterStore.setMaxY(row.max_y);                   
+                    y.forEach((yName) => {
+                        minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
+                    });
                 } else {
                     console.warn('fetchData rowData is null');
                 }
             }
-            console.log('fetchData min_x:',atl06ChartFilterStore.getMinX(),' max_x:',atl06ChartFilterStore.getMaxX(),' min_y:',atl06ChartFilterStore.getMinY(),' max_y:',atl06ChartFilterStore.getMaxY());
         }
-        console.log('fetchData chartData:', chartData);
-        return chartData.value;
+
+        return { chartData, minMaxValues };
     } catch (error) {
-      console.error('fetchData Error fetching data:', error);
+        console.error('fetchData Error fetching data:', error);
+        return { chartData: {}, minMaxValues: {} };
     }
-};
+}
 
+async function getSeries(name: string, fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+    const { chartData, minMaxValues } = await fetchScatterData(fileName, x, y, beams, rgt, cycle);
+    if (chartData) {
+        return y.map(yName => ({
+            name: `${name} - ${yName}`,
+            type: 'scatter',
+            data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+            yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+        })).map((series, index) => ({
+            series,
+            min: minMaxValues[y[index]].min,
+            max: minMaxValues[y[index]].max
+        }));
+    }
+    return [];
+}
 
-export async function getScatterOptions() : Promise<any>{
-
+export async function getScatterOptions(title: string): Promise<any> {
     const beams = atl06ChartFilterStore.getBeams();
     const rgt = atl06ChartFilterStore.getRgt();
     const cycle = atl06ChartFilterStore.getCycle();
+    const x = 'x_atc';
+    const y = ['h_mean'];
+    const fileName = atl06ChartFilterStore.getFileName();
+
     let options = null;
     if (beams.length && rgt && cycle) {
-        const scatterData = await fetchScatterData(beams,rgt,cycle);
+        const seriesData = await getSeries('Atl06', fileName, x, y, beams, rgt, cycle);
+
         options = {
             title: {
-            text: "Scatter Plot",
-            left: "center"
+                text: title,
+                left: "center"
             },
             tooltip: {
-            trigger: "item",
-            formatter: "({c})"
+                trigger: "item",
+                formatter: "({c})"
             },
             legend: {
-            data: ['Scatter'],
-            left: 'left'
+                data: seriesData.map(series => series.series.name),
+                left: 'left'
             },
             xAxis: {
                 min: atl06ChartFilterStore.getMinX(),
                 max: atl06ChartFilterStore.getMaxX()
             },
-            yAxis: {
-                min: atl06ChartFilterStore.getMinY(),
-                max: atl06ChartFilterStore.getMaxY()
-            },
-            series: [
-            {
-                name: 'Scatter',
-                type: 'scatter',
-                data: scatterData,
-            }
-            ]
-        } 
+            yAxis: seriesData.map((series, index) => ({
+                min: series.min,
+                max: series.max,
+                type: 'value',
+                name: y[index]
+            })),
+            series: seriesData.map(series => series.series)
+        };
     } else {
-        console.warn('getScatterOptions beams:',beams,' rgt:',rgt,' cycle:',cycle);
+        console.warn('getScatterOptions beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     }
-    console.log('getScatterOptions options:',options);
-    return options;   
+    console.log('getScatterOptions options:', options);
+    return options;
 }
