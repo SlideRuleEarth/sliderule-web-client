@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
+import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
+
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
@@ -64,6 +66,42 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           this.setTracks(parms.tracks);
           console.log('setBeamsAndTracksWithGt:', gt, 'beams:', this.beams);
           console.log('setBeamsAndTracksWithGt:', gt, 'tracks:', this.tracks);
+        },
+        setTracksForBeams(input_beams:number[]) {
+          const selectedBeamsOptions = [] as {name:string,value:number}[];
+          for (const input_beam of input_beams) {
+            for (const beamOption of beamsOptions) {
+              if (input_beam === beamOption.value) {
+                selectedBeamsOptions.push(beamOption);
+                break;
+              }
+            }
+          }
+          console.log('setTracksForBeams selectedBeamsOptions:', selectedBeamsOptions);
+          const tracks = [] as number[];
+          for (const beam of selectedBeamsOptions) {
+            for (const trackOption of tracksOptions) {
+              if (Number(beam.name.charAt(2)) === trackOption.value) {
+                tracks.push(trackOption.value);
+                break;
+              }
+            }
+          }
+          console.log('setTracksForBeams tracks:', tracks);
+          this.setTracks(tracks);
+        },
+        setBeamsForTracks(input_tracks:number[]) {
+          const beams = [] as number[];
+          for (const track of input_tracks) {
+            for (const beamOption of beamsOptions) {
+              if (Number(track) === Number(beamOption.name.charAt(2))) {
+                beams.push(beamOption.value);
+              }
+            }
+          }
+          console.log('setBeamsForTracks input_tracks:', input_tracks);
+          console.log('setBeamsForTracks beams:', beams);
+          this.setBeams(beams);
         },
         setReqId(req_id: number) {
           this.currentReqId = req_id;

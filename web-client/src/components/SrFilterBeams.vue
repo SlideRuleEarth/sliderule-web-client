@@ -42,7 +42,9 @@
     import { beamsOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
     import Button from 'primevue/button';
-    
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
+
     const atl06ChartFilterStore = useAtl06ChartFilterStore();
     const localBeams = ref<number[]>(beamsOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
@@ -78,6 +80,9 @@
         const target = event.target as HTMLSelectElement;
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
         atl06ChartFilterStore.setBeams(newValue)
+        atl06ChartFilterStore.setTracksForBeams(newValue);
+        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+
         console.log('SrFilterBeams handleSelectionChange newValue:', newValue);
     };
 

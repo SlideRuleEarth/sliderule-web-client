@@ -41,7 +41,9 @@
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { tracksOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
-    
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
+
     const atl06ChartFilterStore = useAtl06ChartFilterStore();
     const localTracks = ref<number[]>(tracksOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
@@ -69,7 +71,7 @@
 
     function handleSelectAllItems(){
         localTracks.value = tracksOptions.map(item => item.value);
-        atl06ChartFilterStore.tracks = localTracks.value;
+        atl06ChartFilterStore.setTracks(localTracks.value);
         console.log('handleSelectAllItems atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
     };
     
@@ -77,6 +79,8 @@
         const target = event.target as HTMLSelectElement;
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
         atl06ChartFilterStore.setTracks(newValue)
+        atl06ChartFilterStore.setBeamsForTracks(newValue);
+        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
         console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
     };
 
