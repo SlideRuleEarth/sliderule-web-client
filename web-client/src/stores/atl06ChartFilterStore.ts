@@ -18,6 +18,8 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         min_y: 0,
         max_y: 0,
         updateScatterPlot: false,
+        elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}],
+        yDataForChart:['h_mean'],
         debugCnt: 0,
     }),
     actions: {
@@ -156,6 +158,19 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         setDebugCnt(cnt:number) {
           this.debugCnt = cnt;
+        },
+        getElevationDataOptions() {
+          return this.elevationDataOptions;
+        },
+        getYDataForChartValues() {
+          const yDataForChartValues = [];
+          console.log('yDataForChart:', this.yDataForChart);
+          for (const yData of this.yDataForChart) {
+            //console.log('getYDataForChartValues:', yData);
+            yDataForChartValues.push(yData);
+          }
+          console.log('yDataForChartValues:', yDataForChartValues);
+          return yDataForChartValues;
         }
     },
 })
