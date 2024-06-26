@@ -7,12 +7,9 @@ import {useAtl06ChartFilterStore} from '@/stores/atl06ChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
-import { useToast } from "primevue/usetoast";
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
 import { db } from '@/db/SlideRuleDb';
-
-const toast = useToast();
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
