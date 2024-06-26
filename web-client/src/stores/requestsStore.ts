@@ -66,45 +66,6 @@ export const useRequestsStore = defineStore('requests', {
     setMsg(msg: string) {
       this.msg = msg;
     },
-    // async updateReq(updateParams: Partial<SrRequestRecord>): Promise<void> {
-    //   const { req_id, ...restParams } = updateParams;
-    //   console.log('updateReq-->updateParams:', updateParams);
-    //   try{
-    //     if(!req_id) throw new Error('SrRequestRecord ID is required to update a request.');
-    //     this.fetchReqs();
-    //     const reqIndex = this.reqs.findIndex(req => req.req_id === req_id);
-    //     console.log('req_id:',req_id,' is reqs[',reqIndex,']:', this.reqs[reqIndex])
-    //     const st = this.reqs[reqIndex].start_time;
-    //     if(st){
-    //       const st_date = new Date(st);
-    //       if (!(st_date instanceof Date )){
-    //         console.error('start_time is not a Date object st:', st, ' st_date:', st_date);
-    //         //throw new Error('start_time is not a Date object');
-    //       }
-          
-    //       console.log('start_time is set for request:', req_id, ' st:',st_date, ' setting elapsed_time');
-    //       updateParams.elapsed_time = srTimeDeltaString(srTimeDelta(st_date, new Date()));
-    //     } else {
-    //       console.error('start_time is not set for request:', req_id, ' setting elapsed_time to empty string')
-    //       updateParams.elapsed_time = '';
-    //     }
-        
-    //     if(this.error_in_req[reqIndex] && (updateParams.status != 'error')){
-    //       // received records from the server after an error, ignore status updates
-    //       console.log('Ignoring status update for request that has an error; ID:', req_id, ' ignored->',updateParams, ' as it was in error state');
-    //       return;
-    //     } 
-    //     console.log('final updateParams:', updateParams);
-    //     await db.updateRequest(req_id, updateParams);
-    //     if(updateParams.status == 'error'){
-    //       this.error_in_req[reqIndex] = true;
-    //     }
-    //   } catch (error) {
-    //     console.error('Failed to update request using params:', updateParams,' with ID:',req_id,' error:', error);
-    //     throw error; // Rethrowing the error for further handling if needed
-    //   }
-    // },
-
     async deleteReq(reqId: number): Promise<void>{
       try {
         await db.deleteRequest(reqId);

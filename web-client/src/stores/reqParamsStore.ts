@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { AtlReqParams, AtlpReqParams, SrRegion } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils';
 
 export interface NullReqParams {
@@ -204,6 +204,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         resources: [] as string[],
         target_numAtl06Recs: 0,
         target_numAtl06pRecs: 0,
+        useChecksum: false,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {
@@ -217,7 +218,32 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtlReqParams(req_id:number): AtlReqParams { 
+        getAtlReqParams(req_id: number): AtlReqParams { 
+          const getOutputPath = (): string => {
+            let path = this.outputLocationPath;
+            if (this.outputLocation.value === 'S3') {
+              path = `s3://${this.outputLocationPath}`;
+            }
+            if (this.outputLocationPath.length === 0) {
+              path = `atl06_${req_id}_${new Date().toISOString().replace(/[:.TZ]/g, '-')}`;
+            }
+            return path;
+          };
+        
+          const getOutputFormat = (path: string): OutputFormat | undefined => {
+            if (this.outputFormat.value === 'geoparquet' || this.outputFormat.value === 'parquet') {
+              path += '.parquet';
+              return {
+                format: 'parquet',
+                as_geo: this.outputFormat.value === 'geoparquet',
+                path: path,
+                with_checksum: this.useChecksum,
+              };
+            }
+            console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
+            return undefined;
+          };
+        
           const req: AtlReqParams = {
             asset: this.asset,
             srt: this.getSrt(),
@@ -230,39 +256,30 @@ export const useReqParamsStore = defineStore('reqParams', {
             sigma_r_max: this.sigmaValue,         
             maxi: this.maxIterations,
             poly: this.poly,
-            //poly: this.convexHull // for now pass the convexHull until we figure out how to get cmr working
-          };         
-          if (this.fileOutput===true) {
-            let path_to_use = this.outputLocationPath;
-            if(this.outputLocation.value==='S3'){
-              path_to_use = `s3://${this.outputLocationPath}`;
-            }
-            if(this.outputLocationPath.length===0){
-              path_to_use = `atl06_${req_id}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
-            }
-            if(this.outputFormat.value==='geoparquet' || this.outputFormat.value==='parquet'){
-              path_to_use += '.parquet';
-              if(this.outputFormat.value==='geoparquet'){
-                req.output = {format: 'parquet', as_geo: true, path: path_to_use};
-              } else {
-                req.output = {format: 'parquet', as_geo: false, path: path_to_use};
-              }
+          };
+        
+          if (this.fileOutput) {
+            const path = getOutputPath();
+            const output = getOutputFormat(path);
+            if (output) {
+              req.output = output;
               this.isArrowStream = true;
-            } else {
-              console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
-          if(this.enableGranuleSelection===true){
-            if(this.tracks.length>0){
+        
+          if (this.enableGranuleSelection) {
+            if (this.tracks.length > 0) {
               req.tracks = this.tracks;
             }
-            if(this.beams.length>0){
+            if (this.beams.length > 0) {
               req.beams = this.beams;
             }
           }
+        
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }
+        
           return req;
         },
         getSrt(): number[] | number {

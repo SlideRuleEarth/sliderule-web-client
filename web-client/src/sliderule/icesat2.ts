@@ -85,7 +85,12 @@ export interface SrLatLon {
   }
   
 export type SrRegion = SrLatLon[];
-  
+export type OutputFormat = {
+    format: 'parquet';
+    as_geo: boolean;
+    path: string;
+    with_checksum: boolean;
+};
 // Define the parameter type for the atl06p function
 export interface AtlReqParams {
     asset: string;
@@ -97,7 +102,7 @@ export interface AtlReqParams {
     maxi: number;
     poly?: SrRegion | null;
     cmr?: { polygon: SrRegion };
-    output?: {format: string, as_geo?: boolean, path?: string};
+    output?:OutputFormat;
     [key: string]: any; // Other dynamic keys
 }
 

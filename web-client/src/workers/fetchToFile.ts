@@ -212,6 +212,11 @@ onmessage = async (event) => {
                                                 target_numArrowDataRecs,
                                                 target_numArrowMetaRecs);
                 },
+                'arrowrec.eof': async (result:any) => {
+                    arrowCbNdx++;
+                    //console.log('atl06p cb arrowrec.eof arrowCbNdx:',arrowCbNdx,' result:', result);
+                    await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'EOF checksum present.',checksum: result.checksum});
+                },
                 exceptrec: async (result:any) => {
                     num_svr_exceptions++;
                     //console.log('atl06p cb exceptrec result:', result);
@@ -306,6 +311,7 @@ onmessage = async (event) => {
                     }
                     postMessage(serverMsg(reqID, `eventrec server msg (DEPRECATED): ${result.attr}`));
                 },
+
             }; // callbacks...
             if(reqID){       
                 //console.log("atl06pParams:",cmd.parameters);
