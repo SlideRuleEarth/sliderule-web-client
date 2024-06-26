@@ -1,4 +1,3 @@
-import { ref } from 'vue';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult, type Row } from './SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
@@ -128,21 +127,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             }
             //console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
             const fieldNames = Object.keys(rows[0][0]);
-
-            //console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
+            console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
             // Process and update the elevation data as needed
             if (rows.length > 0) {
-
                 // Process and update the elevation data as needed
-                // Extract field names from the first row (assuming all rows have the same structure)
-
-                // Find the indexes for hMean, latitude, and longitude
-                const hMeanNdx = fieldNames.indexOf(height_fieldname);
-                const lonNdx = fieldNames.indexOf('longitude');
-                const latNdx = fieldNames.indexOf('latitude');
-
-                //console.log('duckDbReadAndUpdateElevationData  hMeanNdx:', hMeanNdx, ' lonNdx:', lonNdx, ' latNdx:', latNdx, ' summary.extHMean:', summary.extHMean);
-                //console.log('duckDbReadAndUpdateElevationData rows:',rows,' fieldNames:', fieldNames);
                 updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname);//TBD rows[0] is really rowsChunk[0] iter thru both!
             } else {
                 console.warn('duckDbReadAndUpdateElevationData rows is empty');

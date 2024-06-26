@@ -3,15 +3,11 @@ import { onMounted,ref,watch } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
-import Accordion from 'primevue/accordion';
-import AccordionTab  from 'primevue/accordiontab';
 import {useAtl06ChartFilterStore} from '@/stores/atl06ChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
-import SrSelectParquetReader from './SrSelectParquetReader.vue';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import { useToast } from "primevue/usetoast";
-import SrParquetFileUpload from './SrParquetFileUpload.vue';
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
 import { db } from '@/db/SlideRuleDb';
@@ -31,11 +27,6 @@ const selectedReqId = ref({name:'0', value:'0'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 
-
-
-const onUpload = () => {
-    toast.add({ severity: 'info', summary: 'Success', detail: 'File Uploaded', life: 3000 });
-};
 
 onMounted(async() => {
     try {
@@ -117,42 +108,43 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             <div v-if="loading">Loading...</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div class="sr-select-analyze-reader">
-            <SrParquetFileUpload @upload="onUpload"/>
-        </div>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
-                <Accordion :multiple="true" :activeIndex="[0]" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                    <AccordionTab header="Filter" >
-                        <div class="sr-tracks-beams">
-                            <SrFilterTracks/>
-                            <SrFilterBeams/>
-                        </div>
-                        <SrSliderInput
-                            v-model="atl06ChartFilterStore.rgtValue"
-                            label="RGT"
-                            :min="1"
-                            :max="10000" 
-                            :decimalPlaces="0"
-                            tooltipText="RGT is the reference ground track: defaults to all if not specified"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                        />
-                        <SrSliderInput
-                            v-model="atl06ChartFilterStore.cycleValue"
-                            label="Cycle"
-                            :min="1"
-                            :max="100" 
-                            :decimalPlaces="0"
-                            tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                        />
-                    </AccordionTab>
-                </Accordion>
+                <div class="sr-tracks-beams">
+                    <SrFilterTracks/>
+                    <SrFilterBeams/>
+                </div>
+                <div class="sr-analyze-sliders">
+                    <SrSliderInput
+                        v-model="atl06ChartFilterStore.rgtValue"
+                        label="RGT"
+                        :min="1"
+                        :max="10000" 
+                        :decimalPlaces="0"
+                        tooltipText="RGT is the reference ground track: defaults to all if not specified"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                    />
+                    <SrSliderInput
+                        v-model="atl06ChartFilterStore.cycleValue"
+                        label="Cycle"
+                        :min="1"
+                        :max="100" 
+                        :decimalPlaces="0"
+                        tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                    />
+                </div>
             </div>
         </div>
     </div>
 </template>
 <style scoped>
+    .sr-analysis-opt-sidebar-req-menu {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content:center;
+    }
     .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
@@ -186,14 +178,15 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         min-width: 30vw;
         width: 100%;
     }
-    .sr-select-analyze-reader {
-        display: flex;
-        justify-content: center;
-        margin-top: 0.5rem;
-    }
     .sr-tracks-beams {
         display: flex;
         flex-direction: row;
+        justify-content: space-evenly;
+        margin-top: 0.5rem;
+    }
+    .sr-analyze-sliders {
+        display: flex;
+        flex-direction: column;
         justify-content: space-evenly;
         margin-top: 0.5rem;
     }
