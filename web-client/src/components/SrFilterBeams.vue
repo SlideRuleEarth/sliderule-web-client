@@ -7,16 +7,16 @@
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="menuClass" >
-            <SrCheckbox 
-                v-model="atl06ChartFilterStore.selectAllBeams" 
-                label="All" 
-                :default="true" 
-                @update:modelValue="handleSelectAllItems"  
-                :insensitive=insensitive 
-            />
+            <Button 
+                label="all" 
+                size="small"
+                class="sr-menu-select-all-button"
+                outlined 
+                @click="handleSelectAllItems">
+            </Button> 
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
-                    v-model="atl06ChartFilterStore.beams" 
+                    v-model="localBeams" 
                     @input="handleSelectionChange"
                     class="sr-menu-multi-input-select-default" 
                     name="sr-select-multi-menu" 
@@ -37,14 +37,16 @@
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed } from 'vue';
-    import SrCheckbox from './SrCheckbox.vue';
+    import {  onMounted,computed,ref,watch,nextTick } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { beamsOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
-    
-    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    import Button from 'primevue/button';
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
+    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    const localBeams = ref<number[]>(beamsOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
             type: String,
@@ -68,19 +70,20 @@
         }
     });
 
-    const handleSelectAllItems = (newValue) => {
-        if (newValue) {
-            atl06ChartFilterStore.beams = beamsOptions.map(item => item.value);
-        } else {
-            atl06ChartFilterStore.beams = [];
-        }
-        console.log('newValue:', newValue, ' atl06ChartFilterStore.beams:', atl06ChartFilterStore.beams);
+    function handleSelectAllItems() {
+        localBeams.value = beamsOptions.map(item => item.value);
+        atl06ChartFilterStore.beams = localBeams.value;
+        console.log('handleSelectAllItems atl06ChartFilterStore.beams:', atl06ChartFilterStore.beams);
     };
+    
+    const handleSelectionChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
+        atl06ChartFilterStore.setBeams(newValue)
+        atl06ChartFilterStore.setTracksForBeams(newValue);
+        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
 
-    const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
-        console.log('handleSelectionChange newValue:', newValue);
-        atl06ChartFilterStore.selectAllBeams = newValue.length === beamsOptions.length;
+        console.log('SrFilterBeams handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
@@ -101,6 +104,15 @@
         'sr-menu-multi-input-select-insensitive': props.insensitive
     }));
 
+
+    watch(() => atl06ChartFilterStore.beams, (newBeams, oldBeams) => {
+        nextTick(() => {
+            console.log('SrFilterBeams watch atl06ChartFilterStore oldBeams:', oldBeams);
+            console.log('SrFilterBeams watch atl06ChartFilterStore newBeams:', newBeams);
+            localBeams.value = newBeams;
+        });
+    });
+
 </script>
 
 <style scoped>
@@ -115,6 +127,12 @@
     font-size: small;
 }
 
+.sr-menu-select-all-button {
+    padding: 0.25rem;
+    height: 1.3rem;
+    min-width: 100%;
+    color: var(--primary-300);
+}
 
 .sr-menu-multi-input-select-insensitive {
     color: #888; /* grey color */

@@ -5,12 +5,9 @@
                 <SrProgressCnts />
             </div>
             <div class="sr-select-parquet-reader">
-                <SrSelectParquetReader />
+              <SrSelectParquetReader />
             </div>
-            <!-- <div class="sr-opfs">
-                <SrOpfs />
-            </div> -->
-            
+            <SrToggleButton :value="reqParamsStore.useChecksum" label="Use Checksum" @input="handleUseChecksum"/>            
             <div>
               <SrSvrConsoleTerminal />
             </div>
@@ -19,11 +16,19 @@
   </template>
   
   <script setup lang="ts">
+    import { useReqParamsStore } from '@/stores/reqParamsStore';
     import SrProgressCnts from './SrProgressCnts.vue';
     import SrSelectParquetReader from './SrSelectParquetReader.vue';
-    //import SrOpfs from './SrOpfs.vue';
     import SrSvrConsoleTerminal from './SrSvrConsoleTerminal.vue';
-  </script>
+    import SrToggleButton from './SrToggleButton.vue';
+    const reqParamsStore = useReqParamsStore();
+
+    const handleUseChecksum = async (newValue: boolean) => {
+      reqParamsStore.useChecksum = newValue;
+      console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );
+    };
+
+</script>
   
   <style>
   /* Style your button and component here */

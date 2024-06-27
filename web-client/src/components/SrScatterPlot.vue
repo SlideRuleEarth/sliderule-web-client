@@ -1,77 +1,103 @@
 <template>
-  <v-chart class="chart" :option="option" autoresize />
+  <div class="sr-scatter-plot-header">
+    <SrMultiSelectText 
+      v-model="atl06ChartFilterStore.yDataForChart"
+      label="Choose" 
+      @update:modelValue="changedYValues"
+      menuPlaceholder="Select elevation data"
+      :menuOptions=atl06ChartFilterStore.getElevationDataOptions()
+      :default="[atl06ChartFilterStore.getElevationDataOptions()[0]]"
+    />  
+  </div>
+  <v-chart class="scatter-chart" :option="option" autoresize />
 </template>
 
 <script setup lang="ts">
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
-import {
-  TitleComponent,
-  TooltipComponent,
-  LegendComponent
-} from "echarts/components";
+import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch,onMounted,type Ref } from "vue";
+import { shallowRef, provide, watch, onMounted } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtl06ChartFilterStore } from "@/stores/atl06ChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
+import SrMultiSelectText from "./SrMultiSelectText.vue";
+
 const atl06ChartFilterStore = useAtl06ChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
 
-
-use([
-  CanvasRenderer,
-  ScatterChart,
-  TitleComponent,
-  TooltipComponent,
-  LegendComponent
-]);
+use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent]);
 
 provide(THEME_KEY, "dark");
 
-
 let option = shallowRef();
-
-
-// const loadChartData = async (reqId: number) => {
-//   try {
-//     const filename = await db.getFilename(reqId);
-//     chartData.value = useParquetFileData(filename);
-//   } catch (error) {
-//     console.error('Error loading chart data:', error);
-//   }
-// };
 
 onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
   console.log('SrScatterPlot onMounted Loading SrScatterPlot with ID:', reqId);
-  if(reqId){
-    option.value = await getScatterOptions();
+  if (reqId > 0) {
+    try {
+      //const y = ['h_mean'];
+
+      const scatterOptions = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
+      if (scatterOptions) {
+        console.log('SrScatterPlot onMounted scatterOptions:', scatterOptions);
+        option.value = scatterOptions;
+      } else {
+        console.warn('Failed to get scatter options');
+      }
+    } catch (error) {
+      console.error('Error fetching scatter options:', error);
+    }
   } else {
     console.warn('reqId is undefined');
   }
 });
 
+watch(() => atl06ChartFilterStore.getUpdateScatterPlot(), async (newState, oldState) => {
+  console.log(`SrScatterPlot watch atl06ChartFilterStore updateScatterPlot oldState:'${oldState} to newState:'${newState}`);
+  if (newState) {
+    try {
+      option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
+      atl06ChartFilterStore.resetUpdateScatterPlot();
+    } catch (error) {
+      console.error('Error updating scatter options:', error);
+    }
+  }
+}, { deep: true });
 
+async function changedYValues(){
+  try {
+    console.log('changedYValues Fetching scatter options for new atl06ChartFilterStore.getYDataForChartValues():', atl06ChartFilterStore.getYDataForChartValues());
+    option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
+  } catch (error) {
+    console.error('Error updating scatter options:', error);
+  }
+};
 
-watch(() => atl06ChartFilterStore.$state, async (newState, oldState) => {
-    console.log('SrScatterPlot watch atl06ChartFilterStore oldState:', oldState);
-    console.log('SrScatterPlot watch atl06ChartFilterStore newState:', newState);
-    option.value = await getScatterOptions();
-},{ deep: true }// Ensure deep watching of nested properties
-);
-
-// Watch for changes on reqId
-watch(() => atl06ChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
+watch(() => curReqSumStore.getReqId(), async (newReqId, oldReqId) => {
   console.log(`SrScatterPlot reqId changed from ${oldReqId} to ${newReqId}`);
-  option.value = await  getScatterOptions();
+  try {
+    console.log('Fetching scatter options for new atl06ChartFilterStore.getYDataForChartValues():', atl06ChartFilterStore.getYDataForChartValues());
+    option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
+  } catch (error) {
+    console.error(`Error fetching scatter options for new reqId:${newReqId}`, error);
+  }
 });
-
 </script>
 
 <style scoped>
-.chart {
+.sr-scatter-plot-header {
+  display: flex;
+  justify-content:center;
+  align-items:center;
+  margin: 0.5rem;
+  padding: 1rem;
+}
+.scatter-chart {
+  margin: 0.5rem;
+  padding: 1rem;
   max-height: 50rem;
   max-width: 50rem;
 }

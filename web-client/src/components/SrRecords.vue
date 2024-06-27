@@ -1,15 +1,19 @@
 
 <script setup lang="ts">
-import { onMounted,onUnmounted } from 'vue';
+import { onMounted,onUnmounted,ref,computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
-import { deleteOpfsFile } from '@/utils/SrParquetUtils';
+import { deleteOpfsFile,calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
+import { findParam } from '@/utils/parmUtils';
+
 
 const requestsStore = useRequestsStore();
+const isCodeFormat = ref(true);
+
 
 const analyze = (id:number) => {
     try{
@@ -26,8 +30,30 @@ const analyze = (id:number) => {
     }
 };
 
-const sourceCodePopup = (id:number) => {
-    console.log('Source code ', id);
+async function calculateCS(req_id:number) {
+    console.log('Calculate Checksum for: ', req_id);
+    console.log('Exporting file for req_id', req_id);
+    try{
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const cs = await calculateChecksumFromOpfs(fileHandle);
+        const db_cs= await db.getChecksum(req_id);
+
+        console.log('Checksum:', cs, 'DB Checksum:', db_cs ,'db_cs type:', typeof(db_cs), ' cs type:',typeof(cs), ' for id:', req_id);
+        if(cs == db_cs) {
+            console.log('Checksum verified successfully for id:', req_id);
+            alert(`Req:${req_id} Checksum verified successfully!`);
+        } else {
+            console.error('Checksum verification failed for id:', req_id);
+            alert(`Req:${req_id} Checksum Verification FAILED!`);
+        }
+        console.log('Checksum:', cs);
+    } catch (error) {
+        console.error(`Failed to calculate CS for id:${req_id}`, error);
+        alert(`Failed to calculate CS for ID:${req_id}`);
+        throw error;
+    }
 };
 
 const deleteReq = async (id:number) => {
@@ -65,8 +91,8 @@ const exportFile = async (req_id:number) => {
         alert(msg);
 
     } catch (error) {
-        console.error(`Failed to export request for id:${req_id}`, error);
-        alert(`Failed to export request for ID:${req_id}`);
+        console.error(`Failed to calculate CSfor id:${req_id}`, error);
+        alert(`Failed to calculate CSfor ID:${req_id}`);
         throw error;
     }
 };
@@ -121,10 +147,19 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="func" header="Function"></Column>
-            <Column field="parameters" header="Parameters" >
+            <Column field="parameters" header="Parameters" class="sr-par-fmt">
+                <template #header>
+                        <i 
+                        :class="PrimeIcons.CODE"
+                        @click="isCodeFormat = !isCodeFormat"
+                        v-tooltip="'Toggle code format'"
+                        class="sr-recs-toggle-icon"
+                        > </i>
+                </template> 
                 <template #body="slotProps">
-                    <div class="sr-col-par-style">
-                        {{ slotProps.data.parameters }}
+                    <div class="sr-col-par-style" >
+                        <span v-if="isCodeFormat"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
+                        <span v-else>{{slotProps.data.parameters}}</span>
                     </div>
                 </template>
             </Column>
@@ -132,7 +167,8 @@ onUnmounted(() => {
             <Column field="Actions" header="" class="sr-analyze">
                 <template #body="slotProps">
                     <i 
-                      class="pi pi-chart-line "
+                      class="pi pi-chart-line"
+                      v-if="slotProps.data.status !== 'error'"
                       @click="analyze(slotProps.data.req_id)"
                       v-tooltip="'Analyze'"
                     ></i>
@@ -141,9 +177,10 @@ onUnmounted(() => {
             <Column field="Actions" header="" class="sr-src-code">
                 <template #body="slotProps">
                     <i 
-                      class="pi pi-code sr-src-code-icon "
-                      @click="sourceCodePopup(slotProps.data.req_id)"
-                      v-tooltip="'View source code'"
+                      class="pi pi-calculator sr-calculator-icon"
+                      v-if="findParam(slotProps.data.parameters, 'with_checksum')"
+                      @click="calculateCS(slotProps.data.req_id)"
+                      v-tooltip="'Verify Checksum'"
                     ></i>
                 </template>
             </Column>
@@ -191,6 +228,12 @@ onUnmounted(() => {
     width: 5rem;
     text-align: center;
     cursor: pointer;
+}
+.sr-par-fmt {
+    margin-left: 1rem;
+}
+.sr-recs-toggle-icon {
+   margin-right: 0.5rem;
 }
 .sr-delete {
     width: 5rem;

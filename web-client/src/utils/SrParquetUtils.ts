@@ -1,11 +1,9 @@
 import { db } from '@/db/SlideRuleDb'; 
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
-//import { hyparquetReadAndUpdateElevationData,hyparquetReadOrCacheSummary } from '@/utils/SrHyparquetUtils';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, duckDbReadAndUpdateScatterData } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient} from './SrDuckDb';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -205,18 +203,28 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         throw error;
     }
 }
+export async function calculateChecksumFromOpfs(fileHandle: FileSystemFileHandle): Promise<bigint> {
+    const file = await fileHandle.getFile();
+    const reader = file.stream().getReader();
+    let checksum = 0;
 
-export const readAndUpdateScatterData = async (req_id:number) => {
-    try{
-        console.log('readAndUpdateScatterData req_id:',req_id);
-
-        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            duckDbReadAndUpdateScatterData(req_id);
-        } else {
-            throw new Error('readAndUpdateScatterData unknown reader');
+    try {
+        let readResult = await reader.read(); // Initial read
+        while (!readResult.done) {
+            const value = readResult.value;
+            if (value) {
+                for (let i = 0; i < value.length; i++) {
+                    checksum += value[i];
+                }
+            }
+            readResult = await reader.read(); // Read next chunk
         }
     } catch (error) {
-        console.error('readAndUpdateScatterData error:',error);
+        console.error('Error reading file:', error);
         throw error;
+    } finally {
+        reader.releaseLock();
     }
+
+    return BigInt(checksum);
 }

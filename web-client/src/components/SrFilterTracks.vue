@@ -7,23 +7,22 @@
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="menuClass" >
-            <SrCheckbox 
-                v-model="atl06ChartFilterStore.selectAllTracks" 
-                label="All" 
-                :default="true" 
-                @update:modelValue="handleSelectAllItems"  
-                :insensitive=insensitive 
-            />
+            <Button 
+                label="all" 
+                size="small"
+                class="sr-menu-select-all-button"
+                outlined 
+                @click="handleSelectAllItems">
+            </Button>
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
-                    v-model="atl06ChartFilterStore.tracks" 
+                    v-model="localTracks" 
                     @input="handleSelectionChange"
                     class="sr-menu-multi-input-select-default" 
                     name="sr-select-multi-menu" 
                     :id="`srSelectMultiMenu-{{ label }}`" 
                     multiple 
-                    :disabled="insensitive"
-                >
+                    :disabled="insensitive">
                     <option 
                         v-for="item in tracksOptions" 
                         :value="item.value" 
@@ -37,14 +36,16 @@
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed } from 'vue';
-    import SrCheckbox from './SrCheckbox.vue';
+    import {  onMounted,computed,ref,watch } from 'vue';
+    import Button from 'primevue/button';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { tracksOptions } from '@/utils/parmUtils';
     import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
-    
-    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
+    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    const localTracks = ref<number[]>(tracksOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
             type: String,
@@ -56,7 +57,7 @@
         },
         tooltipText: {
             type: String,
-            default: 'Each track has both a weak and a strong spot'
+            default: 'Weak and strong spots are determined by orientation of the satellite'
         },
         tooltipUrl: {
             type: String,
@@ -68,19 +69,19 @@
         }
     });
 
-    const handleSelectAllItems = (newValue) => {
-        if (newValue) {
-            atl06ChartFilterStore.tracks = tracksOptions.map(item => item.value);
-        } else {
-            atl06ChartFilterStore.tracks = [];
-        }
-        console.log('newValue:', newValue, ' atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
+    function handleSelectAllItems(){
+        localTracks.value = tracksOptions.map(item => item.value);
+        atl06ChartFilterStore.setTracks(localTracks.value);
+        console.log('handleSelectAllItems atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
     };
-
-    const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
-        console.log('handleSelectionChange newValue:', newValue);
-        atl06ChartFilterStore.selectAllTracks = newValue.length === tracksOptions.length;
+    
+    const handleSelectionChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
+        atl06ChartFilterStore.setTracks(newValue)
+        atl06ChartFilterStore.setBeamsForTracks(newValue);
+        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+        console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
@@ -101,6 +102,13 @@
         'sr-menu-multi-input-select-insensitive': props.insensitive
     }));
 
+
+    watch(() => atl06ChartFilterStore.tracks, (newTracks, oldTracks) => {
+        console.log('SrFilterTracks watch atl06ChartFilterStore oldTracks:', oldTracks);
+        console.log('SrFilterTracks watch atl06ChartFilterStore newTracks:', newTracks);
+        localTracks.value = newTracks;
+    });
+
 </script>
 
 <style scoped>
@@ -110,11 +118,16 @@
     margin-bottom: 1rem;
 }
 
+.sr-menu-select-all-button {
+    padding: 0.25rem;
+    height: 1.3rem;
+    min-width: 100%;
+    color: var(--primary-300);
+}
 .sr-menu-multi-input-label {
     white-space: nowrap;
     font-size: small;
 }
-
 
 .sr-menu-multi-input-select-insensitive {
     color: #888; /* grey color */

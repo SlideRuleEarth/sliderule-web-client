@@ -70,6 +70,7 @@ export interface SrRequestRecord {
     elapsed_time?: string; //  elapsed time
     status_details?: string; // status message (details of status)
     file?: string; // file name
+    checksum?: bigint; // checksum
 }
 
 export interface SrRequestSummary {
@@ -219,7 +220,63 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+    async getStatus(req_id:number): Promise<string> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return '';
+            }
+            return request.status || '';
+        } catch (error) {
+            console.error(`Failed to get status for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
 
+    async getReqParams(req_id:number): Promise<ReqParams> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return {} as NullReqParams;
+            }
+            return request.parameters || {} as NullReqParams;
+        } catch (error) {
+            console.error(`Failed to get parameters for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    async getChecksum(req_id:number): Promise<bigint> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request?.checksum) {
+                console.error(`No checksum found for req_id ${req_id}`);
+                return BigInt(0);
+            }
+            let cs: bigint;
+            if (typeof request.checksum === 'string') {
+                // Remove trailing 'n' if it exists and then convert to BigInt
+                cs = BigInt((request.checksum as string).replace(/n$/, ''));
+            } else if (typeof request.checksum === 'number') {
+                cs = BigInt(request.checksum);
+            } else {
+                cs = request.checksum;
+            }
+            console.log('getChecksum:',req_id,'checksum:',cs,'typeof:',typeof(cs));
+            return cs;
+        } catch (error) {
+            console.error(`Failed to get checksum for req_id ${req_id}:`, error);
+            // Additional error details
+            if (error instanceof Error) {
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+            }
+            throw error;
+        }
+    }
 
     async updateRequestRecord(updateParams: Partial<SrRequestRecord>): Promise<void> {
         const { req_id } = updateParams;

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { AtlReqParams, AtlpReqParams, SrRegion } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils';
 
 export interface NullReqParams {
@@ -204,6 +204,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         resources: [] as string[],
         target_numAtl06Recs: 0,
         target_numAtl06pRecs: 0,
+        useChecksum: false,
     }),
     actions: {
         setRasterizePolygon(value:boolean) {
@@ -217,7 +218,34 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
-        getAtlReqParams(req_id:number): AtlReqParams { 
+        getAtlReqParams(req_id: number): AtlReqParams { 
+          const getOutputPath = (): string => {
+            let path = this.outputLocationPath;
+            if (this.outputLocation.value === 'S3') {
+              path = `s3://${this.outputLocationPath}`;
+            }
+            if (this.outputLocationPath.length === 0) {
+              //Note: This is only used by the server. It needs to be unique for each request.
+              // We create a similar filename for our local client elsewhere.
+              path = `${this.iceSat2SelectedAPI.value}_${req_id}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+            }
+            return path;
+          };
+        
+          const getOutputFormat = (path: string): OutputFormat | undefined => {
+            if (this.outputFormat.value === 'geoparquet' || this.outputFormat.value === 'parquet') {
+              path += '.parquet';
+              return {
+                format: 'parquet',
+                as_geo: this.outputFormat.value === 'geoparquet',
+                path: path,
+                with_checksum: this.useChecksum,
+              };
+            }
+            console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
+            return undefined;
+          };
+        
           const req: AtlReqParams = {
             asset: this.asset,
             srt: this.getSrt(),
@@ -230,39 +258,30 @@ export const useReqParamsStore = defineStore('reqParams', {
             sigma_r_max: this.sigmaValue,         
             maxi: this.maxIterations,
             poly: this.poly,
-            //poly: this.convexHull // for now pass the convexHull until we figure out how to get cmr working
-          };         
-          if (this.fileOutput===true) {
-            let path_to_use = this.outputLocationPath;
-            if(this.outputLocation.value==='S3'){
-              path_to_use = `s3://${this.outputLocationPath}`;
-            }
-            if(this.outputLocationPath.length===0){
-              path_to_use = `atl06_${req_id}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
-            }
-            if(this.outputFormat.value==='geoparquet' || this.outputFormat.value==='parquet'){
-              path_to_use += '.parquet';
-              if(this.outputFormat.value==='geoparquet'){
-                req.output = {format: 'parquet', as_geo: true, path: path_to_use};
-              } else {
-                req.output = {format: 'parquet', as_geo: false, path: path_to_use};
-              }
+          };
+        
+          if (this.fileOutput) {
+            const path = getOutputPath();
+            const output = getOutputFormat(path);
+            if (output) {
+              req.output = output;
               this.isArrowStream = true;
-            } else {
-              console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             }
           }
-          if(this.enableGranuleSelection===true){
-            if(this.tracks.length>0){
+        
+          if (this.enableGranuleSelection) {
+            if (this.tracks.length > 0) {
               req.tracks = this.tracks;
             }
-            if(this.beams.length>0){
+            if (this.beams.length > 0) {
               req.beams = this.beams;
             }
           }
+        
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }
+        
           return req;
         },
         getSrt(): number[] | number {
@@ -286,18 +305,34 @@ export const useReqParamsStore = defineStore('reqParams', {
           // }
           return baseParams;
         },
-        
         setReqion(reqionValue:number) {
           this.regionValue = reqionValue;
+        },
+        getRegion() {
+          return this.regionValue;
         },
         setRgt(rgtValue:number) {
           this.rgtValue = rgtValue;
         },
+        getRgt() {
+          return this.rgtValue;
+        },
         setCycle(cycleValue:number) {
           this.cycleValue = cycleValue;
         },
-        setBeams(beams:string[]) {
+        getCycle() {
+          this.cycleValue;
+        },
+        setBeams(beams:number[]) {
+          if(beams.length === 6) {
+            this.selectAllBeams = true;
+          } else {
+            this.selectAllBeams = false;
+          }
           this.beams = beams;
+        },
+        getBeams() {
+          return this.beams;
         },
         setBeamsAndTracksWithGt(gt:number) {
           console.log('setBeamsAndTracksWithGt:', gt);
@@ -305,16 +340,29 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.setBeams(parms.beams);
           this.setTracks(parms.tracks);
         },
-        setTracks(tracks:string[]) {
+        setTracks(tracks:number[]) {
+          if(tracks.length === 3) {
+            this.selectAllTracks = true;
+          } else {
+            this.selectAllTracks = false;
+          }
           this.tracks = tracks;
+        },
+        getTracks() {
+          return this.tracks;
         },
         setSelectAllTracks(selectAllTracks:boolean) {
           this.selectAllTracks = selectAllTracks;
         },
+        getSelectAllTracks() {
+          return this.selectAllTracks;
+        },
         setSelectAllBeams(selectAllBeams:boolean) {
           this.selectAllBeams = selectAllBeams;
         },
-
+        getSelectAllBeams() {
+          return this.selectAllBeams;
+        },
     },
 })
 

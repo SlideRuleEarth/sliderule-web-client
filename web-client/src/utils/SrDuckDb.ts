@@ -223,21 +223,33 @@ export class DuckDBClient {
         const fileHandle = await opfsRoot.getFileHandle(name, { create: false });
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
-
-        await duckDB.registerFileURL(
-          name,
-          url,
-          duckdb.DuckDBDataProtocol.HTTP,
-          false,
-        );
+        let isRegistered = false;
+        try {
+          await duckDB.registerFileURL(
+            name,
+            url,
+            duckdb.DuckDBDataProtocol.HTTP,
+            false,
+          );
+        } catch (error:any) {
+          if ('File already registered' in error){
+            isRegistered = true;
+            console.log('insertOpfsParquet File already registered');
+          } else {
+            console.error('insertOpfsParquet registerFileURL error:', error);
+            throw error;
+          }
+        }
 
         const conn = await duckDB.connect();
         await conn.query(
           `CREATE VIEW IF NOT EXISTS '${name}' AS SELECT * FROM parquet_scan('${name}')`,
         );
         // Add the file to the set of registered files
-        this._filesInDb.add(name);
-        console.log('insertOpfsParquet inserted name:',name);
+        if(isRegistered === false){
+          this._filesInDb.add(name);
+          console.log('insertOpfsParquet inserted name:',name);
+        }
       } else {
         console.log(`insertOpfsParquet File ${name} already registered`);
       }
