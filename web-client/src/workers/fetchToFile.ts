@@ -9,6 +9,7 @@ import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
 let target_numArrowMetaRecs = 0;
+let target_numEOFRecs = 0;
 let got_all_cbs = false;
 let abortRequested = false;
 let num_checks = 0;
@@ -98,6 +99,7 @@ onmessage = async (event) => {
         let num_arrow_dataFile_meta_recs_processed = 0;
         let num_arrow_metaFile_data_recs_processed = 0;
         let num_arrow_metaFile_meta_recs_processed = 0;
+        let num_EOF_recs_processed = 0;
         let read_result = {} as Sr_Results_type;
         let read_state = 'idle'
         let exceptionsProgThresh = 1;
@@ -115,25 +117,25 @@ onmessage = async (event) => {
         const outputFormat = req.parms.output?.format;
         const opfsRoot = await navigator.storage.getDirectory();
         console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
-        let syncAccessHandle: any;
-        if(fileName){
+        //let syncAccessHandle: any;
+        //if(fileName){
             const fileHandle = await opfsRoot.getFileHandle(fileName, {
                 create: true,
             });
             console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' fileHandle:', fileHandle);
-            syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
+            const syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
             console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' syncAccessHandle:', syncAccessHandle);
             await db.updateRequestRecord( {req_id:reqID, file:fileName});
-        } else {
-            console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName was not provided.');
-        }
+        //} else {
+        //    console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName was not provided.');
+        //}
         if((reqID) && (reqID > 0)){
             num_checks = 0;
             startedMsg(reqID,req);
             const callbacks = {
                 'arrowrec.meta': async (result:any) => {
                     arrowCbNdx++;
-                    console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' result.filename:', result.filename, ' result:', result);
+                    console.log('arrowrec.meta arrowCbNdx:',arrowCbNdx,' result.filename:', result.filename, ' result:', result);
                     if (abortRequested) {
                         console.log('Processing aborted.');
                         return; // Stop processing when abort is requested
@@ -152,7 +154,7 @@ onmessage = async (event) => {
                             }
                         }
                         num_arrow_metaFile_meta_recs_processed++;
-                        console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowMetaFilename:', arrowMetaFilename, ' arrowMetaFileSize:', arrowMetaFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
+                        console.log('arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowMetaFilename:', arrowMetaFilename, ' arrowMetaFileSize:', arrowMetaFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
                     } else {
                         arrowDataFilename = result.filename;
                         arrowDataFileSize = Number(result.size);
@@ -165,12 +167,12 @@ onmessage = async (event) => {
                             }
                         }
                         num_arrow_dataFile_meta_recs_processed++;
-                        console.log('atl06p cb arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowDataFilename:', arrowDataFilename, ' arrowDataFileSize:', arrowDataFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed);
+                        console.log('arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowDataFilename:', arrowDataFilename, ' arrowDataFileSize:', arrowDataFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_dataFile_meta_recs_processed:', num_arrow_dataFile_meta_recs_processed);
                     }
                 },
                 'arrowrec.data': async (result:any) => {
                     arrowCbNdx++;
-                    console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' result:', result);
+                    console.log('arrowrec.data arrowCbNdx:',arrowCbNdx,' result:', result);
                     if (abortRequested) {
                         console.log('Processing aborted.');
                         return; // Stop processing when abort is requested
@@ -180,20 +182,20 @@ onmessage = async (event) => {
                             arrowMetaFile.set(result.data, arrowMetaFileOffset);
                             arrowMetaFileOffset += result.data.length;
                             num_arrow_metaFile_data_recs_processed++;
-                            console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                            console.log('arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
                         } else {
                             console.error('arrowMetaFile was not initialized.');
                         }
                     } else {
-                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx,' BEFORE write arrowDataFileOffset:', arrowDataFileOffset,' type:', typeof result.data , ' result.data.length:', result.data.length, ' result:', result, ' is ArrayBuffer?:', (result.data instanceof ArrayBuffer || ArrayBuffer.isView(result.data)));
+                        console.log('arrowrec.data arrowCbNdx:',arrowCbNdx,' BEFORE write arrowDataFileOffset:', arrowDataFileOffset,' type:', typeof result.data , ' result.data.length:', result.data.length, ' result:', result, ' is ArrayBuffer?:', (result.data instanceof ArrayBuffer || ArrayBuffer.isView(result.data)));
                         // const buf = new Uint8Array(result.data.length);
                         // buf.set(new Uint8Array(result.data));
                         // const num_bytes = syncAccessHandle.write(buf, { at: arrowMetaFileOffset });
-                        const num_bytes = syncAccessHandle.write(new Uint8Array(result.data), { at: arrowMetaFileOffset });
+                        const num_bytes = syncAccessHandle.write(new Uint8Array(result.data), { at: arrowDataFileOffset });
                         syncAccessHandle.flush();
-                        num_arrow_dataFile_data_recs_processed++;
                         arrowDataFileOffset += result.data.length;
-                        console.log('atl06p cb arrowrec.data arrowCbNdx:',arrowCbNdx, 'AFTER write arrowDataFileOffset:', arrowDataFileOffset,' num_bytes:', num_bytes, ' result.data.length:', result.data.length);
+                        num_arrow_dataFile_data_recs_processed++;
+                        console.log('arrowrec.data arrowCbNdx:',arrowCbNdx, 'AFTER write arrowDataFileOffset:', arrowDataFileOffset,' num_bytes:', num_bytes, ' result.data.length:', result.data.length);
                         if (num_bytes !== result.data.length) {
                             console.error('Failed to write all bytes to file. num_bytes:', num_bytes, ' result.data.length:', result.data.length);
                             throw new Error('Failed to write all bytes to file.');
@@ -208,12 +210,12 @@ onmessage = async (event) => {
                 },
                 'arrowrec.eof': async (result:any) => {
                     arrowCbNdx++;
-                    //console.log('atl06p cb arrowrec.eof arrowCbNdx:',arrowCbNdx,' result:', result);
+                    //console.log('arrowrec.eof arrowCbNdx:',arrowCbNdx,' result:', result);
                     await db.updateRequestRecord( {req_id:reqID, status: 'Success',status_details: 'EOF checksum present.',checksum: result.checksum});
+                    num_EOF_recs_processed++;
                 },
                 exceptrec: async (result:any) => {
-                    num_svr_exceptions++;
-                    //console.log('atl06p cb exceptrec result:', result);
+                    //console.log('exceptrec result:', result);
                     if (abortRequested) {
                         console.log('Processing aborted.');
                         return; // Stop processing when abort is requested
@@ -227,13 +229,13 @@ onmessage = async (event) => {
                         }
                         case -1: // RTE_ERROR
                         {
-                            //console.warn('RTE_ERROR: atl06p cb exceptrec result:', result.text);
+                            //console.warn('RTE_ERROR: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`));
                             break;
                         }
                         case -2: // RTE_TIMEOUT
                         {
-                            //console.warn('RTE_TIMEOUT: atl06p cb exceptrec result:', result.text);
+                            //console.warn('RTE_TIMEOUT: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID,`RTE_TIMEOUT msg: ${result.text}`));
                             const msg =  `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
                             postMessage(await progressMsg(reqID, 
@@ -252,24 +254,25 @@ onmessage = async (event) => {
                         }
                         case -3: // RTE_RESOURCE_DOES_NOT_EXIST
                         {
-                            //console.warn('RTE_RESOURCE_DOES_NOT_EXIST: atl06p cb exceptrec result:', result.text);
+                            //console.warn('RTE_RESOURCE_DOES_NOT_EXIST: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID, `RTE_RESOURCE_DOES_NOT_EXIST msg:${result.text}`));
                             break;
                         }
                         case -4: // RTE_EMPTY_SUBSET
                         {
-                            //console.warn('RTE_EMPTY_SUBSET: atl06p cb exceptrec result:', result.text);
+                            //console.warn('RTE_EMPTY_SUBSET: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID, `RTE_EMPTY_SUBSET msg:${result.text}`));
                             break;
                         }
                         case -5: // RTE_SIMPLIFY
                         {
-                            //console.warn('RTE_SIMPLIFY: atl06p cb exceptrec result:', result.text);
+                            //console.warn('RTE_SIMPLIFY: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID, `RTE_SIMPLIFY msg:${result.text}`));
                             break;
                         }
                     }
                     //console.log( 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:',num_arrow_dataFile_data_recs_processed, 'num_arrow_meta_recs_processed:',num_arrow_metaFile_meta_recs_processed, 'num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks );
+                    num_svr_exceptions++;
                     if(num_svr_exceptions > exceptionsProgThresh){
                         exceptionsProgThresh = num_svr_exceptions + exceptionsProgThreshInc;
                         const msg =  `Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
@@ -295,7 +298,7 @@ onmessage = async (event) => {
                     //console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                 },
                 eventrec: (result:any) => {
-                    //console.log('atl06p cb eventrec result (DEPRECATED):', result);
+                    //console.log('eventrec result (DEPRECATED):', result);
                     if (abortRequested) {
                         console.log('Processing aborted.');
                         return; // Stop processing when abort is requested
@@ -334,9 +337,10 @@ onmessage = async (event) => {
                             }
                             if(result){
                                 read_result = result as Sr_Results_type;
-                                target_numSvrExceptions = 'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0;
-                                target_numArrowDataRecs = 'arrowrec.data' in read_result ? Number(read_result['arrowrec.data']) : 0;
-                                target_numArrowMetaRecs = 'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0;
+                                target_numSvrExceptions = 'exceptrec'       in read_result ? Number(read_result['exceptrec']) : 0;
+                                target_numArrowDataRecs = 'arrowrec.data'   in read_result ? Number(read_result['arrowrec.data']) : 0;
+                                target_numArrowMetaRecs = 'arrowrec.meta'   in read_result ? Number(read_result['arrowrec.meta']) : 0;
+                                target_numEOFRecs       = 'arrowrec.eof'    in read_result ? Number(read_result['arrowrec.eof']) : 0;
                                 console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
                             }
                             console.log(cmd.func,'  Done Reading: result:', result);
@@ -363,8 +367,10 @@ onmessage = async (event) => {
                                 if(
                                     ((num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed) === target_numArrowDataRecs) &&
                                     ((num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed) === target_numArrowMetaRecs) &&
-                                    (num_svr_exceptions === target_numSvrExceptions)
+                                    (num_svr_exceptions === target_numSvrExceptions) && 
+                                    (num_EOF_recs_processed === target_numEOFRecs)
                                 ){
+                                    console.log('++++ Got all CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
                                     got_all_cbs = true;
                                     break;
                                 } else {

@@ -42,6 +42,7 @@ onMounted(async () => {
 
       const scatterOptions = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
       if (scatterOptions) {
+        console.log('SrScatterPlot onMounted scatterOptions:', scatterOptions);
         option.value = scatterOptions;
       } else {
         console.warn('Failed to get scatter options');

@@ -166,8 +166,10 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
+          console.log('setElevationDataOptionsFromFieldNames:', elevationDataOptions);
         },
         getElevationDataOptions() {
+          console.log('getElevationDataOptions:', this.elevationDataOptions);
           return this.elevationDataOptions
         },
         setElevationDataOptions(elevationDataOptions: {name:string,value:string}[]) {
