@@ -303,7 +303,6 @@ export const useReqParamsStore = defineStore('reqParams', {
           // }
           return baseParams;
         },
-        
         setReqion(reqionValue:number) {
           this.regionValue = reqionValue;
         },

@@ -36,3 +36,30 @@ export const beamsOptions = [
     //console.log(`getBeamsAndTracksWithGt(${gt}) -> beams:`,beams,'tracks:',tracks);
     return {beams, tracks};
   }
+
+  export function findParam(obj: any, key: string): any | undefined {
+    // Check if the current object is null or not an object
+    if (obj === null || typeof obj !== 'object') {
+        return undefined;
+    }
+
+    // Check if the key exists in the current object using Object.prototype.hasOwnProperty.call
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        return obj[key];
+    }
+
+    // Recurse through each property in the object
+    for (const prop in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+            // Recursively call findParam on the property
+            const result = findParam(obj[prop], key);
+            // If the parameter is found in a nested object, return the result
+            if (result !== undefined) {
+                return result;
+            }
+        }
+    }
+
+    // Return undefined if the parameter is not found
+    return undefined;
+}

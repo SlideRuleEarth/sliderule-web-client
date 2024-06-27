@@ -6,6 +6,7 @@ import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+import { removeCurrentDeckLayer } from './SrMapUtils';
 
 const atl06ChartFilterStore = useAtl06ChartFilterStore();
 
@@ -22,6 +23,7 @@ interface SummaryRowData {
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
     try {
+
         const filename = await indexedDb.getFilename(req_id);
         const summary = await indexedDb.getWorkerSummary(req_id);
         console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
@@ -32,8 +34,9 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
             const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
             const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
             const duckDbClient = await createDuckDbClient();
-            await duckDbClient.insertOpfsParquet(filename);
+            
             try {
+                await duckDbClient.insertOpfsParquet(filename);
                 console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
 
                 const results = await duckDbClient.query(`
@@ -98,6 +101,12 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
 export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
     try{
+
+        if(await indexedDb.getStatus(req_id) === 'error'){
+            console.log('duckDbReadAndUpdateElevationData req_id:',req_id,' status is error SKIPPING!');
+            removeCurrentDeckLayer();
+            return;
+        }
         const height_fieldname = await getHeightFieldname(req_id);
         //console.log('duckDbReadAndUpdateElevationData req_id:',req_id);
         const summary = await duckDbReadOrCacheSummary(req_id,height_fieldname);

@@ -203,3 +203,28 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         throw error;
     }
 }
+export async function calculateChecksumFromOpfs(fileHandle: FileSystemFileHandle): Promise<bigint> {
+    const file = await fileHandle.getFile();
+    const reader = file.stream().getReader();
+    let checksum = 0;
+
+    try {
+        let readResult = await reader.read(); // Initial read
+        while (!readResult.done) {
+            const value = readResult.value;
+            if (value) {
+                for (let i = 0; i < value.length; i++) {
+                    checksum += value[i];
+                }
+            }
+            readResult = await reader.read(); // Read next chunk
+        }
+    } catch (error) {
+        console.error('Error reading file:', error);
+        throw error;
+    } finally {
+        reader.releaseLock();
+    }
+
+    return BigInt(checksum);
+}

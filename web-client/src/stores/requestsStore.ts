@@ -3,7 +3,7 @@ import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
-
+import { findParam } from '@/utils/parmUtils';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -87,6 +87,12 @@ export const useRequestsStore = defineStore('requests', {
         throw error;
       }
     },
+    async has_checksum(req_id: number): Promise<boolean> {
+      const params = await db.getReqParams(req_id);
+      console.log('has_checksum params:', params);
+      return findParam(params, 'with_checksum');
+    },
+
     async fetchReqs(): Promise<void> {
       try {
         this.reqs = await db.table('requests').orderBy('req_id').reverse().toArray();
@@ -108,9 +114,17 @@ export const useRequestsStore = defineStore('requests', {
     },
     async getMenuItems(): Promise<SrMenuItem[]> {
       const fetchedReqIds = await this.fetchReqIds();
-      return fetchedReqIds.map((id: number) => {
-          return {name: id.toString(), value: id.toString()};
+      
+      const promises = fetchedReqIds.map(async (id: number) => {
+        if (await db.getStatus(id) !== 'error') {
+          return { name: id.toString(), value: id.toString() };
+        }
       });
+    
+      const results = await Promise.all(promises);
+    
+      // Filter out undefined values
+      return results.filter((item): item is SrMenuItem => item !== undefined);
     },
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').toArray())

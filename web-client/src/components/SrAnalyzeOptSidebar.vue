@@ -9,6 +9,8 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
+import SrRecReqDisplay from './SrRecReqDisplay.vue';
+import SrCheckSum from './SrCheckSum.vue';
 import { db } from '@/db/SlideRuleDb';
 
 const requestsStore = useRequestsStore();
@@ -100,6 +102,13 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                 v-model="selectedReqId"
                 :defaultOptionIndex="Number(defaultMenuItemIndex)"
                 tooltipText="Request Id from Record table"/>  
+        </div>
+        <div>
+            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+        </div>
+        <div>
+            <div v-if="loading">Loading...</div>
+            <SrCheckSum v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <div v-if="loading">Loading...</div>

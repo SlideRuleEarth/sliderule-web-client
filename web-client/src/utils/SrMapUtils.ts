@@ -269,6 +269,14 @@ export function removeDeckLayer(map: OLMap){
     }
 }
 
+export function removeCurrentDeckLayer(){
+    const current_layer = useMapStore().getDeckLayer();
+    if(current_layer){
+        useMapStore().getMap()?.removeLayer(current_layer);
+    } else {
+        //console.error('No current_layer to remove.');
+    }   
+}
 export function addDeckLayer(map: OLMap, deck:Deck){
     const deckLayer = createNewDeckLayer(deck);
     if(deckLayer){
