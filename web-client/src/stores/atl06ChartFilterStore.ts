@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
+import type { get } from 'http';
 
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
@@ -159,9 +160,19 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         setDebugCnt(cnt:number) {
           this.debugCnt = cnt;
         },
-        getElevationDataOptions() {
-          return this.elevationDataOptions;
+        setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
+          const elevationDataOptions = [] as {name:string,value:string}[];
+          for (const fieldName of fieldNames) {
+            elevationDataOptions.push({name:fieldName,value:fieldName});
+          }
+          this.setElevationDataOptions(elevationDataOptions);
         },
+        getElevationDataOptions() {
+          return this.elevationDataOptions
+        },
+        setElevationDataOptions(elevationDataOptions: {name:string,value:string}[]) {
+          this.elevationDataOptions = elevationDataOptions;
+        },  
         getYDataForChartValues() {
           const yDataForChartValues = [];
           console.log('yDataForChart:', this.yDataForChart);
@@ -169,7 +180,7 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
             //console.log('getYDataForChartValues:', yData);
             yDataForChartValues.push(yData);
           }
-          console.log('yDataForChartValues:', yDataForChartValues);
+          console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
           return yDataForChartValues;
         }
     },

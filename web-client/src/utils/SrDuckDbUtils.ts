@@ -137,6 +137,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             //console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
             const fieldNames = Object.keys(rows[0][0]);
             console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
+            atl06ChartFilterStore.setElevationDataOptionsFromFieldNames(fieldNames);
             // Process and update the elevation data as needed
             if (rows.length > 0) {
                 // Process and update the elevation data as needed
