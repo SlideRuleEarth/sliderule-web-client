@@ -9,6 +9,7 @@ import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
 let target_numArrowMetaRecs = 0;
+let got_all_cbs = false;
 let abortRequested = false;
 let num_checks = 0;
 let num_post_done_checks = 0;
@@ -19,39 +20,35 @@ export async function checkDoneProcessing(  reqID:number,
                                             read_state:string, 
                                             num_svr_exceptions:number, 
                                             num_arrow_data_recs_processed:number,
-                                            num_arrow_meta_recs_processed:number, 
-                                            target_numSvrExceptions:number,
-                                            target_numArrowDataRecs:number,
-                                            target_numArrowMetaRecs:number): Promise<void>{
+                                            num_arrow_meta_recs_processed:number): Promise<void>{
     num_checks++;
     //console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
     if((read_state === 'done_reading') || (read_state === 'error') || abortRequested){
-        console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         num_post_done_checks++;
-        if(num_post_done_checks == 1){
-            if( ((num_svr_exceptions >= target_numSvrExceptions) && (num_arrow_data_recs_processed >= target_numArrowDataRecs) && (num_arrow_meta_recs_processed >= target_numArrowMetaRecs)) || abortRequested){
-                let status_details = 'No data returned from SlideRule.';
-                if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
-                    status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
-                    let msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
-                    if(abortRequested){ // Abort requested
-                        msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
-                    } else {
-                        if(read_state === 'done_reading'){
-                            console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
-                            postMessage(await successMsg(reqID, msg));
-                        }
-                    }
-                    read_state = 'done';
-                    syncAccessHandle.flush();
-                    syncAccessHandle.close();
-                    const fileName = await db.getFilename(reqID);
-                    postMessage(opfsReadyMsg(reqID, fileName));
-                    console.log(msg);
+        console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+        if(got_all_cbs || abortRequested){
+            let status_details = 'No data returned from SlideRule.';
+            if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
+                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
+            }
+            let msg='';
+            if(abortRequested){ // Abort requested
+                msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
+            } else {
+                msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
+                if(read_state === 'done_reading'){
+                    console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
+                    postMessage(await successMsg(reqID, msg));
                 }
             }
+            read_state = 'done';
+            syncAccessHandle.flush();
+            syncAccessHandle.close();
+            const fileName = await db.getFilename(reqID);
+            postMessage(opfsReadyMsg(reqID, fileName));
+            console.log(msg);
         } else {
-            console.warn('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+            console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
     }
 }
@@ -207,15 +204,12 @@ onmessage = async (event) => {
                                                 read_state, 
                                                 num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                target_numSvrExceptions,
-                                                target_numArrowDataRecs,
-                                                target_numArrowMetaRecs);
+                                                num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed);
                 },
                 'arrowrec.eof': async (result:any) => {
                     arrowCbNdx++;
                     //console.log('atl06p cb arrowrec.eof arrowCbNdx:',arrowCbNdx,' result:', result);
-                    await db.updateRequestRecord( {req_id:reqID, status: 'progress',status_details: 'EOF checksum present.',checksum: result.checksum});
+                    await db.updateRequestRecord( {req_id:reqID, status: 'Success',status_details: 'EOF checksum present.',checksum: result.checksum});
                 },
                 exceptrec: async (result:any) => {
                     num_svr_exceptions++;
@@ -297,10 +291,7 @@ onmessage = async (event) => {
                                                 read_state, 
                                                 num_svr_exceptions, 
                                                 num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                target_numSvrExceptions,
-                                                target_numArrowDataRecs,
-                                                target_numArrowMetaRecs);
+                                                num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed);
                     //console.log('exceptrec  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
                 },
                 eventrec: (result:any) => {
@@ -365,18 +356,26 @@ onmessage = async (event) => {
                                                             msg,
                                                         ));
                             exceptionsProgThreshInc = Math.floor(target_numSvrExceptions/10);
-                            let num_retries_left = 3;
-                            let gotit = false;
+                            let num_retries_left = 10; // TBD use configured timeout from params
+                            got_all_cbs = false;
                             while((num_retries_left > 0) && (target_numArrowDataRecs>0)){
                                 console.log('Waiting for final CBs num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
-                                if(num_arrow_dataFile_data_recs_processed === target_numArrowDataRecs){
-                                    gotit = true;
+                                if(
+                                    ((num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed) === target_numArrowDataRecs) &&
+                                    ((num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed) === target_numArrowMetaRecs) &&
+                                    (num_svr_exceptions === target_numSvrExceptions)
+                                ){
+                                    got_all_cbs = true;
                                     break;
+                                } else {
+                                    console.log('**** Waiting for final CBs num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                                    console.log('**** Waiting for final CBs num_retries_left:', num_retries_left, 'target_numArrowMetaRecs:', target_numArrowMetaRecs, 'num_arrow_dataFile_meta_recs_processed:', num_arrow_dataFile_meta_recs_processed, 'num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
+                                    console.log('**** Waiting for final CBs num_retries_left:', num_retries_left, 'target_numSvrExceptions:', target_numSvrExceptions, 'num_svr_exceptions:', num_svr_exceptions);
                                 }
                                 num_retries_left--;
                                 await mysleep(1000);
                             } 
-                            if(!gotit){
+                            if(!got_all_cbs){
                                 console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
                             }
                             console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
@@ -446,10 +445,7 @@ onmessage = async (event) => {
                                                         read_state, 
                                                         num_svr_exceptions, 
                                                         num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                        num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed, 
-                                                        target_numSvrExceptions,
-                                                        target_numArrowDataRecs,
-                                                        target_numArrowMetaRecs);
+                                                        num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed);
                         }
                     } else {
                         console.error('cmd.func was not provided');
