@@ -167,7 +167,8 @@ onUnmounted(() => {
             <Column field="Actions" header="" class="sr-analyze">
                 <template #body="slotProps">
                     <i 
-                      class="pi pi-chart-line "
+                      class="pi pi-chart-line"
+                      v-if="slotProps.data.status !== 'error'"
                       @click="analyze(slotProps.data.req_id)"
                       v-tooltip="'Analyze'"
                     ></i>
