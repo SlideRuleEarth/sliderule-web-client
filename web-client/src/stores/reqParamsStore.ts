@@ -122,16 +122,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         useAbsoluteHeights: false,
         sendWaveforms: false,
         useABoVEClassifier: false,
-        gediBeams: [
-          {name:'0',value:0}, 
-          {name:'1',value:1},
-          {name:'2',value:2},
-          {name:'3',value:3},
-          {name:'5',value:5},
-          {name:'6',value:6},
-          {name:'8',value:8},
-          {name:'11',value:11},
-        ],
+        gediBeams: [0,1,2,3,5,6,8,11] as number[],
         gediBeamsOptions: [
           {name:'0',value:0}, 
           {name:'1',value:1},
@@ -141,7 +132,8 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:'6',value:6},
           {name:'8',value:8},
           {name:'11',value:11},
-        ],
+        ] as SrMultiSelectNumberItem[],
+
         ATL03GeoSpatialFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
         ATL03PhotonFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
         ATL06IceSegmentFieldsOptions:['Field_1', 'Field_2', 'Field_3'],

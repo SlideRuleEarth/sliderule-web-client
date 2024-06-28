@@ -1,27 +1,28 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
-import type { get } from 'http';
+import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
         tracks:  [1,2,3] as number[],
-        selectAllTracks: true,
+        selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
-        rgtValue: 1,
-        cycleValue: 1,
-        regionValue: 1,
-        currentFile: '',
-        currentReqId: 0,
-        min_x: 0,
-        max_x: 0,
-        min_y: 0,
-        max_y: 0,
-        updateScatterPlot: false,
-        elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}],
-        yDataForChart:['h_mean'],
-        debugCnt: 0,
+        rgtValue: 1 as number,
+        cycleValue: 1 as number,
+        regionValue: 1 as number,
+        currentFile: '' as string,
+        currentReqId: 0 as number,
+        min_x: 0 as number,
+        max_x: 0 as number,
+        min_y: 0 as number,
+        max_y: 0 as number,
+        updateScatterPlot: false as boolean,
+        elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}] as {name:string,value:string}[],
+        yDataForChart:[] as string[],
+        ndxOfelevationDataOptionsForHeight: 0,
+        debugCnt: 0 as number,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -160,9 +161,14 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         setDebugCnt(cnt:number) {
           this.debugCnt = cnt;
         },
-        setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
+        async setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
           const elevationDataOptions = [] as {name:string,value:string}[];
+          const heightFieldname = await getHeightFieldname(this.currentReqId);
+          let ndx=0;
           for (const fieldName of fieldNames) {
+            if (fieldName === heightFieldname) {
+              this.ndxOfelevationDataOptionsForHeight = ndx++;
+            }
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
@@ -184,6 +190,9 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           }
           console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
           return yDataForChartValues;
+        },
+        getNdxOfelevationDataOptionsForHeight() {
+          return this.ndxOfelevationDataOptionsForHeight;
         }
     },
 })

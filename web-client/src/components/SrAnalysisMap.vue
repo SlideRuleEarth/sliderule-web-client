@@ -426,6 +426,7 @@
     border-radius: 0.5rem;
     pointer-events: none;
     font-size: 1rem;
+    max-width: 20rem;
 }
 :deep(.ol-overlaycontainer-stopevent) {
   position: relative;

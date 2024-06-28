@@ -126,15 +126,23 @@ interface TooltipParams {
 }
 
 // Utility functions to show and hide tooltip
-function showTooltip({ x, y, tooltip }: TooltipParams):void {
+function showTooltip({ x, y, tooltip }: TooltipParams): void {
     const tooltipEl = document.getElementById('tooltip');
     if (tooltipEl) {
         tooltipEl.innerHTML = tooltip;
         tooltipEl.style.display = 'block';
-        tooltipEl.style.left = `${x}px`;
-        tooltipEl.style.top = `${y}px`;
+
+        // Calculate the percentage positions
+        const xPercent = (x / window.innerWidth) * 100;
+        const yPercent = (y / window.innerHeight) * 100;
+        const offset = 28; // Offset in percentage to position the tooltip below the pointer
+
+        // Set the tooltip position using percentage
+        tooltipEl.style.left = `${xPercent}%`;
+        tooltipEl.style.top = `${yPercent + offset}%`;
     }
 }
+
 
 function hideTooltip():void {
     const tooltipEl = document.getElementById('tooltip');
