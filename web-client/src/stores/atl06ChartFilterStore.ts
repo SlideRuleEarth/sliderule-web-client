@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
-import type { get } from 'http';
+import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
 export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
 
@@ -21,6 +21,7 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         updateScatterPlot: false,
         elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}],
         yDataForChart:['h_mean'],
+        ndxOfelevationDataOptionsForHeight: 0,
         debugCnt: 0,
     }),
     actions: {
@@ -160,9 +161,14 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         setDebugCnt(cnt:number) {
           this.debugCnt = cnt;
         },
-        setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
+        async setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
           const elevationDataOptions = [] as {name:string,value:string}[];
+          const heightFieldname = await getHeightFieldname(this.currentReqId);
+          let ndx=0;
           for (const fieldName of fieldNames) {
+            if (fieldName === heightFieldname) {
+              this.ndxOfelevationDataOptionsForHeight = ndx++;
+            }
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
@@ -184,6 +190,9 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           }
           console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
           return yDataForChartValues;
+        },
+        getNdxOfelevationDataOptionsForHeight() {
+          return this.ndxOfelevationDataOptionsForHeight;
         }
     },
 })

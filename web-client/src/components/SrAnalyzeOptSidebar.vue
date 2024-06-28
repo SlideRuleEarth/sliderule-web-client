@@ -107,8 +107,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
         </div>
         <div>
-            <div v-if="loading">Loading...</div>
-            <SrCheckSum v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <div v-if="loading">Loading...</div>

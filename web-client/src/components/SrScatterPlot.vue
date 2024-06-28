@@ -1,13 +1,15 @@
 <template>
   <div class="sr-scatter-plot-header">
-    <SrMultiSelectText 
-      v-model="atl06ChartFilterStore.yDataForChart"
-      label="Choose" 
-      @update:modelValue="changedYValues"
-      menuPlaceholder="Select elevation data"
-      :menuOptions=atl06ChartFilterStore.getElevationDataOptions()
-      :default="[atl06ChartFilterStore.getElevationDataOptions()[0]]"
-    />  
+    <div class="multiselect-container">
+      <SrMultiSelectText 
+        v-model="atl06ChartFilterStore.yDataForChart"
+        label="Choose" 
+        @update:modelValue="changedYValues"
+        menuPlaceholder="Select elevation data"
+        :menuOptions=atl06ChartFilterStore.getElevationDataOptions()
+        :default="[atl06ChartFilterStore.getElevationDataOptions()[atl06ChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
+      /> 
+    </div> 
   </div>
   <v-chart class="scatter-chart" :option="option" autoresize />
 </template>
@@ -95,6 +97,11 @@ watch(() => curReqSumStore.getReqId(), async (newReqId, oldReqId) => {
   margin: 0.5rem;
   padding: 1rem;
 }
+
+.multiselect-container {
+  display: inline-block;
+}
+
 .scatter-chart {
   margin: 0.5rem;
   padding: 1rem;

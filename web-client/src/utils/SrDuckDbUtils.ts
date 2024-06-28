@@ -8,8 +8,6 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
 import { removeCurrentDeckLayer } from './SrMapUtils';
 
-const atl06ChartFilterStore = useAtl06ChartFilterStore();
-
 interface SummaryRowData {
     minLat: number;
     maxLat: number;
@@ -137,7 +135,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             //console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
             const fieldNames = Object.keys(rows[0][0]);
             console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
-            atl06ChartFilterStore.setElevationDataOptionsFromFieldNames(fieldNames);
+            useAtl06ChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
             // Process and update the elevation data as needed
             if (rows.length > 0) {
                 // Process and update the elevation data as needed
@@ -217,8 +215,8 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
-                    atl06ChartFilterStore.setMinX(row.min_x);
-                    atl06ChartFilterStore.setMaxX(row.max_x);
+                    useAtl06ChartFilterStore().setMinX(row.min_x);
+                    useAtl06ChartFilterStore().setMaxX(row.max_x);
                     y.forEach((yName) => {
                         minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
                     });
@@ -254,11 +252,11 @@ async function getSeries(name: string, fileName: string, x: string, y: string[],
 
 export async function getScatterOptions(title: string,y:string[]): Promise<any> {
     console.log('getScatterOptions title:', title, ' y:', y);
-    const beams = atl06ChartFilterStore.getBeams();
-    const rgt = atl06ChartFilterStore.getRgt();
-    const cycle = atl06ChartFilterStore.getCycle();
+    const beams = useAtl06ChartFilterStore().getBeams();
+    const rgt = useAtl06ChartFilterStore().getRgt();
+    const cycle = useAtl06ChartFilterStore().getCycle();
     const x = 'x_atc';
-    const fileName = atl06ChartFilterStore.getFileName();
+    const fileName = useAtl06ChartFilterStore().getFileName();
     let options = null;
     console.log('getScatterOptions fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     if(fileName){
@@ -278,8 +276,8 @@ export async function getScatterOptions(title: string,y:string[]): Promise<any> 
                     left: 'left'
                 },
                 xAxis: {
-                    min: atl06ChartFilterStore.getMinX(),
-                    max: atl06ChartFilterStore.getMaxX()
+                    min: useAtl06ChartFilterStore().getMinX(),
+                    max: useAtl06ChartFilterStore().getMaxX()
                 },
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',

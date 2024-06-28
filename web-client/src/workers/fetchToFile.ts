@@ -29,7 +29,7 @@ export async function checkDoneProcessing(  reqID:number,
         console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         if(got_all_cbs || abortRequested){
             let status_details = 'No data returned from SlideRule.';
-            if( (target_numArrowDataRecs > 0) && (target_numArrowMetaRecs > 0) && (target_numSvrExceptions > 0)){
+            if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
                 status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
             }
             let msg='';
@@ -154,7 +154,8 @@ onmessage = async (event) => {
                             }
                         }
                         num_arrow_metaFile_meta_recs_processed++;
-                        console.log('arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowMetaFilename:', arrowMetaFilename, ' arrowMetaFileSize:', arrowMetaFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
+                        console.log('arrowrec.meta (for _metadata.json) arrowCbNdx:',arrowCbNdx,' arrowMetaFilename:', arrowMetaFilename, ' arrowMetaFileSize:', arrowMetaFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_metaFile_meta_recs_processed:', num_arrow_metaFile_meta_recs_processed);
+                        console.log(' ------- RESETTING arrowMetaFileOffset ------- ')
                     } else {
                         arrowDataFilename = result.filename;
                         arrowDataFileSize = Number(result.size);
@@ -167,7 +168,8 @@ onmessage = async (event) => {
                             }
                         }
                         num_arrow_dataFile_meta_recs_processed++;
-                        console.log('arrowrec.meta arrowCbNdx:',arrowCbNdx,' arrowDataFilename:', arrowDataFilename, ' arrowDataFileSize:', arrowDataFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_dataFile_meta_recs_processed:', num_arrow_dataFile_meta_recs_processed);
+                        console.log('arrowrec.meta (for datafile) arrowCbNdx:',arrowCbNdx,' arrowDataFilename:', arrowDataFilename, ' arrowDataFileSize:', arrowDataFileSize, 'arrowDataFileOffset:', arrowDataFileOffset, ' num_arrow_dataFile_meta_recs_processed:', num_arrow_dataFile_meta_recs_processed);
+                        console.log(' ------- RESETTING arrowDataFileOffset ------- ')
                     }
                 },
                 'arrowrec.data': async (result:any) => {
@@ -182,7 +184,7 @@ onmessage = async (event) => {
                             arrowMetaFile.set(result.data, arrowMetaFileOffset);
                             arrowMetaFileOffset += result.data.length;
                             num_arrow_metaFile_data_recs_processed++;
-                            console.log('arrowrec.data arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
+                            console.log('arrowrec.data (_metadata.json) arrowCbNdx:',arrowCbNdx,' arrowMetaFile:', arrowMetaFile, 'arrowMetaFileOffset:', arrowMetaFileOffset, ' result.data:', result.data, ' result.data.length:', result.data.length, ' result:', result);
                         } else {
                             console.error('arrowMetaFile was not initialized.');
                         }
@@ -326,7 +328,12 @@ onmessage = async (event) => {
                                             ));
                     if(cmd.func){
                         let result:Sr_Results_type = {} as Sr_Results_type; 
-                        try{  
+                        try{
+                            console.log('Fetching:', cmd.func, ' for reqID:', reqID, ' with cmd.parameters:', cmd.parameters, ' using callbacks:', callbacks);  
+                            if(got_all_cbs){
+                                console.warn("&&&&&&&&&&&&&&&&&&&& STATE ERROR &&&&&&&&&&&&&&&&&&&");
+                            }
+                            got_all_cbs = false;
                             if(cmd.func.includes('atl06')){  
                                 result = await atl06(cmd.parameters as AtlpReqParams,callbacks);
                             } else if(cmd.func.includes('atl03')){
