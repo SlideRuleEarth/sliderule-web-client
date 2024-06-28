@@ -6,12 +6,13 @@
         label="Choose" 
         @update:modelValue="changedYValues"
         menuPlaceholder="Select elevation data"
-        :menuOptions=atl06ChartFilterStore.getElevationDataOptions()
+        :menuOptions="atl06ChartFilterStore.getElevationDataOptions()"
         :default="[atl06ChartFilterStore.getElevationDataOptions()[atl06ChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
-      /> 
-    </div> 
+      />  
+    </div>
+    <div v-if="isLoading" class="loading-indicator">Loading...</div>
   </div>
-  <v-chart class="scatter-chart" :option="option" autoresize />
+  <v-chart class="scatter-chart" :option="option" autoresize v-if="!isLoading"/>
 </template>
 
 <script setup lang="ts">
@@ -20,7 +21,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch, onMounted } from "vue";
+import { shallowRef, provide, watch, onMounted, ref } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtl06ChartFilterStore } from "@/stores/atl06ChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
@@ -33,73 +34,69 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 
-let option = shallowRef();
+const option = shallowRef();
+const isLoading = ref(false);
+
+const fetchScatterOptions = async () => {
+  isLoading.value = true;
+  try {
+    const scatterOptions = await getScatterOptions('Atl06', atl06ChartFilterStore.getYDataForChartValues());
+    if (scatterOptions) {
+      option.value = scatterOptions;
+    } else {
+      console.warn('Failed to get scatter options');
+    }
+  } catch (error) {
+    console.error('Error fetching scatter options:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
-  console.log('SrScatterPlot onMounted Loading SrScatterPlot with ID:', reqId);
   if (reqId > 0) {
-    try {
-      //const y = ['h_mean'];
-
-      const scatterOptions = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
-      if (scatterOptions) {
-        console.log('SrScatterPlot onMounted scatterOptions:', scatterOptions);
-        option.value = scatterOptions;
-      } else {
-        console.warn('Failed to get scatter options');
-      }
-    } catch (error) {
-      console.error('Error fetching scatter options:', error);
-    }
+    await fetchScatterOptions();
   } else {
     console.warn('reqId is undefined');
   }
 });
 
-watch(() => atl06ChartFilterStore.getUpdateScatterPlot(), async (newState, oldState) => {
-  console.log(`SrScatterPlot watch atl06ChartFilterStore updateScatterPlot oldState:'${oldState} to newState:'${newState}`);
+watch(() => atl06ChartFilterStore.getUpdateScatterPlot(), async (newState) => {
   if (newState) {
-    try {
-      option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
-      atl06ChartFilterStore.resetUpdateScatterPlot();
-    } catch (error) {
-      console.error('Error updating scatter options:', error);
-    }
+    await fetchScatterOptions();
+    atl06ChartFilterStore.resetUpdateScatterPlot();
   }
 }, { deep: true });
 
-async function changedYValues(){
-  try {
-    console.log('changedYValues Fetching scatter options for new atl06ChartFilterStore.getYDataForChartValues():', atl06ChartFilterStore.getYDataForChartValues());
-    option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
-  } catch (error) {
-    console.error('Error updating scatter options:', error);
-  }
+async function changedYValues() {
+  await fetchScatterOptions();
 };
 
-watch(() => curReqSumStore.getReqId(), async (newReqId, oldReqId) => {
-  console.log(`SrScatterPlot reqId changed from ${oldReqId} to ${newReqId}`);
-  try {
-    console.log('Fetching scatter options for new atl06ChartFilterStore.getYDataForChartValues():', atl06ChartFilterStore.getYDataForChartValues());
-    option.value = await getScatterOptions('Atl06',atl06ChartFilterStore.getYDataForChartValues());
-  } catch (error) {
-    console.error(`Error fetching scatter options for new reqId:${newReqId}`, error);
+watch(() => curReqSumStore.getReqId(), async (newReqId) => {
+  if (newReqId) {
+    await fetchScatterOptions();
   }
 });
 </script>
-
 <style scoped>
 .sr-scatter-plot-header {
   display: flex;
-  justify-content:center;
-  align-items:center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   margin: 0.5rem;
   padding: 1rem;
 }
 
 .multiselect-container {
   display: inline-block;
+}
+
+.loading-indicator {
+  margin-left: 1rem;
+  font-size: 1.2rem;
+  color: #e91c5a;
 }
 
 .scatter-chart {

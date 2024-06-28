@@ -4,7 +4,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import SrMenuInput from './SrMenuInput.vue';
-import SrMultiSelectText from './SrMultiSelectText.vue'
+import SrMultiSelectNumber from './SrMultiSelectNumber.vue'
 import { useMapStore } from '@/stores/mapStore';
 import SrCheckbox from './SrCheckbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -184,7 +184,7 @@ onMounted(() => {
                     <SrAncillaryFields :iceSat2SelectedAPI="iceSat2SelectedAPI"/>
                 </AccordionTab>
                 <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
-                    <SrMultiSelectText
+                    <SrMultiSelectNumber
                         v-model="reqParamsStore.gediBeams"
                         label = "Select Beam(s)"
                         aria-label="Select Beams"

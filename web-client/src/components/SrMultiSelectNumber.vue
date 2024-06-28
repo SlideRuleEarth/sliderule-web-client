@@ -4,22 +4,38 @@
         <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="sr-multi-selector" :disabled="props.insensitive" /> 
     </div>
 </template>  
+
 <script setup lang="ts">
     import { ref, onMounted, watch } from 'vue';
     import MultiSelect from 'primevue/multiselect';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
-
     export interface SrMultiSelectNumberItem {
         name: string;
-        value: number; 
+        value: number;
     }
+
     const props = defineProps({
-        label: String,
-        menuOptions: Array as () => SrMultiSelectNumberItem[],
-        default: Array as () => SrMultiSelectNumberItem[],
-        value: Array as () => SrMultiSelectNumberItem[],
-        names: Array as () => string[],
+        label: {
+            type: String,
+            required: true
+        },
+        menuOptions: {
+            type: Array as () => SrMultiSelectNumberItem[],
+            required: true
+        },
+        default: {
+            type: Array as () => SrMultiSelectNumberItem[],
+            default: () => []
+        },
+        value: {
+            type: Array as () => SrMultiSelectNumberItem[],
+            default: () => []
+        },
+        names: {
+            type: Array as () => string[],
+            default: () => []
+        },
         insensitive: {
             type: Boolean,
             default: false
@@ -34,34 +50,30 @@
         },
     });
 
-    // Update to manage an array of selected items
-    const selectedMenuItems = ref(props.default);
+    const selectedMenuItems = ref<SrMultiSelectNumberItem[]>(props.default);
     const emit = defineEmits(['update:value']);
+
     watch(selectedMenuItems, (newValue) => {
         console.log('MultiMenu:', props.label, 'selected:', newValue);
-        if(newValue){
+        if (newValue) {
             const values = newValue.map(item => item.value);
-            // Emit event to update parent value
             emit('update:value', values);
         } else {
             console.error(`Watch: ${props.label} No selected items?`);
         }
-        console.log(`${props.label} Selected Items: `,selectedMenuItems.value);
+        console.log(`${props.label} Selected Items: `, selectedMenuItems.value);
     });
 
     onMounted(() => {
         console.log('Mounted Menu:', props.label);
         selectedMenuItems.value = props.default;
-        if(selectedMenuItems.value){
+        if (selectedMenuItems.value) {
             const values = selectedMenuItems.value.map(item => item.value);
-            // Emit event to update parent value
             emit('update:value', values);
-            console.log('onMounted:', props.label, 'values:',values,'Selected Items:', selectedMenuItems.value)
+            console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
         } else {
             console.error(`onMounted: ${props.label} No selected items?`);
         }
-        // console.log('Selected:', selectedMenuItems.value);
-        // console.log('Options:', props.menuOptions);
     });
 </script>
 
