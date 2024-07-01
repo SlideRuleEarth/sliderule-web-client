@@ -176,6 +176,16 @@ export const getHeightFieldname = async (req_id:number) => {
     }
 }
 
+export const getTrackFieldname = async (req_id:number) => {
+    const result = await db.getFunc(req_id);
+    if (result.includes('atl06')) {
+        return 'gt';
+    } else if (result.includes('atl03')){
+        return 'track';
+    } else {
+        throw new Error(`Unknown height fieldname for ${result} in getTrackFieldname`);
+    }
+}
 export const readOrCacheSummary = async (req_id:number,height_fieldname:string) : Promise<SrRequestSummary | undefined> => {
     try{
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
@@ -194,7 +204,7 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         console.log('readAndUpdateElevationData req_id:',req_id);
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            duckDbReadAndUpdateElevationData(req_id);
+            await duckDbReadAndUpdateElevationData(req_id);
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }

@@ -5,7 +5,7 @@ import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { removeCurrentDeckLayer } from './SrMapUtils';
 
 interface SummaryRowData {
@@ -98,8 +98,9 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 }
 
 export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
+    console.log('duckDbReadAndUpdateElevationData req_id:',req_id);
+    const startTime = performance.now(); // Start time
     try{
-
         if(await indexedDb.getStatus(req_id) === 'error'){
             console.log('duckDbReadAndUpdateElevationData req_id:',req_id,' status is error SKIPPING!');
             removeCurrentDeckLayer();
@@ -122,26 +123,31 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
             // Step 4: Execute a SQL query to retrieve the elevation data
+            console.log(`duckDbReadAndUpdateElevationData for ${req_id} PRE  Query took ${performance.now() - startTime} milliseconds.`);
 
             // Execute the query
             const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
             //console.log('duckDbReadAndUpdateElevationData results:', results);
+            console.log(`duckDbReadAndUpdateElevationData for ${req_id} POST Query took ${performance.now() - startTime} milliseconds.`);
 
-            // Read all rows from the QueryResult
-            const rows: ElevationDataItem[] = [];
-            for await (const row of results.readRows()) {
-                rows.push(row);
+            // Read all rowChunks from the QueryResult
+            const rowChunks: ElevationDataItem[] = [];
+            for await (const rowChunk of results.readRows()) {
+                rowChunks.push(rowChunk);
             }
-            //console.log('duckDbReadAndUpdateElevationData rows:',rows, 'rows[0][0]',rows[0][0],'rows[0]',rows[0],'rows[0].length:',rows[0].length,'rows.length:',rows.length);
-            const fieldNames = Object.keys(rows[0][0]);
+            //console.log('duckDbReadAndUpdateElevationData rowChunks:',rowChunks, 'rowChunks[0][0]',rowChunks[0][0],'rowChunks[0]',rowChunks[0],'rowChunks[0].length:',rowChunks[0].length,'rowChunks.length:',rowChunks.length);
+            const fieldNames = Object.keys(rowChunks[0][0]);
             console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
-            useAtl06ChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+            console.log('duckDbReadAndUpdateElevationData rowChunks.length :',rowChunks.length);
+            await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
             // Process and update the elevation data as needed
-            if (rows.length > 0) {
-                // Process and update the elevation data as needed
-                updateElLayerWithObject(rows[0] as ElevationDataItem[], summary.extHMean, height_fieldname);//TBD rows[0] is really rowsChunk[0] iter thru both!
+            // Assuming rowChunks is an array of ElevationDataItem[] arrays
+            if (rowChunks.length > 0) {
+                for (const chunk of rowChunks) {
+                    updateElLayerWithObject(chunk as ElevationDataItem[], summary.extHMean, height_fieldname);
+                }
             } else {
-                console.warn('duckDbReadAndUpdateElevationData rows is empty');
+                console.warn('duckDbReadAndUpdateElevationData rowChunks is empty');
             }
 
         } else {
@@ -150,6 +156,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
     } catch (error) {
         console.error('duckDbReadAndUpdateElevationData error:',error);
         throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
     }
 }
 
@@ -215,8 +224,8 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
-                    useAtl06ChartFilterStore().setMinX(row.min_x);
-                    useAtl06ChartFilterStore().setMaxX(row.max_x);
+                    useAtlChartFilterStore().setMinX(row.min_x);
+                    useAtlChartFilterStore().setMaxX(row.max_x);
                     y.forEach((yName) => {
                         minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
                     });
@@ -234,6 +243,7 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
 }
 
 async function getSeries(name: string, fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+    console.log('getSeries name:', name, ' fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     const { chartData, minMaxValues } = await fetchScatterData(fileName, x, y, beams, rgt, cycle);
     if (chartData) {
         return y.map(yName => ({
@@ -252,11 +262,11 @@ async function getSeries(name: string, fileName: string, x: string, y: string[],
 
 export async function getScatterOptions(title: string,y:string[]): Promise<any> {
     console.log('getScatterOptions title:', title, ' y:', y);
-    const beams = useAtl06ChartFilterStore().getBeams();
-    const rgt = useAtl06ChartFilterStore().getRgt();
-    const cycle = useAtl06ChartFilterStore().getCycle();
+    const beams = useAtlChartFilterStore().getBeams();
+    const rgt = useAtlChartFilterStore().getRgt();
+    const cycle = useAtlChartFilterStore().getCycle();
     const x = 'x_atc';
-    const fileName = useAtl06ChartFilterStore().getFileName();
+    const fileName = useAtlChartFilterStore().getFileName();
     let options = null;
     console.log('getScatterOptions fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     if(fileName){
@@ -276,8 +286,8 @@ export async function getScatterOptions(title: string,y:string[]): Promise<any> 
                     left: 'left'
                 },
                 xAxis: {
-                    min: useAtl06ChartFilterStore().getMinX(),
-                    max: useAtl06ChartFilterStore().getMaxX()
+                    min: useAtlChartFilterStore().getMinX(),
+                    max: useAtlChartFilterStore().getMaxX()
                 },
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',

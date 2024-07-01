@@ -2,6 +2,7 @@ import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
+import { number } from 'echarts';
 
 
 export interface SrTimeDelta{
@@ -209,12 +210,19 @@ export class SlideRuleDexie extends Dexie {
     }
     async getFunc(req_id:number): Promise<string> {
         try {
-            const request = await this.requests.get(req_id);
-            if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+            if(req_id && req_id > 0){
+                const request = await this.requests.get(req_id);
+                if (!request) {
+                    console.error(`No request found with req_id ${req_id}`);
+                    return '';
+                }
+                console.log('getFunc:',req_id,'func:',request.func, 'request:',request);
+                return request.func || '';
+            } else {
+                console.warn(`req_id must be a positive integer. req_id: ${req_id}`);
                 return '';
             }
-            return request.func || '';
+
         } catch (error) {
             console.error(`Failed to get function name for req_id ${req_id}:`, error);
             throw error;

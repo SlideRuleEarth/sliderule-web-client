@@ -14,10 +14,10 @@ import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
 
 
 export const polyCoordsExist = computed(() => {
@@ -135,7 +135,7 @@ function showTooltip({ x, y, tooltip }: TooltipParams): void {
         // Calculate the percentage positions
         const xPercent = (x / window.innerWidth) * 100;
         const yPercent = (y / window.innerHeight) * 100;
-        const offset = 28; // Offset in percentage to position the tooltip below the pointer
+        const offset = 33; // Offset in percentage to position the tooltip below the pointer
 
         // Set the tooltip position using percentage
         tooltipEl.style.left = `${xPercent}%`;
@@ -155,24 +155,26 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-function clicked(d:ElevationDataItem): void {
+async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked:',d);
     useReqParamsStore().setRgt(d.rgt);
-    useAtl06ChartFilterStore().setRgt(d.rgt);
+    useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
-    useAtl06ChartFilterStore().setCycle(d.cycle);
+    useAtlChartFilterStore().setCycle(d.cycle);
     useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
-    useAtl06ChartFilterStore().setBeamsAndTracksWithGt(d.gt);
-    useAtl06ChartFilterStore().setUpdateScatterPlot();
-    duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+    useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+    useAtlChartFilterStore().setUpdateScatterPlot();
+    await readAndUpdateElevationData(useCurReqSumStore().getReqId());
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
-    const matched = ((useAtl06ChartFilterStore().getRgt() == d.rgt) && (useAtl06ChartFilterStore().getCycle() == d.cycle) && (useAtl06ChartFilterStore().getBeams().includes(d.gt)));
+    const matched = ((useAtlChartFilterStore().getRgt() == d.rgt) && (useAtlChartFilterStore().getCycle() == d.cycle) && (useAtlChartFilterStore().getBeams().includes(d.gt)));
     return matched;
 }
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
+    const startTime = performance.now(); // Start time
+
     try{
         //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
@@ -219,7 +221,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds.`);
     }
+
 }
 
 export function createNewDeckLayer(deck:Deck): OL_Layer{

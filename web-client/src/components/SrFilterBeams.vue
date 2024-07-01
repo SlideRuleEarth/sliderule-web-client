@@ -40,12 +40,12 @@
     import {  onMounted,computed,ref,watch,nextTick } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { beamsOptions } from '@/utils/parmUtils';
-    import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     import Button from 'primevue/button';
-    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
-    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const localBeams = ref<number[]>(beamsOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
@@ -72,16 +72,16 @@
 
     function handleSelectAllItems() {
         localBeams.value = beamsOptions.map(item => item.value);
-        atl06ChartFilterStore.beams = localBeams.value;
-        console.log('handleSelectAllItems atl06ChartFilterStore.beams:', atl06ChartFilterStore.beams);
+        atlChartFilterStore.beams = localBeams.value;
+        console.log('handleSelectAllItems atlChartFilterStore.beams:', atlChartFilterStore.beams);
     };
     
-    const handleSelectionChange = (event: Event) => {
+    const handleSelectionChange = async (event: Event) => {
         const target = event.target as HTMLSelectElement;
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
-        atl06ChartFilterStore.setBeams(newValue)
-        atl06ChartFilterStore.setTracksForBeams(newValue);
-        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+        atlChartFilterStore.setBeams(newValue)
+        atlChartFilterStore.setTracksForBeams(newValue);
+        await readAndUpdateElevationData(useCurReqSumStore().getReqId());
 
         console.log('SrFilterBeams handleSelectionChange newValue:', newValue);
     };
@@ -105,10 +105,10 @@
     }));
 
 
-    watch(() => atl06ChartFilterStore.beams, (newBeams, oldBeams) => {
+    watch(() => atlChartFilterStore.beams, (newBeams, oldBeams) => {
         nextTick(() => {
-            console.log('SrFilterBeams watch atl06ChartFilterStore oldBeams:', oldBeams);
-            console.log('SrFilterBeams watch atl06ChartFilterStore newBeams:', newBeams);
+            console.log('SrFilterBeams watch atlChartFilterStore oldBeams:', oldBeams);
+            console.log('SrFilterBeams watch atlChartFilterStore newBeams:', newBeams);
             localBeams.value = newBeams;
         });
     });

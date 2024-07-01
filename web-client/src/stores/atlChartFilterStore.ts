@@ -3,7 +3,7 @@ import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
-export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
+export const useAtlChartFilterStore = defineStore('atl06ChartFilter', {
 
     state: () => ({
         tracks:  [1,2,3] as number[],
@@ -19,9 +19,10 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         min_y: 0 as number,
         max_y: 0 as number,
         updateScatterPlot: false as boolean,
-        elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}] as {name:string,value:string}[],
+        elevationDataOptions:[{name:'not_set',value:'not_set'}] as {name:string,value:string}[],
         yDataForChart:[] as string[],
         ndxOfelevationDataOptionsForHeight: 0,
+        func: 'xxx' as string,
         debugCnt: 0 as number,
     }),
     actions: {
@@ -45,14 +46,14 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         setBeams(beams:number[]) {
           this.beams = beams;
-          console.log('atl06ChartFilterStore setBeams:', beams);
+          console.log('atlChartFilterStore setBeams:', beams);
         },
         getBeams() {
           return this.beams;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;
-          console.log('atl06ChartFilterStore setTracks:', tracks);
+          console.log('atlChartFilterStore setTracks:', tracks);
         },
         getTracks() {
           return this.tracks;
@@ -167,8 +168,10 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           let ndx=0;
           for (const fieldName of fieldNames) {
             if (fieldName === heightFieldname) {
-              this.ndxOfelevationDataOptionsForHeight = ndx++;
+              this.ndxOfelevationDataOptionsForHeight = ndx;
+              console.log('setElevationDataOptionsFromFieldNames:', fieldName, 'ndx:', this.ndxOfelevationDataOptionsForHeight);
             }
+            ndx++;
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
@@ -181,19 +184,20 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         setElevationDataOptions(elevationDataOptions: {name:string,value:string}[]) {
           this.elevationDataOptions = elevationDataOptions;
         },  
-        getYDataForChartValues() {
-          const yDataForChartValues = [];
-          console.log('yDataForChart:', this.yDataForChart);
-          for (const yData of this.yDataForChart) {
-            //console.log('getYDataForChartValues:', yData);
-            yDataForChartValues.push(yData);
-          }
-          console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
-          return yDataForChartValues;
+        getYDataForChart() {
+          // console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
+          return this.yDataForChart;
         },
         getNdxOfelevationDataOptionsForHeight() {
           return this.ndxOfelevationDataOptionsForHeight;
-        }
+        },
+        setFunc(func:string) {
+          this.func = func;
+          console.log('setFunc:', func);
+        },
+        getFunc() {
+          return this.func;
+        },
     },
 })
 
