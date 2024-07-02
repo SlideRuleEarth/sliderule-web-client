@@ -213,18 +213,18 @@ export class SlideRuleDexie extends Dexie {
             if(req_id && req_id > 0){
                 const request = await this.requests.get(req_id);
                 if (!request) {
-                    console.error(`No request found with req_id ${req_id}`);
+                    console.error(`getFunc No request found with req_id ${req_id}`);
                     return '';
                 }
-                console.log('req_id:',req_id,'func:',request.func, 'request:',request);
+                //console.log('getFunc req_id:',req_id,'func:',request.func, 'request:',request);
                 return request.func || '';
             } else {
-                console.warn(`req_id must be a positive integer. req_id: ${req_id}`);
+                console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
                 return '';
             }
 
         } catch (error) {
-            console.error(`Failed to get function name for req_id ${req_id}:`, error);
+            console.error(`getFunc Failed to get function name for req_id ${req_id}:`, error);
             throw error;
         }
     }

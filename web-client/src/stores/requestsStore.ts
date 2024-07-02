@@ -4,6 +4,7 @@ import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import { findParam } from '@/utils/parmUtils';
+import { stat } from 'fs';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -116,7 +117,8 @@ export const useRequestsStore = defineStore('requests', {
       const fetchedReqIds = await this.fetchReqIds();
       
       const promises = fetchedReqIds.map(async (id: number) => {
-        if (await db.getStatus(id) !== 'error') {
+        const status = await db.getStatus(id);
+        if (status == 'success'){
           return { name: id.toString(), value: id.toString() };
         }
       });

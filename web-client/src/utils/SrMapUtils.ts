@@ -157,31 +157,43 @@ export interface ElevationDataItem {
 }
 
 async function clicked(d:ElevationDataItem): Promise<void> {
-    console.log('Clicked:',d);
+    //console.log('Clicked:',d);
     useReqParamsStore().setRgt(d.rgt);
     useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
     useAtlChartFilterStore().setCycle(d.cycle);
-    if(d.track){ // for atl03
+    console.log('d:',d,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    if(d.track !== undefined){ // for atl03
         useReqParamsStore().setTracks([d.track]);
         useAtlChartFilterStore().setTracks([d.track]);
     }
-    if(d.gt){ // for atl06
+    if(d.gt !== undefined){ // for atl06
         useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
         useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
     }
-    if(d.sc_orient){
+    if(d.sc_orient !== undefined){
         useAtlChartFilterStore().setScOrient(d.sc_orient);
     }
-    if(d.pair){
+    if(d.pair !== undefined){
         useAtlChartFilterStore().setPair(d.pair);
     }
-    useAtlChartFilterStore().setUpdateScatterPlot();
     await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+    useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
-    const matched = ((useAtlChartFilterStore().getRgt() == d.rgt) && (useAtlChartFilterStore().getCycle() == d.cycle) && (useAtlChartFilterStore().getBeams().includes(d.gt)));
+    let matched = false;
+    if(d.gt){ // atl06
+        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
+                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+                    (useAtlChartFilterStore().getBeams().includes(d.gt)));
+    } else {
+        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
+                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+                    (useAtlChartFilterStore().getTracks().includes(d.track)) && 
+                    (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
+                    (useAtlChartFilterStore().getPair() == d.pair));
+    }
     return matched;
 }
 

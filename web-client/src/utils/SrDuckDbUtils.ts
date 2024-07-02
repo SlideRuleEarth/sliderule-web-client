@@ -138,18 +138,19 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             //console.log('duckDbReadAndUpdateElevationData rowChunks:',rowChunks, 'rowChunks[0][0]',rowChunks[0][0],'rowChunks[0]',rowChunks[0],'rowChunks[0].length:',rowChunks[0].length,'rowChunks.length:',rowChunks.length);
             const fieldNames = Object.keys(rowChunks[0][0]);
             console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
-            console.log('duckDbReadAndUpdateElevationData rowChunks.length :',rowChunks.length);
             await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
             // Process and update the elevation data as needed
             // Assuming rowChunks is an array of ElevationDataItem[] arrays
+            let numDataItems = 0;
             if (rowChunks.length > 0) {
                 for (const chunk of rowChunks) {
+                    numDataItems += chunk.length;
                     updateElLayerWithObject(chunk as ElevationDataItem[], summary.extHMean, height_fieldname);
                 }
             } else {
                 console.warn('duckDbReadAndUpdateElevationData rowChunks is empty');
             }
-
+            console.log('duckDbReadAndUpdateElevationData rowChunks.length:',rowChunks.length,' numDataItems:',numDataItems);
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
@@ -361,7 +362,7 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
 }
 
 export async function getScatterOptions(): Promise<any> {
-    console.log('getScatterOptions');
+
     const rgt = useAtlChartFilterStore().getRgt();
     const cycle = useAtlChartFilterStore().getCycle();
     const fileName = useAtlChartFilterStore().getFileName();
@@ -373,22 +374,24 @@ export async function getScatterOptions(): Promise<any> {
     if(fileName){
         if(func === 'atl06'){
             const beams = useAtlChartFilterStore().getBeams();
-            console.log('getScatterOptions atl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
             if (beams.length && rgt && cycle) {
+                console.log('getScatterOptions atl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
                 seriesData = await getSeriesForAtl06(fileName, x, y, beams, rgt, cycle);
             } else {
                 console.warn('getScatterOptions atl06 invalid? beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
             }
-    } else if(func === 'atl03'){
+        } else if(func === 'atl03'){
             const pair = useAtlChartFilterStore().getPair();
             const scOrient = useAtlChartFilterStore().getScOrient();
             const tracks = useAtlChartFilterStore().getTracks();
             if(pair >= 0 && scOrient >= 0){
-                console.log('getScatterOptions atl03 fileName:', fileName, ' x:', x, ' y:', y, 'scOrient:',scOrient, 'pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
+                console.log('getScatterOptions atl03 fileName:', fileName, ' x:', x, ' y:', y, 'scOrient:',scOrient, 'pair:',pair, ' rgt:', rgt, ' cycle:', cycle, 'tracks:', tracks);
                 seriesData = await getSeriesForAtl03(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
             } else {
                 console.warn('getScatterOptions atl03 invalid? pair:', pair, ' scOrient:', scOrient);
             }
+        } else {
+            console.error('getScatterOptions invalid func:', func);
         }
     } else {
         console.warn('getScatterOptions fileName is null');

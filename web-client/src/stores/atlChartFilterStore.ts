@@ -23,8 +23,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         yDataForChart:[] as string[],
         ndxOfelevationDataOptionsForHeight: 0,
         func: 'xxx' as string,
-        pair: -1 as number,
-        scOrient: -1 as number,
+        pair: 0 as number,
+        scOrient: 0 as number,
         debugCnt: 0 as number,
     }),
     actions: {
@@ -202,12 +202,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         setPair(pair:number) {
           this.pair = pair;
+          //console.log('atlChartFilterStore setPair:', pair);
         },
         getPair() {
           return this.pair;
         },
         setScOrient(scOrient:number) {
           this.scOrient = scOrient;
+          //console.log('atlChartFilterStore setScOrient:', scOrient);
         },
         getScOrient() {
           return this.scOrient;
