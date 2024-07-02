@@ -1,5 +1,5 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient, type QueryResult, type Row } from './SrDuckDb';
+import { createDuckDbClient, type QueryResult } from './SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateElLayerWithObject,type ElevationDataItem } from './SrMapUtils';
@@ -123,7 +123,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
             // Step 4: Execute a SQL query to retrieve the elevation data
-            console.log(`duckDbReadAndUpdateElevationData for ${req_id} PRE  Query took ${performance.now() - startTime} milliseconds.`);
+            console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE  Query took ${performance.now() - startTime} milliseconds.`);
 
             // Execute the query
             const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
@@ -177,7 +177,77 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
 
 export interface SrScatterChartData { value: number[] };
 
-async function fetchScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],scOrient:number,pair:number, rgt: number, cycle: number, tracks:number[]) {
+    const duckDbClient = await createDuckDbClient();
+    const chartData: { [key: string]: SrScatterChartData[] } = {};
+    const minMaxValues: { [key: string]: { min: number, max: number } } = {};
+
+    try {
+        const yColumns = y.join(", ");
+        const query = `
+            SELECT 
+                ${x}, 
+                ${yColumns}
+            FROM '${fileName}'
+            WHERE pair = ${pair} AND sc_orient = ${scOrient} AND rgt = ${rgt} AND cycle = ${cycle}
+        `;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    y.forEach((yName) => {
+                        if (!chartData[yName]) {
+                            chartData[yName] = [];
+                        }
+                        chartData[yName].push({
+                            value: [row[x], row[yName]]
+                        });
+                    });
+                } else {
+                    console.warn('fetchAtl03ScatterData - fetchData rowData is null');
+                }
+            }
+        }
+
+        const query2 = `
+            SELECT 
+                MIN(${x}) as min_x,
+                MAX(${x}) as max_x,
+                ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
+            FROM '${fileName}'
+            WHERE track IN (${tracks.join(", ")}) 
+            AND pair = ${pair} 
+            AND sc_orient = ${scOrient} 
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
+        `;
+        console.log('fetchAtl03ScatterData query2:', query2);
+        const queryResult2: QueryResult = await duckDbClient.query(query2);
+        console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
+        for await (const rowChunk of queryResult2.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    useAtlChartFilterStore().setMinX(row.min_x);
+                    useAtlChartFilterStore().setMaxX(row.max_x);
+                    y.forEach((yName) => {
+                        minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
+                    });
+                } else {
+                    console.warn('fetchAtl03ScatterData fetchData rowData is null');
+                }
+            }
+        }
+        console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+        return { chartData, minMaxValues };
+    } catch (error) {
+        console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
+        return { chartData: {}, minMaxValues: {} };
+    }
+}
+
+
+async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -216,11 +286,11 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
                 MAX(${x}) as max_x,
                 ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
-            WHERE gt = ${beams[0]} AND rgt = ${rgt}
+            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        console.log('fetchScatterData query2:', query2);
+        console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-        console.log('fetchScatterData queryResult2:', queryResult2);
+        console.log('fetchAtl06ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -234,17 +304,28 @@ async function fetchScatterData(fileName: string, x: string, y: string[], beams:
                 }
             }
         }
-        console.log('fetchScatterData minMaxValues:', minMaxValues);
+        console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchData Error fetching data:', error);
         return { chartData: {}, minMaxValues: {} };
     }
 }
+interface SrScatterSeriesData{
+    series: {
+        name: string;
+        type: string;
+        data: number[][];
+        yAxisIndex: number;
+    };
+    min: number;
+    max: number;
+};
 
-async function getSeries(name: string, fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
-    console.log('getSeries name:', name, ' fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
-    const { chartData, minMaxValues } = await fetchScatterData(fileName, x, y, beams, rgt, cycle);
+async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOrient: number,pair: number, rgt: number, cycle: number, tracks:number[]): Promise<SrScatterSeriesData[]>{
+    console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' scOrient:', scOrient, ' pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
+    const name = 'Atl03';
+    const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
     if (chartData) {
         return y.map(yName => ({
             name: `${name} - ${yName}`,
@@ -260,53 +341,87 @@ async function getSeries(name: string, fileName: string, x: string, y: string[],
     return [];
 }
 
-export async function getScatterOptions(title: string,y:string[]): Promise<any> {
-    console.log('getScatterOptions title:', title, ' y:', y);
-    const beams = useAtlChartFilterStore().getBeams();
+async function getSeriesForAtl06( fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number): Promise<SrScatterSeriesData[]> {
+    console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+    const name = 'Atl06';
+    const { chartData, minMaxValues } = await fetchAtl06ScatterData(fileName, x, y, beams, rgt, cycle);
+    if (chartData) {
+        return y.map(yName => ({
+            name: `${name} - ${yName}`,
+            type: 'scatter',
+            data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+            yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+        })).map((series, index) => ({
+            series,
+            min: minMaxValues[y[index]].min,
+            max: minMaxValues[y[index]].max
+        }));
+    }
+    return [];
+}
+
+export async function getScatterOptions(): Promise<any> {
+    console.log('getScatterOptions');
     const rgt = useAtlChartFilterStore().getRgt();
     const cycle = useAtlChartFilterStore().getCycle();
-    const x = 'x_atc';
     const fileName = useAtlChartFilterStore().getFileName();
+    const func = useAtlChartFilterStore().getFunc();    
+    const y = useAtlChartFilterStore().getYDataForChart();    
+    const x = 'x_atc';
     let options = null;
-    console.log('getScatterOptions fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+    let seriesData = [] as SrScatterSeriesData[];
     if(fileName){
-        if (beams.length && rgt && cycle) {
-            const seriesData = await getSeries('Atl06', fileName, x, y, beams, rgt, cycle);
-            options = {
-                title: {
-                    text: title,
-                    left: "center"
-                },
-                tooltip: {
-                    trigger: "item",
-                    formatter: "({c})"
-                },
-                legend: {
-                    data: seriesData.map(series => series.series.name),
-                    left: 'left'
-                },
-                xAxis: {
-                    min: useAtlChartFilterStore().getMinX(),
-                    max: useAtlChartFilterStore().getMaxX()
-                },
-                yAxis: seriesData.map((series, index) => ({
-                    type: 'value',
-                    name: y[index],
-                    min: seriesData[index].min,
-                    max: seriesData[index].max,
-                    scale: true,  // Add this to ensure the axis scales correctly
-                    axisLabel: {
-                        formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
-                    }
-                })),
-                series: seriesData.map(series => series.series)
-            };
-        } else {
-            console.warn('getScatterOptions beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+        if(func === 'atl06'){
+            const beams = useAtlChartFilterStore().getBeams();
+            console.log('getScatterOptions atl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+            if (beams.length && rgt && cycle) {
+                seriesData = await getSeriesForAtl06(fileName, x, y, beams, rgt, cycle);
+            } else {
+                console.warn('getScatterOptions atl06 invalid? beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+            }
+    } else if(func === 'atl03'){
+            const pair = useAtlChartFilterStore().getPair();
+            const scOrient = useAtlChartFilterStore().getScOrient();
+            const tracks = useAtlChartFilterStore().getTracks();
+            if(pair >= 0 && scOrient >= 0){
+                console.log('getScatterOptions atl03 fileName:', fileName, ' x:', x, ' y:', y, 'scOrient:',scOrient, 'pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
+                seriesData = await getSeriesForAtl03(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
+            } else {
+                console.warn('getScatterOptions atl03 invalid? pair:', pair, ' scOrient:', scOrient);
+            }
         }
     } else {
         console.warn('getScatterOptions fileName is null');
     }
+    options = {
+        title: {
+            text: func,
+            left: "center"
+        },
+        tooltip: {
+            trigger: "item",
+            formatter: "({c})"
+        },
+        legend: {
+            data: seriesData.map(series => series.series.name),
+            left: 'left'
+        },
+        xAxis: {
+            min: useAtlChartFilterStore().getMinX(),
+            max: useAtlChartFilterStore().getMaxX()
+        },
+        yAxis: seriesData.map((series, index) => ({
+            type: 'value',
+            name: y[index],
+            min: seriesData[index].min,
+            max: seriesData[index].max,
+            scale: true,  // Add this to ensure the axis scales correctly
+            axisLabel: {
+                formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
+            }
+        })),
+        series: seriesData.map(series => series.series)
+    };
     console.log('getScatterOptions options:', options);
     return options;
 }

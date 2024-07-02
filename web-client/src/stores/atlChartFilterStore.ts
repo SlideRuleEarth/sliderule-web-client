@@ -3,7 +3,7 @@ import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
-export const useAtlChartFilterStore = defineStore('atl06ChartFilter', {
+export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
     state: () => ({
         tracks:  [1,2,3] as number[],
@@ -23,6 +23,8 @@ export const useAtlChartFilterStore = defineStore('atl06ChartFilter', {
         yDataForChart:[] as string[],
         ndxOfelevationDataOptionsForHeight: 0,
         func: 'xxx' as string,
+        pair: -1 as number,
+        scOrient: -1 as number,
         debugCnt: 0 as number,
     }),
     actions: {
@@ -169,16 +171,16 @@ export const useAtlChartFilterStore = defineStore('atl06ChartFilter', {
           for (const fieldName of fieldNames) {
             if (fieldName === heightFieldname) {
               this.ndxOfelevationDataOptionsForHeight = ndx;
-              console.log('setElevationDataOptionsFromFieldNames:', fieldName, 'ndx:', this.ndxOfelevationDataOptionsForHeight);
+              //console.log('setElevationDataOptionsFromFieldNames:', fieldName, 'ndx:', this.ndxOfelevationDataOptionsForHeight);
             }
             ndx++;
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
-          console.log('setElevationDataOptionsFromFieldNames:', elevationDataOptions);
+          //console.log('setElevationDataOptionsFromFieldNames:', elevationDataOptions);
         },
         getElevationDataOptions() {
-          console.log('getElevationDataOptions:', this.elevationDataOptions);
+          //console.log('getElevationDataOptions:', this.elevationDataOptions);
           return this.elevationDataOptions
         },
         setElevationDataOptions(elevationDataOptions: {name:string,value:string}[]) {
@@ -197,6 +199,18 @@ export const useAtlChartFilterStore = defineStore('atl06ChartFilter', {
         },
         getFunc() {
           return this.func;
+        },
+        setPair(pair:number) {
+          this.pair = pair;
+        },
+        getPair() {
+          return this.pair;
+        },
+        setScOrient(scOrient:number) {
+          this.scOrient = scOrient;
+        },
+        getScOrient() {
+          return this.scOrient;
         },
     },
 })

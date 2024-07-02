@@ -216,7 +216,7 @@ export class SlideRuleDexie extends Dexie {
                     console.error(`No request found with req_id ${req_id}`);
                     return '';
                 }
-                console.log('getFunc:',req_id,'func:',request.func, 'request:',request);
+                console.log('req_id:',req_id,'func:',request.func, 'request:',request);
                 return request.func || '';
             } else {
                 console.warn(`req_id must be a positive integer. req_id: ${req_id}`);

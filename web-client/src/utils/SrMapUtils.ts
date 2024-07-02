@@ -18,6 +18,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+import { use } from 'echarts';
 
 
 export const polyCoordsExist = computed(() => {
@@ -161,8 +162,20 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
     useAtlChartFilterStore().setCycle(d.cycle);
-    useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
-    useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+    if(d.track){ // for atl03
+        useReqParamsStore().setTracks([d.track]);
+        useAtlChartFilterStore().setTracks([d.track]);
+    }
+    if(d.gt){ // for atl06
+        useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
+        useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+    }
+    if(d.sc_orient){
+        useAtlChartFilterStore().setScOrient(d.sc_orient);
+    }
+    if(d.pair){
+        useAtlChartFilterStore().setPair(d.pair);
+    }
     useAtlChartFilterStore().setUpdateScatterPlot();
     await readAndUpdateElevationData(useCurReqSumStore().getReqId());
 }

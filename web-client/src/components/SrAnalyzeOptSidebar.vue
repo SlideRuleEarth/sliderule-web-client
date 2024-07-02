@@ -12,6 +12,7 @@ import SrFilterTracks from './SrFilterTracks.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
+import SrToggleButton from './SrToggleButton.vue';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -60,6 +61,14 @@ onMounted(async() => {
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
 
+const toggleScOrient = (newValue: boolean) => {
+    atlChartFilterStore.setScOrient(newValue ? 1 : 0);
+    console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
+};
+const togglePair = (newValue: boolean) => {
+    atlChartFilterStore.setPair(newValue ? 1 : 0);
+    console.log('togglePair:', atlChartFilterStore.getPair());
+};
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
@@ -123,6 +132,10 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                 <div class="sr-tracks-beams">
                     <SrFilterTracks/>
                     <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
+                    <div class="sr-pair-sc-orient">
+                        <SrToggleButton @input="toggleScOrient" :value="useAtlChartFilterStore().scOrient==1" label="SC orientation" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
+                        <SrToggleButton @input="togglePair"  :value="useAtlChartFilterStore().pair==1" label="Pair" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
+                    </div>
                 </div>
                 <div class="sr-analyze-sliders">
                     <SrSliderInput
@@ -192,6 +205,13 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
+        margin-top: 0.5rem;
+    }
+    .sr-pair-sc-orient {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: flex-end;
         margin-top: 0.5rem;
     }
     .sr-analyze-sliders {

@@ -1,14 +1,9 @@
   <script setup lang="ts">
   import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { ref, onMounted } from "vue";
-  import type OLMap from "ol/Map.js";
-  import {createStringXY} from 'ol/coordinate';
-  import SrDrawControl from "@/components/SrDrawControl.vue";
-  import {useToast} from "primevue/usetoast";
-  import VectorLayer from 'ol/layer/Vector';
-  import Geometry from 'ol/geom/Geometry';
-  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
-  import SrViewControl from "./SrViewControl.vue";
+  import { Map as OLMapType} from "ol";
+  import { useToast } from "primevue/usetoast";
+  import { Geometry } from 'ol/geom';
   import { type SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
   import { srProjections } from "@/composables/SrProjections";
@@ -21,31 +16,33 @@
   import { get as getProjection } from 'ol/proj.js';
   import { getTransform } from 'ol/proj.js';
   import { addLayersForCurrentView,getLayer,getDefaultBaseLayer } from "@/composables/SrLayers";
-  import View from 'ol/View';
+  import { View } from 'ol';
   import { applyTransform } from 'ol/extent.js';
-  import Layer from 'ol/layer/Layer';
+  import { Layer as OLlayer } from 'ol/layer';
   import { useWmsCap } from "@/composables/useWmsCap";
   import { getDefaultProjection } from '@/composables/SrProjections';
-  import VectorSource from 'ol/source/Vector';
-  import Feature from 'ol/Feature';
-  import  { getCenter as getExtentCenter } from 'ol/extent.js';
+  import { Feature } from 'ol';
+  import { getCenter as getExtentCenter } from 'ol/extent.js';
   import { type SrLayer } from '@/composables/SrLayers';
-  import DragBox from 'ol/interaction/DragBox';
+  import { DragBox as DragBoxType } from 'ol/interaction';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { useSrToastStore } from "@/stores/srToastStore.js";
   import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
-  import  SrLegendControl  from "./SrLegendControl.vue";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
-  import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
   import { updateDeck } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
   import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
   import { type Coordinate } from "ol/coordinate";
   import type { SrRegion } from "@/sliderule/icesat2"
-  import {format} from 'ol/coordinate.js';
+  import { format } from 'ol/coordinate';
+  import SrCurrentMapViewParms from "./SrCurrentMapViewParms.vue";
+  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
+  import SrViewControl from "./SrViewControl.vue";
+  import SrLegendControl  from "./SrLegendControl.vue";
+  import SrDrawControl from "@/components/SrDrawControl.vue";
 
   const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
@@ -59,12 +56,12 @@
     return format(coordinate, template, 4);
   };
   const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
-  const mapRef = ref<{ map: OLMap }>();
+  const mapRef = ref<{ map: OLMapType }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
   const toast = useToast();
-  const dragBox = new DragBox();
+  const dragBox = new DragBoxType();
 
   const handleEvent = (event: any) => {
     console.log(event);
@@ -191,8 +188,9 @@
     reqParamsStore.convexHull = convexHull(poly);
     console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
 
-    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
-    if(vectorLayer){
+    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+
+    if(vectorLayer && vectorLayer instanceof OLlayer){
       const vectorSource = vectorLayer.getSource();
       if(vectorSource){
         // Create a rectangle feature using the extent
@@ -229,8 +227,8 @@
   const clearDrawingLayer = () =>{
     console.log("Clearing Drawing Layer");
     let cleared = false;
-    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<VectorSource<Feature<Geometry>>>;
-    if(vectorLayer){
+    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+    if(vectorLayer && vectorLayer instanceof OLlayer){
       const vectorSource = vectorLayer.getSource();
       if(vectorSource){
         const features = vectorSource.getFeatures()
@@ -345,7 +343,7 @@
     register(proj4);
     if (mapRef.value?.map) {
       mapStore.setMap(mapRef.value.map);
-      const map = mapStore.getMap() as OLMap;
+      const map = mapStore.getMap() as OLMapType;
       if(map){
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
@@ -473,7 +471,7 @@
       let newProj = getProjection('EPSG:4326'); 
       if (newProj ) {
 
-        map.getAllLayers().forEach((layer: Layer) => {
+        map.getAllLayers().forEach((layer: OLlayer) => {
           // drawiing Layer is never changed/removed
           if(layer.get('name') !== 'Drawing Layer'){
             console.log(`removing layer:`,layer.get('title'));

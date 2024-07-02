@@ -46,7 +46,8 @@ const fetchScatterOptions = async () => {
     try {
       const req_id = atlChartFilterStore.getReqId();
       const func = await indexedDb.getFunc(req_id);
-      const scatterOptions = await getScatterOptions(func, y_options);
+      atlChartFilterStore.setFunc(func);
+      const scatterOptions = await getScatterOptions();
       if (scatterOptions) {
         option.value = scatterOptions;
       } else {
