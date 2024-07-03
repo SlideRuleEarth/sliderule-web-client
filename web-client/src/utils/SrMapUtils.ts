@@ -14,10 +14,10 @@ import type OLMap from "ol/Map.js";
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
 
 
 export const polyCoordsExist = computed(() => {
@@ -135,7 +135,7 @@ function showTooltip({ x, y, tooltip }: TooltipParams): void {
         // Calculate the percentage positions
         const xPercent = (x / window.innerWidth) * 100;
         const yPercent = (y / window.innerHeight) * 100;
-        const offset = 28; // Offset in percentage to position the tooltip below the pointer
+        const offset = 33; // Offset in percentage to position the tooltip below the pointer
 
         // Set the tooltip position using percentage
         tooltipEl.style.left = `${xPercent}%`;
@@ -155,24 +155,50 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-function clicked(d:ElevationDataItem): void {
-    console.log('Clicked:',d);
+async function clicked(d:ElevationDataItem): Promise<void> {
+    //console.log('Clicked:',d);
     useReqParamsStore().setRgt(d.rgt);
-    useAtl06ChartFilterStore().setRgt(d.rgt);
+    useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
-    useAtl06ChartFilterStore().setCycle(d.cycle);
-    useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
-    useAtl06ChartFilterStore().setBeamsAndTracksWithGt(d.gt);
-    useAtl06ChartFilterStore().setUpdateScatterPlot();
-    duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+    useAtlChartFilterStore().setCycle(d.cycle);
+    console.log('d:',d,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    if(d.track !== undefined){ // for atl03
+        useReqParamsStore().setTracks([d.track]);
+        useAtlChartFilterStore().setTracks([d.track]);
+    }
+    if(d.gt !== undefined){ // for atl06
+        useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
+        useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+    }
+    if(d.sc_orient !== undefined){
+        useAtlChartFilterStore().setScOrient(d.sc_orient);
+    }
+    if(d.pair !== undefined){
+        useAtlChartFilterStore().setPair(d.pair);
+    }
+    await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+    useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
-    const matched = ((useAtl06ChartFilterStore().getRgt() == d.rgt) && (useAtl06ChartFilterStore().getCycle() == d.cycle) && (useAtl06ChartFilterStore().getBeams().includes(d.gt)));
+    let matched = false;
+    if(d.gt){ // atl06
+        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
+                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+                    (useAtlChartFilterStore().getBeams().includes(d.gt)));
+    } else {
+        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
+                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+                    (useAtlChartFilterStore().getTracks().includes(d.track)) && 
+                    (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
+                    (useAtlChartFilterStore().getPair() == d.pair));
+    }
     return matched;
 }
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
+    const startTime = performance.now(); // Start time
+
     try{
         //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
@@ -219,7 +245,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds.`);
     }
+
 }
 
 export function createNewDeckLayer(deck:Deck): OL_Layer{

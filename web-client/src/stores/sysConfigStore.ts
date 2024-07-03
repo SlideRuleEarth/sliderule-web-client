@@ -33,7 +33,7 @@ export const useSysConfigStore = defineStore('sysConfig', {
             return this.timeout
         },
         getSysConfig() {
-            console.log("getSysConfig: ", this.$state);
+            //console.log("getSysConfig: ", this.$state);
             return this.$state;
         }
     },

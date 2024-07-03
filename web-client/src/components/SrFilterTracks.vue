@@ -40,11 +40,11 @@
     import Button from 'primevue/button';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { tracksOptions } from '@/utils/parmUtils';
-    import { useAtl06ChartFilterStore } from '@/stores/atl06ChartFilterStore';
-    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
-    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const localTracks = ref<number[]>(tracksOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
@@ -71,16 +71,16 @@
 
     function handleSelectAllItems(){
         localTracks.value = tracksOptions.map(item => item.value);
-        atl06ChartFilterStore.setTracks(localTracks.value);
-        console.log('handleSelectAllItems atl06ChartFilterStore.tracks:', atl06ChartFilterStore.tracks);
+        atlChartFilterStore.setTracks(localTracks.value);
+        console.log('handleSelectAllItems atlChartFilterStore.tracks:', atlChartFilterStore.tracks);
     };
     
-    const handleSelectionChange = (event: Event) => {
+    const handleSelectionChange = async (event: Event) => {
         const target = event.target as HTMLSelectElement;
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
-        atl06ChartFilterStore.setTracks(newValue)
-        atl06ChartFilterStore.setBeamsForTracks(newValue);
-        duckDbReadAndUpdateElevationData(useCurReqSumStore().getReqId());
+        atlChartFilterStore.setTracks(newValue)
+        atlChartFilterStore.setBeamsForTracks(newValue);
+        await readAndUpdateElevationData(useCurReqSumStore().getReqId());
         console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
     };
 
@@ -103,9 +103,9 @@
     }));
 
 
-    watch(() => atl06ChartFilterStore.tracks, (newTracks, oldTracks) => {
-        console.log('SrFilterTracks watch atl06ChartFilterStore oldTracks:', oldTracks);
-        console.log('SrFilterTracks watch atl06ChartFilterStore newTracks:', newTracks);
+    watch(() => atlChartFilterStore.tracks, (newTracks, oldTracks) => {
+        console.log('SrFilterTracks watch atlChartFilterStore oldTracks:', oldTracks);
+        console.log('SrFilterTracks watch atlChartFilterStore newTracks:', newTracks);
         localTracks.value = newTracks;
     });
 

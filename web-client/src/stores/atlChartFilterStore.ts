@@ -2,10 +2,12 @@ import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
+import {type  SrScatterOptionsParms } from '@/utils/parmUtils';
 
-export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
+export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
     state: () => ({
+        debugCnt: 0 as number,
         tracks:  [1,2,3] as number[],
         selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
@@ -19,10 +21,13 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         min_y: 0 as number,
         max_y: 0 as number,
         updateScatterPlot: false as boolean,
-        elevationDataOptions:[{name:'h_mean',value:'h_mean'},{name:'rms_misfit',value:'rms_misfit'}] as {name:string,value:string}[],
+        elevationDataOptions:[{name:'not_set',value:'not_set'}] as {name:string,value:string}[],
         yDataForChart:[] as string[],
         ndxOfelevationDataOptionsForHeight: 0,
-        debugCnt: 0 as number,
+        func: 'xxx' as string,
+        pair: 0 as number,
+        scOrient: 0 as number,
+        size: NaN as number,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -45,14 +50,14 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
         },
         setBeams(beams:number[]) {
           this.beams = beams;
-          console.log('atl06ChartFilterStore setBeams:', beams);
+          console.log('atlChartFilterStore setBeams:', beams);
         },
         getBeams() {
           return this.beams;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;
-          console.log('atl06ChartFilterStore setTracks:', tracks);
+          console.log('atlChartFilterStore setTracks:', tracks);
         },
         getTracks() {
           return this.tracks;
@@ -167,32 +172,70 @@ export const useAtl06ChartFilterStore = defineStore('atl06ChartFilter', {
           let ndx=0;
           for (const fieldName of fieldNames) {
             if (fieldName === heightFieldname) {
-              this.ndxOfelevationDataOptionsForHeight = ndx++;
+              this.ndxOfelevationDataOptionsForHeight = ndx;
+              //console.log('setElevationDataOptionsFromFieldNames:', fieldName, 'ndx:', this.ndxOfelevationDataOptionsForHeight);
             }
+            ndx++;
             elevationDataOptions.push({name:fieldName,value:fieldName});
           }
           this.setElevationDataOptions(elevationDataOptions);
-          console.log('setElevationDataOptionsFromFieldNames:', elevationDataOptions);
+          //console.log('setElevationDataOptionsFromFieldNames:', elevationDataOptions);
         },
         getElevationDataOptions() {
-          console.log('getElevationDataOptions:', this.elevationDataOptions);
+          //console.log('getElevationDataOptions:', this.elevationDataOptions);
           return this.elevationDataOptions
         },
         setElevationDataOptions(elevationDataOptions: {name:string,value:string}[]) {
           this.elevationDataOptions = elevationDataOptions;
         },  
-        getYDataForChartValues() {
-          const yDataForChartValues = [];
-          console.log('yDataForChart:', this.yDataForChart);
-          for (const yData of this.yDataForChart) {
-            //console.log('getYDataForChartValues:', yData);
-            yDataForChartValues.push(yData);
-          }
-          console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
-          return yDataForChartValues;
+        getYDataForChart() {
+          // console.log('yDataForChart',this.yDataForChart,'yDataForChartValues:', yDataForChartValues);
+          return this.yDataForChart;
         },
         getNdxOfelevationDataOptionsForHeight() {
           return this.ndxOfelevationDataOptionsForHeight;
+        },
+        setFunc(func:string) {
+          this.func = func;
+          console.log('setFunc:', func);
+        },
+        getFunc() {
+          return this.func;
+        },
+        setPair(pair:number) {
+          this.pair = pair;
+          //console.log('atlChartFilterStore setPair:', pair);
+        },
+        getPair() {
+          return this.pair;
+        },
+        setScOrient(scOrient:number) {
+          this.scOrient = scOrient;
+          //console.log('atlChartFilterStore setScOrient:', scOrient);
+        },
+        getScOrient() {
+          return this.scOrient;
+        },
+        setSize(size:number) {
+          this.size = size;
+        },
+        getSize() {
+          return this.size;
+        },
+        getScatterOptionsParms() {
+          const scatterOptions = {
+            rgt: this.rgtValue,
+            cycle: this.cycleValue,
+            fileName: this.currentFile,
+            func: this.func,
+            y: this.yDataForChart,
+            x: 'x_atc',
+            beams: this.beams,
+            pair: this.pair,
+            scOrient: this.scOrient,
+            tracks: this.tracks
+          } as SrScatterOptionsParms;
+          return scatterOptions;
         }
     },
 })

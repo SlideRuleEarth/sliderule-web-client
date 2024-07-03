@@ -16,17 +16,22 @@ let num_checks = 0;
 let num_post_done_checks = 0;
 
 
-export async function checkDoneProcessing(  reqID:number,
+export async function checkDoneProcessing(  thisReqID:number,
                                             syncAccessHandle:any, 
                                             read_state:string, 
                                             num_svr_exceptions:number, 
                                             num_arrow_data_recs_processed:number,
                                             num_arrow_meta_recs_processed:number): Promise<void>{
     num_checks++;
-    //console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+    if(!thisReqID || (thisReqID <= 0)){
+        const emsg = `checkDoneProcessing: Invalid req_id:${thisReqID}`;
+        console.error(emsg);
+        throw new Error(emsg);
+    }
+    //console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
     if((read_state === 'done_reading') || (read_state === 'error') || abortRequested){
         num_post_done_checks++;
-        console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+        console.log('checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         if(got_all_cbs || abortRequested){
             let status_details = 'No data returned from SlideRule.';
             if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
@@ -34,22 +39,22 @@ export async function checkDoneProcessing(  reqID:number,
             }
             let msg='';
             if(abortRequested){ // Abort requested
-                msg = `checkDoneProcessing: Aborted processing req_id: ${reqID}`
+                msg = `checkDoneProcessing: Aborted processing req_id: ${thisReqID}`
             } else {
-                msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${reqID}`;
+                msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID}`;
                 if(read_state === 'done_reading'){
-                    console.log('Success:', status_details, 'req_id:', reqID, 'num_checks:', num_checks);
-                    postMessage(await successMsg(reqID, msg));
+                    console.log('Success:', status_details, 'req_id:', thisReqID, 'num_checks:', num_checks);
+                    postMessage(await successMsg(thisReqID, msg));
                 }
             }
             read_state = 'done';
             syncAccessHandle.flush();
             syncAccessHandle.close();
-            const fileName = await db.getFilename(reqID);
-            postMessage(opfsReadyMsg(reqID, fileName));
+            const fileName = await db.getFilename(thisReqID);
+            postMessage(opfsReadyMsg(thisReqID, fileName));
             console.log(msg);
         } else {
-            console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'reqID:', reqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
+            console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
     }
 }
@@ -62,18 +67,6 @@ function mysleep(ms: number): Promise<void> {
 onmessage = async (event) => {
     try{
         console.log('fetchToFile worker received event:', event.data)
-        // console.log('Starting with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
-        // const recordDefs = await db.getDefinitionsByVersion(REC_VERSION);
-        // if(recordDefs.length === 0){
-        //     console.error('No record definitions fetched');
-        // } else if (recordDefs.length === 1) {
-        //     console.log('Expected-->Single record definition fetched:', recordDefs[0].data);
-        //     set_recordDefinitions(recordDefs[0].data);
-        // } else {
-        //     console.error('Unexpected size for recordDefs:', recordDefs);
-        // }
-        // console.log('Proceeding with num_defs_fetched:',get_num_defs_fetched(),' recordDefinitions:',get_recordDefinitions());
-
 
         const cmd:WebWorkerCmd = JSON.parse(event.data);
         console.log('fetchToFile worker received cmd:', cmd);
@@ -202,6 +195,7 @@ onmessage = async (event) => {
                             console.error('Failed to write all bytes to file. num_bytes:', num_bytes, ' result.data.length:', result.data.length);
                             throw new Error('Failed to write all bytes to file.');
                         }
+                        await db.updateRequestRecord( {req_id:reqID, num_bytes: arrowDataFileOffset});
                     }
                     await checkDoneProcessing(  reqID,                                                         
                                                 syncAccessHandle, 

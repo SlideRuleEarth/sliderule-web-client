@@ -1,36 +1,39 @@
 <script setup lang="ts">
-import { onMounted,ref,watch } from 'vue';
+import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
-import {useAtl06ChartFilterStore} from '@/stores/atl06ChartFilterStore';
+import {useAtlChartFilterStore} from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
-import SrCheckSum from './SrCheckSum.vue';
+import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
+import SrToggleButton from './SrToggleButton.vue';
+import { formatBytes } from '@/utils/SrParquetUtils';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
-const atl06ChartFilterStore = useAtl06ChartFilterStore();
+const atlChartFilterStore = useAtlChartFilterStore();
+const mapStore = useMapStore();
 const props = defineProps({
     startingReqId: Number,
 });
 
 const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
-//const activeTabIndex = ref([0]); // Opens the first tab by default
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 
 
 onMounted(async() => {
     try {
-        console.log('onMounted SrAnalyzeOptSidebar');
-        useAtl06ChartFilterStore().setDebugCnt(0);
+        mapStore.setIsLoading(true);
+
+        useAtlChartFilterStore().setDebugCnt(0);
         reqIds.value =  await requestsStore.getMenuItems();
         if(reqIds.value.length === 0) {
             console.warn('No requests found');
@@ -46,23 +49,34 @@ onMounted(async() => {
             defaultMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
+        console.log('selectedReqId:', selectedReqId.value);
         //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
+        console.log('onMounted SrAnalyzeOptSidebar');
     } catch (error) {
         console.error('onMounted Failed to load menu items:', error);
     }
     loading.value = false;
     //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
     //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
-    console.log('onMounted selectedReqId:', selectedReqId.value);
+    atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
+    console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
 
+const toggleScOrient = (newValue: boolean) => {
+    atlChartFilterStore.setScOrient(newValue ? 1 : 0);
+    console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
+};
+const togglePair = (newValue: boolean) => {
+    atlChartFilterStore.setPair(newValue ? 1 : 0);
+    console.log('togglePair:', atlChartFilterStore.getPair());
+};
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
 
     try{
         reqIds.value =  await requestsStore.getMenuItems();
-        if(reqIds.value.length === 0) {
+        if((reqIds.value.length === 0)  || (newSelection.value==='0')){
             console.warn('No requests found');
             return;
         }        
@@ -75,8 +89,11 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         }
         //console.log('Using filtered newSelection:', newSelection);
         curReqSumStore.setReqId(Number(newSelection.value));
-        atl06ChartFilterStore.setReqId(Number(newSelection.value));
-        atl06ChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
+        atlChartFilterStore.setReqId(Number(newSelection.value));
+        atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
+        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
+        atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
+        console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -89,19 +106,30 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     }
 
 }, { deep: true, immediate: true });
+
+const getSize = computed(() => {
+    return formatBytes(atlChartFilterStore.getSize());
+});
+
 </script>
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
         <div class="sr-analysis-opt-sidebar-req-menu">
-            <div v-if="loading">Loading...</div>
-            <SrMenuInput 
-                v-else
-                label="Request Id" 
-                :menuOptions="reqIds" 
-                v-model="selectedReqId"
-                :defaultOptionIndex="Number(defaultMenuItemIndex)"
-                tooltipText="Request Id from Record table"/>  
+            <div class="sr-analysis-reqid-sz">
+            <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
+            <div class="sr-analysis-reqid" v-else>
+                <SrMenuInput 
+                    label="Request Id" 
+                    :menuOptions="reqIds" 
+                    v-model="selectedReqId"
+                    :defaultOptionIndex="Number(defaultMenuItemIndex)"
+                    tooltipText="Request Id from Record table"/> 
+            </div>
+            <div class="sr-analysis-sz" v-if="!loading">
+                {{ getSize }} 
+            </div>
+        </div>
         </div>
         <div>
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
@@ -109,18 +137,22 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         <div>
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-            <div v-if="loading">Loading...</div>
+            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analysis-opt-sidebar-options">
             <div>
                 <div class="sr-tracks-beams">
                     <SrFilterTracks/>
-                    <SrFilterBeams/>
+                    <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
+                    <div class="sr-pair-sc-orient">
+                        <SrToggleButton @input="toggleScOrient" :value="useAtlChartFilterStore().scOrient==1" label="SC orientation" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
+                        <SrToggleButton @input="togglePair"  :value="useAtlChartFilterStore().pair==1" label="Pair" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
+                    </div>
                 </div>
                 <div class="sr-analyze-sliders">
                     <SrSliderInput
-                        v-model="atl06ChartFilterStore.rgtValue"
+                        v-model="atlChartFilterStore.rgtValue"
                         label="RGT"
                         :min="1"
                         :max="10000" 
@@ -129,7 +161,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
                     />
                     <SrSliderInput
-                        v-model="atl06ChartFilterStore.cycleValue"
+                        v-model="atlChartFilterStore.cycleValue"
                         label="Cycle"
                         :min="1"
                         :max="100" 
@@ -160,6 +192,19 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         min-width: 30vw;
         width: 100%;
     }
+    .sr-analysis-reqid-sz{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .sr-analysis-sz{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        font-size: small;
+    }
     .sr-analysis-opt-sidebar-map {
         display: flex;
         flex-direction: column;
@@ -186,6 +231,13 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
+        margin-top: 0.5rem;
+    }
+    .sr-pair-sc-orient {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: flex-end;
         margin-top: 0.5rem;
     }
     .sr-analyze-sliders {

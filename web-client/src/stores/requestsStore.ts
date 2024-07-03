@@ -9,13 +9,14 @@ export const useRequestsStore = defineStore('requests', {
   state: () => ({
     reqs: [] as SrRequestRecord[],
     reqIsLoading: {} as { [reqId: number]: boolean },
-    columns: [
-      { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
-      { field: 'status', header: 'Status', tooltip: 'Request Status' },
-      { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
-      { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
-      { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
-    ],
+    // columns: [
+    //   { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
+    //   { field: 'status', header: 'Status', tooltip: 'Request Status' },
+    //   { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
+    //   { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
+    //   { field: 'num_bytes', header: 'Size', tooltip: 'Number of Bytes Returned'},
+    //   { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
+    // ],
     error_in_req: [] as boolean[],
     liveRequestsQuerySubscription: null as any,
     msg:'ready',
@@ -89,14 +90,14 @@ export const useRequestsStore = defineStore('requests', {
     },
     async has_checksum(req_id: number): Promise<boolean> {
       const params = await db.getReqParams(req_id);
-      console.log('has_checksum params:', params);
+      //console.log('has_checksum params:', params);
       return findParam(params, 'with_checksum');
     },
 
     async fetchReqs(): Promise<void> {
       try {
         this.reqs = await db.table('requests').orderBy('req_id').reverse().toArray();
-        console.log('Requests fetched successfully:', this.reqs);
+        //console.log('Requests fetched successfully:', this.reqs);
       } catch (error) {
         console.error('Error fetching requests:', error);
         throw error;
@@ -105,7 +106,7 @@ export const useRequestsStore = defineStore('requests', {
     async fetchReqIds(): Promise<number[]> {
       try {
         const reqIds = await db.getRequestIds();
-        console.log('SrRequestRecord IDs fetched successfully:', reqIds);
+        //console.log('SrRequestRecord IDs fetched successfully:', reqIds);
         return reqIds;
       } catch (error) {
         console.error('Error fetching request IDs:', error);
@@ -116,7 +117,8 @@ export const useRequestsStore = defineStore('requests', {
       const fetchedReqIds = await this.fetchReqIds();
       
       const promises = fetchedReqIds.map(async (id: number) => {
-        if (await db.getStatus(id) !== 'error') {
+        const status = await db.getStatus(id);
+        if (status == 'success'){
           return { name: id.toString(), value: id.toString() };
         }
       });

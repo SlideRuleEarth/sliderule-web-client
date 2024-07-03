@@ -12,53 +12,9 @@ export interface SrTimeDelta{
 }
 
 
-// export interface Elevation {
-//     req_id?: number;
-//     cycle: number;
-//     dh_fit_dx: number;
-//     extent_id: bigint;
-//     gt: number;
-//     h_mean: number;
-//     h_sigma: number;
-//     latitude: number;
-//     longitude: number;
-//     n_fit_photons: number;
-//     pflags: number;
-//     region: number;
-//     rgt: number;
-//     rms_misfit: number;
-//     segment_id: number;
-//     spot: number;
-//     time: Date;
-//     w_surface_window_final: number;
-//     x_atc: number;
-//     y_atc: number;
-// };
 export type ElevationPlottable = [number, number, number];
 
-// export type ElevationPlottable = 
-// [
-//     number, // longitude
-//     number, // latitude
-//     number, // h_mean
-//     number, // req_id
-//     number, // cycle
-//     number, // dh_fit_dx
-//     //bigint, // extent_id
-//     number, // gt
-//     number, // h_sigma
-//     number, // n_fit_photons
-//     number, // pflags
-//     number, // region
-//     number, // rgt
-//     number, // rms_misfit
-//     number, // segment_id
-//     number, // spot
-//     Date,   // time
-//     number, // w_surface_window_final
-//     number, // x_atc
-//     number  // y_atc
-// ];
+
 export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
@@ -71,6 +27,7 @@ export interface SrRequestRecord {
     status_details?: string; // status message (details of status)
     file?: string; // file name
     checksum?: bigint; // checksum
+    num_bytes?: number; // number of bytes
 }
 
 export interface SrRequestSummary {
@@ -209,14 +166,40 @@ export class SlideRuleDexie extends Dexie {
     }
     async getFunc(req_id:number): Promise<string> {
         try {
-            const request = await this.requests.get(req_id);
-            if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+            if(req_id && req_id > 0){
+                const request = await this.requests.get(req_id);
+                if (!request) {
+                    console.error(`getFunc No request found with req_id ${req_id}`);
+                    return '';
+                }
+                //console.log('getFunc req_id:',req_id,'func:',request.func, 'request:',request);
+                return request.func || '';
+            } else {
+                console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
                 return '';
             }
-            return request.func || '';
+
         } catch (error) {
-            console.error(`Failed to get function name for req_id ${req_id}:`, error);
+            console.error(`getFunc Failed to get function name for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+    async getNumBytes(req_id:number): Promise<number> {
+        try {
+            if(req_id && req_id > 0){
+                const request = await this.requests.get(req_id);
+                if (!request) {
+                    console.error(`getFunc No request found with req_id ${req_id}`);
+                    return NaN;
+                }
+                return request.num_bytes || NaN;
+            } else {
+                console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
+                return NaN;
+            }
+
+        } catch (error) {
+            console.error(`getFunc Failed to get function name for req_id ${req_id}:`, error);
             throw error;
         }
     }

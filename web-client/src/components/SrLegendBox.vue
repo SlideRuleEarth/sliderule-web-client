@@ -18,7 +18,7 @@
   const emit = defineEmits(['legendbox-created', 'picked-changed']);
   
   onMounted(() => {
-    console.log(`Mounted SrLegendBox`);
+    //console.log(`Mounted SrLegendBox`);
     emit('legendbox-created');
   });
 

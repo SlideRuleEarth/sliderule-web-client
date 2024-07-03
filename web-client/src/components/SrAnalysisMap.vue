@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { useMapStore } from "@/stores/mapStore";
   import { useMapParamsStore } from "@/stores/mapParamsStore";
-  import { ref, onMounted, watch } from "vue";
+  import { ref, onMounted, watch, computed } from "vue";
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -31,6 +31,7 @@
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
+  import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -42,7 +43,10 @@
   const handleEvent = (event: any) => {
     console.log(event);
   };
-  
+  const atlChartFilterStore = useAtlChartFilterStore();
+  const elevationIsLoading = computed(() => mapStore.getIsLoading());
+  const func = computed(() => atlChartFilterStore.getFunc());
+
   const props = defineProps({
       reqId: {
           type: Number,
@@ -89,6 +93,7 @@
 
   onMounted(() => {
     console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
+    mapStore.setIsLoading(true);
     //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
     Object.values(srProjections.value).forEach(projection => {
         //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -298,7 +303,9 @@
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               updateDeck(map);
+              mapStore.setIsLoading(true);
               await readAndUpdateElevationData(props.reqId);
+              mapStore.setIsLoading(false);
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);
             }
@@ -351,9 +358,11 @@
 </script>
 
 <template>
-  <div class="current-zoom">
+  <div class="sr-current-zoom">
     {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
+  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >Loading...{{ func }}</div>
+  <div class="sr-notLoadingEl" v-else >Loaded {{ func }}</div>
   <div ref="mapContainer" class="sr-map-container" >
     <ol-map ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
@@ -646,7 +655,7 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
-.current-zoom {
+.sr-current-zoom {
   position: absolute;
   top: 2.25rem;
   right: 1.5rem;
@@ -660,7 +669,16 @@
 
   font-size: 0.75rem;
 }
-
+.sr-isLoadingEl {
+  color: #e91c5a;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+.sr-notLoadingEl {
+  color: #4CAF50;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
 .hidden-control {
     display: none;
 }

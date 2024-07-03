@@ -148,6 +148,12 @@ export const useMapStore = defineStore('map', {
     getRedrawElevationsTimeoutHandle() {
       return this.reDrawElevationsTimeoutHandle;
     },
+    getIsLoading() {
+      return this.isLoading;
+    },
+    setIsLoading(isLoading: boolean) {
+      this.isLoading = isLoading;
+    },
     // async drawElevations() {
     //   if (this.isLoading && !this.isAborting) {
     //       await fetchAndUpdateElevationData(this.getCurrentReqId());

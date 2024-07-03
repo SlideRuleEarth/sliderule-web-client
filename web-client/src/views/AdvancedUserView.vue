@@ -20,7 +20,7 @@
 
         advancedModeStore.advanced = true;
 
-        console.log('AdvancedUserView onMounted');
+        //console.log('AdvancedUserView onMounted');
     });
 
 </script>

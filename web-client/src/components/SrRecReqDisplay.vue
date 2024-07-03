@@ -18,19 +18,19 @@
     import { ref,onMounted,watch } from "vue";
     import SrCheckbox from "./SrCheckbox.vue";
     import { db } from "@/db/SlideRuleDb";
-    import { useAtl06ChartFilterStore } from "@/stores/atl06ChartFilterStore";
-    const atl06ChartFilterStore = useAtl06ChartFilterStore();
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    const atlChartFilterStore = useAtlChartFilterStore();
 
     const showReqParms = ref(false);
     const reqParms = ref<string>('');
 
     onMounted(async () => {
-        const reqId = atl06ChartFilterStore.getReqId();
+        const reqId = atlChartFilterStore.getReqId();
         const p = await db.getReqParams(reqId);
         reqParms.value = JSON.stringify(p, null, 2);
     });
-    watch( () => atl06ChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
-        console.log(`SrRecReqDisplay watch atl06ChartFilterStore reqId oldReqId:'${oldReqId} to newReqId:'${newReqId}`);
+    watch( () => atlChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
+        console.log(`SrRecReqDisplay watch atlChartFilterStore reqId oldReqId:'${oldReqId} to newReqId:'${newReqId}`);
         if (newReqId) {
             const p = await db.getReqParams(newReqId);
             reqParms.value = JSON.stringify(p, null, 2);

@@ -54,23 +54,23 @@
     const emit = defineEmits(['update:value']);
 
     watch(selectedMenuItems, (newValue) => {
-        console.log('MultiMenu:', props.label, 'selected:', newValue);
+        //console.log('MultiMenu:', props.label, 'selected:', newValue);
         if (newValue) {
             const values = newValue.map(item => item.value);
             emit('update:value', values);
         } else {
             console.error(`Watch: ${props.label} No selected items?`);
         }
-        console.log(`${props.label} Selected Items: `, selectedMenuItems.value);
+        //console.log(`${props.label} Selected Items: `, selectedMenuItems.value);
     });
 
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted Menu:', props.label);
         selectedMenuItems.value = props.default;
         if (selectedMenuItems.value) {
             const values = selectedMenuItems.value.map(item => item.value);
             emit('update:value', values);
-            console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
+            //console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
         } else {
             console.error(`onMounted: ${props.label} No selected items?`);
         }

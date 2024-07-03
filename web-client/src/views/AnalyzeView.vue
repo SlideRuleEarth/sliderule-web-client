@@ -5,7 +5,9 @@ import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
 import { onMounted, ref } from 'vue';
 import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
 import SrScatterPlot from "@/components/SrScatterPlot.vue";
+import { useMapStore } from '@/stores/mapStore';
 
+const mapStore = useMapStore();
 const route = useRoute();
 const reqId = ref(Number(route.params.id));
 
@@ -26,7 +28,7 @@ onMounted(async () => {
             </SrSideBar>
         </template>
         <template v-slot:main>
-            <SrScatterPlot/>
+            <SrScatterPlot v-if="!mapStore.getIsLoading()"/>
         </template>
     </TwoColumnLayout>
 </template>

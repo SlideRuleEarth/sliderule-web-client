@@ -27,7 +27,7 @@
   const sysConfigStore = useSysConfigStore();
   onMounted(() => {
     const cfg = sysConfigStore.getSysConfig();
-    console.log('SrSysConfig onMounted cfg:', cfg);
+    //console.log('SrSysConfig onMounted cfg:', cfg);
   });
 
   

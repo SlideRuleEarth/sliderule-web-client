@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCalendar from './SrCalendar.vue';
 import SrSliderInput from './SrSliderInput.vue';
