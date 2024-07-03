@@ -74,17 +74,21 @@
         } else {
             reqParamsStore.tracks = [];
         }
-        console.log('newValue:', newValue, ' reqParamsStore.tracks:', reqParamsStore.tracks);
+        //console.log('newValue:', newValue, ' reqParamsStore.tracks:', reqParamsStore.tracks);
     };
 
-    const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
+    const handleSelectionChange = (event: Event) => {
+        // First, assert [`event.target`](command:_github.copilot.openSymbolFromReferences?%5B%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2FUsers%2Fcugarteblair%2Fdevelop%2FSlideRuleEarth%2Fsliderule-web-client%2Fweb-client%2Fsrc%2Fcomponents%2FSrReqTracks.vue%22%2C%22external%22%3A%22file%3A%2F%2F%2FUsers%2Fcugarteblair%2Fdevelop%2FSlideRuleEarth%2Fsliderule-web-client%2Fweb-client%2Fsrc%2Fcomponents%2FSrReqTracks.vue%22%2C%22path%22%3A%22%2FUsers%2Fcugarteblair%2Fdevelop%2FSlideRuleEarth%2Fsliderule-web-client%2Fweb-client%2Fsrc%2Fcomponents%2FSrReqTracks.vue%22%2C%22scheme%22%3A%22file%22%7D%2C%7B%22line%22%3A79%2C%22character%22%3A35%7D%5D "web-client/src/components/SrReqTracks.vue") as an HTMLSelectElement
+        const selectElement = event.target as HTMLSelectElement;
+
+        // Now TypeScript knows `selectElement.selectedOptions` is an HTMLOptionsCollection
+        const newValue = Array.from(selectElement.selectedOptions).map((option: HTMLOptionElement) => option.value);
         console.log('handleSelectionChange newValue:', newValue);
+
         reqParamsStore.selectAllTracks = newValue.length === tracksOptions.length;
     };
-
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted Menu:', props.label);
     });
 
     const openTooltipUrl = () => {

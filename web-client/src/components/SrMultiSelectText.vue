@@ -56,13 +56,13 @@ const emit = defineEmits(['update:modelValue']);
 onMounted(() => {
     const values = selectedMenuItems.value.map(item => item.value);
     emit('update:modelValue', values);
-    console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
+    //console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
 });
 
 watch(() => selectedMenuItems.value, (newVal, oldVal) => {
     const values = newVal.map(item => item.value);
     emit('update:modelValue', values);
-    console.log('watch:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
+    //console.log('watch:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
 });
 </script>
 

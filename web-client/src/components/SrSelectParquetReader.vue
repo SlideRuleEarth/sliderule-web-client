@@ -18,7 +18,7 @@ import { onMounted } from 'vue';
 
 const srParquetCfgStore = useSrParquetCfgStore();
   onMounted(() => {
-    console.log('Mounted SrSelectParquetReader');
+    //console.log('Mounted SrSelectParquetReader');
   });
 
 </script>

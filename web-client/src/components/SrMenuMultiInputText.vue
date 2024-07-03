@@ -100,24 +100,8 @@
     }, { deep: true });
 
 
-    // watch(() => props.selectAll,(newValue) => {
-    //     localSelectAll.value = newValue;
-    // });
-
-    // watch(() => props.selectedMenuItems,(newValue) => {
-    //     localSelectedMenuItems.value = [...newValue];
-    // });
-
-    const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
-        if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank')?.focus();
-        } else {
-            console.warn('No tooltip URL provided');
-        }
-    };
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted Menu:', props.label);
         localSelectAll.value = props.selectAll;
         localSelectedMenuItems.value = [...props.selectedMenuItems];
     });

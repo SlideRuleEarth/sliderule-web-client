@@ -17,7 +17,7 @@ onMounted(() => {
   const element = document.createElement('div');
   element.className = 'sr-legend-control ol-unselectable ol-control';
   if(legendBox.value == null){
-    console.log("Error:legendBox is null");
+    console.error("Error:legendBox is null");
   } else {
     //console.log("legendBox is not null");
     element.appendChild(legendBox.value.$el);

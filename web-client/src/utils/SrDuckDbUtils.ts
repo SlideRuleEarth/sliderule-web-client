@@ -223,9 +223,9 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             AND rgt = ${rgt} 
             AND cycle = ${cycle}
         `;
-        console.log('fetchAtl03ScatterData query2:', query2);
+        //console.log('fetchAtl03ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-        console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
+        //console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -239,7 +239,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 }
             }
         }
-        console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -362,6 +362,7 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
 }
 
 export async function getScatterOptions(): Promise<any> {
+    const startTime = performance.now(); // Start time
 
     const rgt = useAtlChartFilterStore().getRgt();
     const cycle = useAtlChartFilterStore().getCycle();
@@ -425,6 +426,8 @@ export async function getScatterOptions(): Promise<any> {
         })),
         series: seriesData.map(series => series.series)
     };
-    console.log('getScatterOptions options:', options);
-    return options;
+    //console.log('getScatterOptions options:', options);
+    const endTime = performance.now(); // End time
+    console.log(`getScatterOptions took ${endTime - startTime} milliseconds.`);
+  return options;
 }

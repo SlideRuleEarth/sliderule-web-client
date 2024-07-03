@@ -90,14 +90,14 @@ export const useRequestsStore = defineStore('requests', {
     },
     async has_checksum(req_id: number): Promise<boolean> {
       const params = await db.getReqParams(req_id);
-      console.log('has_checksum params:', params);
+      //console.log('has_checksum params:', params);
       return findParam(params, 'with_checksum');
     },
 
     async fetchReqs(): Promise<void> {
       try {
         this.reqs = await db.table('requests').orderBy('req_id').reverse().toArray();
-        console.log('Requests fetched successfully:', this.reqs);
+        //console.log('Requests fetched successfully:', this.reqs);
       } catch (error) {
         console.error('Error fetching requests:', error);
         throw error;
@@ -106,7 +106,7 @@ export const useRequestsStore = defineStore('requests', {
     async fetchReqIds(): Promise<number[]> {
       try {
         const reqIds = await db.getRequestIds();
-        console.log('SrRequestRecord IDs fetched successfully:', reqIds);
+        //console.log('SrRequestRecord IDs fetched successfully:', reqIds);
         return reqIds;
       } catch (error) {
         console.error('Error fetching request IDs:', error);

@@ -78,23 +78,16 @@
     };
 
     const handleSelectionChange = (event) => {
-        const newValue = Array.from(event.target.selectedOptions).map(option => option.value);
+        // Assert event.target as HTMLSelectElement to access selectedOptions
+        const selectElement = event.target as HTMLSelectElement;
+        const newValue = Array.from(selectElement.selectedOptions).map((option: HTMLOptionElement) => option.value);
         console.log('handleSelectionChange newValue:', newValue);
         reqParamsStore.selectAllBeams = newValue.length === beamsOptions.length;
     };
-
+    
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted Menu:', props.label);
     });
-
-    const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
-        if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank')?.focus();
-        } else {
-            console.warn('No tooltip URL provided');
-        }
-    };
 
     const menuClass = computed(() => ({
         'sr-menu-multi-input-select-default': true,

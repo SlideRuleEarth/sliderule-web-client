@@ -24,7 +24,7 @@
     }
 
     onMounted(async () => {
-        console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
+        //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
         // try{
         //     console.log('calling db.getDefinitionsByVersion REC_VERSION:',REC_VERSION);
@@ -46,7 +46,7 @@
     });
 
     watch(() => useReqParamsStore().missionValue,(newValue,oldValue) => {
-        console.log(`missionValue changed from ${oldValue} to ${newValue}`);
+        //console.log(`missionValue changed from ${oldValue} to ${newValue}`);
         if (newValue.value === 'ICESat-2') {
             useReqParamsStore().iceSat2SelectedAPI = useReqParamsStore().iceSat2APIsItems[0]; // Reset to default when mission changes
             reqParamsStore.asset ='icesat2';
@@ -57,12 +57,12 @@
     });
 
     function runSlideRuleClicked() {
-        console.log('runSlideRuleClicked');
+        //console.log('runSlideRuleClicked');
         processRunSlideRuleClicked();
     }
 
     function abortClicked() {
-        console.log('abortClicked');
+        //console.log('abortClicked');
         processAbortClicked();
     }
 

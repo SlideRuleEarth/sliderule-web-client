@@ -37,7 +37,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import ProgressBar from 'primevue/progressbar';
 
 onMounted(() => {
-    console.log('SrProgress.vue onMounted ');
+    //console.log('SrProgress.vue onMounted ');
 });
 const targetArrowDataRecords = computed(() => useCurReqSumStore().getTgtArrowDataRecs());
 const numArrowDataRecords = computed(() => useCurReqSumStore().getNumArrowDataRecs());

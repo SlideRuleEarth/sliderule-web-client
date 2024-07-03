@@ -36,11 +36,11 @@ onUnmounted(() => {
 })
 
 watch(mapStore.polygonSource, (newValue) => {
-    console.log('polygonSource:', newValue);
+    //console.log('polygonSource:', newValue);
     if (newValue.value === 'Draw on Map') {
-        console.log('Draw on Map');
+        //console.log('Draw on Map');
     } else if (newValue.value === 'Upload geojson File') {
-        console.log('Upload geojson File');
+        //console.log('Upload geojson File');
     } else {
         console.error('Unknown polygonSource:', newValue);
     }
@@ -58,7 +58,7 @@ const props = defineProps<Props>();
 const polygonSourceItems = ref([{name:'Draw on Map',value:'Draw on Map'},{name:'Upload geojson File',value:'Upload geojson File'}]);
  
 onMounted(() => {
-    console.log('Mounted SrAdvOptAccordian');
+    //console.log('Mounted SrAdvOptAccordian');
 });
 
 
@@ -227,9 +227,6 @@ onMounted(() => {
                 </AccordionTab> -->
                 <AccordionTab header="Storage">
                     <SrStorageUsage />
-                </AccordionTab>
-                <AccordionTab header="Current Req">
-                    <SrReqDisplay />
                 </AccordionTab>
             </Accordion>
         </div>
