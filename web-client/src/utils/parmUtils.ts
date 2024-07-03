@@ -1,5 +1,18 @@
 import { type SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 
+export interface SrScatterOptionsParms {
+  rgt: number;
+  cycle: number;
+  fileName: string;
+  func: string;
+  y: string[];
+  x: string;
+  beams?: number[];
+  pair?: number;
+  scOrient?: number;
+  tracks?: number[];
+};
+
 export const tracksOptions = [
     { name: 'Track 1' , value: 1 }, 
     { name: 'Track 2' , value: 2 },

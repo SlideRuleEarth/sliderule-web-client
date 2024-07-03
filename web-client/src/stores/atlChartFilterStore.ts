@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
+import {type  SrScatterOptionsParms } from '@/utils/parmUtils';
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
@@ -221,6 +222,21 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         getSize() {
           return this.size;
         },
+        getScatterOptionsParms() {
+          const scatterOptions = {
+            rgt: this.rgtValue,
+            cycle: this.cycleValue,
+            fileName: this.currentFile,
+            func: this.func,
+            y: this.yDataForChart,
+            x: 'x_atc',
+            beams: this.beams,
+            pair: this.pair,
+            scOrient: this.scOrient,
+            tracks: this.tracks
+          } as SrScatterOptionsParms;
+          return scatterOptions;
+        }
     },
 })
 

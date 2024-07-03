@@ -7,6 +7,7 @@ import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { removeCurrentDeckLayer } from './SrMapUtils';
+import type { SrScatterOptionsParms } from './parmUtils';
 
 interface SummaryRowData {
     minLat: number;
@@ -362,45 +363,35 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
     return [];
 }
 
-export async function getScatterOptions(): Promise<any> {
+export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any> {
     const startTime = performance.now(); // Start time
-
-    const rgt = useAtlChartFilterStore().getRgt();
-    const cycle = useAtlChartFilterStore().getCycle();
-    const fileName = useAtlChartFilterStore().getFileName();
-    const func = useAtlChartFilterStore().getFunc();    
-    const y = useAtlChartFilterStore().getYDataForChart();    
-    const x = 'x_atc';
+    console.log('getScatterOptions sop:', sop);
     let options = null;
     let seriesData = [] as SrScatterSeriesData[];
-    if(fileName){
-        if(func === 'atl06'){
-            const beams = useAtlChartFilterStore().getBeams();
-            if (beams.length && rgt && cycle) {
-                console.log('getScatterOptions atl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
-                seriesData = await getSeriesForAtl06(fileName, x, y, beams, rgt, cycle);
+    if(sop.fileName){
+        if(sop.func === 'atl06'){
+            if(sop.beams?.length && sop.rgt && sop.cycle){
+                console.log('getScatterOptions atl06 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+                seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y, sop.beams, sop.rgt, sop.cycle);
             } else {
-                console.warn('getScatterOptions atl06 invalid? beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+                console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
             }
-        } else if(func === 'atl03'){
-            const pair = useAtlChartFilterStore().getPair();
-            const scOrient = useAtlChartFilterStore().getScOrient();
-            const tracks = useAtlChartFilterStore().getTracks();
-            if(pair >= 0 && scOrient >= 0){
-                console.log('getScatterOptions atl03 fileName:', fileName, ' x:', x, ' y:', y, 'scOrient:',scOrient, 'pair:',pair, ' rgt:', rgt, ' cycle:', cycle, 'tracks:', tracks);
-                seriesData = await getSeriesForAtl03(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
+        } else if(sop.func === 'atl03'){
+            if((sop.pair) && (sop.scOrient) && (sop.rgt) && (sop.cycle) && (sop.tracks) && sop.tracks.length){
+                //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
             } else {
-                console.warn('getScatterOptions atl03 invalid? pair:', pair, ' scOrient:', scOrient);
+                console.error('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
             }
         } else {
-            console.error('getScatterOptions invalid func:', func);
+            console.error('getScatterOptions invalid func:', sop.func);
         }
     } else {
         console.warn('getScatterOptions fileName is null');
     }
     options = {
         title: {
-            text: func,
+            text: sop.func,
             left: "center"
         },
         tooltip: {
@@ -417,7 +408,7 @@ export async function getScatterOptions(): Promise<any> {
         },
         yAxis: seriesData.map((series, index) => ({
             type: 'value',
-            name: y[index],
+            name: sop.y[index],
             min: seriesData[index].min,
             max: seriesData[index].max,
             scale: true,  // Add this to ensure the axis scales correctly
