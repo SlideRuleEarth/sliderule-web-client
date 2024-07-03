@@ -1,4 +1,4 @@
-import { type WorkerMessage } from "./workerUtils";
+import { type FtfWorkerMessage } from "./workerUtils";
 
 type Task = {
     data: any;  // Any data that isn't transferable
@@ -39,7 +39,7 @@ export class TaskQueue {
             //worker.postMessage({ data: task.data }, [task.buffer]);
             worker.postMessage(structuredClone({ data: task.data }));
             worker.onmessage = (event) => {
-                const workerMsg:WorkerMessage = event.data;
+                const workerMsg:FtfWorkerMessage = event.data;
                 console.log('Worker message:', workerMsg);
                 this.activeWorkers--;
                 if (task.callback) task.callback(event.data);  // Invoke the task-specific callback

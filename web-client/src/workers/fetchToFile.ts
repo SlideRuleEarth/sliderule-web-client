@@ -1,7 +1,7 @@
 import { db } from "@/db/SlideRuleDb";
 import { atl06,atl03 } from '@/sliderule/icesat2.js';
 import { type AtlpReqParams,type AtlReqParams } from '@/sliderule/icesat2';
-import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
+import { type FtfWebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '@/workers/workerUtils';
@@ -14,7 +14,6 @@ let got_all_cbs = false;
 let abortRequested = false;
 let num_checks = 0;
 let num_post_done_checks = 0;
-
 
 export async function checkDoneProcessing(  thisReqID:number,
                                             syncAccessHandle:any, 
@@ -68,7 +67,7 @@ onmessage = async (event) => {
     try{
         console.log('fetchToFile worker received event:', event.data)
 
-        const cmd:WebWorkerCmd = JSON.parse(event.data);
+        const cmd:FtfWebWorkerCmd = JSON.parse(event.data);
         console.log('fetchToFile worker received cmd:', cmd);
         const reqID = cmd.req_id;
         if(cmd.type === 'abort'){

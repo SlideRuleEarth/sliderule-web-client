@@ -177,7 +177,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setPair(d.pair);
     }
     await readAndUpdateElevationData(useCurReqSumStore().getReqId());
-    useAtlChartFilterStore().setUpdateScatterPlot();
+    //useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {

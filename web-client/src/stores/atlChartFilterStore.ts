@@ -20,7 +20,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         max_x: 0 as number,
         min_y: 0 as number,
         max_y: 0 as number,
-        updateScatterPlot: false as boolean,
+        //updateScatterPlot: false as boolean,
         elevationDataOptions:[{name:'not_set',value:'not_set'}] as {name:string,value:string}[],
         yDataForChart:[] as string[],
         ndxOfelevationDataOptionsForHeight: 0,
@@ -28,6 +28,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         pair: 0 as number,
         scOrient: 0 as number,
         size: NaN as number,
+        hasError: false as boolean,
+        isLoading: false as boolean,
+        isAborting: false as boolean,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -148,15 +151,15 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         getMaxY() {
           return this.max_y;
         },
-        setUpdateScatterPlot(){
-          this.updateScatterPlot = true;
-        },
-        getUpdateScatterPlot() {
-          return this.updateScatterPlot;
-        },
-        resetUpdateScatterPlot() {
-          this.updateScatterPlot = false;
-        },
+        // setUpdateScatterPlot(){
+        //   this.updateScatterPlot = true;
+        // },
+        // getUpdateScatterPlot() {
+        //   return this.updateScatterPlot;
+        // },
+        // resetUpdateScatterPlot() {
+        //   this.updateScatterPlot = false;
+        // },
         incrementDebugCnt() {
           return ++this.debugCnt;
         },
@@ -236,6 +239,24 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
             tracks: this.tracks
           } as SrScatterOptionsParms;
           return scatterOptions;
+        },
+        setIsLoading(isLoading:boolean) {
+          this.isLoading = isLoading;
+        },
+        getIsLoading() {
+          return this.isLoading;
+        },
+        setIsAborting(isAborting:boolean) {
+          this.isAborting = isAborting;
+        },
+        getIsAborting() {
+          return this.isAborting;
+        },
+        setHasError(hasError:boolean) {
+          this.hasError = hasError;
+        },
+        getHasError() {
+          return this.hasError;
         }
     },
 })

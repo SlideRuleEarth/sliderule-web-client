@@ -13,7 +13,7 @@
     import ProgressBar from 'primevue/progressbar';
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import { processRunSlideRuleClicked } from "@/utils/workerDomUtils"
-    import { processAbortClicked } from "@/utils/workerDomUtils"
+    import { processFtfAbortClicked } from "@/utils/workerDomUtils"
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
@@ -63,7 +63,7 @@
 
     function abortClicked() {
         //console.log('abortClicked');
-        processAbortClicked();
+        processFtfAbortClicked();
     }
 
 </script>

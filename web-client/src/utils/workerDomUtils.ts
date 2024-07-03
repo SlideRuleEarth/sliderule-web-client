@@ -8,67 +8,98 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
-import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
+import type { SopWorkerCmdMsg, SopWorkerRspMsg, FtfWorkerMessage, WorkerSummary, FtfWebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
-const consoleStore = useSrSvrConsoleStore();
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { shallowRef } from 'vue';
 
+const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
 const curReqSumStore = useCurReqSumStore();
 const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
 const reqParamsStore = useReqParamsStore();
+export const optionsRef = shallowRef();
 
-let worker: Worker | null = null;
-let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
+let ftfWorker: Worker | null = null;
+let sopWorker: Worker | null = null;
+let ftfWorkerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
+let sopWorkerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
+let sopWorkerStartTime = performance.now();
 
 function startFetchToFileWorker(){
-    worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+    ftfWorker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
     const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
     console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
-    workerTimeoutHandle = setTimeout(() => {
-        if (worker) {
+    ftfWorkerTimeoutHandle = setTimeout(() => {
+        if (ftfWorker) {
             const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
             console.error(msg); // add thirty seconds to the timeout to let server timeout first
             //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
             useSrToastStore().info('Timeout',msg);
-            cleanUpWorker();
-            worker = null;
+            cleanupFtfWorker();
+            ftfWorker = null;
         }
     }, timeoutDuration);
     reqParamsStore.using_worker = true;
-    return worker;
+    return ftfWorker;
 } 
 
-const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
-    //console.log('handleWorkerMsg workerMsg:',workerMsg);
+export function startSopWorker(){
+    sopWorkerStartTime =  performance.now();
+    sopWorker =  new Worker(new URL('../workers/optionsWorker', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+    const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
+    sopWorker.onmessage = handleSopWorkerMsgEvent;
+    sopWorker.onerror = (error) => {
+        if(sopWorker){
+            console.error('Worker error:', error);
+            handleFtfWorkerError(error, 'sop Worker faced an unexpected error');
+            cleanupSopWorker();
+        }
+    };
+    console.log('startSopWorker with timeoutDuration:',timeoutDuration, ' req_id:',curReqSumStore.req_id);
+    sopWorkerTimeoutHandle = setTimeout(() => {
+        if (sopWorker) {
+            const msg = `Timeout: fetchScatterOptions Worker operation timed out in:${timeoutDuration} secs`;
+            console.error(msg); // add thirty seconds to the timeout to let server timeout first
+            //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
+            useSrToastStore().info('Timeout',msg);
+            cleanupSopWorker();
+            sopWorker = null;
+        }
+    }, timeoutDuration);
+    return sopWorker;
+}
+const handleFtfWorkerMsg = async (workerMsg:FtfWorkerMessage) => {
+    //console.log('handleFtfWorkerMsg workerMsg:',workerMsg);
     let fileName:string;
     switch(workerMsg.status){
         case 'success':
-            console.log('handleWorkerMsg success:',workerMsg.msg);
+            console.log('handleFtfWorkerMsg success:',workerMsg.msg);
             //toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().success('Success',workerMsg.msg);
             // if(worker){
-            //     cleanUpWorker();
+            //     cleanupFtfWorker();
             // }
             //fetchAndUpdateElevationData(mapStore.getCurrentReqId());
            break;
         case 'started':
-            console.log('handleWorkerMsg started');
+            console.log('handleFtfWorkerMsg started');
             //toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().info('Started',workerMsg.msg);
             //await mapStore.drawElevations();
             break;
         case 'aborted':
-            console.log('handleWorkerMsg aborted');
+            console.log('handleFtfWorkerMsg aborted');
             //toast.add({severity: 'warn',summary: 'Aborted', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().warn('Aborted',workerMsg.msg);
             requestsStore.setMsg('Job aborted');
-            cleanUpWorker();
+            cleanupFtfWorker();
             break;
         case 'server_msg':
-            //console.log('handleWorkerMsg server_msg:',workerMsg.msg);
+            //console.log('handleFtfWorkerMsg server_msg:',workerMsg.msg);
             if(workerMsg.msg){
                 consoleStore.addLine(workerMsg.msg);
             }
@@ -81,7 +112,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             }
             break;
         case 'progress':
-            //console.log('handleWorkerMsg progress:',workerMsg.progress);
+            //console.log('handleFtfWorkerMsg progress:',workerMsg.progress);
             if(workerMsg.progress){
                 curReqSumStore.setReadState(workerMsg.progress.read_state);
                 curReqSumStore.setNumExceptions(workerMsg.progress.numSvrExceptions);
@@ -99,7 +130,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             }
             break;
         case 'summary':
-            console.log('handleWorkerMsg summary:',workerMsg);
+            console.log('handleFtfWorkerMsg summary:',workerMsg);
             if(workerMsg){
                 const sMsg = workerMsg as WorkerSummary;
                 curReqSumStore.setSummary(sMsg);
@@ -107,55 +138,75 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             break;
         case 'error':
             if(workerMsg.error){
-                console.error('handleWorkerMsg error:',workerMsg.error);
+                console.error('handleFtfWorkerMsg error:',workerMsg.error);
                 //toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
                 useSrToastStore().error(workerMsg.error?.type,workerMsg.error?.message);
             }
-            if(worker){
-                cleanUpWorker();
+            if(ftfWorker){
+                cleanupFtfWorker();
             }
             console.log('Error... isLoading:',mapStore.isLoading);
             break;
 
         case 'opfs_ready':
-            console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
+            console.log('handleFtfWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
             try {
                 if(workerMsg?.req_id > 0){
                     fileName = await db.getFilename(workerMsg.req_id);
                     await duckDbLoadOpfsParquetFile(fileName);
                     await readAndUpdateElevationData(workerMsg.req_id);
                 } else {
-                    console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
+                    console.error('handleFtfWorkerMsg opfs_ready req_id is undefined or 0');
                 }
             } catch (error) {
-                console.error('handleWorkerMsg opfs_ready error:',error);
+                console.error('handleFtfWorkerMsg opfs_ready error:',error);
                 useSrToastStore().error('Error','Error loading file');
             }
-            if(worker){
-                cleanUpWorker();
+            if(ftfWorker){
+                cleanupFtfWorker();
             }
             break;
 
         default:
-            console.error('handleWorkerMsg unknown status?:',workerMsg.status);
+            console.error('handleFtfWorkerMsg unknown status?:',workerMsg.status);
             break;
     }     
 }
 
-const handleWorkerMsgEvent = async (event: MessageEvent) => {
-    if(worker){
-        const workerMsg:WorkerMessage = event.data;
-        handleWorkerMsg(workerMsg);
+const handleSopWorkerRspMsg = async (workerMsg:SopWorkerRspMsg) => {
+    // Set the scatter options in the store?
+    //console.log('handleSopWorkerRspMsg workerMsg:',workerMsg);
+    if(workerMsg.scatterOptions){
+        //console.log('handleSopWorkerRspMsg scatterOptions:',workerMsg.scatterOptions);
+        optionsRef.value = workerMsg.scatterOptions;
+        console.log(`handleSopWorkerRspMsg  worker took ${performance.now() - sopWorkerStartTime} milliseconds.`);
     } else {
-        console.error('handleWorkerMsgEvent: worker was undefined?');
+        console.error('handleSopWorkerRspMsg scatterOptions was undefined');
     }
 }
 
-export function processAbortClicked() {
-    if(worker){
+const handleFtfWorkerMsgEvent = async (event: MessageEvent) => {
+    if(ftfWorker){
+        const workerMsg:FtfWorkerMessage = event.data;
+        handleFtfWorkerMsg(workerMsg);
+    } else {
+        console.error('handleFtfWorkerMsgEvent: worker was undefined?');
+    }
+}
+
+const handleSopWorkerMsgEvent = async (event: MessageEvent) => {
+    if(sopWorker){
+        const workerMsg:SopWorkerRspMsg = event.data;
+        handleSopWorkerRspMsg(workerMsg);
+    } else {
+        console.error('handleSopWorkerMsgEvent: worker was undefined?');
+    }
+}
+export function processFtfAbortClicked() {
+    if(ftfWorker){
         mapStore.isAborting = true; 
-        const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
-        worker.postMessage(JSON.stringify(cmd));
+        const cmd = {type:'abort',req_id:mapStore.currentReqId} as FtfWebWorkerCmd;
+        ftfWorker.postMessage(JSON.stringify(cmd));
         console.log('abortClicked isLoading:',mapStore.isLoading);
         requestsStore.setMsg('Abort Clicked');
         useSrToastStore().info('Abort Clicked','Aborting request');
@@ -168,31 +219,41 @@ export function processAbortClicked() {
     mapStore.isLoading = false; // controls spinning progress
 }
 
-function handleWorkerError(error:ErrorEvent, errorMsg:string) {
+function handleFtfWorkerError(error:ErrorEvent, errorMsg:string) {
     console.error('Error:', error);
     //toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
     useSrToastStore().error('Error',errorMsg);
-    cleanUpWorker();
+    cleanupFtfWorker();
 }
 
 
-
-function cleanUpWorker(){
-    //mapStore.unsubscribeLiveElevationQuery();
-    if (workerTimeoutHandle) {
-        clearTimeout(workerTimeoutHandle);
-        workerTimeoutHandle = null;
+function cleanupFtfWorker(){
+    if (ftfWorkerTimeoutHandle) {
+        clearTimeout(ftfWorkerTimeoutHandle);
+        ftfWorkerTimeoutHandle = null;
     }        
-    if(worker){
-        worker.terminate();
-        worker = null;
+    if(ftfWorker){
+        ftfWorker.terminate();
+        ftfWorker = null;
     }
-
-    //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.isLoading = false; // controls spinning progress
     mapStore.isAborting = false;
     reqParamsStore.using_worker = false;
-    console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
+    console.log('cleanupFtfWorker -- isLoading:',mapStore.isLoading);
+}
+
+export function cleanupSopWorker(){
+    if (sopWorkerTimeoutHandle) {
+        clearTimeout(sopWorkerTimeoutHandle);
+        sopWorkerTimeoutHandle = null;
+    }        
+    if(sopWorker){
+        sopWorker.terminate();
+        sopWorker = null;
+    }
+    useAtlChartFilterStore().setIsLoading(false); // controls spinning progress
+    useAtlChartFilterStore().setIsAborting(false);
+    console.log('cleanupSopWorker -- isLoading:',mapStore.isLoading);
 }
 
 function parseCompletionPercentage(message: string): number | null {
@@ -217,17 +278,17 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
             mapStore.setCurrentReqId(srReqRec.req_id);
             mapStore.isLoading = true; // controls spinning progress
-            worker = startFetchToFileWorker();
-            worker.onmessage = handleWorkerMsgEvent;
-            worker.onerror = (error) => {
-                if(worker){
+            ftfWorker = startFetchToFileWorker();
+            ftfWorker.onmessage = handleFtfWorkerMsgEvent;
+            ftfWorker.onerror = (error) => {
+                if(ftfWorker){
                     console.error('Worker error:', error);
-                    handleWorkerError(error, 'Worker faced an unexpected error');
-                    cleanUpWorker();
+                    handleFtfWorkerError(error, 'Ftf Worker faced an unexpected error');
+                    cleanupFtfWorker();
                 }
             };
-            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
-            worker.postMessage(JSON.stringify(cmd));
+            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), func:srReqRec.func, parameters:srReqRec.parameters} as FtfWebWorkerCmd;
+            ftfWorker.postMessage(JSON.stringify(cmd));
         } else {
             console.error('runFetchToFileWorker req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
@@ -236,14 +297,42 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
     } catch (error) {
         console.error('runFetchToFileWorker error:',error);
         //toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
-        useSrToastStore().error('Error','An error occurred running the worker');
+        useSrToastStore().error('Error','An error occurred running the ftf worker');
+    }
+}
+
+export async function fetchScatterOptions(){
+    try{
+        //console.log('runFetchToFileWorker srReqRec:',srReqRec);
+        if(sopWorker){
+            const req_id = useAtlChartFilterStore().getReqId();
+            const func = await db.getFunc(req_id);
+            useAtlChartFilterStore().setFunc(func);
+            useAtlChartFilterStore().setIsLoading(true);
+            useAtlChartFilterStore().setHasError(false);
+            const sopParms = useAtlChartFilterStore().getScatterOptionsParms();
+            console.log('fetchScatterOptions sopParms:',sopParms);
+            const cmd = {parms:sopParms} as SopWorkerCmdMsg;
+            sopWorker.postMessage(JSON.stringify(cmd));
+        } else {
+            useAtlChartFilterStore().setIsLoading(false);
+            console.error('fetchScatterOptions worker is undefined');
+            //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+            useSrToastStore().error('fetchScatterOptions Error','There was an error');
+        }
+    } catch (error) {
+        useAtlChartFilterStore().setIsLoading(false);
+        useAtlChartFilterStore().setHasError(true);
+        console.error('runFetchScatterOptionsWorker error:',error);
+        //toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
+        useSrToastStore().error('Error','An error occurred running the sop worker');
     }
 }
 
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked() {
     mapStore.isLoading = true;
-    console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
+    console.log('processRunSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
     curReqSumStore.setNumArrowDataRecs(0);
@@ -254,10 +343,10 @@ export async function processRunSlideRuleClicked() {
     requestsStore.setMsg('Running...');
     const srReqRec = await requestsStore.createNewSrRequestRecord();
     if(srReqRec) {
-        console.log('runSlideRuleClicked srReqRec:',srReqRec);
+        console.log('processRunSlideRuleClicked srReqRec:',srReqRec);
         if(useReqParamsStore().missionValue.value === 'ICESat-2') {
             if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl06') {
-                console.log('atl06 selected');
+                //console.log('processRunSlideRuleClicked atl06 selected');
                 if(!srReqRec.req_id) {
                     console.error('runAtl06 req_id is undefined');
                     //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
@@ -270,7 +359,7 @@ export async function processRunSlideRuleClicked() {
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
-                console.log('atl03 selected');
+                //console.log('processRunSlideRuleClicked atl03 selected');
                 if(!srReqRec.req_id) {
                     console.error('runAtl03 req_id is undefined');
                     //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
@@ -283,7 +372,7 @@ export async function processRunSlideRuleClicked() {
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
-                console.log('atl08 TBD');
+                console.log('processRunSlideRuleClicked atl08 TBD');
                 //toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
                 useSrToastStore().info('Info','atl08 TBD');
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24s') {
