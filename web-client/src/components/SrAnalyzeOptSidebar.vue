@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted,ref,watch } from 'vue';
+import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -13,6 +13,7 @@ import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
 import SrToggleButton from './SrToggleButton.vue';
+import { formatBytes } from '@/utils/SrParquetUtils';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -91,6 +92,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setReqId(Number(newSelection.value));
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
         atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
+        atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -104,19 +106,30 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     }
 
 }, { deep: true, immediate: true });
+
+const getSize = computed(() => {
+    return formatBytes(atlChartFilterStore.getSize());
+});
+
 </script>
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
         <div class="sr-analysis-opt-sidebar-req-menu">
-            <div v-if="loading">Loading... menu</div>
-            <SrMenuInput 
-                v-else
-                label="Request Id" 
-                :menuOptions="reqIds" 
-                v-model="selectedReqId"
-                :defaultOptionIndex="Number(defaultMenuItemIndex)"
-                tooltipText="Request Id from Record table"/>  
+            <div class="sr-analysis-reqid-sz">
+            <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
+            <div class="sr-analysis-reqid" v-else>
+                <SrMenuInput 
+                    label="Request Id" 
+                    :menuOptions="reqIds" 
+                    v-model="selectedReqId"
+                    :defaultOptionIndex="Number(defaultMenuItemIndex)"
+                    tooltipText="Request Id from Record table"/> 
+            </div>
+            <div class="sr-analysis-sz" v-if="!loading">
+                {{ getSize }} 
+            </div>
+        </div>
         </div>
         <div>
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
@@ -178,6 +191,19 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         max-height: 30%;
         min-width: 30vw;
         width: 100%;
+    }
+    .sr-analysis-reqid-sz{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .sr-analysis-sz{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        font-size: small;
     }
     .sr-analysis-opt-sidebar-map {
         display: flex;

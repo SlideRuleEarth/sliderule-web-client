@@ -6,6 +6,7 @@ import { getHeightFieldname } from '@/utils/SrParquetUtils';
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
     state: () => ({
+        debugCnt: 0 as number,
         tracks:  [1,2,3] as number[],
         selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
@@ -25,7 +26,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         func: 'xxx' as string,
         pair: 0 as number,
         scOrient: 0 as number,
-        debugCnt: 0 as number,
+        size: NaN as number,
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -213,6 +214,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         getScOrient() {
           return this.scOrient;
+        },
+        setSize(size:number) {
+          this.size = size;
+        },
+        getSize() {
+          return this.size;
         },
     },
 })

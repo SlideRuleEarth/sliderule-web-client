@@ -8,6 +8,7 @@ import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
 import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
 import { findParam } from '@/utils/parmUtils';
+import { formatBytes } from '@/utils/SrParquetUtils';
 
 const requestsStore = useRequestsStore();
 const isCodeFormat = ref(true);
@@ -112,13 +113,7 @@ const deleteAllReqs = () => {
     requestsStore.deleteAllReqs();
 };
 
-const formatBytes = (bytes:number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
+
 
 onMounted(() => {
     console.log('SrRecords mounted');

@@ -18,7 +18,6 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
-import { use } from 'echarts';
 
 
 export const polyCoordsExist = computed(() => {
