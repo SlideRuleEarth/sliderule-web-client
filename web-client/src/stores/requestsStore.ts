@@ -4,19 +4,19 @@ import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import { findParam } from '@/utils/parmUtils';
-import { stat } from 'fs';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
     reqs: [] as SrRequestRecord[],
     reqIsLoading: {} as { [reqId: number]: boolean },
-    columns: [
-      { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
-      { field: 'status', header: 'Status', tooltip: 'Request Status' },
-      { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
-      { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
-      { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
-    ],
+    // columns: [
+    //   { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
+    //   { field: 'status', header: 'Status', tooltip: 'Request Status' },
+    //   { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
+    //   { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
+    //   { field: 'num_bytes', header: 'Size', tooltip: 'Number of Bytes Returned'},
+    //   { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
+    // ],
     error_in_req: [] as boolean[],
     liveRequestsQuerySubscription: null as any,
     msg:'ready',

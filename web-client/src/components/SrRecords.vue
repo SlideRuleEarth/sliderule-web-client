@@ -1,24 +1,21 @@
-
 <script setup lang="ts">
-import { onMounted,onUnmounted,ref,computed } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
-import { deleteOpfsFile,calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
+import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
 import { findParam } from '@/utils/parmUtils';
-
 
 const requestsStore = useRequestsStore();
 const isCodeFormat = ref(true);
 
-
 const analyze = (id:number) => {
-    try{
+    try {
         console.log('Analyze ', id);
-        if(!id) {
+        if (!id) {
             console.error('Request id is missing for analyze request');
             return;
         }
@@ -33,15 +30,15 @@ const analyze = (id:number) => {
 async function calculateCS(req_id:number) {
     console.log('Calculate Checksum for: ', req_id);
     console.log('Exporting file for req_id', req_id);
-    try{
+    try {
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
         const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
         const cs = await calculateChecksumFromOpfs(fileHandle);
-        const db_cs= await db.getChecksum(req_id);
+        const db_cs = await db.getChecksum(req_id);
 
-        console.log('Checksum:', cs, 'DB Checksum:', db_cs ,'db_cs type:', typeof(db_cs), ' cs type:',typeof(cs), ' for id:', req_id);
-        if(cs == db_cs) {
+        console.log('Checksum:', cs, 'DB Checksum:', db_cs, 'db_cs type:', typeof(db_cs), ' cs type:', typeof(cs), ' for id:', req_id);
+        if (cs == db_cs) {
             console.log('Checksum verified successfully for id:', req_id);
             alert(`Req:${req_id} Checksum verified successfully!`);
         } else {
@@ -57,7 +54,7 @@ async function calculateCS(req_id:number) {
 };
 
 const deleteReq = async (id:number) => {
-    try{
+    try {
         console.log('Delete ', id);
         const fn = await db.getFilename(id);
         await deleteOpfsFile(fn);
@@ -70,7 +67,7 @@ const deleteReq = async (id:number) => {
 
 const exportFile = async (req_id:number) => {
     console.log('Exporting file for req_id', req_id);
-    try{
+    try {
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
         const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
@@ -91,8 +88,8 @@ const exportFile = async (req_id:number) => {
         alert(msg);
 
     } catch (error) {
-        console.error(`Failed to calculate CSfor id:${req_id}`, error);
-        alert(`Failed to calculate CSfor ID:${req_id}`);
+        console.error(`Failed to calculate CS for id:${req_id}`, error);
+        alert(`Failed to calculate CS for ID:${req_id}`);
         throw error;
     }
 };
@@ -101,7 +98,7 @@ const deleteAllReqs = () => {
     console.log('Delete all');
     requestsStore.reqs.forEach(async (req) => {
         try {
-            if(req.req_id) {
+            if (req.req_id) {
                 const fn = await db.getFilename(req.req_id);
                 await deleteOpfsFile(fn);
             } else {
@@ -115,6 +112,14 @@ const deleteAllReqs = () => {
     requestsStore.deleteAllReqs();
 };
 
+const formatBytes = (bytes:number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 onMounted(() => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
@@ -122,9 +127,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  requestsStore.liveRequestsQuerySubscription.unsubscribe();
+    requestsStore.liveRequestsQuerySubscription.unsubscribe();
 });
-
 </script>
 
 <template>
@@ -149,18 +153,23 @@ onUnmounted(() => {
             <Column field="func" header="Function"></Column>
             <Column field="parameters" header="Parameters" class="sr-par-fmt">
                 <template #header>
-                        <i 
-                        :class="PrimeIcons.CODE"
-                        @click="isCodeFormat = !isCodeFormat"
-                        v-tooltip="'Toggle code format'"
-                        class="sr-recs-toggle-icon"
-                        > </i>
+                    <i 
+                      :class="PrimeIcons.CODE"
+                      @click="isCodeFormat = !isCodeFormat"
+                      v-tooltip="'Toggle code format'"
+                      class="sr-recs-toggle-icon"
+                    > </i>
                 </template> 
                 <template #body="slotProps">
                     <div class="sr-col-par-style" >
                         <span v-if="isCodeFormat"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
                         <span v-else>{{slotProps.data.parameters}}</span>
                     </div>
+                </template>
+            </Column>
+            <Column field="num_bytes" header="Size">
+                <template #body="slotProps">
+                    {{ formatBytes(slotProps.data.num_bytes) }}
                 </template>
             </Column>
             <Column field="elapsed_time" header="Elapsed Time"></Column>
@@ -203,7 +212,7 @@ onUnmounted(() => {
             <Column field="Actions" header="" class="sr-export">
                 <template #body="slotProps">
                     <i 
-                      class="pi pi-file-export sr-file-export-icon "
+                      class="pi pi-file-export sr-file-export-icon"
                       @click="exportFile(slotProps.data.req_id)"
                       v-tooltip="'Export file'"
                     ></i>
@@ -212,13 +221,12 @@ onUnmounted(() => {
         </DataTable>
         <!-- Display an error message if there is an error -->
         <div v-if="requestsStore.autoFetchError" class="error-message">
-        {{ requestsStore.autoFetchErrorMsg }}
+            {{ requestsStore.autoFetchErrorMsg }}
         </div>
     </div>
 </template>
 
 <style scoped>
-
 .sr-analyze {
     width: 5rem;
     text-align: center;
@@ -233,7 +241,7 @@ onUnmounted(() => {
     margin-left: 1rem;
 }
 .sr-recs-toggle-icon {
-   margin-right: 0.5rem;
+    margin-right: 0.5rem;
 }
 .sr-delete {
     width: 5rem;
@@ -245,11 +253,11 @@ onUnmounted(() => {
     font-size: 1.5rem;
     margin-top: 1rem;
 }
-
 :deep(.sr-col-par-style) {
     min-width: 20rem;
-    max-width: 40rem;
+    max-width: 25rem;
     max-height: 10rem;
     overflow: auto;
+    overflow-x: auto;
 }
 </style>

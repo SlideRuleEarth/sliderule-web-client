@@ -120,10 +120,18 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
         case 'opfs_ready':
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
-            fileName = await db.getFilename(workerMsg.req_id);
-            await duckDbLoadOpfsParquetFile(fileName);
-            
-            await readAndUpdateElevationData(workerMsg.req_id);
+            try {
+                if(workerMsg?.req_id > 0){
+                    fileName = await db.getFilename(workerMsg.req_id);
+                    await duckDbLoadOpfsParquetFile(fileName);
+                    await readAndUpdateElevationData(workerMsg.req_id);
+                } else {
+                    console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
+                }
+            } catch (error) {
+                console.error('handleWorkerMsg opfs_ready error:',error);
+                useSrToastStore().error('Error','Error loading file');
+            }
             if(worker){
                 cleanUpWorker();
             }
