@@ -106,6 +106,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
             removeCurrentDeckLayer();
             return;
         }
+        useAtlChartFilterStore().setReqId(req_id);
         const height_fieldname = await getHeightFieldname(req_id);
         //console.log('duckDbReadAndUpdateElevationData req_id:',req_id);
         const summary = await duckDbReadOrCacheSummary(req_id,height_fieldname);

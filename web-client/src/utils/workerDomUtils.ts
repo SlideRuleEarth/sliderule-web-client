@@ -23,10 +23,10 @@ let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
 
-function startWorker(){
+function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
     const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
-    console.log('runWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
+    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
@@ -44,7 +44,6 @@ function startWorker(){
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
     let fileName:string;
-    let tbls:any;
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
@@ -211,14 +210,14 @@ function parseCompletionPercentage(message: string): number | null {
     return null; // Return null if the message does not match the expected format or total is zero
 }
 
-async function runWorker(srReqRec:SrRequestRecord){
+async function runFetchToFileWorker(srReqRec:SrRequestRecord){
     try{
-        //console.log('runWorker srReqRec:',srReqRec);
+        //console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
             mapStore.setCurrentReqId(srReqRec.req_id);
             mapStore.isLoading = true; // controls spinning progress
-            worker = startWorker();
+            worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {
                 if(worker){
@@ -230,12 +229,12 @@ async function runWorker(srReqRec:SrRequestRecord){
             const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
             worker.postMessage(JSON.stringify(cmd));
         } else {
-            console.error('runWorker req_id is undefined');
+            console.error('runFetchToFileWorker req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             useSrToastStore().error('Error','There was an error');
         }
     } catch (error) {
-        console.error('runWorker error:',error);
+        console.error('runFetchToFileWorker error:',error);
         //toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         useSrToastStore().error('Error','An error occurred running the worker');
     }
@@ -269,7 +268,7 @@ export async function processRunSlideRuleClicked() {
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
-                runWorker(srReqRec);
+                runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
                 console.log('atl03 selected');
                 if(!srReqRec.req_id) {
@@ -282,7 +281,7 @@ export async function processRunSlideRuleClicked() {
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
-                runWorker(srReqRec);
+                runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
                 console.log('atl08 TBD');
                 //toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
