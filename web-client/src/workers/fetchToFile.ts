@@ -48,7 +48,6 @@ export async function checkDoneProcessing(  thisReqID:number,
                 }
             }
             read_state = 'done';
-            syncAccessHandle.flush();
             syncAccessHandle.close();
             const fileName = await db.getFilename(thisReqID);
             postMessage(opfsReadyMsg(thisReqID, fileName));

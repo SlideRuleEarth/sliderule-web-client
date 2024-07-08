@@ -95,7 +95,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     }
 }
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
+export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
@@ -126,35 +126,52 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
             // Step 4: Execute a SQL query to retrieve the elevation data
             console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
-            // Execute the query
-            const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
-            console.log(`duckDbReadAndUpdateElevationData for ${req_id} POST Query took ${performance.now() - startTime} milliseconds.`);
-
-            // Read and process each chunk from the QueryResult
+            // Calculate the offset for the query
+            let offset = 0;
+            let hasMoreData = true;
             let numDataItems = 0;
             const rowChunks: ElevationDataItem[] = [];
 
-            for await (const rowChunk of results.readRows()) {
-                console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
-                if (rowChunk.length > 0) {
-                    if (numDataItems === 0) {
-                        // Assuming we only need to set field names once, during the first chunk processing
-                        const fieldNames = Object.keys(rowChunk[0]);
-                        console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
-                        await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+            while (hasMoreData) {
+                try{
+                    // Execute the query
+                    const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
+                    console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
+                    for await (const rowChunk of result.readRows()) {
+                        console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
+                        if (rowChunk.length > 0) {
+                            if (numDataItems === 0) {
+                                // Assuming we only need to set field names once, during the first chunk processing
+                                const fieldNames = Object.keys(rowChunk[0]);
+                                console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
+                                await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+                            }
+                            numDataItems += rowChunk.length;
+                            rowChunks.push(...rowChunk);
+                            // Read and process each chunk from the QueryResult
+                            //console.log('duckDbReadAndUpdateElevationData rowChunks:', rowChunks);
+                            //updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
+                        }
                     }
-                    numDataItems += rowChunk.length;
-                    rowChunks.push(...rowChunk);
-                    //console.log('duckDbReadAndUpdateElevationData rowChunks:', rowChunks);
-                    updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
+
+                    if (numDataItems === 0) {
+                        console.warn('duckDbReadAndUpdateElevationData no data items processed');
+                    } else {
+                        console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
+                    }
+                    hasMoreData = result.hasMoreData;
+                    if(numDataItems >= maxNumPnts){
+                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' SKIPPING rest of file!');
+                        hasMoreData = false;
+                    }
+                    offset += chunkSize;
+                } catch (error) {
+                    console.error('duckDbReadAndUpdateElevationData error processing chunk:', error);
+                    hasMoreData = false;
+                    throw error;
                 }
             }
-
-            if (numDataItems === 0) {
-                console.warn('duckDbReadAndUpdateElevationData no data items processed');
-            } else {
-                console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
-            }
+            updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }

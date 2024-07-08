@@ -49,10 +49,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg success:',workerMsg.msg);
             //toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().success('Success',workerMsg.msg);
-            // if(worker){
-            //     cleanUpWorker();
-            // }
-            //fetchAndUpdateElevationData(mapStore.getCurrentReqId());
            break;
         case 'started':
             console.log('handleWorkerMsg started');

@@ -204,7 +204,9 @@ export const readAndUpdateElevationData = async (req_id:number) => {
         console.log('readAndUpdateElevationData req_id:',req_id);
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            await duckDbReadAndUpdateElevationData(req_id);
+            const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
+            const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
+            await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
         } else {
             throw new Error('readAndUpdateElevationData unknown reader');
         }

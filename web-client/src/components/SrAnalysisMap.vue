@@ -32,6 +32,7 @@
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+  import { useToast } from "primevue/usetoast";
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -39,7 +40,7 @@
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
-
+  const toast = useToast();
   const handleEvent = (event: any) => {
     console.log(event);
   };
@@ -304,7 +305,12 @@
               updateCurrentParms();
               updateDeck(map);
               mapStore.setIsLoading(true);
-              await readAndUpdateElevationData(props.reqId);
+              try{
+                await readAndUpdateElevationData(props.reqId);
+              } catch (error) {
+                console.error(`Error: readAndUpdateElevationData failed for ${reason}`,error);
+                toast.add({severity:'error', summary: 'Error', detail: `Failed to readAndUpdateElevationData for ${reason}`});
+              }
               mapStore.setIsLoading(false);
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);

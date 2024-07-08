@@ -14,11 +14,14 @@ import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
 import SrToggleButton from './SrToggleButton.vue';
 import { formatBytes } from '@/utils/SrParquetUtils';
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
+const srParquetCfgStore = useSrParquetCfgStore();
+
 const props = defineProps({
     startingReqId: Number,
 });
@@ -135,6 +138,24 @@ const getSize = computed(() => {
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
         </div>
         <div>
+            <SrSliderInput
+                v-model="srParquetCfgStore.maxNumPntsToDisplay"
+                label="Max Num Pnts"
+                :min="10000"
+                :max="5000000"
+                :defaultValue="1000000"
+                :decimalPlaces=0
+                tooltipText="Maximum number of points to display"
+            />
+            <SrSliderInput
+                v-model="srParquetCfgStore.chunkSizeToRead"
+                label="Chunk Size"
+                :min="10000"
+                :max="500000"
+                :defaultValue="srParquetCfgStore.chunkSizeToRead"
+                :decimalPlaces=0
+                tooltipText="Chunk size to read from parquet file"
+            />
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
