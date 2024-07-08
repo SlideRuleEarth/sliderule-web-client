@@ -42,12 +42,14 @@ const has_error = computed(() => atlChartFilterStore.getHasError());
 
 onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
+  console.log('SrScatterPlot.vue onMounted reqId:', reqId);
   if (reqId > 0) {
     startSopWorker();
   } else {
     console.warn('reqId is undefined');
   }
 });
+
 onUnmounted(() => {
   console.log('SrScatterPlot.vue onUnmounted');
   cleanupSopWorker();

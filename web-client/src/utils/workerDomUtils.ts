@@ -48,6 +48,7 @@ function startFetchToFileWorker(){
 } 
 
 export function startSopWorker(){
+    console.log('startSopWorker');
     sopWorkerStartTime =  performance.now();
     sopWorker =  new Worker(new URL('../workers/optionsWorker', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
     const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
@@ -55,7 +56,7 @@ export function startSopWorker(){
     sopWorker.onerror = (error) => {
         if(sopWorker){
             console.error('Worker error:', error);
-            handleFtfWorkerError(error, 'sop Worker faced an unexpected error');
+            handleSopWorkerError(error, 'sop Worker faced an unexpected error');
             cleanupSopWorker();
         }
     };
@@ -175,7 +176,7 @@ const handleFtfWorkerMsg = async (workerMsg:FtfWorkerMessage) => {
 
 const handleSopWorkerRspMsg = async (workerMsg:SopWorkerRspMsg) => {
     // Set the scatter options in the store?
-    //console.log('handleSopWorkerRspMsg workerMsg:',workerMsg);
+    console.log('handleSopWorkerRspMsg workerMsg:',workerMsg);
     if(workerMsg.scatterOptions){
         //console.log('handleSopWorkerRspMsg scatterOptions:',workerMsg.scatterOptions);
         optionsRef.value = workerMsg.scatterOptions;
@@ -195,6 +196,7 @@ const handleFtfWorkerMsgEvent = async (event: MessageEvent) => {
 }
 
 const handleSopWorkerMsgEvent = async (event: MessageEvent) => {
+    console.log('handleSopWorkerMsgEvent event:',event);
     if(sopWorker){
         const workerMsg:SopWorkerRspMsg = event.data;
         handleSopWorkerRspMsg(workerMsg);
@@ -224,6 +226,13 @@ function handleFtfWorkerError(error:ErrorEvent, errorMsg:string) {
     //toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
     useSrToastStore().error('Error',errorMsg);
     cleanupFtfWorker();
+}
+
+function handleSopWorkerError(error:ErrorEvent, errorMsg:string) {
+    console.error('Error:', error);
+    //toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
+    useSrToastStore().error('Error',errorMsg);
+    cleanupSopWorker();
 }
 
 
@@ -313,7 +322,8 @@ export async function fetchScatterOptions(){
             const sopParms = useAtlChartFilterStore().getScatterOptionsParms();
             console.log('fetchScatterOptions sopParms:',sopParms);
             const cmd = {parms:sopParms} as SopWorkerCmdMsg;
-            sopWorker.postMessage(JSON.stringify(cmd));
+            const cmdStr = JSON.stringify(cmd);
+            sopWorker.postMessage(cmdStr);
         } else {
             useAtlChartFilterStore().setIsLoading(false);
             console.error('fetchScatterOptions worker is undefined');

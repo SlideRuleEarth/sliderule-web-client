@@ -4,9 +4,9 @@ import type { SopWorkerCmdMsg,SopWorkerRspMsg } from './workerUtils';
 
 onmessage = async (event) => {
     try {    
-        console.log('optionsWorker received event:', event); 
+        //console.log('optionsWorker received event:', event); 
         const cmd:SopWorkerCmdMsg = JSON.parse(event.data);
-        console.log('optionsWorker received cmd:', cmd);
+        //console.log('optionsWorker received cmd:', cmd);
         const parms = cmd.parms as SrScatterOptionsParms;
         console.log('optionsWorker received parms:', parms);
         const scatterOptions = await getScatterOptions(parms);
@@ -19,7 +19,7 @@ onmessage = async (event) => {
             console.log('optionsWorker postMessage rsp:', rsp);   
             postMessage(rsp);
         } else {
-            console.error('optionsWorker scatterOptions empty:', scatterOptions);
+            console.warn('optionsWorker scatterOptions empty:', scatterOptions);
             const rsp:SopWorkerRspMsg = { scatterOptions: null };
             console.log('optionsWorker postMessage rsp:', rsp);   
             postMessage(rsp);
