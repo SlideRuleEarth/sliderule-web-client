@@ -22,18 +22,17 @@ interface SummaryRowData {
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
     try {
-
         const filename = await indexedDb.getFilename(req_id);
         const summary = await indexedDb.getWorkerSummary(req_id);
         console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
-        
+
         if (summary) {
             return summary;
         } else {
             const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
             const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
             const duckDbClient = await createDuckDbClient();
-            
+
             try {
                 await duckDbClient.insertOpfsParquet(filename);
                 console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
@@ -51,28 +50,27 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     FROM
                         '${filename}'
                 `);
-                
-                // Collect rows from the async generator
+
+                // Collect rows from the async generator in chunks
                 const rows: SummaryRowData[] = [];
-                for await (const row of results.readRows()) {
-                    const rowData = row[0]; // Assuming readRows returns an array of rows
-                    const typedRow: SummaryRowData = {
-                        minLat: rowData.minLat,
-                        maxLat: rowData.maxLat,
-                        minLon: rowData.minLon,
-                        maxLon: rowData.maxLon,
-                        minHMean: rowData.minHMean,
-                        maxHMean: rowData.maxHMean,
-                        lowHMean: rowData.perc10HMean,
-                        highHMean: rowData.perc90HMean
-                    };
-                    //console.log('duckDbReadOrCacheSummary typedRow:', typedRow);
-                    rows.push(typedRow);
-                    //console.log('duckDbReadOrCacheSummary rows:', rows);
+                for await (const chunk of results.readRows()) {
+                    for (const row of chunk) {
+                        const typedRow: SummaryRowData = {
+                            minLat: row.minLat,
+                            maxLat: row.maxLat,
+                            minLon: row.minLon,
+                            maxLon: row.maxLon,
+                            minHMean: row.minHMean,
+                            maxHMean: row.maxHMean,
+                            lowHMean: row.perc10HMean,
+                            highHMean: row.perc90HMean
+                        };
+                        rows.push(typedRow);
+                    }
                 }
+
                 if (rows.length > 0) {
                     const row = rows[0];
-                    //console.log('duckDbReadOrCacheSummary row:', row);
                     localExtLatLon.minLat = row.minLat;
                     localExtLatLon.maxLat = row.maxLat;
                     localExtLatLon.minLon = row.minLon;
@@ -81,7 +79,6 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.maxHMean = row.maxHMean;
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
-                    //console.log('duckDbReadOrCacheSummary localExtLatLon:', localExtLatLon, ' localExtHMean:', localExtHMean);
                     await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
                 } else {
                     throw new Error('No rows returned');
@@ -98,22 +95,23 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     }
 }
 
-export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
-    console.log('duckDbReadAndUpdateElevationData req_id:',req_id);
+export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
+    console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
-    try{
-        if(await indexedDb.getStatus(req_id) === 'error'){
-            console.log('duckDbReadAndUpdateElevationData req_id:',req_id,' status is error SKIPPING!');
+
+    try {
+        if (await indexedDb.getStatus(req_id) === 'error') {
+            console.log('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
             removeCurrentDeckLayer();
             return;
         }
+
         useAtlChartFilterStore().setReqId(req_id);
         const height_fieldname = await getHeightFieldname(req_id);
-        //console.log('duckDbReadAndUpdateElevationData req_id:',req_id);
-        const summary = await duckDbReadOrCacheSummary(req_id,height_fieldname);
-        //console.log('duckDbReadAndUpdateElevationData summary:',summary);
-        if(summary){
-            //console.log('duckDbReadAndUpdateElevationData summary:',summary);
+
+        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+
+        if (summary) {
             useCurReqSumStore().setSummary(summary);
 
             // Step 1: Initialize the DuckDB client
@@ -121,49 +119,53 @@ export const duckDbReadAndUpdateElevationData = async (req_id:number) => {
 
             // Step 2: Retrieve the filename using req_id
             const filename = await indexedDb.getFilename(req_id);
-            
+
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
+
             // Step 4: Execute a SQL query to retrieve the elevation data
-            console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE  Query took ${performance.now() - startTime} milliseconds.`);
+            console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
             // Execute the query
             const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
-            //console.log('duckDbReadAndUpdateElevationData results:', results);
             console.log(`duckDbReadAndUpdateElevationData for ${req_id} POST Query took ${performance.now() - startTime} milliseconds.`);
 
-            // Read all rowChunks from the QueryResult
-            const rowChunks: ElevationDataItem[] = [];
-            for await (const rowChunk of results.readRows()) {
-                rowChunks.push(rowChunk);
-            }
-            //console.log('duckDbReadAndUpdateElevationData rowChunks:',rowChunks, 'rowChunks[0][0]',rowChunks[0][0],'rowChunks[0]',rowChunks[0],'rowChunks[0].length:',rowChunks[0].length,'rowChunks.length:',rowChunks.length);
-            const fieldNames = Object.keys(rowChunks[0][0]);
-            console.log('duckDbReadAndUpdateElevationData fieldNames:',fieldNames);
-            await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
-            // Process and update the elevation data as needed
-            // Assuming rowChunks is an array of ElevationDataItem[] arrays
+            // Read and process each chunk from the QueryResult
             let numDataItems = 0;
-            if (rowChunks.length > 0) {
-                for (const chunk of rowChunks) {
-                    numDataItems += chunk.length;
-                    updateElLayerWithObject(chunk as ElevationDataItem[], summary.extHMean, height_fieldname);
+            const rowChunks: ElevationDataItem[] = [];
+
+            for await (const rowChunk of results.readRows()) {
+                console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
+                if (rowChunk.length > 0) {
+                    if (numDataItems === 0) {
+                        // Assuming we only need to set field names once, during the first chunk processing
+                        const fieldNames = Object.keys(rowChunk[0]);
+                        console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
+                        await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+                    }
+                    numDataItems += rowChunk.length;
+                    rowChunks.push(...rowChunk);
+                    //console.log('duckDbReadAndUpdateElevationData rowChunks:', rowChunks);
+                    updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
                 }
-            } else {
-                console.warn('duckDbReadAndUpdateElevationData rowChunks is empty');
             }
-            console.log('duckDbReadAndUpdateElevationData rowChunks.length:',rowChunks.length,' numDataItems:',numDataItems);
+
+            if (numDataItems === 0) {
+                console.warn('duckDbReadAndUpdateElevationData no data items processed');
+            } else {
+                console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
+            }
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
     } catch (error) {
-        console.error('duckDbReadAndUpdateElevationData error:',error);
+        console.error('duckDbReadAndUpdateElevationData error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
     }
-}
+};
 
 export async function duckDbLoadOpfsParquetFile(fileName: string) {
     try{
@@ -225,7 +227,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             AND rgt = ${rgt} 
             AND cycle = ${cycle}
         `;
-        //console.log('fetchAtl03ScatterData query2:', query2);
+        console.log('fetchAtl03ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
         //console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
@@ -241,7 +243,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 }
             }
         }
-        //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+        console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -377,8 +379,8 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
             }
         } else if(sop.func === 'atl03'){
-            if((sop.pair) && (sop.scOrient) && (sop.rgt) && (sop.cycle) && (sop.tracks) && sop.tracks.length){
-                //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+            console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+            if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgt >=0 ) && (sop.cycle>=0) && (sop.tracks != undefined) && sop.tracks.length>0){
                 seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
             } else {
                 console.error('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
