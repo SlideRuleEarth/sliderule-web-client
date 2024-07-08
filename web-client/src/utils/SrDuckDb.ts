@@ -9,7 +9,7 @@ import * as arrow from 'apache-arrow';
 // Define the interface for QueryResult
 export interface QueryResult {
   schema: { name: string; type: string; databaseType: string }[];
-  readRows(): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
+  readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
 
 // Define the interface for Row
@@ -166,11 +166,36 @@ export class DuckDBClient {
 
       return {
         schema,
-        async *readRows() {
+        async *readRows(chunkSize = 10000) { // Default chunk size set to 100
           const rows = tbl.toArray().map((r) => Object.fromEntries(r));
-          yield rows;
+          for (let i = 0; i < rows.length; i += chunkSize) {
+            yield rows.slice(i, i + chunkSize);
+          }
         },
       };
+    } catch (error) {
+      console.error('Query execution error:', error);
+      throw error;
+    } finally {
+      await conn.close();
+    }
+  }
+
+  async queryArray(query: string, params?: any): Promise<any[]| undefined> {
+    const conn = await this._db!.connect();
+    let tbl: arrow.Table<any>;
+
+    try {
+      if (params) {
+        const stmt = await conn.prepare(query);
+        tbl = await stmt.query(...params);
+      } else {
+        tbl = await conn.query(query);
+      }
+      return tbl.toArray();
+    } catch (error) {
+      console.error('queryArray error:', error);
+      throw error;
     } finally {
       await conn.close();
     }
@@ -260,19 +285,20 @@ export class DuckDBClient {
   }
 
   // Method to execute SQL queries
-  async sql(strings: TemplateStringsArray, ...args: any[]): Promise<Row[]> {
-    const query = strings.join("?");
-    const results: QueryResult = await this.query(query, args);
-    const rows: Row[] = [];
+//   async sql(strings: TemplateStringsArray, ...args: any[]): Promise<Row[]> {
+//     const query = strings.join("?");
+//     const results: QueryResult = await this.query(query, args);
+//     const rows: Row[] = [];
 
-    for await (const row of results.readRows()) {
-      rows.push(Object.fromEntries(Object.entries(row)));
-    }
+//     for await (const row of results.readRows()) {
+//       rows.push(Object.fromEntries(Object.entries(row)));
+//     }
 
-    (rows as any).columns = results.schema.map((d) => d.name);
+//     (rows as any).columns = results.schema.map((d) => d.name);
 
-    return rows;
-  }
+//     return rows;
+//   }
+
 }
 
 // Factory function to create a DuckDB client
