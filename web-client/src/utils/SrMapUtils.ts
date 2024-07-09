@@ -157,6 +157,9 @@ export interface ElevationDataItem {
 
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
+    useAtlChartFilterStore().setClearPlot();
+    useAtlChartFilterStore().setIsLoading();
+    useMapStore().setIsLoading();
     useReqParamsStore().setRgt(d.rgt);
     useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
@@ -177,6 +180,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setPair(d.pair);
     }
     await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+    useMapStore().resetIsLoading();
     useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
@@ -198,7 +202,7 @@ function checkFilter(d:ElevationDataItem): boolean {
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     const startTime = performance.now(); // Start time
-
+    console.log('updateElLayerWithObject startTime:',startTime);
     try{
         //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
@@ -247,7 +251,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
         console.error('Error updating elevation layer:',error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds.`);
+        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
     }
 
 }

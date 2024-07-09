@@ -180,7 +180,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
+        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
     }
 };
 
@@ -338,6 +338,9 @@ interface SrScatterSeriesData{
         name: string;
         type: string;
         data: number[][];
+        large: boolean;
+        largeThreshold: number;
+        animation: boolean;
         yAxisIndex: number;
     };
     min: number;
@@ -353,6 +356,9 @@ async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOr
             name: `${name} - ${yName}`,
             type: 'scatter',
             data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+            large: true,
+            largeThreshold: 100000,
+            animation: false,
             yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
         })).map((series, index) => ({
             series,
@@ -372,6 +378,9 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
             name: `${name} - ${yName}`,
             type: 'scatter',
             data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+            large: true,
+            largeThreshold: 100000,
+            animation: false,
             yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
         })).map((series, index) => ({
             series,
@@ -421,6 +430,8 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
             data: seriesData.map(series => series.series.name),
             left: 'left'
         },
+        notMerge: true,
+        lazyUpdate: true,
         xAxis: {
             min: useAtlChartFilterStore().getMinX(),
             max: useAtlChartFilterStore().getMaxX()

@@ -6,6 +6,7 @@
   import {createStringXY} from 'ol/coordinate';
   import SrBaseLayerControl from "./SrBaseLayerControl.vue";
   import SrViewControl from "./SrViewControl.vue";
+  import ProgressSpinner from "primevue/progressspinner";
   import { type SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
   import { srProjections } from "@/composables/SrProjections";
@@ -94,7 +95,7 @@
 
   onMounted(() => {
     console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
-    mapStore.setIsLoading(true);
+    mapStore.setIsLoading();
     //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
     Object.values(srProjections.value).forEach(projection => {
         //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -304,14 +305,14 @@
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               updateDeck(map);
-              mapStore.setIsLoading(true);
+              mapStore.setIsLoading();
               try{
                 await readAndUpdateElevationData(props.reqId);
               } catch (error) {
                 console.error(`Error: readAndUpdateElevationData failed for ${reason}`,error);
                 toast.add({severity:'error', summary: 'Error', detail: `Failed to readAndUpdateElevationData for ${reason}`});
               }
-              mapStore.setIsLoading(false);
+              mapStore.resetIsLoading();
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);
             }
@@ -367,7 +368,9 @@
   <div class="sr-current-zoom">
     {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
-  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >Loading...{{ func }}</div>
+  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >Loading...{{ func }}
+    <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+  </div>
   <div class="sr-notLoadingEl" v-else >Loaded {{ func }}</div>
   <div ref="mapContainer" class="sr-map-container" >
     <ol-map ref="mapRef" @error="handleEvent"

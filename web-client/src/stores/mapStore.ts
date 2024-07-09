@@ -151,8 +151,11 @@ export const useMapStore = defineStore('map', {
     getIsLoading() {
       return this.isLoading;
     },
-    setIsLoading(isLoading: boolean) {
-      this.isLoading = isLoading;
+    setIsLoading() {
+      this.isLoading = true;
+    },
+    resetIsLoading() {
+      this.isLoading = false;
     },
     // async drawElevations() {
     //   if (this.isLoading && !this.isAborting) {

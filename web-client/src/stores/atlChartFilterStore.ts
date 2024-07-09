@@ -3,6 +3,7 @@ import { getBeamsAndTracksWithGt } from '@/utils/parmUtils'
 import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import {type  SrScatterOptionsParms } from '@/utils/parmUtils';
+import { ref } from 'vue';
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
@@ -28,6 +29,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         pair: 0 as number,
         scOrient: 0 as number,
         size: NaN as number,
+        isLoading: false as boolean,
+        clearPlot: false as boolean,
+        chartDataRef: ref<number[][]>([]), 
     }),
     actions: {
         setReqion(reqionValue:number) {
@@ -148,15 +152,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         getMaxY() {
           return this.max_y;
         },
-        setUpdateScatterPlot(){
-          this.updateScatterPlot = true;
-        },
-        getUpdateScatterPlot() {
-          return this.updateScatterPlot;
-        },
-        resetUpdateScatterPlot() {
-          this.updateScatterPlot = false;
-        },
         incrementDebugCnt() {
           return ++this.debugCnt;
         },
@@ -236,7 +231,34 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
             tracks: this.tracks
           } as SrScatterOptionsParms;
           return scatterOptions;
-        }
+        },
+        setUpdateScatterPlot(){
+          this.updateScatterPlot = true;
+        },
+        getUpdateScatterPlot() {
+          return this.updateScatterPlot;
+        },
+        resetUpdateScatterPlot() {
+          this.updateScatterPlot = false;
+        },
+        setIsLoading() {
+          this.isLoading = true;
+        },
+        resetIsLoading() {
+          this.isLoading = false;
+        },
+        getIsLoading() {
+          return this.isLoading;
+        },
+        setClearPlot() {
+          this.clearPlot = true;
+        },        
+        resetClearPlot() {
+          this.clearPlot = false;
+        },
+        getClearPlot() {
+          return this.clearPlot;
+        },
     },
 })
 

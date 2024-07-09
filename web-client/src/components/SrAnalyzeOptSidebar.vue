@@ -34,7 +34,7 @@ const reqIds = ref<SrMenuItem[]>([]);
 
 onMounted(async() => {
     try {
-        mapStore.setIsLoading(true);
+        mapStore.setIsLoading();
 
         useAtlChartFilterStore().setDebugCnt(0);
         reqIds.value =  await requestsStore.getMenuItems();
