@@ -124,7 +124,8 @@
                 return '';
             } else {
                 // Otherwise, return the formatted number
-                return innerValue.value.toFixed(props.decimalPlaces);
+                //return innerValue.value.toFixed(props.decimalPlaces);
+                return innerValue.value.toFixed(props.decimalPlaces).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
         },
         set: (val) => {
@@ -138,6 +139,13 @@
                 // Handle non-numeric input - reset to the last valid value
                 numericValue = innerValue.value;
             } else {
+                if(numericValue > props.max) {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be less than or equal to ' + props.max,  life: srToastStore.getLife()});
+                    numericValue = innerValue.value;
+                } else if (numericValue < props.min) {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be greater than or equal to ' + props.min,  life: srToastStore.getLife()});
+                    numericValue = innerValue.value;
+                }
                 //console.log('Good numericValue:',numericValue)
                 // Round to the allowed number of decimal places
                 numericValue = parseFloat(numericValue.toFixed(props.decimalPlaces));
@@ -196,7 +204,7 @@
 }
 
 .sr-slider-input-text {
-    width: 5em; /* Adjust as needed for 5 digits */
+    width: 6em; /* Adjust as needed for 6 digits */
     text-align: right;
     padding: 0.25rem;
     font-size: small;

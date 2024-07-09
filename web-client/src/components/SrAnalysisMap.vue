@@ -436,7 +436,7 @@
   overflow: hidden;
 }
 .sr-tooltip-style {
-    position: relative;
+    position: absolute;
     z-index: 10;
     background: rgba(0, 0, 0, 0.8);
     color: #fff;

@@ -137,7 +137,12 @@ const getSize = computed(() => {
         <div>
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div>
+        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
+            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
+            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
+        </div>
+        <div class="sr-analysis-opt-sidebar-options">
+            <div>
             <SrSliderInput
                 v-model="srParquetCfgStore.maxNumPntsToDisplay"
                 label="Max Num Pnts"
@@ -151,17 +156,12 @@ const getSize = computed(() => {
                 v-model="srParquetCfgStore.chunkSizeToRead"
                 label="Chunk Size"
                 :min="10000"
-                :max="500000"
+                :max="1000000"
                 :defaultValue="srParquetCfgStore.chunkSizeToRead"
                 :decimalPlaces=0
                 tooltipText="Chunk size to read from parquet file"
             />
         </div>
-        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
-            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
-        </div>
-        <div class="sr-analysis-opt-sidebar-options">
             <div>
                 <div class="sr-tracks-beams">
                     <SrFilterTracks/>

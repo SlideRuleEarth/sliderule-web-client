@@ -24,7 +24,6 @@ import SrSurfaceElevation from './SrSurfaceElevation.vue';
 import SrStorageUsage from './SrStorageUsage.vue';
 import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
-import SrReqDisplay from './SrReqDisplay.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -278,58 +277,6 @@ onMounted(() => {
     overflow-x: scroll;
     white-space: nowrap;
 }
-
-/* 
-:deep(.p-accordion .p-accordion-tab) {
-    background-color: transparent;
-    margin: 0.25rem;
-}
-
-:deep(.p-accordion .p-accordion-header) {
-    background-color: transparent;
-    margin-bottom: 0.0rem;
-}
-
-:deep(.p-accordion .p-accordion-tab .p-accordion-header-action) {
-    background-color: transparent;
-    border-width: 1px;
-    margin-bottom: 0rem;
-}
-
-:deep(.p-accordion .p-accordion-tab.p-accordion-tab-active) {
-    border-color: var(--primary-color);
-    border-radius: var(--border-radius);
-    border-width: 4px;
-    margin-bottom: 0rem;
-    color: var(--text-color);
-}
-
-:deep(.p-accordion-header.p-highlight){
-    background-color: var(--primary-500);
-    border-color: var(--primary-color);
-    border-radius: var(--border-radius);
-    margin-bottom: 0rem;
-}
-:deep(.p-accordion-header-link.p-accordion-header-action){
-    padding:0.5rem;
-}
-
-:deep(.p-accordion-content) {
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    background-color: transparent;
-}
-
-:deep(.p-button.p-component.p-fileupload-choose) {
-    font-family: var(--font-family);
-    background-color: transparent;
-    border-color: var(--primary-100);
-    border-width: 1px;
-    color: white;
-    border-radius: var(--border-radius);
-    margin: 0.5rem;
-    padding: 0.5rem;
-} */
 
 .file-upload-panel { 
     display: flex;
