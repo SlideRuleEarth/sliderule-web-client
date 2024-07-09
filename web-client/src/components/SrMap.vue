@@ -686,7 +686,7 @@
   background-color: var(--white);
   border-radius: 8px;
   padding: 0.25rem;
-  border: 1px solid var(--primary-color);
+  border: 1px solid var(--p-primary-color);
 }
 
 :deep( .ol-control.ol-layerswitcher ){
@@ -717,11 +717,11 @@
 }
 :deep(.layerup.ol-noscroll){
   border-radius: 3px;
-  background-color: var(--primary-color);
+  background-color: var(--p-primary-color);
 }
 :deep(.ol-control.ol-layerswitcher .panel-container){
-  background-color: var(--primary-100);
-  color: var(--primary-color);
+  background-color: var(--p-primary-100);
+  color: var(--p-primary-color);
   border-radius: var(--border-radius);
 }
 
@@ -732,7 +732,7 @@
 } */
 :deep(.ol-layerswitcher label){
   background-color: transparent;
-  color: var(--primary-color);
+  color: var(--p-primary-color);
   font-weight: bold;
   font-family: var(--font-family);
   border-radius: var(--border-radius);
@@ -740,13 +740,13 @@
 
 :deep(.ol-layerswitcher .panel .li-content > label::before){
   border-radius: 2px;
-  border-color: var(--primary-color);
+  border-color: var(--p-primary-color);
   border-width: 2px;
 } 
 
 /* :deep(.ol-layerswitcher .panel-container .li-content > label::after){
   border-width: 1px;
-  background-color: var(--primary-color);
+  background-color: var(--p-primary-color);
 
 }  */
 :deep(.panel-container.ol-ext-dialog){
@@ -755,7 +755,7 @@
 
 :deep(.ol-ext-dialog .ol-closebox.ol-title){
   color: var(--text-color);
-  background-color: var(--primary-300);
+  background-color: var(--p-primary-300);
   font-family: var(--font-family);
   border-radius: var(--border-radius);
 }
@@ -809,7 +809,7 @@
 }
 :deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
   color: white;
-  background-color: var(--primary-600);
+  background-color: var(--p-primary-600);
 }
 
 :deep( .ol-control.ol-wmscapabilities  ) {
@@ -825,12 +825,12 @@
 :deep(.ol-wmscapabilities .ol-url button){
   color: white;
   border-radius: var(--border-radius);
-  background-color: var(--primary-400);
+  background-color: var(--p-primary-400);
 }
 
 :deep(.ol-wmscapabilities .ol-url option){
   color: white;
-  background-color: var(--primary-400);
+  background-color: var(--p-primary-400);
 }
 
 :deep(.ol-zoom){
@@ -857,7 +857,7 @@
   right: auto; /* Reset right positioning */
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
-  color: var(--primary-color);
+  color: var(--p-primary-color);
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--border-radius);
 }
@@ -899,7 +899,7 @@
   top: 2.25rem;
   right: 1.5rem;
   background-color: transparent;
-  color: var(--primary-color);
+  color: var(--p-primary-color);
   border-radius: var(--border-radius);
   border-color: white;
   padding: 0.0rem;

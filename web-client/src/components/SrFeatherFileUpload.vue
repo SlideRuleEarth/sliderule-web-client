@@ -144,7 +144,7 @@ const onClear = () => {
 
 .upload-icon {
     /* Styles for pi pi-cloud-upload */
-    color: var(--primary-color); /* primary-500 color  #2c7be5;*/
+    color: var(--p-primary-color); /* primary-500 color  #2c7be5;*/
     font-size: 1.5rem; /* 2xl size */
 }
 

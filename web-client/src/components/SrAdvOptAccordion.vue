@@ -2,7 +2,9 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import SrMenuInput from './SrMenuInput.vue';
 import SrMultiSelectNumber from './SrMultiSelectNumber.vue'
 import { useMapStore } from '@/stores/mapStore';
@@ -68,165 +70,197 @@ onMounted(() => {
         <div class="adv-opts-wrapper">
             <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                <AccordionTab header="Debug">
-                    <SrDebug />
-                </AccordionTab>
-                <AccordionTab header="General" >
-                    <SrMenuInput
-                        v-model="mapStore.polygonSource"
-                        label = "Polygon Source"
-                        aria-label="Select Polygon Source"
-                        :menuOptions="polygonSourceItems"
-                        tooltipText="This is how you define the region of interest"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#polygons"
-                    />
-                    <SrGeoJsonFileUpload
-                        v-if="mapStore.polygonSource.value==='Upload geojson File'"
-                    />
-                    <SrSwitchedSliderInput
-                        label="Rasterize Polygon cell size"
-                        v-model="reqParamsStore.rasterizePolygon"
-                        :min="1"
-                        :max="100"
-                        :decimalPlaces="0"
-                        tooltipText="The number of pixels to rasterize the polygon into"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
-                    />
-                    <SrCheckbox
-                        label="Ignore Poly for CMR"
-                        v-model="reqParamsStore.ignorePolygon"
-                        tooltipText="When you check this the server skips the CMR polygon search and uses the resources you specify below"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
-                    />
-                    <SrResources v-if="reqParamsStore.ignorePolygon"/>
-                    <SrSliderInput
-                        v-model="reqParamsStore.totalTimeoutValue"
-                        label="Timeout"
-                        :min="5"
-                        :max="3600"
-                        :defaultValue="reqParamsStore.totalTimeoutValue" 
-                        :decimalPlaces="0"
-                        tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                    />
-                    <SrSwitchedSliderInput
-                        v-model="reqParamsStore.reqTimeoutValue"
-                        label="rqst-timeout"
-                        :min="1"
-                        :max="3600" 
-                        :decimalPlaces="0"
-                        tooltipText="total time in seconds for request to be processed"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                    />                    
-                    <SrSwitchedSliderInput
-                        v-model="reqParamsStore.nodeTimeoutValue"
-                        label="node-timeout"
-                        :min="1"
-                        :max="3600" 
-                        :decimalPlaces="0"
-                        tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                    />
-                    <SrSwitchedSliderInput
-                        v-model="reqParamsStore.readTimeoutValue"
-                        label="read-timeout"
-                        :min="1"
-                        :max="3600" 
-                        :decimalPlaces="0"
-                        tooltipText="time in seconds for a single read of an asset to take"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                    />
-                </AccordionTab>
-                <AccordionTab header="Granule Selection" v-if="mission.value==='ICESat-2'" >
-                    <SrGranuleSelection />
-                </AccordionTab>
-                <AccordionTab header="Photon Selection"  v-if="mission.value==='ICESat-2'" >
-                    <SrAtl03Cnf />
-                    <SrAtl08Cnf />
-                    <SrYAPC />
-                </AccordionTab>
-                <AccordionTab header="Extents" v-if="mission.value==='ICESat-2'" >
-                    <SrExtents />
-                </AccordionTab>
-                <AccordionTab header="Surface Elevation" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
-                    <SrSurfaceElevation />
-                </AccordionTab>
-                <AccordionTab header="Veg Density Alg" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
-                    <SrSliderInput
-                        v-model="reqParamsStore.binSize"
-                        label="Bin Size"
-                        :min="0"
-                        :max="200"
-                        :decimalPlaces="0"
-                    />
-                    <SrMenuInput
-                        v-model="reqParamsStore.geoLocation"
-                        label = "Geo Location"
-                        aria-label="Select Geo Location"
-                        :menuOptions="reqParamsStore.geoLocationOptions"
-                    />
-                    <SrCheckbox
-                        label="Use Absolute Heights"
-                        v-model="reqParamsStore.useAbsoluteHeights"
-                    />
-                    <SrCheckbox
-                        label="Send Waveforms"
-                        v-model="reqParamsStore.sendWaveforms"
-                    />
-                    <SrCheckbox
-                        label="Use ABoVE Classifier"
-                        v-model="reqParamsStore.useABoVEClassifier"   
-                    />
-
-                </AccordionTab>
-                <AccordionTab header="Ancillary Fields"  v-if="mission.value==='ICESat-2'" >
-                    <SrAncillaryFields :iceSat2SelectedAPI="iceSat2SelectedAPI"/>
-                </AccordionTab>
-                <AccordionTab header="GEDI Footprint"  v-if="mission.value==='GEDI'" >
-                    <SrMultiSelectNumber
-                        v-model="reqParamsStore.gediBeams"
-                        label = "Select Beam(s)"
-                        aria-label="Select Beams"
-                        :menuOptions="reqParamsStore.gediBeamsOptions"
-                        :default="reqParamsStore.gediBeamsOptions"
-                    />
-                    <SrCheckbox
-                        label="Degrade Flag"
-                        v-model="reqParamsStore.degradeFlag"
-                    />
-                    <SrCheckbox
-                        label="L2 Quality Flag"
-                        v-model="reqParamsStore.l2QualityFlag"
-                    />
-                    <SrCheckbox
-                        label="L4 Quality Flag"
-                        v-model="reqParamsStore.l4QualityFlag"
-                    />
-                    <SrCheckbox
-                        label="Surface Flag"
-                        v-model="reqParamsStore.surfaceFlag"
-                    />
-                </AccordionTab>
-                <AccordionTab header="Raster Sampling">
-                    <div class="sr-raster-sampling-table-section">
-                        <div class="sr-raster-sampling-table-head">
-                            <h3>Raster Sampling Parameters Table</h3>
-                        </div>  
-                        <div class="sr-raster-sampling-table">
-                            <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
-                        </div> 
-                    </div>
-                    <SrRasterParams />
-                </AccordionTab>
-                <AccordionTab header="SysConfig">
-                    <SrSysConfig />
-                </AccordionTab>
-                <!-- <AccordionTab header="Output">
-                    <SrOutput />
-                </AccordionTab> -->
-                <AccordionTab header="Storage">
-                    <SrStorageUsage />
-                </AccordionTab>
+                <AccordionPanel value="0">
+                    <AccordionHeader>Debug</AccordionHeader>
+                    <AccordionContent>
+                        <SrDebug />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="1">
+                    <AccordionHeader>General</AccordionHeader>
+                    <AccordionContent>
+                        <SrMenuInput
+                            v-model="mapStore.polygonSource"
+                            label = "Polygon Source"
+                            aria-label="Select Polygon Source"
+                            :menuOptions="polygonSourceItems"
+                            tooltipText="This is how you define the region of interest"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#polygons"
+                        />
+                        <SrGeoJsonFileUpload
+                            v-if="mapStore.polygonSource.value==='Upload geojson File'"
+                        />
+                        <SrSwitchedSliderInput
+                            label="Rasterize Polygon cell size"
+                            v-model="reqParamsStore.rasterizePolygon"
+                            :min="1"
+                            :max="100"
+                            :decimalPlaces="0"
+                            tooltipText="The number of pixels to rasterize the polygon into"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
+                        />
+                        <SrCheckbox
+                            label="Ignore Poly for CMR"
+                            v-model="reqParamsStore.ignorePolygon"
+                            tooltipText="When you check this the server skips the CMR polygon search and uses the resources you specify below"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
+                        />
+                        <SrResources v-if="reqParamsStore.ignorePolygon"/>
+                        <SrSliderInput
+                            v-model="reqParamsStore.totalTimeoutValue"
+                            label="Timeout"
+                            :min="5"
+                            :max="3600"
+                            :defaultValue="reqParamsStore.totalTimeoutValue" 
+                            :decimalPlaces="0"
+                            tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                        />
+                        <SrSwitchedSliderInput
+                            v-model="reqParamsStore.reqTimeoutValue"
+                            label="rqst-timeout"
+                            :min="1"
+                            :max="3600" 
+                            :decimalPlaces="0"
+                            tooltipText="total time in seconds for request to be processed"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                        />                    
+                        <SrSwitchedSliderInput
+                            v-model="reqParamsStore.nodeTimeoutValue"
+                            label="node-timeout"
+                            :min="1"
+                            :max="3600" 
+                            :decimalPlaces="0"
+                            tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                        />
+                        <SrSwitchedSliderInput
+                            v-model="reqParamsStore.readTimeoutValue"
+                            label="read-timeout"
+                            :min="1"
+                            :max="3600" 
+                            :decimalPlaces="0"
+                            tooltipText="time in seconds for a single read of an asset to take"
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                        />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="2" v-if="mission.value==='ICESat-2'" >
+                    <AccordionHeader>Granule Selection</AccordionHeader>
+                    <AccordionContent>
+                        <SrGranuleSelection />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="3"  v-if="mission.value==='ICESat-2'" >
+                    <AccordionHeader>Photon Selection</AccordionHeader>
+                    <AccordionContent>
+                        <SrAtl03Cnf />
+                        <SrAtl08Cnf />
+                        <SrYAPC />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="4" v-if="mission.value==='ICESat-2'" >
+                    <AccordionHeader>Extents</AccordionHeader>
+                    <AccordionContent>
+                        <SrExtents />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="5" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
+                    <AccordionHeader>Surface Elevation</AccordionHeader>
+                    <AccordionContent>
+                        <SrSurfaceElevation />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="6" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
+                    <AccordionHeader>Veg Density Alg</AccordionHeader>
+                    <AccordionContent>
+                        <SrSliderInput
+                            v-model="reqParamsStore.binSize"
+                            label="Bin Size"
+                            :min="0"
+                            :max="200"
+                            :decimalPlaces="0"
+                        />
+                        <SrMenuInput
+                            v-model="reqParamsStore.geoLocation"
+                            label = "Geo Location"
+                            aria-label="Select Geo Location"
+                            :menuOptions="reqParamsStore.geoLocationOptions"
+                        />
+                        <SrCheckbox
+                            label="Use Absolute Heights"
+                            v-model="reqParamsStore.useAbsoluteHeights"
+                        />
+                        <SrCheckbox
+                            label="Send Waveforms"
+                            v-model="reqParamsStore.sendWaveforms"
+                        />
+                        <SrCheckbox
+                            label="Use ABoVE Classifier"
+                            v-model="reqParamsStore.useABoVEClassifier"   
+                        />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="7" v-if="mission.value==='ICESat-2'" >
+                    <AccordionHeader>Ancillary Fields</AccordionHeader>
+                    <AccordionContent>
+                        <SrAncillaryFields :iceSat2SelectedAPI="iceSat2SelectedAPI"/>
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="8" v-if="mission.value==='GEDI'" >
+                    <AccordionHeader>GEDI Footprint</AccordionHeader>
+                    <AccordionContent>
+                        <SrMultiSelectNumber
+                            v-model="reqParamsStore.gediBeams"
+                            label = "Select Beam(s)"
+                            aria-label="Select Beams"
+                            :menuOptions="reqParamsStore.gediBeamsOptions"
+                            :default="reqParamsStore.gediBeamsOptions"
+                        />
+                        <SrCheckbox
+                            label="Degrade Flag"
+                            v-model="reqParamsStore.degradeFlag"
+                        />
+                        <SrCheckbox
+                            label="L2 Quality Flag"
+                            v-model="reqParamsStore.l2QualityFlag"
+                        />
+                        <SrCheckbox
+                            label="L4 Quality Flag"
+                            v-model="reqParamsStore.l4QualityFlag"
+                        />
+                        <SrCheckbox
+                            label="Surface Flag"
+                            v-model="reqParamsStore.surfaceFlag"
+                        />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="9">
+                    <AccordionHeader>Raster Sampling</AccordionHeader>
+                    <AccordionContent>
+                        <div class="sr-raster-sampling-table-section">
+                            <div class="sr-raster-sampling-table-head">
+                                <h3>Raster Sampling Parameters Table</h3>
+                            </div>  
+                            <div class="sr-raster-sampling-table">
+                                <SrRasterParamsDataTable  storeNamePrefix="rasterParams"/>
+                            </div> 
+                        </div>
+                        <SrRasterParams />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="10">
+                    <AccordionHeader>System Configuration</AccordionHeader>
+                    <AccordionContent>
+                        <SrSysConfig />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="11">
+                    <AccordionHeader>Storage Usage</AccordionHeader>
+                    <AccordionContent>
+                        <SrStorageUsage />
+                    </AccordionContent>
+                </AccordionPanel>
             </Accordion>
         </div>
     </div>
@@ -298,7 +332,7 @@ onMounted(() => {
 
 .upload-icon {
     /* Styles for pi pi-cloud-upload */
-    color: var(--primary-color); /* primary-500 color  #2c7be5;*/
+    color: var(--p-primary-color); /* primary-500 color  #2c7be5;*/
     font-size: 1.5rem; /* 2xl size */
 }
 

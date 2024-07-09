@@ -212,19 +212,18 @@
     border-color: transparent;
 }
 
-:deep(.p-slider .p-slider-handle) {
-    width: 0.52rem; 
-    height: 0.52rem;
-    border-radius: 50%; 
-} 
+/* :deep(.p-slider .p-slider-handle) {
+    width: 12px; 
+    height: 12px;
+}  */
 
-:deep(.p-slider.p-slider-horizontal) {
+/* :deep(.p-slider.p-slider-horizontal) {
     height: 0.2rem;
-}
+} */
 
-:deep(.p-slider.p-slider-horizontal .p-slider-handle) {
+/* :deep(.p-slider.p-slider-horizontal .p-slider-handle) {
     margin-top: -0.25rem;
     margin-left: -0.25rem;
-}
+} */
 
 </style>

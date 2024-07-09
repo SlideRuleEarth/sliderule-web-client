@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import { PrimeIcons } from 'primevue/api';
+import 'primeicons/primeicons.css'
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
 import { db } from '@/db/SlideRuleDb';
@@ -132,7 +132,7 @@ onUnmounted(() => {
             <Column field="Star" header="">
                 <template #body="slotProps">
                     <i 
-                      :class="[slotProps.data.star ? PrimeIcons.STAR_FILL : PrimeIcons.STAR]"
+                      :class="[slotProps.data.star ? 'pi pi-star-fill' : 'pi pi-star' ]"
                       @click="() => requestsStore.toggleStar(slotProps.data.req_id)"
                     ></i>
                 </template>
@@ -149,10 +149,9 @@ onUnmounted(() => {
             <Column field="parameters" header="Parameters" class="sr-par-fmt">
                 <template #header>
                     <i 
-                      :class="PrimeIcons.CODE"
+                      class="pi pi-code sr-toggle-icon"
                       @click="isCodeFormat = !isCodeFormat"
                       v-tooltip="'Toggle code format'"
-                      class="sr-recs-toggle-icon"
                     > </i>
                 </template> 
                 <template #body="slotProps">
@@ -191,14 +190,14 @@ onUnmounted(() => {
             <Column field="Actions" header="" class="sr-delete">
                 <template #header>
                     <i 
-                      :class="PrimeIcons.TRASH"
+                      class="pi pi-trash"
                       @click="deleteAllReqs()"
                       v-tooltip="'Delete ALL reqs'"
                     ></i>
                 </template>
                 <template #body="slotProps">
                     <i 
-                      :class="PrimeIcons.TRASH"
+                      class="pi pi-trash"
                       @click="deleteReq(slotProps.data.req_id)"
                       v-tooltip="'Delete req'"
                     ></i>
@@ -238,6 +237,7 @@ onUnmounted(() => {
 .sr-recs-toggle-icon {
     margin-right: 0.5rem;
 }
+
 .sr-delete {
     width: 5rem;
     text-align: center;

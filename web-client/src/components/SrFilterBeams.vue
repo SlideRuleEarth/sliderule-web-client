@@ -131,7 +131,7 @@
     padding: 0.25rem;
     height: 1.3rem;
     min-width: 100%;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 
 .sr-menu-multi-input-select-insensitive {
@@ -167,7 +167,7 @@
     padding: 0rem;
     height: 1rem;
     width: 1rem;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 :deep(.sr-info-button .pi) {
     margin-left: 0rem;
@@ -176,6 +176,6 @@
     height: 0.75rem;
     width: 0.75rem;
     font-size: smaller;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 </style>

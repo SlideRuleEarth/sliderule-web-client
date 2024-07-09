@@ -29,7 +29,7 @@
 <style scoped>
 
 .sr-legend-box {
-    color: var(--primary-color);
+    color: var(--p-primary-color);
     padding: 0.3125rem;
     background: rgba(255, 255, 255, 0.25);
     border-radius: var(--border-radius);

@@ -142,7 +142,7 @@
     padding: 0rem;
     height: 1rem;
     width: 1rem;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 :deep(.sr-info-button .pi) {
     margin-left: 0rem;
@@ -151,6 +151,6 @@
     height: 0.75rem;
     width: 0.75rem;
     font-size: smaller;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 </style>

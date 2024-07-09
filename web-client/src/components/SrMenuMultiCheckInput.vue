@@ -97,7 +97,7 @@ function handleAdditionalParamChange(option: SrMenuMultiCheckInputOption) {
 
 /* Style the selected row */
 .selected {
-  background-color: var(--primary-300);
+  background-color: var(--p-primary-300);
 }
 
 /* Container for the list of options */

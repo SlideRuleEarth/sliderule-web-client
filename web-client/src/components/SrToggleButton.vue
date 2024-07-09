@@ -57,7 +57,7 @@
         align-items: center;
     }
     .toggle-on {
-        background-color: var(--primary-color);
+        background-color: var(--p-primary-color);
     }
     .toggle-off {
         background-color: var(--surface-d);

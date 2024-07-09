@@ -69,7 +69,7 @@
     return getComputedStyle(document.documentElement).getPropertyValue(variable);
   };
 
-  const primaryColor = getCssVariable('--primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
+  const primaryColor = getCssVariable('--p-primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
 
   const getPolygonIcon = computed(() => {
     //console.log("getPolygonIcon picked:", picked.value)

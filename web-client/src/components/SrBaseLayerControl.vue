@@ -71,7 +71,7 @@
   }
 
   /* .sr-base-layer-control-attribution {
-    color: var(--primary-color); 
+    color: var(--p-primary-color); 
     margin: 0.5em;
     padding: 0.5em;
     background-color:transparent;
