@@ -433,12 +433,12 @@
   overflow: hidden;
 }
 .sr-tooltip-style {
-  position: absolute;
+    position: relative;
     z-index: 10;
     background: rgba(0, 0, 0, 0.8);
     color: #fff;
     padding: 0.3rem;
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     pointer-events: none;
     font-size: 1rem;
     max-width: 20rem;
