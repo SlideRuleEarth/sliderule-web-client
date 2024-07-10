@@ -6,6 +6,7 @@
           v-model="localChecked"
           :disabled="insensitive"
           @change="handleChanged"
+          :dt="designTokenForToggleSwitch"
         />
         <div v-if="tooltipText || tooltipUrl">
           <SrLabelInfoIconButton
@@ -50,6 +51,7 @@
           v-model="localChecked"
           :disabled="insensitive"
           @change="handleChanged"
+          :dt="designTokenForToggleSwitch"
         />
       </div>
     </div>
@@ -58,7 +60,7 @@
   <script setup lang="ts">
   import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
   import ToggleSwitch from 'primevue/toggleswitch';
-  import { ref, computed } from 'vue';
+  import { ref,computed } from 'vue';
   
   const props = defineProps({
     label: {
@@ -101,6 +103,38 @@
   const handleChanged = () => {
     console.log(`SrToggleButton: ${props.label} from: ${localChecked.value}`);
   };
+
+  const designTokenForToggleSwitch = ref({
+    width: '2rem',
+    height: '1rem',
+    handle: {
+        size: '0.85rem',
+    },
+    colorScheme: {
+        light: {
+            root: {
+                checkedBackground: '{blue.500}',
+                checkedHoverBackground: '{blue.600}',
+            },
+            handle: {
+                checkedBackground: '{blue.50}',
+                checkedHoverBackground: '{blue.100}'
+            }
+        },
+        dark: {
+            root: {
+                checkedBackground: '{blue.400}',
+                checkedHoverBackground: '{blue.300}',
+            },
+            handle: {
+                checkedBackground: '{blue.900}',
+                checkedHoverBackground: '{blue.800}'
+            }
+        }
+    }
+});
+
+
   </script>
   
   <style scoped>
