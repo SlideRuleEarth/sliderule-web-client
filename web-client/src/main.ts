@@ -2,6 +2,7 @@
 //import 'primevue/resources/primevue.min.css'; // core css
 import Lara from '@primevue/themes/lara';
 import 'primeicons/primeicons.css'
+import 'primeflex/primeflex.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
@@ -10,8 +11,6 @@ import { definePreset } from '@primevue/themes';
 import Tooltip from 'primevue/tooltip';
 
 import Menubar from 'primevue/menubar';
-import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
 import ToastService from 'primevue/toastservice';
 import Toast from 'primevue/toast';
 import Ripple from 'primevue/ripple';
@@ -38,7 +37,8 @@ const SrPreset = definePreset(Lara, {
           800: '{blue.800}',
           900: '{blue.900}',
           950: '{blue.950}'
-      }
+      },
+      borderRadius: '0.25rem',
   }
 });
 

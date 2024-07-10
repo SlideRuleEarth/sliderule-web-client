@@ -67,7 +67,7 @@
   .ol-control.sr-base-layer-control .select-baselayer select {
     color: white;
     background-color: black;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
   }
 
   /* .sr-base-layer-control-attribution {

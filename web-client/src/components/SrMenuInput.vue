@@ -16,7 +16,7 @@
 </template>
   
 <script setup lang="ts">
-
+    import { $dt } from '@primevue/themes';
     import { onMounted,ref,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     export interface SrMenuItem {
@@ -66,6 +66,10 @@
 
     onMounted(() => {
         //console.log('Mounted Menu:', props.label , 'selected:', selectedMenuItem.value, 'default:', props.defaultOptionIndex);
+        const primaryColor = $dt('primary.color');
+        const borderRadius = $dt('border.radius');
+        const fontFamily = $dt('font.family');
+        console.log('Menu:', props.label, 'primaryColor:', primaryColor, 'borderRadius:', borderRadius, 'fontFamily:', fontFamily);
     });
 </script>
 
@@ -113,7 +117,7 @@
     padding: 0.25rem;
     color: white;
     background-color: transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     font-family: var(--font-family);
     font-size: small;
 }
@@ -123,7 +127,7 @@
     padding: 0.25rem;
     color: #888; /*  grey color */
     background-color: transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     font-family: var(--font-family);
     font-size: small;
 }

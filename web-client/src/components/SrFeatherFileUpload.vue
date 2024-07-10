@@ -139,7 +139,7 @@ const onClear = () => {
     gap: 1rem; /* adjust as needed */
     width: 100%;
     background-color: rgba(0, 0, 0, 0.9);
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
 }
 
 .upload-icon {

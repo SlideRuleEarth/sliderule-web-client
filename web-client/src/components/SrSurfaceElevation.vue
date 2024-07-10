@@ -56,7 +56,7 @@ const reqParamsStore = useReqParamsStore();
     margin: 0px;
     padding: 0.5rem;
     border-color: transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     background-color: transparent;
 }
 .sr-surface-elevation-header {

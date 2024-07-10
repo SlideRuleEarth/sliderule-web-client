@@ -32,7 +32,7 @@
     color: var(--p-primary-color);
     padding: 0.3125rem;
     background: rgba(255, 255, 255, 0.25);
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -48,7 +48,7 @@
     background: linear-gradient(to right, purple,  yellow);
     height: 0.3125rem;
     width: 10rem;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
 }
 
 .sr-legend-minmax {

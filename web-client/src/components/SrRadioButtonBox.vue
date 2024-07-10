@@ -38,7 +38,7 @@ const selectedCategory = ref(props.categories[0].name);
     align-items: flex-start;
     margin: 0rem 0rem 0rem 0rem;
     border-width: 1px;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     border-style: solid;
     border-color: #424b57;
   }

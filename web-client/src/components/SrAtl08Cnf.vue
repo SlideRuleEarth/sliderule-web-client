@@ -36,7 +36,7 @@ const reqParamsStore = useReqParamsStore();
     margin-bottom: 1rem;
     padding: 0.25rem;
     border: 1px solid grey;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
 }
 
 .sr-atl08-cnf-header {

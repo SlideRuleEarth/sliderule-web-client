@@ -292,7 +292,7 @@ onMounted(() => {
 
 }
 .sr-raster-sampling-table-section {
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     border: 2px solid var(--surface-d);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     margin: 0.125rem;
@@ -327,7 +327,7 @@ onMounted(() => {
     gap: 1rem; /* adjust as needed */
     width: 100%;
     background-color: rgba(0, 0, 0, 0.9);
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
 }
 
 .upload-icon {

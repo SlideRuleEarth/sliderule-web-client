@@ -110,7 +110,7 @@
 <style scoped>
 .sr-menu-multi-input-wrapper {
     border: 1px solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     margin-bottom: 1rem;
 }
 
@@ -130,7 +130,7 @@
     margin: 0rem;
     color: white;
     background-color: transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     height: auto; /* Adjust height to fit multiple selections */
     overflow-y: auto; /* Allows scrolling through options */
     min-height: 6.5rem;

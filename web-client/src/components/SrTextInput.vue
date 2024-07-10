@@ -55,7 +55,7 @@
 .sr-text-input-wrapper {
     border: 1px solid transparent;
     border-top: 0.125rem solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     margin-top: 0.125rem;
     font-size: small;
 }

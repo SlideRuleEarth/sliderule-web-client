@@ -176,7 +176,7 @@
 <style scoped>
 .sr-slider-input-wrapper {
     border: 1px solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     margin: 0.25rem;
 }
 .sr-slider-col {
