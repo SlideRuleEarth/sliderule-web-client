@@ -64,11 +64,24 @@ onMounted(async() => {
     atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
+const computedScOrient = computed({
+    get: () => atlChartFilterStore.getScOrient() === 1,
+    set: (newValue: boolean) => {
+        toggleScOrient(newValue);
+    }
+});
 
 const toggleScOrient = (newValue: boolean) => {
     atlChartFilterStore.setScOrient(newValue ? 1 : 0);
     console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
 };
+const computedPair = computed({
+    get: () => atlChartFilterStore.getPair() === 1,
+    set: (newValue: boolean) => {
+        togglePair(newValue);
+    }
+});
+
 const togglePair = (newValue: boolean) => {
     atlChartFilterStore.setPair(newValue ? 1 : 0);
     console.log('togglePair:', atlChartFilterStore.getPair());
@@ -167,8 +180,22 @@ const getSize = computed(() => {
                     <SrFilterTracks/>
                     <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
                     <div class="sr-pair-sc-orient">
-                        <SrToggleButton @input="toggleScOrient" :value="useAtlChartFilterStore().scOrient==1" label="SC orientation" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
-                        <SrToggleButton @input="togglePair"  :value="useAtlChartFilterStore().pair==1" label="Pair" v-if="atlChartFilterStore.getFunc().includes('atl03')" />
+                        <SrToggleButton 
+                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-model="computedScOrient" 
+                            :value="useAtlChartFilterStore().scOrient==1" 
+                            label="SC orientation" 
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                            tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                        />
+                        <SrToggleButton 
+                            v-if="atlChartFilterStore.getFunc().includes('atl03')" 
+                            v-model="computedPair"  
+                            :value="useAtlChartFilterStore().pair==1" 
+                            label="Pair" 
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                            tooltipText="There are three beam pairs"
+                       />
                     </div>
                 </div>
                 <div class="sr-analyze-sliders">

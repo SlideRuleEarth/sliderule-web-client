@@ -6,7 +6,6 @@
     import { onMounted, watch } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
-    import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
@@ -14,15 +13,12 @@
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import { processRunSlideRuleClicked } from "@/utils/workerDomUtils"
     import { processAbortClicked } from "@/utils/workerDomUtils"
+    import SrGraticuleSelect from './SrGraticuleSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
     
-    const graticuleClick = () => {
-        mapStore.toggleGraticule();
-    }
-
     onMounted(async () => {
         //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
@@ -117,7 +113,7 @@
                 :iceSat2SelectedAPI="useReqParamsStore().iceSat2SelectedAPI"
                 :gediSelectedAPI="useReqParamsStore().gediSelectedAPI"
             />
-            <SrGraticuleSelect @graticule-click="graticuleClick"/>
+            <SrGraticuleSelect/>
         </div>  
     </div>
 </template>

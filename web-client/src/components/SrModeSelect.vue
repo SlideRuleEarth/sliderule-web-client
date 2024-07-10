@@ -4,16 +4,16 @@ import SrToggleButton from './SrToggleButton.vue';
 import { NavigationFailureType, isNavigationFailure } from 'vue-router'
 import { useRouter } from 'vue-router';
 import {useToast} from 'primevue/usetoast';
+import { watch } from 'vue';
 
 const toast = useToast();
 const router = useRouter();
 
 const advancedModeStore = useAdvancedModeStore();
-const toggleLabel = 'Advanced Mode';
+
 // Handle the toggle state change
-const handleToggle = async (newValue: boolean) => {
-    advancedModeStore.advanced = newValue;
-    console.log('advancedModeStore.advanced:', advancedModeStore.advanced);
+async function handleToggleAdvanced() {
+    console.log('handleToggleAdvanced():', advancedModeStore.advanced);
     if (advancedModeStore.advanced) {
         const failure = await router.push('/advanced-user');
         if (isNavigationFailure(failure, NavigationFailureType.aborted)) {
@@ -33,7 +33,11 @@ const handleToggle = async (newValue: boolean) => {
 
 <template>
     <div class="mode-box">
-        <SrToggleButton :value="advancedModeStore.advanced" :label="toggleLabel" @input="handleToggle" />
+        <SrToggleButton 
+            v-model="advancedModeStore.advanced" 
+            label='Advanced Mode'
+            @change="handleToggleAdvanced" 
+        />
     </div>
 </template>
 

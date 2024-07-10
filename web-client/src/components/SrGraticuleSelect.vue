@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import SrToggleButton from './SrToggleButton.vue';
-import { useMapStore } from '@/stores/mapStore';
+    import SrToggleButton from './SrToggleButton.vue';
+    import { useMapStore } from '@/stores/mapStore';
 
-const mapStore = useMapStore();
-
-const emits = defineEmits(['graticule-click']);
-const toggleLabel = 'Graticule';
-// Handle the toggle state change
-const handleToggle = (newValue: boolean) => {
-    // console.log('graticuleStore.graticule:', graticuleStore.graticule);
-    emits('graticule-click', newValue);
-};
+    const mapStore = useMapStore();
+    // Handle the toggle state change
+    function handleGraticuleChanged() {
+        console.log('handleGraticuleChanged:', mapStore.graticuleState);
+        mapStore.setGraticuleForMap();
+    }
 
 </script>
 
 <template>
     <div class="mode-box">
-        <SrToggleButton :value="mapStore.graticuleState" :label="toggleLabel" @input="handleToggle" />
+        <SrToggleButton 
+            v-model="mapStore.graticuleState"
+            label="Graticule"
+            @change="handleGraticuleChanged"
+        />
     </div>
 </template>
 
