@@ -504,7 +504,7 @@
   background-color: transparent;
   color: var(--p-primary-color);
   font-weight: bold;
-  font-family: var(--font-family);
+  font-family: var(--p-font-family);
   border-radius: var(--p-border-radius);
 } 
 
@@ -526,7 +526,7 @@
 :deep(.ol-ext-dialog .ol-closebox.ol-title){
   color: var(--text-color);
   background-color: var(--p-primary-300);
-  font-family: var(--font-family);
+  font-family: var(--p-font-family);
   border-radius: var(--p-border-radius);
 }
 

@@ -1,5 +1,6 @@
 //import 'primevue/resources/themes/lara-dark-blue/theme.css'
 //import 'primevue/resources/primevue.min.css'; // core css
+import './assets/app.css'
 import Lara from '@primevue/themes/lara';
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
@@ -39,6 +40,7 @@ const SrPreset = definePreset(Lara, {
           950: '{blue.950}'
       },
       borderRadius: '0.25rem',
+      fontFamily: '"Roboto", sans-serif;'
   }
 });
 

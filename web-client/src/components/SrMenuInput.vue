@@ -118,7 +118,7 @@
     color: white;
     background-color: transparent;
     border-radius: var(--p-border-radius);
-    font-family: var(--font-family);
+    font-family: var(--p-font-family);
     font-size: small;
 }
 
@@ -128,7 +128,7 @@
     color: #888; /*  grey color */
     background-color: transparent;
     border-radius: var(--p-border-radius);
-    font-family: var(--font-family);
+    font-family: var(--p-font-family);
     font-size: small;
 }
 </style>
