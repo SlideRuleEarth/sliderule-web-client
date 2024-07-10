@@ -66,10 +66,10 @@
 
     onMounted(() => {
         //console.log('Mounted Menu:', props.label , 'selected:', selectedMenuItem.value, 'default:', props.defaultOptionIndex);
-        const primaryColor = $dt('primary.color');
-        const borderRadius = $dt('border.radius');
-        const fontFamily = $dt('font.family');
-        console.log('Menu:', props.label, 'primaryColor:', primaryColor, 'borderRadius:', borderRadius, 'fontFamily:', fontFamily);
+        // const primaryColor = $dt('primary.color');
+        // const borderRadius = $dt('border.radius');
+        // const fontFamily = $dt('font.family');
+        //console.log('Menu:', props.label, 'primaryColor:', primaryColor, 'borderRadius:', borderRadius, 'fontFamily:', fontFamily);
     });
 </script>
 

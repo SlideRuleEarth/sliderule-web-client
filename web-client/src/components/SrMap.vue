@@ -754,7 +754,7 @@
 }
 
 :deep(.ol-ext-dialog .ol-closebox.ol-title){
-  color: var(--text-color);
+  color: var(--p-text-color);
   background-color: var(--p-primary-300);
   font-family: var(--p-font-family);
   border-radius: var(--p-border-radius);

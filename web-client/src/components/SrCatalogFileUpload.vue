@@ -122,7 +122,7 @@ const onClear = () => {
     margin: 0.5rem;
 }
 :deep(.p-progressbar-label){
-    color: var(--text-color);
+    color: var(--p-text-color);
 }
 .toast-container {
     display: flex;
@@ -154,7 +154,7 @@ const onClear = () => {
 }
 
 .detail {
-    color: var(--text-color); /* text-700 color, adjust as needed */
+    color: var(--p-text-color); /* text-700 color, adjust as needed */
 }
 
 .progress-container {
@@ -170,7 +170,7 @@ const onClear = () => {
 .upload-percentage {
     text-align: right;
     font-size: 0.75rem; /* text-xs */
-    color:var(--text-color);
+    color:var(--p-text-color);
 }
 
 </style>

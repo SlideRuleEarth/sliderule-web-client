@@ -82,7 +82,7 @@ const removeResource = (index: number) => {
   border-radius: var(--p-border-radius); /* Rounded corners */
 }
 .sr-resources-header {
-  color: var(--text-color); /* Text color */
+  color: var(--p-text-color); /* Text color */
 }
 
 </style>

@@ -319,7 +319,7 @@ onMounted(() => {
     margin: 0.5rem;
 }
 :deep(.p-progressbar-label){
-    color: var(--text-color);
+    color: var(--p-text-color);
 }
 .toast-container {
     display: flex;
@@ -351,7 +351,7 @@ onMounted(() => {
 }
 
 .detail {
-    color: var(--text-color); /* text-700 color, adjust as needed */
+    color: var(--p-text-color); /* text-700 color, adjust as needed */
 }
 
 .progress-container {
@@ -367,7 +367,7 @@ onMounted(() => {
 .upload-percentage {
     text-align: right;
     font-size: 0.75rem; /* text-xs */
-    color:var(--text-color);
+    color:var(--p-text-color);
 }
 
 .button-container {
@@ -378,7 +378,7 @@ onMounted(() => {
 
  .done-btn {
     padding: 0.25rem 0.5rem; /* py-1 px-2 */
-    color: var(--text-color); 
+    color: var(--p-text-color); 
 }
 
 </style>
