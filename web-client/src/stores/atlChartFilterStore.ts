@@ -12,6 +12,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         tracks:  [1,2,3] as number[],
         selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
+        spots: [1,2,3,4,5,6] as number[],
         rgtValue: 1 as number,
         cycleValue: 1 as number,
         regionValue: 1 as number,
@@ -27,7 +28,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         ndxOfelevationDataOptionsForHeight: 0,
         func: 'xxx' as string,
         pair: 0 as number,
-        scOrient: 0 as number,
+        scOrient: -1 as number,
         size: NaN as number,
         isLoading: false as boolean,
         clearPlot: false as boolean,
@@ -54,10 +55,15 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         setBeams(beams:number[]) {
           this.beams = beams;
-          console.log('atlChartFilterStore setBeams:', beams);
         },
         getBeams() {
           return this.beams;
+        },
+        setSpots(spots:number[]) {
+          this.spots = spots;
+        },
+        getSpots() {
+          return this.spots;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;

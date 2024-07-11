@@ -70,12 +70,6 @@ onMounted(() => {
         <div class="adv-opts-wrapper">
             <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                <AccordionPanel value="0">
-                    <AccordionHeader>Debug</AccordionHeader>
-                    <AccordionContent>
-                        <SrDebug />
-                    </AccordionContent>
-                </AccordionPanel>
                 <AccordionPanel value="1">
                     <AccordionHeader>General</AccordionHeader>
                     <AccordionContent>
@@ -259,6 +253,12 @@ onMounted(() => {
                     <AccordionHeader>Storage Usage</AccordionHeader>
                     <AccordionContent>
                         <SrStorageUsage />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="0">
+                    <AccordionHeader>Advanced</AccordionHeader>
+                    <AccordionContent>
+                        <SrDebug />
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>

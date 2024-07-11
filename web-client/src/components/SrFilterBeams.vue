@@ -7,13 +7,13 @@
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="menuClass" >
-            <Button 
+            <!-- <Button 
                 label="all" 
                 size="small"
                 class="sr-menu-select-all-button"
                 outlined 
                 @click="handleSelectAllItems">
-            </Button> 
+            </Button>  -->
             <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
                 <select 
                     v-model="localBeams" 
@@ -22,7 +22,7 @@
                     name="sr-select-multi-menu" 
                     :id="`srSelectMultiMenu-{{ label }}`" 
                     multiple 
-                    :disabled="insensitive"
+                    :disabled=true
                 >
                     <option 
                         v-for="item in beamsOptions" 

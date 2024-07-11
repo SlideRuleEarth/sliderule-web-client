@@ -28,6 +28,15 @@ export const beamsOptions = [
     {name:'gt3r',value:60}
   ] as SrMultiSelectNumberItem[];
 
+export const spotsOptions = [
+    {name:'Spot 1 (Strong)',value:1}, 
+    {name:'Spot 2 (Weak)  ',value:2}, 
+    {name:'Spot 3 (Strong)',value:3}, 
+    {name:'Spot 4 (Weak)  ',value:4}, 
+    {name:'Spot 5 (Strong)',value:5}, 
+    {name:'Spot 6 (Weak)  ',value:6}
+  ] as SrMultiSelectNumberItem[];
+
   export function getBeamsAndTracksWithGt(gt:number) {
     const beams = [] as number[];
     let beam_name='';
@@ -75,4 +84,58 @@ export const beamsOptions = [
 
     // Return undefined if the parameter is not found
     return undefined;
+}
+export function getScOrientFromSpotGt(spot:number,gt:number) {
+  let scOrient = -1; // 0 = forward 1 = backward
+  if (spot === 1 ) {
+    if(gt === 60){
+      scOrient = 0;
+    } else if (gt === 10){
+      scOrient = 1;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  } else if (spot === 2) {
+    if(gt === 50){
+      scOrient = 0;
+    } else if (gt === 20){
+      scOrient = 1;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  } else if (spot === 3) {
+    if(gt === 40){
+      scOrient = 1;
+    } else if (gt === 30){
+      scOrient = 0;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  } else if (spot === 4) {
+    if(gt === 30){
+      scOrient = 0;
+    } else if (gt === 40){
+      scOrient = 1;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  } else if (spot === 5) {
+    if(gt === 20){
+      scOrient = 0;
+    } else if (gt === 50){
+      scOrient = 1;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  } else if (spot === 6) {
+    if(gt === 10){
+      scOrient = 0;
+    } else if (gt === 60){
+      scOrient = 1;
+    } else {
+      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+    }
+  }
+  console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
+  return scOrient;
 }

@@ -18,7 +18,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
-
+import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -164,13 +164,11 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setRgt(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
     useAtlChartFilterStore().setCycle(d.cycle);
-    console.log('d:',d,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
-        useReqParamsStore().setTracks([d.track]);
         useAtlChartFilterStore().setTracks([d.track]);
     }
     if(d.gt !== undefined){ // for atl06
-        useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
         useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
     }
     if(d.sc_orient !== undefined){
@@ -178,6 +176,12 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     }
     if(d.pair !== undefined){
         useAtlChartFilterStore().setPair(d.pair);
+    }
+    if(d.spot !== undefined){
+        useAtlChartFilterStore().setSpots([d.spot]);
+    }
+    if((d.gt !== undefined) && (d.spot !== undefined)){
+        useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
     }
     await readAndUpdateElevationData(useCurReqSumStore().getReqId());
     useMapStore().resetIsLoading();

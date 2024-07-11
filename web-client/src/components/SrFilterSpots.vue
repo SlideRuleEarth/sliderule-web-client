@@ -7,24 +7,25 @@
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="computedMenuClass" >
-            <!-- <Button 
+            <Button 
                 label="all" 
                 size="small"
                 class="sr-menu-select-all-button"
                 outlined 
                 @click="handleSelectAllItems">
-            </Button> -->
-            <form class="sr-menu-multi-input-select-item" name="sr-select-item-form">
+            </Button> 
+            <form class="sr-menu-form" name="sr-select-item-form">
                 <select 
-                    v-model="localTracks" 
+                    v-model="localSpots" 
                     @input="handleSelectionChange"
-                    class="sr-menu-multi-input-select-default" 
+                    class="sr-menu-multi-input-select" 
                     name="sr-select-multi-menu" 
                     :id="`srSelectMultiMenu-{{ label }}`" 
                     multiple 
-                    :disabled=true>
+                    :disabled="insensitive"
+                >
                     <option 
-                        v-for="item in tracksOptions" 
+                        v-for="item in spotsOptions" 
                         :value="item.value" 
                         :key="item.value">
                         {{ item.name }}
@@ -36,20 +37,21 @@
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed,ref,watch } from 'vue';
-    import Button from 'primevue/button';
+    import {  onMounted,computed,ref,watch,nextTick } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    import { tracksOptions } from '@/utils/parmUtils';
+    import { spotsOptions } from '@/utils/parmUtils';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+    import Button from 'primevue/button';
     import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { at } from 'lodash';
 
     const atlChartFilterStore = useAtlChartFilterStore();
-    const localTracks = ref<number[]>(tracksOptions.map(item => item.value));
+    const localSpots = ref<number[]>(spotsOptions.map(item => item.value));
     const props = defineProps({ // runtime declaration here
         label: {
             type: String,
-            default: 'Track(s)'
+            default: 'Spot(s)'
         },
         insensitive: {
             type: Boolean,
@@ -69,19 +71,22 @@
         }
     });
 
-    function handleSelectAllItems(){
-        localTracks.value = tracksOptions.map(item => item.value);
-        atlChartFilterStore.setTracks(localTracks.value);
-        console.log('handleSelectAllItems atlChartFilterStore.tracks:', atlChartFilterStore.tracks);
+    function handleSelectAllItems() {
+        localSpots.value = spotsOptions.map(item => item.value);
+        atlChartFilterStore.spots = localSpots.value;
+        console.log('handleSelectAllItems atlChartFilterStore.spots:', atlChartFilterStore.spots);
     };
     
     const handleSelectionChange = async (event: Event) => {
         const target = event.target as HTMLSelectElement;
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
-        atlChartFilterStore.setTracks(newValue)
-        atlChartFilterStore.setBeamsForTracks(newValue);
+        atlChartFilterStore.setScOrient(-1);
+        atlChartFilterStore.setBeams([]);
+        atlChartFilterStore.setTracks([]);
+        atlChartFilterStore.setSpots(newValue);
         await readAndUpdateElevationData(useCurReqSumStore().getReqId());
-        console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
+
+        console.log('SrFilterSpots handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
@@ -98,51 +103,68 @@
     };
 
     const computedMenuClass = computed(() => ({
-        'sr-menu-multi-input-select-default': true,
-        'sr-menu-multi-input-select-insensitive': props.insensitive
+        'sr-menu-default': true,
+        'sr-menu-insensitive': props.insensitive
     }));
 
 
-    watch(() => atlChartFilterStore.tracks, (newTracks, oldTracks) => {
-        console.log('SrFilterTracks watch atlChartFilterStore oldTracks:', oldTracks);
-        console.log('SrFilterTracks watch atlChartFilterStore newTracks:', newTracks);
-        localTracks.value = newTracks;
+    watch(() => atlChartFilterStore.spots, (newSpots, oldSpots) => {
+        nextTick(() => {
+            console.log('SrFilterSpots watch atlChartFilterStore oldSpots:', oldSpots);
+            console.log('SrFilterSpots watch atlChartFilterStore newSpots:', newSpots);
+            localSpots.value = newSpots;
+        });
     });
 
 </script>
 
 <style scoped>
 .sr-menu-multi-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--p-border-radius);
     margin-bottom: 1rem;
 }
 
-.sr-menu-select-all-button {
-    padding: 0.25rem;
-    height: 1.3rem;
-    color: var(--p-primary-300);
-}
 .sr-menu-multi-input-label {
     white-space: nowrap;
     font-size: small;
 }
 
-.sr-menu-multi-input-select-insensitive {
+.sr-menu-select-all-button {
+    margin: auto;
+    padding: 0.5rem;
+    height: 1.3rem;
+    min-width: 4rem;
+    color: var(--p-primary-300);
+}
+
+.sr-menu-insensitive {
     color: #888; /* grey color */
 }
 
-.sr-menu-multi-input-select-default {
-    width: calc(100% - 0.25rem);
-    padding: 0rem;
-    margin: 0rem;
+.sr-menu-default {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items:flex-start;
+}
+
+.sr-menu-multi-input-select {
+    padding: 0.5rem;
+    margin: auto;
     color: white;
     background-color: transparent;
     border-radius: var(--p-border-radius);
+    width: auto;
     height: auto; /* Adjust height to fit multiple selections */
-    overflow-y: auto; /* Allows scrolling through options */
-    min-height: 3rem;
+    overflow-y:hidden;
+    min-height: 7rem;
 }
 
-.sr-menu-multi-input-select-item {
+.sr-menu-form {
     display: flex;
     max-width: fit-content;
     width: 100%;

@@ -7,6 +7,15 @@
             <div class="sr-select-parquet-reader">
               <SrSelectParquetReader />
             </div>
+            <SrSliderInput
+                v-model="srParquetCfgStore.chunkSizeToRead"
+                label="SQL Query Chunk Size"
+                :min="10000"
+                :max="1000000"
+                :defaultValue="srParquetCfgStore.chunkSizeToRead"
+                :decimalPlaces=0
+                tooltipText="Chunk size to Query from parquet file"
+            />
             <SrToggleButton :value="reqParamsStore.useChecksum" label="Use Checksum" @input="handleUseChecksum"/>            
             <div>
               <SrSvrConsoleTerminal />
@@ -21,6 +30,10 @@
     import SrSelectParquetReader from './SrSelectParquetReader.vue';
     import SrSvrConsoleTerminal from './SrSvrConsoleTerminal.vue';
     import SrToggleButton from './SrToggleButton.vue';
+    import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+    import SrSliderInput from './SrSliderInput.vue';
+
+    const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
 
     const handleUseChecksum = async (newValue: boolean) => {
