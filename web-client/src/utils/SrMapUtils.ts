@@ -160,11 +160,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setClearPlot();
     useAtlChartFilterStore().setIsLoading();
     useMapStore().setIsLoading();
-    useReqParamsStore().setRgt(d.rgt);
-    useAtlChartFilterStore().setRgtOptionsWithNumbers(d.rgt);
-    useReqParamsStore().setCycle(d.cycle);
-    useAtlChartFilterStore().setCycleOptionsWithNumbers(d.cycle);
-    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTracks([d.track]);
     }
@@ -184,10 +180,16 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        useAtlChartFilterStore().setRgts([d.rgt]);
+        useReqParamsStore().setRgt(d.rgt);
+        useAtlChartFilterStore().setRgtWithNumber(d.rgt);
+    } else {
+        console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useAtlChartFilterStore().setCycles([d.cycle]);
+        useReqParamsStore().setCycle(d.cycle);
+        useAtlChartFilterStore().setCycleWithNumber(d.cycle);
+    } else {
+        console.error('d.cycle is undefined'); // should always be defined
     }
     await processFileForReq(useCurReqSumStore().getReqId());
     useMapStore().resetIsLoading();

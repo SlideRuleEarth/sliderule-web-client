@@ -53,7 +53,9 @@ const fetchScatterOptions = async () => {
       const req_id = atlChartFilterStore.getReqId();
       const func = await indexedDb.getFunc(req_id);
       atlChartFilterStore.setFunc(func);
-      const scatterOptions = await getScatterOptions(atlChartFilterStore.getScatterOptionsParms());
+      const sop = atlChartFilterStore.getScatterOptionsParms();
+      console.log('fetchScatterOptions sop:',sop);
+      const scatterOptions = await getScatterOptions(sop);
       console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
       if (scatterOptions) {
         if(plotRef.value){

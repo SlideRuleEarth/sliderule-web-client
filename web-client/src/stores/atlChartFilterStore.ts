@@ -5,6 +5,7 @@ import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
+import { set } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -19,7 +20,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     beams: [10, 20, 30, 40, 50, 60] as number[],
     spots: [1, 2, 3, 4, 5, 6] as number[],
     rgts: [] as SrListNumberItem[],
-    rgtOptions: [] as SrListNumberItem[],
+    rgtOptions: [] as SrListNumberItem[], // Ensure rgtOptions is an array
     cycles: [] as SrListNumberItem[],
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
@@ -76,20 +77,36 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.cycles.map(cycle => cycle.value);
     },
     setRgtOptionsWithNumbers(rgtOptions: number[]) {
-      console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions);
+      if (!Array.isArray(rgtOptions)) {
+        console.error('rgtOptions is not an array:', rgtOptions);
+        return;
+      }
       this.rgtOptions = rgtOptions.map(option => ({ label: option.toString(), value: option }));
+      console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions,' this.rgtOptions:', this.rgtOptions);
     },
     getRgtOptions() {
       console.log('atlChartFilterStore.getRgtOptions():', this.rgtOptions);
       return this.rgtOptions;
     },
+    setRgtWithNumber(rgt: number) {
+      console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
+      this.setRgts([{ label: rgt.toString(), value: rgt }]);
+    },
     setCycleOptionsWithNumbers(cycleOptions: number[]) {
-      console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions);
+      if (!Array.isArray(cycleOptions)) {
+        console.error('cycleOptions is not an array:', cycleOptions);
+        return;
+      }
       this.cycleOptions = cycleOptions.map(option => ({ label: option.toString(), value: option }));
+      console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
     },
     getCycleOptions() {
       console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);
       return this.cycleOptions;
+    },
+    setCycleWithNumber(cycle: number) {
+      console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
+      this.setCycles([{ label: cycle.toString(), value: cycle }]);
     },
     setCycles(cycles: SrListNumberItem[]) {
       console.log('atlChartFilterStore.setCycle():', cycles);
