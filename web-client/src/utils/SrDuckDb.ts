@@ -378,6 +378,6 @@ export class DuckDBClient {
 
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
-  console.log('createDuckDbClient');
+  //console.log('createDuckDbClient');
   return DuckDBClient.getInstance();
 }

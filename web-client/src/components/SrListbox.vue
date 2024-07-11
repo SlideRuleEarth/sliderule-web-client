@@ -12,7 +12,7 @@
                 />
                 <Listbox
                     v-model="selectedMenuItem"
-                    :options="menuOptions.map(option => ({ label: option.toString(), value: option }))"
+                    :options="menuOptions"
                     :disabled="insensitive"
                     optionLabel="label"
                     scrollHeight="5rem"
@@ -26,8 +26,9 @@
 
 <script setup lang="ts">
 import Listbox from 'primevue/listbox';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+import { SrListNumberItem } from '@/stores/atlChartFilterStore';
 
 const props = defineProps({
     label: {
@@ -35,7 +36,7 @@ const props = defineProps({
         default: ''
     },
     menuOptions: {
-        type: Array as () => number[],
+        type: Array as () => SrListNumberItem[],
         default: () => []
     },
     insensitive: {
@@ -57,24 +58,44 @@ const props = defineProps({
     labelFontSize: {
         type: String,
         default: 'small'
+    },
+    getSelectedMenuItem: {
+        type: Function,
+        required: true
+    },
+    setSelectedMenuItem: {
+        type: Function,
+        required: true
     }
 });
 
-const selectedMenuItem = ref<number[]>([]);
 const emit = defineEmits(['update:modelValue']);
 
+// Define a computed property that references the getter and setter
+const selectedMenuItem = computed({
+    get() {
+        console.log('SrListbox:', props.label, 'get:', props.getSelectedMenuItem());
+        return props.getSelectedMenuItem(); // calling the getter function
+    },
+    set(value) {
+        console.log('SrListbox:', props.label, 'set:', value)
+        props.setSelectedMenuItem(value); // calling the setter function
+    }
+});
+
 watch(selectedMenuItem, (newValue) => {
-    console.log('SrListbox:', props.label, 'selected:', newValue);
+    console.log('SrListbox:', props.label, ' Watch selected:', newValue);
     emit('update:modelValue', newValue);
 });
 
-watch(() => props.menuOptions, (newValue) => {
-    console.log('SrListbox:', props.label, 'menuOptions:', newValue);
-    selectedMenuItem.value = newValue;
-});
+// watch(() => props.menuOptions, (newValue) => {
+//     console.log('SrListbox:', props.label, 'Watch menuOptions:', newValue);
+//     selectedMenuItem.value = newValue;
+// });
 
 onMounted(() => {
-    console.log('Mounted SrListbox:', props.label, 'menuOptions:', props.menuOptions, ' selected:', selectedMenuItem.value);
+    console.log('SrListbox:', props.label, 'Mounted menuOptions:', props.menuOptions, ' selected:', selectedMenuItem.value);
+    selectedMenuItem.value = props.menuOptions;
 });
 </script>
 

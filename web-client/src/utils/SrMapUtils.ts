@@ -161,9 +161,9 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setIsLoading();
     useMapStore().setIsLoading();
     useReqParamsStore().setRgt(d.rgt);
-    useAtlChartFilterStore().setRgt(d.rgt);
+    useAtlChartFilterStore().setRgtOptionsWithNumbers(d.rgt);
     useReqParamsStore().setCycle(d.cycle);
-    useAtlChartFilterStore().setCycle(d.cycle);
+    useAtlChartFilterStore().setCycleOptionsWithNumbers(d.cycle);
     console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTracks([d.track]);
@@ -197,12 +197,12 @@ async function clicked(d:ElevationDataItem): Promise<void> {
 function checkFilter(d:ElevationDataItem): boolean {
     let matched = false;
     if(d.gt){ // atl06
-        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
-                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
+                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
                     (useAtlChartFilterStore().getBeams().includes(d.gt)));
     } else {
-        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
-                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
+        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
+                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
                     (useAtlChartFilterStore().getTracks().includes(d.track)) && 
                     (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
                     (useAtlChartFilterStore().getPair() == d.pair));

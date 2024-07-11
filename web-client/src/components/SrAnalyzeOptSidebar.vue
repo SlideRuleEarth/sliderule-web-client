@@ -176,14 +176,18 @@ const getSize = computed(() => {
             <SrListbox 
                 label="Rgt(s)" 
                 v-model="atlChartFilterStore.rgts" 
+                :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                :setSelectedMenuItem="atlChartFilterStore.setRgts"
                 :menuOptions="atlChartFilterStore.getRgtOptions()" 
                 tooltipText="Reference Ground Track(s)" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />
             <SrListbox id="cycles" 
                 label="Cycle(s)" 
+                v-model="atlChartFilterStore.cycles"
+                :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
                 :menuOptions="atlChartFilterStore.getCycleOptions()" 
-                v-model="atlChartFilterStore.cycles" 
                 tooltipText="Cycle(s)" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />

@@ -87,7 +87,7 @@
     };
 
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        //console.log('Mounted Menu:', props.label);
     });
 
     const openTooltipUrl = () => {

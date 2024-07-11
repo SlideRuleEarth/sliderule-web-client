@@ -4,8 +4,12 @@ import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import {type  SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
-import type { set } from 'lodash';
+import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 
+export interface SrListNumberItem {
+  label:  string;
+  value:  number; 
+}
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
     state: () => ({
@@ -14,12 +18,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
         spots: [1,2,3,4,5,6] as number[],
-        rgts: [] as number[],
-        rgtOptions: [] as number[],
-        cycles: [] as number[],
-        cycleOptions: [] as number[],
-        rgtValue: 1 as number,
-        cycleValue: 1 as number,
+        rgts: [] as SrListNumberItem[],
+        rgtOptions: [] as SrListNumberItem[],
+        cycles: [] as SrListNumberItem[],
+        cycleOptions: [] as SrListNumberItem[],
         regionValue: 1 as number,
         currentFile: '' as string,
         currentReqId: 0 as number,
@@ -46,18 +48,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         getRegion() { 
           return this.regionValue;
         },
-        setRgt(rgtValue:number) {
-          this.rgtValue = rgtValue;
-        },
-        getRgt() {
-          return this.rgtValue;
-        },
-        setCycle(cycleValue:number) {
-          this.cycleValue = cycleValue;
-        },
-        getCycle() {
-          return this.cycleValue;
-        },
         setBeams(beams:number[]) {
           this.beams = beams;
         },
@@ -70,33 +60,47 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         getSpots() {
           return this.spots;
         },
-        setRgts(rgts:number[]) {
+        setRgts(rgts:SrListNumberItem[]) {
+          console.log('atlChartFilterStore setRgts:', rgts);
           this.rgts = rgts;
         },
         getRgts() {
+          console.log('atlChartFilterStore getRgts:', this.rgts);
           return this.rgts;
         },
-        setRgtOptions(rgtOptions:number[]) {
-          this.rgtOptions = rgtOptions;
+        getRgtValues() {
+          return this.rgts.map(rgt => rgt.value);
+        },
+        getCycleValues() {
+          return this.cycles.map(cycle => cycle.value);
+        },
+        setRgtOptionsWithNumbers(rgtOptions:number[]) {
+          console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions);
+          this.rgtOptions = rgtOptions.map(option => ({ label: option.toString(), value: option }));
         },
         getRgtOptions() {
+          console.log('atlChartFilterStore.getRgtOptions():', this.rgtOptions);
           return this.rgtOptions;
         },
-        setCycleOptions(cycleOptions:number[]) {
-          this.cycleOptions = cycleOptions;
+        setCycleOptionsWithNumbers(cycleOptions:number[]) {
+          console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions);
+          this.cycleOptions = cycleOptions.map(option => ({ label: option.toString(), value: option }));
         },
         getCycleOptions() {
+          console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);
           return this.cycleOptions;
         },
-        setCycles(cycles:number[]) {
+        setCycles(cycles:SrListNumberItem[]) {
+          console.log('atlChartFilterStore.setCycle():', cycles);
           this.cycles = cycles;
         },
         getCycles() {
+          console.log('atlChartFilterStore.getCycles():', this.cycles);
           return this.cycles;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;
-          console.log('atlChartFilterStore setTracks:', tracks);
+          //console.log('atlChartFilterStore setTracks:', tracks);
         },
         getTracks() {
           return this.tracks;
@@ -109,11 +113,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         setBeamsAndTracksWithGt(gt:number) {
           const parms = getBeamsAndTracksWithGt(gt);
-          console.log('setBeamsAndTracksWithGt:', gt, 'parms.beams:', parms.beams, 'parms.tracks:', parms.tracks);
+          //console.log('setBeamsAndTracksWithGt:', gt, 'parms.beams:', parms.beams, 'parms.tracks:', parms.tracks);
           this.setBeams(parms.beams);
           this.setTracks(parms.tracks);
-          console.log('setBeamsAndTracksWithGt:', gt, 'beams:', this.beams);
-          console.log('setBeamsAndTracksWithGt:', gt, 'tracks:', this.tracks);
+          //console.log('setBeamsAndTracksWithGt:', gt, 'beams:', this.beams);
+          //console.log('setBeamsAndTracksWithGt:', gt, 'tracks:', this.tracks);
         },
         setTracksForBeams(input_beams:number[]) {
           const selectedBeamsOptions = [] as {name:string,value:number}[];
@@ -125,7 +129,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
               }
             }
           }
-          console.log('setTracksForBeams selectedBeamsOptions:', selectedBeamsOptions);
+          //console.log('setTracksForBeams selectedBeamsOptions:', selectedBeamsOptions);
           const tracks = [] as number[];
           for (const beam of selectedBeamsOptions) {
             for (const trackOption of tracksOptions) {
@@ -135,7 +139,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
               }
             }
           }
-          console.log('setTracksForBeams tracks:', tracks);
+          //console.log('setTracksForBeams tracks:', tracks);
           this.setTracks(tracks);
         },
         setBeamsForTracks(input_tracks:number[]) {
@@ -147,8 +151,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
               }
             }
           }
-          console.log('setBeamsForTracks input_tracks:', input_tracks);
-          console.log('setBeamsForTracks beams:', beams);
+          //console.log('setBeamsForTracks input_tracks:', input_tracks);
+          //console.log('setBeamsForTracks beams:', beams);
           this.setBeams(beams);
         },
         setReqId(req_id: number) {
@@ -227,7 +231,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         setFunc(func:string) {
           this.func = func;
-          console.log('setFunc:', func);
+          //console.log('setFunc:', func);
         },
         getFunc() {
           return this.func;
@@ -254,8 +258,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         getScatterOptionsParms() {
           const scatterOptions = {
-            rgt: this.rgtValue,
-            cycle: this.cycleValue,
+            rgt: this.rgts[0] ? this.rgts[0].value : 1,
+            cycle: this.cycles[0] ? this.cycles[0].value : 1,
             fileName: this.currentFile,
             func: this.func,
             y: this.yDataForChart,
