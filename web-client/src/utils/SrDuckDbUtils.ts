@@ -8,6 +8,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
+import { at } from 'lodash';
 
 interface SummaryRowData {
     minLat: number;
@@ -268,7 +269,55 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
     }
 }
 
+export async function getRgts(req_id: number): Promise<number[]> {
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const rgts = [] as number[];
+    try{
+        const query = `SELECT DISTINCT rgt FROM '${fileName}'`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getRgt row:', row);
+                    rgts.push(row.rgt);
+                } else {
+                    console.warn('getRgts fetchData rowData is null');
+                }
+            }
+        } 
+        useAtlChartFilterStore().setRgtOptions(rgts);   
+    } catch (error) {
+        console.error('getRgt Error:', error);
+        throw error;
+    }
+    return rgts;
+}
 
+export async function getCycles(req_id: number): Promise<number[]> {
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const cycles = [] as number[];
+    try{
+        const query = `SELECT DISTINCT cycle FROM '${fileName}'`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getCycle row:', row);
+                    cycles.push(row.cycle);
+                } else {
+                    console.warn('getCycles fetchData rowData is null');
+                }
+            }
+        } 
+        useAtlChartFilterStore().setCycleOptions(cycles);   
+    } catch (error) {
+        console.error('getCycles Error:', error);
+        throw error;
+    }
+    return cycles;
+}
 async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};

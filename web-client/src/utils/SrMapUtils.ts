@@ -17,7 +17,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+import { processFileForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 
 export const polyCoordsExist = computed(() => {
@@ -183,7 +183,13 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     if((d.gt !== undefined) && (d.spot !== undefined)){
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
     }
-    await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+    if(d.rgt !== undefined){
+        useAtlChartFilterStore().setRgts([d.rgt]);
+    }
+    if(d.cycle !== undefined){
+        useAtlChartFilterStore().setCycles([d.cycle]);
+    }
+    await processFileForReq(useCurReqSumStore().getReqId());
     useMapStore().resetIsLoading();
     useAtlChartFilterStore().setUpdateScatterPlot();
 }

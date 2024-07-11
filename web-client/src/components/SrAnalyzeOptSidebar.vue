@@ -3,20 +3,24 @@ import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
-import {useAtlChartFilterStore} from '@/stores/atlChartFilterStore';
-import { useRequestsStore } from '@/stores/requestsStore';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import router from '@/router/index.js';
+import SrToggleButton from './SrToggleButton.vue';
 import SrFilterBeams from './SrFilterBeams.vue';
 import SrFilterTracks from './SrFilterTracks.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
+import SrListbox from './SrListbox.vue';
+import {useAtlChartFilterStore} from '@/stores/atlChartFilterStore';
+import { useRequestsStore } from '@/stores/requestsStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import router from '@/router/index.js';
 import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
-import SrToggleButton from './SrToggleButton.vue';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
+import MultiSelect from 'primevue/multiselect';
+import FloatLabel from 'primevue/floatlabel';
+
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -32,7 +36,7 @@ const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
-
+const selectedRgt = ref<number[]>([]);
 
 onMounted(async() => {
     try {
@@ -157,7 +161,6 @@ const getSize = computed(() => {
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analysis-opt-sidebar-options">
-            <div>
             <SrSliderInput
                 v-model="srParquetCfgStore.maxNumPntsToDisplay"
                 label="Max Num Pnts"
@@ -167,20 +170,34 @@ const getSize = computed(() => {
                 :decimalPlaces=0
                 tooltipText="Maximum number of points to display"
             />
-
         </div>
-            <div class="sr-spot-pattern">
-                <SrFilterSpots/>
-                <FieldSet legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
-                    <div class="sr-tracks-beams-scorient-panel">
-                        <p class="sr-scOrient">
-                            <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
-                            <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
-                        </p>
-                        <SrFilterTracks/>
-                        <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
-                    </div>
-                    <div class="sr-pair-sc-orient">
+        <div class="sr-analyze-filters">
+            <SrFilterSpots/>
+            <SrListbox 
+                label="Rgt(s)" 
+                v-model="atlChartFilterStore.rgts" 
+                :menuOptions="atlChartFilterStore.getRgtOptions()" 
+                tooltipText="Reference Ground Track(s)" 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            />
+            <SrListbox id="cycles" 
+                label="Cycle(s)" 
+                :menuOptions="atlChartFilterStore.getCycleOptions()" 
+                v-model="atlChartFilterStore.cycles" 
+                tooltipText="Cycle(s)" 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            />
+
+            <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
+                <div class="sr-tracks-beams-scorient-panel">
+                    <p class="sr-scOrient">
+                        <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
+                        <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
+                    </p>
+                    <SrFilterTracks/>
+                    <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
+                </div>
+                <div class="sr-pair-sc-orient">
                     <SrToggleButton 
                         v-if="atlChartFilterStore.getFunc().includes('atl03')"
                         v-model="computedScOrient" 
@@ -198,28 +215,7 @@ const getSize = computed(() => {
                         tooltipText="There are three beam pairs"
                     />
                 </div>
-                </FieldSet>
-            </div>
-            <div class="sr-analyze-sliders">
-                <SrSliderInput
-                    v-model="atlChartFilterStore.rgtValue"
-                    label="RGT"
-                    :min="1"
-                    :max="10000" 
-                    :decimalPlaces="0"
-                    tooltipText="RGT is the reference ground track: defaults to all if not specified"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                />
-                <SrSliderInput
-                    v-model="atlChartFilterStore.cycleValue"
-                    label="Cycle"
-                    :min="1"
-                    :max="100" 
-                    :decimalPlaces="0"
-                    tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-                />
-            </div>
+        </FieldSet>
         </div>
     </div>
 </template>
@@ -276,6 +272,14 @@ const getSize = computed(() => {
         min-width: 30vw;
         width: 100%;
     }
+
+    .sr-fieldset {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
     .sr-tracks-beams {
         display: flex;
         flex-direction: column;
@@ -289,7 +293,7 @@ const getSize = computed(() => {
         align-items: flex-end;
         margin-top: 0.5rem;
     }
-    .sr-analyze-sliders {
+    .sr-analyze-filters {
         display: flex;
         flex-direction: column;
         justify-content: space-evenly;

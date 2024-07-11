@@ -37,11 +37,10 @@
   
 <script setup lang="ts">
     import {  onMounted,computed,ref,watch } from 'vue';
-    import Button from 'primevue/button';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import { tracksOptions } from '@/utils/parmUtils';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+    import { processFileForReq } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -80,7 +79,7 @@
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
         atlChartFilterStore.setTracks(newValue)
         atlChartFilterStore.setBeamsForTracks(newValue);
-        await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+        await processFileForReq(useCurReqSumStore().getReqId());
         console.log('SrFilterTracks handleSelectionChange newValue:', newValue);
     };
 

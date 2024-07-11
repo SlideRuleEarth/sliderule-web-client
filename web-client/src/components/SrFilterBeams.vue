@@ -42,7 +42,7 @@
     import { beamsOptions } from '@/utils/parmUtils';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     import Button from 'primevue/button';
-    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+    import { processFileForReq } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
 
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -81,7 +81,7 @@
         const newValue = Array.from(target.selectedOptions).map(option => Number(option.value));
         atlChartFilterStore.setBeams(newValue)
         atlChartFilterStore.setTracksForBeams(newValue);
-        await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+        await processFileForReq(useCurReqSumStore().getReqId());
 
         console.log('SrFilterBeams handleSelectionChange newValue:', newValue);
     };

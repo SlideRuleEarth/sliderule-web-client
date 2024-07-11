@@ -2,7 +2,7 @@ import { db } from '@/db/SlideRuleDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
@@ -191,27 +191,31 @@ export const readOrCacheSummary = async (req_id:number,height_fieldname:string) 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
-            throw new Error('readAndUpdateElevationData unknown reader');
+            throw new Error('readOrCacheSummary unknown reader');
         }
     } catch (error) {
-        console.error('readAndUpdateElevationData error:',error);
+        console.error('readOrCacheSummary error:',error);
         throw error;
     }
 }
 
-export const readAndUpdateElevationData = async (req_id:number) => {
+export const processFileForReq = async (req_id:number) => {
     try{
-        console.log('readAndUpdateElevationData req_id:',req_id);
+        console.log('processFileForReq req_id:',req_id);
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
             await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
+            const rgts = await getRgts(req_id);
+            console.log('processFileForReq rgts:',rgts);
+            const cycles = await getCycles(req_id);
+            console.log('processFileForReq cycles:',cycles);
         } else {
-            throw new Error('readAndUpdateElevationData unknown reader');
+            throw new Error('processFileForReq unknown reader');
         }
     } catch (error) {
-        console.error('readAndUpdateElevationData error:',error);
+        console.error('processFileForReq error:',error);
         throw error;
     }
 }

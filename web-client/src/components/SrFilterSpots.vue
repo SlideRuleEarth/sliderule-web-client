@@ -42,9 +42,8 @@
     import { spotsOptions } from '@/utils/parmUtils';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     import Button from 'primevue/button';
-    import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+    import { processFileForReq } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { at } from 'lodash';
 
     const atlChartFilterStore = useAtlChartFilterStore();
     const localSpots = ref<number[]>(spotsOptions.map(item => item.value));
@@ -84,7 +83,7 @@ import { at } from 'lodash';
         atlChartFilterStore.setBeams([]);
         atlChartFilterStore.setTracks([]);
         atlChartFilterStore.setSpots(newValue);
-        await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+        await processFileForReq(useCurReqSumStore().getReqId());
 
         console.log('SrFilterSpots handleSelectionChange newValue:', newValue);
     };

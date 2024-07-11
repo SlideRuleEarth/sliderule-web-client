@@ -28,7 +28,7 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import { updateDeck } from '@/utils/SrMapUtils';
-  import { readAndUpdateElevationData } from "@/utils/SrParquetUtils";
+  import { processFileForReq } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
@@ -307,10 +307,10 @@
               updateDeck(map);
               mapStore.setIsLoading();
               try{
-                await readAndUpdateElevationData(props.reqId);
+                await processFileForReq(props.reqId);
               } catch (error) {
-                console.error(`Error: readAndUpdateElevationData failed for ${reason}`,error);
-                toast.add({severity:'error', summary: 'Error', detail: `Failed to readAndUpdateElevationData for ${reason}`});
+                console.error(`Error: processFileForReq failed for ${reason}`,error);
+                toast.add({severity:'error', summary: 'Error', detail: `Failed to processFileForReq for ${reason}`});
               }
               mapStore.resetIsLoading();
             } else {

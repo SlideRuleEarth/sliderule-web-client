@@ -1,5 +1,5 @@
 import { type SrRequestRecord } from '@/db/SlideRuleDb';
-import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
+import { processFileForReq } from '@/utils/SrParquetUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
@@ -119,7 +119,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 if(workerMsg?.req_id > 0){
                     fileName = await db.getFilename(workerMsg.req_id);
                     await duckDbLoadOpfsParquetFile(fileName);
-                    await readAndUpdateElevationData(workerMsg.req_id);
+                    await processFileForReq(workerMsg.req_id);
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
                 }

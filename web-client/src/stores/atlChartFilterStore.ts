@@ -4,6 +4,7 @@ import { beamsOptions,tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import {type  SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
+import type { set } from 'lodash';
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
@@ -13,6 +14,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         selectAllTracks: true as boolean,
         beams: [10,20,30,40,50,60] as number[],
         spots: [1,2,3,4,5,6] as number[],
+        rgts: [] as number[],
+        rgtOptions: [] as number[],
+        cycles: [] as number[],
+        cycleOptions: [] as number[],
         rgtValue: 1 as number,
         cycleValue: 1 as number,
         regionValue: 1 as number,
@@ -64,6 +69,30 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         },
         getSpots() {
           return this.spots;
+        },
+        setRgts(rgts:number[]) {
+          this.rgts = rgts;
+        },
+        getRgts() {
+          return this.rgts;
+        },
+        setRgtOptions(rgtOptions:number[]) {
+          this.rgtOptions = rgtOptions;
+        },
+        getRgtOptions() {
+          return this.rgtOptions;
+        },
+        setCycleOptions(cycleOptions:number[]) {
+          this.cycleOptions = cycleOptions;
+        },
+        getCycleOptions() {
+          return this.cycleOptions;
+        },
+        setCycles(cycles:number[]) {
+          this.cycles = cycles;
+        },
+        getCycles() {
+          return this.cycles;
         },
         setTracks(tracks:number[]) {
           this.tracks = tracks;

@@ -16,7 +16,7 @@
 </template>
   
 <script setup lang="ts">
-    import { $dt } from '@primevue/themes';
+    //import { $dt } from '@primevue/themes';
     import { onMounted,ref,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     export interface SrMenuItem {
