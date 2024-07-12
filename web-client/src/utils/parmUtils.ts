@@ -14,19 +14,19 @@ export interface SrScatterOptionsParms {
 };
 
 export const tracksOptions = [
-    { name: 'Track 1' , value: 1 }, 
-    { name: 'Track 2' , value: 2 },
-    { name: 'Track 3' , value: 3 }
-  ] as SrMultiSelectNumberItem[];
+    { label: 'Track 1' , value: 1 }, 
+    { label: 'Track 2' , value: 2 },
+    { label: 'Track 3' , value: 3 }
+  ] as SrListNumberItem[];
 
 export const beamsOptions = [
-    {name:'gt1l',value:10}, 
-    {name:'gt1r',value:20}, 
-    {name:'gt2l',value:30}, 
-    {name:'gt2r',value:40}, 
-    {name:'gt3l',value:50}, 
-    {name:'gt3r',value:60}
-  ] as SrMultiSelectNumberItem[];
+    {label:'gt1l',value:10}, 
+    {label:'gt1r',value:20}, 
+    {label:'gt2l',value:30}, 
+    {label:'gt2r',value:40}, 
+    {label:'gt3l',value:50}, 
+    {label:'gt3r',value:60}
+  ] as SrListNumberItem[];
 
 export const spotsOptions = [
     {label:'Spot 1 (Strong)',value:1}, 
@@ -38,19 +38,19 @@ export const spotsOptions = [
   ] as SrListNumberItem[];
 
   export function getBeamsAndTracksWithGt(gt:number) {
-    const beams = [] as number[];
+    const beams = [] as SrListNumberItem[];
     let beam_name='';
     for (const beam of beamsOptions) {
       if (beam.value === gt) {
-        beams.push(beam.value);
-        beam_name = beam.name;
+        beams.push(beam);
+        beam_name = beam.label;
         break;
       }
     }
-    const tracks = [] as number[];
+    const tracks = [] as SrListNumberItem[];
     for(const track of tracksOptions){
         if(Number(beam_name.charAt(2)) === track.value){
-            tracks.push(track.value);
+            tracks.push(track);
             break;
         }
     }

@@ -13,9 +13,9 @@ export interface SrListNumberItem {
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
     debugCnt: 0 as number,
-    tracks: [1, 2, 3] as number[],
+    tracks: [] as SrListNumberItem[],
     selectAllTracks: true as boolean,
-    beams: [10, 20, 30, 40, 50, 60] as number[],
+    beams: [] as SrListNumberItem[],
     spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
     spots: [] as SrListNumberItem[],
     rgts: [] as SrListNumberItem[],
@@ -52,7 +52,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getRegion() {
       return this.regionValue;
     },
-    setBeams(beams: number[]) {
+    setBeams(beams: SrListNumberItem[]) {
       this.beams = beams;
     },
     getBeams() {
@@ -122,7 +122,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
-    setTracks(tracks: number[]) {
+    setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
     getTracks() {
@@ -139,13 +139,16 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       this.setBeams(parms.beams);
       this.setTracks(parms.tracks);
     },
-    setTracksForBeams(input_beams: number[]) {
-      const selectedBeamsOptions = input_beams.map(beam => beamsOptions.find(option => option.value === beam)).filter(Boolean) as { name: string, value: number }[];
-      const tracks = selectedBeamsOptions.map(beam => tracksOptions.find(track => Number(beam.name.charAt(2)) === track.value)).filter(Boolean).map(track => track!.value);
-      this.setTracks(tracks);
+    setTracksForBeams(input_beams: SrListNumberItem[]) {    
+      const tracks = input_beams
+        .map(beam => tracksOptions.find(track => Number(beam.label.charAt(2)) === track.value))
+        .filter((track): track is SrListNumberItem => track !== undefined);
+        this.setTracks(tracks);
     },
-    setBeamsForTracks(input_tracks: number[]) {
-      const beams = input_tracks.map(track => beamsOptions.find(option => Number(track) === Number(option.name.charAt(2)))).filter(Boolean).map(beam => beam!.value);
+    setBeamsForTracks(input_tracks: SrListNumberItem[]) {
+      const beams = input_tracks
+        .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
+        .filter((beam): beam is SrListNumberItem => beam !== undefined);
       this.setBeams(beams);
     },
     setReqId(req_id: number) {
@@ -243,10 +246,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         func: this.func,
         y: this.yDataForChart,
         x: 'x_atc',
-        beams: this.beams,
+        beams: this.beams.map(beam => beam.value),
         pair: this.pair,
         scOrient: this.scOrient,
-        tracks: this.tracks,
+        tracks: this.tracks.map(track => track.value),
       };
     },
     setUpdateScatterPlot() {

@@ -4,8 +4,6 @@ import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrToggleButton from './SrToggleButton.vue';
-import SrFilterBeams from './SrFilterBeams.vue';
-import SrFilterTracks from './SrFilterTracks.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
@@ -18,6 +16,7 @@ import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
+import { tracksOptions,beamsOptions } from '@/utils/parmUtils';
 
 
 const requestsStore = useRequestsStore();
@@ -192,8 +191,10 @@ const getSize = computed(() => {
             <SrFilterSpots/>
         </div>
         <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
-            <div class="sr-link-sc-orient">
+            <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
+            </div>
+            <div class="sr-link-sc-orient">
                 <p class="sr-scOrient">
                     <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
                     <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
@@ -218,8 +219,22 @@ const getSize = computed(() => {
                 </div>
             </div> 
             <div class="sr-tracks-beams-panel">
-                <SrFilterTracks/>
-                <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
+                <SrListbox id="tracks" 
+                    label="Track(s)" 
+                    v-model="atlChartFilterStore.tracks" 
+                    :getSelectedMenuItem="atlChartFilterStore.getTracks"
+                    :setSelectedMenuItem="atlChartFilterStore.setTracks"
+                    :menuOptions="tracksOptions" 
+                    tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                />
+                <SrListbox id="beams" 
+                    label="Beam(s)" 
+                    v-model="atlChartFilterStore.beams" 
+                    :getSelectedMenuItem="atlChartFilterStore.getBeams"
+                    :setSelectedMenuItem="atlChartFilterStore.setBeams"
+                    :menuOptions="beamsOptions" 
+                    tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                />
             </div>
             <div class="sr-rgts-cycles-panel">
                 <SrListbox id="rgts"
@@ -302,6 +317,12 @@ const getSize = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+    .sr-user-guide-link {
+        display: flex;
+        flex-direction: col;
+        justify-content:center;
         margin-top: 0.5rem;
     }
     .sr-tracks-beams {
