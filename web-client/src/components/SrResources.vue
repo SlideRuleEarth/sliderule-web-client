@@ -75,14 +75,14 @@ const removeResource = (index: number) => {
   flex-direction: column; /* Stack children vertically */
   align-items: center; /* Center vertically */
   margin-top: 0.5rem;
-  border: 1px solid var(--primary-300); /* Border around the container */
-  border-radius: var(--border-radius); /* Rounded corners */
+  border: 1px solid var(--p-primary-300); /* Border around the container */
+  border-radius: var(--p-border-radius); /* Rounded corners */
 }
 .sr-resources-container {
-  border-radius: var(--border-radius); /* Rounded corners */
+  border-radius: var(--p-border-radius); /* Rounded corners */
 }
 .sr-resources-header {
-  color: var(--text-color); /* Text color */
+  color: var(--p-text-color); /* Text color */
 }
 
 </style>

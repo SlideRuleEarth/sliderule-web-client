@@ -2,7 +2,7 @@
     <div class="sr-label-info-icon-button">
         <label :for="labelFor" 
                 :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
-                :title="tooltipText" 
+                v-tooltip="tooltipText"
                 :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }">
             {{ label }}
         </label>
@@ -86,7 +86,7 @@
     padding: 0rem;
     height: 1rem;
     width: 1rem;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
     border-color: transparent;
 }
 :deep(.sr-info-button .pi) {
@@ -95,7 +95,7 @@
     height: 0.75rem;
     width: 0.75rem;
     font-size: smaller;
-    color: var(--primary-300);
+    color: var(--p-primary-300);
 }
 
 </style>

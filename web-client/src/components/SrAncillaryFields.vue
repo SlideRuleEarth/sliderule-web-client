@@ -72,6 +72,6 @@ const props = defineProps<Props>();
     padding: 0rem;
     margin-bottom: 0;
     border: 1px solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
 }
 </style>

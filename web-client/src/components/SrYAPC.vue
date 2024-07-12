@@ -17,9 +17,6 @@ const reqParamsStore = useReqParamsStore();
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" 
           labelFontSize="large"          
-          :min="1"
-          :max="100" 
-          :decimalPlaces="0"
       />
     </div>
     <div class="sr-yapc-version-header">
@@ -86,7 +83,7 @@ const reqParamsStore = useReqParamsStore();
   margin-bottom: 1rem;
   padding: 0.25rem;
   border: 1px solid grey;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 
 .sr-yapc-header {

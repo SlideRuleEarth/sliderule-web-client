@@ -100,14 +100,17 @@ export const useMapStore = defineStore('map', {
     },
     toggleGraticule() {
       this.graticuleState = !this.graticuleState;
-        if (this.graticuleState) {
-          const thisMap = this.map as OLMap;
-          if(thisMap){
-            this.graticule.setMap(thisMap);
-          }
-        } else {
-            this.graticule.setMap(null);
+      this.setGraticuleForMap();
+    },
+    setGraticuleForMap() {
+      if (this.graticuleState) {
+        const thisMap = this.map as OLMap;
+        if(thisMap){
+          this.graticule.setMap(thisMap);
         }
+      } else {
+          this.graticule.setMap(null);
+      }
     },
     setDeckInstance(instance:Deck) {
       this.deckInstance = instance;
@@ -151,8 +154,11 @@ export const useMapStore = defineStore('map', {
     getIsLoading() {
       return this.isLoading;
     },
-    setIsLoading(isLoading: boolean) {
-      this.isLoading = isLoading;
+    setIsLoading() {
+      this.isLoading = true;
+    },
+    resetIsLoading() {
+      this.isLoading = false;
     },
     // async drawElevations() {
     //   if (this.isLoading && !this.isAborting) {

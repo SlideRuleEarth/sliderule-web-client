@@ -51,7 +51,7 @@
   .ol-control.sr-projection-control .select-projection select {
     color: white;
     background-color: black;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
   }
 
   .sr-projection-control .sr-projection-button-box {

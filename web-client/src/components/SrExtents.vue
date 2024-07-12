@@ -116,7 +116,7 @@ const reqParamsStore = useReqParamsStore();
     display: flex;
     flex-direction: column;
     border: 1px solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     align-items: center;
     justify-content: space-between;
     background-color: transparent;
@@ -132,7 +132,7 @@ const reqParamsStore = useReqParamsStore();
     display: flex;
     flex-direction: column;
     border: 1px solid grey;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     margin-bottom: 1rem;
     padding: 0.5rem;
     align-items: center;
@@ -159,7 +159,7 @@ const reqParamsStore = useReqParamsStore();
 
 .sr-pass-invalid-container{
     border: 1px solid grey;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     padding: 0.25rem;
 }
 .sr-pass-invalid-header-container{

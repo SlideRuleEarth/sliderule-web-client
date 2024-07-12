@@ -686,7 +686,7 @@
   background-color: var(--white);
   border-radius: 8px;
   padding: 0.25rem;
-  border: 1px solid var(--primary-color);
+  border: 1px solid var(--p-primary-color);
 }
 
 :deep( .ol-control.ol-layerswitcher ){
@@ -695,21 +695,21 @@
   left: 0.0rem;
   right: auto;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   border: 1px ;
 
 }
 
 :deep( .ol-control.ol-layerswitcher button ){
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 :deep( .ol-control.ol-layerswitcher > button::before ){
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 
 :deep( .ol-control.ol-layerswitcher > button::after ){
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 
 :deep( .panel-container .ol-layerswitcher-buttons ){
@@ -717,36 +717,36 @@
 }
 :deep(.layerup.ol-noscroll){
   border-radius: 3px;
-  background-color: var(--primary-color);
+  background-color: var(--p-primary-color);
 }
 :deep(.ol-control.ol-layerswitcher .panel-container){
-  background-color: var(--primary-100);
-  color: var(--primary-color);
-  border-radius: var(--border-radius);
+  background-color: var(--p-primary-100);
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
 }
 
 /* :deep(.ol-control.ol-layerswitcher .panel-container .ul.panel){
   background-color: red;
   color: red;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 } */
 :deep(.ol-layerswitcher label){
   background-color: transparent;
-  color: var(--primary-color);
+  color: var(--p-primary-color);
   font-weight: bold;
-  font-family: var(--font-family);
-  border-radius: var(--border-radius);
+  font-family: var(--p-font-family);
+  border-radius: var(--p-border-radius);
 } 
 
 :deep(.ol-layerswitcher .panel .li-content > label::before){
   border-radius: 2px;
-  border-color: var(--primary-color);
+  border-color: var(--p-primary-color);
   border-width: 2px;
 } 
 
 /* :deep(.ol-layerswitcher .panel-container .li-content > label::after){
   border-width: 1px;
-  background-color: var(--primary-color);
+  background-color: var(--p-primary-color);
 
 }  */
 :deep(.panel-container.ol-ext-dialog){
@@ -754,10 +754,10 @@
 }
 
 :deep(.ol-ext-dialog .ol-closebox.ol-title){
-  color: var(--text-color);
-  background-color: var(--primary-300);
-  font-family: var(--font-family);
-  border-radius: var(--border-radius);
+  color: var(--p-text-color);
+  background-color: var(--p-primary-300);
+  font-family: var(--p-font-family);
+  border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-geocoder){
@@ -766,14 +766,14 @@
   left: 0.5rem;
   right: auto;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem; 
 }
 
 :deep(.gcd-gl-control){
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 
 :deep( .ol-control.sr-view-control ){
@@ -782,7 +782,7 @@
   left: 0.5rem;
   right: auto;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   max-width: 30rem; 
 }
 
@@ -792,7 +792,7 @@
   right: auto;
   left: 4.5rem;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem; 
 }
@@ -803,13 +803,13 @@
   right: auto;
   left: 23.5rem;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem; 
 }
 :deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
   color: white;
-  background-color: var(--primary-600);
+  background-color: var(--p-primary-600);
 }
 
 :deep( .ol-control.ol-wmscapabilities  ) {
@@ -818,19 +818,19 @@
   left: 0.5rem;
   right: auto;
   background-color: transparent;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   padding: 0.125rem;
   border: 1px ;
 }
 :deep(.ol-wmscapabilities .ol-url button){
   color: white;
-  border-radius: var(--border-radius);
-  background-color: var(--primary-400);
+  border-radius: var(--p-border-radius);
+  background-color: var(--p-primary-400);
 }
 
 :deep(.ol-wmscapabilities .ol-url option){
   color: white;
-  background-color: var(--primary-400);
+  background-color: var(--p-primary-400);
 }
 
 :deep(.ol-zoom){
@@ -838,7 +838,7 @@
   right: 0.5rem; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   margin: auto;
   font-size: 1.25rem;
 }
@@ -848,7 +848,7 @@
   right: 0.55rem; /* right align -- override the default */
   left: auto;  /* Override the default positioning */
   background-color: black;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-mouse-position) {
@@ -857,9 +857,9 @@
   right: auto; /* Reset right positioning */
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
-  color: var(--primary-color);
+  color: var(--p-primary-color);
   background: rgba(255, 255, 255, 0.25);
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
 }
 :deep(.sr-legend-control){
   background: rgba(255, 255, 255, 0.25);
@@ -870,7 +870,7 @@
 
 :deep(.ol-zoom .ol-zoom-in) {
   margin: 2px;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   background-color: black;
   color: var(--ol-font-color);
   font-weight: normal;
@@ -879,7 +879,7 @@
 :deep(.ol-zoom .ol-zoom-out) {
   position: relative;
   margin: 2px;
-  border-radius: var(--border-radius);
+  border-radius: var(--p-border-radius);
   background-color: black;
   color: var(--ol-font-color);
   font-weight: normal;
@@ -899,8 +899,8 @@
   top: 2.25rem;
   right: 1.5rem;
   background-color: transparent;
-  color: var(--primary-color);
-  border-radius: var(--border-radius);
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
   border-color: white;
   padding: 0.0rem;
   margin-top: 6px;

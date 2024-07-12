@@ -47,7 +47,7 @@
   .ol-control.sr-view-control .select-view select {
     color: white;
     background-color: black;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
   }
 
   .sr-view-control .sr-view-button-box {

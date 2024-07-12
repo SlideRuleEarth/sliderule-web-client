@@ -12,6 +12,13 @@ export interface QueryResult {
   readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
 
+export interface QueryChunkResult {
+  length: number;
+  hasMoreData: boolean;
+  schema: { name: string; type: string; databaseType: string }[];
+  readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
+}
+
 // Define the interface for Row
 export interface Row {
   [key: string]: any;
@@ -180,26 +187,94 @@ export class DuckDBClient {
       await conn.close();
     }
   }
-
-  async queryArray(query: string, params?: any): Promise<any[]| undefined> {
+  async getTotalRowCount(query: string): Promise<number> {
     const conn = await this._db!.connect();
-    let tbl: arrow.Table<any>;
-
     try {
-      if (params) {
-        const stmt = await conn.prepare(query);
-        tbl = await stmt.query(...params);
-      } else {
-        tbl = await conn.query(query);
+      const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
+      const result = await conn.query(countQuery);
+      const rows = result.toArray();
+      if (rows.length === 0) {
+        return 0; // Handle case where there are no rows
       }
-      return tbl.toArray();
+      const totalRows = rows[0].total;
+      return totalRows;
     } catch (error) {
-      console.error('queryArray error:', error);
+      console.error('Error getting total row count:', error);
       throw error;
     } finally {
       await conn.close();
     }
   }
+  
+
+    // Method to execute paginated queries
+  async queryChunk(query: string, chunkSize: number = 50000, offset: number = 0, params?: any): Promise<QueryChunkResult> {
+    const conn = await this._db!.connect();
+    let tbl: arrow.Table<any>;
+    //console.log('queryChunk query:',query,' chunkSize:',chunkSize,' offset:',offset,' params:',params);
+    try {
+      // Get the total number of rows for the query if this is the first chunk
+      let totalRows = null;
+      if(offset === 0){
+        totalRows =await this.getTotalRowCount(query);
+        console.warn('queryChunk totalRows:',totalRows);
+      }
+      const paginatedQuery = `${query} LIMIT ${chunkSize} OFFSET ${offset}`;
+      if (params) {
+        const stmt = await conn.prepare(paginatedQuery);
+        console.log('queryChunk stmt:',stmt);
+        tbl = await stmt.query(...params);
+      } else {
+        console.log('queryChunk conn.query:',paginatedQuery);
+        tbl = await conn.query(paginatedQuery);
+      }
+
+      const rows = tbl.toArray().map((r) => Object.fromEntries(r));
+      const schema = tbl.schema.fields.map(({ name, type }) => ({
+        name,
+        type: getType(String(type)),
+        databaseType: String(type),
+      }));
+      const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
+      console.log('queryChunk hasMoreData:',hasMoreData,'totalRows:',totalRows,' rows.length:',rows.length,' chunkSize:',chunkSize,' tbl.numRows:',tbl.numRows);
+
+      return {
+        length: rows.length,
+        hasMoreData,
+        schema,
+        async *readRows() {
+          for (let i = 0; i < rows.length; i += chunkSize) {
+            yield rows.slice(i, i + chunkSize);
+          }
+        },
+      };
+    } catch (error) {
+      console.error('Query execution error:', error);
+      throw error;
+    } finally {
+      await conn.close();
+    }
+  }
+
+  // async queryArray(query: string, params?: any): Promise<any[]| undefined> {
+  //   const conn = await this._db!.connect();
+  //   let tbl: arrow.Table<any>;
+
+  //   try {
+  //     if (params) {
+  //       const stmt = await conn.prepare(query);
+  //       tbl = await stmt.query(...params);
+  //     } else {
+  //       tbl = await conn.query(query);
+  //     }
+  //     return tbl.toArray();
+  //   } catch (error) {
+  //     console.error('queryArray error:', error);
+  //     throw error;
+  //   } finally {
+  //     await conn.close();
+  //   }
+  // }
 
   // Method for constructing query templates
   queryTag(strings: TemplateStringsArray, ...params: any[]) {
@@ -303,6 +378,6 @@ export class DuckDBClient {
 
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
-  console.log('createDuckDbClient');
+  //console.log('createDuckDbClient');
   return DuckDBClient.getInstance();
 }

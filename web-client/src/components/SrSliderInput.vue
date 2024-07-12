@@ -124,7 +124,8 @@
                 return '';
             } else {
                 // Otherwise, return the formatted number
-                return innerValue.value.toFixed(props.decimalPlaces);
+                //return innerValue.value.toFixed(props.decimalPlaces);
+                return innerValue.value.toFixed(props.decimalPlaces).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
         },
         set: (val) => {
@@ -138,6 +139,13 @@
                 // Handle non-numeric input - reset to the last valid value
                 numericValue = innerValue.value;
             } else {
+                if(numericValue > props.max) {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be less than or equal to ' + props.max,  life: srToastStore.getLife()});
+                    numericValue = innerValue.value;
+                } else if (numericValue < props.min) {
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be greater than or equal to ' + props.min,  life: srToastStore.getLife()});
+                    numericValue = innerValue.value;
+                }
                 //console.log('Good numericValue:',numericValue)
                 // Round to the allowed number of decimal places
                 numericValue = parseFloat(numericValue.toFixed(props.decimalPlaces));
@@ -168,7 +176,7 @@
 <style scoped>
 .sr-slider-input-wrapper {
     border: 1px solid transparent;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     margin: 0.25rem;
 }
 .sr-slider-col {
@@ -196,7 +204,7 @@
 }
 
 .sr-slider-input-text {
-    width: 5em; /* Adjust as needed for 5 digits */
+    width: 6em; /* Adjust as needed for 6 digits */
     text-align: right;
     padding: 0.25rem;
     font-size: small;
@@ -204,19 +212,18 @@
     border-color: transparent;
 }
 
-:deep(.p-slider .p-slider-handle) {
-    width: 0.52rem; 
-    height: 0.52rem;
-    border-radius: 50%; 
-} 
+/* :deep(.p-slider .p-slider-handle) {
+    width: 12px; 
+    height: 12px;
+}  */
 
-:deep(.p-slider.p-slider-horizontal) {
+/* :deep(.p-slider.p-slider-horizontal) {
     height: 0.2rem;
-}
+} */
 
-:deep(.p-slider.p-slider-horizontal .p-slider-handle) {
+/* :deep(.p-slider.p-slider-horizontal .p-slider-handle) {
     margin-top: -0.25rem;
     margin-left: -0.25rem;
-}
+} */
 
 </style>

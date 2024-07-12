@@ -24,7 +24,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     try {
         const filename = await indexedDb.getFilename(req_id);
         const summary = await indexedDb.getWorkerSummary(req_id);
-        console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
+        //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
 
         if (summary) {
             return summary;
@@ -35,7 +35,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
             try {
                 await duckDbClient.insertOpfsParquet(filename);
-                console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
+                //console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
 
                 const results = await duckDbClient.query(`
                     SELECT
@@ -95,13 +95,13 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     }
 }
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
-    console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
+    //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.log('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
+            //console.log('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
             removeCurrentDeckLayer();
             return;
         }
@@ -124,37 +124,54 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
             await duckDbClient.insertOpfsParquet(filename);
 
             // Step 4: Execute a SQL query to retrieve the elevation data
-            console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
+            //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
-            // Execute the query
-            const results = await duckDbClient.query(`SELECT * FROM '${filename}'`);
-            console.log(`duckDbReadAndUpdateElevationData for ${req_id} POST Query took ${performance.now() - startTime} milliseconds.`);
-
-            // Read and process each chunk from the QueryResult
+            // Calculate the offset for the query
+            let offset = 0;
+            let hasMoreData = true;
             let numDataItems = 0;
             const rowChunks: ElevationDataItem[] = [];
 
-            for await (const rowChunk of results.readRows()) {
-                console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
-                if (rowChunk.length > 0) {
-                    if (numDataItems === 0) {
-                        // Assuming we only need to set field names once, during the first chunk processing
-                        const fieldNames = Object.keys(rowChunk[0]);
-                        console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
-                        await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+            while (hasMoreData) {
+                try{
+                    // Execute the query
+                    const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
+                    //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
+                    for await (const rowChunk of result.readRows()) {
+                        //console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
+                        if (rowChunk.length > 0) {
+                            if (numDataItems === 0) {
+                                // Assuming we only need to set field names once, during the first chunk processing
+                                const fieldNames = Object.keys(rowChunk[0]);
+                                //console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
+                                await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
+                            }
+                            numDataItems += rowChunk.length;
+                            rowChunks.push(...rowChunk);
+                            // Read and process each chunk from the QueryResult
+                            //console.log('duckDbReadAndUpdateElevationData rowChunks:', rowChunks);
+                            //updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
+                        }
                     }
-                    numDataItems += rowChunk.length;
-                    rowChunks.push(...rowChunk);
-                    //console.log('duckDbReadAndUpdateElevationData rowChunks:', rowChunks);
-                    updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
+
+                    if (numDataItems === 0) {
+                        console.warn('duckDbReadAndUpdateElevationData no data items processed');
+                    } else {
+                        //console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
+                    }
+                    hasMoreData = result.hasMoreData;
+                    if(numDataItems >= maxNumPnts){
+                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' SKIPPING rest of file!');
+                        hasMoreData = false;
+                    }
+                    offset += chunkSize;
+                } catch (error) {
+                    console.error('duckDbReadAndUpdateElevationData error processing chunk:', error);
+                    hasMoreData = false;
+                    throw error;
                 }
             }
-
-            if (numDataItems === 0) {
-                console.warn('duckDbReadAndUpdateElevationData no data items processed');
-            } else {
-                console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
-            }
+            updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
@@ -163,13 +180,14 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
+        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
     }
 };
 
 export async function duckDbLoadOpfsParquetFile(fileName: string) {
+    const startTime = performance.now(); // Start time
     try{
-        console.log('duckDbLoadOpfsParquetFile');
+        //console.log('duckDbLoadOpfsParquetFile');
         const duckDbClient = await createDuckDbClient();
 
         await duckDbClient.insertOpfsParquet(fileName);
@@ -177,7 +195,10 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
-    }
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
+    }   
 }
 
 export interface SrScatterChartData { value: number[] };
@@ -194,10 +215,14 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 ${x}, 
                 ${yColumns}
             FROM '${fileName}'
-            WHERE pair = ${pair} AND sc_orient = ${scOrient} AND rgt = ${rgt} AND cycle = ${cycle}
+            WHERE track IN (${tracks.join(", ")}) 
+            AND pair = ${pair} 
+            AND sc_orient = ${scOrient} 
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl03QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -251,8 +276,95 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
     }
 }
 
+export async function getRgts(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const rgts = [] as number[];
+    try{
+        const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getRgt row:', row);
+                    rgts.push(row.rgt);
+                } else {
+                    console.warn('getRgts fetchData rowData is null');
+                }
+            }
+        } 
+        useAtlChartFilterStore().setRgtOptionsWithNumbers(rgts);   
+    } catch (error) {
+        console.error('getRgt Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getRgts() took ${endTime - startTime} milliseconds.`);
+    }
+    return rgts;
+}
 
+export async function getPairs(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const pairs = [] as number[];
+    try{
+        const query = `SELECT DISTINCT pair FROM '${fileName}' order by pair ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getPairs row:', row);
+                    pairs.push(row.pair);
+                } else {
+                    console.warn('getPairs fetchData rowData is null');
+                }
+            }
+        } 
+        console.log('getPairs pairs:', pairs);
+    } catch (error) {
+        console.error('getPairs Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
+    }
+    return pairs;
+}
+
+export async function getCycles(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const cycles = [] as number[];
+    try{
+        const query = `SELECT DISTINCT cycle FROM '${fileName}' order by cycle ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getCycle row:', row);
+                    cycles.push(row.cycle);
+                } else {
+                    console.warn('getCycles fetchData rowData is null');
+                }
+            }
+        } 
+        useAtlChartFilterStore().setCycleOptionsWithNumbers(cycles);   
+    } catch (error) {
+        console.error('getCycles Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getCycles() took ${endTime - startTime} milliseconds.`);
+    }
+    return cycles;
+}
 async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+    const startTime = performance.now(); // Start time
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -266,8 +378,8 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl06QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl06QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -293,9 +405,9 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        console.log('fetchAtl06ScatterData query2:', query2);
+        //console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-        console.log('fetchAtl06ScatterData queryResult2:', queryResult2);
+        //console.log('fetchAtl06ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -309,11 +421,14 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
                 }
             }
         }
-        console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchData Error fetching data:', error);
         return { chartData: {}, minMaxValues: {} };
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`fetchAtl06ScatterData took ${endTime - startTime} milliseconds.`);
     }
 }
 interface SrScatterSeriesData{
@@ -321,6 +436,9 @@ interface SrScatterSeriesData{
         name: string;
         type: string;
         data: number[][];
+        large: boolean;
+        largeThreshold: number;
+        animation: boolean;
         yAxisIndex: number;
     };
     min: number;
@@ -328,100 +446,132 @@ interface SrScatterSeriesData{
 };
 
 async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOrient: number,pair: number, rgt: number, cycle: number, tracks:number[]): Promise<SrScatterSeriesData[]>{
-    console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' scOrient:', scOrient, ' pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
-    const name = 'Atl03';
-    const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
-    if (chartData) {
-        return y.map(yName => ({
-            name: `${name} - ${yName}`,
-            type: 'scatter',
-            data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
-            yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
-        })).map((series, index) => ({
-            series,
-            min: minMaxValues[y[index]].min,
-            max: minMaxValues[y[index]].max
-        }));
+    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' scOrient:', scOrient, ' pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
+    const startTime = performance.now(); // Start time
+    let yItems=[] as SrScatterSeriesData[];
+    try{
+        const name = 'Atl03';
+        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
+        if (chartData) {
+            yItems = y.map(yName => ({
+                name: `${name} - ${yName}`,
+                type: 'scatter',
+                data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+                large: true,
+                largeThreshold: 100000,
+                animation: false,
+                yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+            })).map((series, index) => ({
+                series,
+                min: minMaxValues[y[index]].min,
+                max: minMaxValues[y[index]].max
+            }));
+        }
+    } catch (error) {
+        console.error('getSeriesForAtl03 Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesForAtl03 took ${endTime - startTime} milliseconds.`);
     }
-    return [];
+    return yItems;
 }
 
 async function getSeriesForAtl06( fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number): Promise<SrScatterSeriesData[]> {
-    console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
-    const name = 'Atl06';
-    const { chartData, minMaxValues } = await fetchAtl06ScatterData(fileName, x, y, beams, rgt, cycle);
-    if (chartData) {
-        return y.map(yName => ({
-            name: `${name} - ${yName}`,
-            type: 'scatter',
-            data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
-            yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
-        })).map((series, index) => ({
-            series,
-            min: minMaxValues[y[index]].min,
-            max: minMaxValues[y[index]].max
-        }));
+    //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
+    const startTime = performance.now();
+    const yItems=[] as SrScatterSeriesData[];
+    try{
+        const name = 'Atl06';
+        const { chartData, minMaxValues } = await fetchAtl06ScatterData(fileName, x, y, beams, rgt, cycle);
+        if (chartData) {
+            return y.map(yName => ({
+                name: `${name} - ${yName}`,
+                type: 'scatter',
+                data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+                large: true,
+                largeThreshold: 100000,
+                animation: false,
+                yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+            })).map((series, index) => ({
+                series,
+                min: minMaxValues[y[index]].min,
+                max: minMaxValues[y[index]].max
+            }));
+        }
+    } catch (error) {
+        console.error('getSeriesForAtl06 Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesForAtl06 took ${endTime - startTime} milliseconds.`);
     }
-    return [];
+
+    return yItems;
 }
 
 export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any> {
     const startTime = performance.now(); // Start time
-    console.log('getScatterOptions sop:', sop);
+    //console.log('getScatterOptions sop:', sop);
     let options = null;
-    let seriesData = [] as SrScatterSeriesData[];
-    if(sop.fileName){
-        if(sop.func === 'atl06'){
-            if(sop.beams?.length && sop.rgt && sop.cycle){
-                console.log('getScatterOptions atl06 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
-                seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y, sop.beams, sop.rgt, sop.cycle);
+    try{
+        let seriesData = [] as SrScatterSeriesData[];
+        if(sop.fileName){
+            if(sop.func === 'atl06'){
+                if(sop.beams?.length && sop.rgt && sop.cycle){
+                    //console.log('getScatterOptions atl06 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+                    seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y, sop.beams, sop.rgt, sop.cycle);
+                } else {
+                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+                }
+            } else if(sop.func === 'atl03'){
+                //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgt >=0 ) && (sop.cycle>=0) && (sop.tracks != undefined) && sop.tracks.length>0){
+                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
+                } else {
+                    console.error('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                }
             } else {
-                console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
-            }
-        } else if(sop.func === 'atl03'){
-            console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
-            if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgt >=0 ) && (sop.cycle>=0) && (sop.tracks != undefined) && sop.tracks.length>0){
-                seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
-            } else {
-                console.error('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                console.error('getScatterOptions invalid func:', sop.func);
             }
         } else {
-            console.error('getScatterOptions invalid func:', sop.func);
+            console.warn('getScatterOptions fileName is null');
         }
-    } else {
-        console.warn('getScatterOptions fileName is null');
+        options = {
+            title: {
+                text: sop.func,
+                left: "center"
+            },
+            tooltip: {
+                trigger: "item",
+                formatter: "({c})"
+            },
+            legend: {
+                data: seriesData.map(series => series.series.name),
+                left: 'left'
+            },
+            notMerge: true,
+            lazyUpdate: true,
+            xAxis: {
+                min: useAtlChartFilterStore().getMinX(),
+                max: useAtlChartFilterStore().getMaxX()
+            },
+            yAxis: seriesData.map((series, index) => ({
+                type: 'value',
+                name: sop.y[index],
+                min: seriesData[index].min,
+                max: seriesData[index].max,
+                scale: true,  // Add this to ensure the axis scales correctly
+                axisLabel: {
+                    formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
+                }
+            })),
+            series: seriesData.map(series => series.series)
+        };
+        //console.log('getScatterOptions options:', options);
+    } catch (error) {
+        console.error('getScatterOptions Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getScatterOptions atl03 fileName:${sop.fileName} took ${endTime - startTime} milliseconds.`);
     }
-    options = {
-        title: {
-            text: sop.func,
-            left: "center"
-        },
-        tooltip: {
-            trigger: "item",
-            formatter: "({c})"
-        },
-        legend: {
-            data: seriesData.map(series => series.series.name),
-            left: 'left'
-        },
-        xAxis: {
-            min: useAtlChartFilterStore().getMinX(),
-            max: useAtlChartFilterStore().getMaxX()
-        },
-        yAxis: seriesData.map((series, index) => ({
-            type: 'value',
-            name: sop.y[index],
-            min: seriesData[index].min,
-            max: seriesData[index].max,
-            scale: true,  // Add this to ensure the axis scales correctly
-            axisLabel: {
-                formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
-            }
-        })),
-        series: seriesData.map(series => series.series)
-    };
-    //console.log('getScatterOptions options:', options);
-    const endTime = performance.now(); // End time
-    console.log(`getScatterOptions took ${endTime - startTime} milliseconds.`);
   return options;
 }

@@ -1,6 +1,36 @@
 <script setup lang="ts">
     import Button from 'primevue/button';
+    import Menu from 'primevue/menu';
+    import { ref } from 'vue';
 
+    const menu = ref<InstanceType<typeof Menu> | null>(null);
+
+    const docMenuItems = [
+        {
+            label: 'Documentation',
+            icon: 'pi pi-book',
+            items: [
+            {
+                    label: 'ATLAS/ICESat-2 Photon Data User Guide',
+                    icon: 'pi pi-book',
+                    command: () => {
+                        window.open('https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf');
+                    }
+                },
+                {
+                    label: 'Algorithm Theoretical Basis Document Atl03',
+                    icon: 'pi pi-book',
+                    command: () => {
+                        window.open('https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf');
+                    }
+                },
+            ]
+        }
+    ];
+
+    const toggleMenu = (event: Event) => {
+        menu.value?.toggle(event);
+    };
 
     const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','record-button-click', 'analysis-button-click', 'about-button-click']);
 
@@ -29,6 +59,8 @@
 <template>
     <div class="container">
         <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
+        <Menu :model="docMenuItems" popup ref="menu" />
+        <Button icon="pi pi-bars" class="p-button-rounded p-button-text" @click="toggleMenu"></Button>
         <div class="under-construction-banner">
             <p class="under-construction-text">This website is under construction</p>
         </div>

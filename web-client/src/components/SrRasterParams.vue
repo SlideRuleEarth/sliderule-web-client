@@ -120,7 +120,7 @@
     align-items: center;
     margin: 0.125rem;
     padding: 0.125rem;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     border: 2px solid var(--surface-d);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
@@ -138,7 +138,7 @@
     align-items: center;
     margin: 0.5rem;
     padding: 0.5rem;
-    border-radius: var(--border-radius);
+    border-radius: var(--p-border-radius);
     border: 1px solid var(--surface-d);
 }
 .sr-add-raster-params-btn {

@@ -1,13 +1,13 @@
 <template>
     <div class="sr-calendar">
         <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <Calendar v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
+        <DatePicker v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
     </div>
 </template>
 
 <script setup lang="ts">
 import {ref} from 'vue';
-import Calendar from 'primevue/calendar';
+import DatePicker from 'primevue/datepicker';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 const props = defineProps({

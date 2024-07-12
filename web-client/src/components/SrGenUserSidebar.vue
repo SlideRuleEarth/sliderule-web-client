@@ -4,22 +4,20 @@
     import { onMounted } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
-    import  SrGraticuleSelect  from "@/components/SrGraticuleSelect.vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import ProgressBar from 'primevue/progressbar';
     import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
     import { processAbortClicked } from  "@/utils/workerDomUtils";    
+    import SrGraticuleSelect from './SrGraticuleSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
     
 
-    const graticuleClick = () => {
-        mapStore.toggleGraticule();
-    }
+
  
     onMounted(async () => {
         console.log('SrGenUserSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
@@ -53,7 +51,7 @@
                     <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
                 </div>  
             </div>
-            <SrGraticuleSelect @graticule-click="graticuleClick"/>
+            <SrGraticuleSelect/>
         </div>  
     </div>
 </template>

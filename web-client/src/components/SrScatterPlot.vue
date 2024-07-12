@@ -10,10 +10,11 @@
         :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
       />  
     </div>
-    <div v-if="isLoading" class="loading-indicator">Loading...</div>
+    <div v-if="computedIsLoading" class="loading-indicator">Loading...</div>
     <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
+    <SrSqlStmnt />
   </div>
-  <v-chart class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="isLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
+  <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="computedIsLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
 </template>
 
 <script setup lang="ts">
@@ -22,11 +23,12 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch, onMounted, ref, nextTick } from "vue";
+import { shallowRef, provide, watch, onMounted, ref, nextTick, computed } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
+import SrSqlStmnt from "./SrSqlStmnt.vue";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 
@@ -38,25 +40,35 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 
 const option = shallowRef();
-const isLoading = ref(false);
 const has_error = ref(false) as { value: boolean };
+const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
+const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
   const y_options = atlChartFilterStore.yDataForChart;
   if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-    isLoading.value = true;
     has_error.value = false;
-    await nextTick(); // Wait for the DOM to update
-    console.log('fetchScatterOptions started...')
+    //await nextTick(); // Wait for the DOM to update
     const startTime = performance.now(); // Start time
+    console.log('fetchScatterOptions started... startTime:',startTime)
     try {
       const req_id = atlChartFilterStore.getReqId();
       const func = await indexedDb.getFunc(req_id);
       atlChartFilterStore.setFunc(func);
-      const scatterOptions = await getScatterOptions(atlChartFilterStore.getScatterOptionsParms());
+      const sop = atlChartFilterStore.getScatterOptionsParms();
+      console.log('fetchScatterOptions sop:',sop);
+      const scatterOptions = await getScatterOptions(sop);
       console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
       if (scatterOptions) {
-        option.value = scatterOptions;
+        if(plotRef.value){
+          if(plotRef.value.chart){
+            plotRef.value.chart.setOption(scatterOptions);
+          } else {
+            console.warn('plotRef.chart is undefined');
+          }
+        } else {
+          console.warn('plotRef is undefined');
+        }
       } else {
         console.warn('Failed to get scatter options');
         has_error.value = true;
@@ -65,9 +77,9 @@ const fetchScatterOptions = async () => {
       console.error('Error fetching scatter options:', error);
       has_error.value = true;
     } finally {
-      isLoading.value = false;
-      atlChartFilterStore.resetUpdateScatterPlot();
-      console.log(`fetchScatterOptions took ${performance.now() - startTime} milliseconds.`);
+      atlChartFilterStore.resetIsLoading();
+      const now = performance.now();
+      console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
     }
   } else {
     console.warn('No y options selected');
@@ -77,18 +89,33 @@ const fetchScatterOptions = async () => {
 onMounted(async () => {
   const reqId = curReqSumStore.getReqId();
   if (reqId > 0) {
-    await fetchScatterOptions();
+    debouncedFetchScatterOptions();
   } else {
     console.warn('reqId is undefined');
   }
 });
+
+function clearPlot() {
+  if (plotRef.value) {
+    if(plotRef.value.chart){
+      plotRef.value.chart.clear();
+    } else {
+      console.warn('plotRef.value.chart is undefined');
+    }
+  } else {
+    console.warn('plotRef.value is undefined');
+  }
+}
+
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-watch(() => atlChartFilterStore.getUpdateScatterPlot(), async (newState) => {
+watch(() => atlChartFilterStore.clearPlot, async (newState) => {
   if (newState === true) {
-    debouncedFetchScatterOptions();
+    clearPlot();
+    atlChartFilterStore.resetClearPlot();
   }
 }, { deep: true });
+
 
 async function changedYValues() {
   debouncedFetchScatterOptions();
@@ -96,7 +123,8 @@ async function changedYValues() {
 
 watch(() => curReqSumStore.getReqId(), async (newReqId) => {
   if (newReqId && (newReqId > 0)) {
-    debouncedFetchScatterOptions();
+    clearPlot();
+    fetchScatterOptions();
   }
 });
 

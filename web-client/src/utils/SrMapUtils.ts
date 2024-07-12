@@ -17,8 +17,9 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { readAndUpdateElevationData } from '@/utils/SrParquetUtils';
-
+import { processFileForReq } from '@/utils/SrParquetUtils';
+import { getScOrientFromSpotGt } from '@/utils/parmUtils';
+import { getSpotNumber,getGroundTrack } from './spotUtils';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -157,17 +158,15 @@ export interface ElevationDataItem {
 
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
-    useReqParamsStore().setRgt(d.rgt);
-    useAtlChartFilterStore().setRgt(d.rgt);
-    useReqParamsStore().setCycle(d.cycle);
-    useAtlChartFilterStore().setCycle(d.cycle);
-    console.log('d:',d,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    useAtlChartFilterStore().setClearPlot();
+    useAtlChartFilterStore().setIsLoading();
+    useMapStore().setIsLoading();
+    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
-        useReqParamsStore().setTracks([d.track]);
-        useAtlChartFilterStore().setTracks([d.track]);
+        useAtlChartFilterStore().setTrackWithNumber(d.track);
+        useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
-        useReqParamsStore().setBeamsAndTracksWithGt(d.gt); // use spot to determine track and beam
         useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
     }
     if(d.sc_orient !== undefined){
@@ -176,20 +175,43 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     if(d.pair !== undefined){
         useAtlChartFilterStore().setPair(d.pair);
     }
-    await readAndUpdateElevationData(useCurReqSumStore().getReqId());
+    if(d.spot !== undefined){
+        useAtlChartFilterStore().setSpotWithNumber(d.spot);
+    }
+    if((d.gt !== undefined) && (d.spot !== undefined)){
+        useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
+    }
+    if(d.rgt !== undefined){
+        useReqParamsStore().setRgt(d.rgt);
+        useAtlChartFilterStore().setRgtWithNumber(d.rgt);
+    } else {
+        console.error('d.rgt is undefined'); // should always be defined
+    }
+    if(d.cycle !== undefined){
+        useReqParamsStore().setCycle(d.cycle);
+        useAtlChartFilterStore().setCycleWithNumber(d.cycle);
+    } else {
+        console.error('d.cycle is undefined'); // should always be defined
+    }
+    if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+        useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+        useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+    }
+    await processFileForReq(useCurReqSumStore().getReqId());
+    useMapStore().resetIsLoading();
     useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
     let matched = false;
     if(d.gt){ // atl06
-        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
-                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
-                    (useAtlChartFilterStore().getBeams().includes(d.gt)));
+        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
+                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
+                    (useAtlChartFilterStore().getBeamValues()[0]== d.gt));
     } else {
-        matched = ( (useAtlChartFilterStore().getRgt() == d.rgt) && 
-                    (useAtlChartFilterStore().getCycle() == d.cycle) && 
-                    (useAtlChartFilterStore().getTracks().includes(d.track)) && 
+        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
+                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
+                    (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
                     (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
                     (useAtlChartFilterStore().getPair() == d.pair));
     }
@@ -198,7 +220,7 @@ function checkFilter(d:ElevationDataItem): boolean {
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     const startTime = performance.now(); // Start time
-
+    console.log('updateElLayerWithObject startTime:',startTime);
     try{
         //const canvas = document.querySelector('canvas');
         //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
@@ -247,7 +269,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
         console.error('Error updating elevation layer:',error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds.`);
+        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
     }
 
 }

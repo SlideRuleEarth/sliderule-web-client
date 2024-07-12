@@ -1,15 +1,17 @@
-import 'primevue/resources/themes/lara-dark-blue/theme.css'
-import 'primevue/resources/primevue.min.css'; // core css
+//import 'primevue/resources/themes/lara-dark-blue/theme.css'
+//import 'primevue/resources/primevue.min.css'; // core css
+import './assets/app.css'
+import Lara from '@primevue/themes/lara';
 import 'primeicons/primeicons.css'
+import 'primeflex/primeflex.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
+import { definePreset } from '@primevue/themes';
 import Tooltip from 'primevue/tooltip';
 
 import Menubar from 'primevue/menubar';
-import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
 import ToastService from 'primevue/toastservice';
 import Toast from 'primevue/toast';
 import Ripple from 'primevue/ripple';
@@ -20,7 +22,27 @@ import StyleClass from 'primevue/styleclass';
 import ConfirmationService from 'primevue/confirmationservice';
 import OpenLayersMap, {
     type Vue3OpenlayersGlobalOptions,
-  } from "vue3-openlayers";
+} from "vue3-openlayers";
+
+const SrPreset = definePreset(Lara, {
+  semantic: {
+      primary: {
+          50: '{blue.50}',
+          100: '{blue.100}',
+          200: '{blue.200}',
+          300: '{blue.300}',
+          400: '{blue.400}',
+          500: '{blue.500}',
+          600: '{blue.600}',
+          700: '{blue.700}',
+          800: '{blue.800}',
+          900: '{blue.900}',
+          950: '{blue.950}'
+      },
+      borderRadius: '0.25rem',
+      fontFamily: '"Roboto", sans-serif;'
+  }
+});
 
 export const app = createApp(App)
 app.config.errorHandler = (err, vm, info) => {
@@ -40,6 +62,15 @@ app.use(pinia);
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 app.use(PrimeVue, {
+    theme: {
+      preset: SrPreset,
+      //preset: Lara,
+      options: {
+        prefix: 'p',
+        darkModeSelector: 'system',
+        cssLayer: false
+      }
+    },
     csp: {
         nonce: 'nonce-SR-test-nonce'
     }
@@ -51,8 +82,6 @@ app.component('SrToast', Toast);
 app.use(router)
 app.directive('tooltip', Tooltip);
 app.component('menu-bar', Menubar)
-app.component('accordion-bar', Accordion)
-app.component('accordion-tab', AccordionTab)
 app.mount('#app')
 console.log("Vue mode:",process.env.NODE_ENV);
 console.log("BASE_URL:",import.meta.env.BASE_URL); // Outputs the base URL of the app
