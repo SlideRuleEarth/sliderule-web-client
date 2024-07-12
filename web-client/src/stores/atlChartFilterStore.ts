@@ -164,6 +164,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       this.setBeams(beams);
       console.log('atlChartFilterStore.setBeamsForTracks(',input_tracks,') beams:', beams);
     },
+    setBeamWithNumber(beam: number) {
+      this.setBeams([{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
+    },
     setReqId(req_id: number) {
       this.currentReqId = req_id;
     },

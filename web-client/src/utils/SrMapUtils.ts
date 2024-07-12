@@ -19,6 +19,7 @@ import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { processFileForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
+import { getSpotNumber,getGroundTrack } from './spotUtils';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -191,6 +192,10 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setCycleWithNumber(d.cycle);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
+    }
+    if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+        useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+        useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
     }
     await processFileForReq(useCurReqSumStore().getReqId());
     useMapStore().resetIsLoading();
