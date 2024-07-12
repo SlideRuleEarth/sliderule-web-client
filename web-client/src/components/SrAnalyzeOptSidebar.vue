@@ -18,8 +18,6 @@ import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
-import MultiSelect from 'primevue/multiselect';
-import FloatLabel from 'primevue/floatlabel';
 
 
 const requestsStore = useRequestsStore();
@@ -36,7 +34,6 @@ const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
-const selectedRgt = ref<number[]>([]);
 
 onMounted(async() => {
     try {
@@ -192,7 +189,8 @@ const getSize = computed(() => {
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />
 
-            <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
+        </div>
+        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
                 <div class="sr-tracks-beams-scorient-panel">
                     <p class="sr-scOrient">
                         <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
@@ -220,7 +218,6 @@ const getSize = computed(() => {
                     />
                 </div>
         </FieldSet>
-        </div>
     </div>
 </template>
 <style scoped>
@@ -299,7 +296,7 @@ const getSize = computed(() => {
     }
     .sr-analyze-filters {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         justify-content: space-evenly;
         margin-top: 0.5rem;
     }

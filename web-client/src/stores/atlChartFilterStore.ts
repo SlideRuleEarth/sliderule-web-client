@@ -4,8 +4,6 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
-import type { SrMenuItem } from '@/components/SrMenuInput.vue';
-import { set } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -41,6 +39,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isLoading: false as boolean,
     clearPlot: false as boolean,
     chartDataRef: ref<number[][]>([]),
+    atl03QuerySql: '' as string,
+    atl06QuerySql: '' as string,  
+    atl08QuerySql: '' as string,
   }),
 
   actions: {
@@ -270,5 +271,35 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getClearPlot() {
       return this.clearPlot;
     },
+    setAtl03QuerySql(sql: string) {
+      this.atl03QuerySql = sql;
+    },
+    getAtl03QuerySql() {
+      return this.atl03QuerySql;
+    },
+    setAtl06QuerySql(sql: string) {
+      this.atl06QuerySql = sql;
+    },
+    getAtl06QuerySql() {
+      return this.atl06QuerySql;
+    },
+    setAtl08QuerySql(sql: string) {
+      this.atl08QuerySql = sql;
+    },
+    getAtl08QuerySql() {
+      return this.atl08QuerySql;
+    },
+    getSqlStmnt(func: string) {
+      switch (func) {
+        case 'atl03':
+          return this.atl03QuerySql;
+        case 'atl06':
+          return this.atl06QuerySql;
+        case 'atl08':
+          return this.atl08QuerySql;
+        default:
+          return '';
+      }
+    }
   },
 });

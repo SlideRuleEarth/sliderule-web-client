@@ -218,8 +218,8 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             FROM '${fileName}'
             WHERE pair = ${pair} AND sc_orient = ${scOrient} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl03QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -346,8 +346,8 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl06QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl06QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
