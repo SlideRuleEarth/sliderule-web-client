@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import Button from 'primevue/button';
     import Menu from 'primevue/menu';
-    import { ref, defineEmits } from 'vue';
+    import { ref } from 'vue';
 
     const menu = ref<InstanceType<typeof Menu> | null>(null);
 

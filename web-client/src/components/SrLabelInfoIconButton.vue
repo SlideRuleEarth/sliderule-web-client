@@ -2,7 +2,7 @@
     <div class="sr-label-info-icon-button">
         <label :for="labelFor" 
                 :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
-                :title="tooltipText" 
+                v-tooltip="tooltipText"
                 :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }">
             {{ label }}
         </label>

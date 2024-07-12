@@ -18,7 +18,6 @@ import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
-import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 
 const requestsStore = useRequestsStore();
@@ -46,7 +45,7 @@ weak beams lead the strong beams and a weak beam is on the left edge of the beam
 the backward orientation, ATLAS travels along the -x coordinate, in the instrument reference frame, \
 with the strong beams leading the weak beams and a strong beam on the left edge of the beam \
 pattern."
-
+const spotPatternBriefStr = "fields related to spots and beams patterns";
 const props = defineProps({
     startingReqId: Number,
 });
@@ -191,55 +190,54 @@ const getSize = computed(() => {
         </div>
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
-            <SrListbox 
-                label="Rgt(s)" 
-                v-model="atlChartFilterStore.rgts" 
-                :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                :menuOptions="atlChartFilterStore.getRgtOptions()" 
-                tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-vector within the observatory is pointed" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-            />
-            <SrListbox id="cycles" 
-                label="Cycle(s)" 
-                v-model="atlChartFilterStore.cycles"
-                :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                :menuOptions="atlChartFilterStore.getCycleOptions()" 
-                tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-            />
-
         </div>
-        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
-            <div class="sr-link">
-                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
-            </div>
-            <div class="sr-tracks-beams-scorient-panel">
+        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
+            <div class="sr-link-sc-orient">
+                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
                 <p class="sr-scOrient">
                     <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
                     <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
                 </p>
+                <div class="sr-pair-sc-orient">
+                    <SrToggleButton 
+                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                        v-model="computedScOrient" 
+                        :value="useAtlChartFilterStore().scOrient==1" 
+                        label="SC orientation" 
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                    />
+                    <SrToggleButton 
+                        v-if="atlChartFilterStore.getFunc().includes('atl03')" 
+                        v-model="computedPair"  
+                        :value="useAtlChartFilterStore().pair==1" 
+                        label="Pair" 
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        tooltipText="There are three beam pairs"
+                    />
+                </div>
+            </div> 
+            <div class="sr-tracks-beams-panel">
                 <SrFilterTracks/>
                 <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
             </div>
-            <div class="sr-pair-sc-orient">
-                <SrToggleButton 
-                    v-if="atlChartFilterStore.getFunc().includes('atl03')"
-                    v-model="computedScOrient" 
-                    :value="useAtlChartFilterStore().scOrient==1" 
-                    label="SC orientation" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                    tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+            <div class="sr-rgts-cycles-panel">
+                <SrListbox id="rgts"
+                    label="Rgt(s)" 
+                    v-model="atlChartFilterStore.rgts" 
+                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                    :menuOptions="atlChartFilterStore.getRgtOptions()" 
+                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+    vector within the observatory is pointed" 
                 />
-                <SrToggleButton 
-                    v-if="atlChartFilterStore.getFunc().includes('atl03')" 
-                    v-model="computedPair"  
-                    :value="useAtlChartFilterStore().pair==1" 
-                    label="Pair" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                    tooltipText="There are three beam pairs"
+                <SrListbox id="cycles" 
+                    label="Cycle(s)" 
+                    v-model="atlChartFilterStore.cycles"
+                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                    :menuOptions="atlChartFilterStore.getCycleOptions()" 
+                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
                 />
             </div>
         </FieldSet>
@@ -325,20 +323,29 @@ vector within the observatory is pointed"
         justify-content: space-evenly;
         margin-top: 0.5rem;
     }
-    .sr-tracks-beams-scorient-panel {
+    .sr-tracks-beams-panel {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         justify-content: space-evenly;
-        align-items: center;
+        align-items:baseline;
     }
-    .sr-link {
+    .sr-rgts-cycles-panel {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items:baseline;
+    }
+    .sr-link-sc-orient {
+        display: flex;
+        flex-direction: row;
         justify-content: space-evenly;
         align-items: center;
-        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
     }
     .sr-link-small-text {
         font-size: small;
     }
+    :deep(.p-listbox-option) {
+        padding-top: 0.125rem;
+        padding-bottom: 0rem;}
 </style>
