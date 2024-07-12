@@ -229,7 +229,7 @@ const getSize = computed(() => {
                 />
                 <SrListbox id="beams" 
                     label="Beam(s)" 
-                    v-model="atlChartFilterStore.beams" 
+                    v-model="atlChartFilterStore.beams"
                     :getSelectedMenuItem="atlChartFilterStore.getBeams"
                     :setSelectedMenuItem="atlChartFilterStore.setBeams"
                     :menuOptions="beamsOptions" 

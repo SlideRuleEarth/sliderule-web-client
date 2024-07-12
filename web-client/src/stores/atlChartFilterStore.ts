@@ -150,6 +150,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
         .filter((beam): beam is SrListNumberItem => beam !== undefined);
       this.setBeams(beams);
+      console.log('atlChartFilterStore.setBeamsForTracks(',input_tracks,') beams:', beams);
     },
     setReqId(req_id: number) {
       this.currentReqId = req_id;
