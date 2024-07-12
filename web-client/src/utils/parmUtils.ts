@@ -1,4 +1,3 @@
-import { type SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 export interface SrScatterOptionsParms {
   rgt: number;

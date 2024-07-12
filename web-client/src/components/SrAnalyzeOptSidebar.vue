@@ -176,7 +176,7 @@ const getSize = computed(() => {
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div class="sr-analysis-opt-sidebar-options">
+        <div class="sr-analysis-max-pnts">
             <SrSliderInput
                 v-model="srParquetCfgStore.maxNumPntsToDisplay"
                 label="Max Num Pnts"
@@ -194,11 +194,13 @@ const getSize = computed(() => {
             <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
             </div>
-            <div class="sr-link-sc-orient">
-                <p class="sr-scOrient">
-                    <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
-                    <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
-                </p>
+            <div class="sr-sc-orient-panel">
+                <div class="sr-sc-orientation">
+                    <p>
+                        <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
+                        <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
+                    </p>
+                </div>
                 <div class="sr-pair-sc-orient">
                     <SrToggleButton 
                         v-if="atlChartFilterStore.getFunc().includes('atl03')"
@@ -300,12 +302,12 @@ const getSize = computed(() => {
         min-width: 30vw;
         width: 100%;
     }
-    .sr-analysis-opt-sidebar-options {
+    .sr-analysis-max-pnts {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-between; 
-        margin-top: 1rem;
+        justify-content: center; 
+        margin-top: 0.5rem;
         min-height: 30%;
         max-height: 30%;
         min-width: 30vw;
@@ -317,13 +319,13 @@ const getSize = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin-top: 0.5rem;
+        margin-top: 0.25rem;
     }
     .sr-user-guide-link {
         display: flex;
         flex-direction: col;
         justify-content:center;
-        margin-top: 0.5rem;
+        margin-top: 0.25rem;
     }
     .sr-tracks-beams {
         display: flex;
@@ -336,13 +338,18 @@ const getSize = computed(() => {
         flex-direction: column;
         justify-content: space-evenly;
         align-items: flex-end;
-        margin-top: 0.5rem;
+    }
+    .sr-sc-orientation {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: flex-start;
+        font-size: smaller;
     }
     .sr-analyze-filters {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
-        margin-top: 0.5rem;
     }
     .sr-tracks-beams-panel {
         display: flex;
@@ -356,15 +363,14 @@ const getSize = computed(() => {
         justify-content: space-evenly;
         align-items:baseline;
     }
-    .sr-link-sc-orient {
+    .sr-sc-orient-panel {
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         justify-content: space-evenly;
         align-items: center;
-        margin-bottom: 0.5rem;
     }
     .sr-link-small-text {
-        font-size: small;
+        font-size: smaller;
     }
     :deep(.p-listbox-option) {
         padding-top: 0.125rem;

@@ -162,7 +162,8 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useMapStore().setIsLoading();
     console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
-        useAtlChartFilterStore().setTracks([d.track]);
+        useAtlChartFilterStore().setTrackWithNumber(d.track);
+        useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
         useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);

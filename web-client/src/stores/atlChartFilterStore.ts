@@ -128,6 +128,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getTracks() {
       return this.tracks;
     },
+    setTrackWithNumber(track: number) {
+      this.setTracks([{ label: track.toString(), value: track }]);
+      //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
+    },
     setSelectAllTracks(selectAllTracks: boolean) {
       this.selectAllTracks = selectAllTracks;
     },
@@ -135,6 +139,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.selectAllTracks;
     },
     setBeamsAndTracksWithGt(gt: number) {
+      //console.log('atlChartFilterStore.setBeamsAndTracksWithGt(',gt,')');
       const parms = getBeamsAndTracksWithGt(gt);
       this.setBeams(parms.beams);
       this.setTracks(parms.tracks);
@@ -240,7 +245,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.size;
     },
     getScatterOptionsParms(): SrScatterOptionsParms {
-      return {
+      const sop =  {
         rgt: this.rgts[0]?.value || 1,
         cycle: this.cycles[0]?.value || 1,
         fileName: this.currentFile,
@@ -252,6 +257,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         scOrient: this.scOrient,
         tracks: this.tracks.map(track => track.value),
       };
+      console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
+      return sop;
     },
     setUpdateScatterPlot() {
       this.updateScatterPlot = true;

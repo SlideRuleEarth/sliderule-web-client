@@ -2,7 +2,7 @@ import { db } from '@/db/SlideRuleDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, getCycles, getRgts, getPairs } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
@@ -211,6 +211,7 @@ export const processFileForReq = async (req_id:number) => {
             console.log('processFileForReq rgts:',rgts);
             const cycles = await getCycles(req_id);
             console.log('processFileForReq cycles:',cycles);
+            //const pairs = await getPairs(req_id);
         } else {
             throw new Error('processFileForReq unknown reader');
         }
