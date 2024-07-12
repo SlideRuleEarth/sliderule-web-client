@@ -15,7 +15,7 @@
                     :options="menuOptions"
                     :disabled="insensitive"
                     optionLabel="label"
-                    scrollHeight="5rem"
+                    :scrollHeight="scrollHeight"
                     multiple
                     :id="'srSelectMenu-' + label"
                 />
@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import Listbox from 'primevue/listbox';
-import { ref, watch, onMounted, computed } from 'vue';
+import { watch, onMounted, computed } from 'vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { SrListNumberItem } from '@/stores/atlChartFilterStore';
 
@@ -66,6 +66,10 @@ const props = defineProps({
     setSelectedMenuItem: {
         type: Function,
         required: true
+    },
+    scrollHeight: {
+        type: String,
+        default: '7rem'
     }
 });
 

@@ -1,5 +1,5 @@
 import { type SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
-
+import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 export interface SrScatterOptionsParms {
   rgt: number;
   cycle: number;
@@ -29,13 +29,13 @@ export const beamsOptions = [
   ] as SrMultiSelectNumberItem[];
 
 export const spotsOptions = [
-    {name:'Spot 1 (Strong)',value:1}, 
-    {name:'Spot 2 (Weak)  ',value:2}, 
-    {name:'Spot 3 (Strong)',value:3}, 
-    {name:'Spot 4 (Weak)  ',value:4}, 
-    {name:'Spot 5 (Strong)',value:5}, 
-    {name:'Spot 6 (Weak)  ',value:6}
-  ] as SrMultiSelectNumberItem[];
+    {label:'Spot 1 (Strong)',value:1}, 
+    {label:'Spot 2 (Weak)  ',value:2}, 
+    {label:'Spot 3 (Strong)',value:3}, 
+    {label:'Spot 4 (Weak)  ',value:4}, 
+    {label:'Spot 5 (Strong)',value:5}, 
+    {label:'Spot 6 (Weak)  ',value:6}
+  ] as SrListNumberItem[];
 
   export function getBeamsAndTracksWithGt(gt:number) {
     const beams = [] as number[];

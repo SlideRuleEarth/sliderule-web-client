@@ -16,7 +16,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     tracks: [1, 2, 3] as number[],
     selectAllTracks: true as boolean,
     beams: [10, 20, 30, 40, 50, 60] as number[],
-    spots: [1, 2, 3, 4, 5, 6] as number[],
+    spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
+    spots: [] as SrListNumberItem[],
     rgts: [] as SrListNumberItem[],
     rgtOptions: [] as SrListNumberItem[], // Ensure rgtOptions is an array
     cycles: [] as SrListNumberItem[],
@@ -57,18 +58,22 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getBeams() {
       return this.beams;
     },
-    setSpots(spots: number[]) {
+    setSpots(spots: SrListNumberItem[]) {
       this.spots = spots;
     },
-    getSpots() {
+    getSpots(): SrListNumberItem[] {
       return this.spots;
     },
+    setSpotWithNumber(spot: number) {
+      //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
+      this.setSpots([{ label: spot.toString(), value: spot }]);
+    },
     setRgts(rgts: SrListNumberItem[]) {
-      console.log('atlChartFilterStore setRgts:', rgts);
+      //console.log('atlChartFilterStore setRgts:', rgts);
       this.rgts = rgts;
     },
     getRgts() {
-      console.log('atlChartFilterStore getRgts:', this.rgts);
+      //console.log('atlChartFilterStore getRgts:', this.rgts);
       return this.rgts;
     },
     getRgtValues() {

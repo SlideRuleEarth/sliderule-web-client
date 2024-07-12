@@ -1,52 +1,28 @@
 <template>
-    <div class="sr-menu-multi-input-wrapper">
-        <SrLabelInfoIconButton 
-            :label="labelStr"  
-            :tooltipText="tooltipTextStr" 
-            :tooltipUrl= "tooltipUrlStr"
-            :insensitive="insensitive" 
-            :labelFontSize="labelFontSize"/>
-        <div ref="menuElement" :class="computedMenuClass" >
-            <Button 
-                label="all" 
-                size="small"
-                class="sr-menu-select-all-button"
-                outlined 
-                @click="handleSelectAllItems">
-            </Button> 
-            <form class="sr-menu-form" name="sr-select-item-form">
-                <select 
-                    v-model="localSpots" 
-                    @input="handleSelectionChange"
-                    class="sr-menu-multi-input-select" 
-                    name="sr-select-multi-menu" 
-                    :id="`srSelectMultiMenu-{{ label }}`" 
-                    multiple 
-                    :disabled="insensitive"
-                >
-                    <option 
-                        v-for="item in spotsOptions" 
-                        :value="item.value" 
-                        :key="item.value">
-                        {{ item.name }}
-                    </option>
-                </select>
-            </form>
-        </div>
+    <div class="sr-listbox-wrapper">
+        <SrListbox
+            label="Spot(s)"
+            v-model="atlChartFilterStore.spots"
+            :menuOptions="atlChartFilterStore.spotsOptions"
+            :getSelectedMenuItem="atlChartFilterStore.getSpots"
+            :setSelectedMenuItem="atlChartFilterStore.setSpots" 
+            :insensitive="insensitive"
+            :tooltipText="tooltipTextStr"
+            :tooltipUrl="tooltipUrlStr"
+            :labelFontSize="labelFontSize"
+            :justify_center="true"
+        />
     </div>
 </template>
   
 <script setup lang="ts">
-    import {  onMounted,computed,ref,watch,nextTick } from 'vue';
-    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    import { spotsOptions } from '@/utils/parmUtils';
+    import {  onMounted,computed,watch,nextTick } from 'vue';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-    import Button from 'primevue/button';
     import { processFileForReq } from '@/utils/SrParquetUtils';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
+    import SrListbox from './SrListbox.vue';
 
     const atlChartFilterStore = useAtlChartFilterStore();
-    const localSpots = ref<number[]>(spotsOptions.map(item => item.value));
     const labelStr = 'Spot(s)';
     const tooltipUrlStr = "https://slideruleearth.io/web/rtd/user_guide/Background.html";
     const tooltipTextStr = "Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
@@ -67,11 +43,6 @@ direction.";
         }
     });
 
-    function handleSelectAllItems() {
-        localSpots.value = spotsOptions.map(item => item.value);
-        atlChartFilterStore.spots = localSpots.value;
-        console.log('handleSelectAllItems atlChartFilterStore.spots:', atlChartFilterStore.spots);
-    };
     
     const handleSelectionChange = async (event: Event) => {
         const target = event.target as HTMLSelectElement;
@@ -79,7 +50,6 @@ direction.";
         atlChartFilterStore.setScOrient(-1);
         atlChartFilterStore.setBeams([]);
         atlChartFilterStore.setTracks([]);
-        atlChartFilterStore.setSpots(newValue);
         await processFileForReq(useCurReqSumStore().getReqId());
 
         console.log('SrFilterSpots handleSelectionChange newValue:', newValue);
@@ -99,68 +69,18 @@ direction.";
         nextTick(() => {
             console.log('SrFilterSpots watch atlChartFilterStore oldSpots:', oldSpots);
             console.log('SrFilterSpots watch atlChartFilterStore newSpots:', newSpots);
-            localSpots.value = newSpots;
         });
     });
 
 </script>
 
 <style scoped>
-.sr-menu-multi-input-wrapper {
+.sr-listbox-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     border: 1px solid transparent;
     border-radius: var(--p-border-radius);
-    margin-bottom: 1rem;
-}
-
-.sr-menu-multi-input-label {
-    white-space: nowrap;
-    font-size: small;
-}
-
-.sr-menu-select-all-button {
-    margin: auto;
-    padding: 0.5rem;
-    height: 1.3rem;
-    min-width: 4rem;
-    color: var(--p-primary-300);
-}
-
-.sr-menu-insensitive {
-    color: #888; /* grey color */
-}
-
-.sr-menu-default {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items:flex-start;
-}
-
-.sr-menu-multi-input-select {
-    padding: 0.5rem;
-    margin: auto;
-    color: white;
-    background-color: transparent;
-    border-radius: var(--p-border-radius);
-    width: auto;
-    height: auto; /* Adjust height to fit multiple selections */
-    overflow-y:hidden;
-    min-height: 7rem;
-}
-
-.sr-menu-form {
-    display: flex;
-    max-width: fit-content;
-    width: 100%;
-    min-width: 4rem;
-    height: auto;
-    overflow-y: auto;
-    padding: 0rem;
-    margin: 0rem;
-    font-size: small;
 }
 
 :deep(.p-button.p-button-icon-only.p-button-rounded.p-button-text.p-button-plain.sr-info-button) {

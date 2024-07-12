@@ -174,7 +174,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setPair(d.pair);
     }
     if(d.spot !== undefined){
-        useAtlChartFilterStore().setSpots([d.spot]);
+        useAtlChartFilterStore().setSpotWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
