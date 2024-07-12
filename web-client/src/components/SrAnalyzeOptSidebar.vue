@@ -18,6 +18,7 @@ import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 
 const requestsStore = useRequestsStore();
@@ -25,6 +26,26 @@ const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const srParquetCfgStore = useSrParquetCfgStore();
+
+const spotPatternDetailsStr = "Each ground track is \
+numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
+far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
+approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
+direction. Higher level ATLAS/ICESat-2 data products (ATL03 and above) are organized by ground \
+track, with ground tracks 1L and 1R forming pair one, ground tracks 2L and 2R forming pair two, \
+and ground tracks 3L and 3R forming pair three. Each pair also has a Pair Track—an imaginary \
+line halfway between the actual location of the left and right beams. Pair tracks are \
+approximately 3 km apart in the across-track direction. \
+The beams within each pair have different transmit energies—so-called weak and strong beams—\
+with an energy ratio between them of approximately 1:4. The mapping between the strong and \
+weak beams of ATLAS, and their relative position on the ground, depends on the orientation (yaw) \
+of the ICESat-2 observatory, which is changed approximately twice per year to maximize solar \
+illumination of the solar panels. The forward orientation corresponds to ATLAS traveling along the \
++x coordinate in the ATLAS instrument reference frame. In this orientation, the \
+weak beams lead the strong beams and a weak beam is on the left edge of the beam pattern. In \
+the backward orientation, ATLAS travels along the -x coordinate, in the instrument reference frame, \
+with the strong beams leading the weak beams and a strong beam on the left edge of the beam \
+pattern."
 
 const props = defineProps({
     startingReqId: Number,
@@ -176,7 +197,8 @@ const getSize = computed(() => {
                 :getSelectedMenuItem="atlChartFilterStore.getRgts"
                 :setSelectedMenuItem="atlChartFilterStore.setRgts"
                 :menuOptions="atlChartFilterStore.getRgtOptions()" 
-                tooltipText="Reference Ground Track(s)" 
+                tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+vector within the observatory is pointed" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />
             <SrListbox id="cycles" 
@@ -185,38 +207,41 @@ const getSize = computed(() => {
                 :getSelectedMenuItem="atlChartFilterStore.getCycles"
                 :setSelectedMenuItem="atlChartFilterStore.setCycles" 
                 :menuOptions="atlChartFilterStore.getCycleOptions()" 
-                tooltipText="Cycle(s)" 
+                tooltipText="Counter of 91-day repeat cycles completed by the mission" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />
 
         </div>
         <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
-                <div class="sr-tracks-beams-scorient-panel">
-                    <p class="sr-scOrient">
-                        <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
-                        <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
-                    </p>
-                    <SrFilterTracks/>
-                    <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
-                </div>
-                <div class="sr-pair-sc-orient">
-                    <SrToggleButton 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
-                        v-model="computedScOrient" 
-                        :value="useAtlChartFilterStore().scOrient==1" 
-                        label="SC orientation" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
-                    />
-                    <SrToggleButton 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')" 
-                        v-model="computedPair"  
-                        :value="useAtlChartFilterStore().pair==1" 
-                        label="Pair" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="There are three beam pairs"
-                    />
-                </div>
+            <div class="sr-link">
+                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
+            </div>
+            <div class="sr-tracks-beams-scorient-panel">
+                <p class="sr-scOrient">
+                    <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
+                    <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
+                </p>
+                <SrFilterTracks/>
+                <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
+            </div>
+            <div class="sr-pair-sc-orient">
+                <SrToggleButton 
+                    v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                    v-model="computedScOrient" 
+                    :value="useAtlChartFilterStore().scOrient==1" 
+                    label="SC orientation" 
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                    tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                />
+                <SrToggleButton 
+                    v-if="atlChartFilterStore.getFunc().includes('atl03')" 
+                    v-model="computedPair"  
+                    :value="useAtlChartFilterStore().pair==1" 
+                    label="Pair" 
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                    tooltipText="There are three beam pairs"
+                />
+            </div>
         </FieldSet>
     </div>
 </template>
@@ -305,5 +330,15 @@ const getSize = computed(() => {
         flex-direction: column;
         justify-content: space-evenly;
         align-items: center;
+    }
+    .sr-link {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+    .sr-link-small-text {
+        font-size: small;
     }
 </style>

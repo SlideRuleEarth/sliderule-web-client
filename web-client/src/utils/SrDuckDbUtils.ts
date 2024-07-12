@@ -279,7 +279,7 @@ export async function getRgts(req_id: number): Promise<number[]> {
     const duckDbClient = await createDuckDbClient();
     const rgts = [] as number[];
     try{
-        const query = `SELECT DISTINCT rgt FROM '${fileName}'`;
+        const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
@@ -309,7 +309,7 @@ export async function getCycles(req_id: number): Promise<number[]> {
     const duckDbClient = await createDuckDbClient();
     const cycles = [] as number[];
     try{
-        const query = `SELECT DISTINCT cycle FROM '${fileName}'`;
+        const query = `SELECT DISTINCT cycle FROM '${fileName}' order by cycle ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {

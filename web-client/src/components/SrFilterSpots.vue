@@ -1,9 +1,9 @@
 <template>
     <div class="sr-menu-multi-input-wrapper">
         <SrLabelInfoIconButton 
-            :label="label"  
-            :tooltipText="tooltipText" 
-            :tooltipUrl="tooltipUrl" 
+            :label="labelStr"  
+            :tooltipText="tooltipTextStr" 
+            :tooltipUrl= "tooltipUrlStr"
             :insensitive="insensitive" 
             :labelFontSize="labelFontSize"/>
         <div ref="menuElement" :class="computedMenuClass" >
@@ -47,26 +47,23 @@
 
     const atlChartFilterStore = useAtlChartFilterStore();
     const localSpots = ref<number[]>(spotsOptions.map(item => item.value));
+    const labelStr = 'Spot(s)';
+    const tooltipUrlStr = "https://slideruleearth.io/web/rtd/user_guide/Background.html";
+    const tooltipTextStr = "Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
+trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
+numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
+far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
+approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
+direction.";
+
     const props = defineProps({ // runtime declaration here
-        label: {
-            type: String,
-            default: 'Spot(s)'
-        },
         insensitive: {
             type: Boolean,
             default: false
         },
-        tooltipText: {
-            type: String,
-            default: 'Weak and strong spots are determined by orientation of the satellite'
-        },
-        tooltipUrl: {
-            type: String,
-            default: 'https://slideruleearth.io/web/rtd/user_guide/Background.html'
-        },
         labelFontSize: {
             type: String,
-            default: 'small' // default font size if not passed
+            default: 'small'
         }
     });
 
@@ -89,17 +86,8 @@
     };
 
     onMounted(() => {
-        console.log('Mounted Menu:', props.label);
+        console.log('Mounted Menu:', labelStr);
     });
-
-    const openTooltipUrl = () => {
-        console.log('openTooltipUrl:', props.tooltipUrl);
-        if (props.tooltipUrl) {
-            window.open(props.tooltipUrl, '_blank')?.focus();
-        } else {
-            console.warn('No tooltip URL provided');
-        }
-    };
 
     const computedMenuClass = computed(() => ({
         'sr-menu-default': true,
