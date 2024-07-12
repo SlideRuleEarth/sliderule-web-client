@@ -202,11 +202,11 @@ function checkFilter(d:ElevationDataItem): boolean {
     if(d.gt){ // atl06
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getBeams().includes(d.gt)));
+                    (useAtlChartFilterStore().getBeamValues()[0]== d.gt));
     } else {
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getTracks().includes(d.track)) && 
+                    (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
                     (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
                     (useAtlChartFilterStore().getPair() == d.pair));
     }

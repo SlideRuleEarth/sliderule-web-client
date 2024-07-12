@@ -4,6 +4,7 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
+import type { get } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -57,6 +58,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getBeams() {
       return this.beams;
+    },
+    getBeamValues() { 
+      return this.beams.map(beam => beam.value);
     },
     setSpots(spots: SrListNumberItem[]) {
       this.spots = spots;
@@ -131,6 +135,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setTrackWithNumber(track: number) {
       this.setTracks([{ label: track.toString(), value: track }]);
       //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
+    },
+    getTrackValues() {
+      return this.tracks.map(track => track.value);
     },
     setSelectAllTracks(selectAllTracks: boolean) {
       this.selectAllTracks = selectAllTracks;

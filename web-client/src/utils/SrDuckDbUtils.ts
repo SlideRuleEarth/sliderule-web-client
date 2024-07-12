@@ -215,7 +215,11 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 ${x}, 
                 ${yColumns}
             FROM '${fileName}'
-            WHERE pair = ${pair} AND sc_orient = ${scOrient} AND rgt = ${rgt} AND cycle = ${cycle}
+            WHERE track IN (${tracks.join(", ")}) 
+            AND pair = ${pair} 
+            AND sc_orient = ${scOrient} 
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
         `;
         useAtlChartFilterStore().setAtl03QuerySql(query);
         const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
