@@ -17,7 +17,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { processFileForReq } from '@/utils/SrParquetUtils';
+import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
 
@@ -160,7 +160,6 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     useAtlChartFilterStore().setClearPlot();
     useAtlChartFilterStore().setIsLoading();
-    useMapStore().setIsLoading();
     console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTrackWithNumber(d.track);
@@ -193,12 +192,13 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
+
     if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
         useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
     }
-    await processFileForReq(useCurReqSumStore().getReqId());
-    useMapStore().resetIsLoading();
+    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+
     useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
@@ -217,49 +217,76 @@ function checkFilter(d:ElevationDataItem): boolean {
     }
     return matched;
 }
+// [255, 0, 0, 127]; // red
+
+function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
+    return new PointCloudLayer({
+        id: name,
+        data: elevationData,
+        getPosition: (d) => {
+            return [d['longitude'], d['latitude'], 0];
+        },
+        getNormal: [0, 0, 1],
+        getColor: () => {
+             return color;
+        },
+        pointSize: 3
+    });
+}
+
+export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[]): void{
+    const startTime = performance.now(); // Start time
+    console.log('updateSelectedLayerWithObject startTime:',startTime);
+    try{
+        const layer = createHighlightLayer('selected-layer',elevationData,[255, 0, 0, 127]);
+        if(useMapStore().getDeckInstance()){
+            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        } else {
+            console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+        }
+    } catch (error) {
+        console.error('createHighlightLayer Error updating elevation layer:',error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+    }
+
+}
+
+function createElLayer(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): PointCloudLayer {
+    return new PointCloudLayer({
+        id: name,
+        data: elevationData,
+        getPosition: (d) => {
+            return [d['longitude'], d['latitude'], 0];
+        },
+        getNormal: [0, 0, 1],
+        getColor: (d) => {
+            return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+        },
+        pointSize: 3,
+        pickable: true, // Enable picking
+        onHover: ({ object, x, y }) => {
+            if (object) {
+                const tooltip = formatObject(object);
+                showTooltip({ x, y, tooltip });
+            } else {
+                hideTooltip();
+            }
+        },
+        onClick: ({ object, x, y }) => {
+            if (object) {
+                clicked(object);
+            }
+        }
+    });
+}
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     const startTime = performance.now(); // Start time
     console.log('updateElLayerWithObject startTime:',startTime);
     try{
-        //const canvas = document.querySelector('canvas');
-        //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
-        const layer =     
-            new PointCloudLayer({
-                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-                data: elevationData,
-                getPosition: (d) => {
-                    return [d['longitude'], d['latitude'], 0];
-                },
-                getNormal: [0, 0, 1],
-                getColor: (d) => {
-                    if(checkFilter(d)==true){
-                        return [255, 0, 0, 127];
-                    } else {
-                        return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                    }
-                },
-                pointSize: 3,
-                pickable: true, // Enable picking
-                onHover: ({ object, x, y }) => {
-                    //console.log('onHover object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        //console.log('object',object,'newObject:',newObject);
-                        //canvas.style.cursor = 'pointer'; // Change cursor to pointer
-                        const tooltip = formatObject(object);
-                        showTooltip({ x, y, tooltip });
-                    } else {
-                        //canvas.style.cursor = 'grab';
-                        hideTooltip();
-                    }
-                },
-                onClick: ({ object, x, y }) => {
-                    //console.log('onclick object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        clicked(object);
-                    }
-                }
-            });
+        const layer = createElLayer('point-cloud-layer',elevationData,extHMean,heightFieldName);
         if(useMapStore().getDeckInstance()){
             useMapStore().getDeckInstance().setProps({layers:[layer]});
         } else {
