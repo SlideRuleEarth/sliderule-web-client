@@ -19,6 +19,7 @@ import { Style, Fill, Stroke } from 'ol/style';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
+import { getSpotNumber,getGroundTrack } from './spotUtils';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -161,7 +162,8 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setIsLoading();
     console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
-        useAtlChartFilterStore().setTracks([d.track]);
+        useAtlChartFilterStore().setTrackWithNumber(d.track);
+        useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
         useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
@@ -173,7 +175,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setPair(d.pair);
     }
     if(d.spot !== undefined){
-        useAtlChartFilterStore().setSpots([d.spot]);
+        useAtlChartFilterStore().setSpotWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
@@ -190,7 +192,13 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
+
+    if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+        useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+        useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+    }
     await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+
     useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
@@ -199,11 +207,11 @@ function checkFilter(d:ElevationDataItem): boolean {
     if(d.gt){ // atl06
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getBeams().includes(d.gt)));
+                    (useAtlChartFilterStore().getBeamValues()[0]== d.gt));
     } else {
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getTracks().includes(d.track)) && 
+                    (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
                     (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
                     (useAtlChartFilterStore().getPair() == d.pair));
     }

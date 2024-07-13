@@ -142,7 +142,6 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    margin: 0.25rem;
     padding: 0.125rem;
     font-size: small;
   }
@@ -150,7 +149,6 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    margin: 0.25rem;
     padding: 0.125rem;
     font-size: small;
   }

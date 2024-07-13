@@ -3,7 +3,9 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
+
 import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
+
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
@@ -209,10 +211,12 @@ export const processFileForReq = async (req_id:number) => {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
             await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
+
             // const rgts = await getRgts(req_id);
             // console.log('processFileForReq rgts:',rgts);
             // const cycles = await getCycles(req_id);
             // console.log('processFileForReq cycles:',cycles);
+
         } else {
             throw new Error('processFileForReq unknown reader');
         }

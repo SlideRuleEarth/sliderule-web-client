@@ -12,6 +12,7 @@
     </div>
     <div v-if="computedIsLoading" class="loading-indicator">Loading...</div>
     <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
+    <SrSqlStmnt />
   </div>
   <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="computedIsLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
 </template>
@@ -27,6 +28,7 @@ import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
+import SrSqlStmnt from "./SrSqlStmnt.vue";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 

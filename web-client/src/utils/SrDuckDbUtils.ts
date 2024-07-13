@@ -8,7 +8,6 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
-import { at } from 'lodash';
 
 interface SummaryRowData {
     minLat: number;
@@ -311,10 +310,14 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 ${x}, 
                 ${yColumns}
             FROM '${fileName}'
-            WHERE pair = ${pair} AND sc_orient = ${scOrient} AND rgt = ${rgt} AND cycle = ${cycle}
+            WHERE track IN (${tracks.join(", ")}) 
+            AND pair = ${pair} 
+            AND sc_orient = ${scOrient} 
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl03QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -374,7 +377,7 @@ export async function getRgts(req_id: number): Promise<number[]> {
     const duckDbClient = await createDuckDbClient();
     const rgts = [] as number[];
     try{
-        const query = `SELECT DISTINCT rgt FROM '${fileName}'`;
+        const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
@@ -397,6 +400,35 @@ export async function getRgts(req_id: number): Promise<number[]> {
     return rgts;
 }
 
+export async function getPairs(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const pairs = [] as number[];
+    try{
+        const query = `SELECT DISTINCT pair FROM '${fileName}' order by pair ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getPairs row:', row);
+                    pairs.push(row.pair);
+                } else {
+                    console.warn('getPairs fetchData rowData is null');
+                }
+            }
+        } 
+        console.log('getPairs pairs:', pairs);
+    } catch (error) {
+        console.error('getPairs Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
+    }
+    return pairs;
+}
+
 export async function getCycles(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
 
@@ -404,7 +436,7 @@ export async function getCycles(req_id: number): Promise<number[]> {
     const duckDbClient = await createDuckDbClient();
     const cycles = [] as number[];
     try{
-        const query = `SELECT DISTINCT cycle FROM '${fileName}'`;
+        const query = `SELECT DISTINCT cycle FROM '${fileName}' order by cycle ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
@@ -441,8 +473,8 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
             FROM '${fileName}'
             WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
         `;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-
+        useAtlChartFilterStore().setAtl06QuerySql(query);
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl06QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {

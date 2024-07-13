@@ -4,8 +4,6 @@ import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import SrToggleButton from './SrToggleButton.vue';
-import SrFilterBeams from './SrFilterBeams.vue';
-import SrFilterTracks from './SrFilterTracks.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
@@ -18,8 +16,7 @@ import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
-import MultiSelect from 'primevue/multiselect';
-import FloatLabel from 'primevue/floatlabel';
+import { tracksOptions,beamsOptions } from '@/utils/parmUtils';
 
 
 const requestsStore = useRequestsStore();
@@ -28,6 +25,26 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const srParquetCfgStore = useSrParquetCfgStore();
 
+const spotPatternDetailsStr = "Each ground track is \
+numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
+far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
+approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
+direction. Higher level ATLAS/ICESat-2 data products (ATL03 and above) are organized by ground \
+track, with ground tracks 1L and 1R forming pair one, ground tracks 2L and 2R forming pair two, \
+and ground tracks 3L and 3R forming pair three. Each pair also has a Pair Track—an imaginary \
+line halfway between the actual location of the left and right beams. Pair tracks are \
+approximately 3 km apart in the across-track direction. \
+The beams within each pair have different transmit energies—so-called weak and strong beams—\
+with an energy ratio between them of approximately 1:4. The mapping between the strong and \
+weak beams of ATLAS, and their relative position on the ground, depends on the orientation (yaw) \
+of the ICESat-2 observatory, which is changed approximately twice per year to maximize solar \
+illumination of the solar panels. The forward orientation corresponds to ATLAS traveling along the \
++x coordinate in the ATLAS instrument reference frame. In this orientation, the \
+weak beams lead the strong beams and a weak beam is on the left edge of the beam pattern. In \
+the backward orientation, ATLAS travels along the -x coordinate, in the instrument reference frame, \
+with the strong beams leading the weak beams and a strong beam on the left edge of the beam \
+pattern."
+const spotPatternBriefStr = "fields related to spots and beams patterns";
 const props = defineProps({
     startingReqId: Number,
 });
@@ -36,7 +53,6 @@ const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
-const selectedRgt = ref<number[]>([]);
 
 onMounted(async() => {
     try {
@@ -160,7 +176,7 @@ const getSize = computed(() => {
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div class="sr-analysis-opt-sidebar-options">
+        <div class="sr-analysis-max-pnts">
             <SrSliderInput
                 v-model="srParquetCfgStore.maxNumPntsToDisplay"
                 label="Max Num Pnts"
@@ -173,33 +189,25 @@ const getSize = computed(() => {
         </div>
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
-            <SrListbox 
-                label="Rgt(s)" 
-                v-model="atlChartFilterStore.rgts" 
-                :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                :menuOptions="atlChartFilterStore.getRgtOptions()" 
-                tooltipText="Reference Ground Track(s)" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-            />
-            <SrListbox id="cycles" 
-                label="Cycle(s)" 
-                v-model="atlChartFilterStore.cycles"
-                :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                :menuOptions="atlChartFilterStore.getCycleOptions()" 
-                tooltipText="Cycle(s)" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-            />
-
-            <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true">
-                <div class="sr-tracks-beams-scorient-panel">
-                    <p class="sr-scOrient">
+            <SrListbox id="beams" 
+                    label="Beam(s)" 
+                    v-model="atlChartFilterStore.beams"
+                    :getSelectedMenuItem="atlChartFilterStore.getBeams"
+                    :setSelectedMenuItem="atlChartFilterStore.setBeams"
+                    :menuOptions="beamsOptions" 
+                    tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                />
+        </div>
+        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
+            <div class="sr-user-guide-link">
+                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
+            </div>
+            <div class="sr-sc-orient-panel">
+                <div class="sr-sc-orientation">
+                    <p>
                         <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
                         <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
                     </p>
-                    <SrFilterTracks/>
-                    <SrFilterBeams v-if="atlChartFilterStore.getFunc().includes('atl06')"/>
                 </div>
                 <div class="sr-pair-sc-orient">
                     <SrToggleButton 
@@ -219,8 +227,37 @@ const getSize = computed(() => {
                         tooltipText="There are three beam pairs"
                     />
                 </div>
+            </div> 
+            <div class="sr-tracks-beams-panel">
+                <SrListbox id="tracks" 
+                    label="Track(s)" 
+                    v-model="atlChartFilterStore.tracks" 
+                    :getSelectedMenuItem="atlChartFilterStore.getTracks"
+                    :setSelectedMenuItem="atlChartFilterStore.setTracks"
+                    :menuOptions="tracksOptions" 
+                    tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                />
+            </div>
+            <div class="sr-rgts-cycles-panel">
+                <SrListbox id="rgts"
+                    label="Rgt(s)" 
+                    v-model="atlChartFilterStore.rgts" 
+                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                    :menuOptions="atlChartFilterStore.getRgtOptions()" 
+                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+    vector within the observatory is pointed" 
+                />
+                <SrListbox id="cycles" 
+                    label="Cycle(s)" 
+                    v-model="atlChartFilterStore.cycles"
+                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                    :menuOptions="atlChartFilterStore.getCycleOptions()" 
+                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                />
+            </div>
         </FieldSet>
-        </div>
     </div>
 </template>
 <style scoped>
@@ -265,12 +302,12 @@ const getSize = computed(() => {
         min-width: 30vw;
         width: 100%;
     }
-    .sr-analysis-opt-sidebar-options {
+    .sr-analysis-max-pnts {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-between; 
-        margin-top: 1rem;
+        justify-content: center; 
+        margin-top: 0.5rem;
         min-height: 30%;
         max-height: 30%;
         min-width: 30vw;
@@ -282,7 +319,13 @@ const getSize = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin-top: 0.5rem;
+        margin-top: 0.25rem;
+    }
+    .sr-user-guide-link {
+        display: flex;
+        flex-direction: col;
+        justify-content:center;
+        margin-top: 0.25rem;
     }
     .sr-tracks-beams {
         display: flex;
@@ -295,18 +338,41 @@ const getSize = computed(() => {
         flex-direction: column;
         justify-content: space-evenly;
         align-items: flex-end;
-        margin-top: 0.5rem;
     }
-    .sr-analyze-filters {
+    .sr-sc-orientation {
         display: flex;
         flex-direction: column;
         justify-content: space-evenly;
-        margin-top: 0.5rem;
+        align-items: flex-start;
+        font-size: smaller;
     }
-    .sr-tracks-beams-scorient-panel {
+    .sr-analyze-filters {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+    }
+    .sr-tracks-beams-panel {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items:baseline;
+    }
+    .sr-rgts-cycles-panel {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items:baseline;
+    }
+    .sr-sc-orient-panel {
         display: flex;
         flex-direction: column;
         justify-content: space-evenly;
         align-items: center;
     }
+    .sr-link-small-text {
+        font-size: smaller;
+    }
+    :deep(.p-listbox-option) {
+        padding-top: 0.125rem;
+        padding-bottom: 0rem;}
 </style>
