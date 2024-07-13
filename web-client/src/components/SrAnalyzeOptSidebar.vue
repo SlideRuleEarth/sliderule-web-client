@@ -189,6 +189,14 @@ const getSize = computed(() => {
         </div>
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
+            <SrListbox id="beams" 
+                    label="Beam(s)" 
+                    v-model="atlChartFilterStore.beams"
+                    :getSelectedMenuItem="atlChartFilterStore.getBeams"
+                    :setSelectedMenuItem="atlChartFilterStore.setBeams"
+                    :menuOptions="beamsOptions" 
+                    tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                />
         </div>
         <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
@@ -228,14 +236,6 @@ const getSize = computed(() => {
                     :setSelectedMenuItem="atlChartFilterStore.setTracks"
                     :menuOptions="tracksOptions" 
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                />
-                <SrListbox id="beams" 
-                    label="Beam(s)" 
-                    v-model="atlChartFilterStore.beams"
-                    :getSelectedMenuItem="atlChartFilterStore.getBeams"
-                    :setSelectedMenuItem="atlChartFilterStore.setBeams"
-                    :menuOptions="beamsOptions" 
-                    tooltipText="ATLAS laser beams are divided into weak and strong beams"
                 />
             </div>
             <div class="sr-rgts-cycles-panel">
