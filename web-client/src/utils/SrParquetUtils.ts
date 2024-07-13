@@ -1,8 +1,9 @@
 import { db } from '@/db/SlideRuleDb'; 
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
@@ -202,20 +203,38 @@ export const readOrCacheSummary = async (req_id:number,height_fieldname:string) 
 export const processFileForReq = async (req_id:number) => {
     try{
         console.log('processFileForReq req_id:',req_id);
+        useMapStore().setIsLoading();
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
             await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
-            const rgts = await getRgts(req_id);
-            console.log('processFileForReq rgts:',rgts);
-            const cycles = await getCycles(req_id);
-            console.log('processFileForReq cycles:',cycles);
+            // const rgts = await getRgts(req_id);
+            // console.log('processFileForReq rgts:',rgts);
+            // const cycles = await getCycles(req_id);
+            // console.log('processFileForReq cycles:',cycles);
         } else {
             throw new Error('processFileForReq unknown reader');
         }
+        useMapStore().resetIsLoading();
     } catch (error) {
         console.error('processFileForReq error:',error);
+        throw error;
+    }
+}
+export const addHighlightLayerForReq = async (req_id:number) => {
+    try{
+        console.log('addHighlightLayerForReq req_id:',req_id);
+
+        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+            const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
+            const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
+            await duckDbReadAndUpdateSelectedLayer(req_id,chunkSize,maxNumPnts);
+        } else {
+            throw new Error('addHighlightLayerForReq unknown reader');
+        }
+    } catch (error) {
+        console.error('addHighlightLayerForReq error:',error);
         throw error;
     }
 }
