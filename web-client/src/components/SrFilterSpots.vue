@@ -51,12 +51,11 @@ direction.";
         atlChartFilterStore.setBeams([]);
         atlChartFilterStore.setTracks([]);
         await processFileForReq(useCurReqSumStore().getReqId());
-
-        console.log('SrFilterSpots handleSelectionChange newValue:', newValue);
+        //console.log('SrFilterSpots handleSelectionChange newValue:', newValue);
     };
 
     onMounted(() => {
-        console.log('Mounted Menu:', labelStr);
+        //console.log('Mounted Menu:', labelStr);
     });
 
     const computedMenuClass = computed(() => ({
@@ -67,8 +66,8 @@ direction.";
 
     watch(() => atlChartFilterStore.spots, (newSpots, oldSpots) => {
         nextTick(() => {
-            console.log('SrFilterSpots watch atlChartFilterStore oldSpots:', oldSpots);
-            console.log('SrFilterSpots watch atlChartFilterStore newSpots:', newSpots);
+            //console.log('SrFilterSpots watch atlChartFilterStore oldSpots:', oldSpots);
+            //console.log('SrFilterSpots watch atlChartFilterStore newSpots:', newSpots);
         });
     });
 

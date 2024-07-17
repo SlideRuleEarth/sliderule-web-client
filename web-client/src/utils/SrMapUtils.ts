@@ -164,7 +164,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     useAtlChartFilterStore().setClearPlot();
     useAtlChartFilterStore().setIsLoading();
-    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTrackWithNumber(d.track);
         useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
@@ -240,7 +240,7 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
 
 export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[]): void{
     const startTime = performance.now(); // Start time
-    console.log('updateSelectedLayerWithObject startTime:',startTime);
+    //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
         const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
         useDeckStore().addLayer(layer);
@@ -289,15 +289,14 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     const startTime = performance.now(); // Start time
-    console.log('updateElLayerWithObject startTime:',startTime);
+    //console.log('updateElLayerWithObject startTime:',startTime);
     try{
         const layer = createElLayer(elevationData,extHMean,heightFieldName);
         useDeckStore().addLayer(layer);
         if(useDeckStore().getDeckInstance()){
-            console.log('updateElLayerWithObject layer:',layer);
-            //useDeckStore().getDeckInstance().setProps({layers:[layer]});
+            //console.log('updateElLayerWithObject layer:',layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-            console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
+            //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
         } else {
             console.error('Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
         }
@@ -339,7 +338,7 @@ export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
 // Sync deck view with OL view
 
 export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
-    console.log('resetDeckGLInstance tgt:',tgt);
+    //console.log('resetDeckGLInstance tgt:',tgt);
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
         const deck = new Deck({
@@ -390,7 +389,7 @@ export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
 }
 
 export function resetDeck(map: OLMap){
-    console.log('resetDeck')
+    //console.log('resetDeck')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(tgt); 
     if(deck){
@@ -402,7 +401,7 @@ export function resetDeck(map: OLMap){
 }
 
 export function initDeck(map: OLMap){
-    console.log('initDeck')
+    //console.log('initDeck')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(tgt); 
     if(deck){

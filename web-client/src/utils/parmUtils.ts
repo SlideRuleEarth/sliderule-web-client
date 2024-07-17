@@ -135,6 +135,6 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
       console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
     }
   }
-  console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
+  //console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
   return scOrient;
 }

@@ -205,7 +205,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const cycle = useAtlChartFilterStore().getCycleValues()[0]; 
         if(func === 'atl06'){
             const beams = useAtlChartFilterStore().getBeamValues().join(", ");
-            console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
+            //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `SELECT * FROM '${filename}' 
                         WHERE rgt = ${rgt}
                         AND cycle = ${cycle}
@@ -351,7 +351,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             AND rgt = ${rgt} 
             AND cycle = ${cycle}
         `;
-        console.log('fetchAtl03ScatterData query2:', query2);
+        //console.log('fetchAtl03ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
         //console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
@@ -367,7 +367,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 }
             }
         }
-        console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -422,7 +422,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
                 }
             }
         } 
-        console.log('getPairs pairs:', pairs);
+        //console.log('getPairs pairs:', pairs);
     } catch (error) {
         console.error('getPairs Error:', error);
         throw error;

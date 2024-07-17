@@ -78,17 +78,17 @@ const emit = defineEmits(['update:modelValue']);
 // Define a computed property that references the getter and setter
 const selectedMenuItem = computed({
     get() {
-        console.log('SrListbox:', props.label, 'get:', props.getSelectedMenuItem());
+        //console.log('SrListbox:', props.label, 'get:', props.getSelectedMenuItem());
         return props.getSelectedMenuItem(); // calling the getter function
     },
     set(value) {
-        console.log('SrListbox:', props.label, 'set:', value)
+        //console.log('SrListbox:', props.label, 'set:', value)
         props.setSelectedMenuItem(value); // calling the setter function
     }
 });
 
 watch(selectedMenuItem, (newValue) => {
-    console.log('SrListbox:', props.label, ' Watch selected:', newValue);
+    //console.log('SrListbox:', props.label, ' Watch selected:', newValue);
     emit('update:modelValue', newValue);
 });
 
@@ -98,7 +98,7 @@ watch(selectedMenuItem, (newValue) => {
 // });
 
 onMounted(() => {
-    console.log('SrListbox:', props.label, 'Mounted menuOptions:', props.menuOptions, ' selected:', selectedMenuItem.value);
+    //console.log('SrListbox:', props.label, 'Mounted menuOptions:', props.menuOptions, ' selected:', selectedMenuItem.value);
     selectedMenuItem.value = props.menuOptions;
 });
 </script>
