@@ -23,7 +23,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 
 const EL_LAYER_NAME = 'elevation-deck-layer';
-const SELECTED_LAYER_NAME = 'selected-deck-layer';
+export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -163,7 +163,7 @@ export interface ElevationDataItem {
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     useAtlChartFilterStore().setClearPlot();
-    useAtlChartFilterStore().setIsLoading();
+    //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTrackWithNumber(d.track);
@@ -202,7 +202,6 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
     }
     await addHighlightLayerForReq(useCurReqSumStore().getReqId());
-
     useAtlChartFilterStore().setUpdateScatterPlot();
 }
 
@@ -242,9 +241,9 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
-        useDeckStore().addLayer(layer);
         if(useDeckStore().getDeckInstance()){
+            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+            useDeckStore().replaceOrAddHighlightLayer(layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
         } else {
             console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
