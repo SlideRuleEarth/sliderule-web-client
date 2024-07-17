@@ -211,7 +211,7 @@ export class DuckDBClient {
   async queryChunk(query: string, chunkSize: number = 50000, offset: number = 0, params?: any): Promise<QueryChunkResult> {
     const conn = await this._db!.connect();
     let tbl: arrow.Table<any>;
-    //console.log('queryChunk query:',query,' chunkSize:',chunkSize,' offset:',offset,' params:',params);
+    console.log('queryChunk query:',query,' chunkSize:',chunkSize,' offset:',offset,' params:',params);
     try {
       // Get the total number of rows for the query if this is the first chunk
       let totalRows = null;

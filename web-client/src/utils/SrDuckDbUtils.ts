@@ -204,22 +204,25 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const rgt = useAtlChartFilterStore().getRgtValues()[0];
         const cycle = useAtlChartFilterStore().getCycleValues()[0]; 
         if(func === 'atl06'){
-            const beams = useAtlChartFilterStore().getBeams();
+            const beams = useAtlChartFilterStore().getBeamValues().join(", ");
+            console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `SELECT * FROM '${filename}' 
                         WHERE rgt = ${rgt}
                         AND cycle = ${cycle}
-                        AND gt IN (${beams.join(", ")})`
+                        AND gt IN (${beams})`
 
         } else if(func === 'atl03'){
-            const tracks = useAtlChartFilterStore().getTracks();
+            const tracks = useAtlChartFilterStore().getTrackValues().join(", ");
+            //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);
             const scOrient = useAtlChartFilterStore().getScOrient();
             const pair = useAtlChartFilterStore().getPair();
+            
             queryStr = `SELECT * FROM '${filename}'
                         WHERE rgt = ${rgt}
                         AND cycle = ${cycle}
                         AND sc_orient = ${scOrient}
                         AND pair = ${pair}
-                        AND track IN (${tracks.join(", ")})`
+                        AND track IN (${tracks})`
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
         }
@@ -238,6 +241,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         while (hasMoreData) {
             try{
                 // Execute the query
+                //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
                 const result = await duckDbClient.queryChunk(queryStr, chunkSize, offset);
                 //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                 for await (const rowChunk of result.readRows()) {
