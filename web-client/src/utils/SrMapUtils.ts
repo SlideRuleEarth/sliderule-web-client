@@ -11,15 +11,19 @@ import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
-import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
+import { useMapParamsStore } from '@/stores/mapParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { useDeckStore } from '@/stores/deckStore';
+
+const EL_LAYER_NAME = 'elevation-deck-layer';
+const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -238,11 +242,11 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     const startTime = performance.now(); // Start time
     console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        const layer = createHighlightLayer('selected-layer',elevationData,[255, 0, 0, 127]);
-        if(useMapStore().getDeckInstance()){
-            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+        if(useDeckStore().getDeckInstance()){
+            useDeckStore().getDeckInstance().setProps({layers:[layer]});
         } else {
-            console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+            console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
         }
     } catch (error) {
         console.error('createHighlightLayer Error updating elevation layer:',error);
@@ -253,9 +257,9 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
 
 }
 
-function createElLayer(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): PointCloudLayer {
+function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): PointCloudLayer {
     return new PointCloudLayer({
-        id: name,
+        id: EL_LAYER_NAME,
         data: elevationData,
         getPosition: (d) => {
             return [d['longitude'], d['latitude'], 0];
@@ -286,11 +290,13 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
     const startTime = performance.now(); // Start time
     console.log('updateElLayerWithObject startTime:',startTime);
     try{
-        const layer = createElLayer('point-cloud-layer',elevationData,extHMean,heightFieldName);
-        if(useMapStore().getDeckInstance()){
-            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        const layer = createElLayer(elevationData,extHMean,heightFieldName);
+        if(useDeckStore().getDeckInstance()){
+            console.log('updateElLayerWithObject layer:',layer);
+            useDeckStore().getDeckInstance().setProps({layers:[layer]});
+            console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
         } else {
-            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+            console.error('Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
@@ -301,9 +307,9 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
 
 }
 
-export function createNewDeckLayer(deck:Deck): OL_Layer{
+export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
     const layerOptions = {
-        title: 'DeckGL Layer',
+        title: name,
     }
     const new_layer = new OL_Layer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
@@ -318,7 +324,7 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
         },
         ...layerOptions
     }); 
-    useMapStore().setDeckLayer(new_layer); 
+    //useMapStore().setDeckLayer(new_layer); 
     return new_layer;  
 }
 
@@ -329,9 +335,10 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
 // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
 // Sync deck view with OL view
 
-export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+    console.log('resetDeckGLInstance tgt:',tgt);
     try{
-        useMapStore().clearDeckInstance(); // Clear any existing instance first
+        useDeckStore().clearDeckInstance(); // Clear any existing instance first
         const deck = new Deck({
             initialViewState: {longitude: 0, latitude: 0, zoom: 1},
             controller: false,
@@ -339,7 +346,7 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
             style: {pointerEvents: 'none', zIndex: '1'},
             layers: []
         });
-        useMapStore().setDeckInstance(deck);
+        useDeckStore().setDeckInstance(deck);
         return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
@@ -347,25 +354,36 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     }
 }
 
-export function removeDeckLayer(map: OLMap){
-    const current_layer = useMapStore().getDeckLayer();
-    if(current_layer){
-        map.removeLayer(current_layer);
+export function removeDeckLayersFromMap(map: OLMap){
+    const current_layers = useMapStore().getDeckLayers();
+    if(current_layers){
+        current_layers.forEach(layer => {
+            map.removeLayer(layer);
+        });
     } else {
-        //console.error('No current_layer to remove.');
+        console.warn('No current_layers to remove.');
     }
 }
 
-export function removeCurrentDeckLayer(){
-    const current_layer = useMapStore().getDeckLayer();
-    if(current_layer){
-        useMapStore().getMap()?.removeLayer(current_layer);
-    } else {
-        //console.error('No current_layer to remove.');
-    }   
-}
-export function addDeckLayer(map: OLMap, deck:Deck){
-    const deckLayer = createNewDeckLayer(deck);
+// export function removeDeckLayer(map: OLMap){
+//     const current_layer = useMapStore().getDeckLayer();
+//     if(current_layer){
+//         map.removeLayer(current_layer);
+//     } else {
+//         //console.error('No current_layer to remove.');
+//     }
+// }
+
+// export function removeCurrentDeckLayer(){
+//     const current_layer = useMapStore().getDeckLayer();
+//     if(current_layer){
+//         useMapStore().getMap()?.removeLayer(current_layer);
+//     } else {
+//         //console.error('No current_layer to remove.');
+//     }   
+// }
+export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
+    const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
         map.addLayer(deckLayer);
     } else {
@@ -373,53 +391,40 @@ export function addDeckLayer(map: OLMap, deck:Deck){
     }
 }
 
-export function updateDeck(map: OLMap){
-    const tgt = map.getViewport() as HTMLDivElement;
-    const deck = createDeckGLInstance(tgt);
-   
-    if(deck){
-        removeDeckLayer(map);
-        addDeckLayer(map,deck);        
+export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
+    const deckLayers = useMapStore().getDeckLayers() as OL_Layer[];
+    if (deckLayers.length > 0){
+        deckLayers.forEach(layer => {
+            addDeckLayerToMap(map,deck,layer.get('name'));
+        });
     } else {
-      console.error('deck Instance is null');
+        console.warn('No current_layers to add.');
     }
-
 }
 
-// function updateExtremeLatLon(elevationData:any[][],
-//                                     hMeanNdx:number,
-//                                     latNdx:number,
-//                                     lonNdx:number,
-//                                     localExtLatLon: ExtLatLon,
-//                                     localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
-//     elevationData.forEach(d => {
-//         if (d[2] < localExtHMean.minHMean) {
-//             localExtHMean.minHMean = d[hMeanNdx];
-//         }
-//         if (d[2] > localExtHMean.maxHMean) {
-//             localExtHMean.maxHMean = d[hMeanNdx];
-//         }
-//         if (d[2] < localExtHMean.lowHMean) { // TBD fix this
-//             localExtHMean.lowHMean = d[hMeanNdx];
-//         }
-//         if (d[2] > localExtHMean.highHMean) { // TBD fix this
-//             localExtHMean.highHMean = d[hMeanNdx];
-//         }
-//         if (d[1] < localExtLatLon.minLat) {
-//             localExtLatLon.minLat = d[latNdx];
-//         }
-//         if (d[1] > localExtLatLon.maxLat) {
-//             localExtLatLon.maxLat = d[latNdx];
-//         }
-//         if (d[0] < localExtLatLon.minLon) {
-//             localExtLatLon.minLon = d[lonNdx];
-//         }
-//         if (d[0] > localExtLatLon.maxLon) {
-//             localExtLatLon.maxLon = d[lonNdx];
-//         }
-//     });
-//     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
-// }
+export function resetDeck(map: OLMap){
+    console.log('resetDeck')
+    const tgt = map.getViewport() as HTMLDivElement;
+    const deck = resetDeckGLInstance(tgt); 
+    if(deck){
+        removeDeckLayersFromMap(map);
+        addExistingDeckLayersToMap(map,deck);        
+    } else {
+      console.error('resetDeck(): deck Instance is null');
+    }
+}
+
+export function initDeck(map: OLMap){
+    console.log('initDeck')
+    const tgt = map.getViewport() as HTMLDivElement;
+    const deck = resetDeckGLInstance(tgt); 
+    if(deck){
+        addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
+        addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);        
+    } else {
+      console.error('initDeck(): deck Instance is null');
+    }
+}
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {

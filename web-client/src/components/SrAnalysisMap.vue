@@ -27,7 +27,7 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
-  import { updateDeck } from '@/utils/SrMapUtils';
+  import { initDeck } from '@/utils/SrMapUtils';
   import { processFileForReq } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
@@ -304,7 +304,7 @@
               map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
-              updateDeck(map);
+              initDeck(map);
               mapStore.setIsLoading();
               try{
                 await processFileForReq(props.reqId);
