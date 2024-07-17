@@ -30,7 +30,7 @@
   import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
-  import { updateDeck } from "@/utils/SrMapUtils";
+  import { initDeck } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
   import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -542,7 +542,7 @@
             updateCurrentParms();
             addLayersForCurrentView();      
             map.getView().on('change:resolution', onResolutionChange);
-            updateDeck(map);
+            initDeck(map);
             // Permalink
             // if(mapStore.plink){
             //   var url = mapStore.plink.getUrlParam('url');

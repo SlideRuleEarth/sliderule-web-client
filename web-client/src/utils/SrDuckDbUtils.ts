@@ -6,7 +6,7 @@ import { updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDat
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { removeCurrentDeckLayer } from './SrMapUtils';
+//import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
 
 interface SummaryRowData {
@@ -101,8 +101,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            //console.log('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
-            removeCurrentDeckLayer();
+            console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
+            //removeCurrentDeckLayer();
             return;
         }
 
@@ -188,8 +188,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            //console.log('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
-            removeCurrentDeckLayer();
+            console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
+            //removeCurrentDeckLayer();
             return;
         }
 

@@ -6,8 +6,9 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
-import { Layer as OL_Layer} from 'ol/layer';
-import { Deck } from '@deck.gl/core';
+import { type Layer as OL_Layer_Type} from 'ol/layer';
+import { Source } from 'ol/source';
+import LayerRenderer   from 'ol/renderer/Layer';
 //import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
@@ -33,8 +34,8 @@ export const useMapStore = defineStore('map', {
     }),
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([]),
-    deckInstance: null as any,
-    theDeckLayer: null as OL_Layer | null,
+    //theDeckLayer: null as OL_Layer | null,
+    dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
     isLoading: false,
     isAborting: false,
     currentReqId: 0 as number,
@@ -112,27 +113,20 @@ export const useMapStore = defineStore('map', {
           this.graticule.setMap(null);
       }
     },
-    setDeckInstance(instance:Deck) {
-      this.deckInstance = instance;
+
+
+    // setDeckLayer(layer:OL_Layer) {
+    //   this.theDeckLayer = layer;
+    // },
+    // getDeckLayer() : OL_Layer | null {
+    //   return this.theDeckLayer as OL_Layer | null;
+    // }, 
+    addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
+      this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
     },
-    getDeckInstance() {
-      return this.deckInstance;
+    getDeckLayers():  OL_Layer_Type<Source, LayerRenderer<any>>[]{
+      return this.dLayers as OL_Layer_Type<Source, LayerRenderer<any>>[];
     },
-    clearDeckInstance() {
-      if (this.deckInstance) {
-          console.warn('clearDeckInstance');
-          this.deckInstance.finalize(); // This ensures all resources are properly released.
-          this.deckInstance = null;
-      } else {
-          console.warn('deckInstance is null');
-      }
-    },
-      setDeckLayer(layer:OL_Layer) {
-      this.theDeckLayer = layer;
-    },
-    getDeckLayer() : OL_Layer | null {
-      return this.theDeckLayer as OL_Layer | null;
-    }, 
     getCurrentReqId() {
       return this.currentReqId;
     },
