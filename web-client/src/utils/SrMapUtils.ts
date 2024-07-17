@@ -243,8 +243,9 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
         const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+        useDeckStore().addLayer(layer);
         if(useDeckStore().getDeckInstance()){
-            useDeckStore().getDeckInstance().setProps({layers:[layer]});
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
         } else {
             console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
         }
@@ -291,9 +292,11 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
     console.log('updateElLayerWithObject startTime:',startTime);
     try{
         const layer = createElLayer(elevationData,extHMean,heightFieldName);
+        useDeckStore().addLayer(layer);
         if(useDeckStore().getDeckInstance()){
             console.log('updateElLayerWithObject layer:',layer);
-            useDeckStore().getDeckInstance().setProps({layers:[layer]});
+            //useDeckStore().getDeckInstance().setProps({layers:[layer]});
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
         } else {
             console.error('Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
@@ -365,23 +368,7 @@ export function removeDeckLayersFromMap(map: OLMap){
     }
 }
 
-// export function removeDeckLayer(map: OLMap){
-//     const current_layer = useMapStore().getDeckLayer();
-//     if(current_layer){
-//         map.removeLayer(current_layer);
-//     } else {
-//         //console.error('No current_layer to remove.');
-//     }
-// }
 
-// export function removeCurrentDeckLayer(){
-//     const current_layer = useMapStore().getDeckLayer();
-//     if(current_layer){
-//         useMapStore().getMap()?.removeLayer(current_layer);
-//     } else {
-//         //console.error('No current_layer to remove.');
-//     }   
-// }
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){

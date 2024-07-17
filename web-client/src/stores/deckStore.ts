@@ -4,6 +4,7 @@ import { Deck } from '@deck.gl/core';
 export const useDeckStore = defineStore('deck', {
     state: () => ({
         deckInstance: null as any,
+        pointCloudLayers: [] as any[],
     }),
     actions: {
         setDeckInstance(instance:Deck) {
@@ -21,6 +22,15 @@ export const useDeckStore = defineStore('deck', {
             } else {
                 console.warn('clearDeckInstance(): deckInstance is null');
             }
-        },    
+        }, 
+        addLayer(layer:any) { 
+            this.pointCloudLayers.push(layer);
+            //console.log('addLayer:',layer);
+        },
+        getLayers() {
+            const layers = this.pointCloudLayers;
+            //console.log('getLayers:',layers);
+            return layers;
+        }
     }
 });
