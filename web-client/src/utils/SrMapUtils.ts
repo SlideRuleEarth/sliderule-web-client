@@ -22,7 +22,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 
-const EL_LAYER_NAME = 'elevation-deck-layer';
+export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
 export const polyCoordsExist = computed(() => {
@@ -241,7 +241,15 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        if(useDeckStore().getDeckInstance()){
+        const deck = useDeckStore().getDeckInstance()
+        if(deck){
+            if(!getDeckLayerByName(SELECTED_LAYER_NAME)){
+                //console.log('updateSelectedLayerWithObject getDeckLayerByName:',getDeckLayerByName(SELECTED_LAYER_NAME));
+                const map = useMapStore().getMap() as OLMap;
+                if(map){
+                    addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
+                }
+            }        
             const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
             useDeckStore().replaceOrAddHighlightLayer(layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
@@ -290,9 +298,9 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
     const startTime = performance.now(); // Start time
     //console.log('updateElLayerWithObject startTime:',startTime);
     try{
-        const layer = createElLayer(elevationData,extHMean,heightFieldName);
-        useDeckStore().addLayer(layer);
         if(useDeckStore().getDeckInstance()){
+            const layer = createElLayer(elevationData,extHMean,heightFieldName);
+            useDeckStore().replaceOrAddElLayer(layer);
             //console.log('updateElLayerWithObject layer:',layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
@@ -309,6 +317,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
 }
 
 export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
+    console.log('createNewDeckLayer:',name);
     const layerOptions = {
         title: name,
     }
@@ -325,7 +334,6 @@ export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
         },
         ...layerOptions
     }); 
-    //useMapStore().setDeckLayer(new_layer); 
     return new_layer;  
 }
 
@@ -357,23 +365,34 @@ export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
 
 export function removeDeckLayersFromMap(map: OLMap){
     const current_layers = useMapStore().getDeckLayers();
-    if(current_layers){
+    if(current_layers.length > 0){
         current_layers.forEach(layer => {
             map.removeLayer(layer);
         });
     } else {
-        console.warn('No current_layers to remove.');
+        console.warn('removeDeckLayersFromMap: No current_layers to remove.');
     }
 }
 
-
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
+    console.log('addDeckLayerToMap:',name);
     const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
+        const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME) as VectorLayer<Feature<Geometry>>;
+        if (selectedLayer) {
+            //console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
+            map.removeLayer(selectedLayer);
+        }
         map.addLayer(deckLayer);
+        //console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
-        //console.error('No current_layer to add.');
+        console.error('No current_layer to add.');
     }
+}
+
+export function getDeckLayerByName(name:string): OL_Layer | undefined {
+    const deckLayers = useMapStore().getDeckLayers();
+    return deckLayers.find(layer => layer.get('name') === name);
 }
 
 export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
@@ -388,7 +407,7 @@ export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
 }
 
 export function resetDeck(map: OLMap){
-    //console.log('resetDeck')
+    console.log('resetDeck')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(tgt); 
     if(deck){
@@ -400,12 +419,12 @@ export function resetDeck(map: OLMap){
 }
 
 export function initDeck(map: OLMap){
-    //console.log('initDeck')
+    console.log('initDeck')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(tgt); 
     if(deck){
         addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
-        addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);        
+        //addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);        
     } else {
       console.error('initDeck(): deck Instance is null');
     }

@@ -7,16 +7,17 @@ import SrToggleButton from './SrToggleButton.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
-import {useAtlChartFilterStore} from '@/stores/atlChartFilterStore';
-import { useRequestsStore } from '@/stores/requestsStore';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
-import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
 import { tracksOptions,beamsOptions } from '@/utils/parmUtils';
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { useMapStore } from '@/stores/mapStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useRequestsStore } from '@/stores/requestsStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { useDeckStore } from '@/stores/deckStore';
 
 
 const requestsStore = useRequestsStore();
@@ -131,6 +132,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
         atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
+        useDeckStore().deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
     } catch (error) {
         console.error('Failed to update selected request:', error);
