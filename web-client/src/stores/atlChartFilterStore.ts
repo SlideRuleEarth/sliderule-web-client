@@ -29,7 +29,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     max_x: 0 as number,
     min_y: 0 as number,
     max_y: 0 as number,
-    updateScatterPlot: false as boolean,
+    updateScatterPlotCnt: 0 as number,
     elevationDataOptions: [{ name: 'not_set', value: 'not_set' }] as { name: string, value: string }[],
     yDataForChart: [] as string[],
     ndxOfelevationDataOptionsForHeight: 0,
@@ -72,7 +72,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       this.setSpots([{ label: spot.toString(), value: spot }]);
     },
     setRgts(rgts: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore setRgts:', rgts);
+      console.log('atlChartFilterStore setRgts:', rgts);
       this.rgts = rgts;
     },
     getRgts() {
@@ -91,14 +91,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return;
       }
       this.rgtOptions = rgtOptions.map(option => ({ label: option.toString(), value: option }));
-      //console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions,' this.rgtOptions:', this.rgtOptions);
+      console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions,' this.rgtOptions:', this.rgtOptions);
     },
     getRgtOptions() {
       //console.log('atlChartFilterStore.getRgtOptions():', this.rgtOptions);
       return this.rgtOptions;
     },
     setRgtWithNumber(rgt: number) {
-      //console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
+      console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
       this.setRgts([{ label: rgt.toString(), value: rgt }]);
     },
     setCycleOptionsWithNumbers(cycleOptions: number[]) {
@@ -114,11 +114,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.cycleOptions;
     },
     setCycleWithNumber(cycle: number) {
-      //console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
+      console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
       this.setCycles([{ label: cycle.toString(), value: cycle }]);
     },
     setCycles(cycles: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore.setCycle():', cycles);
+      console.log('atlChartFilterStore.setCycles():', cycles);
       this.cycles = cycles;
     },
     getCycles() {
@@ -254,9 +254,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.size;
     },
     getScatterOptionsParms(): SrScatterOptionsParms {
+      console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
       const sop =  {
-        rgt: this.rgts[0]?.value || 1,
-        cycle: this.cycles[0]?.value || 1,
+        rgt: this.rgts[0]?.value || -1,
+        cycle: this.cycles[0]?.value || -1,
         fileName: this.currentFile,
         func: this.func,
         y: this.yDataForChart,
@@ -266,17 +267,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         scOrient: this.scOrient,
         tracks: this.tracks.map(track => track.value),
       };
-      //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
+      console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
       return sop;
     },
-    setUpdateScatterPlot() {
-      this.updateScatterPlot = true;
-    },
-    getUpdateScatterPlot() {
-      return this.updateScatterPlot;
-    },
-    resetUpdateScatterPlot() {
-      this.updateScatterPlot = false;
+    updateScatterPlot() {
+      this.updateScatterPlotCnt += 1;
+      console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
     },
     setIsLoading() {
       console.log('atlChartFilterStore.setIsLoading()');

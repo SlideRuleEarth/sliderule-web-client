@@ -375,7 +375,7 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
     }
 }
 
-export async function getRgts(req_id: number): Promise<number[]> {
+export async function updateRgtOptions(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
@@ -433,7 +433,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
     return pairs;
 }
 
-export async function getCycles(req_id: number): Promise<number[]> {
+export async function updateCycleOptions(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);

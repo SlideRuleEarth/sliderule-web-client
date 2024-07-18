@@ -18,7 +18,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
-
+import { useDebugStore } from '@/stores/debugStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -87,6 +87,7 @@ onMounted(async() => {
     atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
+
 const computedScOrient = computed({
     get: () => atlChartFilterStore.getScOrient() === 1,
     set: (newValue: boolean) => {
@@ -98,6 +99,7 @@ const toggleScOrient = (newValue: boolean) => {
     atlChartFilterStore.setScOrient(newValue ? 1 : 0);
     console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
 };
+
 const computedPair = computed({
     get: () => atlChartFilterStore.getPair() === 1,
     set: (newValue: boolean) => {
@@ -108,6 +110,11 @@ const computedPair = computed({
 const togglePair = (newValue: boolean) => {
     atlChartFilterStore.setPair(newValue ? 1 : 0);
     console.log('togglePair:', atlChartFilterStore.getPair());
+};
+
+const SpotOrBeamSelection = () => {
+    console.log('SpotOrBeamSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
 };
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
@@ -198,9 +205,10 @@ const getSize = computed(() => {
                     :setSelectedMenuItem="atlChartFilterStore.setBeams"
                     :menuOptions="beamsOptions" 
                     tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                    @update:modelValue="SpotOrBeamSelection"
                 />
         </div>
-        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
+        <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
             </div>
@@ -238,7 +246,7 @@ const getSize = computed(() => {
                     :setSelectedMenuItem="atlChartFilterStore.setTracks"
                     :menuOptions="tracksOptions" 
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                />
+                    />
             </div>
             <div class="sr-rgts-cycles-panel">
                 <SrListbox id="rgts"
@@ -246,7 +254,7 @@ const getSize = computed(() => {
                     v-model="atlChartFilterStore.rgts" 
                     :getSelectedMenuItem="atlChartFilterStore.getRgts"
                     :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                    :menuOptions="atlChartFilterStore.getRgtOptions()" 
+                    :menuOptions="atlChartFilterStore.rgts" 
                     tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
     vector within the observatory is pointed" 
                 />
@@ -255,7 +263,7 @@ const getSize = computed(() => {
                     v-model="atlChartFilterStore.cycles"
                     :getSelectedMenuItem="atlChartFilterStore.getCycles"
                     :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                    :menuOptions="atlChartFilterStore.getCycleOptions()" 
+                    :menuOptions="atlChartFilterStore.cycles" 
                     tooltipText="Counter of 91-day repeat cycles completed by the mission" 
                 />
             </div>

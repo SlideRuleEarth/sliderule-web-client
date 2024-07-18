@@ -16,9 +16,18 @@
                 :decimalPlaces=0
                 tooltipText="Chunk size to Query from parquet file"
             />
-            <SrToggleButton :value="reqParamsStore.useChecksum" label="Use Checksum" @input="handleUseChecksum"/>            
+            <SrToggleButton 
+              :value="reqParamsStore.useChecksum" 
+              label="Use Checksum" 
+              @input="handleUseChecksum"
+            />            
             <div>
               <SrSvrConsoleTerminal />
+              <SrToggleButton 
+                :value="debugStore.enableSpotPatternDetails" 
+                label="Enable Spot Pattern Details" 
+              />
+              <SrGraticuleSelect/>
             </div>
         </div>
     </div>
@@ -32,7 +41,10 @@
     import SrToggleButton from './SrToggleButton.vue';
     import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
     import SrSliderInput from './SrSliderInput.vue';
-
+    import { useDebugStore } from '@/stores/debugStore';
+    import SrGraticuleSelect from './SrGraticuleSelect.vue';
+    
+    const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
 

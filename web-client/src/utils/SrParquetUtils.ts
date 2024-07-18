@@ -4,7 +4,7 @@ import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary, getCycles, getRgts } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary, updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
 
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
@@ -212,10 +212,11 @@ export const processFileForReq = async (req_id:number) => {
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
             await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
 
-            // const rgts = await getRgts(req_id);
-            // console.log('processFileForReq rgts:',rgts);
-            // const cycles = await getCycles(req_id);
-            // console.log('processFileForReq cycles:',cycles);
+            // These update the dynamic options for the these components
+            const rgts = await updateRgtOptions(req_id);
+            console.log('processFileForReq rgts:',rgts);
+            const cycles = await updateCycleOptions(req_id);
+            console.log('processFileForReq cycles:',cycles);
 
         } else {
             throw new Error('processFileForReq unknown reader');

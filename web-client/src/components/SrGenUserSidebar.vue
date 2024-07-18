@@ -10,7 +10,6 @@
     import ProgressBar from 'primevue/progressbar';
     import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
     import { processAbortClicked } from  "@/utils/workerDomUtils";    
-    import SrGraticuleSelect from './SrGraticuleSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
@@ -51,7 +50,6 @@
                     <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
                 </div>  
             </div>
-            <SrGraticuleSelect/>
         </div>  
     </div>
 </template>

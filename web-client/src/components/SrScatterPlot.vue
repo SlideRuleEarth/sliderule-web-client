@@ -129,9 +129,9 @@ watch(() => curReqSumStore.getReqId(), async (newReqId) => {
   }
 });
 
-watch(() => atlChartFilterStore.updateScatterPlot, async () => {
-  atlChartFilterStore.resetUpdateScatterPlot();
-    debouncedFetchScatterOptions();
+watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
+  console.log('Watch updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
+  debouncedFetchScatterOptions();
 });
 
 </script>

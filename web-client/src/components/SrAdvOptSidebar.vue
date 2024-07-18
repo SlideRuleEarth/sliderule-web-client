@@ -13,7 +13,6 @@
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import { processRunSlideRuleClicked } from "@/utils/workerDomUtils"
     import { processAbortClicked } from "@/utils/workerDomUtils"
-    import SrGraticuleSelect from './SrGraticuleSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
@@ -113,7 +112,6 @@
                 :iceSat2SelectedAPI="useReqParamsStore().iceSat2SelectedAPI"
                 :gediSelectedAPI="useReqParamsStore().gediSelectedAPI"
             />
-            <SrGraticuleSelect/>
         </div>  
     </div>
 </template>

@@ -185,13 +185,11 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        useReqParamsStore().setRgt(d.rgt);
         useAtlChartFilterStore().setRgtWithNumber(d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useReqParamsStore().setCycle(d.cycle);
         useAtlChartFilterStore().setCycleWithNumber(d.cycle);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
@@ -202,7 +200,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
     }
     await addHighlightLayerForReq(useCurReqSumStore().getReqId());
-    useAtlChartFilterStore().setUpdateScatterPlot();
+    useAtlChartFilterStore().updateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
