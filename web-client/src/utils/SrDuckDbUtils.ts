@@ -475,8 +475,11 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
                 ${x}, 
                 ${yColumns}
             FROM '${fileName}'
-            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
-        `;
+            WHERE gt IN (${beams.join(', ')})
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
+            `;
+    
         useAtlChartFilterStore().setAtl06QuerySql(query);
         const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl06QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
@@ -502,7 +505,9 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
                 MAX(${x}) as max_x,
                 ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
-            WHERE gt = ${beams[0]} AND rgt = ${rgt} AND cycle = ${cycle}
+            WHERE gt IN (${beams.join(', ')})
+            AND rgt = ${rgt} 
+            AND cycle = ${cycle}
         `;
         //console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
