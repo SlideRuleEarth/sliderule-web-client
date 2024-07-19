@@ -14,8 +14,12 @@
 <template>
     <div class="mode-box">
         <SrToggleButton 
-            v-model="mapStore.graticuleState"
+            :value="mapStore.graticuleState"
+            :getValue="mapStore.getGraticuleState"
+            :setValue="mapStore.setGraticuleState"
             label="Graticule"
+            tooltipText="Toggle the graticule on and off"
+            tooltipUrl="https://openlayers.org/en/latest/apidoc/module-ol_layer_Graticule-Graticule.html"
             @change="handleGraticuleChanged"
         />
     </div>

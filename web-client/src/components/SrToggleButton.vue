@@ -5,7 +5,6 @@
         :id="toggleSwitchId"
         v-model="localChecked"
         :disabled="insensitive"
-        @change="handleChanged"
         :dt="designTokenForToggleSwitch"
       />
       <div v-if="tooltipText || tooltipUrl">
@@ -50,7 +49,6 @@
         :id="toggleSwitchId"
         v-model="localChecked"
         :disabled="insensitive"
-        @change="handleChanged"
         :dt="designTokenForToggleSwitch"
       />
     </div>
@@ -116,10 +114,6 @@ watch(localChecked, (value) => {
   console.log(`SrToggleButton: ${props.label} changed to: ${value}`);
   emit('update:modelValue', value);
 });
-
-const handleChanged = () => {
-  console.log(`SrToggleButton: ${props.label} changed to: ${localChecked.value}`);
-};
 
 const designTokenForToggleSwitch = ref({
   width: '2rem',

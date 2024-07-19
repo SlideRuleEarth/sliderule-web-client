@@ -6,8 +6,11 @@ export const useAdvancedModeStore = defineStore({
     advanced: false,
   }),
   actions: {
-    toggleAdvanced() {
-      this.advanced = !this.advanced;
+    getAdvanced() {
+      return this.advanced;
     },
-  },
+    setAdvanced(advanced: boolean) {
+      this.advanced = advanced;
+    },
+  }
 });

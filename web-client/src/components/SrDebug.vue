@@ -17,9 +17,12 @@
                 tooltipText="Chunk size to Query from parquet file"
             />
             <SrToggleButton 
-              :value="reqParamsStore.useChecksum" 
-              label="Use Checksum" 
-              @input="handleUseChecksum"
+              :value="reqParamsStore.useChecksum"
+              :getValue="reqParamsStore.getUseChecksum"
+              :setValue="reqParamsStore.setUseChecksum" 
+              label="Use Checksum"
+              tooltipUrl='https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#parameters'
+              tooltipText='Use Checksum to verify the integrity of the data'
             />            
             <div>
               <SrSvrConsoleTerminal />
@@ -50,10 +53,10 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
 
-    const handleUseChecksum = async (newValue: boolean) => {
-      reqParamsStore.useChecksum = newValue;
-      console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );
-    };
+    // const handleUseChecksum = async (newValue: boolean) => {
+    //   reqParamsStore.useChecksum = newValue;
+    //   console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );
+    // };
 
 </script>
   

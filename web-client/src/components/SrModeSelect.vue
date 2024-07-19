@@ -34,7 +34,9 @@ async function handleToggleAdvanced() {
 <template>
     <div class="mode-box">
         <SrToggleButton 
-            v-model="advancedModeStore.advanced" 
+            :value="advancedModeStore.advanced"
+            :getValue="advancedModeStore.getAdvanced"
+            :setValue="advancedModeStore.setAdvanced" 
             label='Advanced Mode'
             @change="handleToggleAdvanced" 
         />

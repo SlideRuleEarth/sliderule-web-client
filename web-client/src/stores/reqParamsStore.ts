@@ -342,6 +342,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         getSelectAllBeams() {
           return this.selectAllBeams;
         },
+        setUseChecksum(useChecksum:boolean) {
+          this.useChecksum = useChecksum;
+        },
+        getUseChecksum() {
+          return this.useChecksum;
+        },
     },
 })
 
