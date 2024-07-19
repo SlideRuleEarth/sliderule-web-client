@@ -3,8 +3,8 @@ import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
-import { getBeamsAndTracksWithGt } from '@/utils/parmUtils';
-
+import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 export interface NullReqParams {
   null: null;
 }
@@ -30,9 +30,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         convexHull: null as SrRegion | null,
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
-        tracks:  [] as number[],
+        tracks: [] as SrListNumberItem[],
         selectAllTracks: false,
-        beams: [] as number[],
+        beams: [] as SrListNumberItem[],
         selectAllBeams: false,
         rgtValue: 1,
         cycleValue: 1,
@@ -263,10 +263,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         
           if (this.enableGranuleSelection) {
             if (this.tracks.length > 0) {
-              req.tracks = this.tracks;
+              req.tracks = this.tracks.map(track => track.value);
             }
             if (this.beams.length > 0) {
-              req.beams = this.beams;
+              req.beams = this.beams.map(beam => beam.value);
             }
           }
         
@@ -309,35 +309,22 @@ export const useReqParamsStore = defineStore('reqParams', {
         getRgt() {
           return this.rgtValue;
         },
-        setCycle(cycleValue:number) {
-          this.cycleValue = cycleValue;
-        },
-        getCycle() {
-          this.cycleValue;
-        },
-        setBeams(beams:number[]) {
-          if(beams.length === 6) {
-            this.selectAllBeams = true;
-          } else {
-            this.selectAllBeams = false;
-          }
+        setBeams(beams: SrListNumberItem[]) {
           this.beams = beams;
         },
         getBeams() {
           return this.beams;
         },
-        setBeamsAndTracksWithGt(gt:number) {
-          console.log('setBeamsAndTracksWithGt:', gt);
-          const parms = getBeamsAndTracksWithGt(gt);
+        getBeamValues() { 
+          return this.beams.map(beam => beam.value);
+        },
+        setBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
+          console.log('setBeamsAndTracksWithGts:', gts);
+          const parms = getBeamsAndTracksWithGts(gts);
           this.setBeams(parms.beams);
           this.setTracks(parms.tracks);
         },
-        setTracks(tracks:number[]) {
-          if(tracks.length === 3) {
-            this.selectAllTracks = true;
-          } else {
-            this.selectAllTracks = false;
-          }
+        setTracks(tracks: SrListNumberItem[]) {
           this.tracks = tracks;
         },
         getTracks() {

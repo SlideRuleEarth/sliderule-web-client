@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getBeamsAndTracksWithGt } from '@/utils/parmUtils';
+import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
@@ -144,9 +144,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getSelectAllTracks() {
       return this.selectAllTracks;
     },
-    setBeamsAndTracksWithGt(gt: number) {
-      //console.log('atlChartFilterStore.setBeamsAndTracksWithGt(',gt,')');
-      const parms = getBeamsAndTracksWithGt(gt);
+    setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
+      //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
+      const parms = getBeamsAndTracksWithGts(gts);
       this.setBeams(parms.beams);
       this.setTracks(parms.tracks);
     },

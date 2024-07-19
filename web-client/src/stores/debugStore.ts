@@ -5,7 +5,7 @@ export const useDebugStore = defineStore('debugStore', {
         enableSpotPatternDetails: false as boolean,
     }),
     actions: {
-        setEnableSpotPatternDetails(enable:boolean) {
+        setEnableSpotPatternDetails(enable:boolean= true) {
             this.enableSpotPatternDetails = enable;
         },
         getEnableSpotPatternDetails() {

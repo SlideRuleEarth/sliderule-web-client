@@ -24,7 +24,9 @@
             <div>
               <SrSvrConsoleTerminal />
               <SrToggleButton 
-                :value="debugStore.enableSpotPatternDetails" 
+                :value="debugStore.enableSpotPatternDetails"
+                :getValue="debugStore.getEnableSpotPatternDetails" 
+                :setValue="debugStore.setEnableSpotPatternDetails" 
                 label="Enable Spot Pattern Details" 
               />
               <SrGraticuleSelect/>

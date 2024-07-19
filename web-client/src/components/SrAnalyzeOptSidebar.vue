@@ -199,6 +199,7 @@ const getSize = computed(() => {
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
             <SrListbox id="beams" 
+                    :insensitive="true"
                     label="Beam(s)" 
                     v-model="atlChartFilterStore.beams"
                     :getSelectedMenuItem="atlChartFilterStore.getBeams"
@@ -382,7 +383,9 @@ const getSize = computed(() => {
     .sr-link-small-text {
         font-size: smaller;
     }
+
     :deep(.p-listbox-option) {
         padding-top: 0.125rem;
-        padding-bottom: 0rem;}
+        padding-bottom: 0rem;
+    }
 </style>

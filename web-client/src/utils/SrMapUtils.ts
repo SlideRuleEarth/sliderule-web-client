@@ -170,7 +170,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
-        useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+        useAtlChartFilterStore().setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
         useAtlChartFilterStore().setScOrient(d.sc_orient);
@@ -194,7 +194,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
-
+    // for atl03
     if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
         useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
