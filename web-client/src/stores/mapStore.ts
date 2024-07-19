@@ -6,8 +6,10 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
-import { Layer as OL_Layer} from 'ol/layer';
-import { Deck } from '@deck.gl/core';
+import { type Layer as OL_Layer_Type} from 'ol/layer';
+import { Source } from 'ol/source';
+import LayerRenderer   from 'ol/renderer/Layer';
+import type { set } from 'lodash';
 //import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
@@ -33,13 +35,15 @@ export const useMapStore = defineStore('map', {
     }),
     polygonSource:{name:'Draw on Map',value:'Draw on Map'},
     polyCoords: <Coordinate[][]>([]),
-    deckInstance: null as any,
-    theDeckLayer: null as OL_Layer | null,
-    isLoading: false,
-    isAborting: false,
+    //theDeckLayer: null as OL_Layer | null,
+    dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
+    isLoading: false as boolean,
+    isAborting: false as boolean,
     currentReqId: 0 as number,
     redrawTimeOutSeconds: 5,
-    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null // Handle for the timeout to clear it when necessary
+    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
+    totalRows: 0 as number,
+    currentRows: 0 as number,
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -102,6 +106,13 @@ export const useMapStore = defineStore('map', {
       this.graticuleState = !this.graticuleState;
       this.setGraticuleForMap();
     },
+    getGraticuleState() {
+      return this.graticuleState;
+    },
+    setGraticuleState(state: boolean) {
+      this.graticuleState = state;
+      this.setGraticuleForMap();
+    },
     setGraticuleForMap() {
       if (this.graticuleState) {
         const thisMap = this.map as OLMap;
@@ -112,27 +123,20 @@ export const useMapStore = defineStore('map', {
           this.graticule.setMap(null);
       }
     },
-    setDeckInstance(instance:Deck) {
-      this.deckInstance = instance;
+
+
+    // setDeckLayer(layer:OL_Layer) {
+    //   this.theDeckLayer = layer;
+    // },
+    // getDeckLayer() : OL_Layer | null {
+    //   return this.theDeckLayer as OL_Layer | null;
+    // }, 
+    addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
+      this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
     },
-    getDeckInstance() {
-      return this.deckInstance;
+    getDeckLayers():  OL_Layer_Type<Source, LayerRenderer<any>>[]{
+      return this.dLayers as OL_Layer_Type<Source, LayerRenderer<any>>[];
     },
-    clearDeckInstance() {
-      if (this.deckInstance) {
-          console.warn('clearDeckInstance');
-          this.deckInstance.finalize(); // This ensures all resources are properly released.
-          this.deckInstance = null;
-      } else {
-          console.warn('deckInstance is null');
-      }
-    },
-      setDeckLayer(layer:OL_Layer) {
-      this.theDeckLayer = layer;
-    },
-    getDeckLayer() : OL_Layer | null {
-      return this.theDeckLayer as OL_Layer | null;
-    }, 
     getCurrentReqId() {
       return this.currentReqId;
     },
@@ -160,18 +164,17 @@ export const useMapStore = defineStore('map', {
     resetIsLoading() {
       this.isLoading = false;
     },
-    // async drawElevations() {
-    //   if (this.isLoading && !this.isAborting) {
-    //       await fetchAndUpdateElevationData(this.getCurrentReqId());
-    //   } else {
-    //       console.log('drawElevations: SKIPPED - not loading or aborting');
-    //   }
-    // },
-    // scheduleDrawElevations() {
-    //   this.clearRedrawElevationsTimeoutHandle();
-    //   this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
-    //   console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
-    // }
-
+    getTotalRows() {
+      return this.totalRows;
+    },
+    setTotalRows(rows: number) {
+      this.totalRows = rows;
+    },
+    getCurrentRows() {
+      return this.currentRows;
+    },
+    setCurrentRows(rows: number) {
+      this.currentRows = rows;
+    },
   },
 });

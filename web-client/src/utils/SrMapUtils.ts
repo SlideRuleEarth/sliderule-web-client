@@ -11,15 +11,19 @@ import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
-import { useMapParamsStore } from '@/stores/mapParamsStore';
 import type { ExtHMean } from '@/workers/workerUtils';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { Style, Fill, Stroke } from 'ol/style';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { processFileForReq } from '@/utils/SrParquetUtils';
+import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
+import { useMapParamsStore } from '@/stores/mapParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { useDeckStore } from '@/stores/deckStore';
+
+export const EL_LAYER_NAME = 'elevation-deck-layer';
+export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -159,15 +163,14 @@ export interface ElevationDataItem {
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     useAtlChartFilterStore().setClearPlot();
-    useAtlChartFilterStore().setIsLoading();
-    useMapStore().setIsLoading();
-    console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    //useAtlChartFilterStore().setIsLoading();
+    //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
         useAtlChartFilterStore().setTrackWithNumber(d.track);
         useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
-        useAtlChartFilterStore().setBeamsAndTracksWithGt(d.gt);
+        useAtlChartFilterStore().setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
         useAtlChartFilterStore().setScOrient(d.sc_orient);
@@ -182,24 +185,22 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        useReqParamsStore().setRgt(d.rgt);
         useAtlChartFilterStore().setRgtWithNumber(d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useReqParamsStore().setCycle(d.cycle);
         useAtlChartFilterStore().setCycleWithNumber(d.cycle);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
+    // for atl03
     if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
         useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
     }
-    await processFileForReq(useCurReqSumStore().getReqId());
-    useMapStore().resetIsLoading();
-    useAtlChartFilterStore().setUpdateScatterPlot();
+    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+    useAtlChartFilterStore().updateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
@@ -217,53 +218,92 @@ function checkFilter(d:ElevationDataItem): boolean {
     }
     return matched;
 }
+// [255, 0, 0, 127]; // red
+
+function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
+    return new PointCloudLayer({
+        id: name,
+        data: elevationData,
+        getPosition: (d) => {
+            return [d['longitude'], d['latitude'], 0];
+        },
+        getNormal: [0, 0, 1],
+        getColor: () => {
+             return color;
+        },
+        pointSize: 3
+    });
+}
+
+export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[]): void{
+    const startTime = performance.now(); // Start time
+    //console.log('updateSelectedLayerWithObject startTime:',startTime);
+    try{
+        const deck = useDeckStore().getDeckInstance()
+        if(deck){
+            if(!getDeckLayerByName(SELECTED_LAYER_NAME)){
+                //console.log('updateSelectedLayerWithObject getDeckLayerByName:',getDeckLayerByName(SELECTED_LAYER_NAME));
+                const map = useMapStore().getMap() as OLMap;
+                if(map){
+                    addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
+                }
+            }        
+            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+            useDeckStore().replaceOrAddHighlightLayer(layer);
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+        } else {
+            console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
+        }
+    } catch (error) {
+        console.error('createHighlightLayer Error updating elevation layer:',error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+    }
+
+}
+
+function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): PointCloudLayer {
+    return new PointCloudLayer({
+        id: EL_LAYER_NAME,
+        data: elevationData,
+        getPosition: (d) => {
+            return [d['longitude'], d['latitude'], 0];
+        },
+        getNormal: [0, 0, 1],
+        getColor: (d) => {
+            return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+        },
+        pointSize: 3,
+        pickable: true, // Enable picking
+        onHover: ({ object, x, y }) => {
+            if (object) {
+                const tooltip = formatObject(object);
+                showTooltip({ x, y, tooltip });
+            } else {
+                hideTooltip();
+            }
+        },
+        onClick: ({ object, x, y }) => {
+            if (object) {
+                clicked(object);
+            }
+        }
+    });
+}
 
 export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
     const startTime = performance.now(); // Start time
-    console.log('updateElLayerWithObject startTime:',startTime);
+    //console.log('updateElLayerWithObject startTime:',startTime);
     try{
-        //const canvas = document.querySelector('canvas');
-        //console.log('updateElLayerWithObject elevationData.length:',elevationData.length,'elevationData:',elevationData,'heightFieldName:',heightFieldName, 'use_white:',use_white);
-        const layer =     
-            new PointCloudLayer({
-                id: 'point-cloud-layer', // keep this constant so deck does the right thing and updates the layer
-                data: elevationData,
-                getPosition: (d) => {
-                    return [d['longitude'], d['latitude'], 0];
-                },
-                getNormal: [0, 0, 1],
-                getColor: (d) => {
-                    if(checkFilter(d)==true){
-                        return [255, 0, 0, 127];
-                    } else {
-                        return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                    }
-                },
-                pointSize: 3,
-                pickable: true, // Enable picking
-                onHover: ({ object, x, y }) => {
-                    //console.log('onHover object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        //console.log('object',object,'newObject:',newObject);
-                        //canvas.style.cursor = 'pointer'; // Change cursor to pointer
-                        const tooltip = formatObject(object);
-                        showTooltip({ x, y, tooltip });
-                    } else {
-                        //canvas.style.cursor = 'grab';
-                        hideTooltip();
-                    }
-                },
-                onClick: ({ object, x, y }) => {
-                    //console.log('onclick object:',object,' x:',x,' y:',y);
-                    if (object) {
-                        clicked(object);
-                    }
-                }
-            });
-        if(useMapStore().getDeckInstance()){
-            useMapStore().getDeckInstance().setProps({layers:[layer]});
+        if(useDeckStore().getDeckInstance()){
+            const layer = createElLayer(elevationData,extHMean,heightFieldName);
+            useDeckStore().replaceOrAddElLayer(layer);
+            //console.log('updateElLayerWithObject layer:',layer);
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+            //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
         } else {
-            console.error('Error updating elevation useMapStore().deckInstance:',useMapStore().getDeckInstance());
+            console.error('Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
         }
     } catch (error) {
         console.error('Error updating elevation layer:',error);
@@ -274,9 +314,10 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
 
 }
 
-export function createNewDeckLayer(deck:Deck): OL_Layer{
+export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
+    console.log('createNewDeckLayer:',name);
     const layerOptions = {
-        title: 'DeckGL Layer',
+        title: name,
     }
     const new_layer = new OL_Layer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
@@ -291,7 +332,6 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
         },
         ...layerOptions
     }); 
-    useMapStore().setDeckLayer(new_layer); 
     return new_layer;  
 }
 
@@ -302,9 +342,10 @@ export function createNewDeckLayer(deck:Deck): OL_Layer{
 // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
 // Sync deck view with OL view
 
-export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+    //console.log('resetDeckGLInstance tgt:',tgt);
     try{
-        useMapStore().clearDeckInstance(); // Clear any existing instance first
+        useDeckStore().clearDeckInstance(); // Clear any existing instance first
         const deck = new Deck({
             initialViewState: {longitude: 0, latitude: 0, zoom: 1},
             controller: false,
@@ -312,7 +353,7 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
             style: {pointerEvents: 'none', zIndex: '1'},
             layers: []
         });
-        useMapStore().setDeckInstance(deck);
+        useDeckStore().setDeckInstance(deck);
         return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
@@ -320,79 +361,72 @@ export function createDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     }
 }
 
-export function removeDeckLayer(map: OLMap){
-    const current_layer = useMapStore().getDeckLayer();
-    if(current_layer){
-        map.removeLayer(current_layer);
+export function removeDeckLayersFromMap(map: OLMap){
+    const current_layers = useMapStore().getDeckLayers();
+    if(current_layers.length > 0){
+        current_layers.forEach(layer => {
+            map.removeLayer(layer);
+        });
     } else {
-        //console.error('No current_layer to remove.');
+        console.warn('removeDeckLayersFromMap: No current_layers to remove.');
     }
 }
 
-export function removeCurrentDeckLayer(){
-    const current_layer = useMapStore().getDeckLayer();
-    if(current_layer){
-        useMapStore().getMap()?.removeLayer(current_layer);
-    } else {
-        //console.error('No current_layer to remove.');
-    }   
-}
-export function addDeckLayer(map: OLMap, deck:Deck){
-    const deckLayer = createNewDeckLayer(deck);
+export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
+    console.log('addDeckLayerToMap:',name);
+    const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
+        const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME) as VectorLayer<Feature<Geometry>>;
+        if (selectedLayer) {
+            //console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
+            map.removeLayer(selectedLayer);
+        }
         map.addLayer(deckLayer);
+        //console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
-        //console.error('No current_layer to add.');
+        console.error('No current_layer to add.');
     }
 }
 
-export function updateDeck(map: OLMap){
+export function getDeckLayerByName(name:string): OL_Layer | undefined {
+    const deckLayers = useMapStore().getDeckLayers();
+    return deckLayers.find(layer => layer.get('name') === name);
+}
+
+export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
+    const deckLayers = useMapStore().getDeckLayers() as OL_Layer[];
+    if (deckLayers.length > 0){
+        deckLayers.forEach(layer => {
+            addDeckLayerToMap(map,deck,layer.get('name'));
+        });
+    } else {
+        console.warn('No current_layers to add.');
+    }
+}
+
+export function resetDeck(map: OLMap){
+    console.log('resetDeck')
     const tgt = map.getViewport() as HTMLDivElement;
-    const deck = createDeckGLInstance(tgt);
-   
+    const deck = resetDeckGLInstance(tgt); 
     if(deck){
-        removeDeckLayer(map);
-        addDeckLayer(map,deck);        
+        removeDeckLayersFromMap(map);
+        addExistingDeckLayersToMap(map,deck);        
     } else {
-      console.error('deck Instance is null');
+      console.error('resetDeck(): deck Instance is null');
     }
-
 }
 
-// function updateExtremeLatLon(elevationData:any[][],
-//                                     hMeanNdx:number,
-//                                     latNdx:number,
-//                                     lonNdx:number,
-//                                     localExtLatLon: ExtLatLon,
-//                                     localExtHMean: ExtHMean): {extLatLon:ExtLatLon,extHMean:ExtHMean} {
-//     elevationData.forEach(d => {
-//         if (d[2] < localExtHMean.minHMean) {
-//             localExtHMean.minHMean = d[hMeanNdx];
-//         }
-//         if (d[2] > localExtHMean.maxHMean) {
-//             localExtHMean.maxHMean = d[hMeanNdx];
-//         }
-//         if (d[2] < localExtHMean.lowHMean) { // TBD fix this
-//             localExtHMean.lowHMean = d[hMeanNdx];
-//         }
-//         if (d[2] > localExtHMean.highHMean) { // TBD fix this
-//             localExtHMean.highHMean = d[hMeanNdx];
-//         }
-//         if (d[1] < localExtLatLon.minLat) {
-//             localExtLatLon.minLat = d[latNdx];
-//         }
-//         if (d[1] > localExtLatLon.maxLat) {
-//             localExtLatLon.maxLat = d[latNdx];
-//         }
-//         if (d[0] < localExtLatLon.minLon) {
-//             localExtLatLon.minLon = d[lonNdx];
-//         }
-//         if (d[0] > localExtLatLon.maxLon) {
-//             localExtLatLon.maxLon = d[lonNdx];
-//         }
-//     });
-//     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
-// }
+export function initDeck(map: OLMap){
+    console.log('initDeck')
+    const tgt = map.getViewport() as HTMLDivElement;
+    const deck = resetDeckGLInstance(tgt); 
+    if(deck){
+        addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
+        //addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);        
+    } else {
+      console.error('initDeck(): deck Instance is null');
+    }
+}
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {

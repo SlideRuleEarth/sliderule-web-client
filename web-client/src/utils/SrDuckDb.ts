@@ -13,6 +13,7 @@ export interface QueryResult {
 }
 
 export interface QueryChunkResult {
+  totalRows: number | null;
   length: number;
   hasMoreData: boolean;
   schema: { name: string; type: string; databaseType: string }[];
@@ -105,7 +106,7 @@ const getType = (type: string) => {
 
 // Function to create the DuckDB instance
 export async function createDb(): Promise<AsyncDuckDB> {
-  console.log('createDb');
+  //console.log('createDb');
   const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
   const worker = new Worker(bundle.mainWorker!);
   const logger = new duckdb.ConsoleLogger();
@@ -217,15 +218,15 @@ export class DuckDBClient {
       let totalRows = null;
       if(offset === 0){
         totalRows =await this.getTotalRowCount(query);
-        console.warn('queryChunk totalRows:',totalRows);
+        //console.log('queryChunk totalRows:',totalRows);
       }
       const paginatedQuery = `${query} LIMIT ${chunkSize} OFFSET ${offset}`;
       if (params) {
         const stmt = await conn.prepare(paginatedQuery);
-        console.log('queryChunk stmt:',stmt);
+        //console.log('queryChunk stmt:',stmt);
         tbl = await stmt.query(...params);
       } else {
-        console.log('queryChunk conn.query:',paginatedQuery);
+        //console.log('queryChunk conn.query:',paginatedQuery);
         tbl = await conn.query(paginatedQuery);
       }
 
@@ -236,9 +237,10 @@ export class DuckDBClient {
         databaseType: String(type),
       }));
       const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
-      console.log('queryChunk hasMoreData:',hasMoreData,'totalRows:',totalRows,' rows.length:',rows.length,' chunkSize:',chunkSize,' tbl.numRows:',tbl.numRows);
+      //console.log('queryChunk hasMoreData:',hasMoreData,'totalRows:',totalRows,' rows.length:',rows.length,' chunkSize:',chunkSize,' tbl.numRows:',tbl.numRows);
 
       return {
+        totalRows: totalRows,
         length: rows.length,
         hasMoreData,
         schema,
@@ -291,7 +293,7 @@ export class DuckDBClient {
     const conn = await this._db!.connect();
     try {
       const tables = (await conn.query(`SHOW TABLES`)).toArray();
-      console.log('describeTables tables:',tables);
+      //console.log('describeTables tables:',tables);
       return tables.map(({ name }) => ({ name }));
     } finally {
       await conn.close();
@@ -300,7 +302,7 @@ export class DuckDBClient {
 
   // Method to describe columns of a table
   async describeColumns({ table = 'default_table' }: { table?: string } = {}) {
-    console.log('describeColumns table:',table);
+    //console.log('describeColumns table:',table);
     const conn = await this._db!.connect();
     try {
       const columns = (await conn.query(`DESCRIBE ${table}`)).toArray();
@@ -348,7 +350,7 @@ export class DuckDBClient {
         // Add the file to the set of registered files
         if(isRegistered === false){
           this._filesInDb.add(name);
-          console.log('insertOpfsParquet inserted name:',name);
+          //console.log('insertOpfsParquet inserted name:',name);
         }
       } else {
         console.log(`insertOpfsParquet File ${name} already registered`);

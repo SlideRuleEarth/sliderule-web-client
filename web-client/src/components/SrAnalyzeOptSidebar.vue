@@ -2,22 +2,22 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
-import SrSliderInput from './SrSliderInput.vue';
 import SrToggleButton from './SrToggleButton.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
-import {useAtlChartFilterStore} from '@/stores/atlChartFilterStore';
-import { useRequestsStore } from '@/stores/requestsStore';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import router from '@/router/index.js';
-import { useMapStore } from '@/stores/mapStore';
 import { db } from '@/db/SlideRuleDb';
 import { formatBytes } from '@/utils/SrParquetUtils';
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import FieldSet from 'primevue/fieldset';
 import { tracksOptions,beamsOptions } from '@/utils/parmUtils';
-
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { useMapStore } from '@/stores/mapStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useRequestsStore } from '@/stores/requestsStore';
+import { useCurReqSumStore } from '@/stores/curReqSumStore';
+import { useDeckStore } from '@/stores/deckStore';
+import { useDebugStore } from '@/stores/debugStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -86,6 +86,7 @@ onMounted(async() => {
     atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
+
 const computedScOrient = computed({
     get: () => atlChartFilterStore.getScOrient() === 1,
     set: (newValue: boolean) => {
@@ -97,6 +98,7 @@ const toggleScOrient = (newValue: boolean) => {
     atlChartFilterStore.setScOrient(newValue ? 1 : 0);
     console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
 };
+
 const computedPair = computed({
     get: () => atlChartFilterStore.getPair() === 1,
     set: (newValue: boolean) => {
@@ -107,6 +109,11 @@ const computedPair = computed({
 const togglePair = (newValue: boolean) => {
     atlChartFilterStore.setPair(newValue ? 1 : 0);
     console.log('togglePair:', atlChartFilterStore.getPair());
+};
+
+const SpotOrBeamSelection = () => {
+    console.log('SpotOrBeamSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
 };
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
@@ -129,8 +136,9 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         curReqSumStore.setReqId(Number(newSelection.value));
         atlChartFilterStore.setReqId(Number(newSelection.value));
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
-        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
+        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
+        useDeckStore().deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -176,29 +184,20 @@ const getSize = computed(() => {
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div class="sr-analysis-max-pnts">
-            <SrSliderInput
-                v-model="srParquetCfgStore.maxNumPntsToDisplay"
-                label="Max Num Pnts"
-                :min="10000"
-                :max="5000000"
-                :defaultValue="1000000"
-                :decimalPlaces=0
-                tooltipText="Maximum number of points to display"
-            />
-        </div>
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
             <SrListbox id="beams" 
+                    :insensitive="true"
                     label="Beam(s)" 
                     v-model="atlChartFilterStore.beams"
                     :getSelectedMenuItem="atlChartFilterStore.getBeams"
                     :setSelectedMenuItem="atlChartFilterStore.setBeams"
                     :menuOptions="beamsOptions" 
                     tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                    @update:modelValue="SpotOrBeamSelection"
                 />
         </div>
-        <FieldSet class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
+        <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
             </div>
@@ -236,7 +235,7 @@ const getSize = computed(() => {
                     :setSelectedMenuItem="atlChartFilterStore.setTracks"
                     :menuOptions="tracksOptions" 
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                />
+                    />
             </div>
             <div class="sr-rgts-cycles-panel">
                 <SrListbox id="rgts"
@@ -244,7 +243,7 @@ const getSize = computed(() => {
                     v-model="atlChartFilterStore.rgts" 
                     :getSelectedMenuItem="atlChartFilterStore.getRgts"
                     :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                    :menuOptions="atlChartFilterStore.getRgtOptions()" 
+                    :menuOptions="atlChartFilterStore.rgts" 
                     tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
     vector within the observatory is pointed" 
                 />
@@ -253,7 +252,7 @@ const getSize = computed(() => {
                     v-model="atlChartFilterStore.cycles"
                     :getSelectedMenuItem="atlChartFilterStore.getCycles"
                     :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                    :menuOptions="atlChartFilterStore.getCycleOptions()" 
+                    :menuOptions="atlChartFilterStore.cycles" 
                     tooltipText="Counter of 91-day repeat cycles completed by the mission" 
                 />
             </div>
@@ -297,17 +296,6 @@ const getSize = computed(() => {
         align-items: center;
         justify-content: space-between; 
         margin-top: 1rem;
-        min-height: 30%;
-        max-height: 30%;
-        min-width: 30vw;
-        width: 100%;
-    }
-    .sr-analysis-max-pnts {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center; 
-        margin-top: 0.5rem;
         min-height: 30%;
         max-height: 30%;
         min-width: 30vw;
@@ -372,7 +360,9 @@ const getSize = computed(() => {
     .sr-link-small-text {
         font-size: smaller;
     }
+
     :deep(.p-listbox-option) {
         padding-top: 0.125rem;
-        padding-bottom: 0rem;}
+        padding-bottom: 0rem;
+    }
 </style>

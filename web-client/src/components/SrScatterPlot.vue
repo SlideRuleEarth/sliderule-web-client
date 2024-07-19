@@ -10,11 +10,11 @@
         :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
       />  
     </div>
-    <div v-if="computedIsLoading" class="loading-indicator">Loading...</div>
+    <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
     <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
     <SrSqlStmnt />
   </div>
-  <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="computedIsLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
+  <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="atlChartFilterStore.isLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
 </template>
 
 <script setup lang="ts">
@@ -23,7 +23,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch, onMounted, ref, nextTick, computed } from "vue";
+import { shallowRef, provide, watch, onMounted, ref } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
@@ -41,7 +41,7 @@ provide(THEME_KEY, "dark");
 
 const option = shallowRef();
 const has_error = ref(false) as { value: boolean };
-const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
+//const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
@@ -52,11 +52,12 @@ const fetchScatterOptions = async () => {
     const startTime = performance.now(); // Start time
     console.log('fetchScatterOptions started... startTime:',startTime)
     try {
+      atlChartFilterStore.setIsLoading();
       const req_id = atlChartFilterStore.getReqId();
       const func = await indexedDb.getFunc(req_id);
       atlChartFilterStore.setFunc(func);
       const sop = atlChartFilterStore.getScatterOptionsParms();
-      console.log('fetchScatterOptions sop:',sop);
+      //console.log('fetchScatterOptions sop:',sop);
       const scatterOptions = await getScatterOptions(sop);
       console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
       if (scatterOptions) {
@@ -126,6 +127,11 @@ watch(() => curReqSumStore.getReqId(), async (newReqId) => {
     clearPlot();
     fetchScatterOptions();
   }
+});
+
+watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
+  console.log('Watch updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
+  debouncedFetchScatterOptions();
 });
 
 </script>

@@ -36,25 +36,30 @@ export const spotsOptions = [
     {label:'Spot 6 (Weak)  ',value:6}
   ] as SrListNumberItem[];
 
-  export function getBeamsAndTracksWithGt(gt:number) {
+  export function getBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
     const beams = [] as SrListNumberItem[];
-    let beam_name='';
     for (const beam of beamsOptions) {
-      if (beam.value === gt) {
-        beams.push(beam);
-        beam_name = beam.label;
-        break;
+      for(const gt of gts){
+        if (beam.value === gt.value) {
+          beams.push(beam);
+          break;
+        }
       }
     }
+
     const tracks = [] as SrListNumberItem[];
+    //console.log('tracksOptions:',tracksOptions,' beams:',beams);
     for(const track of tracksOptions){
-        if(Number(beam_name.charAt(2)) === track.value){
+      for (const beam of beams) {
+        if(Number(beam.label.charAt(2)) === track.value){
             tracks.push(track);
             break;
         }
+      }
     }
-    
-    //console.log(`getBeamsAndTracksWithGt(${gt}) -> beams:`,beams,'tracks:',tracks);
+    //console.log('getBeamsAndTracksWithGts gts:',gts);
+    //console.log('getBeamsAndTracksWithGts beams:',beams);
+    //console.log('getBeamsAndTracksWithGts tracks:',tracks);
     return {beams, tracks};
   }
 
@@ -135,6 +140,6 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
       console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
     }
   }
-  console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
+  //console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
   return scOrient;
 }

@@ -16,9 +16,23 @@
                 :decimalPlaces=0
                 tooltipText="Chunk size to Query from parquet file"
             />
-            <SrToggleButton :value="reqParamsStore.useChecksum" label="Use Checksum" @input="handleUseChecksum"/>            
+            <SrToggleButton 
+              :value="reqParamsStore.useChecksum"
+              :getValue="reqParamsStore.getUseChecksum"
+              :setValue="reqParamsStore.setUseChecksum" 
+              label="Use Checksum"
+              tooltipUrl='https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#parameters'
+              tooltipText='Use Checksum to verify the integrity of the data'
+            />            
             <div>
               <SrSvrConsoleTerminal />
+              <SrToggleButton 
+                :value="debugStore.enableSpotPatternDetails"
+                :getValue="debugStore.getEnableSpotPatternDetails" 
+                :setValue="debugStore.setEnableSpotPatternDetails" 
+                label="Enable Spot Pattern Details" 
+              />
+              <SrGraticuleSelect/>
             </div>
         </div>
     </div>
@@ -32,14 +46,17 @@
     import SrToggleButton from './SrToggleButton.vue';
     import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
     import SrSliderInput from './SrSliderInput.vue';
-
+    import { useDebugStore } from '@/stores/debugStore';
+    import SrGraticuleSelect from './SrGraticuleSelect.vue';
+    
+    const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
 
-    const handleUseChecksum = async (newValue: boolean) => {
-      reqParamsStore.useChecksum = newValue;
-      console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );
-    };
+    // const handleUseChecksum = async (newValue: boolean) => {
+    //   reqParamsStore.useChecksum = newValue;
+    //   console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );
+    // };
 
 </script>
   
