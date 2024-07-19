@@ -28,7 +28,7 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import { initDeck } from '@/utils/SrMapUtils';
-  import { processFileForReq } from "@/utils/SrParquetUtils";
+  import { processFileForReq,getHFieldName } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
@@ -297,8 +297,8 @@
               addLayersForCurrentView(); 
               let reqExtremeLatLon = [0,0,0,0];
               if(props.reqId > 0){   
-                console.log('calling readOrCacheSummary(',props.reqId,')');  
-                const workerSummary = await readOrCacheSummary(props.reqId,'h_mean');
+                //console.log('calling readOrCacheSummary(',props.reqId,')');  
+                const workerSummary = await readOrCacheSummary(props.reqId);
                 if(workerSummary){
                   const extremeLatLon = workerSummary.extLatLon;
                   if (extremeLatLon) {

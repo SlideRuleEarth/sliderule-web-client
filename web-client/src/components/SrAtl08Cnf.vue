@@ -12,18 +12,18 @@ const reqParamsStore = useReqParamsStore();
             <SrCheckbox
                 label="Atl08 Classification"
                 labelFontSize="large"
-                v-model="reqParamsStore.enableAtl08Confidence"
+                v-model="reqParamsStore.enableAtl08Classification"
                 tooltipText="If ATL08 classification parameters are specified, the ATL08 (vegetation height) files corresponding to the ATL03 files are queried for the more advanced classification scheme available in those files. Photons are then selected based on the classification values specified. Note that srt=0 (land) and cnf=0 (no native filtering) should be specified to allow all ATL08 photons to be used."
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
              />
         </div>
         <SrMultiSelectText
-            v-model="reqParamsStore.landType"
+            v-model="reqParamsStore.atl08LandType"
             label = "Land Type(s)"
             aria-label="Select Land Type"
             :menuOptions="reqParamsStore.atl08LandTypeOptions"
-            :insensitive="!reqParamsStore.enableAtl08Confidence"
-            :default="[reqParamsStore.atl08LandTypeOptions[0]]"
+            :insensitive="!reqParamsStore.enableAtl08Classification"
+            :default="reqParamsStore.atl08LandTypeOptions"
             tooltipText="The ATL08 classifications used to select which photons are used in the processing."
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
         />

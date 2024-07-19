@@ -168,15 +168,19 @@ export function updateExtremeLatLon(elevationData:ElevationPlottable[],
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
-export const getHeightFieldname = async (req_id:number) => {
-    const result = await db.getFunc(req_id);
-    if (result.includes('atl06')) {
+export function getHFieldName(funcStr:string) {
+    if (funcStr.includes('atl06')) {
         return 'h_mean';
-    } else if (result.includes('atl03')){
+    } else if (funcStr.includes('atl03')){
         return 'height';
     } else {
-        throw new Error(`Unknown height fieldname for ${result} in getHeightFieldname`);
+        throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
     }
+}
+
+export const getHeightFieldname = async (req_id:number) => {
+    const result = await db.getFunc(req_id);
+    return getHFieldName(result);
 }
 
 export const getTrackFieldname = async (req_id:number) => {
@@ -189,9 +193,12 @@ export const getTrackFieldname = async (req_id:number) => {
         throw new Error(`Unknown height fieldname for ${result} in getTrackFieldname`);
     }
 }
-export const readOrCacheSummary = async (req_id:number,height_fieldname:string) : Promise<SrRequestSummary | undefined> => {
+
+export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+            const func = await db.getFunc(req_id);
+            const height_fieldname = getHFieldName(func);
             return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
             throw new Error('readOrCacheSummary unknown reader');

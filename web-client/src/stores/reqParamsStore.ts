@@ -92,15 +92,15 @@ export const useReqParamsStore = defineStore('reqParams', {
         signalConfidenceNumber: [ 4 ],
 
         qualityPHValue: 0.0,
-        enableAtl08Confidence: false,
+        enableAtl08Classification: false,
         atl08LandTypeOptions: [
           {name:'Noise', value:'atl08_noise'}, 
-          {name: 'Ground', value: 'atl08_ground'},
+          {name:'Ground', value: 'atl08_ground'},
           {name:'Canopy', value:'atl08_canopy'},
           {name:'Top of Canopy', value:'atl08_top_of_canopy'},
           {name:'Unclassified', value:'atl08_unclassified'},
           ] as SrMultiSelectTextItem[], 
-        landType: [] as SrMultiSelectTextItem[],
+        atl08LandType: [] as string[],
         distanceInOptions:[
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
@@ -177,7 +177,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:"ap-south-1", value:"ap-south-1"},
           {name:"sa-east-1", value:"sa-east-1"},
         ],
-        YAPC: false,
+        enableYAPC: false,
         YAPCScore: 0.0,
         usesYAPCKnn: false,
         YAPCKnn: 0,
@@ -269,7 +269,15 @@ export const useReqParamsStore = defineStore('reqParams', {
               req.beams = this.beams.map(beam => beam.value);
             }
           }
-        
+          if(this.enableAtl08Classification) {
+            req.alt08_class = this.atl08LandType;
+          }
+          if(this.enableYAPC) {
+            const yapc = {
+              score: this.YAPCScore,
+            }
+            req.yapc = yapc;
+          }
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }

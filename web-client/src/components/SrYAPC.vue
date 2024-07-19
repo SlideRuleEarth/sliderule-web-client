@@ -12,7 +12,7 @@ const reqParamsStore = useReqParamsStore();
   <div class="sr-yapc-container">
     <div class="sr-yapc-header">
       <SrCheckBox
-          v-model="reqParamsStore.YAPC"
+          v-model="reqParamsStore.enableYAPC"
           label="YAPC" 
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" 
@@ -26,7 +26,7 @@ const reqParamsStore = useReqParamsStore();
           label = "Version"
           aria-label="Select Version"
           :menuOptions="reqParamsStore.YAPCVersionOptions"
-          :insensitive="!reqParamsStore.YAPC"
+          :insensitive="!reqParamsStore.enableYAPC"
           :default="[reqParamsStore.YAPCVersionOptions[0]]"
           tooltipText="The version of the YAPC algorithm to use."
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
@@ -38,7 +38,7 @@ const reqParamsStore = useReqParamsStore();
         :min="1"
         :max="100" 
         :decimalPlaces="0"
-        :insensitive="!reqParamsStore.YAPC"
+        :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The minimum yapc classification score of a photon to be used in the processing request"
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
     />
@@ -49,7 +49,7 @@ const reqParamsStore = useReqParamsStore();
         :min="1"
         :max="100" 
         :decimalPlaces="0"
-        :insensitive="!reqParamsStore.YAPC"
+        :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The number of nearest neighbors to use in the Knn algorithm."
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
     />
@@ -60,7 +60,7 @@ const reqParamsStore = useReqParamsStore();
         :min="1"
         :max="1000" 
         :decimalPlaces="0"  
-        :insensitive="!reqParamsStore.YAPC"
+        :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The window height used to filter the nearest neighbors"
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
    />
@@ -71,7 +71,7 @@ const reqParamsStore = useReqParamsStore();
         :min="1"
         :max="1000" 
         :decimalPlaces="0"
-        :insensitive="!reqParamsStore.YAPC"
+        :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The window width used to filter the nearest neighbors"
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
     />
