@@ -637,7 +637,7 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgt >=0 ) && (sop.cycle>=0) && (sop.tracks != undefined) && sop.tracks.length>0){
                     seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
                 } else {
-                    console.error('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
                 }
             } else {
                 console.error('getScatterOptions invalid func:', sop.func);
@@ -645,37 +645,41 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
         } else {
             console.warn('getScatterOptions fileName is null');
         }
-        options = {
-            title: {
-                text: sop.func,
-                left: "center"
-            },
-            tooltip: {
-                trigger: "item",
-                formatter: "({c})"
-            },
-            legend: {
-                data: seriesData.map(series => series.series.name),
-                left: 'left'
-            },
-            notMerge: true,
-            lazyUpdate: true,
-            xAxis: {
-                min: useAtlChartFilterStore().getMinX(),
-                max: useAtlChartFilterStore().getMaxX()
-            },
-            yAxis: seriesData.map((series, index) => ({
-                type: 'value',
-                name: sop.y[index],
-                min: seriesData[index].min,
-                max: seriesData[index].max,
-                scale: true,  // Add this to ensure the axis scales correctly
-                axisLabel: {
-                    formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
-                }
-            })),
-            series: seriesData.map(series => series.series)
-        };
+        if(seriesData.length !== 0){
+            options = {
+                title: {
+                    text: sop.func,
+                    left: "center"
+                },
+                tooltip: {
+                    trigger: "item",
+                    formatter: "({c})"
+                },
+                legend: {
+                    data: seriesData.map(series => series.series.name),
+                    left: 'left'
+                },
+                notMerge: true,
+                lazyUpdate: true,
+                xAxis: {
+                    min: useAtlChartFilterStore().getMinX(),
+                    max: useAtlChartFilterStore().getMaxX()
+                },
+                yAxis: seriesData.map((series, index) => ({
+                    type: 'value',
+                    name: sop.y[index],
+                    min: seriesData[index].min,
+                    max: seriesData[index].max,
+                    scale: true,  // Add this to ensure the axis scales correctly
+                    axisLabel: {
+                        formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
+                    }
+                })),
+                series: seriesData.map(series => series.series)
+            };
+        } else {
+            console.warn('getScatterOptions seriesData is empty');
+        }
         //console.log('getScatterOptions options:', options);
     } catch (error) {
         console.error('getScatterOptions Error:', error);

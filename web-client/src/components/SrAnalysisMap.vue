@@ -34,6 +34,7 @@
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
   import { useToast } from "primevue/usetoast";
+  import SrSliderInput from './SrSliderInput.vue';
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -51,7 +52,7 @@
     return elevationIsLoading.value ? "Loading" : "Loaded";
   }); 
   const computedFunc = computed(() => atlChartFilterStore.getFunc());
-  
+
   const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
   const computedLoadMsg = computed(() => {
     const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
@@ -81,6 +82,11 @@
   watch(() => useSrParquetCfgStore().parquetReader, (newReader, oldReader) => {
     console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
     updateAnalysisMapView("New parquetReader");
+  });
+
+  watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
+    console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
+    updateAnalysisMapView("New maxNumPntsToDisplay");
   });
 
   function updateCurrentParms(){
@@ -436,6 +442,17 @@
     </ol-map>
     <div class="sr-tooltip-style" id="tooltip"></div>
   </div>
+        <div class="sr-analysis-max-pnts">
+            <SrSliderInput
+                v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+                label="Max Num Pnts"
+                :min="10000"
+                :max="5000000"
+                :defaultValue="1000000"
+                :decimalPlaces=0
+                tooltipText="Maximum number of points to display"
+            />
+        </div>
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
   </div>
@@ -463,6 +480,17 @@
     font-size: 1rem;
     max-width: 20rem;
 }
+.sr-analysis-max-pnts {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center; 
+        margin-top: 0.5rem;
+        min-height: 30%;
+        max-height: 30%;
+        min-width: 30vw;
+        width: 100%;
+    }
 :deep(.ol-overlaycontainer-stopevent) {
   position: relative;
   display: flex !important;

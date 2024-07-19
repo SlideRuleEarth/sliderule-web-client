@@ -2,7 +2,6 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
-import SrSliderInput from './SrSliderInput.vue';
 import SrToggleButton from './SrToggleButton.vue';
 import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
@@ -185,17 +184,6 @@ const getSize = computed(() => {
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
-        <div class="sr-analysis-max-pnts">
-            <SrSliderInput
-                v-model="srParquetCfgStore.maxNumPntsToDisplay"
-                label="Max Num Pnts"
-                :min="10000"
-                :max="5000000"
-                :defaultValue="1000000"
-                :decimalPlaces=0
-                tooltipText="Maximum number of points to display"
-            />
-        </div>
         <div class="sr-analyze-filters">
             <SrFilterSpots/>
             <SrListbox id="beams" 
@@ -308,17 +296,6 @@ const getSize = computed(() => {
         align-items: center;
         justify-content: space-between; 
         margin-top: 1rem;
-        min-height: 30%;
-        max-height: 30%;
-        min-width: 30vw;
-        width: 100%;
-    }
-    .sr-analysis-max-pnts {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center; 
-        margin-top: 0.5rem;
         min-height: 30%;
         max-height: 30%;
         min-width: 30vw;
