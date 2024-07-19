@@ -8,6 +8,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 //import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
+import { useMapStore } from '@/stores/mapStore';
 
 interface SummaryRowData {
     minLat: number;
@@ -136,6 +137,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
                 try{
                     // Execute the query
                     const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
+                    if(result.totalRows){
+                        console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
+                        useMapStore().setTotalRows(result.totalRows);
+                    }
                     //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                     for await (const rowChunk of result.readRows()) {
                         //console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
@@ -147,6 +152,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
                                 await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
                             }
                             numDataItems += rowChunk.length;
+                            useMapStore().setCurrentRows(numDataItems);
                             rowChunks.push(...rowChunk);
                         }
                     }

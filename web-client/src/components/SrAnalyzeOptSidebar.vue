@@ -137,7 +137,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         curReqSumStore.setReqId(Number(newSelection.value));
         atlChartFilterStore.setReqId(Number(newSelection.value));
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
-        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
+        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
         useDeckStore().deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());

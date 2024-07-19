@@ -37,11 +37,13 @@ export const useMapStore = defineStore('map', {
     polyCoords: <Coordinate[][]>([]),
     //theDeckLayer: null as OL_Layer | null,
     dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
-    isLoading: false,
-    isAborting: false,
+    isLoading: false as boolean,
+    isAborting: false as boolean,
     currentReqId: 0 as number,
     redrawTimeOutSeconds: 5,
-    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null // Handle for the timeout to clear it when necessary
+    reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
+    totalRows: 0 as number,
+    currentRows: 0 as number,
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -162,18 +164,17 @@ export const useMapStore = defineStore('map', {
     resetIsLoading() {
       this.isLoading = false;
     },
-    // async drawElevations() {
-    //   if (this.isLoading && !this.isAborting) {
-    //       await fetchAndUpdateElevationData(this.getCurrentReqId());
-    //   } else {
-    //       console.log('drawElevations: SKIPPED - not loading or aborting');
-    //   }
-    // },
-    // scheduleDrawElevations() {
-    //   this.clearRedrawElevationsTimeoutHandle();
-    //   this.setRedrawElevationsTimeoutHandle(setTimeout(this.drawElevations, this.redrawTimeOutSeconds * 1000));
-    //   console.log('Scheduled Redraw elevations in ', this.redrawTimeOutSeconds, 'seconds');
-    // }
-
+    getTotalRows() {
+      return this.totalRows;
+    },
+    setTotalRows(rows: number) {
+      this.totalRows = rows;
+    },
+    getCurrentRows() {
+      return this.currentRows;
+    },
+    setCurrentRows(rows: number) {
+      this.currentRows = rows;
+    },
   },
 });

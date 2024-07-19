@@ -13,6 +13,7 @@ export interface QueryResult {
 }
 
 export interface QueryChunkResult {
+  totalRows: number | null;
   length: number;
   hasMoreData: boolean;
   schema: { name: string; type: string; databaseType: string }[];
@@ -217,7 +218,7 @@ export class DuckDBClient {
       let totalRows = null;
       if(offset === 0){
         totalRows =await this.getTotalRowCount(query);
-        console.warn('queryChunk totalRows:',totalRows);
+        //console.log('queryChunk totalRows:',totalRows);
       }
       const paginatedQuery = `${query} LIMIT ${chunkSize} OFFSET ${offset}`;
       if (params) {
@@ -239,6 +240,7 @@ export class DuckDBClient {
       //console.log('queryChunk hasMoreData:',hasMoreData,'totalRows:',totalRows,' rows.length:',rows.length,' chunkSize:',chunkSize,' tbl.numRows:',tbl.numRows);
 
       return {
+        totalRows: totalRows,
         length: rows.length,
         hasMoreData,
         schema,

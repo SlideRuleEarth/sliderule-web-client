@@ -47,7 +47,21 @@
   };
   const atlChartFilterStore = useAtlChartFilterStore();
   const elevationIsLoading = computed(() => mapStore.getIsLoading());
-  const func = computed(() => atlChartFilterStore.getFunc());
+  const loadStateStr = computed(() => {
+    return elevationIsLoading.value ? "Loading" : "Loaded";
+  }); 
+  const computedFunc = computed(() => atlChartFilterStore.getFunc());
+  
+  const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const computedLoadMsg = computed(() => {
+    const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
+    const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
+    if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
+      return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
+    } else {
+      return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
+    }
+  });
 
   const props = defineProps({
       reqId: {
@@ -368,10 +382,13 @@
   <div class="sr-current-zoom">
     {{  mapParamsStore.getZoom().toFixed(2) }}
   </div>
-  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >Loading...{{ func }}
+  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
     <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+    {{computedLoadMsg}}
   </div>
-  <div class="sr-notLoadingEl" v-else >Loaded {{ func }}</div>
+  <div class="sr-notLoadingEl" v-else >
+    {{ computedLoadMsg }}
+  </div>
   <div ref="mapContainer" class="sr-map-container" >
     <ol-map ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
