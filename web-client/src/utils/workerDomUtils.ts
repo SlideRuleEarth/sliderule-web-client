@@ -279,9 +279,18 @@ export async function processRunSlideRuleClicked() {
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
-                console.log('atl08 TBD');
-                //toast.add({severity: 'info',summary: 'Info', detail: 'atl08 TBD', life: srToastStore.getLife() });
-                useSrToastStore().info('Info','atl08 TBD');
+                console.log('atl08 selected');
+                if(!srReqRec.req_id) {
+                    console.error('runAtl08 req_id is undefined');
+                    //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+                    useSrToastStore().error('Error','There was an error');
+                    return;
+                }
+                srReqRec.func = 'atl08';
+                srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
+                srReqRec.start_time = new Date();
+                srReqRec.end_time = new Date();
+                runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24s') {
                 console.log('atl24s TBD');
                 //toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });

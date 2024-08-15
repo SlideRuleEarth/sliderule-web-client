@@ -138,7 +138,7 @@ export async function atl06(alt06preqparams: AtlpReqParams, callbacks: core.Call
 };
 
 //
-// ATL06P
+// ATL03P
 //
 export async function atl03(alt03preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {
@@ -159,6 +159,30 @@ export async function atl03(alt03preqparams: AtlpReqParams, callbacks: core.Call
     }
 
 };
+
+//
+// ATL08P
+//
+export async function atl08(alt08preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
+{
+    console.log("atl08 params: ", alt08preqparams);
+
+    if (callbacks == null) {
+        throw new Error("atl08 requires a callback function");
+    }
+    try{
+        console.log("atl08p rqst: ", JSON.stringify(alt08preqparams));
+        const result = await core.source('atl08p', alt08preqparams, true, callbacks);
+        console.log("atl08p result: ", result);
+        return result as core.Sr_Results_type;
+    }
+    catch (error) {
+        console.error("atl08p error: ", error);
+        throw error;
+    }
+
+};
+
 // Export any other constants or functions if necessary
 export {
     CNF_POSSIBLE_TEP,

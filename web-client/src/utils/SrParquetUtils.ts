@@ -173,6 +173,8 @@ export function getHFieldName(funcStr:string) {
         return 'h_mean';
     } else if (funcStr.includes('atl03')){
         return 'height';
+    } else if (funcStr.includes('atl08')){
+        return 'h_mean_canopy';
     } else {
         throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
     }
