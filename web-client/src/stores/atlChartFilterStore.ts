@@ -107,7 +107,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return;
       }
       this.cycleOptions = cycleOptions.map(option => ({ label: option.toString(), value: option }));
-      //console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
+      console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
     },
     getCycleOptions() {
       //console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);

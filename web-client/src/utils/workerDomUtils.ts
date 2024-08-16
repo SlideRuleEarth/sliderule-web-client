@@ -1,5 +1,5 @@
 import { type SrRequestRecord } from '@/db/SlideRuleDb';
-import { processFileForReq } from '@/utils/SrParquetUtils';
+import { updateElevationForReqId } from '@/utils/SrParquetUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile, updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
 const consoleStore = useSrSvrConsoleStore();
 
 const sysConfigStore = useSysConfigStore();
@@ -119,7 +119,12 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 if(workerMsg?.req_id > 0){
                     fileName = await db.getFilename(workerMsg.req_id);
                     await duckDbLoadOpfsParquetFile(fileName);
-                    await processFileForReq(workerMsg.req_id);
+                    await updateElevationForReqId(workerMsg.req_id);
+                    // These update the dynamic options for the these components
+                    const rgts = await updateRgtOptions(workerMsg.req_id);
+                    console.log('handleWorkerMsg opfs_ready rgts:',rgts);
+                    const cycles = await updateCycleOptions(workerMsg.req_id);
+                    console.log('handleWorkerMsg opfs_ready cycles:',cycles);
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
                 }

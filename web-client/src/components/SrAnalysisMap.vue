@@ -28,13 +28,13 @@
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import { initDeck } from '@/utils/SrMapUtils';
-  import { processFileForReq,getHFieldName } from "@/utils/SrParquetUtils";
   import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-  import { useToast } from "primevue/usetoast";
+  //import { useToast } from "primevue/usetoast";
   import SrSliderInput from './SrSliderInput.vue';
+
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -42,7 +42,7 @@
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
-  const toast = useToast();
+  //const toast = useToast();
   const handleEvent = (event: any) => {
     console.log(event);
   };
@@ -325,14 +325,19 @@
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               initDeck(map);
-              mapStore.setIsLoading();
-              try{
-                await processFileForReq(props.reqId);
-              } catch (error) {
-                console.error(`Error: processFileForReq failed for ${reason}`,error);
-                toast.add({severity:'error', summary: 'Error', detail: `Failed to processFileForReq for ${reason}`});
-              }
-              mapStore.resetIsLoading();
+              // mapStore.setIsLoading();
+              // try{
+              //   await updateElevationForReqId(props.reqId);
+              //   // These update the dynamic options for the these components
+              //   const rgts = await updateRgtOptions(props.reqId);
+              //   console.log('updateAnalysisMapView rgts:',rgts);
+              //   const cycles = await updateCycleOptions(props.reqId);
+              //   console.log('updateAnalysisMapView cycles:',cycles);
+              // } catch (error) {
+              //   console.error(`updateAnalysisMapView Error: updateElevationForReqId failed for ${reason}`,error);
+              //   toast.add({severity:'error', summary: 'Error', detail: `Failed to updateElevationForReqId for ${reason}`});
+              // }
+              // mapStore.resetIsLoading();
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);
             }

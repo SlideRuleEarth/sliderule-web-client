@@ -3,21 +3,20 @@ import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrToggleButton from './SrToggleButton.vue';
-import SrFilterSpots from './SrFilterSpots.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { formatBytes } from '@/utils/SrParquetUtils';
+import { formatBytes, updateElevationForReqId } from '@/utils/SrParquetUtils';
 import FieldSet from 'primevue/fieldset';
-import { tracksOptions,beamsOptions } from '@/utils/parmUtils';
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
+import { updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -52,6 +51,8 @@ const defaultMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
+const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
+const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 
 onMounted(async() => {
     try {
@@ -139,6 +140,11 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
         useDeckStore().deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
+        updateElevationForReqId(atlChartFilterStore.getReqId());
+        const rgts = await updateRgtOptions(atlChartFilterStore.getReqId());
+        console.log('handleWorkerMsg opfs_ready rgts:',rgts);
+        const cycles = await updateCycleOptions(atlChartFilterStore.getReqId());
+        console.log('handleWorkerMsg opfs_ready cycles:',cycles);
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -184,7 +190,20 @@ const getSize = computed(() => {
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analyze-filters">
-            <SrFilterSpots/>
+            <SrListbox id="spots" 
+                    label="Spot(s)" 
+                    v-model="atlChartFilterStore.spots"
+                    :getSelectedMenuItem="atlChartFilterStore.getSpots"
+                    :setSelectedMenuItem="atlChartFilterStore.setSpots"
+                    :menuOptions="spotsOptions" 
+                    tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
+trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
+numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
+far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
+approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
+direction."
+                    @update:modelValue="SpotOrBeamSelection"
+                />
             <SrListbox id="beams" 
                     :insensitive="true"
                     label="Beam(s)" 
@@ -236,26 +255,26 @@ const getSize = computed(() => {
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
                     />
             </div>
-            <div class="sr-rgts-cycles-panel">
-                <SrListbox id="rgts"
-                    label="Rgt(s)" 
-                    v-model="atlChartFilterStore.rgts" 
-                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                    :menuOptions="atlChartFilterStore.rgts" 
-                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-    vector within the observatory is pointed" 
-                />
-                <SrListbox id="cycles" 
-                    label="Cycle(s)" 
-                    v-model="atlChartFilterStore.cycles"
-                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                    :menuOptions="atlChartFilterStore.cycles" 
-                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                />
-            </div>
         </FieldSet>
+        <div class="sr-rgts-cycles-panel">
+            <SrListbox id="rgts"
+                label="Rgt(s)" 
+                v-model="atlChartFilterStore.rgts" 
+                :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                :menuOptions="rgtsOptions" 
+                tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+vector within the observatory is pointed" 
+            />
+            <SrListbox id="cycles" 
+                label="Cycle(s)" 
+                v-model="atlChartFilterStore.cycles"
+                :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                :menuOptions="cyclesOptions" 
+                tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+            />
+        </div>
     </div>
 </template>
 <style scoped>
