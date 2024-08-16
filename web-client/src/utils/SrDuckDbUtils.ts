@@ -207,14 +207,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
-        const rgt = useAtlChartFilterStore().getRgtValues()[0];
-        const cycle = useAtlChartFilterStore().getCycleValues()[0]; 
+        const rgts = useAtlChartFilterStore().getRgtValues();
+        const cycles = useAtlChartFilterStore().getCycleValues(); 
         if(func === 'atl06'){
             const beams = useAtlChartFilterStore().getBeamValues().join(", ");
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `SELECT * FROM '${filename}' 
-                        WHERE rgt = ${rgt}
-                        AND cycle = ${cycle}
+                        WHERE rgt IN (${rgts.join(', ')}) 
+                        AND cycle IN (${cycles.join(', ')})
                         AND gt IN (${beams})`
 
         } else if(func === 'atl03'){
@@ -223,9 +223,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             const scOrient = useAtlChartFilterStore().getScOrient();
             const pair = useAtlChartFilterStore().getPair();
             
-            queryStr = `SELECT * FROM '${filename}'
-                        WHERE rgt = ${rgt}
-                        AND cycle = ${cycle}
+            queryStr = `SELECT * FROM '${filename}' 
+                        WHERE rgt IN (${rgts.join(', ')}) 
+                        AND cycle IN (${cycles.join(', ')})
                         AND sc_orient = ${scOrient}
                         AND pair = ${pair}
                         AND track IN (${tracks})`
@@ -233,8 +233,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             const beams = useAtlChartFilterStore().getBeamValues().join(", ");
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `SELECT * FROM '${filename}' 
-                        WHERE rgt = ${rgt}
-                        AND cycle = ${cycle}
+                        WHERE rgt IN (${rgts.join(', ')}) 
+                        AND cycle IN (${cycles.join(', ')})
                         AND gt IN (${beams})`
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
