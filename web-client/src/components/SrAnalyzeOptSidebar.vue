@@ -116,6 +116,16 @@ const SpotOrBeamSelection = () => {
     useAtlChartFilterStore().updateScatterPlot();
 };
 
+const RgtsSelection = () => {
+    console.log('RgtsSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
+const CyclesSelection = () => {
+    console.log('CyclesSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
 watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
 
@@ -253,7 +263,7 @@ direction."
                     :setSelectedMenuItem="atlChartFilterStore.setTracks"
                     :menuOptions="tracksOptions" 
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                    />
+                />
             </div>
         </FieldSet>
         <div class="sr-rgts-cycles-panel">
@@ -265,6 +275,7 @@ direction."
                 :menuOptions="rgtsOptions" 
                 tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
 vector within the observatory is pointed" 
+                @update:modelValue="RgtsSelection"
             />
             <SrListbox id="cycles" 
                 label="Cycle(s)" 
@@ -273,6 +284,7 @@ vector within the observatory is pointed"
                 :setSelectedMenuItem="atlChartFilterStore.setCycles" 
                 :menuOptions="cyclesOptions" 
                 tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                @update:modelValue="CyclesSelection"
             />
         </div>
     </div>

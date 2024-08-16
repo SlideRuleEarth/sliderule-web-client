@@ -256,8 +256,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getScatterOptionsParms(): SrScatterOptionsParms {
       console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
       const sop =  {
-        rgt: this.rgts[0]?.value || -1,
-        cycle: this.cycles[0]?.value || -1,
+        rgts: this.rgts
+          .map(rgt => rgt?.value)
+          .filter(value => value !== undefined),
+        cycles: this.cycles
+          .map(cycle => cycle?.value)
+          .filter(value => value !== undefined),
         fileName: this.currentFile,
         func: this.func,
         y: this.yDataForChart,

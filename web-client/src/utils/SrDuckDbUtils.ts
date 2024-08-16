@@ -315,7 +315,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
 
 export interface SrScatterChartData { value: number[] };
 
-async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],scOrient:number,pair:number, rgt: number, cycle: number, tracks:number[]) {
+async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],scOrient:number,pair:number, rgts: number[], cycles: number[], tracks:number[]) {
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -330,8 +330,8 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             WHERE track IN (${tracks.join(", ")}) 
             AND pair = ${pair} 
             AND sc_orient = ${scOrient} 
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
         `;
         useAtlChartFilterStore().setAtl03QuerySql(query);
         const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
@@ -361,8 +361,8 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             WHERE track IN (${tracks.join(", ")}) 
             AND pair = ${pair} 
             AND sc_orient = ${scOrient} 
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
         `;
         //console.log('fetchAtl03ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
@@ -475,7 +475,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
     }
     return cycles;
 }
-async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], beams: number[], rgts: number[], cycles: number[]) {
     const startTime = performance.now(); // Start time
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
@@ -489,8 +489,8 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
                 ${yColumns}
             FROM '${fileName}'
             WHERE gt IN (${beams.join(', ')})
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
             `;
     
         useAtlChartFilterStore().setAtl06QuerySql(query);
@@ -519,8 +519,8 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
                 ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
             WHERE gt IN (${beams.join(', ')})
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
         `;
         //console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
@@ -549,7 +549,7 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[], b
     }
 }
 
-async function fetchAtl08ScatterData(fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number) {
+async function fetchAtl08ScatterData(fileName: string, x: string, y: string[], beams: number[], rgts: number[], cycles: number[]) {
     const startTime = performance.now(); // Start time
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
@@ -563,8 +563,8 @@ async function fetchAtl08ScatterData(fileName: string, x: string, y: string[], b
                 ${yColumns}
             FROM '${fileName}'
             WHERE gt IN (${beams.join(', ')})
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
             `;
     
         useAtlChartFilterStore().setAtl08QuerySql(query);
@@ -593,8 +593,8 @@ async function fetchAtl08ScatterData(fileName: string, x: string, y: string[], b
                 ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
             WHERE gt IN (${beams.join(', ')})
-            AND rgt = ${rgt} 
-            AND cycle = ${cycle}
+            AND rgt IN (${rgts.join(', ')}) 
+            AND cycle IN (${cycles.join(', ')})
         `;
         //console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
@@ -637,13 +637,13 @@ interface SrScatterSeriesData{
     max: number;
 };
 
-async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOrient: number,pair: number, rgt: number, cycle: number, tracks:number[]): Promise<SrScatterSeriesData[]>{
+async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOrient: number,pair: number, rgts: number[], cycles: number[], tracks:number[]): Promise<SrScatterSeriesData[]>{
     //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' scOrient:', scOrient, ' pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
     const startTime = performance.now(); // Start time
     let yItems=[] as SrScatterSeriesData[];
     try{
         const name = 'Atl03';
-        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgt, cycle, tracks);
+        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgts, cycles, tracks);
         if (chartData) {
             yItems = y.map(yName => ({
                 name: `${name} - ${yName}`,
@@ -668,13 +668,13 @@ async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOr
     return yItems;
 }
 
-async function getSeriesForAtl06( fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number): Promise<SrScatterSeriesData[]> {
+async function getSeriesForAtl06( fileName: string, x: string, y: string[], beams: number[], rgts: number[], cycles: number[]): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     const startTime = performance.now();
     const yItems=[] as SrScatterSeriesData[];
     try{
         const name = 'Atl06';
-        const { chartData, minMaxValues } = await fetchAtl06ScatterData(fileName, x, y, beams, rgt, cycle);
+        const { chartData, minMaxValues } = await fetchAtl06ScatterData(fileName, x, y, beams, rgts, cycles);
         if (chartData) {
             return y.map(yName => ({
                 name: `${name} - ${yName}`,
@@ -700,13 +700,13 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
     return yItems;
 }
 
-async function getSeriesForAtl08( fileName: string, x: string, y: string[], beams: number[], rgt: number, cycle: number): Promise<SrScatterSeriesData[]> {
+async function getSeriesForAtl08( fileName: string, x: string, y: string[], beams: number[], rgts: number[], cycles: number[]): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
     const startTime = performance.now();
     const yItems=[] as SrScatterSeriesData[];
     try{
         const name = 'Atl08';
-        const { chartData, minMaxValues } = await fetchAtl08ScatterData(fileName, x, y, beams, rgt, cycle);
+        const { chartData, minMaxValues } = await fetchAtl08ScatterData(fileName, x, y, beams, rgts, cycles);
         if (chartData) {
             return y.map(yName => ({
                 name: `${name} - ${yName}`,
@@ -740,25 +740,25 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
         let seriesData = [] as SrScatterSeriesData[];
         if(sop.fileName){
             if(sop.func === 'atl06'){
-                if(sop.beams?.length && sop.rgt && sop.cycle){
+                if(sop.beams?.length && sop.rgts && sop.cycles){
                     //console.log('getScatterOptions atl06 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
-                    seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y, sop.beams, sop.rgt, sop.cycle);
+                    seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y, sop.beams, sop.rgts, sop.cycles);
                 } else {
-                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
                 }
             } else if(sop.func === 'atl03'){
                 //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
-                if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgt >=0 ) && (sop.cycle>=0) && (sop.tracks != undefined) && sop.tracks.length>0){
-                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgt, sop.cycle, sop.tracks);
+                if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
+                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgts, sop.cycles, sop.tracks);
                 } else {
-                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
+                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks);
                 }
             } else if(sop.func === 'atl08'){
-                if(sop.beams?.length && sop.rgt && sop.cycle){
+                if(sop.beams?.length && sop.rgts && sop.cycles){
                     //console.log('getScatterOptions atl08 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
-                    seriesData = await getSeriesForAtl08(sop.fileName, sop.x, sop.y, sop.beams, sop.rgt, sop.cycle);
+                    seriesData = await getSeriesForAtl08(sop.fileName, sop.x, sop.y, sop.beams, sop.rgts, sop.cycles);
                 } else {
-                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
                 }
             } else {
                 console.error('getScatterOptions invalid func:', sop.func);
