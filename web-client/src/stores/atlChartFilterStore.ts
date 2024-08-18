@@ -34,8 +34,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     yDataForChart: [] as string[],
     ndxOfelevationDataOptionsForHeight: 0,
     func: 'xxx' as string,
-    pair: 0 as number,
-    scOrient: -1 as number,
+    //pair: 0 as number,
+    pairs: [] as SrListNumberItem[],
+    pairOptions: [{ label: '1', value: 1 }, { label: '2', value: 2 }] as SrListNumberItem[],
+    //scOrient: -1 as number,
+    scOrients: [] as SrListNumberItem[],
+    scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     size: NaN as number,
     isLoading: false as boolean,
     clearPlot: false as boolean,
@@ -235,17 +239,61 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getFunc() {
       return this.func;
     },
-    setPair(pair: number) {
-      this.pair = pair;
+    // setPair(pair: number) {
+    //   this.pair = pair;
+    // },
+    // getPair() {
+    //   return this.pair;
+    // },
+    setPairs(pairs: SrListNumberItem[]) {
+      this.pairs = pairs;
     },
-    getPair() {
-      return this.pair;
+    getPairs() {
+      return this.pairs;
     },
-    setScOrient(scOrient: number) {
-      this.scOrient = scOrient;
+    setPairOptions(pairs: SrListNumberItem[]) {
+      this.pairOptions = pairs;
     },
-    getScOrient() {
-      return this.scOrient;
+    getPairOptions() {
+      return this.pairOptions;
+    },
+    setPairOptionsWithNumbers(pairs: number[]) {
+      this.pairOptions = pairs.map(pair => ({ label: pair.toString(), value: pair }));
+    },
+    setPairWithNumber(pair: number) {
+      this.pairs = [{ label: pair.toString(), value: pair }];
+    },
+    appendPairWithNumber(pair: number) {
+      this.pairs.push({ label: pair.toString(), value: pair });
+    },
+    getPairValues() {
+      return this.pairs.map(pair => pair.value);
+    },
+    setScOrients(scOrients: SrListNumberItem[]) {
+      this.scOrients = scOrients;
+    },
+    getScOrients() {
+      return this.scOrients;
+    },
+    setScOrientOptions(scOrientOptions: SrListNumberItem[]) {
+      this.scOrientOptions = scOrientOptions;
+    },
+    getScOrientOptions() {
+      return this.scOrientOptions;
+    },
+    setScOrientOptionsWithNumbers(scOrientOptions: number[]) {
+      this.scOrientOptions = scOrientOptions.map(option => ({ label: option.toString(), value: option }));
+    },
+    setScOrientWithNumber(scOrient: number) {
+      this.scOrients = [{ label: scOrient.toString(), value: scOrient }];
+    },
+    getScOrientValues() {
+      return this.scOrients.map(scOrient => scOrient.value);
+    },
+    appendScOrientWithNumber(scOrient: number) {
+      if(scOrient >= 0){
+        this.scOrients.push({ label: scOrient.toString(), value: scOrient });
+      }
     },
     setSize(size: number) {
       this.size = size;
@@ -254,21 +302,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.size;
     },
     getScatterOptionsParms(): SrScatterOptionsParms {
-      console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
+      //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
       const sop =  {
-        rgts: this.rgts
-          .map(rgt => rgt?.value)
-          .filter(value => value !== undefined),
-        cycles: this.cycles
-          .map(cycle => cycle?.value)
-          .filter(value => value !== undefined),
+        rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
+        cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
         fileName: this.currentFile,
         func: this.func,
         y: this.yDataForChart,
         x: 'x_atc',
         beams: this.beams.map(beam => beam.value),
-        pair: this.pair,
-        scOrient: this.scOrient,
+        pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
+        scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
         tracks: this.tracks.map(track => track.value),
       };
       console.log('atlChartFilterStore.getScatterOptionsParms():', sop);

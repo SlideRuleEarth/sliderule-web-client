@@ -17,7 +17,6 @@ import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -173,16 +172,16 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
-        useAtlChartFilterStore().setScOrient(d.sc_orient);
+        useAtlChartFilterStore().setScOrientWithNumber(d.sc_orient);
     }
     if(d.pair !== undefined){
-        useAtlChartFilterStore().setPair(d.pair);
+        useAtlChartFilterStore().setPairWithNumber(d.pair);
     }
     if(d.spot !== undefined){
         useAtlChartFilterStore().setSpotWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
-        useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
+        useAtlChartFilterStore().appendScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
         useAtlChartFilterStore().setRgtWithNumber(d.rgt);
@@ -213,8 +212,8 @@ function checkFilter(d:ElevationDataItem): boolean {
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
                     (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
-                    (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
-                    (useAtlChartFilterStore().getPair() == d.pair));
+                    (useAtlChartFilterStore().getScOrientValues()[0] == d.sc_orient) && 
+                    (useAtlChartFilterStore().getPairValues()[0] == d.pair));
     }
     return matched;
 }

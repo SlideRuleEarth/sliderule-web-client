@@ -210,32 +210,38 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const rgts = useAtlChartFilterStore().getRgtValues();
         const cycles = useAtlChartFilterStore().getCycleValues(); 
         if(func === 'atl06'){
-            const beams = useAtlChartFilterStore().getBeamValues().join(", ");
+            const beams = useAtlChartFilterStore().getBeamValues();
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
-            queryStr = `SELECT * FROM '${filename}' 
+            queryStr = `
+                        SELECT * FROM '${filename}' 
                         WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
-                        AND gt IN (${beams})`
+                        AND gt IN (${beams.join(', ')})
+                        `
 
         } else if(func === 'atl03'){
-            const tracks = useAtlChartFilterStore().getTrackValues().join(", ");
+            const tracks = useAtlChartFilterStore().getTrackValues();
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);
-            const scOrient = useAtlChartFilterStore().getScOrient();
-            const pair = useAtlChartFilterStore().getPair();
+            const scOrients = useAtlChartFilterStore().getScOrientValues();
+            const pairs = useAtlChartFilterStore().getPairValues();
             
-            queryStr = `SELECT * FROM '${filename}' 
+            queryStr = `
+                        SELECT * FROM '${filename}' 
                         WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
-                        AND sc_orient = ${scOrient}
-                        AND pair = ${pair}
-                        AND track IN (${tracks})`
+                        AND sc_orient IN (${scOrients.join(', ')})
+                        AND pair IN (${pairs.join(', ')})
+                        AND track IN (${tracks.join(', ')})
+                        `
         } else if(func === 'atl08'){
-            const beams = useAtlChartFilterStore().getBeamValues().join(", ");
+            const beams = useAtlChartFilterStore().getBeamValues();
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
-            queryStr = `SELECT * FROM '${filename}' 
+            queryStr = `
+                        SELECT * FROM '${filename}' 
                         WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
-                        AND gt IN (${beams})`
+                        AND gt IN (${beams.join(', ')})
+                        `
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
         }
@@ -315,24 +321,41 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
 
 export interface SrScatterChartData { value: number[] };
 
-async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],scOrient:number,pair:number, rgts: number[], cycles: number[], tracks:number[]) {
+async function fetchAtl03ScatterData(
+    fileName: string, 
+    x: string, 
+    y: string[], 
+    rgts: number[], 
+    cycles: number[], 
+    tracks: number[],
+    scOrients?: number[], 
+    pairs?: number[], 
+) {
+    console.log('fetchAtl03ScatterData fileName:', fileName, ' x:', x, ' y:', y, ' rgts:', rgts, ' cycles:', cycles, ' tracks:', tracks, ' scOrients:', scOrients, ' pairs:', pairs);
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
 
     try {
         const yColumns = y.join(", ");
-        const query = `
+        let query = `
             SELECT 
                 ${x}, 
                 ${yColumns}
             FROM '${fileName}'
             WHERE track IN (${tracks.join(", ")}) 
-            AND pair = ${pair} 
-            AND sc_orient = ${scOrient} 
             AND rgt IN (${rgts.join(', ')}) 
             AND cycle IN (${cycles.join(', ')})
         `;
+
+        if (pairs !== undefined) {
+            query += ` AND pair IN (${pairs.join(", ")})`;
+        }
+
+        if (scOrients !== undefined) {
+            query += ` AND sc_orient IN (${scOrients.join(", ")})`;
+        }
+
         useAtlChartFilterStore().setAtl03QuerySql(query);
         const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
         for await (const rowChunk of queryResult.readRows()) {
@@ -352,21 +375,26 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
             }
         }
 
-        const query2 = `
+        let query2 = `
             SELECT 
                 MIN(${x}) as min_x,
                 MAX(${x}) as max_x,
                 ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
             FROM '${fileName}'
             WHERE track IN (${tracks.join(", ")}) 
-            AND pair = ${pair} 
-            AND sc_orient = ${scOrient} 
             AND rgt IN (${rgts.join(', ')}) 
             AND cycle IN (${cycles.join(', ')})
         `;
-        //console.log('fetchAtl03ScatterData query2:', query2);
+
+        if (pairs !== undefined) {
+            query2 += ` AND pair IN (${pairs.join(", ")})`;
+        }
+
+        if (scOrients !== undefined) {
+            query2 += ` AND sc_orient IN (${scOrients.join(", ")})`;
+        }
+
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-        //console.log('fetchAtl03ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -380,7 +408,6 @@ async function fetchAtl03ScatterData(fileName: string, x: string, y: string[],sc
                 }
             }
         }
-        //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
         console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -444,6 +471,59 @@ export async function getPairs(req_id: number): Promise<number[]> {
         console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
     }
     return pairs;
+}
+
+export async function updatePairOptions(req_id: number): Promise<number[]> {
+    let pairs = [] as number[];
+    try{
+        pairs = await getPairs(req_id);
+        useAtlChartFilterStore().setPairOptionsWithNumbers(pairs);   
+    } catch (error) {
+        console.error('getPairs Error:', error);
+        throw error;
+    }
+    return pairs;
+}
+
+export async function getScOrient(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const scOrients = [] as number[];
+    try{
+        const query = `SELECT DISTINCT sc_orient FROM '${fileName}' order by sc_orient ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getScOrient row:', row);
+                    scOrients.push(row.sc_orient);
+                } else {
+                    console.warn('getScOrient fetchData rowData is null');
+                }
+            }
+        } 
+        //console.log('getScOrient scOrients:', scOrients);
+    } catch (error) {
+        console.error('getScOrient Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getScOrient() took ${endTime - startTime} milliseconds.`);
+    }
+    return scOrients;
+}
+
+export async function updateScOrientOptions(req_id: number): Promise<number[]> {
+    let scOrients = [] as number[];
+    try{
+        scOrients = await getScOrient(req_id);
+        useAtlChartFilterStore().setScOrientOptionsWithNumbers(scOrients);   
+    } catch (error) {
+        console.error('getScOrient Error:', error);
+        throw error;
+    }
+    return scOrients;
 }
 
 export async function updateCycleOptions(req_id: number): Promise<number[]> {
@@ -637,13 +717,13 @@ interface SrScatterSeriesData{
     max: number;
 };
 
-async function getSeriesForAtl03( fileName: string, x: string, y: string[], scOrient: number,pair: number, rgts: number[], cycles: number[], tracks:number[]): Promise<SrScatterSeriesData[]>{
-    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' scOrient:', scOrient, ' pair:',pair, ' rgt:', rgt, ' cycle:', cycle);
+async function getSeriesForAtl03( fileName: string, x: string, y: string[], rgts: number[], cycles: number[], tracks:number[], scOrients?: number[], pairs?: number[]): Promise<SrScatterSeriesData[]>{
+    console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' rgts:', rgts, ' cycles:', cycles, ' scOrient:', scOrients, ' pair:',pairs);
     const startTime = performance.now(); // Start time
     let yItems=[] as SrScatterSeriesData[];
     try{
         const name = 'Atl03';
-        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, scOrient, pair, rgts, cycles, tracks);
+        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, rgts, cycles, tracks, scOrients, pairs);
         if (chartData) {
             yItems = y.map(yName => ({
                 name: `${name} - ${yName}`,
@@ -734,7 +814,7 @@ async function getSeriesForAtl08( fileName: string, x: string, y: string[], beam
 
 export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any> {
     const startTime = performance.now(); // Start time
-    //console.log('getScatterOptions sop:', sop);
+    console.log('getScatterOptions sop:', sop);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
@@ -748,10 +828,10 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 }
             } else if(sop.func === 'atl03'){
                 //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
-                if((sop.pair != undefined) && (sop.scOrient != undefined) && (sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
-                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.scOrient, sop.pair, sop.rgts, sop.cycles, sop.tracks);
+                if((sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
+                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.rgts, sop.cycles, sop.tracks, sop.scOrients, sop.pairs);
                 } else {
-                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks);
+                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks, 'scOrient:',sop.scOrients, 'pair:',sop.pairs);
                 }
             } else if(sop.func === 'atl08'){
                 if(sop.beams?.length && sop.rgts && sop.cycles){

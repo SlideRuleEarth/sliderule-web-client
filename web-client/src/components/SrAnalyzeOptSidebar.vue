@@ -2,7 +2,6 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
-import SrToggleButton from './SrToggleButton.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import router from '@/router/index.js';
@@ -17,6 +16,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
+import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -87,32 +87,45 @@ onMounted(async() => {
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
 
-const computedScOrient = computed({
-    get: () => atlChartFilterStore.getScOrient() === 1,
-    set: (newValue: boolean) => {
-        toggleScOrient(newValue);
-    }
-});
+// const computedScOrient = computed({
+//     get: () => atlChartFilterStore.getScOrient() === 1,
+//     set: (newValue: boolean) => {
+//         toggleScOrient(newValue);
+//     }
+// });
 
-const toggleScOrient = (newValue: boolean) => {
-    atlChartFilterStore.setScOrient(newValue ? 1 : 0);
-    console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
-};
+// const toggleScOrient = (newValue: boolean) => {
+//     atlChartFilterStore.setScOrient(newValue ? 1 : 0);
+//     console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
+// };
 
-const computedPair = computed({
-    get: () => atlChartFilterStore.getPair() === 1,
-    set: (newValue: boolean) => {
-        togglePair(newValue);
-    }
-});
+// const computedPair = computed({
+//     get: () => atlChartFilterStore.getPair() === 1,
+//     set: (newValue: boolean) => {
+//         togglePair(newValue);
+//     }
+// });
 
-const togglePair = (newValue: boolean) => {
-    atlChartFilterStore.setPair(newValue ? 1 : 0);
-    console.log('togglePair:', atlChartFilterStore.getPair());
-};
+// const togglePair = (newValue: boolean) => {
+//     atlChartFilterStore.setPair(newValue ? 1 : 0);
+//     console.log('togglePair:', atlChartFilterStore.getPair());
+// };
 
 const SpotOrBeamSelection = () => {
     console.log('SpotOrBeamSelection:');
+    
+    const gts = atlChartFilterStore.getTracks();
+    const spots = atlChartFilterStore.getSpots();
+
+    gts.forEach((gt) => {
+        spots.forEach((spot) => {
+            const scOrient = getScOrientFromSpotGt(spot.value, gt.value);
+            if(scOrient >= 0){
+                useAtlChartFilterStore().appendScOrientWithNumber(scOrient);
+            }
+        });
+    });
+
     useAtlChartFilterStore().updateScatterPlot();
 };
 
@@ -225,47 +238,6 @@ direction."
                     @update:modelValue="SpotOrBeamSelection"
                 />
         </div>
-        <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
-            <div class="sr-user-guide-link">
-                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
-            </div>
-            <div class="sr-sc-orient-panel">
-                <div class="sr-sc-orientation">
-                    <p>
-                        <span v-if="atlChartFilterStore.getScOrient()===1">S/C Orientation: Forward</span>
-                        <span v-if="atlChartFilterStore.getScOrient()===0">S/C Orientation: Backward</span>
-                    </p>
-                </div>
-                <div class="sr-pair-sc-orient">
-                    <SrToggleButton 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
-                        v-model="computedScOrient" 
-                        :value="useAtlChartFilterStore().scOrient==1" 
-                        label="SC orientation" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
-                    />
-                    <SrToggleButton 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')" 
-                        v-model="computedPair"  
-                        :value="useAtlChartFilterStore().pair==1" 
-                        label="Pair" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="There are three beam pairs"
-                    />
-                </div>
-            </div> 
-            <div class="sr-tracks-beams-panel">
-                <SrListbox id="tracks" 
-                    label="Track(s)" 
-                    v-model="atlChartFilterStore.tracks" 
-                    :getSelectedMenuItem="atlChartFilterStore.getTracks"
-                    :setSelectedMenuItem="atlChartFilterStore.setTracks"
-                    :menuOptions="tracksOptions" 
-                    tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                />
-            </div>
-        </FieldSet>
         <div class="sr-rgts-cycles-panel">
             <SrListbox id="rgts"
                 label="Rgt(s)" 
@@ -287,6 +259,52 @@ vector within the observatory is pointed"
                 @update:modelValue="CyclesSelection"
             />
         </div>
+        <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
+            <div class="sr-user-guide-link">
+                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
+            </div>
+            <div class="sr-sc-orient-panel">
+                <div class="sr-sc-orientation">
+                    <p>
+                        <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===1">S/C Orientation: Forward</span>
+                        <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===0">S/C Orientation: Backward</span>
+                        <span v-if="atlChartFilterStore.getScOrients().length===0">S/C Orientation: Both</span>
+                    </p>
+                </div>
+                <div class="sr-pair-sc-orient">
+                    <SrListbox id="scOrients"
+                        label="scOrient(s)" 
+                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                        v-model="atlChartFilterStore.scOrients" 
+                        :getSelectedMenuItem="atlChartFilterStore.getScOrients"
+                        :setSelectedMenuItem="atlChartFilterStore.setScOrients"
+                        :menuOptions="atlChartFilterStore.scOrientOptions" 
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                    />
+                    <SrListbox id="pairs"
+                        label="pair(s)" 
+                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                        v-model="atlChartFilterStore.pairs" 
+                        :getSelectedMenuItem="atlChartFilterStore.getPairs"
+                        :setSelectedMenuItem="atlChartFilterStore.setPairs"
+                        :menuOptions="atlChartFilterStore.pairOptions" 
+                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        tooltipText="A pair is a set of weak and strong beams."
+                    />
+                </div>
+            </div> 
+            <div class="sr-tracks-beams-panel">
+                <SrListbox id="tracks" 
+                    label="Track(s)" 
+                    v-model="atlChartFilterStore.tracks" 
+                    :getSelectedMenuItem="atlChartFilterStore.getTracks"
+                    :setSelectedMenuItem="atlChartFilterStore.setTracks"
+                    :menuOptions="tracksOptions" 
+                    tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                />
+            </div>
+        </FieldSet>
     </div>
 </template>
 <style scoped>

@@ -7,8 +7,8 @@ export interface SrScatterOptionsParms {
   y: string[];
   x: string;
   beams?: number[];
-  pair?: number;
-  scOrient?: number;
+  pairs?: number[];
+  scOrients?: number[];
   tracks?: number[];
 };
 
@@ -97,7 +97,7 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 10){
       scOrient = 1;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   } else if (spot === 2) {
     if(gt === 50){
@@ -105,7 +105,7 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 20){
       scOrient = 1;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   } else if (spot === 3) {
     if(gt === 40){
@@ -113,7 +113,7 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 30){
       scOrient = 0;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   } else if (spot === 4) {
     if(gt === 30){
@@ -121,7 +121,7 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 40){
       scOrient = 1;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   } else if (spot === 5) {
     if(gt === 20){
@@ -129,7 +129,7 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 50){
       scOrient = 1;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   } else if (spot === 6) {
     if(gt === 10){
@@ -137,9 +137,9 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
     } else if (gt === 60){
       scOrient = 1;
     } else {
-      console.error('getScOrientFromSpotBeam: INVALID combo? spot:', spot, 'gt:', gt);
+      console.log('getScOrientFromSpotGt: INVALID combo? spot:', spot, 'gt:', gt);
     }
   }
-  //console.log('getScOrientFromSpotBeam: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
+  //console.log('getScOrientFromSpotGt: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
   return scOrient;
 }

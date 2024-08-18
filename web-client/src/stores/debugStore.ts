@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 export const useDebugStore = defineStore('debugStore', {
     state: () => ({
-        enableSpotPatternDetails: false as boolean,
+        enableSpotPatternDetails: true as boolean,
     }),
     actions: {
         setEnableSpotPatternDetails(enable:boolean= true) {
