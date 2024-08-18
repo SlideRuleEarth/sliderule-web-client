@@ -87,29 +87,6 @@ onMounted(async() => {
     console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
 
-// const computedScOrient = computed({
-//     get: () => atlChartFilterStore.getScOrient() === 1,
-//     set: (newValue: boolean) => {
-//         toggleScOrient(newValue);
-//     }
-// });
-
-// const toggleScOrient = (newValue: boolean) => {
-//     atlChartFilterStore.setScOrient(newValue ? 1 : 0);
-//     console.log('toggleScOrient:', atlChartFilterStore.getScOrient());
-// };
-
-// const computedPair = computed({
-//     get: () => atlChartFilterStore.getPair() === 1,
-//     set: (newValue: boolean) => {
-//         togglePair(newValue);
-//     }
-// });
-
-// const togglePair = (newValue: boolean) => {
-//     atlChartFilterStore.setPair(newValue ? 1 : 0);
-//     console.log('togglePair:', atlChartFilterStore.getPair());
-// };
 
 const SpotOrBeamSelection = () => {
     console.log('SpotOrBeamSelection:');
@@ -136,6 +113,21 @@ const RgtsSelection = () => {
 
 const CyclesSelection = () => {
     console.log('CyclesSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
+const scOrientsSelection = () => {
+    console.log('scOrientsSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
+const pairsSelection = () => {
+    console.log('pairsSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
+const tracksSelection = () => {
+    console.log('tracksSelection:');
     useAtlChartFilterStore().updateScatterPlot();
 };
 
@@ -281,7 +273,8 @@ vector within the observatory is pointed"
                         :menuOptions="atlChartFilterStore.scOrientOptions" 
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                         tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
-                    />
+                        @update:modelValue="scOrientsSelection"
+                        />
                     <SrListbox id="pairs"
                         label="pair(s)" 
                         v-if="atlChartFilterStore.getFunc().includes('atl03')"
@@ -289,8 +282,9 @@ vector within the observatory is pointed"
                         :getSelectedMenuItem="atlChartFilterStore.getPairs"
                         :setSelectedMenuItem="atlChartFilterStore.setPairs"
                         :menuOptions="atlChartFilterStore.pairOptions" 
-                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
                         tooltipText="A pair is a set of weak and strong beams."
+                        @update:modelValue="pairsSelection"
                     />
                 </div>
             </div> 
@@ -302,6 +296,7 @@ vector within the observatory is pointed"
                     :setSelectedMenuItem="atlChartFilterStore.setTracks"
                     :menuOptions="tracksOptions" 
                     tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                    @update:modelValue="tracksSelection"
                 />
             </div>
         </FieldSet>
