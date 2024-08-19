@@ -325,92 +325,73 @@ async function fetchAtl03ScatterData(
     fileName: string, 
     x: string, 
     y: string[], 
-    rgts: number[], 
-    cycles: number[], 
-    tracks: number[],
-    scOrients?: number[], 
-    pairs?: number[], 
 ) {
-    console.log('fetchAtl03ScatterData fileName:', fileName, ' x:', x, ' y:', y, ' rgts:', rgts, ' cycles:', cycles, ' tracks:', tracks, ' scOrients:', scOrients, ' pairs:', pairs);
+    console.log('fetchAtl03ScatterData fileName:', fileName, ' x:', x, ' y:', y);
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
+    const whereClause = useAtlChartFilterStore().getAtl03WhereClause();
 
-    try {
-        const yColumns = y.join(", ");
-        let query = `
-            SELECT 
-                ${x}, 
-                ${yColumns}
-            FROM '${fileName}'
-            WHERE track IN (${tracks.join(", ")}) 
-            AND rgt IN (${rgts.join(', ')}) 
-            AND cycle IN (${cycles.join(', ')})
-        `;
+    if(whereClause){
+        try {
+            const yColumns = y.join(", ");
+            let query = `
+                SELECT 
+                    ${x}, 
+                    ${yColumns}
+                FROM '${fileName}'
+                `;
+            query += whereClause;
 
-        if (pairs !== undefined) {
-            query += ` AND pair IN (${pairs.join(", ")})`;
-        }
-
-        if (scOrients !== undefined) {
-            query += ` AND sc_orient IN (${scOrients.join(", ")})`;
-        }
-
-        useAtlChartFilterStore().setAtl03QuerySql(query);
-        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
-        for await (const rowChunk of queryResult.readRows()) {
-            for (const row of rowChunk) {
-                if (row) {
-                    y.forEach((yName) => {
-                        if (!chartData[yName]) {
-                            chartData[yName] = [];
-                        }
-                        chartData[yName].push({
-                            value: [row[x], row[yName]]
+            useAtlChartFilterStore().setAtl03QuerySql(query);
+            const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
+            for await (const rowChunk of queryResult.readRows()) {
+                for (const row of rowChunk) {
+                    if (row) {
+                        y.forEach((yName) => {
+                            if (!chartData[yName]) {
+                                chartData[yName] = [];
+                            }
+                            chartData[yName].push({
+                                value: [row[x], row[yName]]
+                            });
                         });
-                    });
-                } else {
-                    console.warn('fetchAtl03ScatterData - fetchData rowData is null');
+                    } else {
+                        console.warn('fetchAtl03ScatterData - fetchData rowData is null');
+                    }
                 }
             }
-        }
 
-        let query2 = `
-            SELECT 
-                MIN(${x}) as min_x,
-                MAX(${x}) as max_x,
-                ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
-            FROM '${fileName}'
-            WHERE track IN (${tracks.join(", ")}) 
-            AND rgt IN (${rgts.join(', ')}) 
-            AND cycle IN (${cycles.join(', ')})
-        `;
+            let query2 = `
+                SELECT 
+                    MIN(${x}) as min_x,
+                    MAX(${x}) as max_x,
+                    ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
+                FROM '${fileName}'
+                `;
+            query2 += whereClause;
 
-        if (pairs !== undefined) {
-            query2 += ` AND pair IN (${pairs.join(", ")})`;
-        }
-
-        if (scOrients !== undefined) {
-            query2 += ` AND sc_orient IN (${scOrients.join(", ")})`;
-        }
-
-        const queryResult2: QueryResult = await duckDbClient.query(query2);
-        for await (const rowChunk of queryResult2.readRows()) {
-            for (const row of rowChunk) {
-                if (row) {
-                    useAtlChartFilterStore().setMinX(row.min_x);
-                    useAtlChartFilterStore().setMaxX(row.max_x);
-                    y.forEach((yName) => {
-                        minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
-                    });
-                } else {
-                    console.warn('fetchAtl03ScatterData fetchData rowData is null');
+            const queryResult2: QueryResult = await duckDbClient.query(query2);
+            for await (const rowChunk of queryResult2.readRows()) {
+                for (const row of rowChunk) {
+                    if (row) {
+                        useAtlChartFilterStore().setMinX(row.min_x);
+                        useAtlChartFilterStore().setMaxX(row.max_x);
+                        y.forEach((yName) => {
+                            minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
+                        });
+                    } else {
+                        console.warn('fetchAtl03ScatterData fetchData rowData is null');
+                    }
                 }
             }
+            return { chartData, minMaxValues };
+        } catch (error) {
+            console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
+            return { chartData: {}, minMaxValues: {} };
         }
-        return { chartData, minMaxValues };
-    } catch (error) {
-        console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
+    } else {
+        console.log('fetchAtl03ScatterData whereClause is undefined');
         return { chartData: {}, minMaxValues: {} };
     }
 }
@@ -717,13 +698,13 @@ interface SrScatterSeriesData{
     max: number;
 };
 
-async function getSeriesForAtl03( fileName: string, x: string, y: string[], rgts: number[], cycles: number[], tracks:number[], scOrients?: number[], pairs?: number[]): Promise<SrScatterSeriesData[]>{
-    console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y, ' rgts:', rgts, ' cycles:', cycles, ' scOrient:', scOrients, ' pair:',pairs);
+async function getSeriesForAtl03( fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]>{
+    console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now(); // Start time
     let yItems=[] as SrScatterSeriesData[];
     try{
         const name = 'Atl03';
-        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y, rgts, cycles, tracks, scOrients, pairs);
+        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y);
         if (chartData) {
             yItems = y.map(yName => ({
                 name: `${name} - ${yName}`,
@@ -827,12 +808,13 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                     console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
                 }
             } else if(sop.func === 'atl03'){
+                seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y);
                 //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
-                if((sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
-                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.rgts, sop.cycles, sop.tracks, sop.scOrients, sop.pairs);
-                } else {
-                    console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks, 'scOrient:',sop.scOrients, 'pair:',sop.pairs);
-                }
+                // if((sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
+                //     seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.rgts, sop.cycles, sop.tracks, sop.scOrients, sop.pairs);
+                // } else {
+                //     console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks, 'scOrient:',sop.scOrients, 'pair:',sop.pairs);
+                // }
             } else if(sop.func === 'atl08'){
                 if(sop.beams?.length && sop.rgts && sop.cycles){
                     //console.log('getScatterOptions atl08 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);

@@ -47,6 +47,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03QuerySql: '' as string,
     atl06QuerySql: '' as string,  
     atl08QuerySql: '' as string,
+    atl03WhereClause: '' as string,
   }),
 
   actions: {
@@ -129,6 +130,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
+   
     setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
@@ -348,6 +350,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getAtl03QuerySql() {
       return this.atl03QuerySql;
+    },
+    setAtl03WhereClause(sql: string) {
+      this.atl03WhereClause = sql;
+    },
+    getAtl03WhereClause() {
+      return this.atl03WhereClause
     },
     setAtl06QuerySql(sql: string) {
       this.atl06QuerySql = sql;

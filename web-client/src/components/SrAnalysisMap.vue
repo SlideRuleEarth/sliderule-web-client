@@ -325,19 +325,6 @@
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               initDeck(map);
-              // mapStore.setIsLoading();
-              // try{
-              //   await updateElevationForReqId(props.reqId);
-              //   // These update the dynamic options for the these components
-              //   const rgts = await updateRgtOptions(props.reqId);
-              //   console.log('updateAnalysisMapView rgts:',rgts);
-              //   const cycles = await updateCycleOptions(props.reqId);
-              //   console.log('updateAnalysisMapView cycles:',cycles);
-              // } catch (error) {
-              //   console.error(`updateAnalysisMapView Error: updateElevationForReqId failed for ${reason}`,error);
-              //   toast.add({severity:'error', summary: 'Error', detail: `Failed to updateElevationForReqId for ${reason}`});
-              // }
-              // mapStore.resetIsLoading();
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);
             }

@@ -197,6 +197,19 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
         useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+
+        let atl03WhereClause = `
+                WHERE track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
+                AND rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+                AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            `;
+            if (useAtlChartFilterStore().getPairValues() !== undefined) {
+                atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+            }
+            if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
+                atl03WhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+            }
+        useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
     }
     await addHighlightLayerForReq(useCurReqSumStore().getReqId());
     useAtlChartFilterStore().updateScatterPlot();
