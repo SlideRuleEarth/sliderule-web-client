@@ -4,6 +4,7 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
+import { get } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -14,6 +15,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
     debugCnt: 0 as number,
     tracks: [] as SrListNumberItem[],
+    tracksOptions: tracksOptions as SrListNumberItem[],
     selectAllTracks: true as boolean,
     beams: [] as SrListNumberItem[],
     spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
@@ -36,7 +38,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     func: 'xxx' as string,
     //pair: 0 as number,
     pairs: [] as SrListNumberItem[],
-    pairOptions: [{ label: '1', value: 1 }, { label: '2', value: 2 }] as SrListNumberItem[],
+    pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     //scOrient: -1 as number,
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
@@ -71,6 +73,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getSpots(): SrListNumberItem[] {
       return this.spots;
+    },
+    getSpotValues() {
+      return this.spots.map(spot => spot.value);
     },
     setSpotWithNumber(spot: number) {
       //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
@@ -130,16 +135,25 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
-   
+
     setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
     getTracks() {
       return this.tracks;
     },
+    setTrackOptions(trackOptions: SrListNumberItem[]) {
+      this.tracksOptions = trackOptions;
+    },
+    getTrackOptions() {
+      return this.tracksOptions;
+    },
     setTrackWithNumber(track: number) {
       this.setTracks([{ label: track.toString(), value: track }]);
       //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
+    },
+    setTrackOptionsWithNumbers(tracks: number[]) {
+      this.setTrackOptions(tracks.map(track => ({ label: track.toString(), value: track })));
     },
     getTrackValues() {
       return this.tracks.map(track => track.value);
@@ -150,6 +164,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getSelectAllTracks() {
       return this.selectAllTracks;
     },
+    appendTrackWithNumber(track: number) {
+      // Check if the track already exists in the list
+      const trackExists = this.tracks.some(t => t.value === track);
+      // If it doesn't exist, append it
+      if (!trackExists) {
+        this.tracks.push({ label: track.toString(), value: track });
+      }
+    },    
     setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
       //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
       const parms = getBeamsAndTracksWithGts(gts);
@@ -241,12 +263,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getFunc() {
       return this.func;
     },
-    // setPair(pair: number) {
-    //   this.pair = pair;
-    // },
-    // getPair() {
-    //   return this.pair;
-    // },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
     },
@@ -266,7 +282,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       this.pairs = [{ label: pair.toString(), value: pair }];
     },
     appendPairWithNumber(pair: number) {
-      this.pairs.push({ label: pair.toString(), value: pair });
+      const pairExists = this.pairs.some(p => p.value === pair);
+      if(!pairExists){
+        this.pairs.push({ label: pair.toString(), value: pair });
+      }
     },
     getPairValues() {
       return this.pairs.map(pair => pair.value);
@@ -293,7 +312,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.scOrients.map(scOrient => scOrient.value);
     },
     appendScOrientWithNumber(scOrient: number) {
-      if(scOrient >= 0){
+      const scoExists = this.scOrients.some(sco => sco.value === scOrient);
+      if(!scoExists && (scOrient >= 0)){
         this.scOrients.push({ label: scOrient.toString(), value: scOrient });
       }
     },

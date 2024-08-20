@@ -38,7 +38,9 @@ export function getSpotNumber(sc_orient:number, track:number, pair:number) {
         INVALID_SPOT, // SC_TRANSITION, RPT_3, RPT_R
     ];
     const index = (sc_orient * 6) + ((track - 1) * 2) + pair;
-    return lookup_table[index];
+    const spot = lookup_table[index];
+    console.log('getSpotNumber: sc_orient:', sc_orient, 'track:', track, 'pair:', pair, 'spot:', spot);
+    return spot;
 }
 
 export function getGroundTrack(sc_orient:number, track:number, pair:number) {
@@ -68,117 +70,111 @@ export function getGroundTrack(sc_orient:number, track:number, pair:number) {
 }
 
 export function getDetailsFromSpotNumber(spot:number) {
-    let sc_orient = -1;
-    let track = -1;
-    let pair = -1;
+    const details = [{sc_orient: -1, track: -1, pair: -1},{sc_orient: -1, track: -1, pair: -1}];
     switch (spot) {
         case SPOT_1:
-            sc_orient = 0;
-            track = 3;
-            pair = 1;
+            details[0].sc_orient = 0;
+            details[0].track = 1;
+            details[0].pair = 0;
+            details[1].sc_orient = 1;
+            details[1].track = 3;
+            details[1].pair = 1;
             break;
         case SPOT_2:
-            sc_orient = 0;
-            track = 3;
-            pair = 2;
+            details[0].sc_orient = 0;
+            details[0].track = 1;
+            details[0].pair = 1;
+            details[1].sc_orient = 1;
+            details[1].track = 3;
+            details[1].pair = 0;
             break;
         case SPOT_3:
-            sc_orient = 0;
-            track = 2;
-            pair = 1;
+            details[0].sc_orient = 0;
+            details[0].track = 2;
+            details[0].pair = 0;
+            details[1].sc_orient = 1;
+            details[1].track = 2;
+            details[1].pair = 1;
             break;
         case SPOT_4:
-            sc_orient = 0;
-            track = 2;
-            pair = 2;
+            details[0].sc_orient = 0;
+            details[0].track = 2;
+            details[0].pair = 1;
+            details[1].sc_orient = 1;
+            details[1].track = 2;
+            details[1].pair = 0;
             break;
         case SPOT_5:
-            sc_orient = 0;
-            track = 1;
-            pair = 1;
+            details[0].sc_orient = 0;
+            details[0].track = 3;
+            details[0].pair = 0;
+            details[1].sc_orient = 1;
+            details[1].track = 1;
+            details[1].pair = 1;
             break;
         case SPOT_6:
-            sc_orient = 0;
-            track = 1;
-            pair = 2;
+            details[0].sc_orient = 0;
+            details[0].track = 3;
+            details[0].pair = 1;
+            details[1].sc_orient = 1;
+            details[1].track = 1;
+            details[1].pair = 0;
             break;
         default:
             console.log('getSpotGtFromSpotNumber: INVALID spot:', spot);
             break;
     }
-    return {sc_orient, track, pair};
-}
-
-export function getDetailsFromGroundTrack(gt:number) {
-    let sc_orient = -1;
-    let spot = -1;
-    let pair = -1;
-    switch (gt) {
-        case GT1L:
-            sc_orient = 0;
-            spot = 6;
-            pair = 1;
-            break;
-        case GT1R:
-            sc_orient = 0;
-            spot = 5;
-            pair = 2;
-            break;
-        case GT2L:
-            sc_orient = 0;
-            spot = 4;
-            pair = 1;
-            break;
-        case GT2R:
-            sc_orient = 0;
-            spot = 4;
-            pair = 2;
-            break;
-        case GT3L:
-            sc_orient = 0;
-            spot = 3;
-            pair = 1;
-            break;
-        case GT3R:
-            sc_orient = 0;
-            spot = 3;
-            pair = 2;
-            break;
-        default:
-            console.log('getSpotGtFromGroundTrack: INVALID gt:', gt);
-            break;
-    }
-    return {sc_orient, spot, pair};
+    return details;
 }
 
 export function getSqlForSpot(spot:number){
-    const {sc_orient, track, pair} = getDetailsFromSpotNumber(spot);
-    return 'sc_orient = ' + sc_orient + ' AND track = ' + track + ' AND pair = ' + pair;
+    const d= getDetailsFromSpotNumber(spot);
+    const sqlStr = `((sc_orient = ${d[0].sc_orient}) AND (track = ${d[0].track}) AND (pair = ${d[0].pair})) OR ((sc_orient = ${d[1].sc_orient}) AND (track = ${d[1].track}) AND (pair = ${d[1].pair}))`;
+    console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
+    return sqlStr;
 }
 
-export function getSqlForGroundTrack(gt:number){
-    const {sc_orient, spot, pair} = getDetailsFromGroundTrack(gt);
-    return 'sc_orient = ' + sc_orient + ' AND spot = ' + spot + ' AND pair = ' + pair;
-}
+// export function getSqlForGroundTrack(gt:number){
+//     const {sc_orient, spot, pair} = getDetailsFromGroundTrack(gt);
+//     return '(sc_orient = ' + sc_orient + ' AND spot = ' + spot + ' AND pair = ' + pair + ')';
+// }
 
 export function getSqlForSpots(spots:number[]){
     const sqls = spots.map(spot => getSqlForSpot(spot));
     return sqls.join(' OR ');
 }
 
-export function getSqlForGroundTracks(gts:number[]){
-    const sqls = gts.map(gt => getSqlForGroundTrack(gt));
-    return sqls.join(' OR ');
+// export function getSqlForGroundTracks(gts:number[]){
+//     const sqls = gts.map(gt => getSqlForGroundTrack(gt));
+//     return '(' + sqls.join(' OR ') + ')';
+// }
+
+export function getAtl03WhereClauseForSpots(spots:number[],rgts:number[],cycles:number[]){
+    console.log('getAtl03WhereClauseForSpots: spots:', spots);
+    console.log('getAtl03WhereClauseForSpots: rgts:', rgts);
+    console.log('getAtl03WhereClauseForSpots: cycles:', cycles);
+    let whereStr = '';
+    if ((rgts.length > 0) || (cycles.length > 0)) {
+        whereStr = 'WHERE ';
+        if (rgts.length > 0) {
+            whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+        }
+        if (cycles.length > 0) {
+            if (rgts.length > 0) {
+                whereStr = whereStr + ' AND ';
+            }
+            whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+        }
+        if (spots.length > 0) {
+            whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+        }
+    }
+    console.log('getAtl03WhereClauseForSpots: whereStr:', whereStr);
+    return whereStr;
 }
 
 export function getSqlForAtl03WithSpots(filename:string,rgts:number[],cycles:number[], spots:number[]){
-    const queryStr = `
-            SELECT * FROM '${filename}' 
-            WHERE (rgt IN (${rgts.join(', ')}) 
-            AND cycle IN (${cycles.join(', ')}))
-             `
-    if (spots.length > 0) {
-        return queryStr + ' AND (' + getSqlForSpots(spots) + ')';
-    }
+    let queryStr = `SELECT * FROM '${filename}'`
+    queryStr = queryStr + getAtl03WhereClauseForSpots(spots,rgts,cycles);
     return queryStr;
 }

@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile, updateCycleOptions, updateRgtOptions, updateScOrientOptions, updatePairOptions } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 const consoleStore = useSrSvrConsoleStore();
 
 const sysConfigStore = useSysConfigStore();
@@ -120,15 +120,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     fileName = await db.getFilename(workerMsg.req_id);
                     await duckDbLoadOpfsParquetFile(fileName);
                     await updateElevationForReqId(workerMsg.req_id);
-                    // These update the dynamic options for the these components
-                    const rgts = await updateRgtOptions(workerMsg.req_id);
-                    console.log('handleWorkerMsg opfs_ready rgts:',rgts);
-                    const cycles = await updateCycleOptions(workerMsg.req_id);
-                    console.log('handleWorkerMsg opfs_ready cycles:',cycles);
-                    const pairs = await updatePairOptions(workerMsg.req_id);
-                    console.log('handleWorkerMsg opfs_ready pairs:',pairs);
-                    const scOrients = await updateScOrientOptions(workerMsg.req_id);
-                    console.log('handleWorkerMsg opfs_ready scOrients:',scOrients);
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
                 }

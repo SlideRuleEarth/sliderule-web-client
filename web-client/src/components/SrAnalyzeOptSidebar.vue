@@ -15,8 +15,8 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
-import { updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
-import { getScOrientFromSpotGt } from '@/utils/parmUtils';
+import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
+import { getDetailsFromSpotNumber,getAtl03WhereClauseForSpots } from '@/utils/spotUtils';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -55,6 +55,8 @@ const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 
 onMounted(async() => {
+    const startTime = performance.now(); // Start time
+    let req_id = -1;
     try {
         mapStore.setIsLoading();
 
@@ -74,45 +76,71 @@ onMounted(async() => {
             defaultMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
-        console.log('selectedReqId:', selectedReqId.value);
+        let req_id = Number(selectedReqId.value.value);
+        console.log('onMounted selectedReqId:', req_id);
         //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
-        console.log('onMounted SrAnalyzeOptSidebar');
+        // These update the dynamic options for the these components
     } catch (error) {
         console.error('onMounted Failed to load menu items:', error);
+    } finally {
+        loading.value = false;
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
+        //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+        atlChartFilterStore.setFunc(await db.getFunc(req_id));
+        console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
+        const endTime = performance.now(); // End time
+        console.log(`onMounted took ${endTime - startTime} milliseconds.`);
     }
-    loading.value = false;
-    //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
-    //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
-    atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value)));
-    console.log('onMounted selectedReqId:', selectedReqId.value, 'func:', atlChartFilterStore.getFunc());
 });
 
-
-const SpotOrBeamSelection = () => {
-    console.log('SpotOrBeamSelection:');
-    
-    const gts = atlChartFilterStore.getTracks();
+const SpotSelection = () => {
     const spots = atlChartFilterStore.getSpots();
+    console.log('SpotSelection spots:', spots);
+    spots.forEach((spot) => {
+        const d = getDetailsFromSpotNumber(spot.value);
 
-    gts.forEach((gt) => {
-        spots.forEach((spot) => {
-            const scOrient = getScOrientFromSpotGt(spot.value, gt.value);
-            if(scOrient >= 0){
-                useAtlChartFilterStore().appendScOrientWithNumber(scOrient);
-            }
-        });
+        if(d[0].sc_orient >= 0){
+            useAtlChartFilterStore().appendScOrientWithNumber(d[0].sc_orient);
+        }
+        if(d[0].track > 0){
+            useAtlChartFilterStore().appendTrackWithNumber(d[0].track);
+        }
+        if(d[0].pair >= 0){
+            useAtlChartFilterStore().appendPairWithNumber(d[0].pair);
+        }
+        if(d[1].sc_orient >= 0){
+            useAtlChartFilterStore().appendScOrientWithNumber(d[1].sc_orient);
+        }
+        if(d[1].track > 0){
+            useAtlChartFilterStore().appendTrackWithNumber(d[1].track);
+        }
+        if(d[1].pair >= 0){
+            useAtlChartFilterStore().appendPairWithNumber(d[1].pair);
+        }
+        
     });
-
+    const whereClause = getAtl03WhereClauseForSpots(
+        useAtlChartFilterStore().getSpotValues(),
+        useAtlChartFilterStore().getRgtValues(),
+        useAtlChartFilterStore().getCycleValues(),
+    );
+    useAtlChartFilterStore().setAtl03WhereClause(whereClause);
     useAtlChartFilterStore().updateScatterPlot();
+
 };
 
-const RgtsSelection = () => {
-    console.log('RgtsSelection:');
+const BeamSelection = () => {
+    console.log('BeamSelection:');
     useAtlChartFilterStore().updateScatterPlot();
 };
 
 const CyclesSelection = () => {
     console.log('CyclesSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
+const RgtsSelection = () => {
+    console.log('RgtsSelection:');
     useAtlChartFilterStore().updateScatterPlot();
 };
 
@@ -148,18 +176,28 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             newSelection = reqIds.value[0];  
         }
         //console.log('Using filtered newSelection:', newSelection);
-        curReqSumStore.setReqId(Number(newSelection.value));
-        atlChartFilterStore.setReqId(Number(newSelection.value));
+        const req_id = Number(newSelection.value)
+        curReqSumStore.setReqId(req_id);
+        atlChartFilterStore.setReqId(req_id);
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
         atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
         useDeckStore().deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
-        const rgts = await updateRgtOptions(atlChartFilterStore.getReqId());
-        console.log('handleWorkerMsg opfs_ready rgts:',rgts);
-        const cycles = await updateCycleOptions(atlChartFilterStore.getReqId());
-        console.log('handleWorkerMsg opfs_ready cycles:',cycles);
+        console.log('watch req_id SrAnalyzeOptSidebar');
+        const rgts = await updateRgtOptions(req_id);
+        console.log('watch req_id rgts:',rgts);
+        const cycles = await updateCycleOptions(req_id);
+        console.log('watch req_id cycles:',cycles);
+        if(atlChartFilterStore.getFunc().includes('atl03')){
+            const pairs = await updatePairOptions(req_id);
+            console.log('watch req_id pairs:',pairs);
+            const scOrients = await updateScOrientOptions(req_id);
+            console.log('watch req_id scOrients:',scOrients);
+            const tracks = await updateTrackOptions(req_id);
+            console.log('watch req_id tracks:',tracks);
+        }
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -217,7 +255,7 @@ numbered according to the laser spot number that generates it, with ground track
 far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
 approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
 direction."
-                    @update:modelValue="SpotOrBeamSelection"
+                    @update:modelValue="SpotSelection"
                 />
             <SrListbox id="beams" 
                     :insensitive="true"
@@ -227,7 +265,7 @@ direction."
                     :setSelectedMenuItem="atlChartFilterStore.setBeams"
                     :menuOptions="beamsOptions" 
                     tooltipText="ATLAS laser beams are divided into weak and strong beams"
-                    @update:modelValue="SpotOrBeamSelection"
+                    @update:modelValue="BeamSelection"
                 />
         </div>
         <div class="sr-rgts-cycles-panel">

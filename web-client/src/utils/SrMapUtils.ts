@@ -181,7 +181,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setSpotWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
-        useAtlChartFilterStore().appendScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
+        useAtlChartFilterStore().setScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
         useAtlChartFilterStore().setRgtWithNumber(d.rgt);
@@ -194,14 +194,19 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
+    console.log('Clicked: rgts',useAtlChartFilterStore().getRgtValues())
+    console.log('Clicked: cycles',useAtlChartFilterStore().getCycleValues())
+    console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
+    console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
+    console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
     if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
         useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
         useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
 
         let atl03WhereClause = `
-                WHERE track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
-                AND rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+                WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
                 AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+                AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
             `;
             if (useAtlChartFilterStore().getPairValues() !== undefined) {
                 atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
@@ -211,6 +216,9 @@ async function clicked(d:ElevationDataItem): Promise<void> {
             }
         useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
     }
+    console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
+    console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
+    console.log('Clicked: atl03WhereClause',useAtlChartFilterStore().getAtl03WhereClause())
     await addHighlightLayerForReq(useCurReqSumStore().getReqId());
     useAtlChartFilterStore().updateScatterPlot();
 }

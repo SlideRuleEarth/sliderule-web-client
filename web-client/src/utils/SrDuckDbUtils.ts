@@ -385,6 +385,7 @@ async function fetchAtl03ScatterData(
                     }
                 }
             }
+            console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
             return { chartData, minMaxValues };
         } catch (error) {
             console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -463,9 +464,50 @@ export async function updatePairOptions(req_id: number): Promise<number[]> {
         console.error('getPairs Error:', error);
         throw error;
     }
+    console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
     return pairs;
 }
 
+export async function getTracks(req_id: number): Promise<number[]> {
+    const startTime = performance.now(); // Start time
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    const tracks = [] as number[];
+    try{
+        const query = `SELECT DISTINCT track FROM '${fileName}' order by track ASC`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getPairs row:', row);
+                    tracks.push(row.track);
+                } else {
+                    console.warn('getTracks fetchData rowData is null');
+                }
+            }
+        } 
+        //console.log('getPairs pairs:', pairs);
+    } catch (error) {
+        console.error('getTracks Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`SrDuckDbUtils.getTracks() took ${endTime - startTime} milliseconds.`);
+    }
+    return tracks;
+}
+
+export async function updateTrackOptions(req_id: number): Promise<number[]> {
+    let tracks = [] as number[];
+    try{
+        tracks = await getTracks(req_id);
+        useAtlChartFilterStore().setTrackOptionsWithNumbers(tracks);   
+    } catch (error) {
+        console.error('getTracks Error:', error);
+        throw error;
+    }
+    return tracks;
+}
 export async function getScOrient(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
@@ -527,8 +569,9 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
             }
         } 
         useAtlChartFilterStore().setCycleOptionsWithNumbers(cycles);   
+        console.log('updateCycleOptions cycles:', useAtlChartFilterStore().getCycleOptions());
     } catch (error) {
-        console.error('getCycles Error:', error);
+        console.error('updateCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
@@ -698,36 +741,52 @@ interface SrScatterSeriesData{
     max: number;
 };
 
-async function getSeriesForAtl03( fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]>{
+async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
     console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now(); // Start time
-    let yItems=[] as SrScatterSeriesData[];
-    try{
+    let yItems = [] as SrScatterSeriesData[];
+
+    try {
         const name = 'Atl03';
-        const { chartData, minMaxValues } = await fetchAtl03ScatterData(fileName, x, y);
-        if (chartData) {
-            yItems = y.map(yName => ({
-                name: `${name} - ${yName}`,
-                type: 'scatter',
-                data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
-                large: true,
-                largeThreshold: 100000,
-                animation: false,
-                yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
-            })).map((series, index) => ({
-                series,
-                min: minMaxValues[y[index]].min,
-                max: minMaxValues[y[index]].max
-            }));
+        const { chartData = {}, minMaxValues = {} } = await fetchAtl03ScatterData(fileName, x, y);
+        console.log('getSeriesForAtl03 chartData:', chartData, ' minMaxValues:', minMaxValues);
+
+        // Check if either chartData or minMaxValues is empty
+        if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
+            console.warn('getSeriesForAtl03 chartData or minMaxValues is empty, skipping processing.');
+            return yItems; // Return empty array if either is empty
         }
+
+        yItems = y.map(yName => {
+            const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+            const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+            const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+
+            return {
+                series: {
+                    name: `${name} - ${yName}`,
+                    type: 'scatter',
+                    data: data,
+                    large: true,
+                    largeThreshold: 100000,
+                    animation: false,
+                    yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+                },
+                min: min,
+                max: max
+            };
+        });
+
     } catch (error) {
         console.error('getSeriesForAtl03 Error:', error);
     } finally {
         const endTime = performance.now(); // End time
         console.log(`getSeriesForAtl03 took ${endTime - startTime} milliseconds.`);
     }
+
     return yItems;
 }
+
 
 async function getSeriesForAtl06( fileName: string, x: string, y: string[], beams: number[], rgts: number[], cycles: number[]): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' beams:', beams, ' rgt:', rgt, ' cycle:', cycle);
