@@ -4,6 +4,7 @@ import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
+import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
 import { formatBytes, updateElevationForReqId } from '@/utils/SrParquetUtils';
@@ -159,6 +160,11 @@ const tracksSelection = () => {
     useAtlChartFilterStore().updateScatterPlot();
 };
 
+const symbolSizeSelection = () => {
+    console.log('symbolSizeSelection:');
+    useAtlChartFilterStore().updateScatterPlot();
+};
+
 watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
 
@@ -289,6 +295,41 @@ vector within the observatory is pointed"
                 @update:modelValue="CyclesSelection"
             />
         </div>
+        <FieldSet class="sr-scatterplot-fieldset" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+            <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+                v-model="atlChartFilterStore.atl03SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl03 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl03SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl03 Scatter Plot"
+              />
+              <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+                v-model="atlChartFilterStore.atl06SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl06 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl06SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl06 Scatter Plot"
+              />
+              <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+                v-model="atlChartFilterStore.atl08SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl08 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl08SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl08 Scatter Plot"
+              />
+        </FieldSet>
         <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
