@@ -4,7 +4,6 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
-import { get } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -50,6 +49,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl06QuerySql: '' as string,  
     atl08QuerySql: '' as string,
     atl03WhereClause: '' as string,
+    atl03SymbolSize: 1 as number,
+    atl06SymbolSize: 5 as number,
+    atl08SymbolSize: 5 as number,
   }),
 
   actions: {
@@ -400,6 +402,37 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         default:
           return '';
       }
-    }
-  },
+    },
+    setAtl03SymbolSize(size: number) {
+      this.atl03SymbolSize = size;
+    },
+    getAtl03SymbolSize() {
+      return this.atl03SymbolSize;
+    },
+    setAtl06SymbolSize(size: number) {
+      this.atl06SymbolSize = size;
+    },
+    getAtl06SymbolSize() {
+      return this.atl06SymbolSize;
+    },
+    setAtl08SymbolSize(size: number) {
+      this.atl08SymbolSize = size;
+    },
+    getAtl08SymbolSize() {
+      return this.atl08SymbolSize;
+    },
+    getSymbolSize() {
+      switch (this.func) {
+        case 'atl03':
+          return this.atl03SymbolSize;
+        case 'atl06':
+          return this.atl06SymbolSize;
+        case 'atl08':
+          return this.atl08SymbolSize;
+        default:
+          console.warn('atlChartFilterStore.getSymbolSize() unknown function:', this.func);
+          return 5;
+      }
+    },
+  }
 });

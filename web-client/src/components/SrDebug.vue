@@ -33,6 +33,33 @@
                 label="Enable Spot Pattern Details" 
               />
               <SrGraticuleSelect/>
+              <SrSliderInput
+                v-model="atlChartFilterStore.atl03SymbolSize"
+                label="Atl03 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl03SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl03 Scatter Plot"
+              />
+              <SrSliderInput
+                v-model="atlChartFilterStore.atl06SymbolSize"
+                label="Atl06 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl06SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl06 Scatter Plot"
+              />
+              <SrSliderInput
+                v-model="atlChartFilterStore.atl08SymbolSize"
+                label="Atl08 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl08SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl08 Scatter Plot"
+              />
             </div>
         </div>
     </div>
@@ -48,11 +75,12 @@
     import SrSliderInput from './SrSliderInput.vue';
     import { useDebugStore } from '@/stores/debugStore';
     import SrGraticuleSelect from './SrGraticuleSelect.vue';
+    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     
     const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
-
+    const atlChartFilterStore = useAtlChartFilterStore();
     // const handleUseChecksum = async (newValue: boolean) => {
     //   reqParamsStore.useChecksum = newValue;
     //   console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );

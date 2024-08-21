@@ -14,7 +14,17 @@
       />  
     </div>
   </div>
-  <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="atlChartFilterStore.isLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
+  <v-chart  ref="plotRef" 
+            class="scatter-chart" 
+            :option="option" 
+            :autoresize="{throttle:500}" 
+            :loading="atlChartFilterStore.isLoading" 
+            :loadingOptions="{
+              text:'Data Loading', 
+              fontSize:20, 
+              showSpinner: true, 
+              zlevel:100
+            }" />
 </template>
 
 <script setup lang="ts">

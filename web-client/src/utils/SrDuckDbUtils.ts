@@ -725,6 +725,7 @@ interface SrScatterSeriesData{
         largeThreshold: number;
         animation: boolean;
         yAxisIndex: number;
+        symbolSize?: number;
     };
     min: number;
     max: number;
@@ -738,7 +739,7 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
     try {
         const name = 'Atl03';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03ScatterData(fileName, x, y);
-        console.log('getSeriesForAtl03 chartData:', chartData, ' minMaxValues:', minMaxValues);
+        //console.log('getSeriesForAtl03 chartData:', chartData, ' minMaxValues:', minMaxValues);
 
         // Check if either chartData or minMaxValues is empty
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
@@ -759,7 +760,8 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
                     large: true,
                     largeThreshold: 100000,
                     animation: false,
-                    yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+                    yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                    symbolSize: useAtlChartFilterStore().getSymbolSize(),
                 },
                 min: min,
                 max: max
@@ -792,7 +794,8 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[], beam
                 large: true,
                 largeThreshold: 100000,
                 animation: false,
-                yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                symbolSize: useAtlChartFilterStore().getSymbolSize(),
             })).map((series, index) => ({
                 series,
                 min: minMaxValues[y[index]].min,
@@ -824,7 +827,8 @@ async function getSeriesForAtl08( fileName: string, x: string, y: string[], beam
                 large: true,
                 largeThreshold: 100000,
                 animation: false,
-                yAxisIndex: y.indexOf(yName) // Set yAxisIndex to map each series to its respective yAxis
+                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                symbolSize: useAtlChartFilterStore().getSymbolSize(),
             })).map((series, index) => ({
                 series,
                 min: minMaxValues[y[index]].min,
