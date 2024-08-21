@@ -239,7 +239,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
 
         // Step 4: Execute a SQL query to retrieve the elevation data
         //console.log(`duckDbReadAndUpdateSelectedLayer for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
-
+        console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
         // Calculate the offset for the query
         let offset = 0;
         let hasMoreData = true;

@@ -716,7 +716,7 @@
   font-size: 0.75rem;
 }
 .sr-isLoadingEl {
-  color: #e91c5a;
+  color: #e9df1c;
   padding: 0.5rem;
   font-size: 1rem;
 }

@@ -7,7 +7,7 @@ import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { formatBytes, updateElevationForReqId } from '@/utils/SrParquetUtils';
+import { formatBytes, updateElevationForReqId, addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import FieldSet from 'primevue/fieldset';
 import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
@@ -18,6 +18,8 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber,getAtl03WhereClauseForSpots } from '@/utils/spotUtils';
+import { debounce } from "lodash";
+import { on } from 'events';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -94,9 +96,23 @@ onMounted(async() => {
     }
 });
 
-const SpotSelection = () => {
+
+const onSelection = async() => {
+    console.log('onSelection:', selectedReqId.value);
+    const whereClause = getAtl03WhereClauseForSpots(
+        useAtlChartFilterStore().getSpotValues(),
+        useAtlChartFilterStore().getRgtValues(),
+        useAtlChartFilterStore().getCycleValues(),
+    );
+    useAtlChartFilterStore().setAtl03WhereClause(whereClause);
+    useAtlChartFilterStore().updateScatterPlot();
+    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+}
+const debouncedOnSelection = debounce(onSelection, 500);
+
+const onSpotSelection = async() => {
     const spots = atlChartFilterStore.getSpots();
-    console.log('SpotSelection spots:', spots);
+    console.log('onSpotSelection spots:', spots);
     spots.forEach((spot) => {
         const d = getDetailsFromSpotNumber(spot.value);
 
@@ -120,49 +136,42 @@ const SpotSelection = () => {
         }
         
     });
-    const whereClause = getAtl03WhereClauseForSpots(
-        useAtlChartFilterStore().getSpotValues(),
-        useAtlChartFilterStore().getRgtValues(),
-        useAtlChartFilterStore().getCycleValues(),
-    );
-    useAtlChartFilterStore().setAtl03WhereClause(whereClause);
-    useAtlChartFilterStore().updateScatterPlot();
-
+    debouncedOnSelection();
 };
 
 const BeamSelection = () => {
     console.log('BeamSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const CyclesSelection = () => {
     console.log('CyclesSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const RgtsSelection = () => {
     console.log('RgtsSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const scOrientsSelection = () => {
     console.log('scOrientsSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const pairsSelection = () => {
     console.log('pairsSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const tracksSelection = () => {
     console.log('tracksSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 const symbolSizeSelection = () => {
     console.log('symbolSizeSelection:');
-    useAtlChartFilterStore().updateScatterPlot();
+    debouncedOnSelection();
 };
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
@@ -261,7 +270,7 @@ numbered according to the laser spot number that generates it, with ground track
 far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
 approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
 direction."
-                    @update:modelValue="SpotSelection"
+                    @update:modelValue="onSpotSelection"
                 />
             <SrListbox id="beams" 
                     :insensitive="true"

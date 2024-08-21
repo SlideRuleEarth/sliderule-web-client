@@ -219,8 +219,8 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
     console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
     console.log('Clicked: atl03WhereClause',useAtlChartFilterStore().getAtl03WhereClause())
-    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
-    useAtlChartFilterStore().updateScatterPlot();
+    // await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+    // useAtlChartFilterStore().updateScatterPlot();
 }
 
 function checkFilter(d:ElevationDataItem): boolean {

@@ -231,7 +231,7 @@ export const updateElevationForReqId = async (req_id:number) => {
 }
 export const addHighlightLayerForReq = async (req_id:number) => {
     try{
-        //console.log('addHighlightLayerForReq req_id:',req_id);
+        console.log('addHighlightLayerForReq req_id:',req_id);
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
