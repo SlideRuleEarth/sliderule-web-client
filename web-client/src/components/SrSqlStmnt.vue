@@ -66,6 +66,7 @@
     margin-top: 0rem;
     overflow-y: auto;
     max-height: 10rem;
+    overflow-x: auto;
 }
   </style>
   

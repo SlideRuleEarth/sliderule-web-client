@@ -218,21 +218,10 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND cycle IN (${cycles.join(', ')})
                         AND gt IN (${beams.join(', ')})
                         `
-
         } else if(func === 'atl03'){
-            const tracks = useAtlChartFilterStore().getTrackValues();
-            //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);
-            const scOrients = useAtlChartFilterStore().getScOrientValues();
-            const pairs = useAtlChartFilterStore().getPairValues();
-            
-            queryStr = `
-                        SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
-                        AND cycle IN (${cycles.join(', ')})
-                        AND sc_orient IN (${scOrients.join(', ')})
-                        AND pair IN (${pairs.join(', ')})
-                        AND track IN (${tracks.join(', ')})
-                        `
+            //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
+            queryStr = `SELECT * FROM '${filename}' `;
+            queryStr += useAtlChartFilterStore().getAtl03WhereClause();
         } else if(func === 'atl08'){
             const beams = useAtlChartFilterStore().getBeamValues();
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
