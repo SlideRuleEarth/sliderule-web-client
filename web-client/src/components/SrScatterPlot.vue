@@ -1,6 +1,9 @@
 <template>
   <div class="sr-scatter-plot-header">
-    <div class="multiselect-container">
+    <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
+    <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
+    <SrSqlStmnt />
+    <div class="sr-multiselect-container">
       <SrMultiSelectText 
         v-model="atlChartFilterStore.yDataForChart"
         label="Choose" 
@@ -10,9 +13,6 @@
         :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
       />  
     </div>
-    <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-    <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
-    <SrSqlStmnt />
   </div>
   <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="atlChartFilterStore.isLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
 </template>
@@ -137,20 +137,41 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
 </script>
 
 <style scoped>
-.sr-scatter-plot-header {
+.sr-scatter-plot {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   margin: 0.5rem;
   padding: 1rem;
+  overflow-x: auto;
 }
 
-.multiselect-container {
+.sr-scatter-plot-header {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: left;
+  margin: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.sr-multiselect-container {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  margin: 0rem;
+  border: 0rem;
+}
+
+.sr-sql-stmnt-display-parms {
+  display: flex;
+  align-items: left;
+  margin-top: 0rem;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .loading-indicator {
@@ -166,9 +187,10 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
 }
 
 .scatter-chart {
-  margin: 0.5rem;
-  padding: 1rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
   max-height: 50rem;
-  max-width: 100rem;
+  max-width: 80rem;
 }
 </style>

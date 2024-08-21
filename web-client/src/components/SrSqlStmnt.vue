@@ -42,6 +42,7 @@
   .sr-sql-stmnt-display-panel {
     display: flex;
     flex-direction: column;
+    align-self: start;
     padding: 0rem;
     margin-top: 0rem;
   }
@@ -62,11 +63,10 @@
   }
 .sr-sql-stmnt-display-parms {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     margin-top: 0rem;
-    overflow-y: auto;
-    max-height: 10rem;
     overflow-x: auto;
+    max-width: 40rem;
 }
   </style>
   
