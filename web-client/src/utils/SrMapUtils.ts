@@ -194,33 +194,49 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
+    console.log('Clicked: func',useAtlChartFilterStore().getFunc())
     console.log('Clicked: rgts',useAtlChartFilterStore().getRgtValues())
     console.log('Clicked: cycles',useAtlChartFilterStore().getCycleValues())
     console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
     console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
     console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
-    if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-        useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
-        useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+    if(useAtlChartFilterStore().getFunc() === 'atl03'){
+        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+            useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+            useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
 
-        let atl03WhereClause = `
-                WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-                AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-                AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
-            `;
-            if (useAtlChartFilterStore().getPairValues() !== undefined) {
-                atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
-            }
-            if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
-                atl03WhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
-            }
-        useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
+            let atl03WhereClause = `
+                    WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+                    AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+                    AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
+                `;
+                if (useAtlChartFilterStore().getPairValues() !== undefined) {
+                    atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+                }
+                if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
+                    atl03WhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+                }
+            useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
+        }
+    } else if (useAtlChartFilterStore().getFunc() === 'atl06'){
+        const atl06WhereClause = `
+            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+        `;
+        useAtlChartFilterStore().setAtl06WhereClause(atl06WhereClause);
+    } else {
+        const atl08WhereClause = `
+            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+        `;
+        useAtlChartFilterStore().setAtl08WhereClause(atl08WhereClause);
     }
     console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
     console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
     console.log('Clicked: atl03WhereClause',useAtlChartFilterStore().getAtl03WhereClause())
-    // await addHighlightLayerForReq(useCurReqSumStore().getReqId());
-    // useAtlChartFilterStore().updateScatterPlot();
+
 }
 
 function checkFilter(d:ElevationDataItem): boolean {

@@ -17,7 +17,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
-import { getDetailsFromSpotNumber,getAtl03WhereClauseForSpots } from '@/utils/spotUtils';
+import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 
@@ -99,15 +99,32 @@ onMounted(async() => {
 
 
 const onSelection = async() => {
-    console.log('onSelection:', selectedReqId.value);
-    const whereClause = getAtl03WhereClauseForSpots(
+    console.log('onSelection with req_id:', selectedReqId.value);
+    const whereClause = getWhereClause(
+        useAtlChartFilterStore().getFunc(),
         useAtlChartFilterStore().getSpotValues(),
         useAtlChartFilterStore().getRgtValues(),
         useAtlChartFilterStore().getCycleValues(),
     );
-    useAtlChartFilterStore().setAtl03WhereClause(whereClause);
+    if(useAtlChartFilterStore().getFunc().includes('atl03')){
+        useAtlChartFilterStore().setAtl03WhereClause(whereClause);
+    } else if (useAtlChartFilterStore().getFunc().includes('atl06')){
+        useAtlChartFilterStore().setAtl06WhereClause(whereClause);
+    } else if (useAtlChartFilterStore().getFunc().includes('atl08')){
+        useAtlChartFilterStore().setAtl08WhereClause(whereClause);
+    }
     useAtlChartFilterStore().updateScatterPlot();
-    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
+        (useAtlChartFilterStore().getCycleValues().length > 0) &&
+        (useAtlChartFilterStore().getSpotValues().length > 0)
+    ){
+        await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+    } else {
+        console.warn('Need Rgt, Cycle, and Spot values selected');
+        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
+        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
+        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+    }
 }
 const debouncedOnSelection = debounce(onSelection, 500);
 

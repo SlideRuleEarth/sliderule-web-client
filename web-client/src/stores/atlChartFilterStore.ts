@@ -49,6 +49,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl06QuerySql: '' as string,  
     atl08QuerySql: '' as string,
     atl03WhereClause: '' as string,
+    atl06WhereClause: '' as string,
+    atl08WhereClause: '' as string,
     atl03SymbolSize: 1 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
@@ -335,6 +337,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         y: this.yDataForChart,
         x: 'x_atc',
         beams: this.beams.map(beam => beam.value),
+        spots: this.spots.map(spot => spot.value),
         pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
         scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
         tracks: this.tracks.map(track => track.value),
@@ -378,6 +381,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getAtl03WhereClause() {
       return this.atl03WhereClause
+    },
+    setAtl06WhereClause(sql: string) {
+      this.atl06WhereClause = sql;
+    },
+    getAtl06WhereClause() {
+      return this.atl06WhereClause;
+    },
+    setAtl08WhereClause(sql: string) {
+      this.atl08WhereClause = sql;
+    },
+    getAtl08WhereClause() {
+      return this.atl08WhereClause;
     },
     setAtl06QuerySql(sql: string) {
       this.atl06QuerySql = sql;

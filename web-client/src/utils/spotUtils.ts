@@ -149,32 +149,47 @@ export function getSqlForSpots(spots:number[]){
 //     return '(' + sqls.join(' OR ') + ')';
 // }
 
-export function getAtl03WhereClauseForSpots(spots:number[],rgts:number[],cycles:number[]){
-    console.log('getAtl03WhereClauseForSpots: spots:', spots);
-    console.log('getAtl03WhereClauseForSpots: rgts:', rgts);
-    console.log('getAtl03WhereClauseForSpots: cycles:', cycles);
+export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
+    console.log('getWhereClause: func:', func);
+    console.log('getWhereClause: spots:', spots);
+    console.log('getWhereClause: rgts:', rgts);
+    console.log('getWhereClause: cycles:', cycles);
     let whereStr = '';
-    if ((rgts.length > 0) || (cycles.length > 0)) {
-        whereStr = 'WHERE ';
-        if (rgts.length > 0) {
-            whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
-        }
-        if (cycles.length > 0) {
+    if (func === 'atl03'){
+        if ((rgts.length > 0) || (cycles.length > 0)) {
+            whereStr = 'WHERE ';
             if (rgts.length > 0) {
-                whereStr = whereStr + ' AND ';
+                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
             }
-            whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+            if (cycles.length > 0) {
+                if (rgts.length > 0) {
+                    whereStr = whereStr + ' AND ';
+                }
+                whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+            }
+            if (spots.length > 0) {
+                whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+            }
         }
-        if (spots.length > 0) {
-            whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+    } else if ((func === 'atl06') || (func === 'atl08')) {
+        if ((rgts.length > 0) || (cycles.length > 0)) {
+            whereStr = 'WHERE ';
+            if (rgts.length > 0) {
+                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+            }
+            if (cycles.length > 0) {
+                if (rgts.length > 0) {
+                    whereStr = whereStr + ' AND ';
+                }
+                whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+            }
+            if (spots.length > 0) {
+                whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
+            }
         }
+    } else {
+        console.error('getWhereClause: INVALID func:', func);
     }
-    console.log('getAtl03WhereClauseForSpots: whereStr:', whereStr);
+    console.log('getWhereClause: whereStr:', whereStr);
     return whereStr;
-}
-
-export function getSqlForAtl03WithSpots(filename:string,rgts:number[],cycles:number[], spots:number[]){
-    let queryStr = `SELECT * FROM '${filename}'`
-    queryStr = queryStr + getAtl03WhereClauseForSpots(spots,rgts,cycles);
-    return queryStr;
 }

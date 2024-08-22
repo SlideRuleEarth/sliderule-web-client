@@ -7,6 +7,7 @@ export interface SrScatterOptionsParms {
   y: string[];
   x: string;
   beams?: number[];
+  spots?: number[];
   pairs?: number[];
   scOrients?: number[];
   tracks?: number[];
