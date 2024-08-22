@@ -32,8 +32,6 @@
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-  //import { useToast } from "primevue/usetoast";
-  import SrSliderInput from './SrSliderInput.vue';
 
 
   const stringifyFunc = createStringXY(4);
@@ -434,17 +432,6 @@
     </ol-map>
     <div class="sr-tooltip-style" id="tooltip"></div>
   </div>
-        <div class="sr-analysis-max-pnts">
-            <SrSliderInput
-                v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                label="Max Num Pnts"
-                :min="10000"
-                :max="5000000"
-                :defaultValue="1000000"
-                :decimalPlaces=0
-                tooltipText="Maximum number of points to display"
-            />
-        </div>
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
   </div>

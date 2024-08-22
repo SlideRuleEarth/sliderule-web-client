@@ -19,12 +19,13 @@ import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber,getAtl03WhereClauseForSpots } from '@/utils/spotUtils';
 import { debounce } from "lodash";
-import { on } from 'events';
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
+const deckStore = useDeckStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -197,7 +198,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
         atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
         atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
-        useDeckStore().deleteSelectedLayer();
+        deckStore.deleteSelectedLayer();
         console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
         console.log('watch req_id SrAnalyzeOptSidebar');
@@ -251,7 +252,20 @@ const getSize = computed(() => {
         </div>
         </div>
         <div>
-            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+            <FieldSet class="sr-map-fieldset" legend="Elevation Plot Options" :toggleable="true" :collapsed="true">
+                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+                <div class="sr-analysis-max-pnts">
+                    <SrSliderInput
+                        v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+                        label="Max Num Pnts"
+                        :min="10000"
+                        :max="5000000"
+                        :defaultValue="1000000"
+                        :decimalPlaces=0
+                        tooltipText="Maximum number of points to display"
+                    />           
+                </div>
+            </FieldSet>
         </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
@@ -273,6 +287,7 @@ direction."
                     @update:modelValue="onSpotSelection"
                 />
             <SrListbox id="beams" 
+                    v-if="useDebugStore().enableSpotPatternDetails"
                     :insensitive="true"
                     label="Beam(s)" 
                     v-model="atlChartFilterStore.beams"

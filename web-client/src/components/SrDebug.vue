@@ -60,6 +60,15 @@
                 :decimalPlaces=0
                 tooltipText="Symbol size for Atl08 Scatter Plot"
               />
+              <SrSliderInput
+                v-model="deckStore.pointSize"
+                label="Elevation Plot point size"
+                :min="1"
+                :max="20"
+                :defaultValue="deckStore.pointSize"
+                :decimalPlaces=0
+                tooltipText="Point size for Elevation Plot"
+                />
             </div>
         </div>
     </div>
@@ -74,6 +83,7 @@
     import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
     import SrSliderInput from './SrSliderInput.vue';
     import { useDebugStore } from '@/stores/debugStore';
+    import { useDeckStore } from '@/stores/deckStore';
     import SrGraticuleSelect from './SrGraticuleSelect.vue';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     
@@ -81,6 +91,7 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
     const atlChartFilterStore = useAtlChartFilterStore();
+    const deckStore = useDeckStore();
     // const handleUseChecksum = async (newValue: boolean) => {
     //   reqParamsStore.useChecksum = newValue;
     //   console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );

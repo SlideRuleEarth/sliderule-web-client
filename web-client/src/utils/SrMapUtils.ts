@@ -238,7 +238,7 @@ function checkFilter(d:ElevationDataItem): boolean {
     }
     return matched;
 }
-// [255, 0, 0, 127]; // red
+// [255, 0, 0, 255]; // red
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
     return new PointCloudLayer({
@@ -251,7 +251,7 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         getColor: () => {
              return color;
         },
-        pointSize: 3
+        pointSize: useDeckStore().getPointSize(),
     });
 }
 
@@ -268,7 +268,7 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
                     addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
                 }
             }        
-            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
             useDeckStore().replaceOrAddHighlightLayer(layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
         } else {
