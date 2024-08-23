@@ -1,7 +1,7 @@
 <template>
   <div class="sr-scatter-plot-header">
     <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-    <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
+    <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
     <SrSqlStmnt />
     <div class="sr-multiselect-container">
       <SrMultiSelectText 
@@ -33,7 +33,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch, onMounted, ref } from "vue";
+import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
@@ -50,14 +50,13 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 
 const option = shallowRef();
-const has_error = ref(false) as { value: boolean };
 //const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
   const y_options = atlChartFilterStore.yDataForChart;
   if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-    has_error.value = false;
+    atlChartFilterStore.setShowMessage(false);
     //await nextTick(); // Wait for the DOM to update
     const startTime = performance.now(); // Start time
     console.log('fetchScatterOptions started... startTime:',startTime)
@@ -81,12 +80,15 @@ const fetchScatterOptions = async () => {
           console.warn('plotRef is undefined');
         }
       } else {
-        console.warn('Failed to get scatter options');
-        has_error.value = true;
+        console.log('Failed to get scatter options');
+        atlChartFilterStore.setShowMessage(true);
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
       }
     } catch (error) {
       console.error('Error fetching scatter options:', error);
-      has_error.value = true;
+      atlChartFilterStore.setShowMessage(true);
+      atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
     } finally {
       atlChartFilterStore.resetIsLoading();
       const now = performance.now();
@@ -144,6 +146,16 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
   debouncedFetchScatterOptions();
 });
 
+
+
+const messageClass = computed(() => {
+  return {
+    'message': true,
+    'message-red': !atlChartFilterStore.getIsWarning(),
+    'message-yellow': atlChartFilterStore.getIsWarning()
+  };
+});
+
 </script>
 
 <style scoped>
@@ -187,13 +199,20 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
 .loading-indicator {
   margin-left: 1rem;
   font-size: 1.2rem;
-  color: #e91c5a;
+  color: #ffcc00; /* Yellow color */
 }
 
-.error-message {
+.message {
   margin-left: 1rem;
   font-size: 1.2rem;
-  color: #ff0000;
+}
+
+.message-red {
+  color: #ff0000; /* Red color */
+}
+
+.message-yellow {
+  color: #ffcc00; /* Yellow color */
 }
 
 .scatter-chart {

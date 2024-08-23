@@ -54,6 +54,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03SymbolSize: 1 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
+    message: 'Failed to load data. Please try again later.' as string,
+    isWarning: false as boolean,
+    showMessage: false as boolean,
   }),
 
   actions: {
@@ -449,6 +452,24 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
           console.warn('atlChartFilterStore.getSymbolSize() unknown function:', this.func);
           return 5;
       }
+    },
+    getMessage() {
+      return this.message;
+    },
+    setMessage(msg: string) {
+      this.message = msg;
+    },
+    setIsWarning(isWarning: boolean) {
+      this.isWarning = isWarning;
+    },
+    getIsWarning() {
+      return this.isWarning;
+    },
+    setShowMessage(showMessage: boolean) {
+      this.showMessage = showMessage;
+    },
+    getShowMessage() {
+      return this.showMessage;
     },
   }
 });

@@ -844,24 +844,18 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
     try{
         let seriesData = [] as SrScatterSeriesData[];
         if(sop.fileName){
-            if(sop.func === 'atl06'){
-                if(sop.spots?.length && sop.rgts && sop.cycles){
-                    //console.log('getScatterOptions atl06 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' beams:', sop.beams, ' rgt:', sop.rgt, ' cycle:', sop.cycle);
+            if(sop.spots?.length && sop.rgts && sop.cycles){
+                if(sop.func === 'atl06'){
                     seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y);
-                } else {
-                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
-                }
-            } else if(sop.func === 'atl03'){
-                seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y);
-            } else if(sop.func === 'atl08'){
-                if(sop.beams?.length && sop.rgts && sop.cycles){
-                    //console.log('getScatterOptions atl08 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y);
+                } else if(sop.func === 'atl03'){
+                    seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y);
+                } else if(sop.func === 'atl08'){
                     seriesData = await getSeriesForAtl08(sop.fileName, sop.x, sop.y);
                 } else {
-                    console.warn('getScatterOptions atl08 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
+                    console.error('getScatterOptions invalid func:', sop.func);
                 }
             } else {
-                console.error('getScatterOptions invalid func:', sop.func);
+                console.log('getScatterOptions invalid? spots:', sop.spots, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
             }
         } else {
             console.warn('getScatterOptions fileName is null');
