@@ -563,7 +563,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getCycles() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
     }
     return cycles;
 }
@@ -598,7 +598,7 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[]) {
                         });
                     });
                 } else {
-                    console.warn('fetchData rowData is null');
+                    console.warn('fetchAtl06ScatterData rowData is null');
                 }
             }
         }
@@ -623,14 +623,14 @@ async function fetchAtl06ScatterData(fileName: string, x: string, y: string[]) {
                         minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
                     });
                 } else {
-                    console.warn('fetchData rowData is null');
+                    console.warn('fetchAtl06ScatterData rowData is null');
                 }
             }
         }
         //console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
-        console.error('fetchData Error fetching data:', error);
+        console.error('fetchAtl06ScatterData Error fetching data:', error);
         return { chartData: {}, minMaxValues: {} };
     } finally {
         const endTime = performance.now(); // End time
@@ -668,7 +668,7 @@ async function fetchAtl08ScatterData(fileName: string, x: string, y: string[]) {
                         });
                     });
                 } else {
-                    console.warn('fetchData rowData is null');
+                    console.warn('fetchAtl08ScatterData rowData is null');
                 }
             }
         }
@@ -693,14 +693,14 @@ async function fetchAtl08ScatterData(fileName: string, x: string, y: string[]) {
                         minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
                     });
                 } else {
-                    console.warn('fetchData rowData is null');
+                    console.warn('fetchAtl08ScatterData rowData is null');
                 }
             }
         }
         //console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
         return { chartData, minMaxValues };
     } catch (error) {
-        console.error('fetchData Error fetching data:', error);
+        console.error('fetchAtl08ScatterData Error fetching data:', error);
         return { chartData: {}, minMaxValues: {} };
     } finally {
         const endTime = performance.now(); // End time
@@ -853,18 +853,12 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 }
             } else if(sop.func === 'atl03'){
                 seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y);
-                //console.log('getScatterOptions atl03 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, 'scOrient:',sop.scOrient, 'pair:',sop.pair, ' rgt:', sop.rgt, ' cycle:', sop.cycle, 'tracks:', sop.tracks);
-                // if((sop.rgts) && (sop.cycles) && (sop.tracks != undefined) && sop.tracks.length>0){
-                //     seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y, sop.rgts, sop.cycles, sop.tracks, sop.scOrients, sop.pairs);
-                // } else {
-                //     console.warn('atl03 getScatterOptions INVALID? fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y, ' rgts:', sop.rgts, ' cycle:', sop.cycles, 'tracks:', sop.tracks, 'scOrient:',sop.scOrients, 'pair:',sop.pairs);
-                // }
             } else if(sop.func === 'atl08'){
                 if(sop.beams?.length && sop.rgts && sop.cycles){
                     //console.log('getScatterOptions atl08 fileName:', sop.fileName, ' x:', sop.x, ' y:', sop.y);
                     seriesData = await getSeriesForAtl08(sop.fileName, sop.x, sop.y);
                 } else {
-                    console.warn('getScatterOptions atl06 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
+                    console.warn('getScatterOptions atl08 invalid? beams:', sop.beams, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
                 }
             } else {
                 console.error('getScatterOptions invalid func:', sop.func);

@@ -4,10 +4,7 @@
   import { ref, onMounted, watch, computed } from "vue";
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
-  import SrBaseLayerControl from "./SrBaseLayerControl.vue";
-  import SrViewControl from "./SrViewControl.vue";
   import ProgressSpinner from "primevue/progressspinner";
-  import { type SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
   import { srProjections } from "@/composables/SrProjections";
   import proj4 from 'proj4';
@@ -23,12 +20,10 @@
   import { useWmsCap } from "@/composables/useWmsCap";
   import { getDefaultProjection } from '@/composables/SrProjections';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
-  import { type SrLayer } from '@/composables/SrLayers';
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
   import { initDeck } from '@/utils/SrMapUtils';
-  import  SrLegendControl  from "./SrLegendControl.vue";
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
@@ -40,7 +35,7 @@
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
-  //const toast = useToast();
+
   const handleEvent = (event: any) => {
     console.log(event);
   };
@@ -128,26 +123,6 @@
         if (initialZoom !== undefined) {
           mapParamsStore.setZoom(initialZoom);
         }
-        const projectionNames = useProjectionNames();
-
-        projectionNames.value.forEach(name => {
-          const wmsCap = useWmsCap(name);
-          if(wmsCap){ 
-            mapStore.cacheWmsCapForProjection(name, wmsCap);
-          } else {
-            console.error(`Error: no wmsCap for projection: ${name}`);
-          }
-          //
-          // TBD WMTS element is same as WMS element, can't add both?
-          //
-          // const wmtsCap = useWmtsCap(name);
-          // if(wmtsCap){ 
-          //   mapStore.cacheWmtsCapForProjection(name, wmtsCap);
-          // } else {
-          //   console.error(`Error: no wmtsCap for projection: ${name}`);
-          // }
-        });
-        mapStore.setCurrentWmsCap(mapParamsStore.getProjection());
         const defaultBaseLayer = getDefaultBaseLayer(getDefaultProjection().name);
         if(defaultBaseLayer){
           const newLayer = getLayer(defaultBaseLayer.title);
@@ -178,39 +153,6 @@
   onDeactivated(() => {
     console.log("SrAnalysisMap onDeactivated");
   })
-
-  const handleBaseLayerControlCreated = (baseLayerControl: any) => {
-    //console.log(baseLayerControl);
-    const map = mapRef.value?.map;
-    if(map){
-      //console.log("adding baseLayerControl");
-      map.addControl(baseLayerControl);
-    } else {
-      console.log("Error:map is null");
-    }
-  };
-
-  const handleViewControlCreated = (viewControl: any) => {
-    //console.log(viewControl);
-    const map = mapRef.value?.map;
-    if(map){
-      //console.log("adding viewControl");
-      map.addControl(viewControl);
-    } else {
-      console.error("Error:map is null");
-    }
-  };
-
-  const handleLegendControlCreated = (legendControl: any) => {
-    //console.log(legendControl);
-    const map = mapRef.value?.map;
-    if(map){
-      console.log("adding legendControl");
-      map.addControl(legendControl);
-    } else {
-      console.error("Error:map is null");
-    }
-  };
   
   const updateAnalysisMapView = async (reason:string) => {
     console.log(`****** SrAnalysisMap updateAnalysisMapView for ${reason} ******`);
@@ -348,30 +290,6 @@
 
   };
 
-  const handleUpdateView = (srView: SrView) => {
-    console.log(`handleUpdateView: |${srView.name}|`);
-    updateAnalysisMapView("handleUpdateView");
-  };
-
-  const handleUpdateBaseLayer = (oldSrLayer: SrLayer) => {
-    const newSrLayer = mapParamsStore.getSelectedBaseLayer();
-    const oldBaseLayer = getLayer(oldSrLayer.title);
-    if(oldBaseLayer){
-      if(mapStore.map){
-        mapStore.map.removeLayer(oldBaseLayer);
-        const newBaseLayer = getLayer(newSrLayer.title);
-        let layersCollection = mapStore.map.getLayers();
-        layersCollection.insertAt(1, newBaseLayer);
-      } else {
-        console.log('map not available');
-      }    
-    } else {
-      console.log("Error:handleUpdateBaseLayer srLayer is null");
-    }
-    console.log(`handleUpdateBaseLayer from |${oldSrLayer.title}| to |${newSrLayer.title}|`);
-    updateAnalysisMapView("handleUpdateBaseLayer");
-  };
-
 </script>
 
 <template>
@@ -392,15 +310,6 @@
       style="height: 30vh; border-radius: 15px; overflow: hidden;"
       :controls="controls"
     >
-      <ol-layerswitcher-control 
-        :selection="true"
-        :displayInLayerSwitcher="true"
-        :show_progress="true"
-        :mouseover="false"
-        :reordering="true"
-        :trash="false"
-        :extent="true"
-      />
 
       <ol-zoom-control  />
       
@@ -410,9 +319,6 @@
       />
 
       <ol-scaleline-control />
-      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-      <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
-      <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
       <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
         <ol-source-vector :projection="mapParamsStore.projection">
           <ol-style>
@@ -469,162 +375,6 @@
         max-height: 30%;
         min-width: 30vw;
         width: 100%;
-    }
-:deep(.ol-overlaycontainer-stopevent) {
-  position: relative;
-  display: flex !important;
-  flex-direction: column; /* Stack children vertically */
-  justify-content: flex-start; /* Align children to the top */
-  align-items: flex-end; /* Align children to the right */
-  height: 100%; /* Ensure the container has height */
-  background-color: var(--white);
-  border-radius: 8px;
-  padding: 0.25rem;
-  border: 1px solid var(--p-primary-color);
-}
-
-:deep( .ol-control.ol-layerswitcher ){
-  top: 6.25rem;
-  bottom: auto;
-  left: 0.0rem;
-  right: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  border: 1px ;
-
-}
-
-:deep( .ol-control.ol-layerswitcher button ){
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-}
-:deep( .ol-control.ol-layerswitcher > button::before ){
-  border-radius: var(--p-border-radius);
-}
-
-:deep( .ol-control.ol-layerswitcher > button::after ){
-  border-radius: var(--p-border-radius);
-}
-
-:deep( .panel-container .ol-layerswitcher-buttons ){
-  background-color: transparent;
-}
-:deep(.layerup.ol-noscroll){
-  border-radius: 3px;
-  background-color: var(--p-primary-color);
-}
-:deep(.ol-control.ol-layerswitcher .panel-container){
-  background-color: var(--p-primary-100);
-  color: var(--p-primary-color);
-  border-radius: var(--p-border-radius);
-}
-
-/* :deep(.ol-control.ol-layerswitcher .panel-container .ul.panel){
-  background-color: red;
-  color: red;
-  border-radius: var(--p-border-radius);
-} */
-:deep(.ol-layerswitcher label){
-  background-color: transparent;
-  color: var(--p-primary-color);
-  font-weight: bold;
-  font-family: var(--p-font-family);
-  border-radius: var(--p-border-radius);
-} 
-
-:deep(.ol-layerswitcher .panel .li-content > label::before){
-  border-radius: 2px;
-  border-color: var(--p-primary-color);
-  border-width: 2px;
-} 
-
-/* :deep(.ol-layerswitcher .panel-container .li-content > label::after){
-  border-width: 1px;
-  background-color: var(--p-primary-color);
-
-}  */
-:deep(.panel-container.ol-ext-dialog){
-  background-color: transparent;
-}
-
-:deep(.ol-ext-dialog .ol-closebox.ol-title){
-  color: var(--p-text-color);
-  background-color: var(--p-primary-300);
-  font-family: var(--p-font-family);
-  border-radius: var(--p-border-radius);
-}
-
-:deep(.ol-geocoder){
-  top: 2.5rem;
-  bottom: auto;
-  left: 0.5rem;
-  right: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  color: white;
-  max-width: 30rem; 
-}
-
-:deep(.gcd-gl-control){
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-}
-
-:deep( .ol-control.sr-view-control ){
-  top: 0.55rem;
-  bottom: auto;
-  left: 0.5rem;
-  right: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  max-width: 30rem; 
-}
-
-:deep( .ol-control.sr-base-layer-control ){
-  top: 0.55rem;
-  bottom: auto;
-  right: auto;
-  left: 4.5rem;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  color: white;
-  max-width: 30rem; 
-}
-
-:deep( .ol-control.sr-layers-control ){
-  top: 0.55rem;
-  bottom: auto;
-  right: auto;
-  left: 23.5rem;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  color: white;
-  max-width: 30rem; 
-}
-:deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
-  color: white;
-  background-color: var(--p-primary-600);
-}
-
-:deep( .ol-control.ol-wmscapabilities  ) {
-  top: 4.5rem;
-  bottom: auto;
-  left: 0.5rem;
-  right: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  padding: 0.125rem;
-  border: 1px ;
-}
-:deep(.ol-wmscapabilities .ol-url button){
-  color: white;
-  border-radius: var(--p-border-radius);
-  background-color: var(--p-primary-400);
-}
-
-:deep(.ol-wmscapabilities .ol-url option){
-  color: white;
-  background-color: var(--p-primary-400);
 }
 
 :deep(.ol-zoom){
@@ -637,14 +387,6 @@
   font-size: 1.25rem;
 }
 
-:deep(.sr-draw-control){
-  top: 5.5rem; 
-  right: 0.55rem; /* right align -- override the default */
-  left: auto;  /* Override the default positioning */
-  background-color: black;
-  border-radius: var(--p-border-radius);
-}
-
 :deep(.ol-mouse-position) {
   bottom: 0.5rem; /* Position from the bottom */
   left: 50%; /* Center align horizontally */
@@ -654,6 +396,7 @@
   color: var(--p-primary-color);
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
+  font-size:smaller;
 }
 :deep(.sr-legend-control){
   background: rgba(255, 255, 255, 0.25);

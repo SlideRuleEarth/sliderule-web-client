@@ -73,6 +73,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.beams.map(beam => beam.value);
     },
     setSpots(spots: SrListNumberItem[]) {
+      console.log('atlChartFilterStore setSpots:', spots);
       this.spots = spots;
     },
     getSpots(): SrListNumberItem[] {
@@ -82,7 +83,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.spots.map(spot => spot.value);
     },
     setSpotWithNumber(spot: number) {
-      //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
+      console.log('atlChartFilterStore.setSpotWithNumber():', spot);
       this.setSpots([{ label: spot.toString(), value: spot }]);
     },
     setRgts(rgts: SrListNumberItem[]) {

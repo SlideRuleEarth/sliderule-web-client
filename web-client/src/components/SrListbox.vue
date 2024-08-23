@@ -99,7 +99,7 @@ watch(() => props.menuOptions, (newValue) => {
 
 onMounted(() => {
     //console.log('SrListbox:', props.label, 'Mounted menuOptions:', props.menuOptions, ' selected:', selectedMenuItem.value);
-    selectedMenuItem.value = props.menuOptions;
+    //selectedMenuItem.value = props.menuOptions;
 });
 </script>
 
