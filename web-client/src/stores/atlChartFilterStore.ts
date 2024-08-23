@@ -14,6 +14,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
     debugCnt: 0 as number,
     tracks: [] as SrListNumberItem[],
+    tracksOptions: tracksOptions as SrListNumberItem[],
     selectAllTracks: true as boolean,
     beams: [] as SrListNumberItem[],
     spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
@@ -34,8 +35,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     yDataForChart: [] as string[],
     ndxOfelevationDataOptionsForHeight: 0,
     func: 'xxx' as string,
-    pair: 0 as number,
-    scOrient: -1 as number,
+    //pair: 0 as number,
+    pairs: [] as SrListNumberItem[],
+    pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
+    //scOrient: -1 as number,
+    scOrients: [] as SrListNumberItem[],
+    scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     size: NaN as number,
     isLoading: false as boolean,
     clearPlot: false as boolean,
@@ -43,6 +48,15 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03QuerySql: '' as string,
     atl06QuerySql: '' as string,  
     atl08QuerySql: '' as string,
+    atl03WhereClause: '' as string,
+    atl06WhereClause: '' as string,
+    atl08WhereClause: '' as string,
+    atl03SymbolSize: 1 as number,
+    atl06SymbolSize: 5 as number,
+    atl08SymbolSize: 5 as number,
+    message: 'Failed to load data. Please try again later.' as string,
+    isWarning: false as boolean,
+    showMessage: false as boolean,
   }),
 
   actions: {
@@ -62,13 +76,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.beams.map(beam => beam.value);
     },
     setSpots(spots: SrListNumberItem[]) {
+      console.log('atlChartFilterStore setSpots:', spots);
       this.spots = spots;
     },
     getSpots(): SrListNumberItem[] {
       return this.spots;
     },
+    getSpotValues() {
+      return this.spots.map(spot => spot.value);
+    },
     setSpotWithNumber(spot: number) {
-      //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
+      console.log('atlChartFilterStore.setSpotWithNumber():', spot);
       this.setSpots([{ label: spot.toString(), value: spot }]);
     },
     setRgts(rgts: SrListNumberItem[]) {
@@ -107,7 +125,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return;
       }
       this.cycleOptions = cycleOptions.map(option => ({ label: option.toString(), value: option }));
-      //console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
+      console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
     },
     getCycleOptions() {
       //console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);
@@ -125,15 +143,25 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
+
     setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
     getTracks() {
       return this.tracks;
     },
+    setTrackOptions(trackOptions: SrListNumberItem[]) {
+      this.tracksOptions = trackOptions;
+    },
+    getTrackOptions() {
+      return this.tracksOptions;
+    },
     setTrackWithNumber(track: number) {
       this.setTracks([{ label: track.toString(), value: track }]);
       //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
+    },
+    setTrackOptionsWithNumbers(tracks: number[]) {
+      this.setTrackOptions(tracks.map(track => ({ label: track.toString(), value: track })));
     },
     getTrackValues() {
       return this.tracks.map(track => track.value);
@@ -144,6 +172,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getSelectAllTracks() {
       return this.selectAllTracks;
     },
+    appendTrackWithNumber(track: number) {
+      // Check if the track already exists in the list
+      const trackExists = this.tracks.some(t => t.value === track);
+      // If it doesn't exist, append it
+      if (!trackExists) {
+        this.tracks.push({ label: track.toString(), value: track });
+      }
+    },    
     setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
       //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
       const parms = getBeamsAndTracksWithGts(gts);
@@ -235,17 +271,59 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getFunc() {
       return this.func;
     },
-    setPair(pair: number) {
-      this.pair = pair;
+    setPairs(pairs: SrListNumberItem[]) {
+      this.pairs = pairs;
     },
-    getPair() {
-      return this.pair;
+    getPairs() {
+      return this.pairs;
     },
-    setScOrient(scOrient: number) {
-      this.scOrient = scOrient;
+    setPairOptions(pairs: SrListNumberItem[]) {
+      this.pairOptions = pairs;
     },
-    getScOrient() {
-      return this.scOrient;
+    getPairOptions() {
+      return this.pairOptions;
+    },
+    setPairOptionsWithNumbers(pairs: number[]) {
+      this.pairOptions = pairs.map(pair => ({ label: pair.toString(), value: pair }));
+    },
+    setPairWithNumber(pair: number) {
+      this.pairs = [{ label: pair.toString(), value: pair }];
+    },
+    appendPairWithNumber(pair: number) {
+      const pairExists = this.pairs.some(p => p.value === pair);
+      if(!pairExists){
+        this.pairs.push({ label: pair.toString(), value: pair });
+      }
+    },
+    getPairValues() {
+      return this.pairs.map(pair => pair.value);
+    },
+    setScOrients(scOrients: SrListNumberItem[]) {
+      this.scOrients = scOrients;
+    },
+    getScOrients() {
+      return this.scOrients;
+    },
+    setScOrientOptions(scOrientOptions: SrListNumberItem[]) {
+      this.scOrientOptions = scOrientOptions;
+    },
+    getScOrientOptions() {
+      return this.scOrientOptions;
+    },
+    setScOrientOptionsWithNumbers(scOrientOptions: number[]) {
+      this.scOrientOptions = scOrientOptions.map(option => ({ label: option.toString(), value: option }));
+    },
+    setScOrientWithNumber(scOrient: number) {
+      this.scOrients = [{ label: scOrient.toString(), value: scOrient }];
+    },
+    getScOrientValues() {
+      return this.scOrients.map(scOrient => scOrient.value);
+    },
+    appendScOrientWithNumber(scOrient: number) {
+      const scoExists = this.scOrients.some(sco => sco.value === scOrient);
+      if(!scoExists && (scOrient >= 0)){
+        this.scOrients.push({ label: scOrient.toString(), value: scOrient });
+      }
     },
     setSize(size: number) {
       this.size = size;
@@ -254,17 +332,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.size;
     },
     getScatterOptionsParms(): SrScatterOptionsParms {
-      console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
+      //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
       const sop =  {
-        rgt: this.rgts[0]?.value || -1,
-        cycle: this.cycles[0]?.value || -1,
+        rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
+        cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
         fileName: this.currentFile,
         func: this.func,
         y: this.yDataForChart,
         x: 'x_atc',
         beams: this.beams.map(beam => beam.value),
-        pair: this.pair,
-        scOrient: this.scOrient,
+        spots: this.spots.map(spot => spot.value),
+        pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
+        scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
         tracks: this.tracks.map(track => track.value),
       };
       console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
@@ -301,6 +380,24 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getAtl03QuerySql() {
       return this.atl03QuerySql;
     },
+    setAtl03WhereClause(sql: string) {
+      this.atl03WhereClause = sql;
+    },
+    getAtl03WhereClause() {
+      return this.atl03WhereClause
+    },
+    setAtl06WhereClause(sql: string) {
+      this.atl06WhereClause = sql;
+    },
+    getAtl06WhereClause() {
+      return this.atl06WhereClause;
+    },
+    setAtl08WhereClause(sql: string) {
+      this.atl08WhereClause = sql;
+    },
+    getAtl08WhereClause() {
+      return this.atl08WhereClause;
+    },
     setAtl06QuerySql(sql: string) {
       this.atl06QuerySql = sql;
     },
@@ -324,6 +421,55 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         default:
           return '';
       }
-    }
-  },
+    },
+    setAtl03SymbolSize(size: number) {
+      this.atl03SymbolSize = size;
+    },
+    getAtl03SymbolSize() {
+      return this.atl03SymbolSize;
+    },
+    setAtl06SymbolSize(size: number) {
+      this.atl06SymbolSize = size;
+    },
+    getAtl06SymbolSize() {
+      return this.atl06SymbolSize;
+    },
+    setAtl08SymbolSize(size: number) {
+      this.atl08SymbolSize = size;
+    },
+    getAtl08SymbolSize() {
+      return this.atl08SymbolSize;
+    },
+    getSymbolSize() {
+      switch (this.func) {
+        case 'atl03':
+          return this.atl03SymbolSize;
+        case 'atl06':
+          return this.atl06SymbolSize;
+        case 'atl08':
+          return this.atl08SymbolSize;
+        default:
+          console.warn('atlChartFilterStore.getSymbolSize() unknown function:', this.func);
+          return 5;
+      }
+    },
+    getMessage() {
+      return this.message;
+    },
+    setMessage(msg: string) {
+      this.message = msg;
+    },
+    setIsWarning(isWarning: boolean) {
+      this.isWarning = isWarning;
+    },
+    getIsWarning() {
+      return this.isWarning;
+    },
+    setShowMessage(showMessage: boolean) {
+      this.showMessage = showMessage;
+    },
+    getShowMessage() {
+      return this.showMessage;
+    },
+  }
 });

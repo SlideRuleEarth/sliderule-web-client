@@ -26,8 +26,12 @@
 
     onMounted(async () => {
         const reqId = atlChartFilterStore.getReqId();
-        const p = await db.getReqParams(reqId);
-        reqParms.value = JSON.stringify(p, null, 2);
+        if(reqId) {
+            const p = await db.getReqParams(reqId);
+            reqParms.value = JSON.stringify(p, null, 2);
+        } else {
+            console.log('SrRecReqDisplay onMounted: no reqId');
+        }
     });
     watch( () => atlChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
         console.log(`SrRecReqDisplay watch atlChartFilterStore reqId oldReqId:'${oldReqId} to newReqId:'${newReqId}`);

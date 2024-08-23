@@ -6,6 +6,7 @@ export const useDeckStore = defineStore('deck', {
     state: () => ({
         deckInstance: null as any,
         pointCloudLayers: [] as any[],
+        pointSize: 3,
     }),
     actions: {
         setDeckInstance(instance:Deck) {
@@ -36,14 +37,9 @@ export const useDeckStore = defineStore('deck', {
             return false;
         },
         replaceOrAddHighlightLayer(layer:any): boolean {
-            for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === SELECTED_LAYER_NAME) {
-                    this.pointCloudLayers[i] = layer;
-                    return true;
-                }
-            }
+            const replaced = this.deleteLayer(SELECTED_LAYER_NAME);
             this.pointCloudLayers.push(layer);
-            return false;
+            return replaced;
         },
         deleteLayer(layerId:string) {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
@@ -73,6 +69,12 @@ export const useDeckStore = defineStore('deck', {
             }
             console.log('getLayers:',layers);
             return newLayers;
-        }
+        },
+        setPointSize(size:number) {
+            this.pointSize = size;
+        },
+        getPointSize() {
+            return this.pointSize;
+        },
     }
 });

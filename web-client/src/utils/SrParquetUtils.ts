@@ -4,7 +4,7 @@ import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary, updateCycleOptions, updateRgtOptions } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
@@ -168,15 +168,21 @@ export function updateExtremeLatLon(elevationData:ElevationPlottable[],
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
+export function getHFieldName(funcStr:string) {
+    if (funcStr.includes('atl06')) {
+        return 'h_mean';
+    } else if (funcStr.includes('atl03')){
+        return 'height';
+    } else if (funcStr.includes('atl08')){
+        return 'h_mean_canopy';
+    } else {
+        throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
+    }
+}
+
 export const getHeightFieldname = async (req_id:number) => {
     const result = await db.getFunc(req_id);
-    if (result.includes('atl06')) {
-        return 'h_mean';
-    } else if (result.includes('atl03')){
-        return 'height';
-    } else {
-        throw new Error(`Unknown height fieldname for ${result} in getHeightFieldname`);
-    }
+    return getHFieldName(result);
 }
 
 export const getTrackFieldname = async (req_id:number) => {
@@ -189,9 +195,12 @@ export const getTrackFieldname = async (req_id:number) => {
         throw new Error(`Unknown height fieldname for ${result} in getTrackFieldname`);
     }
 }
-export const readOrCacheSummary = async (req_id:number,height_fieldname:string) : Promise<SrRequestSummary | undefined> => {
+
+export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
+            const func = await db.getFunc(req_id);
+            const height_fieldname = getHFieldName(func);
             return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
             throw new Error('readOrCacheSummary unknown reader');
@@ -202,34 +211,27 @@ export const readOrCacheSummary = async (req_id:number,height_fieldname:string) 
     }
 }
 
-export const processFileForReq = async (req_id:number) => {
+export const updateElevationForReqId = async (req_id:number) => {
     try{
-        console.log('processFileForReq req_id:',req_id);
+        console.log('updateElevationForReqId req_id:',req_id);
         useMapStore().setIsLoading();
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
             await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
-
-            // These update the dynamic options for the these components
-            const rgts = await updateRgtOptions(req_id);
-            console.log('processFileForReq rgts:',rgts);
-            const cycles = await updateCycleOptions(req_id);
-            console.log('processFileForReq cycles:',cycles);
-
         } else {
-            throw new Error('processFileForReq unknown reader');
+            throw new Error('updateElevationForReqId unknown reader');
         }
         useMapStore().resetIsLoading();
     } catch (error) {
-        console.error('processFileForReq error:',error);
+        console.error('updateElevationForReqId error:',error);
         throw error;
     }
 }
 export const addHighlightLayerForReq = async (req_id:number) => {
     try{
-        //console.log('addHighlightLayerForReq req_id:',req_id);
+        console.log('addHighlightLayerForReq req_id:',req_id);
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
             const chunkSize = useSrParquetCfgStore().chunkSizeToRead;

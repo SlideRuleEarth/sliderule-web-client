@@ -17,7 +17,6 @@ import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -173,16 +172,16 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
-        useAtlChartFilterStore().setScOrient(d.sc_orient);
+        useAtlChartFilterStore().setScOrientWithNumber(d.sc_orient);
     }
     if(d.pair !== undefined){
-        useAtlChartFilterStore().setPair(d.pair);
+        useAtlChartFilterStore().setPairWithNumber(d.pair);
     }
     if(d.spot !== undefined){
         useAtlChartFilterStore().setSpotWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
-        useAtlChartFilterStore().setScOrient(getScOrientFromSpotGt(d.spot,d.gt));
+        useAtlChartFilterStore().setScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
         useAtlChartFilterStore().setRgtWithNumber(d.rgt);
@@ -195,12 +194,49 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
-    if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-        useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
-        useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+    console.log('Clicked: func',useAtlChartFilterStore().getFunc())
+    console.log('Clicked: rgts',useAtlChartFilterStore().getRgtValues())
+    console.log('Clicked: cycles',useAtlChartFilterStore().getCycleValues())
+    console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
+    console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
+    console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
+    if(useAtlChartFilterStore().getFunc() === 'atl03'){
+        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+            useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+            useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+
+            let atl03WhereClause = `
+                    WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+                    AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+                    AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
+                `;
+                if (useAtlChartFilterStore().getPairValues() !== undefined) {
+                    atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+                }
+                if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
+                    atl03WhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+                }
+            useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
+        }
+    } else if (useAtlChartFilterStore().getFunc() === 'atl06'){
+        const atl06WhereClause = `
+            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+        `;
+        useAtlChartFilterStore().setAtl06WhereClause(atl06WhereClause);
+    } else {
+        const atl08WhereClause = `
+            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+        `;
+        useAtlChartFilterStore().setAtl08WhereClause(atl08WhereClause);
     }
-    await addHighlightLayerForReq(useCurReqSumStore().getReqId());
-    useAtlChartFilterStore().updateScatterPlot();
+    console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
+    console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
+    console.log('Clicked: atl03WhereClause',useAtlChartFilterStore().getAtl03WhereClause())
+
 }
 
 function checkFilter(d:ElevationDataItem): boolean {
@@ -213,12 +249,12 @@ function checkFilter(d:ElevationDataItem): boolean {
         matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
                     (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
                     (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
-                    (useAtlChartFilterStore().getScOrient() == d.sc_orient) && 
-                    (useAtlChartFilterStore().getPair() == d.pair));
+                    (useAtlChartFilterStore().getScOrientValues()[0] == d.sc_orient) && 
+                    (useAtlChartFilterStore().getPairValues()[0] == d.pair));
     }
     return matched;
 }
-// [255, 0, 0, 127]; // red
+// [255, 0, 0, 255]; // red
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
     return new PointCloudLayer({
@@ -231,7 +267,7 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         getColor: () => {
              return color;
         },
-        pointSize: 3
+        pointSize: useDeckStore().getPointSize(),
     });
 }
 
@@ -248,7 +284,7 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
                     addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
                 }
             }        
-            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 127]);
+            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
             useDeckStore().replaceOrAddHighlightLayer(layer);
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
         } else {

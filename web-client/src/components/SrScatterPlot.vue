@@ -1,6 +1,9 @@
 <template>
   <div class="sr-scatter-plot-header">
-    <div class="multiselect-container">
+    <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
+    <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+    <SrSqlStmnt />
+    <div class="sr-multiselect-container">
       <SrMultiSelectText 
         v-model="atlChartFilterStore.yDataForChart"
         label="Choose" 
@@ -10,11 +13,18 @@
         :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
       />  
     </div>
-    <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-    <div v-if="has_error" class="error-message">Failed to load data. Please try again later.</div>
-    <SrSqlStmnt />
   </div>
-  <v-chart ref="plotRef" class="scatter-chart" :option="option" :autoresize="{throttle:500}" :loading="atlChartFilterStore.isLoading" :loadingOptions="{text:'Data Loading', fontSize:20, showSpinner: true, zlevel:100}" />
+  <v-chart  ref="plotRef" 
+            class="scatter-chart" 
+            :option="option" 
+            :autoresize="{throttle:500}" 
+            :loading="atlChartFilterStore.isLoading" 
+            :loadingOptions="{
+              text:'Data Loading', 
+              fontSize:20, 
+              showSpinner: true, 
+              zlevel:100
+            }" />
 </template>
 
 <script setup lang="ts">
@@ -23,7 +33,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { shallowRef, provide, watch, onMounted, ref } from "vue";
+import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
@@ -40,14 +50,13 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 
 const option = shallowRef();
-const has_error = ref(false) as { value: boolean };
 //const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
   const y_options = atlChartFilterStore.yDataForChart;
   if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-    has_error.value = false;
+    atlChartFilterStore.setShowMessage(false);
     //await nextTick(); // Wait for the DOM to update
     const startTime = performance.now(); // Start time
     console.log('fetchScatterOptions started... startTime:',startTime)
@@ -71,12 +80,15 @@ const fetchScatterOptions = async () => {
           console.warn('plotRef is undefined');
         }
       } else {
-        console.warn('Failed to get scatter options');
-        has_error.value = true;
+        console.log('Failed to get scatter options');
+        atlChartFilterStore.setShowMessage(true);
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
       }
     } catch (error) {
       console.error('Error fetching scatter options:', error);
-      has_error.value = true;
+      atlChartFilterStore.setShowMessage(true);
+      atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
     } finally {
       atlChartFilterStore.resetIsLoading();
       const now = performance.now();
@@ -134,41 +146,80 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
   debouncedFetchScatterOptions();
 });
 
+
+
+const messageClass = computed(() => {
+  return {
+    'message': true,
+    'message-red': !atlChartFilterStore.getIsWarning(),
+    'message-yellow': atlChartFilterStore.getIsWarning()
+  };
+});
+
 </script>
 
 <style scoped>
-.sr-scatter-plot-header {
+.sr-scatter-plot {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   margin: 0.5rem;
   padding: 1rem;
+  overflow-x: auto;
 }
 
-.multiselect-container {
+.sr-scatter-plot-header {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: left;
+  margin: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.sr-multiselect-container {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  margin: 0rem;
+  border: 0rem;
+}
+
+.sr-sql-stmnt-display-parms {
+  display: flex;
+  align-items: left;
+  margin-top: 0rem;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .loading-indicator {
   margin-left: 1rem;
   font-size: 1.2rem;
-  color: #e91c5a;
+  color: #ffcc00; /* Yellow color */
 }
 
-.error-message {
+.message {
   margin-left: 1rem;
   font-size: 1.2rem;
-  color: #ff0000;
+}
+
+.message-red {
+  color: #ff0000; /* Red color */
+}
+
+.message-yellow {
+  color: #ffcc00; /* Yellow color */
 }
 
 .scatter-chart {
-  margin: 0.5rem;
-  padding: 1rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
   max-height: 50rem;
-  max-width: 100rem;
+  max-width: 80rem;
 }
 </style>
