@@ -388,10 +388,10 @@
 }
 
 :deep(.ol-mouse-position) {
-  bottom: 0.5rem; /* Position from the bottom */
+  top: 0.5rem; /* Position from the top */
   left: 50%; /* Center align horizontally */
   right: auto; /* Reset right positioning */
-  top: auto; /* Unset top positioning */
+  bottom: auto; /* Unset bottom positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
   color: var(--p-primary-color);
   background: rgba(255, 255, 255, 0.25);
