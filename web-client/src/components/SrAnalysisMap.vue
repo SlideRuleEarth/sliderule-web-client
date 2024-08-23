@@ -261,7 +261,7 @@
               //console.log('reqExtremeLatLon:',reqExtremeLatLon);
               extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
               //console.log('Using extent:',extent);               
-              map.getView().fit(extent, {size: map.getSize(), padding: [10, 10, 10, 10]});
+              map.getView().fit(extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
               map.getView().on('change:resolution', onResolutionChange);
               updateCurrentParms();
               initDeck(map);
@@ -277,10 +277,6 @@
       } else {
         console.error("Error:map is null");
       }
-      // mapRef.value?.map.getAllLayers().forEach((layer: Layer) => {
-      //   console.log(`layer:`,layer.getProperties());
-      // });
-      //console.log("mapRef.value?.map.getView()",mapRef.value?.map.getView());
 
     } catch (error) {
       console.error(`Error: updateAnalysisMapView failed for ${reason}`,error);
