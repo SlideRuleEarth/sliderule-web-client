@@ -731,6 +731,7 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
     try {
         const name = 'Atl03';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03ScatterData(fileName, x, y);
+        console.log('getSeriesForAtl03 chartData:', chartData);
         //console.log('getSeriesForAtl03 chartData:', chartData, ' minMaxValues:', minMaxValues);
 
         // Check if either chartData or minMaxValues is empty
@@ -868,7 +869,11 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: "({c})"
+                    formatter: function (params:any) {
+                        console.warn('getScatterOptions params:', params);
+                        const [x, y, atl03_cnf, yapc_score] = params.value;
+                        return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>yapc_score: ${yapc_score}`;
+                    }
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),

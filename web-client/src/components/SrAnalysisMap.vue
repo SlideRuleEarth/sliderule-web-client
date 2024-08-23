@@ -5,7 +5,6 @@
   import type OLMap from "ol/Map.js";
   import {createStringXY} from 'ol/coordinate';
   import ProgressSpinner from "primevue/progressspinner";
-  import { useProjectionNames } from "@/composables/SrProjections";
   import { srProjections } from "@/composables/SrProjections";
   import proj4 from 'proj4';
   import { register } from 'ol/proj/proj4';
@@ -17,7 +16,6 @@
   import View from 'ol/View';
   import { applyTransform } from 'ol/extent.js';
   import Layer from 'ol/layer/Layer';
-  import { useWmsCap } from "@/composables/useWmsCap";
   import { getDefaultProjection } from '@/composables/SrProjections';
   import  { getCenter as getExtentCenter } from 'ol/extent.js';
   import { onActivated } from "vue";

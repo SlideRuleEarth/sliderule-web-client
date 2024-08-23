@@ -74,19 +74,19 @@ const fetchScatterOptions = async () => {
           if(plotRef.value.chart){
             plotRef.value.chart.setOption(scatterOptions);
           } else {
-            console.warn('plotRef.chart is undefined');
+            console.warn('fetchScatterOptions plotRef.chart is undefined');
           }
         } else {
-          console.warn('plotRef is undefined');
+          console.warn('fetchScatterOptions plotRef is undefined');
         }
       } else {
-        console.log('Failed to get scatter options');
+        console.log('fetchScatterOptions Failed to get scatter options');
         atlChartFilterStore.setShowMessage(true);
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
       }
     } catch (error) {
-      console.error('Error fetching scatter options:', error);
+      console.error('fetchScatterOptions Error fetching scatter options:', error);
       atlChartFilterStore.setShowMessage(true);
       atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
     } finally {
@@ -95,7 +95,7 @@ const fetchScatterOptions = async () => {
       console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
     }
   } else {
-    console.warn('No y options selected');
+    console.warn('fetchScatterOptions No y options selected');
   }
 };
 
