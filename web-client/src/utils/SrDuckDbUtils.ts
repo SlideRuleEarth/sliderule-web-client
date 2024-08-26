@@ -129,41 +129,56 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
             // Calculate the offset for the query
             let offset = 0;
             let hasMoreData = true;
-            let numDataItems = 0;
+            let numDataItemsUsed = 0;
+            let numDataItemsProcessed = 0;
             const rowChunks: ElevationDataItem[] = [];
 
             while (hasMoreData) {
                 try{
+                    let sample_rate = 1;
                     // Execute the query
                     const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
                     if(result.totalRows){
                         console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
                         useMapStore().setTotalRows(result.totalRows);
+                        if (result.totalRows > maxNumPnts) {
+                            //sample_rate = Math.ceil(result.totalRows / maxNumPnts);
+                            sample_rate = Number((BigInt(result.totalRows) + BigInt(maxNumPnts) - 1n) / BigInt(maxNumPnts)); // Uses BigInt for division
+                            console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' totalRows:',result.totalRows, ' sample_rate:', sample_rate);
+                        }
+                    } else {
+                        console.warn('duckDbReadAndUpdateElevationData totalRows is undefined');
                     }
                     //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                     for await (const rowChunk of result.readRows()) {
-                        //console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
                         if (rowChunk.length > 0) {
-                            if (numDataItems === 0) {
+                            if (numDataItemsUsed === 0) {
                                 // Assuming we only need to set field names once, during the first chunk processing
                                 const fieldNames = Object.keys(rowChunk[0]);
-                                //console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
                                 await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
                             }
-                            numDataItems += rowChunk.length;
-                            useMapStore().setCurrentRows(numDataItems);
-                            rowChunks.push(...rowChunk);
+                    
+                            // Use the sample rate to push every nth element
+                            for (let i = 0; i < rowChunk.length; i += sample_rate) {
+                                rowChunks.push(rowChunk[i]);
+                            }
+                    
+                            // Update the count of processed data items
+                            numDataItemsUsed += Math.ceil(rowChunk.length / sample_rate);
+                            useMapStore().setCurrentRows(numDataItemsUsed);
+                            numDataItemsProcessed += rowChunk.length;
+                            console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
                         }
                     }
-
-                    if (numDataItems === 0) {
+                    
+                    if (numDataItemsUsed === 0) {
                         console.warn('duckDbReadAndUpdateElevationData no data items processed');
                     } else {
                         //console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
                     }
                     hasMoreData = result.hasMoreData;
-                    if(numDataItems >= maxNumPnts){
-                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' SKIPPING rest of file!');
+                    if(numDataItemsUsed >= maxNumPnts){
+                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts,' numDataItemsUsed:',numDataItemsUsed, 'numDataItemsProcessed:',numDataItemsProcessed, ' SKIPPING rest of file!');
                         hasMoreData = false;
                     }
                     offset += chunkSize;
@@ -348,9 +363,7 @@ async function fetchAtl03ScatterData(
                     }
                 }
             }
-            console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
-
-
+            //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
             const yColumns = y.join(", ");
             console.log('fetchAtl03ScatterData yColumns:', yColumns);
             let query = `
