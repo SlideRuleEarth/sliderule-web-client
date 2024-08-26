@@ -6,7 +6,6 @@ import { updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDat
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-//import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 
@@ -326,7 +325,10 @@ async function fetchAtl03ScatterData(
             let query = `
                 SELECT 
                     ${x}, 
-                    ${yColumns}
+                    atl03_cnf,
+                    atl08_class,
+                    yapc_score,
+                    ${yColumns},
                 FROM '${fileName}'
                 `;
             query += whereClause;
@@ -340,15 +342,20 @@ async function fetchAtl03ScatterData(
                             if (!chartData[yName]) {
                                 chartData[yName] = [];
                             }
-                            chartData[yName].push({
-                                value: [row[x], row[yName]]
-                            });
+                            const dataPoint = { value: [row[x], row[yName]] };
+            
+                            if (yName === 'height') {
+                                dataPoint.value.push(row['atl03_cnf'], row['atl08_class'], row['yapc_score']);
+                            }
+            
+                            chartData[yName].push(dataPoint);
                         });
                     } else {
                         console.warn('fetchAtl03ScatterData - fetchData rowData is null');
                     }
                 }
             }
+            
 
             let query2 = `
                 SELECT 
@@ -871,8 +878,13 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                     trigger: "item",
                     formatter: function (params:any) {
                         console.warn('getScatterOptions params:', params);
-                        const [x, y, atl03_cnf, yapc_score] = params.value;
-                        return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>yapc_score: ${yapc_score}`;
+                        if(sop.func === 'atl03'){
+                            const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
+                            return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
+                        } else {
+                            const [x, y] = params.value;
+                            return `x: ${x}<br>y: ${y}`;
+                        }
                     }
                 },
                 legend: {
