@@ -6,7 +6,6 @@ import { updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDat
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-//import { removeCurrentDeckLayer } from './SrMapUtils';
 import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 
@@ -322,11 +321,46 @@ async function fetchAtl03ScatterData(
 
     if(whereClause){
         try {
+
+            let query2 = `
+                SELECT 
+                    MIN(${x}) as min_x,
+                    MAX(${x}) as max_x,
+                    MIN(segment_dist) as min_segment_dist,
+                    MAX(segment_dist) as max_segment_dist,
+                    ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
+                FROM '${fileName}'
+                `;
+            query2 += whereClause;
+
+            const queryResult2: QueryResult = await duckDbClient.query(query2);
+            for await (const rowChunk of queryResult2.readRows()) {
+                for (const row of rowChunk) {
+                    if (row) {
+                        useAtlChartFilterStore().setMinX(row.min_x);
+                        useAtlChartFilterStore().setMaxX(row.max_x+row.max_segment_dist-row.min_segment_dist);
+                        minMaxValues['segment_dist'] = {min: row[`min_segment_dist`], max: row[`max_segment_dist`]};
+                        y.forEach((yName) => {
+                            minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
+                        });
+                    } else {
+                        console.warn('fetchAtl03ScatterData fetchData rowData is null');
+                    }
+                }
+            }
+            console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+
+
             const yColumns = y.join(", ");
+            console.log('fetchAtl03ScatterData yColumns:', yColumns);
             let query = `
                 SELECT 
-                    ${x}, 
-                    ${yColumns}
+                    ${x},
+                    segment_dist, 
+                    atl03_cnf,
+                    atl08_class,
+                    yapc_score,
+                    ${yColumns},
                 FROM '${fileName}'
                 `;
             query += whereClause;
@@ -340,40 +374,20 @@ async function fetchAtl03ScatterData(
                             if (!chartData[yName]) {
                                 chartData[yName] = [];
                             }
-                            chartData[yName].push({
-                                value: [row[x], row[yName]]
-                            });
+                            const dataPoint = { value: [row[x]+row['segment_dist']-minMaxValues['segment_dist'].min, row[yName]] };
+            
+                            if (yName === 'height') {
+                                dataPoint.value.push(row['atl03_cnf'], row['atl08_class'], row['yapc_score']);
+                            }
+            
+                            chartData[yName].push(dataPoint);
                         });
                     } else {
                         console.warn('fetchAtl03ScatterData - fetchData rowData is null');
                     }
                 }
             }
-
-            let query2 = `
-                SELECT 
-                    MIN(${x}) as min_x,
-                    MAX(${x}) as max_x,
-                    ${y.map(yName => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`).join(", ")}
-                FROM '${fileName}'
-                `;
-            query2 += whereClause;
-
-            const queryResult2: QueryResult = await duckDbClient.query(query2);
-            for await (const rowChunk of queryResult2.readRows()) {
-                for (const row of rowChunk) {
-                    if (row) {
-                        useAtlChartFilterStore().setMinX(row.min_x);
-                        useAtlChartFilterStore().setMaxX(row.max_x);
-                        y.forEach((yName) => {
-                            minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
-                        });
-                    } else {
-                        console.warn('fetchAtl03ScatterData fetchData rowData is null');
-                    }
-                }
-            }
-            console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
+            
             return { chartData, minMaxValues };
         } catch (error) {
             console.error('fetchAtl03ScatterData fetchData Error fetching data:', error);
@@ -731,6 +745,7 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
     try {
         const name = 'Atl03';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03ScatterData(fileName, x, y);
+        console.log('getSeriesForAtl03 chartData:', chartData);
         //console.log('getSeriesForAtl03 chartData:', chartData, ' minMaxValues:', minMaxValues);
 
         // Check if either chartData or minMaxValues is empty
@@ -868,7 +883,16 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: "({c})"
+                    formatter: function (params:any) {
+                        //console.warn('getScatterOptions params:', params);
+                        if(sop.func === 'atl03'){
+                            const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
+                            return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
+                        } else {
+                            const [x, y] = params.value;
+                            return `x: ${x}<br>y: ${y}`;
+                        }
+                    }
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
