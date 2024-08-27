@@ -8,6 +8,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
+import { get } from 'lodash';
 
 interface SummaryRowData {
     minLat: number;
@@ -268,7 +269,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                 for await (const rowChunk of result.readRows()) {
                     //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
                     if (rowChunk.length > 0) {
-                       numDataItems += rowChunk.length;
+                        numDataItems += rowChunk.length;
                         rowChunks.push(...rowChunk);
                         // Read and process each chunk from the QueryResult
                         //console.log('duckDbReadAndUpdateSelectedLayer rowChunks:', rowChunks);
@@ -749,6 +750,13 @@ interface SrScatterSeriesData{
     min: number;
     max: number;
 };
+let debugCnt = 0;
+function getAtl03Color(params: any) {
+    if(debugCnt++ < 10){
+        console.log('getAtl03Color params:', params);
+    }
+    return 'red';
+}
 
 async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
     console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
@@ -777,6 +785,9 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
                     name: `${name} - ${yName}`,
                     type: 'scatter',
                     data: data,
+                    itemStyle: {
+                        color: getAtl03Color,
+                    },
                     large: true,
                     largeThreshold: 100000,
                     animation: false,

@@ -9,7 +9,6 @@ import { type Coordinate } from "ol/coordinate";
 import { type Layer as OL_Layer_Type} from 'ol/layer';
 import { Source } from 'ol/source';
 import LayerRenderer   from 'ol/renderer/Layer';
-import type { set } from 'lodash';
 //import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
@@ -123,14 +122,6 @@ export const useMapStore = defineStore('map', {
           this.graticule.setMap(null);
       }
     },
-
-
-    // setDeckLayer(layer:OL_Layer) {
-    //   this.theDeckLayer = layer;
-    // },
-    // getDeckLayer() : OL_Layer | null {
-    //   return this.theDeckLayer as OL_Layer | null;
-    // }, 
     addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
       this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
     },

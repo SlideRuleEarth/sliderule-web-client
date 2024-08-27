@@ -20,12 +20,15 @@ import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrient
 import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { getColorMapOptions } from '@/utils/colorUtils';
+import { useColorMapStore } from '@/stores/colorMapStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
+const colorMapStore = useColorMapStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -51,8 +54,9 @@ const props = defineProps({
     startingReqId: Number,
 });
 
-const defaultMenuItemIndex = ref(0);
+const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
+const selectedElevationColorMap = ref({name:'Viridis', value:'Viridis'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
@@ -73,23 +77,23 @@ onMounted(async() => {
         console.log('onMounted props.startingReqId:',props.startingReqId)
         if (props.startingReqId){ // from the route parameter
             const startId = props.startingReqId.toString()
-            defaultMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
-            //console.log('defaultMenuItemIndex:', defaultMenuItemIndex.value);
-            selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+            defaultReqIdMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
+            //console.log('defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
+            selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
         } else {
-            defaultMenuItemIndex.value = 0;
+            defaultReqIdMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
         let req_id = Number(selectedReqId.value.value);
         console.log('onMounted selectedReqId:', req_id);
-        //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
+        //console.log('reqIds:', reqIds.value, 'defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
         // These update the dynamic options for the these components
     } catch (error) {
         console.error('onMounted Failed to load menu items:', error);
     } finally {
         loading.value = false;
-        //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
-        //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:',defaultReqIdMenuItemIndex);
+        //selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
         atlChartFilterStore.setFunc(await db.getFunc(req_id));
         console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
@@ -192,31 +196,17 @@ const symbolSizeSelection = () => {
     debouncedOnSelection();
 };
 
-watch(selectedReqId, async (newSelection, oldSelection) => {
-    console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
 
-    try{
-        reqIds.value =  await requestsStore.getMenuItems();
-        if((reqIds.value.length === 0)  || (newSelection.value==='0')){
-            console.warn('No requests found');
-            return;
-        }        
-        //console.log('reqIds:', reqIds.value);
-
-        const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
-        //console.log('selectionNdx:', selectionNdx);
-        if (selectionNdx === -1) { // i.e. not found
-            newSelection = reqIds.value[0];  
-        }
-        //console.log('Using filtered newSelection:', newSelection);
-        const req_id = Number(newSelection.value)
-        curReqSumStore.setReqId(req_id);
+const updateElevationMap = async (req_id: number) => {
+    console.log('updateElevationMap req_id:', req_id);
+    curReqSumStore.setReqId(req_id);
+    try {
         atlChartFilterStore.setReqId(req_id);
-        atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
-        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
-        atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
+        atlChartFilterStore.setFileName(await db.getFilename(req_id));
+        atlChartFilterStore.setFunc(await db.getFunc(req_id));
+        atlChartFilterStore.setSize(await db.getNumBytes(req_id));
         deckStore.deleteSelectedLayer();
-        console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
+        console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
         console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
@@ -235,11 +225,44 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         console.error('Failed to update selected request:', error);
     }
     try {
-        console.log('pushing selectedReqId:', newSelection.value);
+        console.log('pushing selectedReqId:', req_id);
         router.push(`/analyze/${useCurReqSumStore().getReqId()}`);
         console.log('Successfully navigated to analyze:', useCurReqSumStore().getReqId());
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
+    }
+    
+};
+
+watch (selectedElevationColorMap, async (newSelection, oldSelection) => {
+    console.log('Color Map changed from:', oldSelection ,' to:', newSelection);
+    colorMapStore.setElevationColorMap(newSelection.value);
+    colorMapStore.updateColorMapValues();
+    console.log('Color Map:', colorMapStore.getColorMap());
+    updateElevationForReqId(atlChartFilterStore.getReqId());
+}, { deep: true, immediate: true });
+
+watch(selectedReqId, async (newSelection, oldSelection) => {
+    console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
+
+    try{
+        reqIds.value =  await requestsStore.getMenuItems();
+        if((reqIds.value.length === 0)  || (newSelection.value==='0')){
+            console.warn('No requests found');
+            return;
+        }        
+        //console.log('reqIds:', reqIds.value);
+
+        const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
+        //console.log('selectionNdx:', selectionNdx);
+        if (selectionNdx === -1) { // i.e. not found
+            newSelection = reqIds.value[0];  
+        }
+        //console.log('Using filtered newSelection:', newSelection);
+        const req_id = Number(newSelection.value)
+        updateElevationMap(req_id);
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
     }
 
 }, { deep: true, immediate: true });
@@ -260,7 +283,7 @@ const getSize = computed(() => {
                     label="Request Id" 
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
-                    :defaultOptionIndex="Number(defaultMenuItemIndex)"
+                    :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                     tooltipText="Request Id from Record table"/> 
             </div>
             <div class="sr-analysis-sz" v-if="!loading">
@@ -280,7 +303,13 @@ const getSize = computed(() => {
                         :defaultValue="1000000"
                         :decimalPlaces=0
                         tooltipText="Maximum number of points to display"
-                    />           
+                    />
+                    <SrMenuInput 
+                        label="Color Map" 
+                        :menuOptions="getColorMapOptions()" 
+                        v-model="selectedElevationColorMap"
+                        tooltipText="Color Map for elevation plot"
+                    /> 
                 </div>
             </FieldSet>
         </div>
