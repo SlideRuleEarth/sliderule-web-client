@@ -4,8 +4,8 @@
     <div class = "sr-color-map-gradient" :style="gradientStyle">
     </div>
     <div class="sr-legend-minmax">
-        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Low().toFixed(1)) }}m</span>
-        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_High().toFixed(1)) }}m</span>
+        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) }}m</span>
+        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) }}m</span>
     </div>
 </div> 
 </template>
@@ -55,13 +55,13 @@ watch(
 }
 
 .sr-legend-header {
-    font-size: 1rem;
+    font-size: 0.75rem;
     margin: 0;
 }
 
 .sr-color-map-gradient {
   border: 1px solid #ccc; /* Optional styling for better visibility */
-  margin-top: 10px; /* Optional spacing */
+  margin-top: 5px; /* Optional spacing */
 }
 
 .sr-legend-minmax {

@@ -148,7 +148,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
                             console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' totalRows:',result.totalRows, ' sample_rate:', sample_rate);
                         }
                     } else {
-                        console.warn('duckDbReadAndUpdateElevationData totalRows is undefined');
+                        if(result.schema === undefined){
+                            console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
+                        }
                     }
                     //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                     for await (const rowChunk of result.readRows()) {

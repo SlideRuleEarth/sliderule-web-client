@@ -56,7 +56,6 @@ const props = defineProps({
 
 const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
-const selectedElevationColorMap = ref({name:'Viridis', value:'Viridis'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
@@ -234,9 +233,10 @@ const updateElevationMap = async (req_id: number) => {
     
 };
 
-watch (selectedElevationColorMap, async (newSelection, oldSelection) => {
-    console.log('Color Map changed from:', oldSelection ,' to:', newSelection);
-    colorMapStore.setElevationColorMap(newSelection.value);
+
+watch (() => colorMapStore.elevationColorMap, async (newColorMap, oldColorMap) => {    
+    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    colorMapStore.setElevationColorMap(newColorMap);
     colorMapStore.updateColorMapValues();
     console.log('Color Map:', colorMapStore.getColorMap());
     updateElevationForReqId(atlChartFilterStore.getReqId());
@@ -307,9 +307,15 @@ const getSize = computed(() => {
                     <SrMenuInput 
                         label="Color Map" 
                         :menuOptions="getColorMapOptions()" 
-                        v-model="selectedElevationColorMap"
+                        v-model="colorMapStore.elevationColorMap"
                         tooltipText="Color Map for elevation plot"
                     /> 
+                    <SrMenuInput 
+                        label="Number of Shades" 
+                        :menuOptions="colorMapStore.getNumOfElevationShadesOptions()" 
+                        v-model="colorMapStore.numShadesForElevation"
+                        tooltipText="Number of shades for elevation plot"
+                    />
                 </div>
             </FieldSet>
         </div>

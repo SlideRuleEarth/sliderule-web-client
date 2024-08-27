@@ -270,7 +270,11 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         getNormal: [0, 0, 1],
         getColor: (d) => {
-            return colorMapStore.getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+            const h = d[heightFieldName];
+            const c = colorMapStore.getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+            c[3] = 255; // Set the alpha channel to 255 (fully opaque)
+            //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
+            return c;
         },
         pointSize: 3,
         pickable: true, // Enable picking

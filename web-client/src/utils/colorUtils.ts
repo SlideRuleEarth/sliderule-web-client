@@ -1,9 +1,3 @@
-import { useColorMapStore } from '@/stores/colorMapStore';
-import  colormap  from 'colormap';
-
-const colorMapStore = () => useColorMapStore();
-
-
 export function getColorMapOptions() {
     // Get the list of valid colormap names
     const colormapNames = [

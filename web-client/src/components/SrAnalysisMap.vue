@@ -21,6 +21,7 @@
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
   import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
+  import SrLegendControl from './SrLegendControl.vue';
   import { initDeck } from '@/utils/SrMapUtils';
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
@@ -151,7 +152,18 @@
   onDeactivated(() => {
     console.log("SrAnalysisMap onDeactivated");
   })
-  
+
+  const handleLegendControlCreated = (legendControl: any) => {
+    //console.log(legendControl);
+    const map = mapRef.value?.map;
+    if(map){
+      console.log("adding legendControl");
+      map.addControl(legendControl);
+    } else {
+      console.error("Error:map is null");
+    }
+  };
+
   const updateAnalysisMapView = async (reason:string) => {
     console.log(`****** SrAnalysisMap updateAnalysisMapView for ${reason} ******`);
 
@@ -313,6 +325,7 @@
       />
 
       <ol-scaleline-control />
+      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
       <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
         <ol-source-vector :projection="mapParamsStore.projection">
           <ol-style>
