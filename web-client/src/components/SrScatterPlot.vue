@@ -2,17 +2,53 @@
   <div class="sr-scatter-plot-header">
     <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
     <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-    <SrSqlStmnt />
     <div class="sr-multiselect-container">
-      <SrMultiSelectText 
-        v-model="atlChartFilterStore.yDataForChart"
-        label="Choose" 
-        @update:modelValue="changedYValues"
-        menuPlaceholder="Select elevation data"
-        :menuOptions="atlChartFilterStore.getElevationDataOptions()"
-        :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
-      />  
+        <SrMultiSelectText 
+          v-model="atlChartFilterStore.yDataForChart"
+          label="Choose" 
+          @update:modelValue="changedYValues"
+          menuPlaceholder="Select elevation data"
+          :menuOptions="atlChartFilterStore.getElevationDataOptions()"
+          :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
+        />  
     </div>
+    <Fieldset legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+      <SrSqlStmnt />
+      <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+                v-model="atlChartFilterStore.atl03SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl03 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl03SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl03 Scatter Plot"
+              />
+              <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+                v-model="atlChartFilterStore.atl06SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl06 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl06SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl06 Scatter Plot"
+              />
+              <SrSliderInput
+                v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+                v-model="atlChartFilterStore.atl08SymbolSize"
+                @update:model-value="symbolSizeSelection"
+                label="Atl08 Scatter Plot symbol size"
+                :min="1"
+                :max="20"
+                :defaultValue="atlChartFilterStore.atl08SymbolSize"
+                :decimalPlaces=0
+                tooltipText="Symbol size for Atl08 Scatter Plot"
+              />
+
+    </Fieldset> 
   </div>
   <v-chart  ref="plotRef" 
             class="scatter-chart" 
@@ -39,6 +75,8 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
 import SrSqlStmnt from "./SrSqlStmnt.vue";
+import SrSliderInput from "./SrSliderInput.vue";
+import Fieldset from "primevue/fieldset";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 
@@ -50,14 +88,12 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 
 const option = shallowRef();
-//const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
   const y_options = atlChartFilterStore.yDataForChart;
   if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
     atlChartFilterStore.setShowMessage(false);
-    //await nextTick(); // Wait for the DOM to update
     const startTime = performance.now(); // Start time
     console.log('fetchScatterOptions started... startTime:',startTime)
     try {
@@ -156,6 +192,10 @@ const messageClass = computed(() => {
   };
 });
 
+const symbolSizeSelection = () => {
+    clearPlot();
+    fetchScatterOptions();
+};
 </script>
 
 <style scoped>
