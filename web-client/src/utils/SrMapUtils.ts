@@ -19,8 +19,10 @@ import { useMapParamsStore } from '@/stores/mapParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 
-const colorMapStore = useElevationColorMapStore();
+const elevationColorMapStore = useElevationColorMapStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
@@ -141,6 +143,7 @@ export interface ElevationDataItem {
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     useAtlChartFilterStore().setClearPlot();
+    atl03ColorMapStore.setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
@@ -271,7 +274,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         getNormal: [0, 0, 1],
         getColor: (d) => {
             const h = d[heightFieldName];
-            const c = colorMapStore.getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+            const c = elevationColorMapStore.getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
             c[3] = 255; // Set the alpha channel to 255 (fully opaque)
             //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
             return c;

@@ -20,6 +20,13 @@
           v-model="selectedAtl03ColorMap"
           tooltipText="Color Map for atl03 scatter plot"
       /> 
+      <SrMenuInput 
+          v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+          label="Color Map Key" 
+          :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
+          v-model="selectedAtl03ColorKey"
+          tooltipText="Data key for Color of atl03 scatter plot"
+      /> 
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
         v-model="atlChartFilterStore.atl03SymbolSize"
@@ -88,15 +95,18 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
 import { getColorMapOptions } from '@/utils/colorUtils';
+import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent]);
 
 provide(THEME_KEY, "dark");
 
 const selectedAtl03ColorMap = ref({name:'viridis', value:'viridis'});
+const selectedAtl03ColorKey = ref({name:'YAPC', value:'YAPC'});
 const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
@@ -192,8 +202,6 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
   debouncedFetchScatterOptions();
 });
 
-
-
 const messageClass = computed(() => {
   return {
     'message': true,
@@ -204,8 +212,18 @@ const messageClass = computed(() => {
 
 const symbolSizeSelection = () => {
     clearPlot();
-    fetchScatterOptions();
+    debouncedFetchScatterOptions();
 };
+
+watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
+    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    atl03ColorMapStore.setAtl03ColorMap(newColorMap.value.value);
+    atl03ColorMapStore.updateAtl03ColorMapValues();
+    //console.log('Color Map:', atl03ColorMapStore.getAtl03ColorMap());
+    debouncedFetchScatterOptions();
+  }, { deep: true, immediate: true });
+
+
 </script>
 
 <style scoped>

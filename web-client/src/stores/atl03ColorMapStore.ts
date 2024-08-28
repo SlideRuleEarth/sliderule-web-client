@@ -1,11 +1,15 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
+import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
         selectedAtl03ColorMap: 'viridis' as string,
         numShadesForAtl03: 1024 as number,
         atl03ColorMap: [] as[number, number, number, number][],
+        atl03ColorKey: 'YAPC' as string,
+        atl03ColorKeyOptions: [{name:'YAPC',value:'YAPC'},{name:'atl03_cnf',value:'atl03_cnf'},{name:'atl08_class',value:'atl08_class'} ] as SrMenuItem[],
+        debugCnt: 0 as number,
     }),
     actions: {
         setAtl03ColorMap(atl03ColorMap: string) {
@@ -51,7 +55,9 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             const colorIndex = Math.max(0, Math.min(this.numShadesForAtl03-1, normalizedValue));
             // Return the color from the selected colormap
             const c = this.atl03ColorMap[colorIndex];
-            //console.log('getColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
+            if(this.debugCnt++ < 10){
+                console.log('getColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
+            }
             return c;
         },
         getColorGradientStyle() {
@@ -64,6 +70,18 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 height: '10px', // Adjust the height as needed
                 width: '100%',  // Adjust the width as needed
             };
+        },
+        setAtl03ColorKey(atl03ColorKey: string) {
+            this.atl03ColorKey = atl03ColorKey;
+        },
+        getAtl03ColorKey() {
+            return this.atl03ColorKey;
+        },
+        getAtl03ColorKeyOptions() {
+            return this.atl03ColorKeyOptions;
+        },
+        setDebugCnt(debugCnt: number) {
+            this.debugCnt = debugCnt;
         }
     },
 });
