@@ -56,6 +56,7 @@ const props = defineProps({
 
 const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
+const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
@@ -234,9 +235,9 @@ const updateElevationMap = async (req_id: number) => {
 };
 
 
-watch (() => colorMapStore.elevationColorMap, async (newColorMap, oldColorMap) => {    
+watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
-    colorMapStore.setElevationColorMap(newColorMap);
+    colorMapStore.setElevationColorMap(newColorMap.value.value);
     colorMapStore.updateColorMapValues();
     console.log('Color Map:', colorMapStore.getColorMap());
     updateElevationForReqId(atlChartFilterStore.getReqId());
@@ -284,7 +285,15 @@ const getSize = computed(() => {
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
                     :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                    tooltipText="Request Id from Record table"/> 
+                    tooltipText="Request Id from Record table"
+                />
+                <!-- <SrSelect
+                    label="Test"
+                    :menuOptions=colorMapNames
+                    v-model="colorMapStore.elevationColorMap"
+                    :getSelectedMenuItem="colorMapStore.getElevationColorMap"
+                    :setSelectedMenuItem="colorMapStore.setElevationColorMap"
+                />   -->
             </div>
             <div class="sr-analysis-sz" v-if="!loading">
                 {{ getSize }} 
@@ -307,7 +316,7 @@ const getSize = computed(() => {
                     <SrMenuInput 
                         label="Color Map" 
                         :menuOptions="getColorMapOptions()" 
-                        v-model="colorMapStore.elevationColorMap"
+                        v-model="selectedElevationColorMap"
                         tooltipText="Color Map for elevation plot"
                     /> 
                     <SrMenuInput 

@@ -25,12 +25,19 @@ export const useColorMapStore = defineStore('colorMap', {
         },
         updateColorMapValues()
         {
-            this.colorMap = colormap({
-                colormap: this.elevationColorMap, // Use the selected colormap
-                nshades: this.numShadesForElevation, // Number of shades in the colormap
-                format: 'rgba', // Use RGBA format for alpha transparency
-                alpha: 1 // Fully opaque
-            });
+            try{
+                this.colorMap = colormap({
+                    colormap: this.elevationColorMap, // Use the selected colormap
+                    nshades: this.numShadesForElevation, // Number of shades in the colormap
+                    format: 'rgba', // Use RGBA format for alpha transparency
+                    alpha: 1 // Fully opaque
+                });
+            } catch (error) {
+                console.warn('updateColorMapValues this.elevationColorMap:',this.elevationColorMap);
+                console.warn('updateColorMapValues this.numShadesForElevation:',this.numShadesForElevation);
+                console.error('updateColorMapValues error:',error);
+                throw error;
+            }
             //console.log('elevationColorMap:',this.elevationColorMap);
             //console.log('colorMap:',this.colorMap);   
         },
