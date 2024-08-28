@@ -352,27 +352,27 @@ direction."
                     tooltipText="ATLAS laser beams are divided into weak and strong beams"
                     @update:modelValue="BeamSelection"
                 />
-        </div>
-        <div class="sr-rgts-cycles-panel">
-            <SrListbox id="rgts"
-                label="Rgt(s)" 
-                v-model="atlChartFilterStore.rgts" 
-                :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                :menuOptions="rgtsOptions" 
-                tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-vector within the observatory is pointed" 
-                @update:modelValue="RgtsSelection"
-            />
-            <SrListbox id="cycles" 
-                label="Cycle(s)" 
-                v-model="atlChartFilterStore.cycles"
-                :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                :menuOptions="cyclesOptions" 
-                tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                @update:modelValue="CyclesSelection"
-            />
+            <div class="sr-rgts-cycles-panel">
+                <SrListbox id="rgts"
+                    label="Rgt(s)" 
+                    v-model="atlChartFilterStore.rgts" 
+                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                    :menuOptions="rgtsOptions" 
+                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+    vector within the observatory is pointed" 
+                    @update:modelValue="RgtsSelection"
+                />
+                <SrListbox id="cycles" 
+                    label="Cycle(s)" 
+                    v-model="atlChartFilterStore.cycles"
+                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                    :menuOptions="cyclesOptions" 
+                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                    @update:modelValue="CyclesSelection"
+                />
+            </div>
         </div>
         <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
