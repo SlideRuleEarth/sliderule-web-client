@@ -3,16 +3,19 @@ import colormap  from 'colormap';
 
 export const useColorMapStore = defineStore('colorMap', {
     state: () => ({
-        elevationColorMap: 'viridis' as string,
+        selectedElevationColorMap: 'viridis' as string,
         numShadesForElevation: 1024 as number,
-        colorMap: [] as[number, number, number, number][],
+        elevationColorMap: [] as[number, number, number, number][],
+        selectedAtl03ColorMap: 'viridis' as string,
+        numShadesForAtl03: 1024 as number,
+        atl03ColorMap: [] as[number, number, number, number][],
     }),
     actions: {
-        setElevationColorMap(colorMap: string) {
-            this.elevationColorMap = colorMap;
+        setElevationColorMap(elevationColorMap: string) {
+            this.selectedElevationColorMap = elevationColorMap;
         },
-        getElevationColorMap() {
-            return this.elevationColorMap;
+        getSelectedElevationColorMap() {
+            return this.selectedElevationColorMap;
         },
         setNumShadesForElevation(numShades: number) {
             this.numShadesForElevation = numShades;
@@ -23,26 +26,26 @@ export const useColorMapStore = defineStore('colorMap', {
         getNumOfElevationShadesOptions() {
             return [{name:'1024', value:'1024'},{name:'512', value:'512'},{name:'256', value:'256'}];
         },
-        updateColorMapValues()
+        updateElevationColorMapValues()
         {
             try{
-                this.colorMap = colormap({
-                    colormap: this.elevationColorMap, // Use the selected colormap
+                this.elevationColorMap = colormap({
+                    colormap: this.selectedElevationColorMap, // Use the selected colormap
                     nshades: this.numShadesForElevation, // Number of shades in the colormap
                     format: 'rgba', // Use RGBA format for alpha transparency
                     alpha: 1 // Fully opaque
                 });
             } catch (error) {
-                console.warn('updateColorMapValues this.elevationColorMap:',this.elevationColorMap);
-                console.warn('updateColorMapValues this.numShadesForElevation:',this.numShadesForElevation);
-                console.error('updateColorMapValues error:',error);
+                console.warn('updateElevationColorMapValues this.selectedElevationColorMap:',this.selectedElevationColorMap);
+                console.warn('updateElevationColorMapValues this.numShadesForElevation:',this.numShadesForElevation);
+                console.error('updateElevationColorMapValues error:',error);
                 throw error;
             }
-            //console.log('elevationColorMap:',this.elevationColorMap);
-            //console.log('colorMap:',this.colorMap);   
+            //console.log('selectedElevationColorMap:',this.selectedElevationColorMap);
+            //console.log('elevationColorMap:',this.elevationColorMap);   
         },
-        getColorMap() {
-            return this.colorMap;
+        getElevationColorMap() {
+            return this.elevationColorMap;
         },
         getColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
             // Normalize the elevation to a value between 0 and 255
@@ -50,13 +53,13 @@ export const useColorMapStore = defineStore('colorMap', {
             // Clamp the value to ensure it's within the valid range
             const colorIndex = Math.max(0, Math.min(this.numShadesForElevation-1, normalizedValue));
             // Return the color from the selected colormap
-            const c = this.colorMap[colorIndex];
+            const c = this.elevationColorMap[colorIndex];
             //console.log('getColorForElevation:',elevation,minElevation,maxElevation,normalizedValue,colorIndex,c);
             return c;
         },
         getColorGradientStyle() {
             console.log('getColorGradientStyle');
-            const gradientColors = this.colorMap
+            const gradientColors = this.elevationColorMap
                 .map(color => `rgba(${color.join(',')})`) // Convert each color to a valid CSS rgba string
                 .join(', '); // Join colors to create a CSS gradient string
             return {

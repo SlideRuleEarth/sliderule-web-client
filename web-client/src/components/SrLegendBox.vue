@@ -27,15 +27,15 @@
   
   onMounted(() => {
     //console.log(`Mounted SrLegendBox`);
-    colorMapStore.updateColorMapValues();
+    colorMapStore.updateElevationColorMapValues();
     emit('legendbox-created');
   });
 
 // Watch for changes in the elevation color map or the number of shades to update the gradient
 watch(
-  () => [colorMapStore.elevationColorMap, colorMapStore.numShadesForElevation],
+  () => [colorMapStore.selectedElevationColorMap, colorMapStore.numShadesForElevation],
   () => {
-    colorMapStore.updateColorMapValues();
+    colorMapStore.updateElevationColorMapValues();
   }
 );
 

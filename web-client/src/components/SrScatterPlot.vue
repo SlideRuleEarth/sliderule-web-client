@@ -12,42 +12,41 @@
           :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
         />  
     </div>
-    <Fieldset legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
-      <SrSqlStmnt />
+    <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
       <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl03')"
-                v-model="atlChartFilterStore.atl03SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl03 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl03SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl03 Scatter Plot"
-              />
-              <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl06')"
-                v-model="atlChartFilterStore.atl06SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl06 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl06SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl06 Scatter Plot"
-              />
-              <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl08')"
-                v-model="atlChartFilterStore.atl08SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl08 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl08SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl08 Scatter Plot"
-              />
-
+        v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+        v-model="atlChartFilterStore.atl03SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl03 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl03SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl03 Scatter Plot"
+      />
+      <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+        v-model="atlChartFilterStore.atl06SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl06 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl06SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl06 Scatter Plot"
+      />
+      <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+        v-model="atlChartFilterStore.atl08SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl08 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl08SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl08 Scatter Plot"
+      />
+      <SrSqlStmnt />
     </Fieldset> 
   </div>
   <v-chart  ref="plotRef" 
@@ -60,7 +59,8 @@
               fontSize:20, 
               showSpinner: true, 
               zlevel:100
-            }" />
+            }" 
+  />
 </template>
 
 <script setup lang="ts">
@@ -79,6 +79,7 @@ import SrSliderInput from "./SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
+import SrMenuInput from "./SrMenuInput.vue";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
@@ -218,6 +219,15 @@ const symbolSizeSelection = () => {
   padding: 1rem;
   overflow-y: auto;
   overflow-x: auto;
+  width: auto;
+}
+
+.sr-scatter-plot-options {
+  display: flex; 
+  flex-direction: column;
+  align-items: self-start;
+  margin: 0.5rem;
+  width: auto; /* Add this line to ensure it only takes as much width as needed */
 }
 
 .sr-multiselect-container {
@@ -230,6 +240,8 @@ const symbolSizeSelection = () => {
 
 .sr-sql-stmnt-display-parms {
   display: flex;
+  flex-direction: column;
+  justify-content: left;
   align-items: left;
   margin-top: 0rem;
   overflow-y: auto;

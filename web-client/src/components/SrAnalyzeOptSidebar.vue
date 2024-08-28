@@ -232,8 +232,8 @@ const updateElevationMap = async (req_id: number) => {
 watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
     colorMapStore.setElevationColorMap(newColorMap.value.value);
-    colorMapStore.updateColorMapValues();
-    console.log('Color Map:', colorMapStore.getColorMap());
+    colorMapStore.updateElevationColorMapValues();
+    console.log('Color Map:', colorMapStore.getElevationColorMap());
     updateElevationForReqId(atlChartFilterStore.getReqId());
 }, { deep: true, immediate: true });
 
@@ -281,13 +281,6 @@ const getSize = computed(() => {
                     :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                     tooltipText="Request Id from Record table"
                 />
-                <!-- <SrSelect
-                    label="Test"
-                    :menuOptions=colorMapNames
-                    v-model="colorMapStore.elevationColorMap"
-                    :getSelectedMenuItem="colorMapStore.getElevationColorMap"
-                    :setSelectedMenuItem="colorMapStore.setElevationColorMap"
-                />   -->
             </div>
             <div class="sr-analysis-sz" v-if="!loading">
                 {{ getSize }} 
