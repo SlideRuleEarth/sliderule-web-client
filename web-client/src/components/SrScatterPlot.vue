@@ -15,17 +15,17 @@
     <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
       <SrMenuInput 
           v-if = "atlChartFilterStore.getFunc().includes('atl03')"
-          label="Color Map" 
-          :menuOptions="getColorMapOptions()" 
-          v-model="selectedAtl03ColorMap"
-          tooltipText="Color Map for atl03 scatter plot"
-      /> 
-      <SrMenuInput 
-          v-if = "atlChartFilterStore.getFunc().includes('atl03')"
           label="Color Map Key" 
           :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
           v-model="selectedAtl03ColorKey"
           tooltipText="Data key for Color of atl03 scatter plot"
+      /> 
+      <SrMenuInput 
+          v-if = "atlChartFilterStore.getFunc().includes('atl03') && (selectedAtl03ColorKey.value == 'YAPC')"
+          label="Color Map" 
+          :menuOptions="getColorMapOptions()" 
+          v-model="selectedAtl03ColorMap"
+          tooltipText="Color Map for atl03 scatter plot"
       /> 
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
