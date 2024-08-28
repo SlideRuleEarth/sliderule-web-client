@@ -13,6 +13,13 @@
         />  
     </div>
     <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+      <SrMenuInput 
+          v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+          label="Color Map" 
+          :menuOptions="getColorMapOptions()" 
+          v-model="selectedAtl03ColorMap"
+          tooltipText="Color Map for atl03 scatter plot"
+      /> 
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
         v-model="atlChartFilterStore.atl03SymbolSize"
@@ -80,6 +87,7 @@ import Fieldset from "primevue/fieldset";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
+import { getColorMapOptions } from '@/utils/colorUtils';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
@@ -88,6 +96,7 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 
+const selectedAtl03ColorMap = ref({name:'viridis', value:'viridis'});
 const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 

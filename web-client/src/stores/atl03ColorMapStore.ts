@@ -46,9 +46,9 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         },
         getColorForValue(value:number, minValue:number, maxValue:number) {
             // Normalize the value to a value between 0 and 255
-            const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForValue-1);
+            const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForAtl03-1);
             // Clamp the value to ensure it's within the valid range
-            const colorIndex = Math.max(0, Math.min(this.numShadesForValue-1, normalizedValue));
+            const colorIndex = Math.max(0, Math.min(this.numShadesForAtl03-1, normalizedValue));
             // Return the color from the selected colormap
             const c = this.atl03ColorMap[colorIndex];
             //console.log('getColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);

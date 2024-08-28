@@ -7,7 +7,9 @@
             {{ label }}
         </label>
         <!-- Info Icon with Tooltip -->
-        <Button icon="pi pi-info-circle" 
+        <Button
+            v-if="isTooltipUrlProvided" 
+            icon="pi pi-info-circle"
             class="p-button-rounded p-button-text p-button-plain sr-info-button " 
             :title="tooltipUrl" 
             @click="openTooltipUrl">
@@ -16,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted } from 'vue';
+    import { onMounted,computed } from 'vue';
     import Button from 'primevue/button';
 
     const props = defineProps({
@@ -42,6 +44,7 @@
             default: 'small' // default font size if not passed
         },
     });
+    const isTooltipUrlProvided = computed(() => props.tooltipUrl && props.tooltipUrl.trim() !== '');
     const openTooltipUrl = () => {
         if (props.tooltipUrl) {
             const newWindow = window.open(props.tooltipUrl, '_blank');
