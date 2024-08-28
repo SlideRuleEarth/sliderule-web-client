@@ -18,9 +18,9 @@ import { getSpotNumber,getGroundTrack } from './spotUtils';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
-import { useColorMapStore } from '@/stores/colorMapStore';
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 
-const colorMapStore = useColorMapStore();
+const colorMapStore = useElevationColorMapStore();
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 

@@ -21,14 +21,14 @@ import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
-import { useColorMapStore } from '@/stores/colorMapStore';
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
-const colorMapStore = useColorMapStore();
+const colorMapStore = useElevationColorMapStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -306,12 +306,6 @@ const getSize = computed(() => {
                         v-model="selectedElevationColorMap"
                         tooltipText="Color Map for elevation plot"
                     /> 
-                    <SrMenuInput 
-                        label="Number of Shades" 
-                        :menuOptions="colorMapStore.getNumOfElevationShadesOptions()" 
-                        v-model="colorMapStore.numShadesForElevation"
-                        tooltipText="Number of shades for elevation plot"
-                    />
                 </div>
             </FieldSet>
         </div>

@@ -14,8 +14,8 @@
   import { onMounted } from 'vue'
   import { useCurReqSumStore } from '@/stores/curReqSumStore';
   import { computed,watch } from 'vue';
-  import { useColorMapStore } from '@/stores/colorMapStore';
-  const colorMapStore = useColorMapStore();
+  import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+  const colorMapStore = useElevationColorMapStore();
   const curReqSumStore = useCurReqSumStore();
 
   const emit = defineEmits(['legendbox-created', 'picked-changed']);

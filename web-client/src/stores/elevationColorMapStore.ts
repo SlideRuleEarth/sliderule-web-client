@@ -1,14 +1,11 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 
-export const useColorMapStore = defineStore('colorMap', {
+export const useElevationColorMapStore = defineStore('elevationColorMap', {
     state: () => ({
         selectedElevationColorMap: 'viridis' as string,
         numShadesForElevation: 1024 as number,
         elevationColorMap: [] as[number, number, number, number][],
-        selectedAtl03ColorMap: 'viridis' as string,
-        numShadesForAtl03: 1024 as number,
-        atl03ColorMap: [] as[number, number, number, number][],
     }),
     actions: {
         setElevationColorMap(elevationColorMap: string) {
