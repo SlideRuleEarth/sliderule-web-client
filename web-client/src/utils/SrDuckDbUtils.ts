@@ -770,7 +770,7 @@ function getAtl03Color(params: any) {
         colorStr = 'blue';
     } else if(atl03ColorMapStore.getAtl03ColorKey() === 'YAPC'){ 
         value = params.data[4];
-        const color = atl03ColorMapStore.getRGBColorForValue(value,0,255);
+        const color = atl03ColorMapStore.getYapcColorForValue(value,0,255);
         colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     }
     if(debugCnt++ < 10){

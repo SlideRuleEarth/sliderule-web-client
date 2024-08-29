@@ -163,6 +163,7 @@ const fetchScatterOptions = async () => {
 };
 
 onMounted(async () => {
+  atl03ColorMapStore.initializeAtl03ColorMapStore();
   const reqId = curReqSumStore.getReqId();
   if (reqId > 0) {
     debouncedFetchScatterOptions();
@@ -229,9 +230,9 @@ const symbolSizeSelection = () => {
 
 watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
     console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
-    atl03ColorMapStore.setAtl03ColorMap(newColorMap.value.value);
-    atl03ColorMapStore.updateAtl03ColorMapValues();
-    //console.log('Color Map:', atl03ColorMapStore.getAtl03ColorMap());
+    atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
+    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     debouncedFetchScatterOptions();
   }, { deep: true, immediate: true });
 

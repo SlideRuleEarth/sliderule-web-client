@@ -55,13 +55,8 @@
             default: 'small' // default font size if not passed
         },
     });
-    // const selectedMenuItem = ref<SrMenuItem>(
-    //     props.menuOptions && props.menuOptions.length > 0
-    //         ? props.menuOptions[Number(props.defaultOptionIndex)]
-    //         : { name: 'default', value: 'default' }
-    // );
-   // Define a computed property that references the getter and setter
-   const selectedMenuItem = computed({
+    // Define a computed property that references the getter and setter
+    const selectedMenuItem = computed({
         get() {
             const menuItem = props.getSelectedMenuItem();
             console.log('SrMenu:', props.label, 'get:', menuItem);

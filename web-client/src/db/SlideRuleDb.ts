@@ -37,21 +37,249 @@ export interface SrRequestSummary {
     extHMean: ExtHMean;
 }
 
+export interface SrColors {
+    color: string;
+}
+
+export interface Atl03CnfColor {
+    color: string; // Primary key
+    number: number; // New number column
+}
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
+    colors!: Table<SrColors>;
+    atl03CnfColors!: Table<Atl03CnfColor>;
 
     constructor() {
         super('SlideRuleDataBase');
         this.version(1).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: '++db_id, req_id',     
+            summary: '++db_id, req_id', 
+            colors: '&color', // Add the colors table 
+            atl03CnfColors: '&color, number' // Add the colors table   
         });
+        this._initializeDefaultColors();
         this._useMiddleware();
         //console.log("Database initialized.");
     }
+    // Method to initialize default colors
+    private async _initializeDefaultColors(): Promise<void> {
+        try {
+            // Check and populate atl03CnfColors
+            const atl03CnfColorCount = await this.atl03CnfColors.count();
+            if (atl03CnfColorCount === 0) {
+                await this.restoreDefaultAtl03CnfColors();
+            }
+
+            // Check and populate colors
+            const colorsCount = await this.colors.count();
+            if (colorsCount === 0) {
+                await this.restoreDefaultColors();
+            }
+        } catch (error) {
+            console.error('Failed to initialize default colors:', error);
+            throw error;
+        }
+    }
+
+
+    // Method to restore default colors for the colors table
+    async restoreDefaultColors(): Promise<void> {
+        try {
+            const defaultColors: SrColors[] = [
+                { color: 'red' },
+                { color: 'orange' },
+                { color: 'yellow' },
+                { color: 'green' },
+                { color: 'blue' },
+                { color: 'indigo' },
+                { color: 'violet' }
+            ];
+
+            // Clear existing entries in the table
+            await this.colors.clear();
+            console.log('colors table cleared.');
+
+            // Add default entries
+            for (const colorEntry of defaultColors) {
+                await this.colors.add(colorEntry);
+            }
+
+            console.log('Default colors restored:', defaultColors);
+        } catch (error) {
+            console.error('Failed to restore default colors:', error);
+            throw error;
+        }
+    }
+
+    // CRUD Methods for colors table
+
+    // Method to add or update a color in colors table
+    async addOrUpdateColor(color: string): Promise<void> {
+        try {
+            const existingColorEntry = await this.colors.where('color').equals(color).first();
+            if (existingColorEntry) {
+                console.log(`Color already exists in colors: ${color}`);
+            } else {
+                await this.colors.add({ color });
+                console.log(`Color added to colors: ${color}`);
+            }
+        } catch (error) {
+            console.error('Failed to add or update color in colors:', error);
+            throw error;
+        }
+    }
+
+    async setAllColors(colors: string[]): Promise<void> {   
+        try {
+            // Clear existing entries in the table
+            await this.colors.clear();
+            console.log('colors table cleared.');
+
+            // Add new colors
+            for (const color of colors) {
+                await this.colors.add({ color });
+            }
+
+            console.log('All colors restored:', colors);
+        } catch (error) {
+            console.error('Failed to restore all colors:', error);
+            throw error;
+        }
+    }
+
+    // Method to get all colors from the colors table
+    async getAllColors(): Promise<string[]> {
+        try {
+            const colorRecords = await this.colors.toArray();
+            const colors = colorRecords.map(record => record.color);
+            console.log('Retrieved all colors from colors:', colors);
+            return colors;
+        } catch (error) {
+            console.error('Failed to retrieve all colors from colors:', error);
+            throw error;
+        }
+    }
+
+    // Method to delete a color by name from the colors table
+    async deleteColor(color: string): Promise<void> {
+        try {
+            await this.colors.delete(color);
+            console.log(`Color deleted from colors: ${color}`);
+        } catch (error) {
+            console.error(`Failed to delete color from colors: ${color}`, error);
+            throw error;
+        }
+    }
+
+
+
+    // Function to restore default colors for atl03CnfColors
+    async restoreDefaultAtl03CnfColors(): Promise<void> {
+        try {
+            // Define default color-number pairs
+            const defaultAtl03CnfColors: Atl03CnfColor[] = [
+                { color: 'red', number: -2 },
+                { color: 'orange', number: -1 },
+                { color: 'yellow', number: 0 },
+                { color: 'green', number: 1 },
+                { color: 'blue', number: 2 },
+                { color: 'indigo', number: 3 },
+                { color: 'violet', number: 4 }
+            ];
+
+            // Clear existing entries in the table
+            await this.atl03CnfColors.clear();
+            console.log('atl03CnfColors table cleared.');
+
+            // Add default entries
+            for (const colorEntry of defaultAtl03CnfColors) {
+                await this.atl03CnfColors.add(colorEntry);
+            }
+
+            console.log('Default atl03CnfColors restored:', defaultAtl03CnfColors);
+        } catch (error) {
+            console.error('Failed to restore default atl03CnfColors:', error);
+            throw error;
+        }
+    }
+
+
+    // Method to add or update a color for a given number in atl03CnfColors
+    async addOrUpdateAtl03CnfColor(number: number, color: string): Promise<void> {
+        try {
+            // Check the number range
+            if (number < -2 || number > 4) {
+                throw new Error('Number must be between -2 and 4.');
+            }
+
+            // Check if there's already an entry for the given number
+            const existingNumberEntry = await this.atl03CnfColors.where('number').equals(number).first();
+
+            if (existingNumberEntry) {
+                // If an entry exists with the same number, update the color
+                await this.atl03CnfColors.put({ number, color });
+                console.log(`Number updated in atl03CnfColors: ${number}, ${color}`);
+            } else {
+                // If no entry exists with the same number, check the size limit before adding
+                const count = await this.atl03CnfColors.count();
+                if (count >= 7) {
+                    throw new Error('Cannot add more than 7 colors to atl03CnfColors table.');
+                }
+
+                // Add the new number-color pair
+                await this.atl03CnfColors.add({ number, color });
+                console.log(`Number and color added to atl03CnfColors: ${number}, ${color}`);
+            }
+        } catch (error) {
+            console.error('Failed to add or update number and color in atl03CnfColors:', error);
+            throw error;
+        }
+    }
+
+    // Method to get all color-number pairs from atl03CnfColors in ascending order by number
+    async getAllAtl03CnfColorNumberPairs(): Promise<Atl03CnfColor[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
+            console.log('Retrieved all atl03CnfColors in ascending order:', colorRecords);
+            return colorRecords;
+        } catch (error) {
+            console.error('Failed to retrieve all atl03CnfColors:', error);
+            throw error;
+        }
+    }
+    // Method to get an ordered list of colors from atl03CnfColors sorted by ascending number
+    async getAllAtl03CnfColors(): Promise<string[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
+            
+            // Map the sorted records to get an array of colors
+            const colors = colorRecords.map(record => record.color);
+            
+            console.log('Retrieved ordered list of colors:', colors);
+            return colors;
+        } catch (error) {
+            console.error('Failed to retrieve ordered list of colors:', error);
+            throw error;
+        }
+    }
+
+    // Method to delete a color-number pair by color from atl03CnfColors
+    async deleteAtl03CnfColor(color: string): Promise<void> {
+        try {
+            await this.atl03CnfColors.delete(color);
+            console.log(`Color deleted from atl03CnfColors: ${color}`);
+        } catch (error) {
+            console.error(`Failed to delete color from atl03CnfColors: ${color}`, error);
+            throw error;
+        }
+    }
+
 
     private _useMiddleware(): void {
         this.use({
