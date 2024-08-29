@@ -30,6 +30,9 @@
           v-model="selectedAtl03ColorMap"
           tooltipText="Color Map for atl03 scatter plot"
       />
+      <SrAtl03CnfColors 
+        v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+      />
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
         v-model="atlChartFilterStore.atl03SymbolSize"
@@ -98,6 +101,7 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
 import SrMenu from "./SrMenu.vue";
+import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 

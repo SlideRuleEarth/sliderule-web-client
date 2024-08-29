@@ -16,7 +16,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 'GreenYellow',  // 1
                 'Green',        // 2
                 'Cyan',         // 3
-                'White',         // 4
+                'Blue',         // 4
             ] as string[],
         namedColorPalette: [
             'AntiqueWhite',
@@ -133,6 +133,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             this.namedColorPalette = namedColorPalette;
         },
         getNamedColorPalette() {
+            console.log('getNamedColorPalette:',this.namedColorPalette)
             return this.namedColorPalette;
         }
     },
