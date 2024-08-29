@@ -29,7 +29,7 @@
           :menuOptions="getColorMapOptions()" 
           v-model="selectedAtl03ColorMap"
           tooltipText="Color Map for atl03 scatter plot"
-      /> 
+      />
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
         v-model="atlChartFilterStore.atl03SymbolSize"

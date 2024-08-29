@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
+import { get } from 'lodash';
 
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
@@ -17,7 +18,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 'Cyan',         // 3
                 'White',         // 4
             ] as string[],
-        namedColorPallette: [
+        namedColorPalette: [
             'AntiqueWhite',
             'DarkRed',      
             'Red' ,         
@@ -127,6 +128,12 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 return;
             }
             this.atl03CnfColorMap[ndx] = namedColorValue;
+        },
+        setNamedColorPalette(namedColorPalette: string[]) {
+            this.namedColorPalette = namedColorPalette;
+        },
+        getNamedColorPalette() {
+            return this.namedColorPalette;
         }
     },
 });

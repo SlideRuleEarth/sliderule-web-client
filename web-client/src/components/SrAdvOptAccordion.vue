@@ -26,6 +26,8 @@ import SrSurfaceElevation from './SrSurfaceElevation.vue';
 import SrStorageUsage from './SrStorageUsage.vue';
 import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
+import SrColorPalette  from "./SrColorPalette.vue";
+import Fieldset from 'primevue/fieldset';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -259,6 +261,9 @@ onMounted(() => {
                     <AccordionHeader>Advanced</AccordionHeader>
                     <AccordionContent>
                         <SrDebug />
+                        <Fieldset legend="Color Palette" :toggleable="true" :collapsed="true">
+                            <SrColorPalette />
+                        </Fieldset>
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>
