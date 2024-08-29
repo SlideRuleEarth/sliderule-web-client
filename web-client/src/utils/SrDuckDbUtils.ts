@@ -756,14 +756,25 @@ interface SrScatterSeriesData{
 };
 let debugCnt = 0;
 function getAtl03Color(params: any) {
-    if(debugCnt < 10){
-        console.log('getAtl03Color params:', params);
-    }     
-    const color = atl03ColorMapStore.getColorForValue(params.data[4],0,255);
-    const colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     if(debugCnt++ < 10){
-        console.log('getAtl03Color color:', color);
-        console.log('getAtl03ColorStr colorStr:', colorStr);
+        console.log('Atl03ColorKey:', atl03ColorMapStore.getAtl03ColorKey());
+        console.log('getAtl03Color params.data:', params.data);
+    }
+    let colorStr = 'red';
+    let value = -1;
+    if(atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf'){ 
+        value = params.data[2];
+        colorStr = atl03ColorMapStore.getColorForAtl03CnfValue(value);
+    } else if(atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class'){
+        value = params.data[3];
+        colorStr = 'blue';
+    } else if(atl03ColorMapStore.getAtl03ColorKey() === 'YAPC'){ 
+        value = params.data[4];
+        const color = atl03ColorMapStore.getRGBColorForValue(value,0,255);
+        colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
+    }
+    if(debugCnt++ < 10){
+        console.log(`getAtl03Color value:${value} colorStr:${colorStr}`);
     }
     return colorStr;
 }

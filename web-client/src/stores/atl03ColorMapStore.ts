@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
-import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
@@ -8,7 +7,30 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         numShadesForAtl03: 1024 as number,
         atl03ColorMap: [] as[number, number, number, number][],
         atl03ColorKey: 'YAPC' as string,
-        atl03ColorKeyOptions: [{name:'YAPC',value:'YAPC'},{name:'atl03_cnf',value:'atl03_cnf'},{name:'atl08_class',value:'atl08_class'} ] as SrMenuItem[],
+        atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
+        atl03CnfColorMap: [
+                'DarkRed',      // -2
+                'Red' ,         // -1
+                'Yellow',       // 0
+                'GreenYellow',  // 1
+                'Green',        // 2
+                'Cyan',         // 3
+                'White',         // 4
+            ] as string[],
+        namedColorPallette: [
+            'AntiqueWhite',
+            'DarkRed',      
+            'Red' ,         
+            'Yellow',
+            'Magenta',
+            'Lavendar',
+            'DarkBlue',
+            'LightBlue',      
+            'GreenYellow',  
+            'Green',       
+            'Cyan',        
+            'Blue',        
+    ] as string[],
         debugCnt: 0 as number,
     }),
     actions: {
@@ -48,7 +70,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         getAtl03ColorMap() {
             return this.atl03ColorMap;
         },
-        getColorForValue(value:number, minValue:number, maxValue:number) {
+        getRGBColorForValue(value:number, minValue:number, maxValue:number) {
             // Normalize the value to a value between 0 and 255
             const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForAtl03-1);
             // Clamp the value to ensure it's within the valid range
@@ -56,7 +78,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             // Return the color from the selected colormap
             const c = this.atl03ColorMap[colorIndex];
             if(this.debugCnt++ < 10){
-                console.log('getColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
+                console.log('getRGBColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
             }
             return c;
         },
@@ -82,6 +104,29 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         },
         setDebugCnt(debugCnt: number) {
             this.debugCnt = debugCnt;
+        },
+        setCnfColorMap(rgbColorMap: string[]) {
+            this.atl03CnfColorMap = rgbColorMap;
+        },
+        getCnfColorMap() {
+            return this.atl03CnfColorMap;
+        },
+        getColorForAtl03CnfValue(value:number) { // value is the atl03_cnf value -2 to 4
+            const ndx = value + 2;
+            if(ndx < 0 || ndx > 6){
+                console.error('getRGBColorForAtl03CnfValue invalid value:',value);
+                return 'White'; // Return White for invalid values
+            }
+            const c = this.atl03CnfColorMap[ndx];
+            return c;
+        },
+        setColorForAtl03CnfValue(value:number,namedColorValue:string) { // value is the atl03_cnf value -2 to 4
+            const ndx = value + 2;
+            if(ndx < 0 || ndx > 6){
+                console.error('setColorForAtl03CnfValue invalid value:',value);
+                return;
+            }
+            this.atl03CnfColorMap[ndx] = namedColorValue;
         }
     },
 });

@@ -13,15 +13,18 @@
         />  
     </div>
     <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
-      <SrMenuInput 
+      <SrMenu 
           v-if = "atlChartFilterStore.getFunc().includes('atl03')"
           label="Color Map Key" 
+          v-model="atl03ColorMapStore.atl03ColorKey"
+          @update:modelValue="changedColorKey"
+          :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
+          :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
           :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
-          v-model="selectedAtl03ColorKey"
           tooltipText="Data key for Color of atl03 scatter plot"
       /> 
       <SrMenuInput 
-          v-if = "atlChartFilterStore.getFunc().includes('atl03') && (selectedAtl03ColorKey.value == 'YAPC')"
+          v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
           label="Color Map" 
           :menuOptions="getColorMapOptions()" 
           v-model="selectedAtl03ColorMap"
@@ -94,6 +97,7 @@ import Fieldset from "primevue/fieldset";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
+import SrMenu from "./SrMenu.vue";
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
@@ -106,7 +110,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 
 const selectedAtl03ColorMap = ref({name:'viridis', value:'viridis'});
-const selectedAtl03ColorKey = ref({name:'YAPC', value:'YAPC'});
 const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
@@ -174,6 +177,11 @@ function clearPlot() {
   } else {
     console.warn('plotRef.value is undefined');
   }
+}
+function changedColorKey() {
+  console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
+  clearPlot();
+  debouncedFetchScatterOptions();
 }
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);

@@ -23,3 +23,8 @@ export function getColorMapOptions() {
     return options;
 }
 
+export interface SrRGBColor {
+    r: number;
+    g: number;
+    b: number;
+}
