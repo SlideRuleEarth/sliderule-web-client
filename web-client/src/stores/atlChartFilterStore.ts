@@ -43,7 +43,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     size: NaN as number,
     isLoading: false as boolean,
-    clearPlot: false as boolean,
+    clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
     atl03QuerySql: '' as string,
     atl06QuerySql: '' as string,  
@@ -370,14 +370,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
       return this.isLoading;
     },
-    setClearPlot() {
-      this.clearPlot = true;
+    resetTheScatterPlot() {
+      this.clearScatterPlotFlag = true;
     },
-    resetClearPlot() {
-      this.clearPlot = false;
+    resetClearScatterPlotFlag() {
+      this.clearScatterPlotFlag = false;
     },
     getClearPlot() {
-      return this.clearPlot;
+      return this.clearScatterPlotFlag;
     },
     setAtl03QuerySql(sql: string) {
       this.atl03QuerySql = sql;

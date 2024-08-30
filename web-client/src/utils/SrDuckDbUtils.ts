@@ -970,12 +970,33 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                         formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
                     }
                 })),
-                series: seriesData.map(series => series.series)
-            };
+                series: seriesData.map(series => series.series),
+                dataZoom: [
+                    {
+                        type: 'slider', // This creates a slider to zoom in the X-axis
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'slider', // This creates a slider to zoom in the Y-axis
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0, // Adjusting for multiple y-axes if necessary
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
+                        filterMode: 'none',
+                    },
+                ],            };
         } else {
             console.warn('getScatterOptions seriesData is empty');
         }
-        //console.log('getScatterOptions options:', options);
+        console.log('getScatterOptions options:', options);
     } catch (error) {
         console.error('getScatterOptions Error:', error);
     } finally {

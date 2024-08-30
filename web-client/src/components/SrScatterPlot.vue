@@ -32,6 +32,7 @@
       />
       <SrAtl03CnfColors 
         v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+        @selectionChanged="atl03CnfColorChanged"
       />
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
@@ -87,7 +88,7 @@
 import { use } from "echarts/core"; 
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
+import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
@@ -109,7 +110,7 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 
-use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent]);
+use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 
@@ -193,16 +194,22 @@ function clearPlot() {
 }
 function changedColorKey() {
   console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
-  clearPlot();
+  atlChartFilterStore.resetTheScatterPlot();
   debouncedFetchScatterOptions();
 }
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-watch(() => atlChartFilterStore.clearPlot, async (newState) => {
+const atl03CnfColorChanged = ({ label, color }) => {
+    console.log(`atl03CnfColorChanged received selection change: ${label} with color ${color}`);
+    clearPlot();
+    debouncedFetchScatterOptions();
+  };
+
+watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
   if (newState === true) {
     clearPlot();
-    atlChartFilterStore.resetClearPlot();
+    atlChartFilterStore.resetClearScatterPlotFlag();
   }
 }, { deep: true });
 

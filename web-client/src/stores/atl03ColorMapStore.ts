@@ -122,6 +122,10 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         getNamedColorPalette() {
             //console.log('getNamedColorPalette:',this.namedColorPalette)
             return this.namedColorPalette;
+        },
+        async restoreDefaultAtl03CnfColorMap() {
+            await db.restoreDefaultAtl03CnfColors();
+            this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
         }
     },
 });

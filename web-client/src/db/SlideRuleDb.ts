@@ -58,9 +58,9 @@ export class SlideRuleDexie extends Dexie {
         super('SlideRuleDataBase');
         this.version(1).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: '++db_id, req_id', 
-            colors: '&color',  
-            atl03CnfColors: 'number, &color' 
+            summary: '++db_id, &req_id', 
+            colors: '&color',
+            atl03CnfColors: 'number' 
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -621,7 +621,7 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
-    
+
     async deleteAllRequests(): Promise<void> {
         try {
             // Delete all requests

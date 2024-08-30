@@ -142,7 +142,7 @@ export interface ElevationDataItem {
 
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
-    useAtlChartFilterStore().setClearPlot();
+    useAtlChartFilterStore().resetTheScatterPlot();
     atl03ColorMapStore.setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
