@@ -5,14 +5,38 @@ import Column from 'primevue/column';
 import 'primeicons/primeicons.css'
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
-import { db } from '@/db/SlideRuleDb';
+import { db,SrRequestRecord } from '@/db/SlideRuleDb';
 import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
 import { findParam } from '@/utils/parmUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
+import InputText from 'primevue/inputtext'; // Import InputText for editing
 
 const requestsStore = useRequestsStore();
 const isCodeFormat = ref(true);
 
+
+// const onEditComplete = (event) => {
+//     const { newValue, data, field } = event;
+//     data[field] = newValue; // Update the specific field with the new value
+//     // You may need to call a method to persist the changes to a backend or store here
+//     console.log('Edited cell:', field, 'New Value:', newValue, 'Data:', data);
+//     db.updateRequestRecord({req_id: data.req_id, description: data.description});
+// };
+// const onEditComplete = (data, field, event) => {
+//     const newValue = event.target.value;
+//     if (newValue !== data[field]) { // Check if the value actually changed
+//         data[field] = newValue; // Update the specific field with the new value
+//         db.updateRequestRecord({req_id: data.req_id, description: data.description});
+//         console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
+//     }
+// };
+const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
+    const inputElement = event.target as HTMLInputElement;
+    const newValue = inputElement.value.trim();
+    //data[field] = newValue; // Update the specific field with the new value
+    db.updateRequestRecord({req_id: data.req_id, description: data.description});
+    console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
+};
 const analyze = (id:number) => {
     try {
         console.log('Analyze ', id);
@@ -71,7 +95,9 @@ const exportFile = async (req_id:number) => {
     try {
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
-        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+        const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
         // Create a download link and click it programmatically
@@ -113,8 +139,6 @@ const deleteAllReqs = () => {
     requestsStore.deleteAllReqs();
 };
 
-
-
 onMounted(() => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
@@ -128,7 +152,13 @@ onUnmounted(() => {
 
 <template>
     <div class="sr-records-container">
-        <DataTable :value="requestsStore.reqs" tableStyle="min-width: 50rem" scrollable scrollHeight="50rem">
+        <DataTable 
+            :value="requestsStore.reqs" 
+            tableStyle="min-width: 50rem" 
+            scrollable 
+            scrollHeight="50rem"
+            editMode="cell"
+        >
             <Column field="Star" header="">
                 <template #body="slotProps">
                     <i 
@@ -146,6 +176,16 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="func" header="Function"></Column>
+            <Column field="description" header="Description" :editable="true">
+                <template #editor="{ data }">
+                    <InputText
+                        v-model="data.description"
+                        class="p-inputtext p-component"
+                        @keydown.enter="(event) => onEditComplete(data, 'description', event)"
+                        @blur="(event) => onEditComplete(data, 'description', event)"
+                    />
+                </template>
+            </Column>
             <Column field="parameters" header="Parameters" class="sr-par-fmt">
                 <template #header>
                     <i 

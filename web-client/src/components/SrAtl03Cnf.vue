@@ -32,25 +32,9 @@ const reqParamsStore = useReqParamsStore();
                 tooltipText="The surface type used in the ATL03 photon classification"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
-            <SrMultiSelectText
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
-                label="Signal Confidence"
-                ariaLabel="Signal Confidence"
-                :menuOptions="reqParamsStore.signalConfidenceOptions"
-                :default="[
-                    reqParamsStore.signalConfidenceOptions[2],
-                    reqParamsStore.signalConfidenceOptions[3],
-                    reqParamsStore.signalConfidenceOptions[4],
-                    reqParamsStore.signalConfidenceOptions[5],
-                    reqParamsStore.signalConfidenceOptions[6]
-                    ]"
-                @update:value="reqParamsStore.signalConfidence = $event"
-                tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
-            />
             <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
-                label="Signal Confidence #"
+                label="Signal Confidence"
                 ariaLabel="Signal Confidence"
                 :menuOptions="reqParamsStore.signalConfidenceNumberOptions"
                 :default="[

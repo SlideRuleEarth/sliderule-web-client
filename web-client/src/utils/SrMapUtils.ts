@@ -13,14 +13,16 @@ import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
-import { addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 
+const elevationColorMapStore = useElevationColorMapStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
@@ -97,27 +99,6 @@ export function drawGeoJson(geoJsonData:string) {
     return null;
 }
 
-// Helper function to interpolate between two colors
-function interpolateColor(color1: number[], color2: number[], factor: number = 0.5, alpha: number = 255): number[] {
-    factor = Math.max(0, Math.min(1, factor)); // Clamp factor between 0 and 1
-  
-    const result = color1.slice();
-    for (let i = 0; i < 3; i++) {
-      result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
-    }
-    result[3] = alpha; 
-    return result;
-  };
-  
-// Function to get color for elevation
-function getColorForElevation(elevation:number, minElevation:number, maxElevation:number) {
-    const purple = [100, 0, 100]; // RGB for purple
-    const yellow = [255, 255, 0]; // RGB for yellow
-    const factor = (elevation - minElevation) / (maxElevation - minElevation);
-    return interpolateColor(purple, yellow, factor);
-}
-
-
 function formatObject(obj: { [key: string]: any }): string {
     return Object.entries(obj)
       .map(([key, value]) => `${key}: ${value}`)
@@ -161,7 +142,8 @@ export interface ElevationDataItem {
 
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
-    useAtlChartFilterStore().setClearPlot();
+    useAtlChartFilterStore().resetTheScatterPlot();
+    atl03ColorMapStore.setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
@@ -239,23 +221,6 @@ async function clicked(d:ElevationDataItem): Promise<void> {
 
 }
 
-function checkFilter(d:ElevationDataItem): boolean {
-    let matched = false;
-    if(d.gt){ // atl06
-        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
-                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getBeamValues()[0]== d.gt));
-    } else {
-        matched = ( (useAtlChartFilterStore().getRgtValues()[0] == d.rgt) && 
-                    (useAtlChartFilterStore().getCycleValues()[0] == d.cycle) && 
-                    (useAtlChartFilterStore().getTrackValues()[0] == d.track) && 
-                    (useAtlChartFilterStore().getScOrientValues()[0] == d.sc_orient) && 
-                    (useAtlChartFilterStore().getPairValues()[0] == d.pair));
-    }
-    return matched;
-}
-// [255, 0, 0, 255]; // red
-
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
     return new PointCloudLayer({
         id: name,
@@ -308,7 +273,11 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         getNormal: [0, 0, 1],
         getColor: (d) => {
-            return getColorForElevation(d[heightFieldName], extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+            const h = d[heightFieldName];
+            const c = elevationColorMapStore.getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+            c[3] = 255; // Set the alpha channel to 255 (fully opaque)
+            //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
+            return c;
         },
         pointSize: 3,
         pickable: true, // Enable picking

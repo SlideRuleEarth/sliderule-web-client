@@ -322,7 +322,9 @@ export class DuckDBClient {
       if (!this._filesInDb.has(name)) {
         const duckDB = await this.duckDB();
         const opfsRoot = await navigator.storage.getDirectory();
-        const fileHandle = await opfsRoot.getFileHandle(name, { create: false });
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+        const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
         let isRegistered = false;

@@ -9,14 +9,6 @@ export const useRequestsStore = defineStore('requests', {
   state: () => ({
     reqs: [] as SrRequestRecord[],
     reqIsLoading: {} as { [reqId: number]: boolean },
-    // columns: [
-    //   { field: 'req_id', header: 'ID', tooltip: 'Unique ID' },
-    //   { field: 'status', header: 'Status', tooltip: 'Request Status' },
-    //   { field: 'func', header: 'Function', tooltip: 'Function Used in Request'},
-    //   { field: 'parameters', header: 'Parameters', tooltip: 'Request Parameters'},
-    //   { field: 'num_bytes', header: 'Size', tooltip: 'Number of Bytes Returned'},
-    //   { field: 'elapsed_time', header: 'Elapsed Time', tooltip: 'Time taken to complete the request'},
-    // ],
     error_in_req: [] as boolean[],
     liveRequestsQuerySubscription: null as any,
     msg:'ready',
@@ -135,7 +127,7 @@ export const useRequestsStore = defineStore('requests', {
           this.reqs = updatedReqs;
           this.autoFetchError = false; // Clear any previous error messages
           this.autoFetchErrorMsg = ''; // Clear any previous error messages
-          console.log('Requests automagically updated:', this.reqs);
+          //console.log('Requests automagically updated:', this.reqs);
         },
         error: (err) => {
           console.error('Failed to update requests due to:', err);

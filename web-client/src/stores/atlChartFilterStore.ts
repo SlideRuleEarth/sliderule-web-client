@@ -36,13 +36,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xDataForChart: 'x_atc' as string,
     ndxOfelevationDataOptionsForHeight: 0,
     func: 'xxx' as string,
+    description: 'xxx' as string,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     size: NaN as number,
     isLoading: false as boolean,
-    clearPlot: false as boolean,
+    clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
     atl03QuerySql: '' as string,
     atl06QuerySql: '' as string,  
@@ -142,7 +143,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
-
     setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
@@ -270,6 +270,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getFunc() {
       return this.func;
     },
+    setDescription(description: string) {
+      this.description = description;
+    },
+    getDescription() {
+      return this.description;
+    },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
     },
@@ -364,14 +370,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
       return this.isLoading;
     },
-    setClearPlot() {
-      this.clearPlot = true;
+    resetTheScatterPlot() {
+      this.clearScatterPlotFlag = true;
     },
-    resetClearPlot() {
-      this.clearPlot = false;
+    resetClearScatterPlotFlag() {
+      this.clearScatterPlotFlag = false;
     },
     getClearPlot() {
-      return this.clearPlot;
+      return this.clearScatterPlotFlag;
     },
     setAtl03QuerySql(sql: string) {
       this.atl03QuerySql = sql;

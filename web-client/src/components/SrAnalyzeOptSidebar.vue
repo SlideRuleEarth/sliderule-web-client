@@ -20,12 +20,15 @@ import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrient
 import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { getColorMapOptions } from '@/utils/colorUtils';
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
+const colorMapStore = useElevationColorMapStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -51,8 +54,9 @@ const props = defineProps({
     startingReqId: Number,
 });
 
-const defaultMenuItemIndex = ref(0);
+const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
+const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
@@ -73,23 +77,23 @@ onMounted(async() => {
         console.log('onMounted props.startingReqId:',props.startingReqId)
         if (props.startingReqId){ // from the route parameter
             const startId = props.startingReqId.toString()
-            defaultMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
-            //console.log('defaultMenuItemIndex:', defaultMenuItemIndex.value);
-            selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+            defaultReqIdMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
+            //console.log('defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
+            selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
         } else {
-            defaultMenuItemIndex.value = 0;
+            defaultReqIdMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
         let req_id = Number(selectedReqId.value.value);
         console.log('onMounted selectedReqId:', req_id);
-        //console.log('reqIds:', reqIds.value, 'defaultMenuItemIndex:', defaultMenuItemIndex.value);
+        //console.log('reqIds:', reqIds.value, 'defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
         // These update the dynamic options for the these components
     } catch (error) {
         console.error('onMounted Failed to load menu items:', error);
     } finally {
         loading.value = false;
-        //console.log('Mounted SrAnalyzeOptSidebar with defaultMenuItemIndex:',defaultMenuItemIndex);
-        //selectedReqId.value = reqIds.value[defaultMenuItemIndex.value];
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:',defaultReqIdMenuItemIndex);
+        //selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
         atlChartFilterStore.setFunc(await db.getFunc(req_id));
         console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
@@ -187,10 +191,78 @@ const tracksSelection = () => {
     debouncedOnSelection();
 };
 
-const symbolSizeSelection = () => {
-    console.log('symbolSizeSelection:');
-    debouncedOnSelection();
+const updateElevationMap = async (req_id: number) => {
+    console.log('updateElevationMap req_id:', req_id);
+    curReqSumStore.setReqId(req_id);
+    try {
+        // atlChartFilterStore.setReqId(req_id);
+        // atlChartFilterStore.setFileName(await db.getFilename(req_id));
+        // atlChartFilterStore.setFunc(await db.getFunc(req_id));
+        // atlChartFilterStore.setDescription(await db.getDescription(req_id));
+        // atlChartFilterStore.setSize(await db.getNumBytes(req_id));
+
+        atlChartFilterStore.setReqId(req_id);
+        const request = await db.getRequest(req_id);
+        console.log('Request:', request);
+        if(request && request.file){
+            atlChartFilterStore.setFileName(request.file);
+        } else {
+            console.error('No file found for req_id:', req_id);
+        }
+        if(request && request.func){
+            atlChartFilterStore.setFunc(request.func);
+        } else {
+            console.error('No func found for req_id:', req_id);
+        }
+        if(request && request.description){
+            atlChartFilterStore.setDescription(request.description);
+        } else {
+            // this is not an error, just a warning
+            console.warn('No description found for req_id:', req_id);
+        }
+        if(request && request.num_bytes){
+            atlChartFilterStore.setSize(request.num_bytes);
+        } else {
+            console.error('No num_bytes found for req_id:', req_id);
+        }
+
+        deckStore.deleteSelectedLayer();
+        console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
+        updateElevationForReqId(atlChartFilterStore.getReqId());
+        //console.log('watch req_id SrAnalyzeOptSidebar');
+        const rgts = await updateRgtOptions(req_id);
+        //console.log('watch req_id rgts:',rgts);
+        const cycles = await updateCycleOptions(req_id);
+        //console.log('watch req_id cycles:',cycles);
+        if(atlChartFilterStore.getFunc().includes('atl03')){
+            const pairs = await updatePairOptions(req_id);
+            //console.log('watch req_id pairs:',pairs);
+            const scOrients = await updateScOrientOptions(req_id);
+            //console.log('watch req_id scOrients:',scOrients);
+            const tracks = await updateTrackOptions(req_id);
+            //console.log('watch req_id tracks:',tracks);
+        }
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+    try {
+        console.log('pushing selectedReqId:', req_id);
+        router.push(`/analyze/${useCurReqSumStore().getReqId()}`);
+        console.log('Successfully navigated to analyze:', useCurReqSumStore().getReqId());
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
+    }
+    
 };
+
+
+watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
+    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    colorMapStore.setElevationColorMap(newColorMap.value.value);
+    colorMapStore.updateElevationColorMapValues();
+    //console.log('Color Map:', colorMapStore.getElevationColorMap());
+    updateElevationForReqId(atlChartFilterStore.getReqId());
+}, { deep: true, immediate: true });
 
 watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
@@ -210,36 +282,9 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         }
         //console.log('Using filtered newSelection:', newSelection);
         const req_id = Number(newSelection.value)
-        curReqSumStore.setReqId(req_id);
-        atlChartFilterStore.setReqId(req_id);
-        atlChartFilterStore.setFileName(await db.getFilename(Number(newSelection.value)));
-        atlChartFilterStore.setFunc(await db.getFunc(Number(selectedReqId.value.value)));
-        atlChartFilterStore.setSize(await db.getNumBytes(Number(selectedReqId.value.value)));
-        deckStore.deleteSelectedLayer();
-        console.log('Selected request:', newSelection.value, 'func:', atlChartFilterStore.getFunc());
-        updateElevationForReqId(atlChartFilterStore.getReqId());
-        console.log('watch req_id SrAnalyzeOptSidebar');
-        const rgts = await updateRgtOptions(req_id);
-        console.log('watch req_id rgts:',rgts);
-        const cycles = await updateCycleOptions(req_id);
-        console.log('watch req_id cycles:',cycles);
-        if(atlChartFilterStore.getFunc().includes('atl03')){
-            const pairs = await updatePairOptions(req_id);
-            console.log('watch req_id pairs:',pairs);
-            const scOrients = await updateScOrientOptions(req_id);
-            console.log('watch req_id scOrients:',scOrients);
-            const tracks = await updateTrackOptions(req_id);
-            console.log('watch req_id tracks:',tracks);
-        }
+        updateElevationMap(req_id);
     } catch (error) {
         console.error('Failed to update selected request:', error);
-    }
-    try {
-        console.log('pushing selectedReqId:', newSelection.value);
-        router.push(`/analyze/${useCurReqSumStore().getReqId()}`);
-        console.log('Successfully navigated to analyze:', useCurReqSumStore().getReqId());
-    } catch (error) {
-        console.error('Failed to navigate to analyze:', error);
     }
 
 }, { deep: true, immediate: true });
@@ -260,13 +305,17 @@ const getSize = computed(() => {
                     label="Request Id" 
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
-                    :defaultOptionIndex="Number(defaultMenuItemIndex)"
-                    tooltipText="Request Id from Record table"/> 
+                    :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
+                    tooltipText="Request Id from Record table"
+                />
             </div>
             <div class="sr-analysis-sz" v-if="!loading">
                 {{ getSize }} 
             </div>
         </div>
+        </div>
+        <div class="sr-req-description">
+            {{ atlChartFilterStore.getDescription() }}
         </div>
         <div>
             <FieldSet class="sr-map-fieldset" legend="Elevation Plot Options" :toggleable="true" :collapsed="true">
@@ -280,7 +329,13 @@ const getSize = computed(() => {
                         :defaultValue="1000000"
                         :decimalPlaces=0
                         tooltipText="Maximum number of points to display"
-                    />           
+                    />
+                    <SrMenuInput 
+                        label="Color Map" 
+                        :menuOptions="getColorMapOptions()" 
+                        v-model="selectedElevationColorMap"
+                        tooltipText="Color Map for elevation plot"
+                    /> 
                 </div>
             </FieldSet>
         </div>
@@ -314,63 +369,28 @@ direction."
                     tooltipText="ATLAS laser beams are divided into weak and strong beams"
                     @update:modelValue="BeamSelection"
                 />
+            <div class="sr-rgts-cycles-panel">
+                <SrListbox id="rgts"
+                    label="Rgt(s)" 
+                    v-model="atlChartFilterStore.rgts" 
+                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                    :menuOptions="rgtsOptions" 
+                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+    vector within the observatory is pointed" 
+                    @update:modelValue="RgtsSelection"
+                />
+                <SrListbox id="cycles" 
+                    label="Cycle(s)" 
+                    v-model="atlChartFilterStore.cycles"
+                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                    :menuOptions="cyclesOptions" 
+                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                    @update:modelValue="CyclesSelection"
+                />
+            </div>
         </div>
-        <div class="sr-rgts-cycles-panel">
-            <SrListbox id="rgts"
-                label="Rgt(s)" 
-                v-model="atlChartFilterStore.rgts" 
-                :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                :menuOptions="rgtsOptions" 
-                tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-vector within the observatory is pointed" 
-                @update:modelValue="RgtsSelection"
-            />
-            <SrListbox id="cycles" 
-                label="Cycle(s)" 
-                v-model="atlChartFilterStore.cycles"
-                :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                :menuOptions="cyclesOptions" 
-                tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                @update:modelValue="CyclesSelection"
-            />
-        </div>
-        <FieldSet class="sr-scatterplot-fieldset" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
-            <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl03')"
-                v-model="atlChartFilterStore.atl03SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl03 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl03SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl03 Scatter Plot"
-              />
-              <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl06')"
-                v-model="atlChartFilterStore.atl06SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl06 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl06SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl06 Scatter Plot"
-              />
-              <SrSliderInput
-                v-if = "atlChartFilterStore.getFunc().includes('atl08')"
-                v-model="atlChartFilterStore.atl08SymbolSize"
-                @update:model-value="symbolSizeSelection"
-                label="Atl08 Scatter Plot symbol size"
-                :min="1"
-                :max="20"
-                :defaultValue="atlChartFilterStore.atl08SymbolSize"
-                :decimalPlaces=0
-                tooltipText="Symbol size for Atl08 Scatter Plot"
-              />
-        </FieldSet>
         <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" v-tooltip="spotPatternBriefStr">
             <div class="sr-user-guide-link">
                 <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank" v-tooltip="spotPatternDetailsStr">Photon Data User Guide</a>
@@ -463,6 +483,21 @@ vector within the observatory is pointed"
         max-height: 30%;
         min-width: 30vw;
         width: 100%;
+    }
+    
+    .sr-req-description {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0.25rem;
+        margin-top: 0.125rem;
+        font-size: smaller;
+        border: 1px solid;
+        padding: 0.25rem;
+        border-radius: var(--p-border-radius);
+        color: #888; /*  grey color */
+ 
     }
 
     .sr-fieldset {

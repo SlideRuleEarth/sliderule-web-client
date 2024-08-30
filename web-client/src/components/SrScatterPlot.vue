@@ -2,17 +2,73 @@
   <div class="sr-scatter-plot-header">
     <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
     <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-    <SrSqlStmnt />
     <div class="sr-multiselect-container">
-      <SrMultiSelectText 
-        v-model="atlChartFilterStore.yDataForChart"
-        label="Choose" 
-        @update:modelValue="changedYValues"
-        menuPlaceholder="Select elevation data"
-        :menuOptions="atlChartFilterStore.getElevationDataOptions()"
-        :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
-      />  
+        <SrMultiSelectText 
+          v-model="atlChartFilterStore.yDataForChart"
+          label="Choose" 
+          @update:modelValue="changedYValues"
+          menuPlaceholder="Select elevation data"
+          :menuOptions="atlChartFilterStore.getElevationDataOptions()"
+          :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
+        />  
     </div>
+    <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+      <SrMenu 
+          v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+          label="Color Map Key" 
+          v-model="atl03ColorMapStore.atl03ColorKey"
+          @update:modelValue="changedColorKey"
+          :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
+          :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
+          :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
+          tooltipText="Data key for Color of atl03 scatter plot"
+      /> 
+      <SrMenuInput 
+          v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
+          label="Color Map" 
+          :menuOptions="getColorMapOptions()" 
+          v-model="selectedAtl03ColorMap"
+          tooltipText="Color Map for atl03 scatter plot"
+      />
+      <SrAtl03CnfColors 
+        v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+        @selectionChanged="atl03CnfColorChanged"
+      />
+      <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+        v-model="atlChartFilterStore.atl03SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl03 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl03SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl03 Scatter Plot"
+      />
+      <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+        v-model="atlChartFilterStore.atl06SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl06 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl06SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl06 Scatter Plot"
+      />
+      <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+        v-model="atlChartFilterStore.atl08SymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl08 Scatter Plot symbol size"
+        :min="1"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl08SymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl08 Scatter Plot"
+      />
+      <SrSqlStmnt />
+    </Fieldset> 
   </div>
   <v-chart  ref="plotRef" 
             class="scatter-chart" 
@@ -24,14 +80,15 @@
               fontSize:20, 
               showSpinner: true, 
               zlevel:100
-            }" />
+            }" 
+  />
 </template>
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
+import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
@@ -39,25 +96,32 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
 import SrSqlStmnt from "./SrSqlStmnt.vue";
+import SrSliderInput from "./SrSliderInput.vue";
+import Fieldset from "primevue/fieldset";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
+import SrMenuInput from "./SrMenuInput.vue";
+import SrMenu from "./SrMenu.vue";
+import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
+import { getColorMapOptions } from '@/utils/colorUtils';
+import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const curReqSumStore = useCurReqSumStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 
-use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent]);
+use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 
+const selectedAtl03ColorMap = ref({name:'viridis', value:'viridis'});
 const option = shallowRef();
-//const computedIsLoading = computed(() => atlChartFilterStore.getIsLoading());
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
   const y_options = atlChartFilterStore.yDataForChart;
   if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
     atlChartFilterStore.setShowMessage(false);
-    //await nextTick(); // Wait for the DOM to update
     const startTime = performance.now(); // Start time
     console.log('fetchScatterOptions started... startTime:',startTime)
     try {
@@ -100,7 +164,16 @@ const fetchScatterOptions = async () => {
 };
 
 onMounted(async () => {
+  atl03ColorMapStore.initializeAtl03ColorMapStore();
   const reqId = curReqSumStore.getReqId();
+  const func = await indexedDb.getFunc(reqId);
+  if (func === 'atl03') {
+    atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+  } else if (func === 'atl06') {
+    atl03ColorMapStore.setAtl03ColorKey('YAPC');
+  } else if (func === 'atl08') {
+    atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+  }
   if (reqId > 0) {
     debouncedFetchScatterOptions();
   } else {
@@ -119,13 +192,24 @@ function clearPlot() {
     console.warn('plotRef.value is undefined');
   }
 }
+function changedColorKey() {
+  console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
+  atlChartFilterStore.resetTheScatterPlot();
+  debouncedFetchScatterOptions();
+}
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-watch(() => atlChartFilterStore.clearPlot, async (newState) => {
+const atl03CnfColorChanged = ({ label, color }) => {
+    console.log(`atl03CnfColorChanged received selection change: ${label} with color ${color}`);
+    clearPlot();
+    debouncedFetchScatterOptions();
+  };
+
+watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
   if (newState === true) {
     clearPlot();
-    atlChartFilterStore.resetClearPlot();
+    atlChartFilterStore.resetClearScatterPlotFlag();
   }
 }, { deep: true });
 
@@ -146,8 +230,6 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
   debouncedFetchScatterOptions();
 });
 
-
-
 const messageClass = computed(() => {
   return {
     'message': true,
@@ -155,6 +237,20 @@ const messageClass = computed(() => {
     'message-yellow': atlChartFilterStore.getIsWarning()
   };
 });
+
+const symbolSizeSelection = () => {
+    clearPlot();
+    debouncedFetchScatterOptions();
+};
+
+watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
+    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
+    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
+    debouncedFetchScatterOptions();
+  }, { deep: true, immediate: true });
+
 
 </script>
 
@@ -178,6 +274,15 @@ const messageClass = computed(() => {
   padding: 1rem;
   overflow-y: auto;
   overflow-x: auto;
+  width: auto;
+}
+
+.sr-scatter-plot-options {
+  display: flex; 
+  flex-direction: column;
+  align-items: self-start;
+  margin: 0.5rem;
+  width: auto; /* Add this line to ensure it only takes as much width as needed */
 }
 
 .sr-multiselect-container {
@@ -190,6 +295,8 @@ const messageClass = computed(() => {
 
 .sr-sql-stmnt-display-parms {
   display: flex;
+  flex-direction: column;
+  justify-content: left;
   align-items: left;
   margin-top: 0rem;
   overflow-y: auto;

@@ -69,6 +69,12 @@
                 :decimalPlaces=0
                 tooltipText="Point size for Elevation Plot"
                 />
+                <SrMenuInput 
+                        label="Num of Shades for Elevation Plot" 
+                        :menuOptions="colorMapStore.getNumOfElevationShadesOptions()" 
+                        v-model="selectedNumOfElevationShades"
+                        tooltipText="Number of shades for elevation plot"
+                />
             </div>
         </div>
     </div>
@@ -85,13 +91,18 @@
     import { useDebugStore } from '@/stores/debugStore';
     import { useDeckStore } from '@/stores/deckStore';
     import SrGraticuleSelect from './SrGraticuleSelect.vue';
+    import SrMenuInput from './SrMenuInput.vue';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-    
+    import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+    import { ref } from 'vue';
+
     const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const deckStore = useDeckStore();
+    const colorMapStore = useElevationColorMapStore();
+    const selectedNumOfElevationShades = ref(1024);
     // const handleUseChecksum = async (newValue: boolean) => {
     //   reqParamsStore.useChecksum = newValue;
     //   console.log('reqParamsStore.useChecksum :', reqParamsStore.useChecksum );

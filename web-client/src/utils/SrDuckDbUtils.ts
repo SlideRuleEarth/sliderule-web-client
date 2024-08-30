@@ -8,6 +8,9 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
+import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+
+const atl03ColorMapStore = useAtl03ColorMapStore();
 
 interface SummaryRowData {
     minLat: number;
@@ -129,41 +132,58 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
             // Calculate the offset for the query
             let offset = 0;
             let hasMoreData = true;
-            let numDataItems = 0;
+            let numDataItemsUsed = 0;
+            let numDataItemsProcessed = 0;
             const rowChunks: ElevationDataItem[] = [];
 
             while (hasMoreData) {
                 try{
+                    let sample_rate = 1;
                     // Execute the query
                     const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
                     if(result.totalRows){
                         console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
                         useMapStore().setTotalRows(result.totalRows);
+                        if (result.totalRows > maxNumPnts) {
+                            //sample_rate = Math.ceil(result.totalRows / maxNumPnts);
+                            sample_rate = Number((BigInt(result.totalRows) + BigInt(maxNumPnts) - 1n) / BigInt(maxNumPnts)); // Uses BigInt for division
+                            console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' totalRows:',result.totalRows, ' sample_rate:', sample_rate);
+                        }
+                    } else {
+                        if(result.schema === undefined){
+                            console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
+                        }
                     }
                     //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                     for await (const rowChunk of result.readRows()) {
-                        //console.log('duckDbReadAndUpdateElevationData chunk.length:', rowChunk.length);
                         if (rowChunk.length > 0) {
-                            if (numDataItems === 0) {
+                            if (numDataItemsUsed === 0) {
                                 // Assuming we only need to set field names once, during the first chunk processing
                                 const fieldNames = Object.keys(rowChunk[0]);
-                                //console.log('duckDbReadAndUpdateElevationData fieldNames:', fieldNames);
                                 await useAtlChartFilterStore().setElevationDataOptionsFromFieldNames(fieldNames);
                             }
-                            numDataItems += rowChunk.length;
-                            useMapStore().setCurrentRows(numDataItems);
-                            rowChunks.push(...rowChunk);
+                    
+                            // Use the sample rate to push every nth element
+                            for (let i = 0; i < rowChunk.length; i += sample_rate) {
+                                rowChunks.push(rowChunk[i]);
+                            }
+                    
+                            // Update the count of processed data items
+                            numDataItemsUsed += Math.ceil(rowChunk.length / sample_rate);
+                            useMapStore().setCurrentRows(numDataItemsUsed);
+                            numDataItemsProcessed += rowChunk.length;
+                            console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
                         }
                     }
-
-                    if (numDataItems === 0) {
+                    
+                    if (numDataItemsUsed === 0) {
                         console.warn('duckDbReadAndUpdateElevationData no data items processed');
                     } else {
                         //console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
                     }
                     hasMoreData = result.hasMoreData;
-                    if(numDataItems >= maxNumPnts){
-                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' SKIPPING rest of file!');
+                    if(numDataItemsUsed >= maxNumPnts){
+                        console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts,' numDataItemsUsed:',numDataItemsUsed, 'numDataItemsProcessed:',numDataItemsProcessed, ' SKIPPING rest of file!');
                         hasMoreData = false;
                     }
                     offset += chunkSize;
@@ -253,7 +273,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                 for await (const rowChunk of result.readRows()) {
                     //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
                     if (rowChunk.length > 0) {
-                       numDataItems += rowChunk.length;
+                        numDataItems += rowChunk.length;
                         rowChunks.push(...rowChunk);
                         // Read and process each chunk from the QueryResult
                         //console.log('duckDbReadAndUpdateSelectedLayer rowChunks:', rowChunks);
@@ -348,9 +368,7 @@ async function fetchAtl03ScatterData(
                     }
                 }
             }
-            console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
-
-
+            //console.log('fetchAtl03ScatterData minMaxValues:', minMaxValues);
             const yColumns = y.join(", ");
             console.log('fetchAtl03ScatterData yColumns:', yColumns);
             let query = `
@@ -736,6 +754,30 @@ interface SrScatterSeriesData{
     min: number;
     max: number;
 };
+let debugCnt = 0;
+function getAtl03Color(params: any) {
+    if(debugCnt++ < 10){
+        console.log('Atl03ColorKey:', atl03ColorMapStore.getAtl03ColorKey());
+        console.log('getAtl03Color params.data:', params.data);
+    }
+    let colorStr = 'red';
+    let value = -1;
+    if(atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf'){ 
+        value = params.data[2];
+        colorStr = atl03ColorMapStore.getColorForAtl03CnfValue(value);
+    } else if(atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class'){
+        value = params.data[3];
+        colorStr = 'blue';
+    } else if(atl03ColorMapStore.getAtl03ColorKey() === 'YAPC'){ 
+        value = params.data[4];
+        const color = atl03ColorMapStore.getYapcColorForValue(value,0,255);
+        colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
+    }
+    if(debugCnt++ < 10){
+        console.log(`getAtl03Color value:${value} colorStr:${colorStr}`);
+    }
+    return colorStr;
+}
 
 async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
     console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
@@ -764,12 +806,26 @@ async function getSeriesForAtl03(fileName: string, x: string, y: string[]): Prom
                     name: `${name} - ${yName}`,
                     type: 'scatter',
                     data: data,
+                    itemStyle: {
+                        color: getAtl03Color,
+                    },
                     large: true,
                     largeThreshold: 100000,
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
                     symbolSize: useAtlChartFilterStore().getSymbolSize(),
                 },
+                // visualMap: {
+                //     min: 0, // Minimum value of the data range (adjust as per your data)
+                //     max: 255, // Maximum value of the data range (adjust as per your data)
+                //     calculable: true, // Make the visualMap interactive
+                //     inRange: {
+                //         color: atl03ColorMapStore.getSelectedAtl03ColorMap() // Use the colors generated by colormap
+                //     },
+                //     orient: 'vertical', // Orientation of the visualMap
+                //     left: 'right', // Position of the visualMap
+                //     top: 'center'
+                // },
                 min: min,
                 max: max
             };
@@ -914,12 +970,33 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                         formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
                     }
                 })),
-                series: seriesData.map(series => series.series)
-            };
+                series: seriesData.map(series => series.series),
+                dataZoom: [
+                    {
+                        type: 'slider', // This creates a slider to zoom in the X-axis
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'slider', // This creates a slider to zoom in the Y-axis
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0, // Adjusting for multiple y-axes if necessary
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
+                        filterMode: 'none',
+                    },
+                ],            };
         } else {
             console.warn('getScatterOptions seriesData is empty');
         }
-        //console.log('getScatterOptions options:', options);
+        console.log('getScatterOptions options:', options);
     } catch (error) {
         console.error('getScatterOptions Error:', error);
     } finally {
