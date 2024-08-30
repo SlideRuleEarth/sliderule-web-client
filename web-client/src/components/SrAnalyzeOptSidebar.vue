@@ -195,25 +195,52 @@ const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
     curReqSumStore.setReqId(req_id);
     try {
+        // atlChartFilterStore.setReqId(req_id);
+        // atlChartFilterStore.setFileName(await db.getFilename(req_id));
+        // atlChartFilterStore.setFunc(await db.getFunc(req_id));
+        // atlChartFilterStore.setDescription(await db.getDescription(req_id));
+        // atlChartFilterStore.setSize(await db.getNumBytes(req_id));
+
         atlChartFilterStore.setReqId(req_id);
-        atlChartFilterStore.setFileName(await db.getFilename(req_id));
-        atlChartFilterStore.setFunc(await db.getFunc(req_id));
-        atlChartFilterStore.setSize(await db.getNumBytes(req_id));
+        const request = await db.getRequest(req_id);
+        console.log('Request:', request);
+        if(request && request.file){
+            atlChartFilterStore.setFileName(request.file);
+        } else {
+            console.error('No file found for req_id:', req_id);
+        }
+        if(request && request.func){
+            atlChartFilterStore.setFunc(request.func);
+        } else {
+            console.error('No func found for req_id:', req_id);
+        }
+        if(request && request.description){
+            atlChartFilterStore.setDescription(request.description);
+        } else {
+            // this is not an error, just a warning
+            console.warn('No description found for req_id:', req_id);
+        }
+        if(request && request.num_bytes){
+            atlChartFilterStore.setSize(request.num_bytes);
+        } else {
+            console.error('No num_bytes found for req_id:', req_id);
+        }
+
         deckStore.deleteSelectedLayer();
         console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
-        console.log('watch req_id SrAnalyzeOptSidebar');
+        //console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
-        console.log('watch req_id rgts:',rgts);
+        //console.log('watch req_id rgts:',rgts);
         const cycles = await updateCycleOptions(req_id);
-        console.log('watch req_id cycles:',cycles);
+        //console.log('watch req_id cycles:',cycles);
         if(atlChartFilterStore.getFunc().includes('atl03')){
             const pairs = await updatePairOptions(req_id);
-            console.log('watch req_id pairs:',pairs);
+            //console.log('watch req_id pairs:',pairs);
             const scOrients = await updateScOrientOptions(req_id);
-            console.log('watch req_id scOrients:',scOrients);
+            //console.log('watch req_id scOrients:',scOrients);
             const tracks = await updateTrackOptions(req_id);
-            console.log('watch req_id tracks:',tracks);
+            //console.log('watch req_id tracks:',tracks);
         }
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -286,6 +313,9 @@ const getSize = computed(() => {
                 {{ getSize }} 
             </div>
         </div>
+        </div>
+        <div class="sr-req-description">
+            {{ atlChartFilterStore.getDescription() }}
         </div>
         <div>
             <FieldSet class="sr-map-fieldset" legend="Elevation Plot Options" :toggleable="true" :collapsed="true">
@@ -453,6 +483,21 @@ direction."
         max-height: 30%;
         min-width: 30vw;
         width: 100%;
+    }
+    
+    .sr-req-description {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0.25rem;
+        margin-top: 0.125rem;
+        font-size: smaller;
+        border: 1px solid;
+        padding: 0.25rem;
+        border-radius: var(--p-border-radius);
+        color: #888; /*  grey color */
+ 
     }
 
     .sr-fieldset {

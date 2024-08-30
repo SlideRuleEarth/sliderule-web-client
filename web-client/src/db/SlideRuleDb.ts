@@ -28,6 +28,7 @@ export interface SrRequestRecord {
     file?: string; // file name
     checksum?: bigint; // checksum
     num_bytes?: number; // number of bytes
+    description?: string; // description
 }
 
 export interface SrRequestSummary {
@@ -420,6 +421,19 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+    async getDescription(req_id:number): Promise<string> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return '';
+            }
+            return request.description || '';
+        } catch (error) {
+            console.error(`Failed to get description for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
     async getNumBytes(req_id:number): Promise<number> {
         try {
             if(req_id && req_id > 0){
@@ -540,7 +554,20 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-            
+
+    async getRequest(req_id:number): Promise<SrRequestRecord | undefined> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+            }
+            return request;
+        } catch (error) {
+            console.error(`Failed to get request for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
     // Function to add a new request with status 'pending'
     async addPendingRequest(): Promise<number> {
         try {
@@ -594,6 +621,7 @@ export class SlideRuleDexie extends Dexie {
             throw error; // Rethrowing the error for further handling if needed
         }
     }
+    
     async deleteAllRequests(): Promise<void> {
         try {
             // Delete all requests
@@ -637,18 +665,6 @@ export class SlideRuleDexie extends Dexie {
             throw error;  // Rethrowing the error for further handling if needed
         }
     }
-    
-    // async countElevationsByReqId(reqId: number): Promise<number> {
-    //     try {
-    //         // This line counts all elevations that match the given req_id
-    //         const count = await this.elevations.where({ req_id: reqId }).count();
-    //         console.log(`Number of elevations for req_id ${reqId}: ${count}`);
-    //         return count;
-    //     } catch (error) {
-    //         console.error(`Failed to count elevations for req_id ${reqId}:`, error);
-    //         throw error; // Rethrowing the error for further handling if needed
-    //     }
-    // }
 
     async updateSummary(summary: SrRequestSummary): Promise<void> {
         try {

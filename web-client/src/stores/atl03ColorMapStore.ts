@@ -120,7 +120,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             await db.setAllColors(namedColorPalette)
         },
         getNamedColorPalette() {
-            console.log('getNamedColorPalette:',this.namedColorPalette)
+            //console.log('getNamedColorPalette:',this.namedColorPalette)
             return this.namedColorPalette;
         }
     },

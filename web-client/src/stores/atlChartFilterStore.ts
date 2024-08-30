@@ -36,6 +36,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xDataForChart: 'x_atc' as string,
     ndxOfelevationDataOptionsForHeight: 0,
     func: 'xxx' as string,
+    description: 'xxx' as string,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
@@ -142,7 +143,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
       return this.cycles;
     },
-
     setTracks(tracks: SrListNumberItem[]) {
       this.tracks = tracks;
     },
@@ -269,6 +269,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getFunc() {
       return this.func;
+    },
+    setDescription(description: string) {
+      this.description = description;
+    },
+    getDescription() {
+      return this.description;
     },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
