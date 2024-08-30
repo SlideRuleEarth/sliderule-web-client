@@ -36,7 +36,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xDataForChart: 'x_atc' as string,
     ndxOfelevationDataOptionsForHeight: 0,
     func: 'xxx' as string,
-    description: 'xxx' as string,
+    description: 'description here' as string,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
