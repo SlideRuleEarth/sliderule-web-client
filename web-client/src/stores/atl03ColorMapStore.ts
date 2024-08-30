@@ -16,6 +16,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     }),
     actions: {
         async initializeAtl03ColorMapStore() {
+            console.log('initializeAtl03ColorMapStore isInitialized:',this.isInitialized);
             if(!this.isInitialized){
                 this.isInitialized = true;
                 this.atl03CnfColorMap = await db.getAllAtl03CnfColors();

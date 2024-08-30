@@ -128,7 +128,10 @@ export const deleteOpfsFile = async (filename:string) => {
             return;
         }
         const opfsRoot = await navigator.storage.getDirectory();
-        opfsRoot.removeEntry(filename);
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true });
+        directoryHandle.removeEntry(filename);
+        console.log('deleteOpfsFile Successfully deleted:',filename);
     } catch (error) {
         const errorMsg = `Failed to delete file: ${filename} error: ${error}`;
         console.error('deleteOpfsFile error:',errorMsg);

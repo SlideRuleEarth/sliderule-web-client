@@ -59,11 +59,11 @@
     const selectedMenuItem = computed({
         get() {
             const menuItem = props.getSelectedMenuItem();
-            console.log('SrMenu:', props.label, 'get:', menuItem);
+            //console.log('SrMenu:', props.label, 'get:', menuItem);
             return menuItem; // calling the getter function
         },
         set(value) {
-            console.log('SrMenu:', props.label, 'set:', value)
+            //console.log('SrMenu:', props.label, 'set:', value)
             props.setSelectedMenuItem(value); // calling the setter function
         }
     });

@@ -105,22 +105,19 @@ onmessage = async (event) => {
         let arrowMetaFileOffset: number = 0;
         let arrowCbNdx = -1;
 
-        const fileName = `${cmd.func}_${reqID}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}.parquet`;
         const outputFormat = req.parms.output?.format;
         const opfsRoot = await navigator.storage.getDirectory();
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true });
+        const fileName = `${cmd.func}_${reqID}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}.parquet`;
         console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
-        //let syncAccessHandle: any;
-        //if(fileName){
-            const fileHandle = await opfsRoot.getFileHandle(fileName, {
-                create: true,
-            });
-            console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' fileHandle:', fileHandle);
-            const syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
-            console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' syncAccessHandle:', syncAccessHandle);
-            await db.updateRequestRecord( {req_id:reqID, file:fileName});
-        //} else {
-        //    console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName was not provided.');
-        //}
+
+        const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+        console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' fileHandle:', fileHandle);
+        const syncAccessHandle = await (fileHandle as any).createSyncAccessHandle();
+        console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' syncAccessHandle:', syncAccessHandle);
+        await db.updateRequestRecord( {req_id:reqID, file:fileName});
+
         if((reqID) && (reqID > 0)){
             num_checks = 0;
             startedMsg(reqID,req);

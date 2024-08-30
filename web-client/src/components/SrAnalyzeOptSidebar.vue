@@ -233,7 +233,7 @@ watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {
     console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
     colorMapStore.setElevationColorMap(newColorMap.value.value);
     colorMapStore.updateElevationColorMapValues();
-    console.log('Color Map:', colorMapStore.getElevationColorMap());
+    //console.log('Color Map:', colorMapStore.getElevationColorMap());
     updateElevationForReqId(atlChartFilterStore.getReqId());
 }, { deep: true, immediate: true });
 

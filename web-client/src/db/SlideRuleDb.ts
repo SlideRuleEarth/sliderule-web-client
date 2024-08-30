@@ -42,8 +42,8 @@ export interface SrColors {
 }
 
 export interface Atl03CnfColor {
-    color: string; // Primary key
-    number: number; // New number column
+    number: number; // Primary key
+    color: string;  // 
 }
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
@@ -58,8 +58,8 @@ export class SlideRuleDexie extends Dexie {
         this.version(1).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, req_id', 
-            colors: '&color', // Add the colors table 
-            atl03CnfColors: '&color, number' // Add the colors table   
+            colors: '&color',  
+            atl03CnfColors: 'number, &color' 
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -90,13 +90,21 @@ export class SlideRuleDexie extends Dexie {
     async restoreDefaultColors(): Promise<void> {
         try {
             const defaultColors: SrColors[] = [
-                { color: 'red' },
-                { color: 'orange' },
+                { color: 'gray' },
+                { color: 'slategray' },
                 { color: 'yellow' },
                 { color: 'green' },
                 { color: 'blue' },
                 { color: 'indigo' },
-                { color: 'violet' }
+                { color: 'violet' },
+                { color: 'red' },
+                { color: 'orange' },
+                { color: 'purple' },
+                { color: 'pink' },
+                { color: 'brown' },
+                { color: 'black' },
+                { color: 'white' },
+                { color: 'cyan' },
             ];
 
             // Clear existing entries in the table
@@ -182,13 +190,13 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Define default color-number pairs
             const defaultAtl03CnfColors: Atl03CnfColor[] = [
-                { color: 'red', number: -2 },
-                { color: 'orange', number: -1 },
-                { color: 'yellow', number: 0 },
-                { color: 'green', number: 1 },
-                { color: 'blue', number: 2 },
-                { color: 'indigo', number: 3 },
-                { color: 'violet', number: 4 }
+                { number: -2, color: 'gray' },
+                { number: -1, color: 'slategray' },
+                { number: 0, color: 'yellow' },
+                { number: 1, color: 'green' },
+                { number: 2, color: 'blue' },
+                { number: 3, color: 'violet' },
+                { number: 4, color: 'red' }
             ];
 
             // Clear existing entries in the table
@@ -221,8 +229,8 @@ export class SlideRuleDexie extends Dexie {
 
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
-                await this.atl03CnfColors.put({ number, color });
-                console.log(`Number updated in atl03CnfColors: ${number}, ${color}`);
+                await this.atl03CnfColors.put({ color,number });
+                console.log(`Number updated in atl03CnfColors: ${color},${number}`);
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl03CnfColors.count();

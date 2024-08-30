@@ -71,7 +71,9 @@ const exportFile = async (req_id:number) => {
     try {
         const fileName = await db.getFilename(req_id);
         const opfsRoot = await navigator.storage.getDirectory();
-        const fileHandle = await opfsRoot.getFileHandle(fileName, {create:false});
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+        const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
         // Create a download link and click it programmatically

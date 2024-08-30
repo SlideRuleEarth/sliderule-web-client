@@ -165,6 +165,14 @@ const fetchScatterOptions = async () => {
 onMounted(async () => {
   atl03ColorMapStore.initializeAtl03ColorMapStore();
   const reqId = curReqSumStore.getReqId();
+  const func = await indexedDb.getFunc(reqId);
+  if (func === 'atl03') {
+    atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+  } else if (func === 'atl06') {
+    atl03ColorMapStore.setAtl03ColorKey('YAPC');
+  } else if (func === 'atl08') {
+    atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+  }
   if (reqId > 0) {
     debouncedFetchScatterOptions();
   } else {
