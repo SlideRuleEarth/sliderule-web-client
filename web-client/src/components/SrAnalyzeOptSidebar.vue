@@ -326,7 +326,7 @@ const getSize = computed(() => {
                         label="Max Num Pnts"
                         :min="10000"
                         :max="5000000"
-                        :defaultValue="1000000"
+                        :defaultValue="100000"
                         :decimalPlaces=0
                         tooltipText="Maximum number of points to display"
                     />

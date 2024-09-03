@@ -21,6 +21,7 @@ interface SummaryRowData {
     maxHMean: number;
     lowHMean: number;
     highHMean: number;
+    numPoints: number;
 }
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
@@ -35,6 +36,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
             const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
             const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
             const duckDbClient = await createDuckDbClient();
+            let numPoints = 0;
 
             try {
                 await duckDbClient.insertOpfsParquet(filename);
@@ -49,8 +51,9 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                         MIN(${duckDbClient.escape(height_fieldname)}) as minHMean,
                         MAX(${duckDbClient.escape(height_fieldname)}) as maxHMean,
                         PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc10HMean,
-                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc90HMean
-                    FROM
+                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc90HMean,
+                        COUNT(*) as numPoints
+                        FROM
                         '${filename}'
                 `);
 
@@ -66,7 +69,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                             minHMean: row.minHMean,
                             maxHMean: row.maxHMean,
                             lowHMean: row.perc10HMean,
-                            highHMean: row.perc90HMean
+                            highHMean: row.perc90HMean,
+                            numPoints: row.numPoints
                         };
                         rows.push(typedRow);
                     }
@@ -82,7 +86,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.maxHMean = row.maxHMean;
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
-                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean });
+                    numPoints = row.numPoints;
+                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
                 } else {
                     throw new Error('No rows returned');
                 }
@@ -98,7 +103,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     }
 }
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
+export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnts=100000, chunkSize:number=100000) => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
@@ -116,8 +121,20 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
 
         if (summary) {
             useCurReqSumStore().setSummary(summary);
+            console.log ('duckDbReadAndUpdateElevationData typeof(summary.numPoints):', typeof(summary.numPoints));
+            let sample_fraction = 1.0;
+            const numPointsStr = summary.numPoints;
+            const numPoints = parseInt(String(numPointsStr));
+            console.log ('duckDbReadAndUpdateElevationData typeof numPoints:', typeof(numPoints));
+            console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
 
-            // Step 1: Initialize the DuckDB client
+            try{
+                sample_fraction = maxNumPnts /numPoints; // Do the arithmetic in BigInt
+            } catch (error) {
+                console.error('duckDbReadAndUpdateElevationData sample_fraction error:', error);
+            }
+            console.warn('duckDbReadAndUpdateElevationData maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
+                        // Step 1: Initialize the DuckDB client
             const duckDbClient = await createDuckDbClient();
 
             // Step 2: Retrieve the filename using req_id
@@ -138,17 +155,14 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
 
             while (hasMoreData) {
                 try{
-                    let sample_rate = 1;
                     // Execute the query
-                    const result = await duckDbClient.queryChunk(`SELECT * FROM '${filename}'`, chunkSize, offset);
+                    const result = await duckDbClient.queryChunkSampled(`SELECT * FROM '${filename}'`, 
+                                                                        chunkSize, 
+                                                                        offset,
+                                                                        sample_fraction);
                     if(result.totalRows){
                         console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
                         useMapStore().setTotalRows(result.totalRows);
-                        if (result.totalRows > maxNumPnts) {
-                            //sample_rate = Math.ceil(result.totalRows / maxNumPnts);
-                            sample_rate = Number((BigInt(result.totalRows) + BigInt(maxNumPnts) - 1n) / BigInt(maxNumPnts)); // Uses BigInt for division
-                            console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts, ' totalRows:',result.totalRows, ' sample_rate:', sample_rate);
-                        }
                     } else {
                         if(result.schema === undefined){
                             console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
@@ -164,14 +178,14 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
                             }
                     
                             // Use the sample rate to push every nth element
-                            for (let i = 0; i < rowChunk.length; i += sample_rate) {
+                            for (let i = 0; i < rowChunk.length; i++) {
                                 rowChunks.push(rowChunk[i]);
                             }
                     
                             // Update the count of processed data items
-                            numDataItemsUsed += Math.ceil(rowChunk.length / sample_rate);
+                            numDataItemsUsed += rowChunk.length;
                             useMapStore().setCurrentRows(numDataItemsUsed);
-                            numDataItemsProcessed += rowChunk.length;
+                            numDataItemsProcessed += chunkSize;
                             console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
                         }
                     }
@@ -205,6 +219,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, chunkSize
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
     }
 };
+
 
 
 export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
@@ -754,6 +769,7 @@ interface SrScatterSeriesData{
     min: number;
     max: number;
 };
+
 let debugCnt = 0;
 function getAtl03Color(params: any) {
     if(debugCnt < 1){
@@ -767,7 +783,7 @@ function getAtl03Color(params: any) {
         colorStr = atl03ColorMapStore.getColorForAtl03CnfValue(value);
     } else if(atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class'){
         value = params.data[3];
-        colorStr = 'blue';
+        colorStr = atl03ColorMapStore.getColorForAtl08ClassValue(value);
     } else if(atl03ColorMapStore.getAtl03ColorKey() === 'YAPC'){ 
         value = params.data[4];
         const color = atl03ColorMapStore.getYapcColorForValue(value,0,255);

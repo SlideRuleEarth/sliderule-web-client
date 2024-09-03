@@ -53,6 +53,7 @@ export interface ExtHMean {
 export interface WorkerSummary extends WorkerMessage {
     extLatLon: ExtLatLon;
     extHMean: ExtHMean;
+    numPoints: number;
 }
 
 export async function startedMsg(req_id:number,req_params:ReqParams): Promise<WorkerMessage>{

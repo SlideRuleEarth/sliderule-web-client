@@ -221,9 +221,9 @@ export const updateElevationForReqId = async (req_id:number) => {
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
-            const chunkSize = useSrParquetCfgStore().chunkSizeToRead;
+            console.log('updateElevationForReqId maxNumPntsToDisplay:',maxNumPnts);
             if(req_id >0 ){
-                await duckDbReadAndUpdateElevationData(req_id,chunkSize,maxNumPnts);
+                await duckDbReadAndUpdateElevationData(req_id, maxNumPnts);
             } else {
                 console.warn('updateElevationForReqId req_id is 0');
             }

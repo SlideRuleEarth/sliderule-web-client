@@ -36,6 +36,7 @@ export interface SrRequestSummary {
     req_id?: number;
     extLatLon: ExtLatLon;
     extHMean: ExtHMean;
+    numPoints: number;
 }
 
 export interface SrColors {
