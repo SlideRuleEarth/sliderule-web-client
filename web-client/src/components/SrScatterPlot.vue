@@ -33,6 +33,12 @@
       <SrAtl03CnfColors 
         v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
         @selectionChanged="atl03CnfColorChanged"
+        @defaultsChanged="atl03CnfColorChanged"
+        />
+      <SrAtl08ClassColors 
+        v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
+        @selectionChanged="atl08ClassColorChanged"
+        @defaultsChanged="atl08ClassColorChanged"
       />
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
@@ -103,6 +109,7 @@ import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
 import SrMenu from "./SrMenu.vue";
 import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
+import SrAtl08ClassColors from "./SrAtl08ClassColors.vue";
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
@@ -202,9 +209,23 @@ const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
 const atl03CnfColorChanged = ({ label, color }) => {
     console.log(`atl03CnfColorChanged received selection change: ${label} with color ${color}`);
-    clearPlot();
-    debouncedFetchScatterOptions();
-  };
+    if (color) {
+      clearPlot();
+      debouncedFetchScatterOptions();
+    } else {
+      console.warn('atl03CnfColorChanged color is undefined');
+    }
+};
+
+const atl08ClassColorChanged = ({ label, color }) => {
+    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+    if (color) {
+      clearPlot();
+      debouncedFetchScatterOptions();
+    } else {
+      console.warn('atl08ClassColorChanged color is undefined');
+    }
+};
 
 watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
   if (newState === true) {

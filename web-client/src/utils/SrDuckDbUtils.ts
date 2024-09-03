@@ -756,7 +756,7 @@ interface SrScatterSeriesData{
 };
 let debugCnt = 0;
 function getAtl03Color(params: any) {
-    if(debugCnt++ < 10){
+    if(debugCnt < 1){
         console.log('Atl03ColorKey:', atl03ColorMapStore.getAtl03ColorKey());
         console.log('getAtl03Color params.data:', params.data);
     }
@@ -773,7 +773,7 @@ function getAtl03Color(params: any) {
         const color = atl03ColorMapStore.getYapcColorForValue(value,0,255);
         colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     }
-    if(debugCnt++ < 10){
+    if(debugCnt++ < 1){
         console.log(`getAtl03Color value:${value} colorStr:${colorStr}`);
     }
     return colorStr;

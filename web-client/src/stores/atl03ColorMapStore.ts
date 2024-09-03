@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 import { db } from '@/db/SlideRuleDb';
+import { atl08 } from '@/sliderule/icesat2';
 
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
@@ -10,7 +11,24 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         atl03YapcColorMap: [] as[number, number, number, number][],
         atl03ColorKey: 'YAPC' as string,
         atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
+        atl03CnfOptions: [
+            {label:'atl03_tep',value:-2}, 
+            {label:'atl03_not_considered',value:-1}, 
+            {label:'atl03_background',value:0}, 
+            {label:'atl03_within_10m',value:1}, 
+            {label:'atl03_low',value:2}, 
+            {label:'atl03_medium',value:3}, 
+            {label:'atl03_high',value:4}
+        ] as {label:string,value:number}[],
+        atl08ClassOptions: [
+            {label:'atl08_noise',value:0}, 
+            {label:'atl08_ground',value:1}, 
+            {label:'atl08_canopy',value:2}, 
+            {label:'atl08_top_of_canopy',value:3}, 
+            {label:'atl08_unclassified',value:4}
+        ] as {label:string,value:number}[],
         atl03CnfColorMap: [] as string[],
+        atl08ClassColorMap: [] as string[],
         namedColorPalette: [] as string[],
         debugCnt: 0 as number,
     }),
@@ -20,6 +38,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             if(!this.isInitialized){
                 this.isInitialized = true;
                 this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
+                this.atl08ClassColorMap = await db.getAllAtl08ClassColors();
                 this.namedColorPalette = await db.getAllColors();
             }
         },
@@ -115,6 +134,24 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             this.atl03CnfColorMap[ndx] = namedColorValue;
             await db.addOrUpdateAtl03CnfColor(value,namedColorValue);
         },
+        getColorForAtl08ClassValue(value:number) { // value is the atl08_class value 0 to 4
+            const ndx = value;
+            if(ndx < 0 || ndx > 4){
+                console.error('getRGBColorForAtl08ClassValue invalid value:',value);
+                return 'White'; // Return White for invalid values
+            }
+            const c = this.atl08ClassColorMap[ndx];
+            return c;
+        },
+        async setColorForAtl08ClassValue(value:number,namedColorValue:string) { // value is the atl08_class value 0 to 4
+            const ndx = value;
+            if(ndx < 0 || ndx > 4){
+                console.error('setColorForAtl08ClassValue invalid value:',value);
+                return;
+            }
+            this.atl08ClassColorMap[ndx] = namedColorValue;
+            await db.addOrUpdateAtl08ClassColor(value,namedColorValue);
+        },
         async setNamedColorPalette(namedColorPalette: string[]) {
             this.namedColorPalette = namedColorPalette;
             await db.setAllColors(namedColorPalette)
@@ -126,6 +163,14 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         async restoreDefaultAtl03CnfColorMap() {
             await db.restoreDefaultAtl03CnfColors();
             this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
-        }
+        },
+        async restoreDefaultAtl08ClassColorMap() {
+            await db.restoreDefaultAtl08ClassColors();
+            this.atl03CnfColorMap = await db.getAllAtl08ClassColors();
+        },
+        async restoreDefaultColors() {
+            await db.restoreDefaultColors();
+            this.namedColorPalette = await db.getAllColors();
+        },
     },
 });

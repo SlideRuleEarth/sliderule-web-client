@@ -1,16 +1,16 @@
 <template>
-    <Fieldset legend="Atl03 Confidence Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
+    <Fieldset legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
-            <Button label="Restore Defaults" @click="restoreDefaultAtl03CnfColorMap" />
+            <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
         <SrMenu
-            v-for="(cnfValue, index) in atl03ColorMapStore.atl03CnfOptions"
+            v-for="(classValue, index) in atl03ColorMapStore.atl08ClassOptions"
             :key="index"
-            :label="`${cnfValue.label} (${cnfValue.value})`"
+            :label="`${classValue.label} (${classValue.value})`"
             :menuOptions="atl03ColorMapStore.getNamedColorPalette()"
-            :setSelectedMenuItem="(color:string) =>  atl03ColorMapStore.setColorForAtl03CnfValue(cnfValue.value, color)"
-            :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl03CnfValue(cnfValue.value)"
-            @update:modelValue="handleSelectionChanged(cnfValue.label, $event)"
+            :setSelectedMenuItem="(color:string) =>  atl03ColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
+            :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value)"
+            @update:modelValue="handleSelectionChanged(classValue.label, $event)"
         />
     </Fieldset>
 
@@ -33,9 +33,13 @@ const handleSelectionChanged = (label: string, color: string) => {
     emit('selectionChanged', { label, color });
 };
 
-const restoreDefaultAtl03CnfColorMap = () => {
-    atl03ColorMapStore.restoreDefaultAtl03CnfColorMap();
+const restoreDefaultAtl08ClassColorMap = () => {
+    atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
     emit('defaultsChanged', { }); 
+};
+
+const onMounted = () => {
+    console.log('SrAtl08ClassColors mounted');
 };
 
 </script>

@@ -42,7 +42,7 @@ export interface SrColors {
     color: string;
 }
 
-export interface Atl03CnfColor {
+export interface Atl03Color {
     number: number; // Primary key
     color: string;  // 
 }
@@ -52,7 +52,8 @@ export class SlideRuleDexie extends Dexie {
     requests!: Table<SrRequestRecord>;
     summary!: Table<SrRequestSummary>;
     colors!: Table<SrColors>;
-    atl03CnfColors!: Table<Atl03CnfColor>;
+    atl03CnfColors!: Table<Atl03Color>;
+    atl08ClassColors!: Table<Atl03Color>;
 
     constructor() {
         super('SlideRuleDataBase');
@@ -60,7 +61,8 @@ export class SlideRuleDexie extends Dexie {
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
-            atl03CnfColors: 'number' 
+            atl03CnfColors: 'number',
+            atl08ClassColors: 'number' 
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -106,6 +108,9 @@ export class SlideRuleDexie extends Dexie {
                 { color: 'black' },
                 { color: 'white' },
                 { color: 'cyan' },
+                { color: 'greenyellow' },
+                { color: 'lightblue' },
+                { color: 'lightgreen' },
             ];
 
             // Clear existing entries in the table
@@ -190,7 +195,7 @@ export class SlideRuleDexie extends Dexie {
     async restoreDefaultAtl03CnfColors(): Promise<void> {
         try {
             // Define default color-number pairs
-            const defaultAtl03CnfColors: Atl03CnfColor[] = [
+            const defaultAtl03CnfColors: Atl03Color[] = [
                 { number: -2, color: 'gray' },
                 { number: -1, color: 'slategray' },
                 { number: 0, color: 'yellow' },
@@ -216,6 +221,35 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    // Function to restore default colors for atl08ClassColors
+    async restoreDefaultAtl08ClassColors(): Promise<void> {
+        try {
+            // Define default color-number pairs
+            const defaultAtl08ClassColors: Atl03Color[] = [
+                { number: 0, color: 'gray' }, // atl08_noise
+                { number: 1, color: 'brown' }, // atl08_ground
+                { number: 2, color: 'green' },   // atl08_canopy
+                { number: 3, color: 'greenyellow' }, // atl08_top_of_canopy
+                { number: 4, color: 'blue' } // atl08_unclassified
+            ];
+
+            // Clear existing entries in the table
+            await this.atl08ClassColors.clear();
+            console.log('atl08ClassColors table cleared.');
+
+            // Add default entries
+            for (const colorEntry of defaultAtl08ClassColors) {
+                await this.atl08ClassColors.add(colorEntry);
+            }
+
+            console.log('Default atl08ClassColors restored:', defaultAtl08ClassColors);
+        } catch (error) {
+            console.error('Failed to restore default atl08ClassColors:', error);
+            throw error;
+        }
+    }
+    
+    
 
     // Method to add or update a color for a given number in atl03CnfColors
     async addOrUpdateAtl03CnfColor(number: number, color: string): Promise<void> {
@@ -249,8 +283,41 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    // Method to add or update a color for a given number in atl08ClassColors
+    async addOrUpdateAtl08ClassColor(number: number, color: string): Promise<void> {
+        try {
+            // Check the number range
+            if (number < 0 || number > 4) {
+                throw new Error('Number must be between 0and 4.');
+            }
+
+            // Check if there's already an entry for the given number
+            const existingNumberEntry = await this.atl08ClassColors.where('number').equals(number).first();
+
+            if (existingNumberEntry) {
+                // If an entry exists with the same number, update the color
+                await this.atl08ClassColors.put({ color,number });
+                console.log(`Number updated in atl08ClassColors: ${color},${number}`);
+            } else {
+                // If no entry exists with the same number, check the size limit before adding
+                const count = await this.atl08ClassColors.count();
+                if (count >= 5) {
+                    throw new Error('Cannot add more than 5 colors to atl08ClassColors table.');
+                }
+
+                // Add the new number-color pair
+                await this.atl08ClassColors.add({ number, color });
+                console.log(`Number and color added to atl08ClassColors: ${number}, ${color}`);
+            }
+        } catch (error) {
+            console.error('Failed to add or update number and color in atl08ClassColors:', error);
+            throw error;
+        }
+    }
+
+
     // Method to get all color-number pairs from atl03CnfColors in ascending order by number
-    async getAllAtl03CnfColorNumberPairs(): Promise<Atl03CnfColor[]> {
+    async getAllAtl03CnfColorNumberPairs(): Promise<Atl03Color[]> {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
@@ -261,11 +328,43 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+
+    // Method to get all color-number pairs from atl08ClassColors in ascending order by number
+    async getAllAtl08ClassColorNumberPairs(): Promise<Atl03Color[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl08ClassColors.orderBy('number').toArray();
+            console.log('Retrieved all atl08ClassColors in ascending order:', colorRecords);
+            return colorRecords;
+        } catch (error) {
+            console.error('Failed to retrieve all atl08ClassColors:', error);
+            throw error;
+        }
+    }
+
+
     // Method to get an ordered list of colors from atl03CnfColors sorted by ascending number
     async getAllAtl03CnfColors(): Promise<string[]> {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
+            
+            // Map the sorted records to get an array of colors
+            const colors = colorRecords.map(record => record.color);
+            
+            console.log('Retrieved ordered list of colors:', colors);
+            return colors;
+        } catch (error) {
+            console.error('Failed to retrieve ordered list of colors:', error);
+            throw error;
+        }
+    }
+
+    // Method to get an ordered list of colors from atl08ClassColors sorted by ascending number
+    async getAllAtl08ClassColors(): Promise<string[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl08ClassColors.orderBy('number').toArray();
             
             // Map the sorted records to get an array of colors
             const colors = colorRecords.map(record => record.color);
@@ -285,6 +384,17 @@ export class SlideRuleDexie extends Dexie {
             console.log(`Color deleted from atl03CnfColors: ${color}`);
         } catch (error) {
             console.error(`Failed to delete color from atl03CnfColors: ${color}`, error);
+            throw error;
+        }
+    }
+
+    // Method to delete a color-number pair by color from atl08ClassColors
+    async deleteAtl08ClassColor(color: string): Promise<void> {
+        try {
+            await this.atl08ClassColors.delete(color);
+            console.log(`Color deleted from atl08ClassColors: ${color}`);
+        } catch (error) {
+            console.error(`Failed to delete color from atl08ClassColors: ${color}`, error);
             throw error;
         }
     }
