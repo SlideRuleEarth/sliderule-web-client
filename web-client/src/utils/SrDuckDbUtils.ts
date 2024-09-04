@@ -92,11 +92,9 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
                     numPoints = row.numPoints;
-                    if(numPoints > 0){
-                        await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
-                    } else {
+                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    if(numPoints <= 0){
                         console.warn('No points returned: numPoints is zero');
-                        //throw new Error('No points returned');
                     }
                 } else {
                     console.error('No rows returned');
