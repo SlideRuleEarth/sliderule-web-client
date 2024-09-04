@@ -51,7 +51,6 @@ app.config.errorHandler = (err, vm, info) => {
 const options: Vue3OpenlayersGlobalOptions = {
     debug: false,
 };
-app.use(OpenLayersMap, options );
 const pinia = createPinia();
 pinia.use(createPersistedState({
   //auto: true, // all pinia stores are saved to the storage
@@ -59,6 +58,7 @@ pinia.use(createPersistedState({
 }))
 
 app.use(pinia);
+app.use(OpenLayersMap, options );
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 app.use(PrimeVue, {

@@ -19,7 +19,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
         tgt_arrow_meta_recs: 0,
         tgt_exceptions: 0,
         read_state: 'idle',
-        req_id: 0,
         duration: 0,
         percentComplete: 0,
         allFieldTypes: [] as SrParquetPathTypeJsType[],
@@ -64,12 +63,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
         },
         get_lon_Max() {
             return this.lon_max;
-        },
-        setReqId(req_id: number) {
-            this.req_id = req_id;
-        },
-        getReqId() {
-            return this.req_id;
         },
         setNumArrowDataRecs(num_arrow_data_recs: number) {
             this.num_arrow_data_recs = num_arrow_data_recs;
@@ -126,9 +119,6 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
             this.h_mean_high = h_mean_high;
         },
         setSummary(srs: SrRequestSummary) {
-            if(srs.req_id){
-                this.setReqId(srs.req_id);
-            }
             if(srs){
                 this.set_h_mean_Min(srs.extHMean.minHMean);
                 this.set_h_mean_Max(srs.extHMean.maxHMean);

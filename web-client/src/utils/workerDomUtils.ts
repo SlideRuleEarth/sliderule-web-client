@@ -26,7 +26,7 @@ let percentComplete: number | null = null;
 function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
     const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
-    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds for req_id:',curReqSumStore.req_id);
+    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds');
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;

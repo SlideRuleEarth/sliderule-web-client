@@ -13,7 +13,6 @@ import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
-import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
@@ -26,7 +25,6 @@ import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore.js";
 
 const requestsStore = useRequestsStore();
-const curReqSumStore = useCurReqSumStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
@@ -67,6 +65,9 @@ const toast = useToast();
 const srToastStore = useSrToastStore();
 
 onMounted(async() => {
+    console.log(`onMounted SrAnalyzeOptSidebar startingReqId:${props.startingReqId}`);  
+    
+
     const startTime = performance.now(); // Start time
     let req_id = -1;
     try {
@@ -90,8 +91,14 @@ onMounted(async() => {
             defaultReqIdMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
-        let req_id = Number(selectedReqId.value.value);
+        req_id = Number(selectedReqId.value.value);
         console.log('onMounted selectedReqId:', req_id);
+        if(req_id > 0){
+            atlChartFilterStore.setReqId(req_id);
+        } else {
+            console.warn('Invalid request ID:', req_id);
+            toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife()});
+        }
         //console.log('reqIds:', reqIds.value, 'defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
         // These update the dynamic options for the these components
     } catch (error) {
@@ -128,7 +135,7 @@ const onSelection = async() => {
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
         (useAtlChartFilterStore().getSpotValues().length > 0)
     ){
-        await addHighlightLayerForReq(useCurReqSumStore().getReqId());
+        await addHighlightLayerForReq(useAtlChartFilterStore().getReqId());
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
         console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
@@ -199,11 +206,10 @@ const tracksSelection = () => {
 
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
-    if(req_id === 0){
-        console.warn('No request ID found');
+    if(req_id <= 0){
+        console.warn(`updateElevationMap Invalid request ID:${req_id}`);
         return;
     }
-    curReqSumStore.setReqId(req_id);
     try {
         atlChartFilterStore.setReqId(req_id);
         const request = await db.getRequest(req_id);
@@ -253,13 +259,14 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         console.log('pushing selectedReqId:', req_id);
-        router.push(`/analyze/${useCurReqSumStore().getReqId()}`);
-        console.log('Successfully navigated to analyze:', useCurReqSumStore().getReqId());
+        router.push(`/analyze/${useAtlChartFilterStore().getReqId()}`);
+        console.log('Successfully navigated to analyze:', useAtlChartFilterStore().getReqId());
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
     }
     
 };
+const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
 
 
 watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
@@ -270,20 +277,30 @@ watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {
     try{
         const req_id = atlChartFilterStore.getReqId();
         if(req_id > 0){
-            updateElevationMap(req_id);
+            debouncedUpdateElevationMap(req_id);
         } else {
-            console.warn('No request ID found');
+            const emsg =  `invalid req id:${req_id}`;
+            console.warn(`watch selectedElevationColorMap ${emsg}`);
+            if(oldColorMap){
+                toast.add({ severity: 'warn', summary: `Failed to update Elevation Map`, detail: emsg, life: srToastStore.getLife()});
+            }
         }
     } catch (error) {
-        console.error('Failed to update selected request:', error);
-        toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
-
+        console.warn('ElevationColorMap Failed to updateElevationMap:', error);
+        toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
     }
 }, { deep: true, immediate: true });
 
+watch(selectedReqId, async (newSelection, oldSelection) => {
+    console.log('watch selectedReqId --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    try{
+        const req_id = Number(newSelection.value)
+        debouncedUpdateElevationMap(req_id);
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+});
 // watch(selectedReqId, async (newSelection, oldSelection) => {
-//     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
-
 //     try{
 //         reqIds.value =  await requestsStore.getMenuItems();
 //         if(reqIds.value.length === 0){ 
@@ -322,7 +339,7 @@ const getSize = computed(() => {
                     label="Request Id" 
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
-                    @update:modelValue="updateElevationMap(Number(selectedReqId.value))"
+                    @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
                     :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                     tooltipText="Request Id from Record table"
                 />

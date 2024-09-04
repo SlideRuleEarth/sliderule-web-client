@@ -124,61 +124,68 @@ const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
-  const y_options = atlChartFilterStore.yDataForChart;
-  if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-    atlChartFilterStore.setShowMessage(false);
-    const startTime = performance.now(); // Start time
-    console.log('fetchScatterOptions started... startTime:',startTime)
-    try {
-      atlChartFilterStore.setIsLoading();
-      const req_id = atlChartFilterStore.getReqId();
-      const func = await indexedDb.getFunc(req_id);
-      atlChartFilterStore.setFunc(func);
-      const sop = atlChartFilterStore.getScatterOptionsParms();
-      //console.log('fetchScatterOptions sop:',sop);
-      const scatterOptions = await getScatterOptions(sop);
-      console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
-      if (scatterOptions) {
-        if(plotRef.value){
-          if(plotRef.value.chart){
-            plotRef.value.chart.setOption(scatterOptions);
+  const reqId = atlChartFilterStore.getReqId();
+  if(reqId > 0){
+
+    const func = await indexedDb.getFunc(reqId);
+    atl03ColorMapStore.initializeAtl03ColorMapStore();
+    if (func === 'atl03') {
+      atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+    } else if (func === 'atl06') {
+      atl03ColorMapStore.setAtl03ColorKey('YAPC');
+    } else if (func === 'atl08') {
+      atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+    }
+
+    const y_options = atlChartFilterStore.yDataForChart;
+    if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
+      atlChartFilterStore.setShowMessage(false);
+      const startTime = performance.now(); // Start time
+      console.log('fetchScatterOptions started... startTime:',startTime)
+      try {
+        atlChartFilterStore.setIsLoading();
+        const req_id = atlChartFilterStore.getReqId();
+        const func = await indexedDb.getFunc(req_id);
+        atlChartFilterStore.setFunc(func);
+        const sop = atlChartFilterStore.getScatterOptionsParms();
+        //console.log('fetchScatterOptions sop:',sop);
+        const scatterOptions = await getScatterOptions(sop);
+        console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
+        if (scatterOptions) {
+          if(plotRef.value){
+            if(plotRef.value.chart){
+              plotRef.value.chart.setOption(scatterOptions);
+            } else {
+              console.warn('fetchScatterOptions plotRef.chart is undefined');
+            }
           } else {
-            console.warn('fetchScatterOptions plotRef.chart is undefined');
+            console.warn('fetchScatterOptions plotRef is undefined');
           }
         } else {
-          console.warn('fetchScatterOptions plotRef is undefined');
+          console.log('fetchScatterOptions Failed to get scatter options');
+          atlChartFilterStore.setShowMessage(true);
+          atlChartFilterStore.setIsWarning(true);
+          atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
         }
-      } else {
-        console.log('fetchScatterOptions Failed to get scatter options');
+      } catch (error) {
+        console.error('fetchScatterOptions Error fetching scatter options:', error);
         atlChartFilterStore.setShowMessage(true);
-        atlChartFilterStore.setIsWarning(true);
-        atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
+        atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
+      } finally {
+        atlChartFilterStore.resetIsLoading();
+        const now = performance.now();
+        console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
       }
-    } catch (error) {
-      console.error('fetchScatterOptions Error fetching scatter options:', error);
-      atlChartFilterStore.setShowMessage(true);
-      atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
-    } finally {
-      atlChartFilterStore.resetIsLoading();
-      const now = performance.now();
-      console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
+    } else {
+      console.warn('fetchScatterOptions No y options selected');
     }
   } else {
-    console.warn('fetchScatterOptions No y options selected');
+    console.error('fetchScatterOptions reqId is undefined');
   }
 };
 
 onMounted(async () => {
-  atl03ColorMapStore.initializeAtl03ColorMapStore();
   const reqId = atlChartFilterStore.getReqId();
-  const func = await indexedDb.getFunc(reqId);
-  if (func === 'atl03') {
-    atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-  } else if (func === 'atl06') {
-    atl03ColorMapStore.setAtl03ColorKey('YAPC');
-  } else if (func === 'atl08') {
-    atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-  }
   if (reqId > 0) {
     debouncedFetchScatterOptions();
   } else {
