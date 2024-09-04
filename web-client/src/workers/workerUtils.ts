@@ -53,6 +53,7 @@ export interface ExtHMean {
 export interface WorkerSummary extends WorkerMessage {
     extLatLon: ExtLatLon;
     extHMean: ExtHMean;
+    numPoints: number;
 }
 
 export async function startedMsg(req_id:number,req_params:ReqParams): Promise<WorkerMessage>{
@@ -122,7 +123,8 @@ export async function successMsg(req_id:number, msg:string): Promise<WorkerMessa
 
 export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): Promise<WorkerMessage> {
     try{
-        await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, status: 'summary',status_details: msg});
+        console.log('summaryMsg workerSummaryMsg:',workerSummaryMsg);
+        await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, cnt:workerSummaryMsg.numPoints, status: 'summary',status_details: msg});
         await db.updateSummary(workerSummaryMsg);
     } catch (error) {
         console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);

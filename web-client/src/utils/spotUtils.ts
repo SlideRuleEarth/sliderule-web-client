@@ -39,7 +39,7 @@ export function getSpotNumber(sc_orient:number, track:number, pair:number) {
     ];
     const index = (sc_orient * 6) + ((track - 1) * 2) + pair;
     const spot = lookup_table[index];
-    console.log('getSpotNumber: sc_orient:', sc_orient, 'track:', track, 'pair:', pair, 'spot:', spot);
+    //console.log('getSpotNumber: sc_orient:', sc_orient, 'track:', track, 'pair:', pair, 'spot:', spot);
     return spot;
 }
 
@@ -130,7 +130,7 @@ export function getDetailsFromSpotNumber(spot:number) {
 export function getSqlForSpot(spot:number){
     const d= getDetailsFromSpotNumber(spot);
     const sqlStr = `((sc_orient = ${d[0].sc_orient}) AND (track = ${d[0].track}) AND (pair = ${d[0].pair})) OR ((sc_orient = ${d[1].sc_orient}) AND (track = ${d[1].track}) AND (pair = ${d[1].pair}))`;
-    console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
+    //console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
     return sqlStr;
 }
 
@@ -150,10 +150,10 @@ export function getSqlForSpots(spots:number[]){
 // }
 
 export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
-    console.log('getWhereClause: func:', func);
-    console.log('getWhereClause: spots:', spots);
-    console.log('getWhereClause: rgts:', rgts);
-    console.log('getWhereClause: cycles:', cycles);
+    //console.log('getWhereClause: func:', func);
+    //console.log('getWhereClause: spots:', spots);
+    //console.log('getWhereClause: rgts:', rgts);
+    //console.log('getWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03'){
         if ((rgts.length > 0) || (cycles.length > 0)) {

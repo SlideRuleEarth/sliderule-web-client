@@ -14,12 +14,17 @@
                     {{ slotProps.item.label }}
             </template>
         </PickList>
+        <div class="sr-restore-defaults">
+            <Button label="Restore Defaults" @click="restoreDefaultColors" />
+        </div>
+
     </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import PickList from 'primevue/picklist';
+import Button from 'primevue/button';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 const atl03ColorMapStore = useAtl03ColorMapStore();
 // Predefined list of CSS color names
@@ -47,10 +52,16 @@ const cssColorNames = [
     "Yellow", "YellowGreen"
 ];
 
+const selectedColors = computed({
+    get: () => atl03ColorMapStore.getNamedColorPalette(),
+    set: (value) => atl03ColorMapStore.setNamedColorPalette(value)
+});
+
+
 // Initialize the source and target lists for the PickList
 const colors = ref([
     cssColorNames.map(color => ({ label: color, value: color })),
-    []
+    selectedColors.value.map(color => ({ label: color, value: color }))
 ]);
 
 onMounted(() => {
@@ -59,11 +70,11 @@ onMounted(() => {
 
 });
 
-watch(() => colors.value, (newVal, oldVal) => {
-    console.log('SrColorPallet colors changed:', newVal);
-    atl03ColorMapStore.setNamedColorPalette(newVal[1].map(color => color.value));
-    console.log('SrColorPallet colors:', atl03ColorMapStore.getNamedColorPalette());
-});
+const restoreDefaultColors = async () => {
+    await atl03ColorMapStore.restoreDefaultColors();
+    colors.value[1] = atl03ColorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
+    console.log('SrColorPalette colors:', atl03ColorMapStore.getNamedColorPalette());
+};
 
 </script>
 
@@ -93,5 +104,10 @@ h2 {
     padding: 10px;
     text-align: center;
     font-weight: bold;
+}
+.sr-restore-defaults {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
 }
 </style>

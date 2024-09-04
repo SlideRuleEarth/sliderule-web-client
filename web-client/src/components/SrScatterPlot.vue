@@ -33,6 +33,12 @@
       <SrAtl03CnfColors 
         v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
         @selectionChanged="atl03CnfColorChanged"
+        @defaultsChanged="atl03CnfColorChanged"
+        />
+      <SrAtl08ClassColors 
+        v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
+        @selectionChanged="atl08ClassColorChanged"
+        @defaultsChanged="atl08ClassColorChanged"
       />
       <SrSliderInput
         v-if = "atlChartFilterStore.getFunc().includes('atl03')"
@@ -91,7 +97,6 @@ import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
-import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
@@ -103,11 +108,11 @@ import { debounce } from "lodash";
 import SrMenuInput from "./SrMenuInput.vue";
 import SrMenu from "./SrMenu.vue";
 import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
+import SrAtl08ClassColors from "./SrAtl08ClassColors.vue";
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
-const curReqSumStore = useCurReqSumStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -119,61 +124,68 @@ const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const fetchScatterOptions = async () => {
-  const y_options = atlChartFilterStore.yDataForChart;
-  if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-    atlChartFilterStore.setShowMessage(false);
-    const startTime = performance.now(); // Start time
-    console.log('fetchScatterOptions started... startTime:',startTime)
-    try {
-      atlChartFilterStore.setIsLoading();
-      const req_id = atlChartFilterStore.getReqId();
-      const func = await indexedDb.getFunc(req_id);
-      atlChartFilterStore.setFunc(func);
-      const sop = atlChartFilterStore.getScatterOptionsParms();
-      //console.log('fetchScatterOptions sop:',sop);
-      const scatterOptions = await getScatterOptions(sop);
-      console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
-      if (scatterOptions) {
-        if(plotRef.value){
-          if(plotRef.value.chart){
-            plotRef.value.chart.setOption(scatterOptions);
+  const reqId = atlChartFilterStore.getReqId();
+  if(reqId > 0){
+
+    const func = await indexedDb.getFunc(reqId);
+    atl03ColorMapStore.initializeAtl03ColorMapStore();
+    if (func === 'atl03') {
+      atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+    } else if (func === 'atl06') {
+      atl03ColorMapStore.setAtl03ColorKey('YAPC');
+    } else if (func === 'atl08') {
+      atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+    }
+
+    const y_options = atlChartFilterStore.yDataForChart;
+    if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
+      atlChartFilterStore.setShowMessage(false);
+      const startTime = performance.now(); // Start time
+      console.log('fetchScatterOptions started... startTime:',startTime)
+      try {
+        atlChartFilterStore.setIsLoading();
+        const req_id = atlChartFilterStore.getReqId();
+        const func = await indexedDb.getFunc(req_id);
+        atlChartFilterStore.setFunc(func);
+        const sop = atlChartFilterStore.getScatterOptionsParms();
+        //console.log('fetchScatterOptions sop:',sop);
+        const scatterOptions = await getScatterOptions(sop);
+        console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
+        if (scatterOptions) {
+          if(plotRef.value){
+            if(plotRef.value.chart){
+              plotRef.value.chart.setOption(scatterOptions);
+            } else {
+              console.warn('fetchScatterOptions plotRef.chart is undefined');
+            }
           } else {
-            console.warn('fetchScatterOptions plotRef.chart is undefined');
+            console.warn('fetchScatterOptions plotRef is undefined');
           }
         } else {
-          console.warn('fetchScatterOptions plotRef is undefined');
+          console.log('fetchScatterOptions Failed to get scatter options');
+          atlChartFilterStore.setShowMessage(true);
+          atlChartFilterStore.setIsWarning(true);
+          atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
         }
-      } else {
-        console.log('fetchScatterOptions Failed to get scatter options');
+      } catch (error) {
+        console.error('fetchScatterOptions Error fetching scatter options:', error);
         atlChartFilterStore.setShowMessage(true);
-        atlChartFilterStore.setIsWarning(true);
-        atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
+        atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
+      } finally {
+        atlChartFilterStore.resetIsLoading();
+        const now = performance.now();
+        console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
       }
-    } catch (error) {
-      console.error('fetchScatterOptions Error fetching scatter options:', error);
-      atlChartFilterStore.setShowMessage(true);
-      atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
-    } finally {
-      atlChartFilterStore.resetIsLoading();
-      const now = performance.now();
-      console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
+    } else {
+      console.warn('fetchScatterOptions No y options selected');
     }
   } else {
-    console.warn('fetchScatterOptions No y options selected');
+    console.error('fetchScatterOptions reqId is undefined');
   }
 };
 
 onMounted(async () => {
-  atl03ColorMapStore.initializeAtl03ColorMapStore();
-  const reqId = curReqSumStore.getReqId();
-  const func = await indexedDb.getFunc(reqId);
-  if (func === 'atl03') {
-    atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-  } else if (func === 'atl06') {
-    atl03ColorMapStore.setAtl03ColorKey('YAPC');
-  } else if (func === 'atl08') {
-    atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-  }
+  const reqId = atlChartFilterStore.getReqId();
   if (reqId > 0) {
     debouncedFetchScatterOptions();
   } else {
@@ -202,9 +214,23 @@ const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
 const atl03CnfColorChanged = ({ label, color }) => {
     console.log(`atl03CnfColorChanged received selection change: ${label} with color ${color}`);
-    clearPlot();
-    debouncedFetchScatterOptions();
-  };
+    if (color) {
+      clearPlot();
+      debouncedFetchScatterOptions();
+    } else {
+      console.warn('atl03CnfColorChanged color is undefined');
+    }
+};
+
+const atl08ClassColorChanged = ({ label, color }) => {
+    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+    if (color) {
+      clearPlot();
+      debouncedFetchScatterOptions();
+    } else {
+      console.warn('atl08ClassColorChanged color is undefined');
+    }
+};
 
 watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
   if (newState === true) {
@@ -218,7 +244,7 @@ async function changedYValues() {
   debouncedFetchScatterOptions();
 }
 
-watch(() => curReqSumStore.getReqId(), async (newReqId) => {
+watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
   if (newReqId && (newReqId > 0)) {
     clearPlot();
     fetchScatterOptions();
@@ -244,7 +270,7 @@ const symbolSizeSelection = () => {
 };
 
 watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());

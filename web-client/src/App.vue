@@ -5,12 +5,13 @@ import SrAppBar from "./components/SrAppBar.vue";
 import router from './router/index.js';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { useSrToastStore } from "@/stores/srToastStore";
-import { useCurReqSumStore } from "@/stores/curReqSumStore";
+import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+import { useRequestsStore } from "@/stores/requestsStore";
 
 const srToastStore = useSrToastStore()
-
 const advancedModeStore = useAdvancedModeStore();
-
+const atlChartFilterStore = useAtlChartFilterStore();
+const requestsStore = useRequestsStore();
 const toast = useToast();
 
 const logoClick = () => {
@@ -35,9 +36,28 @@ const recordButtonClick = () => {
   router.push('/record');
 };
 
-const analysisButtonClick = () => {
-  console.log('analysisButtonClick req_id: ', useCurReqSumStore().req_id);
-  router.push(`/analyze/${useCurReqSumStore().req_id}`);
+const analysisButtonClick = async () => {
+  console.log('analysisButtonClick req_id: ', atlChartFilterStore.getReqId());
+  if (atlChartFilterStore.getReqId()){
+    router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
+  } else {
+    const items =  await requestsStore.getMenuItems();
+    if(items.length === 0){ 
+        console.warn('No requests found');
+        toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife()});
+        return;
+    }  
+    const reqIdStr = items[0].value;
+    const reqId = Number(reqIdStr);
+    if(reqId > 0){
+      atlChartFilterStore.setReqId(reqId);
+      router.push(`/analyze/${reqId}`);
+      console.log('analysisButtonClick changed to req_id: ', reqId);
+    } else {
+      console.warn('No requests found');
+      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife()});
+    }
+  }
 };
 
 const aboutButtonClick = () => {

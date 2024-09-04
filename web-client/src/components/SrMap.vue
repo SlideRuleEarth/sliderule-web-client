@@ -397,10 +397,10 @@
           }    
         }
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
-        if(mapStore.plink){
-          const plink = mapStore.plink as any;
-          map.addControl(plink);
-        }
+        // if(mapStore.plink){
+        //   const plink = mapStore.plink as any;
+        //   map.addControl(plink);
+        // }
         updateMapView("onMounted");
 
       } else {
