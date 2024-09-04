@@ -188,7 +188,7 @@ onUnmounted(() => {
             </Column>
             <Column field="cnt" header="Count">
                 <template #body="slotProps">
-                    {{ parseInt(String(slotProps.data.cnt))  }}
+                    {{ new Intl.NumberFormat().format(parseInt(String(slotProps.data.cnt)))  }}
                 </template>
             </Column>
             <Column field="num_bytes" header="Size">
