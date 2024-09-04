@@ -82,7 +82,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
                 if (rows.length > 0) {
                     const row = rows[0];
-                    //console.log('duckDbReadOrCacheSummary row:', row);
+                    console.log('duckDbReadOrCacheSummary row:', row);
                     localExtLatLon.minLat = row.minLat;
                     localExtLatLon.maxLat = row.maxLat;
                     localExtLatLon.minLon = row.minLon;
@@ -93,6 +93,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.highHMean = row.highHMean;
                     numPoints = row.numPoints;
                     await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints});
+
                     if(numPoints <= 0){
                         console.warn('No points returned: numPoints is zero');
                     }

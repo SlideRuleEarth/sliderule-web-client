@@ -5,7 +5,7 @@ import Column from 'primevue/column';
 import 'primeicons/primeicons.css'
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import router from '@/router/index';
-import { db,SrRequestRecord } from '@/db/SlideRuleDb';
+import { db } from '@/db/SlideRuleDb';
 import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtils';
 import { findParam } from '@/utils/parmUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
@@ -15,21 +15,6 @@ const requestsStore = useRequestsStore();
 const isCodeFormat = ref(true);
 
 
-// const onEditComplete = (event) => {
-//     const { newValue, data, field } = event;
-//     data[field] = newValue; // Update the specific field with the new value
-//     // You may need to call a method to persist the changes to a backend or store here
-//     console.log('Edited cell:', field, 'New Value:', newValue, 'Data:', data);
-//     db.updateRequestRecord({req_id: data.req_id, description: data.description});
-// };
-// const onEditComplete = (data, field, event) => {
-//     const newValue = event.target.value;
-//     if (newValue !== data[field]) { // Check if the value actually changed
-//         data[field] = newValue; // Update the specific field with the new value
-//         db.updateRequestRecord({req_id: data.req_id, description: data.description});
-//         console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
-//     }
-// };
 const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
     const inputElement = event.target as HTMLInputElement;
     const newValue = inputElement.value.trim();
@@ -203,7 +188,7 @@ onUnmounted(() => {
             </Column>
             <Column field="cnt" header="Count">
                 <template #body="slotProps">
-                    {{ formatBytes(slotProps.data.cnt) }}
+                    {{ parseInt(String(slotProps.data.cnt))  }}
                 </template>
             </Column>
             <Column field="num_bytes" header="Size">

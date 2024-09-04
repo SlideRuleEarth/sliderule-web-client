@@ -658,7 +658,7 @@ export class SlideRuleDexie extends Dexie {
                 end_time: endTime,
                 elapsed_time: elapsedTimeString
             };
-            //console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
+            console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
             await this.updateRequest(req_id, updates);
             //console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
         } catch (error) {
