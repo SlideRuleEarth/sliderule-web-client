@@ -81,6 +81,8 @@ onMounted(async() => {
         console.log('onMounted props.startingReqId:',props.startingReqId)
         if (props.startingReqId){ // from the route parameter
             const startId = props.startingReqId.toString()
+            console.log('onMounted startId:', startId);
+            console.log('reqIds:', reqIds.value);
             defaultReqIdMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
             //console.log('defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
             selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
@@ -260,7 +262,7 @@ const updateElevationMap = async (req_id: number) => {
 
 
 watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
     colorMapStore.setElevationColorMap(newColorMap.value.value);
     colorMapStore.updateElevationColorMapValues();
     //console.log('Color Map:', colorMapStore.getElevationColorMap());
@@ -278,30 +280,30 @@ watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {
     }
 }, { deep: true, immediate: true });
 
-watch(selectedReqId, async (newSelection, oldSelection) => {
-    console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
+// watch(selectedReqId, async (newSelection, oldSelection) => {
+//     console.log('Request ID changed from:', oldSelection ,' to:', newSelection);
 
-    try{
-        reqIds.value =  await requestsStore.getMenuItems();
-        if((reqIds.value.length === 0)  || (newSelection.value==='0')){
-            console.warn('No requests found');
-            return;
-        }        
-        //console.log('reqIds:', reqIds.value);
+//     try{
+//         reqIds.value =  await requestsStore.getMenuItems();
+//         if(reqIds.value.length === 0){ 
+//             console.warn('No requests found');
+//             return;
+//         }  
+//          //console.log('reqIds:', reqIds.value);
 
-        const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
-        //console.log('selectionNdx:', selectionNdx);
-        if (selectionNdx === -1) { // i.e. not found
-            newSelection = reqIds.value[0];  
-        }
-        //console.log('Using filtered newSelection:', newSelection);
-        const req_id = Number(newSelection.value)
-        updateElevationMap(req_id);
-    } catch (error) {
-        console.error('Failed to update selected request:', error);
-    }
+//         const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
+//         //console.log('selectionNdx:', selectionNdx);
+//         if (selectionNdx <= 0) { // i.e. not found
+//             newSelection = reqIds.value[0];  
+//         }
+//         //console.log('Using filtered newSelection:', newSelection);
+//         const req_id = Number(newSelection.value)
+//         updateElevationMap(req_id);
+//     } catch (error) {
+//         console.error('Failed to update selected request:', error);
+//     }
 
-}, { deep: true, immediate: true });
+// }, { deep: true, immediate: true });
 
 const getSize = computed(() => {
     return formatBytes(atlChartFilterStore.getSize());
@@ -319,6 +321,7 @@ const getSize = computed(() => {
                     label="Request Id" 
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
+                    @update:modelValue="updateElevationMap(Number(selectedReqId.value))"
                     :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                     tooltipText="Request Id from Record table"
                 />

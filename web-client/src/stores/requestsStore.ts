@@ -110,7 +110,7 @@ export const useRequestsStore = defineStore('requests', {
       
       const promises = fetchedReqIds.map(async (id: number) => {
         const status = await db.getStatus(id);
-        if (status == 'success'){
+        if ((status == 'success') || (status == 'imported')) {
           return { name: id.toString(), value: id.toString() };
         }
       });
@@ -121,7 +121,7 @@ export const useRequestsStore = defineStore('requests', {
       return results.filter((item): item is SrMenuItem => item !== undefined);
     },
     watchReqTable() {
-      const subscription = liveQuery(() => db.table('requests').toArray())
+      const subscription = liveQuery(() => db.table('requests').orderBy('req_id').reverse().toArray())
       .subscribe({
         next: (updatedReqs) => {
           this.reqs = updatedReqs;
@@ -140,6 +140,11 @@ export const useRequestsStore = defineStore('requests', {
       //Store the subscription; you need to unsubscribe later
       this.liveRequestsQuerySubscription = subscription;
     },
+    unWatchReqTable() {
+      if (this.liveRequestsQuerySubscription) {
+        this.liveRequestsQuerySubscription.unsubscribe();
+      }
+    }
 
   }
 });

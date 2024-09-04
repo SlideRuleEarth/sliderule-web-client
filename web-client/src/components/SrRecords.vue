@@ -10,7 +10,12 @@ import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtil
 import { findParam } from '@/utils/parmUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import InputText from 'primevue/inputtext'; // Import InputText for editing
+import { updateFilename } from '@/utils/SrParquetUtils';
+import { duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { getHeightFieldname } from '@/utils/SrParquetUtils';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 
+const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const isCodeFormat = ref(true);
 
@@ -29,8 +34,9 @@ const analyze = (id:number) => {
             console.error('Request id is missing for analyze request');
             return;
         }
+        atlChartFilterStore.setReqId(id);
         router.push(`/analyze/${id}`);
-        console.log('Navigate for Analyze request for id:', id, ' is successful');
+        console.log('Router Push for Analyze request for id:', id, ' is successful');
     } catch (error) {
         console.error(`Failed to analyze request for id:${id}`, error);
         throw error;
@@ -107,7 +113,7 @@ const exportFile = async (req_id:number) => {
 };
 
 const deleteAllReqs = () => {
-    console.log('Delete all');
+    console.log('deleteAllReqs');
     requestsStore.reqs.forEach(async (req) => {
         try {
             if (req.req_id) {
@@ -123,6 +129,86 @@ const deleteAllReqs = () => {
     });
     requestsStore.deleteAllReqs();
 };
+const confirmDeleteAllReqs = () => {
+    const userConfirmed = window.confirm('Are you sure you want to delete all requests?');
+    if (userConfirmed) {
+        deleteAllReqs();
+        console.log('Confirmed Delete all');
+    } else {
+        console.log('Deletion cancelled');
+    }
+};
+
+
+
+const importFile = async () => {
+    console.log('Importing file');
+    try {
+        // Step 1: Open file picker dialog for the user to select a file
+        const [fileHandle] = await (window as any).showOpenFilePicker({
+            types: [
+                {
+                    description: 'Parquet Files',
+                    accept: {
+                        'application/octet-stream': ['.parquet']
+                    }
+                }
+            ],
+            excludeAcceptAllOption: true,
+            multiple: false
+        });
+
+        // Get the selected file
+        const file = await fileHandle.getFile();
+
+        // Step 2: Get access to the OPFS directory
+        const opfsRoot = await navigator.storage.getDirectory();
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true }); // Create folder if not exists
+
+
+        const srReqRec = await requestsStore.createNewSrRequestRecord();
+        if(srReqRec && srReqRec.req_id) {
+            const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
+            srReqRec.file = newFilename;
+            srReqRec.func = func;
+            srReqRec.status = 'imported';
+            srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
+            await db.updateRequestRecord(srReqRec);
+            // Step 3: Create a file handle in the OPFS with the same name as the selected file
+            const opfsFileHandle = await directoryHandle.getFileHandle(newFilename, { create: true });
+
+            // Step 4: Write the contents of the selected file into the OPFS file
+            const writableStream = await opfsFileHandle.createWritable();
+            await writableStream.write(file);
+            await writableStream.close();
+            const heightFieldname = await getHeightFieldname(srReqRec.req_id);
+            await duckDbReadOrCacheSummary(srReqRec.req_id, heightFieldname);
+            const summary = await db.getWorkerSummary(srReqRec.req_id);
+            console.log('Summary:', summary);
+            if(summary){
+                const opfsFile = await opfsFileHandle.getFile();
+                srReqRec.num_bytes  = opfsFile.size;
+                srReqRec.cnt = summary.numPoints;
+                await db.updateRequestRecord(srReqRec); 
+                const msg = `File imported and copied to OPFS successfully!`;
+                console.log(msg);
+                alert(msg);
+            } else {
+                console.error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
+                alert(`Failed to get summary for req_id: ${srReqRec.req_id}`);
+            }
+        } else {
+            console.error(`Failed File create new SlideRule request record`);
+            alert(`Failed to import File. Unable to create new SlideRule request record`);
+        }
+    } catch (error) {
+        console.error(`Failed to import and copy file`, error);
+        alert(`Failed to import and copy file`);
+        throw error;
+    }
+};
+
 
 onMounted(() => {
     console.log('SrRecords mounted');
@@ -131,7 +217,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    requestsStore.liveRequestsQuerySubscription.unsubscribe();
+    requestsStore.unWatchReqTable();
 });
 </script>
 
@@ -201,7 +287,7 @@ onUnmounted(() => {
                 <template #body="slotProps">
                     <i 
                       class="pi pi-chart-line"
-                      v-if="slotProps.data.status !== 'error'"
+                      v-if="((slotProps.data.status == 'success') || (slotProps.data.status == 'imported'))"
                       @click="analyze(slotProps.data.req_id)"
                       v-tooltip="'Analyze'"
                     ></i>
@@ -221,7 +307,7 @@ onUnmounted(() => {
                 <template #header>
                     <i 
                       class="pi pi-trash"
-                      @click="deleteAllReqs()"
+                      @click="confirmDeleteAllReqs()"
                       v-tooltip="'Delete ALL reqs'"
                     ></i>
                 </template>
@@ -234,6 +320,13 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="Actions" header="" class="sr-export">
+                <template #header>
+                    <i 
+                      class="pi pi-file-import sr-file-import-icon"
+                      @click="importFile()"
+                      v-tooltip="'Import a SlideRule Parquet File'"
+                    ></i>
+                </template>
                 <template #body="slotProps">
                     <i 
                       class="pi pi-file-export sr-file-export-icon"

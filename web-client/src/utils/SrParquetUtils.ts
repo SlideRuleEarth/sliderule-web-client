@@ -284,3 +284,24 @@ export const formatBytes = (bytes:number) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+export function updateFilename(req_id: number, filename: string): { func: string, newFilename: string } {
+    // Regular expression to match the required pattern
+    const regex = /^(\w+)_(\d+)_(.+\.parquet)$/;
+
+    // Apply the regex to the filename
+    const match = filename.match(regex);
+
+    if (!match) {
+        throw new Error("Invalid filename format");
+    }
+
+    // Extract the func, old req_id, and suffix
+    const func = match[1];
+    const suffix = match[3];
+
+    // Construct the new filename
+    const newFilename = `${func}_${req_id}_${suffix}`;
+
+    return { func, newFilename };
+}

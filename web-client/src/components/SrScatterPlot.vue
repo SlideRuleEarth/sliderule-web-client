@@ -97,7 +97,6 @@ import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { shallowRef, provide, watch, onMounted, ref, computed } from "vue";
-import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { getScatterOptions } from "@/utils/SrDuckDbUtils";
 import SrMultiSelectText from "./SrMultiSelectText.vue";
@@ -114,7 +113,6 @@ import { getColorMapOptions } from '@/utils/colorUtils';
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
-const curReqSumStore = useCurReqSumStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -172,7 +170,7 @@ const fetchScatterOptions = async () => {
 
 onMounted(async () => {
   atl03ColorMapStore.initializeAtl03ColorMapStore();
-  const reqId = curReqSumStore.getReqId();
+  const reqId = atlChartFilterStore.getReqId();
   const func = await indexedDb.getFunc(reqId);
   if (func === 'atl03') {
     atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
@@ -239,7 +237,7 @@ async function changedYValues() {
   debouncedFetchScatterOptions();
 }
 
-watch(() => curReqSumStore.getReqId(), async (newReqId) => {
+watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
   if (newReqId && (newReqId > 0)) {
     clearPlot();
     fetchScatterOptions();
@@ -265,7 +263,7 @@ const symbolSizeSelection = () => {
 };
 
 watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Color Map changed from:', oldColorMap ,' to:', newColorMap);
+    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
