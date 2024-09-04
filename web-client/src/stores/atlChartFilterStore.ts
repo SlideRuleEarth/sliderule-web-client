@@ -4,6 +4,7 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
+import { set } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -57,6 +58,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     message: 'Failed to load data. Please try again later.' as string,
     isWarning: false as boolean,
     showMessage: false as boolean,
+    recCnt: 0 as number,
   }),
 
   actions: {
@@ -475,6 +477,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getShowMessage() {
       return this.showMessage;
+    },
+    setRecCnt(recCnt: number) {
+      this.recCnt = recCnt;
+    },
+    getRecCnt() {
+      return this.recCnt;
     },
   }
 });

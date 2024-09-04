@@ -236,6 +236,11 @@ const updateElevationMap = async (req_id: number) => {
         } else {
             console.error('No num_bytes found for req_id:', req_id);
         }
+        if(request && request.cnt){
+            atlChartFilterStore.setRecCnt(parseInt(String(request.cnt)));
+        } else {
+            console.error('No num_points found for req_id:', req_id);
+        }
 
         deckStore.deleteSelectedLayer();
         console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
@@ -254,8 +259,8 @@ const updateElevationMap = async (req_id: number) => {
             //console.log('watch req_id tracks:',tracks);
         }
     } catch (error) {
-        console.error('Failed to update selected request:', error);
-        toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
+        console.warn('Failed to update selected request:', error);
+        //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
     }
     try {
         console.log('pushing selectedReqId:', req_id);
@@ -326,6 +331,9 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
 const getSize = computed(() => {
     return formatBytes(atlChartFilterStore.getSize());
 });
+const getCnt = computed(() => {
+    return new Intl.NumberFormat().format(parseInt(String(atlChartFilterStore.getRecCnt())));
+});
 
 </script>
 
@@ -336,7 +344,7 @@ const getSize = computed(() => {
             <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
             <div class="sr-analysis-reqid" v-else>
                 <SrMenuInput 
-                    label="Request Id" 
+                    label="Record Id" 
                     :menuOptions="reqIds" 
                     v-model="selectedReqId"
                     @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
@@ -345,7 +353,12 @@ const getSize = computed(() => {
                 />
             </div>
             <div class="sr-analysis-sz" v-if="!loading">
-                {{ getSize }} 
+                <div>
+                    {{ getSize }} 
+                </div>
+                <div>
+                    {{ getCnt }} recs
+                </div>
             </div>
         </div>
         </div>
@@ -503,8 +516,8 @@ direction."
     }
     .sr-analysis-sz{
         display: flex;
-        flex-direction: row;
-        align-items: center;
+        flex-direction: column;
+        align-items: left;
         justify-content: space-between;
         font-size: small;
     }
