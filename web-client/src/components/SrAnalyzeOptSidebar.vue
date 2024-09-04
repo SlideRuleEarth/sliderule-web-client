@@ -223,6 +223,7 @@ const updateElevationMap = async (req_id: number) => {
         } else {
             // this is not an error, just a warning
             console.warn('No description found for req_id:', req_id);
+            atlChartFilterStore.setDescription('description');
         }
         if(request && request.num_bytes){
             atlChartFilterStore.setSize(request.num_bytes);
