@@ -9,6 +9,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { SrMutex } from './SrMutex';
 
 const atl03ColorMapStore = useAtl03ColorMapStore();
 
@@ -23,8 +24,10 @@ interface SummaryRowData {
     highHMean: number;
     numPoints: number;
 }
+const srMutex = new SrMutex();
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
+    const unlock = await srMutex.lock();
     try {
         const filename = await indexedDb.getFilename(req_id);
         const summary = await indexedDb.getWorkerSummary(req_id);
@@ -59,6 +62,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
                 // Collect rows from the async generator in chunks
                 const rows: SummaryRowData[] = [];
+                //console.log('duckDbReadOrCacheSummary results:', results);
                 for await (const chunk of results.readRows()) {
                     for (const row of chunk) {
                         const typedRow: SummaryRowData = {
@@ -78,6 +82,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
                 if (rows.length > 0) {
                     const row = rows[0];
+                    //console.log('duckDbReadOrCacheSummary row:', row);
                     localExtLatLon.minLat = row.minLat;
                     localExtLatLon.maxLat = row.maxLat;
                     localExtLatLon.minLon = row.minLon;
@@ -87,8 +92,14 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
                     numPoints = row.numPoints;
-                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    if(numPoints > 0){
+                        await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    } else {
+                        console.warn('No points returned: numPoints is zero');
+                        //throw new Error('No points returned');
+                    }
                 } else {
+                    console.error('No rows returned');
                     throw new Error('No rows returned');
                 }
                 return await indexedDb.getWorkerSummary(req_id);
@@ -100,11 +111,17 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
     } catch (error) {
         console.error('duckDbReadOrCacheSummary error:', error);
         throw error;
+    } finally {
+        unlock();
     }
 }
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnts=100000, chunkSize:number=100000) => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    if(req_id === undefined || req_id === null || req_id === 0){
+        console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
+        return;
+    }
     const startTime = performance.now(); // Start time
 
     try {
@@ -119,17 +136,17 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
 
-        if (summary) {
+        if (summary && summary.numPoints) {
             useCurReqSumStore().setSummary(summary);
-            console.log ('duckDbReadAndUpdateElevationData typeof(summary.numPoints):', typeof(summary.numPoints));
+            //console.log ('duckDbReadAndUpdateElevationData typeof(summary.numPoints):', typeof(summary.numPoints));
             let sample_fraction = 1.0;
             const numPointsStr = summary.numPoints;
             const numPoints = parseInt(String(numPointsStr));
-            console.log ('duckDbReadAndUpdateElevationData typeof numPoints:', typeof(numPoints));
-            console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
+            // console.log ('duckDbReadAndUpdateElevationData typeof numPoints:', typeof(numPoints));
+            // console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
 
             try{
-                sample_fraction = maxNumPnts /numPoints; // Do the arithmetic in BigInt
+                sample_fraction = maxNumPnts /numPoints; 
             } catch (error) {
                 console.error('duckDbReadAndUpdateElevationData sample_fraction error:', error);
             }
@@ -209,7 +226,14 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
             }
             updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
         } else {
-            console.error('duckDbReadAndUpdateElevationData summary is undefined');
+            if(summary === undefined){
+                console.error('duckDbReadAndUpdateElevationData summary is undefined');
+                throw new Error('duckDbReadAndUpdateElevationData summary is undefined');
+            }
+            if (summary && summary.numPoints === 0) {
+                console.warn('duckDbReadAndUpdateElevationData summary.numPoints is 0');
+                throw new Error('duckDbReadAndUpdateElevationData summary.numPoints is 0');
+            }
         }
     } catch (error) {
         console.error('duckDbReadAndUpdateElevationData error:', error);
@@ -224,11 +248,15 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
 export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    if(req_id === undefined || req_id === null || req_id === 0){
+        console.error('duckDbReadAndUpdateSelectedLayer Bad req_id:', req_id);
+        return;
+    }
     const startTime = performance.now(); // Start time
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
+            console.error('duckDbReadAndUpdateSelectedLayer req_id:', req_id, ' status is error SKIPPING!');
             return;
         }
 
@@ -283,7 +311,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             try{
                 // Execute the query
                 //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
-                const result = await duckDbClient.queryChunk(queryStr, chunkSize, offset);
+                const result = await duckDbClient.queryChunkSampled(queryStr, chunkSize, offset);
                 //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                 for await (const rowChunk of result.readRows()) {
                     //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);

@@ -22,6 +22,8 @@ import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { useToast } from 'primevue/usetoast';
+import { useSrToastStore } from "@/stores/srToastStore.js";
 
 const requestsStore = useRequestsStore();
 const curReqSumStore = useCurReqSumStore();
@@ -61,6 +63,8 @@ const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
+const toast = useToast();
+const srToastStore = useSrToastStore();
 
 onMounted(async() => {
     const startTime = performance.now(); // Start time
@@ -193,14 +197,12 @@ const tracksSelection = () => {
 
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
+    if(req_id === 0){
+        console.warn('No request ID found');
+        return;
+    }
     curReqSumStore.setReqId(req_id);
     try {
-        // atlChartFilterStore.setReqId(req_id);
-        // atlChartFilterStore.setFileName(await db.getFilename(req_id));
-        // atlChartFilterStore.setFunc(await db.getFunc(req_id));
-        // atlChartFilterStore.setDescription(await db.getDescription(req_id));
-        // atlChartFilterStore.setSize(await db.getNumBytes(req_id));
-
         atlChartFilterStore.setReqId(req_id);
         const request = await db.getRequest(req_id);
         console.log('Request:', request);
@@ -244,6 +246,7 @@ const updateElevationMap = async (req_id: number) => {
         }
     } catch (error) {
         console.error('Failed to update selected request:', error);
+        toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
     }
     try {
         console.log('pushing selectedReqId:', req_id);
@@ -261,7 +264,18 @@ watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {
     colorMapStore.setElevationColorMap(newColorMap.value.value);
     colorMapStore.updateElevationColorMapValues();
     //console.log('Color Map:', colorMapStore.getElevationColorMap());
-    updateElevationForReqId(atlChartFilterStore.getReqId());
+    try{
+        const req_id = atlChartFilterStore.getReqId();
+        if(req_id > 0){
+            updateElevationMap(req_id);
+        } else {
+            console.warn('No request ID found');
+        }
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
+        toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
+
+    }
 }, { deep: true, immediate: true });
 
 watch(selectedReqId, async (newSelection, oldSelection) => {

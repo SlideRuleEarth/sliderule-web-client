@@ -41,7 +41,7 @@ export async function checkDoneProcessing(  thisReqID:number,
             if(abortRequested){ // Abort requested
                 msg = `checkDoneProcessing: Aborted processing req_id: ${thisReqID}`
             } else {
-                msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID}`;
+                msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID} read_state:${read_state}`;
                 if(read_state === 'done_reading'){
                     console.log('Success:', status_details, 'req_id:', thisReqID, 'num_checks:', num_checks);
                     postMessage(await successMsg(thisReqID, msg));

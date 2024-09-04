@@ -201,6 +201,11 @@ onUnmounted(() => {
                     </div>
                 </template>
             </Column>
+            <Column field="cnt" header="Count">
+                <template #body="slotProps">
+                    {{ formatBytes(slotProps.data.cnt) }}
+                </template>
+            </Column>
             <Column field="num_bytes" header="Size">
                 <template #body="slotProps">
                     {{ formatBytes(slotProps.data.num_bytes) }}

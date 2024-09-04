@@ -27,6 +27,7 @@ export interface SrRequestRecord {
     status_details?: string; // status message (details of status)
     file?: string; // file name
     checksum?: bigint; // checksum
+    cnt?: number; // number of points
     num_bytes?: number; // number of bytes
     description?: string; // description
 }

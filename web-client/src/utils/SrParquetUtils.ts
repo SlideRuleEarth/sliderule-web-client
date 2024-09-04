@@ -230,10 +230,11 @@ export const updateElevationForReqId = async (req_id:number) => {
         } else {
             throw new Error('updateElevationForReqId unknown reader');
         }
-        useMapStore().resetIsLoading();
     } catch (error) {
         console.error('updateElevationForReqId error:',error);
         throw error;
+    } finally {
+        useMapStore().resetIsLoading();
     }
 }
 export const addHighlightLayerForReq = async (req_id:number) => {

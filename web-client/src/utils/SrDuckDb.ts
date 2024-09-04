@@ -209,57 +209,6 @@ export class DuckDBClient {
     }
   }
   
-
-    // Method to execute paginated queries
-  async queryChunk(query: string, chunkSize: number = 50000, offset: number = 0, params?: any): Promise<QueryChunkResult> {
-    const conn = await this._db!.connect();
-    let tbl: arrow.Table<any>;
-    //console.log('queryChunk query:',query,' chunkSize:',chunkSize,' offset:',offset,' params:',params);
-    try {
-      // Get the total number of rows for the query if this is the first chunk
-      let totalRows = null;
-      if(offset === 0){
-        totalRows =await this.getTotalRowCount(query);
-        //console.log('queryChunk totalRows:',totalRows);
-      }
-      const paginatedQuery = `${query} LIMIT ${chunkSize} OFFSET ${offset}`;
-      if (params) {
-        const stmt = await conn.prepare(paginatedQuery);
-        //console.log('queryChunk stmt:',stmt);
-        tbl = await stmt.query(...params);
-      } else {
-        //console.log('queryChunk conn.query:',paginatedQuery);
-        tbl = await conn.query(paginatedQuery);
-      }
-
-      const rows = tbl.toArray().map((r) => Object.fromEntries(r));
-      const schema = tbl.schema.fields.map(({ name, type }) => ({
-        name,
-        type: getType(String(type)),
-        databaseType: String(type),
-      }));
-      const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
-      //console.log('queryChunk hasMoreData:',hasMoreData,'totalRows:',totalRows,' rows.length:',rows.length,' chunkSize:',chunkSize,' tbl.numRows:',tbl.numRows);
-
-      return {
-        totalRows: totalRows,
-        length: rows.length,
-        hasMoreData,
-        schema,
-        async *readRows() {
-          for (let i = 0; i < rows.length; i += chunkSize) {
-            yield rows.slice(i, i + chunkSize);
-          }
-        },
-      };
-    } catch (error) {
-      console.error('Query execution error:', error);
-      throw error;
-    } finally {
-      await conn.close();
-    }
-  }
-
   // Method to execute paginated queries with in-query random sampling
 async queryChunkSampled(
   query: string,
