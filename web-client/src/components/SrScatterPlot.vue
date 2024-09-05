@@ -126,17 +126,6 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const fetchScatterOptions = async () => {
   const reqId = atlChartFilterStore.getReqId();
   if(reqId > 0){
-
-    const func = await indexedDb.getFunc(reqId);
-    atl03ColorMapStore.initializeAtl03ColorMapStore();
-    if (func === 'atl03') {
-      atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-    } else if (func === 'atl06') {
-      atl03ColorMapStore.setAtl03ColorKey('YAPC');
-    } else if (func === 'atl08') {
-      atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-    }
-
     const y_options = atlChartFilterStore.yDataForChart;
     if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
       atlChartFilterStore.setShowMessage(false);
@@ -187,6 +176,15 @@ const fetchScatterOptions = async () => {
 onMounted(async () => {
   const reqId = atlChartFilterStore.getReqId();
   if (reqId > 0) {
+    const func = await indexedDb.getFunc(reqId);
+    atl03ColorMapStore.initializeAtl03ColorMapStore();
+    if (func === 'atl03') {
+      atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+    } else if (func === 'atl06') {
+      atl03ColorMapStore.setAtl03ColorKey('YAPC');
+    } else if (func === 'atl08') {
+      atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+    }
     debouncedFetchScatterOptions();
   } else {
     console.warn('reqId is undefined');
