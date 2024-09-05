@@ -15,8 +15,8 @@ export type SysConfig = {
 // System Configuration
 //
 const globalSysConfig = {
-  domain: "testsliderule.org",
-  organization: "test-public",
+  domain: "slideruleearth.io",
+  organization: "sliderule",
   protocol: 'https',
   verbose: true,
   desired_nodes: null,

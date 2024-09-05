@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 export const useSysConfigStore = defineStore('sysConfig', {
 
     state: () => ({
-        domain: "testsliderule.org",
-        organization: "test-public",        
+        domain: "slideruleearth.io",
+        organization: "sliderule",        
         protocol: 'https', // Assuming default protocol is https
         verbose: true,
         desired_nodes: undefined, // null use existing nodes or specify number of nodes

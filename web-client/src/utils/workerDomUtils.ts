@@ -247,19 +247,28 @@ export async function processRunSlideRuleClicked() {
     curReqSumStore.setNumArrowMetaRecs(0);
     curReqSumStore.setTgtArrowMetaRecs(0);
 
+    if(!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)){
+        console.warn('no geographic reqion defined');
+        //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+        useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
+        requestsStore.setMsg('You need to supply geographic region ...');
+        mapStore.isLoading = false;
+        return;
+    }
     requestsStore.setMsg('Running...');
     const srReqRec = await requestsStore.createNewSrRequestRecord();
     if(srReqRec) {
         console.log('runSlideRuleClicked srReqRec:',srReqRec);
+        if(!srReqRec.req_id) {
+            console.error('runAtl06 req_id is undefined');
+            //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+            useSrToastStore().error('Error','There was an error');
+            return;
+        }
+
         if(useReqParamsStore().missionValue.value === 'ICESat-2') {
             if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl06') {
                 console.log('atl06 selected');
-                if(!srReqRec.req_id) {
-                    console.error('runAtl06 req_id is undefined');
-                    //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-                    useSrToastStore().error('Error','There was an error');
-                    return;
-                }
                 srReqRec.func = 'atl06';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
@@ -267,12 +276,6 @@ export async function processRunSlideRuleClicked() {
                 runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
                 console.log('atl03 selected');
-                if(!srReqRec.req_id) {
-                    console.error('runAtl03 req_id is undefined');
-                    //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-                    useSrToastStore().error('Error','There was an error');
-                    return;
-                }
                 srReqRec.func = 'atl03';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
@@ -280,31 +283,31 @@ export async function processRunSlideRuleClicked() {
                 runFetchToFileWorker(srReqRec);
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
                 console.log('atl08 selected');
-                if(!srReqRec.req_id) {
-                    console.error('runAtl08 req_id is undefined');
-                    //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-                    useSrToastStore().error('Error','There was an error');
-                    return;
-                }
                 srReqRec.func = 'atl08';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24s') {
-                console.log('atl24s TBD');
-                //toast.add({severity: 'info',summary: 'Info', detail: 'atl24s TBD', life: srToastStore.getLife() });
-                useSrToastStore().info('Info','atl24s TBD');
+            } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24') {
+                console.log('atl24 TBD');
+                //toast.add({severity: 'info',summary: 'Info', detail: 'atl24 TBD', life: srToastStore.getLife() });
+                useSrToastStore().info('Info','atl24 TBD');
+                requestsStore.setMsg('stopped...');
+                mapStore.isLoading = false;
+            } else {
+                console.error('runSlideRuleClicked iceSat2SelectedAPI was undefined');
+                useSrToastStore().warn('Unsupported','That selection is TBD');
+                requestsStore.setMsg('stopped...');
+                mapStore.isLoading = false;
             }
         } else if(useReqParamsStore().missionValue.value === 'GEDI') {
             console.log('GEDI TBD');
-            //toast.add({severity: 'info',summary: 'Info', detail: 'GEDI TBD', life: srToastStore.getLife() });
             useSrToastStore().info('Info','GEDI TBD');
         }
     } else {
-        mapStore.isLoading = false;
         console.error('runSlideRuleClicked srReqRec was undefined');
-        //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
         useSrToastStore().error('Error','There was an error');
+        requestsStore.setMsg('stopped...');
+        mapStore.isLoading = false;
     }
 };
