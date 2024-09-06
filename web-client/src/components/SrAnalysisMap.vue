@@ -26,7 +26,8 @@
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-
+  import { useSrToastStore } from "@/stores/srToastStore";
+  import { useAdvancedModeStore } from "@/stores/advancedModeStore";
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -38,6 +39,7 @@
   const handleEvent = (event: any) => {
     console.log(event);
   };
+  const advancedModeStore = useAdvancedModeStore();
   const atlChartFilterStore = useAtlChartFilterStore();
   const elevationIsLoading = computed(() => mapStore.getIsLoading());
   const loadStateStr = computed(() => {
@@ -134,7 +136,10 @@
         }
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
 
-        updateAnalysisMapView("onMounted");
+        updateAnalysisMapView("SrAnalysisMap onMounted");
+        if(!advancedModeStore.getAdvanced()){
+          useSrToastStore().info('Helpful Advice',"Click on a track in the map to display the elevation scatter plot");
+        }
 
       } else {
         console.log("Error:map is null");
