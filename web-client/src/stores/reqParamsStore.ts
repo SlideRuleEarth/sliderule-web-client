@@ -24,7 +24,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         asset: 'icesat2',
         isArrowStream: false,
         isFeatherStream: false,
-        rasterizePolygon: false,
+        useRasterizePolygon: false,
+        rasterizePolyCellSize: 0.0001,
         ignorePolygon: false,
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
@@ -34,14 +35,20 @@ export const useReqParamsStore = defineStore('reqParams', {
         selectAllTracks: false,
         beams: [] as SrListNumberItem[],
         selectAllBeams: false,
+        useRGT: false,
         rgtValue: 1,
+        useCycle: false,
         cycleValue: 1,
+        useRegion: false,
         regionValue: 1,
         t0Value: '2020-01-01',
         t1Value: '2020-01-01',
         totalTimeoutValue: 600,
+        useReqTimeout: false,
         reqTimeoutValue: 600,
+        useNodeTimeout: false,
         nodeTimeoutValue: 1,
+        useReadTimeout: false,
         readTimeoutValue: 1,
         lengthValue: 40.0,
         stepValue: 20.0,
@@ -199,8 +206,17 @@ export const useReqParamsStore = defineStore('reqParams', {
         useChecksum: false,
     }),
     actions: {
-        setRasterizePolygon(value:boolean) {
-          this.rasterizePolygon = value;
+        getUseRasterizePolygon() {
+            return this.useRasterizePolygon;
+        },
+        setUseRasterizePolygon(value:boolean) {
+            this.useRasterizePolygon = value;
+        },
+        getRasterizePolyCellSize() {
+            return this.rasterizePolyCellSize;
+        },
+        setRasterizePolyCellSize(value:number) {
+            this.rasterizePolyCellSize = value;
         },
         addResource(resource: string) {
           if (resource.trim().length) {
@@ -308,17 +324,53 @@ export const useReqParamsStore = defineStore('reqParams', {
           // }
           return baseParams;
         },
-        setReqion(reqionValue:number) {
-          this.regionValue = reqionValue;
+        getUseRgt() {
+            return this.useRGT;
         },
-        getRegion() {
-          return this.regionValue;
+        setUseRgt(useRGT:boolean) {
+            this.useRGT = useRGT;
         },
         setRgt(rgtValue:number) {
           this.rgtValue = rgtValue;
         },
         getRgt() {
           return this.rgtValue;
+        },
+        setUseCycle(useCycle:boolean) {
+            this.useCycle = useCycle;
+        },
+        getUseCycle() {
+            return this.useCycle;
+        },
+        setCycle(cycleValue:number) {
+          this.cycleValue = cycleValue;
+        },
+        getCycle() {
+          return this.cycleValue;
+        },
+        setUseRegion(useRegion:boolean) {
+            this.useRegion = useRegion;
+        },
+        getUseRegion() {
+            return this.useRegion;
+        },
+        setRegion(regionValue:number) {
+          this.regionValue = regionValue;
+        },
+        getRegion() {
+          return this.regionValue;
+        },
+        setT0(t0Value:string) {
+          this.t0Value = t0Value;
+        },
+        getT0() {
+          return this.t0Value;
+        },
+        setT1(t1Value:string) {
+          this.t1Value = t1Value;
+        },
+        getT1() {
+          return this.t1Value;
         },
         setBeams(beams: SrListNumberItem[]) {
           this.beams = beams;
@@ -380,7 +432,97 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.stepValue = 20.0;
           this.lengthValue = 40.0;
           this.outputLocationPath=''; // forces auto creation of a unique path
-        }
+        },
+        setUseReqTimeout(useReqTimeout:boolean) {
+          this.useReqTimeout = useReqTimeout;
+        },
+        getUseReqTimeout() {
+          return this.useReqTimeout;
+        },
+        setReqTimeout(reqTimeoutValue:number) {
+          this.reqTimeoutValue = reqTimeoutValue;
+        },
+        getReqTimeout() {
+          return this.reqTimeoutValue;
+        },
+        setUseNodeTimeout(useNodeTimeout:boolean) {
+          this.useNodeTimeout = useNodeTimeout;
+        },
+        getUseNodeTimeout() {
+          return this.useNodeTimeout;
+        },
+        setNodeTimeout(nodeTimeoutValue:number) {
+          this.nodeTimeoutValue = nodeTimeoutValue;
+        },
+        getNodeTimeout() {
+          return this.nodeTimeoutValue;
+        },
+        setUseReadTimeout(useReadTimeout:boolean) {
+          this.useReadTimeout = useReadTimeout;
+        },
+        getUseReadTimeout() {
+          return this.useReadTimeout;
+        },
+        getReadTimeout() {
+          return this.readTimeoutValue;
+        },
+        setReadTimeout(readTimeoutValue:number) {
+          this.readTimeoutValue = readTimeoutValue;
+        },
+        getUseYAPCKnn() {
+          return this.usesYAPCKnn;
+        },
+        setUseYAPCKnn(value:boolean) {
+          this.usesYAPCKnn = value;
+        },
+        getYAPCKnn() {
+          return this.YAPCKnn;
+        },
+        setYAPCKnn(value:number) {
+          this.YAPCKnn = value;
+        },
+        getYAPCWindowHeight() {
+          return this.YAPCWindowHeight;
+        },
+        setYAPCWindowHeight(value:number) {
+          this.YAPCWindowHeight = value;
+        },
+        getUsesYAPCWindowWidth() {
+          return this.usesYAPCWindowWidth;
+        },
+        setUsesYAPCWindowWidth(value:boolean) {
+          this.usesYAPCWindowWidth = value;
+        },
+        getUsesYAPCWindowHeight() {
+          return this.usesYAPCWindowHeight;
+        },
+        setUsesYAPCWindowHeight(value:boolean) {
+          this.usesYAPCWindowHeight = value;
+        },
+        getYAPCWindowWidth() {
+          return this.YAPCWindowWidth;
+        },
+        setYAPCWindowWidth(value:number) {
+          this.YAPCWindowWidth = value;
+        },
+        getYAPCVersion() {
+          return this.YAPCVersion;
+        },
+        setYAPCVersion(value:{name:string, value:string}) {
+          this.YAPCVersion = value;
+        },
+        getMissionValue() {
+          return this.missionValue;
+        },
+        setMissionValue(value:{name:string, value:string}) {
+          this.missionValue = value;
+        },
+        getMissionItems() {
+          return this.missionItems;
+        },
+        getIceSat2SelectedAPI() {
+          return this.iceSat2SelectedAPI;
+        },
     },
 })
 

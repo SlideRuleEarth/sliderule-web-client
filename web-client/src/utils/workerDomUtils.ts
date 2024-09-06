@@ -48,7 +48,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
             //toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
-            useSrToastStore().success('Success',"Successfully downloaded. Click on Analysis button to plot elevation of individual tracks.");
+            useSrToastStore().success('Success',"Successfully downloaded.\n Click on Analysis button to plot elevation of individual tracks.");
            break;
         case 'started':
             console.log('handleWorkerMsg started');

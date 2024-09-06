@@ -1,30 +1,42 @@
 <template>
     <div class="sr-switched-slider-input-wrapper">
         <div class="sr-switched-slider-labeled-cb">
-            <SrCheckbox v-model="isCheckboxChecked" label=""  @change="handleChange" :insensitive="props.insensitive"/>
+            <SrCheckbox v-model="computedCheckboxValue" label=""  :insensitive="props.insensitive"/>
             <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         </div>
-        <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!isCheckboxChecked || insensitive" :tooltipText="tooltipText"  />
+        <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!computedCheckboxValue || insensitive" :tooltipText="tooltipText"  />
     </div>
 </template>
   
 <script setup lang="ts">
-    import { ref,onMounted } from 'vue';
+    import { onMounted,computed } from 'vue';
     import SrSliderInput from './SrSliderInput.vue';
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     const props = defineProps({
-        selected: {
-            type: Boolean,
-            default: false
+        getValue: {
+            type: Function,
+            required: true
+        },
+        setValue: {
+            type: Function,
+            required: true
+        },
+        getCheckboxValue: {
+            type: Function,
+            required: true
+        },
+        setCheckboxValue: {
+            type: Function,
+            required: true
         },
         min: {
             type: Number,
-            default: 0
+            default: 0.0
         },
         max: {
             type: Number,
-            default: 100
+            default: 100.0
         },
         label: {
             type: String,
@@ -52,18 +64,42 @@
         }
     });
 
-    const emit = defineEmits(['update:selected']);
+    //const emit = defineEmits(['update:selected']);
 
-    const innerModelValue = ref(0.0);
-    const isCheckboxChecked = ref(false);
+    const innerModelValue = computed({
+        get() {
+            const value = props.getValue();
+            //console.log('SrSwitchedSlider:', props.label, 'get:', value);
+            return value; // calling the getter function
+        },
+        set(value) {
+            //console.log('SrSwithcedSlider:', props.label, 'set:', value)
+            props.setValue(value); // calling the setter function
+        }
+    });
     const inputId = `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
-    const handleChange = (event: any) => {
-        console.log(`SrSwitchedSliderInput ${props.checkBoxLabel} ${props.label} checked?: ${event.target.checked}`);
-        isCheckboxChecked.value = event.target.checked;
-        emit('update:selected', event.target.checked);
-    }
+
+    const computedCheckboxValue = computed({
+        get() {
+            const value = props.getCheckboxValue();
+            //console.log('SrSwitchedSlider:', props.checkBoxLabel, 'get:', value);
+            return value; // calling the getter function
+        },
+        set(value) {
+            //console.log('SrSwithcedSlider:', props.checkBoxLabel, 'set:', value)
+            props.setCheckboxValue(value); // calling the setter function
+        }
+    });
+
+    //const computedCheckboxValue = ref(false);
+    // const handleChange = (event: any) => {
+    //     console.log(`SrSwitchedSliderInput ${props.checkBoxLabel} ${props.label} checked?: ${event.target.checked}`);
+    //     computedCheckboxValue.value = event.target.checked;
+    //     emit('update:selected', event.target.checked);
+    // }
+
     onMounted(() => {
-        //console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
+        console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
     });
 </script>
 

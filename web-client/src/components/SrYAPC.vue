@@ -44,7 +44,10 @@ const reqParamsStore = useReqParamsStore();
     />
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCKnn"
-        :selected="!reqParamsStore.usesYAPCKnn"
+        :getCheckboxValue="reqParamsStore.getUseYAPCKnn"
+        :setCheckboxValue="reqParamsStore.setUseYAPCKnn"
+        :getValue="reqParamsStore.getYAPCKnn"
+        :setValue="reqParamsStore.setYAPCKnn"
         label="Knn"
         :min="1"
         :max="100" 
@@ -55,7 +58,10 @@ const reqParamsStore = useReqParamsStore();
     />
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCWindowHeight"
-        :selected="reqParamsStore.usesYAPCWindowHeight"
+        :getCheckboxValue="reqParamsStore.getUsesYAPCWindowHeight"
+        :setCheckboxValue="reqParamsStore.setUsesYAPCWindowHeight"
+        :getValue="reqParamsStore.getYAPCWindowHeight"
+        :setValue="reqParamsStore.setYAPCWindowHeight"
         label="Window Height"
         :min="1"
         :max="1000" 
@@ -66,7 +72,10 @@ const reqParamsStore = useReqParamsStore();
    />
     <SrSwitchedSliderInput
         v-model="reqParamsStore.YAPCWindowWidth"
-        :selected="reqParamsStore.usesYAPCWindowWidth"
+        :getCheckboxValue="reqParamsStore.getUsesYAPCWindowWidth"
+        :setCheckboxValue="reqParamsStore.setUsesYAPCWindowWidth"
+        :getValue="reqParamsStore.getYAPCWindowWidth"
+        :setValue="reqParamsStore.setYAPCWindowWidth"
         label="Window Width"
         :min="1"
         :max="1000" 

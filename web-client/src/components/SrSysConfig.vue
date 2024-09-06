@@ -3,10 +3,30 @@
     <SrTextInput v-model="sysConfigStore.domain" label="Domain" />
     <SrTextInput v-model="sysConfigStore.organization" label="Organization" />
     <SrMenuInput v-model="sysConfigStore.protocol" :menuOptions="protocolOptions" label="Protocol"/>
-    <SrCheckbox v-model="sysConfigStore.verbose" label="Verbose"/>
-    <SrSwitchedSliderInput v-model="sysConfigStore.desired_nodes" label="Desired Nodes" :min="1" :max="3" :decimalPlaces="0"/>
-    <SrSliderInput v-model="sysConfigStore.time_to_live" label="Time to Live (secs)" :decimalPlaces="0" />
-    <SrSliderInput v-model="sysConfigStore.timeout" label="Timeout (ms)" :decimalPlaces="0"/>
+    <SrCheckbox v-model="sysConfigStore.verbose" label="Verbose" />
+    <SrSwitchedSliderInput 
+      v-model="sysConfigStore.desired_nodes"
+      :setCheckboxValue="sysConfigStore.setUseDesiredNodes"
+      :getCheckboxValue="sysConfigStore.getUseDesiredNodes"
+      :setValue="sysConfigStore.setDesiredNodes"
+      :getValue="sysConfigStore.getDesiredNodes"
+      label="Desired Nodes" 
+      :min="1" 
+      :max="30" 
+      :decimalPlaces="0"
+    />
+    <SrSliderInput 
+      v-model="sysConfigStore.time_to_live" 
+      label="Time to Live (secs)" 
+      :decimalPlaces="0" 
+      :insensitive="!sysConfigStore.getUseDesiredNodes()"
+    />
+    <SrSliderInput 
+      v-model="sysConfigStore.timeout" 
+      label="Timeout (ms)" 
+      :decimalPlaces="0"
+      :insensitive="!sysConfigStore.getUseDesiredNodes()"
+    />
   </div>
 </template>
   
