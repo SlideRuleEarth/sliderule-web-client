@@ -17,7 +17,7 @@
             :value="mapStore.graticuleState"
             :getValue="mapStore.getGraticuleState"
             :setValue="mapStore.setGraticuleState"
-            label="Graticule"
+            label="Use Map Graticule"
             tooltipText="Toggle the graticule on and off"
             tooltipUrl="https://openlayers.org/en/latest/apidoc/module-ol_layer_Graticule-Graticule.html"
             @change="handleGraticuleChanged"

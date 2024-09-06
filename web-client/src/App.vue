@@ -87,15 +87,10 @@ header {
   line-height: 1.5;
   max-height: 100vh;
 }
-
-/* .toast-div{ 
-  display: flex;
-  justify-content: center;
+/* Global style for toast popups */
+.p-toast-message {
+  opacity: 1.0 !important;
 }
 
-:deep(.app .p-toast .p-toast-message.p-toast-message-info)   {
-  color:black; 
-} 
-*/
 
 </style>

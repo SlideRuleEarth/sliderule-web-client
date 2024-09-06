@@ -28,6 +28,7 @@ import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
 import SrColorPalette  from "./SrColorPalette.vue";
 import Fieldset from 'primevue/fieldset';
+import SrAdvancedConfig from './SrAdvancedConfig.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -260,10 +261,11 @@ onMounted(() => {
                 <AccordionPanel value="0">
                     <AccordionHeader>Advanced</AccordionHeader>
                     <AccordionContent>
-                        <SrDebug />
-                        <Fieldset legend="Color Palette" :toggleable="true" :collapsed="true">
+                        <div class="sr-adv-opt-panel">
+                            <SrDebug />
+                            <SrAdvancedConfig />
                             <SrColorPalette />
-                        </Fieldset>
+                        </div>
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>
@@ -296,6 +298,11 @@ onMounted(() => {
     padding: 0.1250rem;
 
 }
+.sr-color-palette {
+    display: flex;
+    flex-direction: column;
+}
+
 .sr-raster-sampling-table-section {
     border-radius: var(--p-border-radius);
     border: 2px solid var(--surface-d);
@@ -316,6 +323,16 @@ onMounted(() => {
     overflow-x: scroll;
     white-space: nowrap;
 }
+
+.sr-adv-opt-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: left;
+    margin: 0.125rem;
+    padding: 0.125rem;
+}
+
 
 .file-upload-panel { 
     display: flex;

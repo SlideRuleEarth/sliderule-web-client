@@ -284,6 +284,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         
           return req;
         },
+        setSrt(srt:number[]) {
+          this.surfaceReferenceType = srt;
+        },
         getSrt(): number[] | number {
           if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
             return -1;
@@ -356,6 +359,28 @@ export const useReqParamsStore = defineStore('reqParams', {
         getUseChecksum() {
           return this.useChecksum;
         },
+        setAsset(asset:string) {
+          this.asset = asset;
+        },
+        getAsset() {
+          return this.asset;
+        },
+        initParmsForGenUser() {
+          this.asset = 'icesat2';
+          this.surfaceReferenceType = [-1];
+          this.signalConfidenceNumber = [4];
+          this.alongTrackSpread = 20.0;
+          this.minimumPhotonCount = 10;
+          this.maxIterations = 6;
+          this.minWindowHeight = 3.0;
+          this.sigmaValue = 5.0;
+          this.fileOutput = true;
+          this.outputFormat = {name:"parquet", value:"parquet"};
+          this.useChecksum = false;
+          this.stepValue = 20.0;
+          this.lengthValue = 40.0;
+          this.outputLocationPath=''; // forces auto creation of a unique path
+        }
     },
 })
 

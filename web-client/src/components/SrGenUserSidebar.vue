@@ -10,21 +10,22 @@
     import ProgressBar from 'primevue/progressbar';
     import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
     import { processAbortClicked } from  "@/utils/workerDomUtils";    
+    import { useSrToastStore } from "@/stores/srToastStore";
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
-    
-
-
  
     onMounted(async () => {
         console.log('SrGenUserSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
+        useSrToastStore().info('Helpful Advice',"select a geographic region of about several square miles and click 'Run SlideRule' to start the process");
+
     });
 
     function runSlideRuleClicked() {
         console.log('runSlideRuleClicked');
+        reqParamsStore.initParmsForGenUser();
         processRunSlideRuleClicked();
     }
 

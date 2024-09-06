@@ -1,23 +1,24 @@
 <template>
-    <div class="color-palette">
-        <h2>Select Your Color Palette</h2>
-        <PickList v-model="colors" dataKey="label">
-            <!-- Custom source header with different background color -->
-            <template #sourceheader>
-                <div class="source-header">Available Colors</div>
-            </template>
-            <!-- Custom target header with different background color -->
-            <template #targetheader>
-                <div class="target-header">Selected Colors</div>
-            </template>
-            <template #item="slotProps">
-                    {{ slotProps.item.label }}
-            </template>
-        </PickList>
-        <div class="sr-restore-defaults">
-            <Button label="Restore Defaults" @click="restoreDefaultColors" />
-        </div>
-
+    <div class="sr-color-palette">
+        <Fieldset legend="Color Palette" class="sr-color-palette-content" :toggleable="true" :collapsed="true">
+            <h2>Select Your Color Palette</h2>
+            <PickList v-model="colors" dataKey="label">
+                <!-- Custom source header with different background color -->
+                <template #sourceheader>
+                    <div class="source-header">Available Colors</div>
+                </template>
+                <!-- Custom target header with different background color -->
+                <template #targetheader>
+                    <div class="target-header">Selected Colors</div>
+                </template>
+                <template #item="slotProps">
+                        {{ slotProps.item.label }}
+                </template>
+            </PickList>
+            <div class="sr-restore-defaults">
+                <Button label="Restore Defaults" @click="restoreDefaultColors" />
+            </div>
+        </Fieldset>
     </div>
 </template>
 
@@ -26,6 +27,8 @@ import { onMounted, ref, watch, computed } from 'vue';
 import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import Fieldset from 'primevue/fieldset';
+
 const atl03ColorMapStore = useAtl03ColorMapStore();
 // Predefined list of CSS color names
 const cssColorNames = [
@@ -79,9 +82,18 @@ const restoreDefaultColors = async () => {
 </script>
 
 <style scoped>
-.color-palette {
-    max-width: 600px;
-    margin: 0 auto;
+.sr-color-palette {
+    display: flex;
+    justify-content: center;
+    margin:0.125rem;
+}
+.sr-color-palette-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    font-size: smaller;
+    padding: 0.25rem;
 }
 
 h2 {
