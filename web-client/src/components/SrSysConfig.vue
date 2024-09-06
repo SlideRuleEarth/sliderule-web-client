@@ -3,6 +3,7 @@
     <SrTextInput v-model="sysConfigStore.domain" label="Domain" />
     <SrTextInput v-model="sysConfigStore.organization" label="Organization" />
     <SrMenuInput v-model="sysConfigStore.protocol" :menuOptions="protocolOptions" label="Protocol"/>
+    <SrCheckbox v-model="sysConfigStore.verbose" label="Verbose" />
     <SrSwitchedSliderInput 
       v-model="sysConfigStore.desired_nodes"
       :setCheckboxValue="sysConfigStore.setUseDesiredNodes"

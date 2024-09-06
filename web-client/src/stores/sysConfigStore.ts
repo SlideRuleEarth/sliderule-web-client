@@ -6,6 +6,7 @@ export const useSysConfigStore = defineStore('sysConfig', {
         domain: "slideruleearth.io",
         organization: "sliderule",        
         protocol: 'https', // Assuming default protocol is https
+        verbose: false,
         useDesiredNodes: false, // false means use existing nodes or specify number of nodes
         desired_nodes: 1,
         time_to_live: 60,
@@ -29,6 +30,12 @@ export const useSysConfigStore = defineStore('sysConfig', {
         },
         getProtocol() {
             return this.protocol
+        },
+        setVerbose(value: boolean) {
+            this.verbose = value
+        },
+        getVerbose() {
+            return this.verbose
         },
         getTimeToLive() {
             return this.time_to_live

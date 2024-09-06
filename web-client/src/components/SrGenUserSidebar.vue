@@ -19,7 +19,7 @@
     onMounted(async () => {
         console.log('SrGenUserSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        useSrToastStore().info('Helpful Advice',"select a geographic region of about several square miles and click 'Run SlideRule' to start the process");
+        useSrToastStore().info('Helpful Advice',"1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
 
     });
 
