@@ -71,6 +71,10 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
         <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.rgtValue"
+            :getCheckboxValue="reqParamsStore.getUseRgt"
+            :setCheckboxValue="reqParamsStore.setUseRgt"
+            :getValue="reqParamsStore.getRgt"
+            :setValue="reqParamsStore.setRgt"
             label="RGT"
             :min="1"
             :max="10000" 

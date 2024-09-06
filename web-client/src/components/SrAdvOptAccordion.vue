@@ -27,7 +27,6 @@ import SrStorageUsage from './SrStorageUsage.vue';
 import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
 import SrColorPalette  from "./SrColorPalette.vue";
-import Fieldset from 'primevue/fieldset';
 import SrAdvancedConfig from './SrAdvancedConfig.vue';
 
 const reqParamsStore = useReqParamsStore();
@@ -89,10 +88,14 @@ onMounted(() => {
                         />
                         <SrSwitchedSliderInput
                             label="Rasterize Polygon cell size"
-                            v-model="reqParamsStore.rasterizePolygon"
-                            :min="1"
-                            :max="100"
-                            :decimalPlaces="0"
+                            v-model="reqParamsStore.rasterizePolyCellSize"
+                            :getCheckboxValue="reqParamsStore.getUseRasterizePolygon"
+                            :setCheckboxValue="reqParamsStore.setUseRasterizePolygon"
+                            :getValue="reqParamsStore.getRasterizePolyCellSize"
+                            :setValue="reqParamsStore.setRasterizePolyCellSize"
+                            :min="0.0001"
+                            :max="1.0"
+                            :decimalPlaces="4"
                             tooltipText="The number of pixels to rasterize the polygon into"
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
                         />
@@ -115,6 +118,10 @@ onMounted(() => {
                         />
                         <SrSwitchedSliderInput
                             v-model="reqParamsStore.reqTimeoutValue"
+                            :getCheckboxValue="reqParamsStore.getUseReqTimeout"
+                            :setCheckboxValue="reqParamsStore.setUseReqTimeout"
+                            :getValue="reqParamsStore.getReqTimeout"
+                            :setValue="reqParamsStore.setReqTimeout"
                             label="rqst-timeout"
                             :min="1"
                             :max="3600" 
@@ -124,6 +131,10 @@ onMounted(() => {
                         />                    
                         <SrSwitchedSliderInput
                             v-model="reqParamsStore.nodeTimeoutValue"
+                            :getCheckboxValue="reqParamsStore.getUseNodeTimeout"
+                            :setCheckboxValue="reqParamsStore.setUseNodeTimeout"
+                            :getValue="reqParamsStore.getNodeTimeout"
+                            :setValue="reqParamsStore.setNodeTimeout"
                             label="node-timeout"
                             :min="1"
                             :max="3600" 
@@ -133,6 +144,10 @@ onMounted(() => {
                         />
                         <SrSwitchedSliderInput
                             v-model="reqParamsStore.readTimeoutValue"
+                            :getCheckboxValue="reqParamsStore.getUseReadTimeout"
+                            :setCheckboxValue="reqParamsStore.setUseReadTimeout"
+                            :getValue="reqParamsStore.getReadTimeout"
+                            :setValue="reqParamsStore.setReadTimeout"
                             label="read-timeout"
                             :min="1"
                             :max="3600" 

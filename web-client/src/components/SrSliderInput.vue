@@ -3,7 +3,7 @@
         <div class="sr-slider-col">
             <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="props.insensitive"/>
             <div class="sr-slider-input-row">
-                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" class="sr-slider" :disabled="props.insensitive" />
+                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" :step="sliderStepSize" class="sr-slider" :disabled="props.insensitive" />
                 <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="props.insensitive"/>
             </div>
         </div>
@@ -75,7 +75,7 @@
         //console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
 
-        //console.log('The Slider Step Size:', sliderStepSize.value);
+        console.log(`${props.label} Slider Step Size: ${sliderStepSize.value}`);
     });
 
     const emit = defineEmits(['update:modelValue']);
@@ -105,7 +105,7 @@
     );
 
     watch(sliderStepSize, (newValue) => {
-        console.log('Updated Slider Step Size:', newValue);
+        console.log(`${props.label} Updated Slider Step Size: ${newValue}`);
     });
 
     watch(() => props.decimalPlaces, (newDecimalPlaces) => {
@@ -124,8 +124,7 @@
                 return '';
             } else {
                 // Otherwise, return the formatted number
-                //return innerValue.value.toFixed(props.decimalPlaces);
-                return innerValue.value.toFixed(props.decimalPlaces).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                return new Intl.NumberFormat('en-US', { minimumFractionDigits: props.decimalPlaces, maximumFractionDigits: props.decimalPlaces }).format(innerValue.value);
             }
         },
         set: (val) => {
