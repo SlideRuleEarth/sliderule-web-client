@@ -94,6 +94,8 @@ export function drawGeoJson(geoJsonData:string, noFill:boolean = false, overlayE
             if (geometry instanceof Polygon) {
                 const nestedCoords = geometry.getCoordinates();
                 useMapStore().polyCoords = nestedCoords;
+                //console.log('Using extent:',extent);               
+                map.getView().fit(geometry, {size: map.getSize(), padding: [40, 40, 40, 40]});  
                 //console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
             } else {
                 console.error('The geometry type Polygon is only type supported. got geometry:',geometry);
