@@ -11,6 +11,13 @@ export interface NullReqParams {
 
 export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
 
+interface YapcConfig {
+  score: number;
+  knn?: number; // Optional property
+  window_height?: number; // Optional property
+  window_width?: number; // Optional property
+}
+
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
@@ -289,15 +296,27 @@ export const useReqParamsStore = defineStore('reqParams', {
             req.alt08_class = this.atl08LandType;
           }
           if(this.enableYAPC) {
-            const yapc = {
+            const yapc:YapcConfig = {
               score: this.YAPCScore,
+            };
+            if(this.usesYAPCKnn) {
+              yapc.knn = this.YAPCKnn
+            }
+            if(this.usesYAPCWindowHeight) {
+              yapc.window_height= this.YAPCWindowHeight
             }
             req.yapc = yapc;
           }
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }
-        
+          if(this.getUseRasterizePolygon() && this.poly) {
+            req.raster = {
+              data: this.poly,
+              length: this.poly.length,
+              cellsize: this.getRasterizePolyCellSize(),
+            }
+          }
           return req;
         },
         setSrt(srt:number[]) {
@@ -318,10 +337,6 @@ export const useReqParamsStore = defineStore('reqParams', {
           if (this.resources.length > 0) {
             baseParams['resources'] = this.resources;
           }
-      
-          // if (this.poly && this.convexHull) {
-          //   baseParams['cmr'] = { polygon: this.convexHull };
-          // }
           return baseParams;
         },
         getUseRgt() {
