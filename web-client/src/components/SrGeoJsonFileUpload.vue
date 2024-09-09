@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, withDefaults, defineProps } from 'vue';
+import { ref } from 'vue';
 import { drawGeoJson } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
