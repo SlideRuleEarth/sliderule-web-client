@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, withDefaults, defineProps } from 'vue';
 import { drawGeoJson } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
@@ -8,52 +8,53 @@ import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
-import { useReqParamsStore } from "@/stores/reqParamsStore";
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 import type { SrRegion } from "@/sliderule/icesat2"
+
+
+const props = defineProps({
+    reportUploadProgress: {
+        type: Boolean,
+        default: false
+    },
+});
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
 const reqParamsStore = useReqParamsStore();
+
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
 
-
-const customUploader = async (event:any) => {
-    console.log('GeoJson customUploader event:',event);
+const customUploader = async (event: any) => {
+    console.log('GeoJson customUploader event:', event);
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = async (e) => {
             try {
-                if (e.target === null){
+                if (e.target === null) {
                     console.error('e.target is null');
                     return;
                 } else {
-                    //console.log(`e.target.result: ${e.target.result}`);
-                    console.log(`e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
                         const geoJsonData = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(geoJsonData);
-                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        drawGeoJson(geoJsonData,true,false); // noFill, !overlayExisting i.e. clear existing
+                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000 });
+                        drawGeoJson(geoJsonData, true, false); // noFill, !overlayExisting i.e. clear existing
 
                         const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
                             return { lon: coord[0], lat: coord[1] };
                         });
-                        if(isClockwise(srLonLatCoordinates)){
-                            //console.log('poly is clockwise, reversing');
+                        if (isClockwise(srLonLatCoordinates)) {
                             reqParamsStore.poly = srLonLatCoordinates.reverse();
                         } else {
-                            //console.log('poly is counter-clockwise');
                             reqParamsStore.poly = srLonLatCoordinates;
                         }
-                        //console.log('srLonLatCoordinates:',srLonLatCoordinates);
                         reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
-                        //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
-                        // Create GeoJSON from reqParamsStore.convexHull
                         const geoJson = {
                             type: "Feature",
                             geometry: {
@@ -64,9 +65,7 @@ const customUploader = async (event:any) => {
                                 name: "Convex Hull Polygon"
                             }
                         };
-                        //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson(JSON.stringify(geoJson)); //  with Fill and overlayExisting
-
+                        drawGeoJson(JSON.stringify(geoJson)); // with Fill and overlayExisting
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
@@ -78,32 +77,35 @@ const customUploader = async (event:any) => {
             }
         };
 
-        reader.onprogress = (e) => {
-            console.log('onprogress e:',e);
-            if (e.lengthComputable) {
-                console.log(`Uploading your file ${e.loaded} of ${e.total}`);
-                const percentLoaded = Math.round((e.loaded / e.total) * 100);
-                upload_progress.value = percentLoaded;
-                if (!upload_progress_visible.value) {
-                    upload_progress_visible.value = true;
-                    toast.add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
+        // Conditionally report upload progress
+        if (props.reportUploadProgress) {
+            reader.onprogress = (e) => {
+                console.log('onprogress e:', e);
+                if (e.lengthComputable) {
+                    const percentLoaded = Math.round((e.loaded / e.total) * 100);
+                    upload_progress.value = percentLoaded;
+                    if (!upload_progress_visible.value) {
+                        upload_progress_visible.value = true;
+                        toast.add({ severity: 'info', summary: 'Upload progress', group: 'headless' });
+                    }
                 }
-            }
-        };
+            };
+        }
     } else {
         console.error('No file input found');
         toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
-    };
+    }
 };
 
-const onSelect = (e:any) => {
-    console.log('onSelect e:',e);
+const onSelect = (e: any) => {
+    console.log('onSelect e:', e);
 };
 
-const onError = (e:any) => {
-    console.log('onError e:',e);
+const onError = (e: any) => {
+    console.log('onError e:', e);
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
+
 const onClear = () => {
     console.log('onClear');
 };
@@ -119,7 +121,7 @@ const onClear = () => {
                     <div class="message-container">
                         <p class="summary">{{ message.summary }}</p>
                         <p class="detail">{{ message.detail }}</p>
-                        <div class="progress-container">
+                        <div class="progress-container" v-if="reportUploadProgress">
                             <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
                             <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
                         </div>
