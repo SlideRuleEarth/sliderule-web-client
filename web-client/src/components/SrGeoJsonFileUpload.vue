@@ -66,6 +66,7 @@ const customUploader = async (event: any) => {
                             }
                         };
                         drawGeoJson(JSON.stringify(geoJson)); // with Fill and overlayExisting
+                        reqParamsStore.poly = reqParamsStore.convexHull; 
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
