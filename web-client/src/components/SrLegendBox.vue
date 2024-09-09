@@ -1,13 +1,17 @@
 <template>
-<div class="sr-legend-box">
+  <div class="sr-legend-box">
     <h1 class="sr-legend-header">Elevation Legend</h1>
-    <div class = "sr-color-map-gradient" :style="gradientStyle">
+    <div class="sr-color-map-gradient" :style="gradientStyle">
     </div>
     <div class="sr-legend-minmax">
-        <span class="sr-legend-min">{{ parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) }}m</span>
-        <span class="sr-legend-max">{{ parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) }}m</span>
+      <span class="sr-legend-min">
+        {{ curReqSumStore.get_h_mean_Min() !== null && curReqSumStore.get_h_mean_Min() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) : '?' }}m
+      </span>
+      <span class="sr-legend-max">
+        {{ curReqSumStore.get_h_mean_Max() !== null && curReqSumStore.get_h_mean_Max() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) : '?' }}m
+      </span>
     </div>
-</div> 
+  </div>
 </template>
 
 <script setup lang="ts">

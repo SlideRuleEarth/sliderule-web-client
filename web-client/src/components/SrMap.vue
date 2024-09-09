@@ -108,17 +108,17 @@
         //console.log('srLonLatCoordinates:',srLonLatCoordinates);
         reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
         //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
-          // Create GeoJSON from reqParamsStore.convexHull
-          const geoJson = {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
-            },
-            properties: {
-              name: "Convex Hull Polygon"
-            }
-          };
+        // Create GeoJSON from reqParamsStore.convexHull
+        const geoJson = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+          },
+          properties: {
+            name: "Convex Hull Polygon"
+          }
+        };
         //console.log('GeoJSON:', JSON.stringify(geoJson));
         drawGeoJson(JSON.stringify(geoJson));
       } else {

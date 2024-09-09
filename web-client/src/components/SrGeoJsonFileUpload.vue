@@ -7,11 +7,13 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-
+import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
+import { useReqParamsStore } from "@/stores/reqParamsStore";
+import type { SrRegion } from "@/sliderule/icesat2"
 
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
-
+const reqParamsStore = useReqParamsStore();
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
@@ -33,14 +35,38 @@ const customUploader = async (event:any) => {
                     //console.log(`e.target.result: ${e.target.result}`);
                     console.log(`e.target.result type: ${typeof e.target.result}`);
                     if (typeof e.target.result === 'string') {
-                        const data = JSON.parse(e.target.result);
-                        geoJsonStore.setGeoJsonData(data);
+                        const geoJsonData = JSON.parse(e.target.result);
+                        geoJsonStore.setGeoJsonData(geoJsonData);
                         toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000});
-                        const tstMsg = drawGeoJson(data);
-                        if (tstMsg) {
-                            //{ severity: string; summary: string; detail: string; }
-                            toast.add(tstMsg);
+                        drawGeoJson(geoJsonData,true,false); // noFill, !overlayExisting i.e. clear existing
+
+                        const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
+                            return { lon: coord[0], lat: coord[1] };
+                        });
+                        if(isClockwise(srLonLatCoordinates)){
+                            //console.log('poly is clockwise, reversing');
+                            reqParamsStore.poly = srLonLatCoordinates.reverse();
+                        } else {
+                            //console.log('poly is counter-clockwise');
+                            reqParamsStore.poly = srLonLatCoordinates;
                         }
+                        //console.log('srLonLatCoordinates:',srLonLatCoordinates);
+                        reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+                        //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+                        // Create GeoJSON from reqParamsStore.convexHull
+                        const geoJson = {
+                            type: "Feature",
+                            geometry: {
+                                type: "Polygon",
+                                coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+                            },
+                            properties: {
+                                name: "Convex Hull Polygon"
+                            }
+                        };
+                        //console.log('GeoJSON:', JSON.stringify(geoJson));
+                        drawGeoJson(JSON.stringify(geoJson)); //  with Fill and overlayExisting
+
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
