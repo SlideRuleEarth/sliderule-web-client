@@ -64,8 +64,6 @@
         }
     });
 
-    //const emit = defineEmits(['update:selected']);
-
     const innerModelValue = computed({
         get() {
             const value = props.getValue();

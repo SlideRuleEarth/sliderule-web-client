@@ -317,6 +317,9 @@ export const useReqParamsStore = defineStore('reqParams', {
               cellsize: this.getRasterizePolyCellSize(),
             }
           }
+          if(this.distanceIn.value === 'segments') {
+            req.dist_in_seg = true;
+          }
           return req;
         },
         setSrt(srt:number[]) {
