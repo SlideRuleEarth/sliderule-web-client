@@ -40,9 +40,6 @@
     const handleToolButtonClick = () => {
         emit('tool-button-click');
     };
-    const handlePopularButtonClick = () => {
-        emit('popular-button-click');
-    };
     const handleRecordButtonClick = () => {
         emit('record-button-click');
     };
@@ -65,8 +62,7 @@
             <p class="under-construction-text">This website is under construction</p>
         </div>
         <div class="right-content">
-            <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
-            <Button icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
+            <Button icon="pi pi-sliders-h" label="Map" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
             <Button icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" class="p-button-rounded p-button-text" @click="handleAnalysisButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>

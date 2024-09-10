@@ -152,9 +152,6 @@ onUnmounted(() => {
 
 <template>
     <div class="sr-records-container">
-        <div class="sr-records-header">
-            <SrImportParquetFile />
-        </div>  
         <DataTable 
             :value="requestsStore.reqs" 
             tableStyle="min-width: 50rem" 
@@ -215,7 +212,7 @@ onUnmounted(() => {
                 </template>
             </Column>
             <Column field="elapsed_time" header="Elapsed Time"></Column>
-            <Column field="Actions" header="" class="sr-analyze">
+            <Column field="Actions" header="Analyze" class="sr-analyze">
                 <template #body="slotProps">
                     <i 
                       class="pi pi-chart-line"

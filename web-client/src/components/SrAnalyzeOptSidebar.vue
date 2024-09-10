@@ -305,28 +305,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         console.error('Failed to update selected request:', error);
     }
 });
-// watch(selectedReqId, async (newSelection, oldSelection) => {
-//     try{
-//         reqIds.value =  await requestsStore.getMenuItems();
-//         if(reqIds.value.length === 0){ 
-//             console.warn('No requests found');
-//             return;
-//         }  
-//          //console.log('reqIds:', reqIds.value);
-
-//         const selectionNdx = reqIds.value.findIndex(item => item.value === newSelection.value);
-//         //console.log('selectionNdx:', selectionNdx);
-//         if (selectionNdx <= 0) { // i.e. not found
-//             newSelection = reqIds.value[0];  
-//         }
-//         //console.log('Using filtered newSelection:', newSelection);
-//         const req_id = Number(newSelection.value)
-//         updateElevationMap(req_id);
-//     } catch (error) {
-//         console.error('Failed to update selected request:', error);
-//     }
-
-// }, { deep: true, immediate: true });
 
 const getSize = computed(() => {
     return formatBytes(atlChartFilterStore.getSize());
@@ -339,6 +317,10 @@ const getCnt = computed(() => {
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
+        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
+            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
+            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
+        </div>
         <div class="sr-analysis-opt-sidebar-req-menu">
             <div class="sr-analysis-reqid-sz">
             <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
@@ -386,10 +368,6 @@ const getCnt = computed(() => {
                     /> 
                 </div>
             </FieldSet>
-        </div>
-        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
-            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
         </div>
         <div class="sr-analyze-filters">
             <SrListbox id="spots" 
@@ -496,6 +474,7 @@ direction."
         flex-direction: column;
         align-items: center;
         justify-content:center;
+        margin-top: 0.75rem;
     }
     .sr-analysis-opt-sidebar-container {
         display: flex;
