@@ -26,7 +26,7 @@
         requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
-        requestsStore.setConsoleMsg(`Select a geographic region.  Then click 'Run SlideRule' to start the process`);
+        requestsStore.setConsoleMsg(`Select a geographic region ( a couple sq miles).  Then click 'Run SlideRule' to start the process`);
     });
 
     function runSlideRuleClicked() {
@@ -99,7 +99,7 @@
         overflow-x: auto;
         overflow-y: hidden;
         /* text-overflow: ellipsis; */
-        max-width: 15rem; 
+        max-width: 25rem; 
         justify-content:center;
         align-items: left;
     } 
@@ -112,7 +112,7 @@
         overflow-x: auto;
         overflow-y: hidden;
         /* text-overflow: ellipsis; */
-        max-width: 15rem; 
+        max-width: 25rem; 
         justify-content:center;
         align-items: left;
     } 
@@ -126,7 +126,7 @@
         padding: 0.25rem;
         overflow-x: auto;
         overflow-y: hidden;
-        max-width: 15rem;
+        max-width: 25rem;
         min-width: 15rem;
         height: 3rem;
     }

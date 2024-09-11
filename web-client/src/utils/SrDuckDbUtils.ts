@@ -10,7 +10,7 @@ import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { SrMutex } from './SrMutex';
-
+import { useSrToastStore } from "@/stores/srToastStore";
 
 interface SummaryRowData {
     minLat: number;
@@ -168,7 +168,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
             let numDataItemsUsed = 0;
             let numDataItemsProcessed = 0;
             const rowChunks: ElevationDataItem[] = [];
-
+            useMapStore().setCurrentRows(0);
+            useMapStore().setTotalRows(0);
+        
             while (hasMoreData) {
                 try{
                     // Execute the query
@@ -208,6 +210,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
                     
                     if (numDataItemsUsed === 0) {
                         console.warn('duckDbReadAndUpdateElevationData no data items processed');
+                        useSrToastStore().warn('No Data Processed','No data items processed. Not Data returned for this region and request parameters.');
                     } else {
                         //console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
                     }
