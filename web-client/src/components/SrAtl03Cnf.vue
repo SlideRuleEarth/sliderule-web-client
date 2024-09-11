@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import SrSliderInput from './SrSliderInput.vue';
-import SrMultiSelectText from './SrMultiSelectText.vue';
 import SrMultiSelectNumber from './SrMultiSelectNumber.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
@@ -38,22 +36,28 @@ const reqParamsStore = useReqParamsStore();
                 ariaLabel="Signal Confidence"
                 :menuOptions="reqParamsStore.signalConfidenceNumberOptions"
                 :default="[
-                    reqParamsStore.signalConfidenceNumberOptions[6]
+                    reqParamsStore.signalConfidenceNumberOptions[2],
+                    reqParamsStore.signalConfidenceNumberOptions[3],
+                    reqParamsStore.signalConfidenceNumberOptions[4],
+                    reqParamsStore.signalConfidenceNumberOptions[5],
+                    reqParamsStore.signalConfidenceNumberOptions[6],
                     ]"
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
                 tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />            
-            <SrSliderInput
-                v-model="reqParamsStore.qualityPHValue"
-                label="Quailty PH"
-                :min="0"
-                :max="1000"
-                :decimalPlaces="2"
+            <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
+                label="Quality PH"
+                ariaLabel="Quality PH"
+                :menuOptions="reqParamsStore.qualityPHOptions"
+                :default="[
+                    reqParamsStore.qualityPHOptions[0],
+                ]"
+                @update:value="reqParamsStore.qualityPHNumber = $event"
                 tooltipText="quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts, can be supplied as a single value (which means the classification must be exactly that), or a list (which means the classification must be in the list))"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
-            />
+            />  
         </div>
     </div>
 </template>

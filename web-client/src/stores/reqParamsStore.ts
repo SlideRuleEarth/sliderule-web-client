@@ -104,8 +104,13 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'High', value: 4 },
         ] as SrMultiSelectNumberItem[],
         signalConfidenceNumber: [ 4 ],
-
-        qualityPHValue: 0.0,
+        qualityPHOptions: [
+          { name: 'Nominal', value: 0 },
+          { name: 'Possible Afterpulse', value: 1 },
+          { name: 'Possible Impulse Response Effect', value: 2 },
+          { name: 'Possible TEP', value: 3 },
+        ] as SrMultiSelectNumberItem[],
+        qualityPHNumber: [0],
         enableAtl08Classification: false,
         atl08LandTypeOptions: [
           {name:'Noise', value:'atl08_noise'}, 
@@ -292,6 +297,10 @@ export const useReqParamsStore = defineStore('reqParams', {
               req.beams = this.beams.map(beam => beam.value);
             }
           }
+          if(this.enableAtl03Confidence) {
+            req.quality_ph = this.qualityPHNumber;
+          }
+
           if(this.enableAtl08Classification) {
             req.alt08_class = this.atl08LandType;
           }

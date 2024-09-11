@@ -313,8 +313,9 @@ onMounted(() => {
 }
 
 .sr-adv-accordian {
-    min-width: 30rem;
+    min-width: 31rem;
     margin: 0.125rem;
+    padding: 0.1250rem;
 }
 
 .sr-color-palette {
@@ -399,27 +400,6 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 8px; /* adjust as needed */
-}
-
-.progress-bar {
-    height: 4px;
-}
-
-.upload-percentage {
-    text-align: right;
-    font-size: 0.75rem; /* text-xs */
-    color:var(--p-text-color);
-}
-
-.button-container {
-    display: flex;
-    gap: 12px; /* adjust as needed */
-    margin-bottom: 12px; /* mb-3, adjust accordingly */
-}
-
- .done-btn {
-    padding: 0.25rem 0.5rem; /* py-1 px-2 */
-    color: var(--p-text-color); 
 }
 
 </style>
