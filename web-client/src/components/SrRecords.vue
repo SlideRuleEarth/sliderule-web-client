@@ -12,6 +12,7 @@ import { formatBytes } from '@/utils/SrParquetUtils';
 import InputText from 'primevue/inputtext'; // Import InputText for editing
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrImportParquetFile  from '@/components/SrImportParquetFile.vue';
+import { cleanupAllRequests } from '@/utils/storageUtils';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
@@ -112,21 +113,9 @@ const exportFile = async (req_id:number) => {
 
 const deleteAllReqs = () => {
     console.log('deleteAllReqs');
-    requestsStore.reqs.forEach(async (req) => {
-        try {
-            if (req.req_id) {
-                const fn = await db.getFilename(req.req_id);
-                await deleteOpfsFile(fn);
-            } else {
-                console.error(`Request id is missing for request:`, req);
-            }
-        } catch (error) {
-            console.error(`Failed to delete request for id:${req.req_id}`, error);
-            throw error;
-        }
-    });
-    requestsStore.deleteAllReqs();
+    cleanupAllRequests();
 };
+
 const confirmDeleteAllReqs = () => {
     const userConfirmed = window.confirm('Are you sure you want to delete all requests?');
     if (userConfirmed) {
