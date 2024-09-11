@@ -3,7 +3,6 @@ import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
 import SrSideBarLayout from "@/layouts/SrSideBarLayout.vue";
 import SrMap from "@/components/SrMap.vue";
 import { onMounted } from 'vue';
-import SrModeSelect from "@/components/SrModeSelect.vue";
 import SrGenUserSidebar from "@/components/SrGenUserSidebar.vue";
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 
@@ -23,7 +22,6 @@ onMounted(() => {
                     <SrGenUserSidebar/>
                 </template>
                 <template v-slot:sr-sidebar-footer>
-                    <SrModeSelect /> 
                 </template>
             </SrSideBarLayout>
         </template>

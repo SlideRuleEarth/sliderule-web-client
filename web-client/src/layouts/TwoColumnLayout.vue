@@ -27,6 +27,7 @@
     margin-top: 0.5rem;
     flex-direction: column;
     align-items: center;
+    min-width: 30rem;
   }
 
   main {

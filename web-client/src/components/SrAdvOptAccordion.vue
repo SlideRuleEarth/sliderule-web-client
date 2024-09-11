@@ -70,7 +70,7 @@ onMounted(() => {
 <template>
     <div class="adv-opt-card">
         <div class="adv-opts-wrapper">
-            <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+            <Accordion class="sr-adv-accordian" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                 <AccordionPanel value="1">
                     <AccordionHeader>General</AccordionHeader>
                     <AccordionContent>
@@ -310,8 +310,13 @@ onMounted(() => {
     align-items: center;
     margin: 0.1250rem;
     padding: 0.1250rem;
-
 }
+
+.sr-adv-accordian {
+    min-width: 30rem;
+    margin: 0.125rem;
+}
+
 .sr-color-palette {
     display: flex;
     flex-direction: column;

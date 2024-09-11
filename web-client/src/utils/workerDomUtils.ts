@@ -60,7 +60,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg aborted');
             //toast.add({severity: 'warn',summary: 'Aborted', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().warn('Aborted',workerMsg.msg);
-            requestsStore.setMsg('Job aborted');
+            requestsStore.setConsoleMsg('Job aborted');
             cleanUpWorker();
             break;
         case 'server_msg':
@@ -69,7 +69,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 consoleStore.addLine(workerMsg.msg);
             }
             if(workerMsg.msg){
-                requestsStore.setMsg(workerMsg.msg);
+                requestsStore.setSvrMsg(workerMsg.msg);
                 percentComplete = parseCompletionPercentage(workerMsg.msg);
                 if (percentComplete !== null) {
                     curReqSumStore.setPercentComplete(percentComplete);
@@ -88,9 +88,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 curReqSumStore.setTgtArrowMetaRecs(workerMsg.progress.target_numArrowMetaRecs);
 
                 if(workerMsg.msg){
-                    requestsStore.setMsg(workerMsg.msg);
-                } else {
-                    requestsStore.setMsg(`Received ${workerMsg.progress} records`);
+                    requestsStore.setSvrMsg(workerMsg.msg);
+                    requestsStore.setConsoleMsg(`Received ${workerMsg.progress.numArrowDataRecs} arrowData records`);
                 }
             }
             break;
@@ -153,13 +152,13 @@ export function processAbortClicked() {
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
         console.log('abortClicked isLoading:',mapStore.isLoading);
-        requestsStore.setMsg('Abort Clicked');
+        requestsStore.setConsoleMsg('Abort Clicked');
         useSrToastStore().info('Abort Clicked','Aborting request');
     } else {
         //toast.add({severity: 'error',summary: 'Error', detail: 'Worker was undefined', life: srToastStore.getLife() });
         useSrToastStore().error('Error','Worker was undefined');
         console.error('abortClicked worker was undefined');
-        useRequestsStore().setMsg('Abort Clicked');
+        useRequestsStore().setConsoleMsg('Abort Clicked');
     }
     mapStore.isLoading = false; // controls spinning progress
 }
@@ -251,11 +250,11 @@ export async function processRunSlideRuleClicked() {
         console.warn('no geographic reqion defined');
         //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
         useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
-        requestsStore.setMsg('You need to supply geographic region ...');
+        requestsStore.setConsoleMsg('You need to supply geographic region ...');
         mapStore.isLoading = false;
         return;
     }
-    requestsStore.setMsg('Running...');
+    requestsStore.setConsoleMsg('Running...');
     const srReqRec = await requestsStore.createNewSrRequestRecord();
     if(srReqRec) {
         console.log('runSlideRuleClicked srReqRec:',srReqRec);
@@ -291,13 +290,13 @@ export async function processRunSlideRuleClicked() {
             } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24') {
                 console.log('atl24 TBD');
                 //toast.add({severity: 'info',summary: 'Info', detail: 'atl24 TBD', life: srToastStore.getLife() });
-                useSrToastStore().info('Info','atl24 TBD');
-                requestsStore.setMsg('stopped...');
+                useSrToastStore().info('Info','atl24 is TBD');
+                requestsStore.setConsoleMsg('stopped... atl24 TBD');
                 mapStore.isLoading = false;
             } else {
                 console.error('runSlideRuleClicked iceSat2SelectedAPI was undefined');
                 useSrToastStore().warn('Unsupported','That selection is TBD');
-                requestsStore.setMsg('stopped...');
+                requestsStore.setConsoleMsg('stopped...');
                 mapStore.isLoading = false;
             }
         } else if(useReqParamsStore().missionValue.value === 'GEDI') {
@@ -307,7 +306,7 @@ export async function processRunSlideRuleClicked() {
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');
         useSrToastStore().error('Error','There was an error');
-        requestsStore.setMsg('stopped...');
+        requestsStore.setConsoleMsg('stopped...');
         mapStore.isLoading = false;
     }
 };
