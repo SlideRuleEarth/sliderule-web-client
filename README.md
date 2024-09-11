@@ -15,7 +15,7 @@ The following diagram shows an overview of how the solution works:
 6. The object is returned to the viewer. Subsequent responses for the object are served from the CloudFront cache.
 
 
-This was used to create our sliderule-web-client for the first time (ONE TIME ONLY) to create helper functions in witch:
+This was used to create our sliderule-web-client for the first time (ONE TIME ONLY) to create helper functions in which:
 ```
 make cold-start-sliderule-web-client
 ```

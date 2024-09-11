@@ -11,8 +11,8 @@ import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
-const consoleStore = useSrSvrConsoleStore();
 
+const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
 const curReqSumStore = useCurReqSumStore();
 const mapStore = useMapStore();
@@ -44,21 +44,24 @@ function startFetchToFileWorker(){
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
     let fileName:string;
+    let successMsg:string;
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
-            //toast.add({severity: 'success',summary: 'Success', detail: workerMsg.msg, life: srToastStore.getLife() });
-            useSrToastStore().success('Success',"Successfully downloaded.\n Click on Analysis button to plot elevation of individual tracks.");
+            if(curReqSumStore.getNumArrowDataRecs() > 0){
+                successMsg = `File created from ${curReqSumStore.getNumArrowDataRecs()} arrow Records .\n Click on Analysis button to plot elevation of individual tracks.`;
+                useSrToastStore().success('Success',successMsg);
+            } else {
+                successMsg = 'File created with no arrow Records. Adjust your parameters or region and try again.';
+                useSrToastStore().warn('No data found',successMsg);
+            }
            break;
         case 'started':
             console.log('handleWorkerMsg started');
-            //toast.add({severity: 'info',summary: 'Started', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().info('Started',workerMsg.msg);
-            //await mapStore.drawElevations();
             break;
         case 'aborted':
             console.log('handleWorkerMsg aborted');
-            //toast.add({severity: 'warn',summary: 'Aborted', detail: workerMsg.msg, life: srToastStore.getLife() });
             useSrToastStore().warn('Aborted',workerMsg.msg);
             requestsStore.setConsoleMsg('Job aborted');
             cleanUpWorker();
@@ -246,6 +249,9 @@ export async function processRunSlideRuleClicked() {
     curReqSumStore.setTgtArrowDataRecs(0);
     curReqSumStore.setNumArrowMetaRecs(0);
     curReqSumStore.setTgtArrowMetaRecs(0);
+    requestsStore.setSvrMsgCnt(0);
+    requestsStore.setSvrMsg('waiting...');
+    curReqSumStore.setPercentComplete(0);
 
     if(!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)){
         console.warn('no geographic reqion defined');
