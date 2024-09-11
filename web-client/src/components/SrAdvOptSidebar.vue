@@ -21,23 +21,6 @@
     onMounted(async () => {
         //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        // try{
-        //     console.log('calling db.getDefinitionsByVersion REC_VERSION:',REC_VERSION);
-        //     let db_definitions = await db.getDefinitionsByVersion(REC_VERSION);
-        //     console.log('db_definitions:',db_definitions);
-        //     if(!db_definitions || db_definitions.length === 0){
-        //         const network_definitions = await populateAllDefinitions()
-        //         // Once definitions are retrieved from the server, store them in the database
-        //         const new_db_defs_id = await db.addDefinitions(network_definitions,REC_VERSION);
-        //         console.log('network_definitions:',network_definitions, 'new_db_defs_id:',new_db_defs_id , ' with version:',REC_VERSION);
-        //     } else {
-        //         console.log('db_definitions:',db_definitions, ' with version:',REC_VERSION);
-        //     }
-        // } catch (error) {
-        //     console.error('Error:', error);
-        // }
-        //console.log('num_defs_fetched:',get_num_defs_fetched());
-        //set_num_defs_fetched(0);
     });
 
     watch(() => useReqParamsStore().missionValue,(newValue,oldValue) => {
@@ -64,6 +47,18 @@
 </script>
 <template>
     <div class="sr-adv-option-sidebar-container">
+        <div class="button-spinner-container">
+            <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
+            <Button label="Abort" @click="abortClicked" v-if:="mapStore.isLoading" :disabled="mapStore.isAborting"></Button>
+            <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
+        </div>
+        <div class="sr-progressbar-panel ">
+            <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
+            <div class="sr-progressbar">
+                <span></span>
+                <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
+            </div>  
+        </div>
         <div class="sr-adv-option-sidebar-options">
             <SrMenuInput
                 v-model="useReqParamsStore().missionValue"
@@ -90,18 +85,6 @@
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
             />
-            <div class="button-spinner-container">
-                <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
-                <Button label="Abort" @click="abortClicked" v-if:="mapStore.isLoading" :disabled="mapStore.isAborting"></Button>
-                <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
-            </div>
-            <div class="sr-progressbar-panel ">
-                <span class="sr-svr-msg">{{requestsStore.getConsoleMsg()}}</span>
-                <div class="sr-progressbar">
-                    <span></span>
-                    <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
-                </div>  
-            </div>
             <div>
                 <SrReqDisplay />
             </div>
@@ -160,8 +143,6 @@
         flex-direction: column;
         margin: 0.25rem;
         padding: 0.25rem;
-        overflow-x: auto;
-        overflow-y: hidden;
         max-width: 15rem;
         min-width: 15rem;
         height: 3rem;
@@ -174,5 +155,7 @@
         align-items: left;
         font-size: x-small;
         min-width: 15rem;
+        overflow-x: auto;
+        overflow-y: hidden;
     } 
 </style>

@@ -70,7 +70,6 @@ onMounted(() => {
 <template>
     <div class="adv-opt-card">
         <div class="adv-opts-wrapper">
-            <h4 class="adv-opt-header">{{props.title}} for {{ props.mission.value }}</h4>
             <Accordion :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
                 <AccordionPanel value="1">
                     <AccordionHeader>General</AccordionHeader>
