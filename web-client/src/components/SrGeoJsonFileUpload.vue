@@ -44,7 +44,7 @@ const customUploader = async (event: any) => {
                         const geoJsonData = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(geoJsonData);
                         toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000 });
-                        drawGeoJson(geoJsonData, true, false); // noFill, !overlayExisting i.e. clear existing
+                        drawGeoJson(geoJsonData, true, false, true); // noFill, !overlayExisting i.e. clear existing, zoomTo = true
 
                         const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
                             return { lon: coord[0], lat: coord[1] };
