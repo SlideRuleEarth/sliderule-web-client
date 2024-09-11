@@ -26,7 +26,7 @@
   import { readOrCacheSummary } from "@/utils/SrParquetUtils";
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-  import { useSrToastStore } from "@/stores/srToastStore";
+  import { useRequestsStore } from "@/stores/requestsStore";
   import { useAdvancedModeStore } from "@/stores/advancedModeStore";
 
   const stringifyFunc = createStringXY(4);
@@ -34,6 +34,7 @@
   const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
+  const requestsStore = useRequestsStore();
   const controls = ref([]);
 
   const handleEvent = (event: any) => {
@@ -137,9 +138,7 @@
         //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
 
         updateAnalysisMapView("SrAnalysisMap onMounted");
-        if(!advancedModeStore.getAdvanced()){
-          useSrToastStore().info('Helpful Advice',"Click on a track in the map to display the elevation scatter plot");
-        }
+        requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
 
       } else {
         console.log("Error:map is null");

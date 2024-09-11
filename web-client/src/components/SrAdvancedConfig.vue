@@ -68,6 +68,14 @@
                 v-model="selectedNumOfElevationShades"
                 tooltipText="Number of shades for elevation plot"
         />
+        <SrSliderInput
+        v-model="requestsStore.helpfulReqAdviceCnt"
+        label="Helpful Advice < # Requests"
+        :min="1"
+        :max="10"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl06 Scatter Plot"
+        />
     </Fieldset>
     </div>
 </template>
@@ -84,6 +92,7 @@
     import { useDeckStore } from '@/stores/deckStore';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+    import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
 
 
@@ -93,6 +102,7 @@
     const atlChartFilterStore = useAtlChartFilterStore();
     const deckStore = useDeckStore();
     const colorMapStore = useElevationColorMapStore();
+    const requestsStore = useRequestsStore();
     const selectedNumOfElevationShades = ref(1024);
 
 </script>
