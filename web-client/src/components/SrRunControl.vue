@@ -26,6 +26,7 @@
         mapStore.isAborting = false;
         useSrToastStore().info('Helpful Advice',"1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
+        requestsStore.setSvrMsgCnt(0);
         requestsStore.setConsoleMsg(`Select a geographic region.  Then click 'Run SlideRule' to start the process`);
     });
 

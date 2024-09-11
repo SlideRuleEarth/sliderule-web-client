@@ -4,7 +4,9 @@
             <div class="sr-debug-cnts"> 
                 <SrProgressCnts />
             </div>
-            <SrSvrConsoleTerminal />
+            <div class="sr-svr-console">
+              <SrSvrConsoleTerminal />
+            </div>
       </Fieldset> 
     </div>
   </template>
@@ -14,7 +16,7 @@
     import SrSvrConsoleTerminal from './SrSvrConsoleTerminal.vue';
     import Fieldset from 'primevue/fieldset';
 
-</script>
+  </script>
   
 <style scoped>
   /* Style your button and component here */
@@ -31,6 +33,12 @@
     align-items: center;
     font-size: smaller;
     padding: 0.25rem;
+  }
+  .sr-svr-console {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+    width: 100%;
   }
   .sr-debug-cnts {
       display: flex;

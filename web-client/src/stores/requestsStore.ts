@@ -11,6 +11,7 @@ export const useRequestsStore = defineStore('requests', {
     reqIsLoading: {} as { [reqId: number]: boolean },
     error_in_req: [] as boolean[],
     liveRequestsQuerySubscription: null as any,
+    svrMsgCnt: 0,
     svrMsg:'waiting...',
     consoleMsg:'ready',
     autoFetchError: false,
@@ -37,6 +38,15 @@ export const useRequestsStore = defineStore('requests', {
     },
     getConsoleMsg(){
       return this.consoleMsg;
+    },
+    setSvrMsgCnt(cnt: number) {
+      this.svrMsgCnt = cnt;
+    },
+    getSvrMsgCnt(){
+      return this.svrMsgCnt;
+    },
+    incrementSrMsgCnt(): number {
+      return this.svrMsgCnt++;
     },
     setSvrMsg(msg: string) {
       this.svrMsg = msg;

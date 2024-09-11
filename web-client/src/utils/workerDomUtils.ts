@@ -195,11 +195,12 @@ function parseCompletionPercentage(message: string): number | null {
     const match = message.match(regex);
 
     if (match && match.length === 3) {
+        const cnt = requestsStore.incrementSrMsgCnt();
         const completed = parseInt(match[1], 10);
         const total = parseInt(match[2], 10);
 
         if (!isNaN(completed) && !isNaN(total) && total !== 0) {
-            return (completed / total) * 100;
+            return (cnt / total) * 100;
         }
     }
     return null; // Return null if the message does not match the expected format or total is zero
