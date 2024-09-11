@@ -75,7 +75,7 @@
             <SrMenuInput
                 v-model="useReqParamsStore().iceSat2SelectedAPI"
                 v-if="useReqParamsStore().missionValue.value === 'ICESat-2'"
-                label="ICESat-2 Api:"
+                label="ICESat-2 API:"
                 :menuOptions="useReqParamsStore().iceSat2APIsItems"
                 :initial-value="useReqParamsStore().iceSat2APIsItems[0]" 
                 tootipText="Select an API to use for the selected mission."
@@ -84,7 +84,7 @@
             <SrMenuInput
                 v-model="useReqParamsStore().gediSelectedAPI"
                 v-if="useReqParamsStore().missionValue.value === 'GEDI'"
-                label="GEDI Api:"
+                label="GEDI API:"
                 :menuOptions="useReqParamsStore().gediAPIsItems"
                 :initial-value="useReqParamsStore().gediAPIsItems[0]" 
                 tooltipText="Select an API to use for the selected mission."

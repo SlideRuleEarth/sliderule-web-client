@@ -25,7 +25,7 @@
               zlevel:100
             }" 
   />
-  <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+  <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
       <SrMenu 
           v-if = "atlChartFilterStore.getFunc().includes('atl03')"
           label="Color Map Key" 
@@ -279,6 +279,12 @@ watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {
 </script>
 
 <style scoped>
+
+.scatter-chart{
+  height: 60vh;
+  margin: 0.5rem;
+}
+
 .sr-scatter-plot {
   display: flex;
   flex-direction: column;

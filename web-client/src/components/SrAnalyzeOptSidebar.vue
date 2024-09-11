@@ -348,7 +348,7 @@ const getCnt = computed(() => {
             {{ atlChartFilterStore.getDescription() }}
         </div>
         <div>
-            <FieldSet class="sr-map-fieldset" legend="Elevation Plot Options" :toggleable="true" :collapsed="true">
+            <FieldSet class="sr-map-fieldset" legend="Map Options" :toggleable="true" :collapsed="true">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
