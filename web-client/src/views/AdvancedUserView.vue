@@ -5,7 +5,6 @@
     import SrAdvOptSidebar from "@/components/SrAdvOptSidebar.vue";
     import { onMounted } from 'vue';
     import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
-    import SrModeSelect from "@/components/SrModeSelect.vue";
  
 
     const advancedModeStore = useAdvancedModeStore();
@@ -33,7 +32,6 @@
                     <SrAdvOptSidebar/>
                 </template>
                 <template v-slot:sr-sidebar-footer>
-                    <SrModeSelect /> 
                 </template>
             </SrSideBarLayout>
         </template>

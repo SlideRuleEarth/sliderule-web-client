@@ -834,9 +834,9 @@
 }
 
 :deep(.ol-zoom){
-  top: 0.5rem; 
-  right: 0.5rem; /* right align -- override the default */
-  left: auto;  /* Override the default positioning */
+  top: 9.0rem; 
+  left: 0.5rem; 
+  right: auto;  
   background-color: black;
   border-radius: var(--p-border-radius);
   margin: auto;
@@ -844,9 +844,9 @@
 }
 
 :deep(.sr-draw-control){
-  top: 5.5rem; 
-  right: 0.55rem; /* right align -- override the default */
-  left: auto;  /* Override the default positioning */
+  top: 13.5rem; 
+  left: 0.5rem; 
+  right: auto;  
   background-color: black;
   border-radius: var(--p-border-radius);
 }

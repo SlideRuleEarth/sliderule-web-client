@@ -32,16 +32,13 @@
         menu.value?.toggle(event);
     };
 
-    const emit = defineEmits(['logo-click','tool-button-click','popular-button-click','record-button-click', 'analysis-button-click', 'about-button-click']);
+    const emit = defineEmits(['logo-click','map-button-click','popular-button-click','record-button-click', 'analysis-button-click', 'about-button-click']);
 
     const handleLogoClick = () => {
         emit('logo-click');
     };
-    const handleToolButtonClick = () => {
-        emit('tool-button-click');
-    };
-    const handlePopularButtonClick = () => {
-        emit('popular-button-click');
+    const handleMapButtonClick = () => {
+        emit('map-button-click');
     };
     const handleRecordButtonClick = () => {
         emit('record-button-click');
@@ -58,15 +55,16 @@
 
 <template>
     <div class="container">
-        <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
-        <Menu :model="docMenuItems" popup ref="menu" />
-        <Button icon="pi pi-bars" class="p-button-rounded p-button-text" @click="toggleMenu"></Button>
+        <div class="left-content">
+            <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
+            <Button icon="pi pi-bars" class="p-button-rounded p-button-text" @click="toggleMenu"></Button>
+            <Menu :model="docMenuItems" popup ref="menu" />
+        </div>
         <div class="under-construction-banner">
             <p class="under-construction-text">This website is under construction</p>
         </div>
         <div class="right-content">
-            <Button icon="pi pi-sliders-h" label="tool" class="p-button-rounded p-button-text" @click="handleToolButtonClick"></Button> 
-            <Button icon="pi pi-map" label="Popular" class="p-button-rounded p-button-text" @click="handlePopularButtonClick"></Button> 
+            <Button icon="pi pi-sliders-h" label="Map" class="p-button-rounded p-button-text" @click="handleMapButtonClick"></Button> 
             <Button icon="pi pi-list" label="Record" class="p-button-rounded p-button-text" @click="handleRecordButtonClick"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" class="p-button-rounded p-button-text" @click="handleAnalysisButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>
@@ -109,6 +107,10 @@
         display: flex;
         align-items: right;
     }
+    .left-content {
+        display: flex;
+        align-items: left;
+    }
 
     .logo {
         height: 50px; /* Adjust as needed */
@@ -133,6 +135,11 @@
         .right-content {
             width: 100%;
             justify-content: flex-end; /* Align items to the end (right) */
+            margin-top: 10px;
+        }
+        .left-content {
+            width: 100%;
+            justify-content: flex-begin; /* Align items to the start (left) */
             margin-top: 10px;
         }
     }

@@ -23,13 +23,11 @@ const logoClick = () => {
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
   //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
-  advancedModeStore.advanced = true;
-  router.push('/advanced-user');
-};
-
-const popularButtonClick = () => {
-  toast.add({ severity: 'info', summary: 'Popular Button', detail: 'Popular button was pushed', life: srToastStore.getLife()});
-  router.push('/popular');
+  if(advancedModeStore.getAdvanced()){
+    router.push('/advanced-user');
+  } else {
+    router.push('/general-user');
+  }
 };
 
 const recordButtonClick = () => {
@@ -72,8 +70,7 @@ const aboutButtonClick = () => {
   <header>
     <SrAppBar 
       @logo-click="logoClick"
-      @tool-button-click="toolButtonClick"
-      @popular-button-click="popularButtonClick"
+      @map-button-click="toolButtonClick"
       @record-button-click="recordButtonClick"
       @analysis-button-click="analysisButtonClick"
       @about-button-click="aboutButtonClick"

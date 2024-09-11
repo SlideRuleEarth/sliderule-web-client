@@ -11,7 +11,8 @@ export const useRequestsStore = defineStore('requests', {
     reqIsLoading: {} as { [reqId: number]: boolean },
     error_in_req: [] as boolean[],
     liveRequestsQuerySubscription: null as any,
-    msg:'ready',
+    svrMsg:'waiting...',
+    consoleMsg:'ready',
     autoFetchError: false,
     autoFetchErrorMsg:'',
   }),
@@ -31,9 +32,18 @@ export const useRequestsStore = defineStore('requests', {
         this.reqs[reqIndex].star = !this.reqs[reqIndex].star;
       }
     },
-    getConsoleMsg(){
-      return this.msg;
+    setConsoleMsg(msg: string) {
+      this.consoleMsg = msg;
     },
+    getConsoleMsg(){
+      return this.consoleMsg;
+    },
+    setSvrMsg(msg: string) {
+      this.svrMsg = msg;
+    },
+    getSvrMsg(){
+      return this.svrMsg;
+    },    
     async createNewSrRequestRecord(): Promise<SrRequestRecord | null>  {
       // Get the new reqId from the db
       console.log('createNewSrRequestRecord()');
@@ -55,9 +65,6 @@ export const useRequestsStore = defineStore('requests', {
         console.error(errorMsg);
         throw new Error(errorMsg);
       } 
-    },
-    setMsg(msg: string) {
-      this.msg = msg;
     },
     async deleteReq(reqId: number): Promise<void>{
       try {
@@ -132,7 +139,7 @@ export const useRequestsStore = defineStore('requests', {
         error: (err) => {
           console.error('Failed to update requests due to:', err);
           // Optionally, update state to reflect the error
-          this.msg = 'Error fetching requests'; // use this to display an error message in UI if needed
+          this.consoleMsg = 'Error fetching requests'; // use this to display an error message in UI if needed
           this.autoFetchError = true; // Set a flag to indicate an error occurred
           this.autoFetchErrorMsg = 'Failed to fetch requests'; // Set a user-friendly error message
         }

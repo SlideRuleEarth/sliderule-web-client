@@ -48,6 +48,6 @@ async function handleToggleAdvanced() {
         display: flex;
         justify-content: center;
         align-items: center;
-        margin: 1rem;
+        margin-bottom: 0.25rem;
     }
 </style>

@@ -80,8 +80,8 @@
 
   const getRectangleIcon = computed(() => {
     //console.log("getRectangleIcon picked:", picked.value)
-    return `<svg width="65%" height="65%" viewBox="0 0 100 50">
-      <rect width="100" height="50" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
+    return `<svg width="65%" height="65%" viewBox="0 0 100 100">
+      <rect x="5" y="5" width="90" height="90" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
     </svg>`;
   });
 

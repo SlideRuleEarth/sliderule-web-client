@@ -12,7 +12,20 @@
           :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
         />  
     </div>
-    <Fieldset class="sr-scatter-plot-options" legend="Scatter Plot Options" :toggleable="true" :collapsed="true">
+  </div>
+  <v-chart  ref="plotRef" 
+            class="scatter-chart" 
+            :option="option" 
+            :autoresize="{throttle:500}" 
+            :loading="atlChartFilterStore.isLoading" 
+            :loadingOptions="{
+              text:'Data Loading', 
+              fontSize:20, 
+              showSpinner: true, 
+              zlevel:100
+            }" 
+  />
+  <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
       <SrMenu 
           v-if = "atlChartFilterStore.getFunc().includes('atl03')"
           label="Color Map Key" 
@@ -75,19 +88,6 @@
       />
       <SrSqlStmnt />
     </Fieldset> 
-  </div>
-  <v-chart  ref="plotRef" 
-            class="scatter-chart" 
-            :option="option" 
-            :autoresize="{throttle:500}" 
-            :loading="atlChartFilterStore.isLoading" 
-            :loadingOptions="{
-              text:'Data Loading', 
-              fontSize:20, 
-              showSpinner: true, 
-              zlevel:100
-            }" 
-  />
 </template>
 
 <script setup lang="ts">
@@ -279,6 +279,12 @@ watch (() => selectedAtl03ColorMap, async (newColorMap, oldColorMap) => {
 </script>
 
 <style scoped>
+
+.scatter-chart{
+  height: 60vh;
+  margin: 0.5rem;
+}
+
 .sr-scatter-plot {
   display: flex;
   flex-direction: column;

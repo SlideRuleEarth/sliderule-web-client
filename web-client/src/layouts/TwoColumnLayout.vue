@@ -15,7 +15,7 @@
 <style scoped>
   .two-column-layout {
     display: flex;
-    min-height: 80vh;
+    min-height: 60vh;
     @media (max-width: 768px) {
       flex-direction: column;
     }
@@ -27,6 +27,7 @@
     margin-top: 0.5rem;
     flex-direction: column;
     align-items: center;
+    min-width: 30rem;
   }
 
   main {
@@ -34,5 +35,6 @@
     margin-top: 0.5rem;
     padding: 1 rem;
     border-radius: 2rem;
+    overflow-y: auto; /* Add scrolling if content overflows */
   }
 </style>
