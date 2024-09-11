@@ -70,9 +70,9 @@
         />
         <SrSliderInput
         v-model="requestsStore.helpfulReqAdviceCnt"
-        label="Helpful Advice < # Requests"
+        label="Give Helpful Advice when # Requests < this"
         :min="1"
-        :max="10"
+        :max="30"
         :decimalPlaces=0
         tooltipText="Symbol size for Atl06 Scatter Plot"
         />
@@ -112,6 +112,7 @@
     display: flex;
     flex-direction: column;
     margin:0.125rem;
+    max-width: 25rem;
 }
 
 .sr-advanced-config-content {
