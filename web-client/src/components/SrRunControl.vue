@@ -10,7 +10,6 @@
     import ProgressBar from 'primevue/progressbar';
     import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
     import { processAbortClicked } from  "@/utils/workerDomUtils";    
-    import { useSrToastStore } from "@/stores/srToastStore";
     import { useAdvancedModeStore } from '@/stores/advancedModeStore';
     import SrModeSelect from './SrModeSelect.vue';
 
@@ -24,7 +23,7 @@
     onMounted(async () => {
         console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        useSrToastStore().info('Helpful Advice',"1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
+        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
         requestsStore.setConsoleMsg(`Select a geographic region.  Then click 'Run SlideRule' to start the process`);

@@ -4,6 +4,7 @@ import {type  NullReqParams } from '@/stores/reqParamsStore';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import { findParam } from '@/utils/parmUtils';
+import { useSrToastStore } from './srToastStore';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -16,6 +17,7 @@ export const useRequestsStore = defineStore('requests', {
     consoleMsg:'ready',
     autoFetchError: false,
     autoFetchErrorMsg:'',
+    helpfulReqAdviceCnt: 2,
   }),
   getters: {
     getReqById: (state) => {
@@ -122,6 +124,10 @@ export const useRequestsStore = defineStore('requests', {
         return [];
       }
     },
+    async getNumReqs(): Promise<number> {
+      const reqIDs = await this.fetchReqIds();
+      return reqIDs.length;
+    },
     async getMenuItems(): Promise<SrMenuItem[]> {
       const fetchedReqIds = await this.fetchReqIds();
       
@@ -161,7 +167,17 @@ export const useRequestsStore = defineStore('requests', {
       if (this.liveRequestsQuerySubscription) {
         this.liveRequestsQuerySubscription.unsubscribe();
       }
-    }
-
+    },
+    async displayHelpfulMapAdvice(msg: string): Promise<void> {
+      if (await this.getNumReqs() < this.helpfulReqAdviceCnt) {
+          useSrToastStore().info('Helpful Advice', msg);
+      }
+    },
+    async displayHelpfulPlotAdvice(msg: string): Promise<void> {
+        if (await this.getNumReqs() < this.helpfulReqAdviceCnt) {
+            useSrToastStore().info('Helpful Advice', msg);
+        }
+    },  
   }
+
 });
