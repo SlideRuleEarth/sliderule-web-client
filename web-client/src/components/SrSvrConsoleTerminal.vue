@@ -1,10 +1,11 @@
 // src/components/ConsoleTerminal.vue
 <template>
-
-    <h3 class="term-hdr"> Server Console Terminal </h3>
-    <div class="terminal" ref="terminalContent">
-    <div class="terminal-content">
-      <div v-for="(line, index) in lines" :key="index" class="terminal-line">
+  <div class="sr-terminal">
+    <div>
+      <h3 class="sr-term-hdr"> Server Console Terminal </h3>
+    </div>
+    <div class="sr-terminal-content">
+      <div v-for="(line, index) in lines" :key="index" class="sr-terminal-line">
         {{ line }}
       </div>
     </div>
@@ -36,31 +37,34 @@ const lines = consoleStore.lines;
 </script>
 
 <style scoped>
-.term-hdr {
+
+
+.sr-term-hdr {
   font-size:medium;
   font-weight: bold;
   text-align: center;
   margin-top: 0.5rem;
 }
 
-.terminal {
-  max-height: 20rem;
+.sr-terminal {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+} 
+
+.sr-terminal-content {
   background-color: #000;
   color: #0f0;
   font-family: 'Courier New', Courier, monospace;
+  height: 20rem;
   overflow-y: auto;
   overflow-x: auto; 
   padding: 0.625rem;
-  min-width: 10rem;
-  max-width: 15rem; 
-} 
-
-.terminal-content {
-  display: flex;
-  flex-direction: column;
+  min-width: 25rem;  
+  max-width: 25rem; 
 }
-.terminal-line {
+
+.sr-terminal-line {
   white-space: nowrap;
 }
 </style>
