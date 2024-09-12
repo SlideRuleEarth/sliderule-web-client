@@ -74,6 +74,13 @@ deploy-to-testsliderule: ## Deploy the web client to the testsliderule.org cloud
 destroy-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=testsliderule.org 
 
+release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
+	make live-update DOMAIN=testsliderule.org 
+
+release-deploy-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
+	make deploy DOMAIN=testsliderule.org && \
+	make live-update DOMAIN=testsliderule.org
+
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
 	@printf "\033[37m%-30s\033[0m %s\n" "# Makefile Help       "
