@@ -84,16 +84,14 @@
 <style scoped>
     .sr-current-version {
         position: absolute;
-        top: 2.25rem;
-        right: 1.5rem;
         background-color: transparent;
         color: var(--p-primary-color);
-        border-radius: var(--p-border-radius);
-        border-color: white;
+        font-size: 0.75rem;
+        top: 2.25rem;
+        right: 1.5rem;
         padding: 0.0rem;
         margin-top: 6px;
         margin-bottom: -2px;
-        font-size: 0.75rem;
     }
 
     .under-construction-banner {

@@ -30,7 +30,6 @@ const client_version = import.meta.env.VITE_APP_VERSION
   margin-top: 20px;
   font-size: 1.5em;
   text-align: center;
-  
 }
 </style>
 
