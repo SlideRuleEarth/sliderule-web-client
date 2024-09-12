@@ -45,7 +45,7 @@
                 label="ICESat-2 API:"
                 :menuOptions="useReqParamsStore().iceSat2APIsItems"
                 :initial-value="useReqParamsStore().iceSat2APIsItems[0]" 
-                tootipText="Select an API to use for the selected mission."
+                tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
             />
             <SrMenuInput

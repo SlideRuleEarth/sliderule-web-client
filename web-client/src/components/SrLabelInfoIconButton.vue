@@ -2,8 +2,10 @@
     <div class="sr-label-info-icon-button">
         <label :for="labelFor" 
                 :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
-                v-tooltip="tooltipText"
-                :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }">
+                :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }"
+                @mouseover="tooltipRef.showTooltip($event, tooltipText)"
+                @mouseleave="tooltipRef.hideTooltip"
+        >
             {{ label }}
         </label>
         <!-- Info Icon with Tooltip -->
@@ -14,12 +16,15 @@
             :title="tooltipUrl" 
             @click="openTooltipUrl">
         </Button>
+        <SrCustomTooltip ref="tooltipRef"/>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { onMounted,computed } from 'vue';
+    import { onMounted,computed,ref } from 'vue';
     import Button from 'primevue/button';
+    import SrCustomTooltip from './SrCustomTooltip.vue';
+    const tooltipRef = ref();
 
     const props = defineProps({
         label: String,
