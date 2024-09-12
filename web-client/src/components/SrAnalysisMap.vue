@@ -40,7 +40,6 @@
   const handleEvent = (event: any) => {
     console.log(event);
   };
-  const advancedModeStore = useAdvancedModeStore();
   const atlChartFilterStore = useAtlChartFilterStore();
   const elevationIsLoading = computed(() => mapStore.getIsLoading());
   const loadStateStr = computed(() => {
@@ -303,9 +302,6 @@
 </script>
 
 <template>
-  <div class="sr-current-zoom">
-    {{  mapParamsStore.getZoom().toFixed(2) }}
-  </div>
   <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
     <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
     {{computedLoadMsg}}
@@ -442,20 +438,6 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
-.sr-current-zoom {
-  position: absolute;
-  top: 2.25rem;
-  right: 1.5rem;
-  background-color: transparent;
-  color: var(--p-primary-color);
-  border-radius: var(--p-border-radius);
-  border-color: white;
-  padding: 0.0rem;
-  margin-top: 6px;
-  margin-bottom: -2px;
-
-  font-size: 0.75rem;
-}
 .sr-isLoadingEl {
   color: #e9df1c;
   padding: 0.5rem;

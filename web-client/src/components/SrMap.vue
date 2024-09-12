@@ -1,6 +1,6 @@
   <script setup lang="ts">
   import { useMapParamsStore } from "@/stores/mapParamsStore";
-  import { ref, onMounted } from "vue";
+  import { ref, onMounted, computed } from "vue";
   import { Map as OLMapType} from "ol";
   import { useToast } from "primevue/usetoast";
   import { type SrView } from "@/composables/SrViews";
@@ -42,6 +42,7 @@
   import SrViewControl from "./SrViewControl.vue";
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
+  const build_env = import.meta.env.VITE_BUILD_ENV;
 
   const reqParamsStore = useReqParamsStore();
   const srToastStore = useSrToastStore();
@@ -603,9 +604,6 @@
 </script>
 
 <template>
-  <div class="current-zoom">
-    {{  mapParamsStore.getZoom().toFixed(2) }}
-  </div>
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
@@ -894,20 +892,7 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
-.current-zoom {
-  position: absolute;
-  top: 2.25rem;
-  right: 1.5rem;
-  background-color: transparent;
-  color: var(--p-primary-color);
-  border-radius: var(--p-border-radius);
-  border-color: white;
-  padding: 0.0rem;
-  margin-top: 6px;
-  margin-bottom: -2px;
 
-  font-size: 0.75rem;
-}
 
 .hidden-control {
     display: none;

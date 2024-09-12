@@ -1,7 +1,8 @@
 <script setup lang="ts">
     import Button from 'primevue/button';
     import Menu from 'primevue/menu';
-    import { ref } from 'vue';
+    import { ref, computed } from 'vue';
+    const build_env = import.meta.env.VITE_BUILD_ENV;
 
     const menu = ref<InstanceType<typeof Menu> | null>(null);
 
@@ -50,7 +51,12 @@
     const handleAboutButtonClick = () => {
         emit('about-button-click');
     };
-
+    const formattedVersion = computed(() => {
+        console.log('typeof build_env:', (typeof build_env));
+        return typeof build_env === 'string'
+        ? build_env.replace(/(-.*)$/, '***')
+        : 'Version not available';
+    });
 </script>
 
 <template>
@@ -69,10 +75,27 @@
             <Button icon="pi pi-chart-line" label="Analysis" class="p-button-rounded p-button-text" @click="handleAnalysisButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" class="p-button-rounded p-button-text" @click="handleAboutButtonClick"></Button>
         </div>
+        <div class="sr-current-version">
+            {{  formattedVersion }}
+        </div>
     </div>
 </template>
   
 <style scoped>
+    .sr-current-version {
+        position: absolute;
+        top: 2.25rem;
+        right: 1.5rem;
+        background-color: transparent;
+        color: var(--p-primary-color);
+        border-radius: var(--p-border-radius);
+        border-color: white;
+        padding: 0.0rem;
+        margin-top: 6px;
+        margin-bottom: -2px;
+        font-size: 0.75rem;
+    }
+
     .under-construction-banner {
         background-color: #ffc107; /* Yellow background color */
         color: #333; /* Text color */
