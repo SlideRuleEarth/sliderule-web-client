@@ -64,15 +64,18 @@
     function isThisClean(input: string): boolean {
         // Split the string by dashes
         const parts = input.split('-');
-        
+        console.log('input:', input); 
+        console.log('parts:', parts);
         // Check if the string has enough parts to contain a number after the first dash
         if (parts.length < 2) {
+            console.log('parts.length < 2, parts:', parts);
             return false;
         }
 
         // Check if the number following the dash is zero
         const numberAfterDash = parseInt(parts[1], 10);
         if (numberAfterDash !== 0) {
+            console.log('numberAfterDash !== 0, numberAfterDash:', numberAfterDash);
             return false;
         }
 
@@ -81,10 +84,11 @@
     }
 
     const formattedVersion = computed(() => {
+        console.log('build_env:', build_env);
         console.log('typeof build_env:', (typeof build_env));
         if (typeof build_env === 'string'){
             const version = getVersionString(build_env);
-            const formattedVersion = isThisClean(version) ? version : `${version}*`;
+            const formattedVersion = isThisClean(build_env) ? version : `${version}*`;
             return formattedVersion
         } else {
             return 'v?.?.?';
