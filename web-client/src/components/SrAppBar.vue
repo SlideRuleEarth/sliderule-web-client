@@ -51,11 +51,44 @@
     const handleAboutButtonClick = () => {
         emit('about-button-click');
     };
+
+    function getVersionString(input: string): string {
+        // Find the index of the first "-"
+        const dashIndex = input.indexOf('-');
+        
+        // If a dash is found, return the substring up to that point
+        // If no dash is found, return the full input
+        return dashIndex !== -1 ? input.substring(0, dashIndex) : input;
+    }
+
+    function isThisClean(input: string): boolean {
+        // Split the string by dashes
+        const parts = input.split('-');
+        
+        // Check if the string has enough parts to contain a number after the first dash
+        if (parts.length < 2) {
+            return false;
+        }
+
+        // Check if the number following the dash is zero
+        const numberAfterDash = parseInt(parts[1], 10);
+        if (numberAfterDash !== 0) {
+            return false;
+        }
+
+        // Check if the string does not end with 'dirty'
+        return !input.endsWith('dirty');
+    }
+
     const formattedVersion = computed(() => {
         console.log('typeof build_env:', (typeof build_env));
-        return typeof build_env === 'string'
-        ? build_env.replace(/(-.*)$/, '***')
-        : 'Version not available';
+        if (typeof build_env === 'string'){
+            const version = getVersionString(build_env);
+            const formattedVersion = isThisClean(version) ? version : `${version}*`;
+            return formattedVersion
+        } else {
+            return 'v?.?.?';
+        }
     });
 </script>
 
