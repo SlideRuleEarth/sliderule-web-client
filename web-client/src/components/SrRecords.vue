@@ -13,6 +13,7 @@ import InputText from 'primevue/inputtext'; // Import InputText for editing
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrImportParquetFile  from '@/components/SrImportParquetFile.vue';
 import { cleanupAllRequests } from '@/utils/storageUtils';
+import SrCustomTooltip from './SrCustomTooltip.vue';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
@@ -137,6 +138,9 @@ onMounted(() => {
 onUnmounted(() => {
     requestsStore.unWatchReqTable();
 });
+
+const tooltipRef = ref();
+
 </script>
 
 <template>
@@ -159,10 +163,13 @@ onUnmounted(() => {
             <Column field="req_id" header="ID"></Column>
             <Column field="status" header="Status"> 
                 <template #body="slotProps">
-                    <span v-tooltip="slotProps.data.status_details">
+                    <span
+                        @mouseover="tooltipRef.showTooltip($event, slotProps.data.status_details)"
+                        @mouseleave="tooltipRef.hideTooltip"
+                    >
                         {{ slotProps.data.status }}
                     </span>
-                </template>
+               </template>
             </Column>
             <Column field="func" header="Function"></Column>
             <Column field="description" header="Description" :editable="true">
@@ -180,7 +187,8 @@ onUnmounted(() => {
                     <i 
                       class="pi pi-code sr-toggle-icon"
                       @click="isCodeFormat = !isCodeFormat"
-                      v-tooltip="'Toggle code format'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     > </i>
                 </template> 
                 <template #body="slotProps">
@@ -207,7 +215,8 @@ onUnmounted(() => {
                       class="pi pi-chart-line"
                       v-if="((slotProps.data.status == 'success') || (slotProps.data.status == 'imported'))"
                       @click="analyze(slotProps.data.req_id)"
-                      v-tooltip="'Analyze'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Analyze')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
             </Column>
@@ -217,7 +226,8 @@ onUnmounted(() => {
                       class="pi pi-calculator sr-calculator-icon"
                       v-if="findParam(slotProps.data.parameters, 'with_checksum')"
                       @click="calculateCS(slotProps.data.req_id)"
-                      v-tooltip="'Verify Checksum'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Verify Checksum')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
             </Column>
@@ -226,14 +236,16 @@ onUnmounted(() => {
                     <i 
                       class="pi pi-trash"
                       @click="confirmDeleteAllReqs()"
-                      v-tooltip="'Delete ALL reqs'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Delete ALL Requests')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
                 <template #body="slotProps">
                     <i 
                       class="pi pi-trash"
                       @click="deleteReq(slotProps.data.req_id)"
-                      v-tooltip="'Delete req'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Delete Requests')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
             </Column>
@@ -245,11 +257,14 @@ onUnmounted(() => {
                     <i 
                       class="pi pi-file-export sr-file-export-icon"
                       @click="exportFile(slotProps.data.req_id)"
-                      v-tooltip="'Export file'"
+                      @mouseover="tooltipRef.showTooltip($event, 'Export File')"
+                      @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
             </Column>
         </DataTable>
+        <SrCustomTooltip ref="tooltipRef"/>
+
         <!-- Display an error message if there is an error -->
         <div v-if="requestsStore.autoFetchError" class="error-message">
             {{ requestsStore.autoFetchErrorMsg }}
