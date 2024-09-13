@@ -2,7 +2,7 @@
     <div class="sr-debug-panel">
       <Fieldset legend="Debug Panel" class="sr-debug-panel-content" :toggleable="true" :collapsed="true" >
             <div class="sr-debug-cnts"> 
-                <SrProgressCnts />
+              <SrProgressCnts />
             </div>
             <div class="sr-svr-console">
               <SrSvrConsoleTerminal />

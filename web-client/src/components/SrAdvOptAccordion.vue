@@ -28,6 +28,7 @@ import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
 import SrColorPalette  from "./SrColorPalette.vue";
 import SrAdvancedConfig from './SrAdvancedConfig.vue';
+import SrGenUserOptions from './SrGenUserOptions.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -52,9 +53,9 @@ watch(mapStore.polygonSource, (newValue) => {
 interface Props {
   title: string;
   ariaTitle: string;
-  mission: {name:string,value:string};
-  iceSat2SelectedAPI:  {name:string,value:string};
-  gediSelectedAPI:  {name:string,value:string};
+  mission: string;
+  iceSat2SelectedAPI: string;
+  gediSelectedAPI: string;
 }
 
 const props = defineProps<Props>();
@@ -71,6 +72,12 @@ onMounted(() => {
     <div class="adv-opt-card">
         <div class="adv-opts-wrapper">
             <Accordion class="sr-adv-accordian" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
+                <AccordionPanel value="0">
+                    <AccordionHeader>Presets</AccordionHeader>
+                    <AccordionContent>
+                        <SrGenUserOptions />
+                    </AccordionContent>
+                </AccordionPanel>
                 <AccordionPanel value="1">
                     <AccordionHeader>General</AccordionHeader>
                     <AccordionContent>
@@ -156,13 +163,13 @@ onMounted(() => {
                         />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="2" v-if="mission.value==='ICESat-2'" >
+                <AccordionPanel value="2" v-if="mission==='ICESat-2'" >
                     <AccordionHeader>Granule Selection</AccordionHeader>
                     <AccordionContent>
                         <SrGranuleSelection />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="3"  v-if="mission.value==='ICESat-2'" >
+                <AccordionPanel value="3"  v-if="mission==='ICESat-2'" >
                     <AccordionHeader>Photon Selection</AccordionHeader>
                     <AccordionContent>
                         <SrAtl03Cnf />
@@ -170,19 +177,19 @@ onMounted(() => {
                         <SrYAPC />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="4" v-if="mission.value==='ICESat-2'" >
+                <AccordionPanel value="4" v-if="mission==='ICESat-2'" >
                     <AccordionHeader>Extents</AccordionHeader>
                     <AccordionContent>
                         <SrExtents />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="5" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl06'"  > 
+                <AccordionPanel value="5" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI==='atl06'"  > 
                     <AccordionHeader>Surface Elevation</AccordionHeader>
                     <AccordionContent>
                         <SrSurfaceElevation />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="6" v-if="mission.value==='ICESat-2' && props.iceSat2SelectedAPI.value==='atl08'" >
+                <AccordionPanel value="6" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI==='atl08'" >
                     <AccordionHeader>Veg Density Alg</AccordionHeader>
                     <AccordionContent>
                         <SrSliderInput
@@ -212,13 +219,13 @@ onMounted(() => {
                         />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="7" v-if="mission.value==='ICESat-2'" >
+                <AccordionPanel value="7" v-if="mission==='ICESat-2'" >
                     <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent>
-                        <SrAncillaryFields :iceSat2SelectedAPI="iceSat2SelectedAPI"/>
+                        <SrAncillaryFields :iceSat2SelectedAPI="props.iceSat2SelectedAPI"/>
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="mission.value==='GEDI'" >
+                <AccordionPanel value="8" v-if="mission==='GEDI'" >
                     <AccordionHeader>GEDI Footprint</AccordionHeader>
                     <AccordionContent>
                         <SrMultiSelectNumber
@@ -272,7 +279,7 @@ onMounted(() => {
                         <SrStorageUsage />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="0">
+                <AccordionPanel value="12">
                     <AccordionHeader>Advanced</AccordionHeader>
                     <AccordionContent>
                         <div class="sr-adv-opt-panel">

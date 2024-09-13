@@ -265,7 +265,7 @@
     }
     if(clearExisting){
       if(clearDrawingLayer()){
-        toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
+        //toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
       }
       clearPolyCoords();
       //console.log("Cleared uploaded GeoJson polyCoords");

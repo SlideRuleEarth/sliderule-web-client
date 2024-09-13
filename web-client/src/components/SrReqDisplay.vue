@@ -22,7 +22,8 @@
     const reqParamsStore = useReqParamsStore();
     const showReqParms = ref(false);
     const reqParms = computed(() => {
-        return  JSON.stringify(reqParamsStore.getAtlpReqParams(0),null,2);
+      // NOTE: we use request ID of zero as a placeholder for the current request
+      return  JSON.stringify(reqParamsStore.getAtlpReqParams(0),null,2);
     });
   </script>
   
@@ -53,6 +54,9 @@
     display: flex;
     justify-content: center;
     margin-top: 0rem;
+    max-height: 10rem;
+    overflow-y: auto;
+    overflow-x: auto;
 }
   </style>
   

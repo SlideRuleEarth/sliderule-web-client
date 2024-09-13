@@ -45,14 +45,16 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
     let fileName:string;
     let successMsg:string;
+    let numBytes:number;
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
-            if(curReqSumStore.getNumArrowDataRecs() > 0){
-                successMsg = `File created from ${curReqSumStore.getNumArrowDataRecs()} arrow Records .\n Click on Analysis button to plot elevation of individual tracks.`;
+            numBytes = await db.getNumBytes(workerMsg.req_id);
+            if(numBytes > 0){
+                successMsg = `File created with ${numBytes} bytes .\n Click on Analysis button to plot elevation of individual tracks.`;
                 useSrToastStore().success('Success',successMsg);
             } else {
-                successMsg = 'File created with no arrow Records. Adjust your parameters or region and try again.';
+                successMsg = 'File created with no data. Adjust your parameters or region and try again.';
                 useSrToastStore().warn('No data found',successMsg);
             }
            break;
@@ -272,29 +274,29 @@ export async function processRunSlideRuleClicked() {
             return;
         }
 
-        if(useReqParamsStore().missionValue.value === 'ICESat-2') {
-            if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl06') {
+        if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
+            if(useReqParamsStore().iceSat2SelectedAPI === 'atl06') {
                 console.log('atl06 selected');
                 srReqRec.func = 'atl06';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl03') {
+            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl03') {
                 console.log('atl03 selected');
                 srReqRec.func = 'atl03';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl08') {
+            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl08') {
                 console.log('atl08 selected');
                 srReqRec.func = 'atl08';
                 srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI.value === 'atl24') {
+            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl24') {
                 console.log('atl24 TBD');
                 //toast.add({severity: 'info',summary: 'Info', detail: 'atl24 TBD', life: srToastStore.getLife() });
                 useSrToastStore().info('Info','atl24 is TBD');
@@ -306,7 +308,7 @@ export async function processRunSlideRuleClicked() {
                 requestsStore.setConsoleMsg('stopped...');
                 mapStore.isLoading = false;
             }
-        } else if(useReqParamsStore().missionValue.value === 'GEDI') {
+        } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
             console.log('GEDI TBD');
             useSrToastStore().info('Info','GEDI TBD');
         }

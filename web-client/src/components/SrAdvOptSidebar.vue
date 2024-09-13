@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
     import SrMenuInput from "@/components/SrMenuInput.vue";
+    import SrMenu from "@/components/SrMenu.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
     import { onMounted, watch } from 'vue';
     import { useMapStore } from '@/stores/mapStore';
@@ -16,44 +17,37 @@
         mapStore.isAborting = false;
     });
 
-    watch(() => useReqParamsStore().missionValue,(newValue,oldValue) => {
-        //console.log(`missionValue changed from ${oldValue} to ${newValue}`);
-        if (newValue.value === 'ICESat-2') {
-            useReqParamsStore().iceSat2SelectedAPI = useReqParamsStore().iceSat2APIsItems[0]; // Reset to default when mission changes
-            reqParamsStore.asset ='icesat2';
-        } else if (newValue.value === 'GEDI') {
-            useReqParamsStore().gediSelectedAPI = useReqParamsStore().gediAPIsItems[0]; // Reset to default when mission changes
-            reqParamsStore.asset ='gedi';
-        }
-    });
-
 </script>
 <template>
     <div class="sr-adv-option-sidebar-container">
         <SrRunControl />
         <div class="sr-adv-option-sidebar-options">
-            <SrMenuInput
-                v-model="useReqParamsStore().missionValue"
+            <SrMenu
                 label="Mission:"
+                v-model="useReqParamsStore().missionValue"
                 :menuOptions="useReqParamsStore().missionItems"
+                :getSelectedMenuItem="useReqParamsStore().getMissionValue"
+                :setSelectedMenuItem="useReqParamsStore().setMissionValue"
                 tooltipText="Select a mission to determine which APIs are available."
                 tooltipUrl="https://slideruleearth.io/web/rtd/index.html" 
             />
-            <SrMenuInput
-                v-model="useReqParamsStore().iceSat2SelectedAPI"
-                v-if="useReqParamsStore().missionValue.value === 'ICESat-2'"
+            <SrMenu
                 label="ICESat-2 API:"
+                v-model="useReqParamsStore().iceSat2SelectedAPI"
+                v-if="useReqParamsStore().getMissionValue() === 'ICESat-2'"
                 :menuOptions="useReqParamsStore().iceSat2APIsItems"
-                :initial-value="useReqParamsStore().iceSat2APIsItems[0]" 
+                :getSelectedMenuItem="useReqParamsStore().getIceSat2API"
+                :setSelectedMenuItem="useReqParamsStore().setIceSat2API"
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
             />
-            <SrMenuInput
-                v-model="useReqParamsStore().gediSelectedAPI"
-                v-if="useReqParamsStore().missionValue.value === 'GEDI'"
+            <SrMenu
                 label="GEDI API:"
+                v-model="useReqParamsStore().gediSelectedAPI"
+                v-if="useReqParamsStore().getMissionValue() === 'GEDI'"
                 :menuOptions="useReqParamsStore().gediAPIsItems"
-                :initial-value="useReqParamsStore().gediAPIsItems[0]" 
+                :getSelectedMenuItem="useReqParamsStore().getGediAPI"
+                :setSelectedMenuItem="useReqParamsStore().setGediAPI"
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
             />
@@ -64,9 +58,9 @@
         <SrAdvOptAccordion
             title="Options"
             ariaTitle="advanced-options"
-            :mission="useReqParamsStore().missionValue"
-            :iceSat2SelectedAPI="useReqParamsStore().iceSat2SelectedAPI"
-            :gediSelectedAPI="useReqParamsStore().gediSelectedAPI"
+            :mission="useReqParamsStore().getMissionValue()"
+            :iceSat2SelectedAPI="useReqParamsStore().getIceSat2API()"
+            :gediSelectedAPI="useReqParamsStore().getGediAPI()"
         />
     </div>
 </template>
