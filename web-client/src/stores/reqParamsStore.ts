@@ -21,12 +21,12 @@ interface YapcConfig {
 export const useReqParamsStore = defineStore('reqParams', {
 
     state: () => ({
-        missionValue: {name: 'ICESat-2', value: 'ICESat-2'},
-        missionItems:[{name:'ICESat-2',value:'ICESat-2'},{name:'GEDI',value:'GEDI'}],
-        iceSat2SelectedAPI: {name: 'atl06', value: 'atl06'},
-        iceSat2APIsItems: [{name:'atl06',value:'atl06'},{name:'atl03',value:'atl03'},{name:'atl08',value:'atl08'},{name:'atl24',value:'atl24'}],
-        gediSelectedAPI: {name:'gedi01b',value:'gedi01b'},
-        gediAPIsItems: [{name:'gedi01b',value:'gedi01b'},{name:'gedi02a',value:'gedi02a'},{name:'gedi04a',value:'gedi04a'}],
+        missionValue: 'ICESat-2' as string,
+        missionItems:['ICESat-2','GEDI'] as string[],
+        iceSat2SelectedAPI: 'atl06' as string,
+        iceSat2APIsItems: ['atl06','atl03','atl08','atl24'] as string[],
+        gediSelectedAPI: 'gedi01b' as string,
+        gediAPIsItems: ['gedi01b','gedi02a','gedi04a'] as string[],
         using_worker: false,
         asset: 'icesat2',
         isArrowStream: false,
@@ -247,7 +247,7 @@ export const useReqParamsStore = defineStore('reqParams', {
             if (this.outputLocationPath.length === 0) {
               //Note: This is only used by the server. It needs to be unique for each request.
               // We create a similar filename for our local client elsewhere.
-              path = `${this.iceSat2SelectedAPI.value}_${req_id}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+              path = `${this.iceSat2SelectedAPI}_${req_id}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
             }
             return path;
           };
@@ -340,6 +340,10 @@ export const useReqParamsStore = defineStore('reqParams', {
           } else {
             return this.surfaceReferenceType;
           }        
+        },
+        getSurfaceReferenceType(name: string): number {
+          const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);
+          return option ? option.value : -1;
         },
         getAtlpReqParams(req_id: number): AtlpReqParams {
           const baseParams:AtlpReqParams = {
@@ -538,17 +542,33 @@ export const useReqParamsStore = defineStore('reqParams', {
         setYAPCVersion(value:{name:string, value:string}) {
           this.YAPCVersion = value;
         },
-        getMissionValue() {
+        getMissionValue() : string {
           return this.missionValue;
         },
-        setMissionValue(value:{name:string, value:string}) {
+        setMissionValue(value:string) {
+          if (value === 'ICESat-2') {
+              this.iceSat2SelectedAPI = this.iceSat2APIsItems[0]; // Reset to default when mission changes
+              this.asset ='icesat2';
+          } else if (value === 'GEDI') {
+              this.gediSelectedAPI = this.gediAPIsItems[0]; // Reset to default when mission changes
+              this.asset ='gedi';
+          }
           this.missionValue = value;
         },
         getMissionItems() {
           return this.missionItems;
         },
-        getIceSat2SelectedAPI() {
+        getIceSat2API() : string {
           return this.iceSat2SelectedAPI;
+        },
+        setIceSat2API(value:string) {
+          this.iceSat2SelectedAPI = value;
+        },
+        getGediAPI() : string {
+          return this.gediSelectedAPI;
+        },
+        setGediAPI(value:string) {
+          this.gediSelectedAPI = value;
         },
     },
 })

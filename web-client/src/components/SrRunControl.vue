@@ -49,8 +49,8 @@
 <template>
     <div class="sr-run-abort-panel">
         <div class="button-spinner-container">
-            <Button label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
-            <Button label="Abort" @click="abortClicked" :disabled="(mapStore.isAborting || !mapStore.isLoading) "></Button>
+            <Button class="sr-run-button" label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
+            <Button class="sr-abort-button" label="Abort" @click="abortClicked" :disabled="(mapStore.isAborting || !mapStore.isLoading) "></Button>
             <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
         </div>
         <div class="sr-progressbar-panel ">
@@ -77,6 +77,12 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+    }
+    .sr-run-button {
+        margin: 0.25rem;
+    }   
+    .sr-abort-button {
+        margin: 0.25rem;
     }
     .button-spinner-container {
         display: flex;

@@ -9,7 +9,6 @@ import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
 import { definePreset } from '@primevue/themes';
-import Tooltip from 'primevue/tooltip';
 
 import Menubar from 'primevue/menubar';
 import ToastService from 'primevue/toastservice';
@@ -80,7 +79,6 @@ app.use(ToastService);
 app.component('SrToast', Toast);
 
 app.use(router)
-app.directive('tooltip', Tooltip);
 app.component('menu-bar', Menubar)
 app.mount('#app')
 console.log("Vue mode:",process.env.NODE_ENV);
