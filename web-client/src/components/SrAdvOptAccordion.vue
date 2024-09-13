@@ -313,7 +313,7 @@ onMounted(() => {
 }
 
 .sr-adv-accordian {
-    min-width: 31rem;
+    min-width: 25vw;
     margin: 0.125rem;
     padding: 0.1250rem;
 }
