@@ -77,6 +77,7 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        width: 100%;
     }
     .sr-run-button {
         margin: 0.25rem;
@@ -88,6 +89,7 @@
         display: flex;
         align-items: center; /* This will vertically center the spinner with the button */
         justify-content: center; /* Center the content horizontally */
+        width: 100%;
     }
     .runtest-sr-button {
         display: flex;
@@ -97,52 +99,33 @@
         margin: 2rem;
     }
 
-    .sr-console-msg {
-        display: block;
-        font-size: x-small;
-        white-space: nowrap;
-        overflow: hidden;
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* text-overflow: ellipsis; */
-        max-width: 25rem; 
-        justify-content:center;
-        align-items: left;
-    } 
-
+    .sr-console-msg,
     .sr-svr-msg {
         display: block;
         font-size: x-small;
         white-space: nowrap;
-        overflow: hidden;
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* text-overflow: ellipsis; */
-        max-width: 25rem; 
-        justify-content:center;
-        align-items: left;
+        overflow: clip;
+        text-overflow: ellipsis;
+        width: 100%;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
     } 
 
     .sr-progressbar-panel {
         display: flex;
-        align-items: center;
-        justify-content: center;
         flex-direction: column;
-        margin: 0.25rem;
-        padding: 0.25rem;
-        overflow-x: auto;
-        overflow-y: hidden;
-        max-width: 25rem;
-        min-width: 15rem;
-        height: 3rem;
+        justify-content: center;
+        align-items: stretch;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
     }
 
     .sr-progressbar {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: left;
-        font-size: x-small;
-        min-width: 15rem;
+        width: 100%;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+        padding: 0;
     } 
 </style>
