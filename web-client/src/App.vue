@@ -79,15 +79,28 @@ const aboutButtonClick = () => {
   <RouterView />
 </template>
 
+<style>
+/* Global styles */
+body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  overflow: hidden; /* This prevents scrollbars if not needed */
+}
+</style>
+
 <style scoped>
 header {
   line-height: 1.5;
   max-height: 100vh;
 }
+
 /* Global style for toast popups */
 .p-toast-message {
   opacity: 1.0 !important;
 }
-
-
 </style>
