@@ -6,6 +6,7 @@ import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/slid
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
+import { time } from 'console';
 export interface NullReqParams {
   null: null;
 }
@@ -54,9 +55,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         useReqTimeout: false,
         reqTimeoutValue: 600,
         useNodeTimeout: false,
-        nodeTimeoutValue: 1,
+        nodeTimeoutValue: 600,
         useReadTimeout: false,
-        readTimeoutValue: 1,
+        readTimeoutValue: 600,
         lengthValue: 40.0,
         stepValue: 20.0,
         confidenceValue: 4,
@@ -322,6 +323,19 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }
+          if(this.useGlobalTimeout()) {
+            req.timeout = this.totalTimeoutValue
+          } else {
+            if(this.useReqTimeout) {
+              req['rqst-timeout'] = this.reqTimeoutValue;
+            }
+            if(this.useNodeTimeout) {
+              req['node-timeout'] = this.nodeTimeoutValue;
+            }
+            if(this.useReadTimeout) {
+              req['read-timeout'] = this.readTimeoutValue;
+            }
+          }
           return req;
         },
         setSrt(srt:number[]) {
@@ -492,6 +506,15 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setReadTimeout(readTimeoutValue:number) {
           this.readTimeoutValue = readTimeoutValue;
+        },
+        restoreTimeouts() {
+          this.totalTimeoutValue = 600;
+          this.useReqTimeout = false;
+          this.useNodeTimeout = false;
+          this.useReadTimeout = false;
+        },
+        useGlobalTimeout(){
+          return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
         },
         getUseYAPCKnn() {
           return this.usesYAPCKnn;

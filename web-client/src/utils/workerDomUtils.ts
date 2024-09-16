@@ -25,7 +25,7 @@ let percentComplete: number | null = null;
 
 function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
-    const timeoutDuration = reqParamsStore.totalTimeoutValue*1000; // Convert to milliseconds
+    const timeoutDuration = (reqParamsStore.totalTimeoutValue*1000) + 5000; //millisecs; add 5 seconds to allow server to timeout first;
     console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds');
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
@@ -51,10 +51,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg success:',workerMsg.msg);
             numBytes = await db.getNumBytes(workerMsg.req_id);
             if(numBytes > 0){
-                successMsg = `File created with ${numBytes} bytes .\n Click on Analysis button to plot elevation of individual tracks.`;
-                useSrToastStore().success('Success',successMsg);
+                successMsg = `File created with ${numBytes} bytes.\n\nClick on Analysis button to plot elevation of individual tracks.`;
+                useSrToastStore().success('Success',successMsg,15000); // 15 seconds
             } else {
-                successMsg = 'File created with no data. Adjust your parameters or region and try again.';
+                successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
                 useSrToastStore().warn('No data found',successMsg);
             }
            break;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
@@ -30,6 +30,8 @@ import SrDebug from './SrDebug.vue';
 import SrColorPalette  from "./SrColorPalette.vue";
 import SrAdvancedConfig from './SrAdvancedConfig.vue';
 import SrGenUserOptions from './SrGenUserOptions.vue';
+import Fieldset from 'primevue/fieldset';
+import Button from 'primevue/button';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -92,55 +94,61 @@ onMounted(() => {
                             tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
                         />
                         <SrResources v-if="reqParamsStore.ignorePolygon"/>
-                        <SrSliderInput
-                            v-model="reqParamsStore.totalTimeoutValue"
-                            label="Timeout"
-                            :min="5"
-                            :max="3600"
-                            :defaultValue="reqParamsStore.totalTimeoutValue" 
-                            :decimalPlaces="0"
-                            tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                        />
-                        <SrSwitchedSliderInput
-                            v-model="reqParamsStore.reqTimeoutValue"
-                            :getCheckboxValue="reqParamsStore.getUseReqTimeout"
-                            :setCheckboxValue="reqParamsStore.setUseReqTimeout"
-                            :getValue="reqParamsStore.getReqTimeout"
-                            :setValue="reqParamsStore.setReqTimeout"
-                            label="rqst-timeout"
-                            :min="1"
-                            :max="3600" 
-                            :decimalPlaces="0"
-                            tooltipText="total time in seconds for request to be processed"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                        />                    
-                        <SrSwitchedSliderInput
-                            v-model="reqParamsStore.nodeTimeoutValue"
-                            :getCheckboxValue="reqParamsStore.getUseNodeTimeout"
-                            :setCheckboxValue="reqParamsStore.setUseNodeTimeout"
-                            :getValue="reqParamsStore.getNodeTimeout"
-                            :setValue="reqParamsStore.setNodeTimeout"
-                            label="node-timeout"
-                            :min="1"
-                            :max="3600" 
-                            :decimalPlaces="0"
-                            tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                        />
-                        <SrSwitchedSliderInput
-                            v-model="reqParamsStore.readTimeoutValue"
-                            :getCheckboxValue="reqParamsStore.getUseReadTimeout"
-                            :setCheckboxValue="reqParamsStore.setUseReadTimeout"
-                            :getValue="reqParamsStore.getReadTimeout"
-                            :setValue="reqParamsStore.setReadTimeout"
-                            label="read-timeout"
-                            :min="1"
-                            :max="3600" 
-                            :decimalPlaces="0"
-                            tooltipText="time in seconds for a single read of an asset to take"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
-                        />
+                        <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="true">
+                            <SrSliderInput
+                                :insensitive="!reqParamsStore.useGlobalTimeout()"
+                                v-model="reqParamsStore.totalTimeoutValue"
+                                label="Timeout"
+                                :min="60"
+                                :max="1000000"
+                                :defaultValue="reqParamsStore.totalTimeoutValue" 
+                                :decimalPlaces="0"
+                                tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                            />
+                            <SrSwitchedSliderInput
+                                v-model="reqParamsStore.reqTimeoutValue"
+                                :getCheckboxValue="reqParamsStore.getUseReqTimeout"
+                                :setCheckboxValue="reqParamsStore.setUseReqTimeout"
+                                :getValue="reqParamsStore.getReqTimeout"
+                                :setValue="reqParamsStore.setReqTimeout"
+                                label="rqst-timeout"
+                                :min="1"
+                                :max="1000000" 
+                                :decimalPlaces="0"
+                                tooltipText="total time in seconds for request to be processed"
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                            />                    
+                            <SrSwitchedSliderInput
+                                v-model="reqParamsStore.nodeTimeoutValue"
+                                :getCheckboxValue="reqParamsStore.getUseNodeTimeout"
+                                :setCheckboxValue="reqParamsStore.setUseNodeTimeout"
+                                :getValue="reqParamsStore.getNodeTimeout"
+                                :setValue="reqParamsStore.setNodeTimeout"
+                                label="node-timeout"
+                                :min="1"
+                                :max="100000" 
+                                :decimalPlaces="0"
+                                tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                            />
+                            <SrSwitchedSliderInput
+                                v-model="reqParamsStore.readTimeoutValue"
+                                :getCheckboxValue="reqParamsStore.getUseReadTimeout"
+                                :setCheckboxValue="reqParamsStore.setUseReadTimeout"
+                                :getValue="reqParamsStore.getReadTimeout"
+                                :setValue="reqParamsStore.setReadTimeout"
+                                label="read-timeout"
+                                :min="1"
+                                :max="1000000" 
+                                :decimalPlaces="0"
+                                tooltipText="time in seconds for a single read of an asset to take"
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+                            />
+                            <div class="sr-restore-timeout-defaults">
+                                <Button label="Restore Default Timeout behavior" @click="reqParamsStore.restoreTimeouts()"/>
+                            </div>  
+                        </Fieldset>
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="2" v-if="mission==='ICESat-2'" >
@@ -300,6 +308,10 @@ onMounted(() => {
     width: 100%;
 }
 
+.sr-timeouts-fieldset {
+    margin-top: 1rem;
+}
+
 .sr-color-palette {
     display: flex;
     flex-direction: column;
@@ -380,4 +392,9 @@ onMounted(() => {
     gap: 8px; /* adjust as needed */
 }
 
+.sr-restore-timeout-defaults {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
 </style>
