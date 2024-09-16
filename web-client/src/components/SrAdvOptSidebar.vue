@@ -1,15 +1,13 @@
 <script setup lang="ts">
 
-    import SrMenuInput from "@/components/SrMenuInput.vue";
     import SrMenu from "@/components/SrMenu.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
-    import { onMounted, watch } from 'vue';
+    import { onMounted } from 'vue';
     import { useMapStore } from '@/stores/mapStore';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import SrRunControl from "@/components/SrRunControl.vue";
 
-    const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
     
     onMounted(async () => {

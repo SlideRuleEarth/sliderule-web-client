@@ -5,6 +5,7 @@ import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckI
 import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
+import { useMapStore } from '@/stores/mapStore';
 export interface NullReqParams {
   null: null;
 }
@@ -31,7 +32,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         asset: 'icesat2',
         isArrowStream: false,
         isFeatherStream: false,
-        useRasterizePolygon: false,
         rasterizePolyCellSize: 0.0001,
         ignorePolygon: false,
         poly: null as SrRegion | null,
@@ -92,7 +92,6 @@ export const useReqParamsStore = defineStore('reqParams', {
           'atl03_medium' ,
           'atl03_high' ,
         ],
-
         signalConfidenceNumberOptions: 
         [
           { name: 'TEP', value: -2 },
@@ -218,12 +217,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         useChecksum: false,
     }),
     actions: {
-        getUseRasterizePolygon() {
-            return this.useRasterizePolygon;
-        },
-        setUseRasterizePolygon(value:boolean) {
-            this.useRasterizePolygon = value;
-        },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
         },
@@ -319,7 +312,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }
-          if(this.getUseRasterizePolygon() && this.poly) {
+          if(useMapStore().getPolySource()=='Upload geojson File' && this.poly) {
             req.raster = {
               data: this.poly,
               length: this.poly.length,

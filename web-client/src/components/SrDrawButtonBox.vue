@@ -1,7 +1,7 @@
 <template>
 <div class="sr-draw-button-box">
       <SrRadioButton
-        v-if="(mapStore.polygonSource.value === 'Draw on Map')"
+        v-if="(mapStore.polygonSource === 'Draw on Map')"
         name="drawButtonBoxPoly"
         class="sr-draw-poly-button"
         v-model="picked"
@@ -10,9 +10,9 @@
         aria-label="Select Polygon"
         tooltipText="Draw a Polygon"
       />
-      <span class="sr-button-box-divider" v-if="(mapStore.polygonSource.value === 'Draw on Map')"></span>
+      <span class="sr-button-box-divider" v-if="(mapStore.polygonSource === 'Draw on Map')"></span>
       <SrRadioButton
-        v-if="(mapStore.polygonSource.value === 'Draw on Map')"
+        v-if="(mapStore.polygonSource === 'Draw on Map')"
         name="drawButtonBoxBox"
         class="sr-draw-box-button"
         v-model="picked"
