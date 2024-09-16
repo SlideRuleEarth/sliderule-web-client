@@ -88,6 +88,11 @@ header {
 .p-toast-message {
   opacity: 1.0 !important;
 }
+</style>
 
-
+<style>
+/* Global styles */
+body, #app {
+  margin: 0;
+}
 </style>
