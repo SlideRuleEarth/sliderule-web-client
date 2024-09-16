@@ -26,7 +26,6 @@
     import SrCheckbox from "./SrCheckbox.vue";
     import { useSrToastStore } from "@/stores/srToastStore";
 
-    const srToastStore = useSrToastStore()
     const reqParamsStore = useReqParamsStore();
     const showReqParms = ref(false);
     const isHovered = ref(false);
@@ -41,7 +40,7 @@
         .then(() => {
           const msg = 'Request parameters copied to clipboard';
           console.log(msg);
-          useSrToastStore().info('Helpful Advice', msg);
+          useSrToastStore().info('Copied to clipboard', msg);
           // You can add a notification here if desired
         })
         .catch(err => {
@@ -54,7 +53,7 @@
 .sr-req-display-panel {
   display: flex;
   flex-direction: column;
-  max-height: 300px; /* Limit the overall height */
+  max-height: 30rem; /* Limit the overall height */
   overflow-y: auto; /* Add vertical scrolling if needed */
 }
 
@@ -74,7 +73,7 @@
   
   display: flex;
   justify-content: flex-start;
-  max-height: 5rem; /* Limit the height of the JSON display */
+  max-height: 15rem; /* Limit the height of the JSON display */
   overflow-y: auto;
   overflow-x: auto;
   width: 100%; /* Ensure full width */
