@@ -24,7 +24,9 @@
     import { computed, ref } from "vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrCheckbox from "./SrCheckbox.vue";
+    import { useSrToastStore } from "@/stores/srToastStore";
 
+    const srToastStore = useSrToastStore()
     const reqParamsStore = useReqParamsStore();
     const showReqParms = ref(false);
     const isHovered = ref(false);
@@ -37,7 +39,9 @@
     const copyToClipboard = () => {
       navigator.clipboard.writeText(reqParms.value)
         .then(() => {
-          console.log('Content copied to clipboard');
+          const msg = 'Request parameters copied to clipboard';
+          console.log(msg);
+          useSrToastStore().info('Helpful Advice', msg);
           // You can add a notification here if desired
         })
         .catch(err => {
