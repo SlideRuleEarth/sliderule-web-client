@@ -32,7 +32,8 @@ export const useMapStore = defineStore('map', {
         showLabels: true,
         wrapX: false
     }),
-    polygonSource:{name:'Draw on Map',value:'Draw on Map'},
+    polygonSource:'Draw on Map' as string,
+    polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
     //theDeckLayer: null as OL_Layer | null,
     dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
@@ -166,6 +167,12 @@ export const useMapStore = defineStore('map', {
     },
     setCurrentRows(rows: number) {
       this.currentRows = rows;
+    },
+    getPolySource() {
+      return this.polygonSource;
+    },
+    setPolySource(source: string) {
+      this.polygonSource = source;
     },
   },
 });

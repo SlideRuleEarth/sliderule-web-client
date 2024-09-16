@@ -116,13 +116,13 @@
         gap: 0.5rem;
     }
 
-    .sr-run-abort-button:not(.abort-mode) {
-        background-color: #var(--p-button-primary-color);
+    button.p-button.p-component.sr-run-abort-button.abort-mode {
         color: #000000;
+        background-color: red;
+        opacity: 0.5;
     }
 
-    .sr-run-abort-button.abort-mode {
-        background-color: #cd2a2d;
+    button.p-button.p-component.sr-run-abort-button:not(.abort-mode) {
         color: #000000;
     }
 

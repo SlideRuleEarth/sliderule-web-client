@@ -5,6 +5,7 @@ import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
+import SrSliderInput from './SrSliderInput.vue';
 import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -133,21 +134,41 @@ const onClear = () => {
                 </section>
             </template>
         </SrToast>
-        <FileUpload mode="basic" 
-                    name="SrFileUploads[]" 
-                    :auto="true" 
-                    accept=".geojson,.json" 
-                    :maxFileSize="10000000000" 
-                    customUpload 
-                    @uploader="customUploader"
-                    @select="onSelect"
-                    @error="onError"
-                    @clear="onClear"
-        />
+        <div class="sr-file-upload">
+            <FileUpload mode="basic" 
+                        name="SrFileUploads[]" 
+                        :auto="true" 
+                        accept=".geojson,.json" 
+                        :maxFileSize="10000000000" 
+                        customUpload 
+                        @uploader="customUploader"
+                        @select="onSelect"
+                        @error="onError"
+                        @clear="onClear"
+            />
+            <SrSliderInput
+                label="Rasterize Polygon cell size"
+                v-model="reqParamsStore.rasterizePolyCellSize"
+                :getValue="reqParamsStore.getRasterizePolyCellSize"
+                :setValue="reqParamsStore.setRasterizePolyCellSize"
+                :min="0.0001"
+                :max="1.0"
+                :decimalPlaces="4"
+                tooltipText="The number of pixels to rasterize the polygon into"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
+            />
+    </div>
     </div>
 </template>
 
 <style scoped>
+
+.sr-file-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
 
 .file-upload-panel { 
     display: flex;

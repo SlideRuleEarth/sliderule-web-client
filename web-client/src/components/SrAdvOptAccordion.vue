@@ -6,6 +6,7 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import SrMenuInput from './SrMenuInput.vue';
+import SrMenu from './SrMenu.vue';
 import SrMultiSelectNumber from './SrMultiSelectNumber.vue'
 import { useMapStore } from '@/stores/mapStore';
 import SrCheckbox from './SrCheckbox.vue';
@@ -39,16 +40,7 @@ onUnmounted(() => {
 
 })
 
-watch(mapStore.polygonSource, (newValue) => {
-    //console.log('polygonSource:', newValue);
-    if (newValue.value === 'Draw on Map') {
-        //console.log('Draw on Map');
-    } else if (newValue.value === 'Upload geojson File') {
-        //console.log('Upload geojson File');
-    } else {
-        console.error('Unknown polygonSource:', newValue);
-    }
-});
+
 
 interface Props {
   title: string;
@@ -59,7 +51,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const polygonSourceItems = ref([{name:'Draw on Map',value:'Draw on Map'},{name:'Upload geojson File',value:'Upload geojson File'}]);
  
 onMounted(() => {
     //console.log('Mounted SrAdvOptAccordian');
@@ -81,29 +72,18 @@ onMounted(() => {
                 <AccordionPanel value="1">
                     <AccordionHeader>General</AccordionHeader>
                     <AccordionContent>
-                        <SrMenuInput
+                        <SrMenu
                             v-model="mapStore.polygonSource"
                             label = "Polygon Source"
                             aria-label="Select Polygon Source"
-                            :menuOptions="polygonSourceItems"
+                            :menuOptions="mapStore.polygonSourceItems"
+                            :getSelectedMenuItem="useMapStore().getPolySource"
+                            :setSelectedMenuItem="useMapStore().setPolySource"
                             tooltipText="This is how you define the region of interest"
                             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#polygons"
                         />
                         <SrGeoJsonFileUpload
-                            v-if="mapStore.polygonSource.value==='Upload geojson File'"
-                        />
-                        <SrSwitchedSliderInput
-                            label="Rasterize Polygon cell size"
-                            v-model="reqParamsStore.rasterizePolyCellSize"
-                            :getCheckboxValue="reqParamsStore.getUseRasterizePolygon"
-                            :setCheckboxValue="reqParamsStore.setUseRasterizePolygon"
-                            :getValue="reqParamsStore.getRasterizePolyCellSize"
-                            :setValue="reqParamsStore.setRasterizePolyCellSize"
-                            :min="0.0001"
-                            :max="1.0"
-                            :decimalPlaces="4"
-                            tooltipText="The number of pixels to rasterize the polygon into"
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
+                            v-if="mapStore.polygonSource==='Upload geojson File'"
                         />
                         <SrCheckbox
                             label="Ignore Poly for CMR"
