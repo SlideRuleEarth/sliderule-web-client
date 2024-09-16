@@ -24,17 +24,15 @@
   .sidebar-col {
     flex-grow: 1;
     flex-basis: 20%;
-    margin-top: 0.5rem;
     flex-direction: column;
     align-items: center;
     min-width: 31rem;
+    padding: 1rem;
   }
 
   main {
     flex-grow: 8;
-    margin-top: 0.5rem;
     padding: 1 rem;
-    border-radius: 2rem;
     overflow-y: auto; /* Add scrolling if content overflows */
   }
 </style>
