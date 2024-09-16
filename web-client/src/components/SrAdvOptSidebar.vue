@@ -65,18 +65,20 @@
     </div>
 </template>
 <style scoped>
-    .sr-adv-option-sidebar-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-    }
-    .sr-adv-option-sidebar-options {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
+.sr-adv-option-sidebar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+    overflow-y: auto;
+    width: 100%;
+}
 
+.sr-adv-option-sidebar-options {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
 </style>
