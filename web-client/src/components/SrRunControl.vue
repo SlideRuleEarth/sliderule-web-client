@@ -52,7 +52,7 @@
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
                 <Button 
-                    class="sr-toggle-button" 
+                    class="sr-run-abort-button" 
                     :class="{ 'abort-mode': mapStore.isLoading }"
                     :label="mapStore.isLoading ? 'Abort' : 'Run SlideRule'" 
                     @click="toggleRunAbort" 
@@ -107,7 +107,7 @@
         font-size: 0.9rem;
     }
 
-    .sr-toggle-button {
+    .sr-run-abort-button {
         height: 3rem;
         border-radius: 1rem;
         display: flex;
@@ -116,13 +116,13 @@
         gap: 0.5rem;
     }
 
-    .sr-toggle-button:not(.abort-mode) {
+    .sr-run-abort-button:not(.abort-mode) {
         background-color: #A4DEEB;
         color: #000000;
         border-color: #A4DEEB;
     }
 
-    .sr-toggle-button.abort-mode {
+    .sr-run-abort-button.abort-mode {
         background-color: #FFD4FD;
         color: #000000;
         border-color: #FFD4FD;
