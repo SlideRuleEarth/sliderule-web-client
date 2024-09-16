@@ -10,7 +10,7 @@ const router = useRouter();
 const route = useRoute();
 
 const advancedModeStore = useAdvancedModeStore();
-const selectedMode = ref(advancedModeStore.advanced ? 'Advance' : 'General');
+const selectedMode = ref(advancedModeStore.advanced ? 'Advanced' : 'General');
 const isLoading = ref(false);
 
 // Sync the UI with the current route on component mount
@@ -21,7 +21,7 @@ onMounted(() => {
 // Function to sync the mode with the current route
 function syncModeWithRoute() {
     const isAdvancedRoute = route.path === '/advanced-user';
-    selectedMode.value = isAdvancedRoute ? 'Advance' : 'General';
+    selectedMode.value = isAdvancedRoute ? 'Advanced' : 'General';
     advancedModeStore.setAdvanced(isAdvancedRoute);
 }
 
@@ -29,19 +29,19 @@ function syncModeWithRoute() {
 async function handleModeChange(mode: string) {
     if (isLoading.value) return; // Prevent multiple clicks while loading
     
-    const newRoute = mode === 'Advance' ? '/advanced-user' : '/general-user';
+    const newRoute = mode === 'Advanced' ? '/advanced-user' : '/general-user';
     
     // Check if we're already on the correct route
     if (route.path === newRoute) {
         // Just update the store and UI without navigation
         selectedMode.value = mode;
-        advancedModeStore.setAdvanced(mode === 'Advance');
+        advancedModeStore.setAdvanced(mode === 'Advanced');
         return;
     }
     
     isLoading.value = true;
     selectedMode.value = mode;
-    advancedModeStore.setAdvanced(mode === 'Advance');
+    advancedModeStore.setAdvanced(mode === 'Advanced');
     
     try {
         await router.push(newRoute);
@@ -67,7 +67,7 @@ const buttonClass = computed(() => (mode: string) => [
 <template>
     <div class="sr-mode-box">
         <div class="sr-segment-control" :class="{ 'is-loading': isLoading }">
-            <div class="sr-segment-background" :class="{ 'right': selectedMode === 'Advance' }"></div>
+            <div class="sr-segment-background" :class="{ 'right': selectedMode === 'Advanced' }"></div>
             <button 
                 :class="buttonClass('General')"
                 @click="handleModeChange('General')"
@@ -76,11 +76,11 @@ const buttonClass = computed(() => (mode: string) => [
                 General
             </button>
             <button 
-                :class="buttonClass('Advance')"
-                @click="handleModeChange('Advance')"
+                :class="buttonClass('Advanced')"
+                @click="handleModeChange('Advanced')"
                 :disabled="isLoading"
             >
-                Advance
+                Advanced
             </button>
         </div>
     </div>
@@ -148,7 +148,7 @@ const buttonClass = computed(() => (mode: string) => [
 }
 
 .sr-segment-button.active {
-    color: #A4DEEB;
+    color: var(--p-button-text-primary-color);
 }
 
 .sr-segment-button.disabled {
