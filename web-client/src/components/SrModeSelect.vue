@@ -148,7 +148,7 @@ const buttonClass = computed(() => (mode: string) => [
 }
 
 .sr-segment-button.active {
-    color: #7dd3fc;
+    color: #A4DEEB;
 }
 
 .sr-segment-button.disabled {
