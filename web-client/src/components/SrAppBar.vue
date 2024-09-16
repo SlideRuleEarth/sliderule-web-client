@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
-import { ref, computed } from 'vue';
+import { ref, computed,onMounted } from 'vue';
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null);
 
@@ -132,6 +132,19 @@ const toggleMobileMenu = (event: Event) => {
     mobileMenu.value?.toggle(event);
 };
 
+function setDarkMode() {
+    const element = document.querySelector('html');
+    if(element){
+        element.classList.add('sr-app-dark');
+    } else {
+        console.error('Could not find html element to set dark mode  ');
+    }
+}
+
+onMounted(() => {
+    setDarkMode();
+});
+
 </script>
 
 <template>
@@ -161,6 +174,7 @@ const toggleMobileMenu = (event: Event) => {
             <Button icon="pi pi-info-circle" label="About" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleAboutButtonClick"></Button>
+            <!-- <Button label="Toggle Dark Mode" @click="setDarkMode()" /> -->
         </div>
     </div>
 </template>

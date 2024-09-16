@@ -66,8 +66,11 @@ app.use(PrimeVue, {
       //preset: Lara,
       options: {
         prefix: 'p',
-        darkModeSelector: 'system',
-        cssLayer: false
+        darkModeSelector: '.sr-app-dark',
+        cssLayer: {
+          name: 'primevue',
+          order: 'tailwind-base, primevue, tailwind-utilities'
+        }      
       }
     },
     csp: {
