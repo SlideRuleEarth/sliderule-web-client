@@ -117,15 +117,13 @@
     }
 
     .sr-run-abort-button:not(.abort-mode) {
-        background-color: #A4DEEB;
+        background-color: #var(--p-button-primary-color);
         color: #000000;
-        border-color: #A4DEEB;
     }
 
     .sr-run-abort-button.abort-mode {
-        background-color: #FFD4FD;
+        background-color: #cd2a2d;
         color: #000000;
-        border-color: #FFD4FD;
     }
 
     .sr-msg-panel {
