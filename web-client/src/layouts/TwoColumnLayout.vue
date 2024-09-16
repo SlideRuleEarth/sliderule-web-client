@@ -26,13 +26,13 @@
     flex-basis: 20%;
     flex-direction: column;
     align-items: center;
-    min-width: 31rem;
-    padding: 1rem;
+    min-width: 26rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   main {
     flex-grow: 8;
-    padding: 1 rem;
     overflow-y: auto; /* Add scrolling if content overflows */
   }
 </style>

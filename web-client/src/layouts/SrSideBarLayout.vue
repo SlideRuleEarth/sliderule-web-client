@@ -23,7 +23,6 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        margin: 1rem;
     }
     .sr-sidebar-body {
         display: flex;
@@ -32,13 +31,11 @@
         min-width: 15vw;
         justify-content: center;
         align-items: flex-start;
-        margin: 0.1rem;
     }
     .sr-sidebar-footer {
         display: flex;
         justify-content: right;
         align-items:flex-end;
-        margin: 1rem;
         border-top: 2px solid var(--surface-d);
     }
 </style>
