@@ -90,7 +90,6 @@
     display: flex;
     flex-direction: column;
     border-color: transparent;
-    margin-left: 0.5rem;
     width: 100%;
 }
 
@@ -108,7 +107,6 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding-right: 1rem;
     padding-bottom: 0.5rem;
 }
 .sr-menu-control-center {
