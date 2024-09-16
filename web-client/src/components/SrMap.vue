@@ -607,7 +607,7 @@
   <ol-map ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
-    style="height: 50rem; border-radius: 1rem; overflow: hidden;"
+    style="height: calc(100vh - 4rem); border-top-left-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >
     <ol-layerswitcher-control 
@@ -669,8 +669,6 @@
     z-index: 10;
     background: rgba(0, 0, 0, 0.8);
     color: #fff;
-    padding: 0.3rem;
-    border-radius: 0.5rem;
     pointer-events: none;
     font-size: 1rem;
 }
@@ -682,9 +680,7 @@
   align-items: flex-end; /* Align children to the right */
   height: 100%; /* Ensure the container has height */
   background-color: var(--white);
-  border-radius: 8px;
-  padding: 0.25rem;
-  border: 1px solid var(--p-primary-color);
+  border: 0;
 }
 
 :deep( .ol-control.ol-layerswitcher ){

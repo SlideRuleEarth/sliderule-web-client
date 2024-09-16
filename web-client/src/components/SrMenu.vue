@@ -1,16 +1,28 @@
 <template>
     <div class="sr-menu-input-wrapper">
-        <div class="sr-menu-row">
-            <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
-                <SrLabelInfoIconButton :label="label" :labelFontSize="labelFontSize" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
-                <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
-                    <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
-                        <option v-for="item in menuOptions" :label="item" :value="item" :key=item>
-                            {{ item }}
-                        </option>
-                    </select>
-                </form>
-            </div>
+        <div class="sr-menu-column">
+            <SrLabelInfoIconButton 
+                :label="label" 
+                :labelFontSize="labelFontSize" 
+                :labelFor="`srSelectMenu-${label}`" 
+                :tooltipText="tooltipText" 
+                :tooltipUrl="tooltipUrl" 
+                :insensitive="insensitive" 
+            />
+            <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
+                <select 
+                    v-model="selectedMenuItem" 
+                    :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" 
+                    name="sr-select-menu" 
+                    :id="`srSelectMenu-${label}`" 
+                    :aria-label="label" 
+                    :disabled="insensitive"
+                >
+                    <option v-for="item in menuOptions" :label="item" :value="item" :key="item">
+                        {{ item }}
+                    </option>
+                </select>
+            </form>
         </div>
     </div>
 </template>
@@ -89,59 +101,42 @@
 .sr-menu-input-wrapper {
     display: flex;
     flex-direction: column;
-    border-color: transparent;
-    margin-left: 0.5rem;
     width: 100%;
 }
 
-.sr-select-menu-item {
+.sr-menu-column {
     display: flex;
-    margin-left: 0.25rem;
-}
-.sr-select-menu-item-insensitive {
-    display: flex;
-    margin-left: 0.25rem;
-    color: #888; /*  grey color */
-}
-.sr-menu-row  {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-right: 1rem;
-    padding-bottom: 0.5rem;
-}
-.sr-menu-control-center {
-    display: flex; /* This enables Flexbox */
-    justify-content: center; /* Aligns children to opposite edges */
-    align-items: center; /* This vertically centers the items in the container */
-    width: 100%; /* Ensures it spans the full width of its parent */
+    flex-direction: column;
+    width: 100%;
 }
 
-.sr-menu-control {
-    display: flex; /* This enables Flexbox */
-    justify-content: space-between; /* Aligns children to opposite edges */
-    align-items: center; /* This vertically centers the items in the container */
-    width: 100%; /* Ensures it spans the full width of its parent */
+.sr-select-menu-item,
+.sr-select-menu-item-insensitive {
+    width: 100%;
+    margin-top: 0.5rem;
 }
-.sr-select-menu-default {
-    width: auto; 
-    padding: 0.25rem;
+
+.sr-select-menu-default,
+.sr-select-menu-default-insensitive {
+    width: 100%;
+    padding: 0.5rem .5rem 0.5rem 0.5rem; /* Top Right Bottom Left */
     color: white;
-    background-color: transparent;
-    border-radius: var(--p-border-radius);
+    background-color: #2c2c2c;
+    border: 2px solid #3a3a3a;
+    border-radius: 0.5rem;
     font-family: var(--p-font-family);
     font-size: small;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .sr-select-menu-default-insensitive {
-    width: auto;
-    padding: 0.25rem;
-    color: #888; /*  grey color */
-    background-color: transparent;
-    border-radius: var(--p-border-radius);
-    font-family: var(--p-font-family);
-    font-size: small;
+    color: #888;
+    background-color: #1e2b38;
+    cursor: not-allowed;
 }
+
+.sr-select-menu-default:focus {
+    outline: none;
+}
+
 </style>
-  

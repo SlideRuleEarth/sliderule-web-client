@@ -7,9 +7,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
-    import ProgressBar from 'primevue/progressbar';
-    import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-    import { processAbortClicked } from  "@/utils/workerDomUtils";    
+    import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
     import { useAdvancedModeStore } from '@/stores/advancedModeStore';
     import SrModeSelect from './SrModeSelect.vue';
 
@@ -29,45 +27,47 @@
         requestsStore.setConsoleMsg(`Select a geographic region ( a couple sq miles).  Then click 'Run SlideRule' to start the process`);
     });
 
-    function runSlideRuleClicked() {
-        console.log('runSlideRuleClicked');
-        emit('run-sliderule-clicked');
-        if (advancedModeStore.getAdvanced()) {
-            //console.log('runSlideRuleClicked advancedMode');
+    function toggleRunAbort() {
+        if (mapStore.isLoading) {
+            console.log('abortClicked');
+            processAbortClicked();
         } else {
-            reqParamsStore.initParmsForGenUser();
+            console.log('runSlideRuleClicked');
+            emit('run-sliderule-clicked');
+            if (!advancedModeStore.getAdvanced()) {
+                reqParamsStore.initParmsForGenUser();
+            }
+            processRunSlideRuleClicked();
         }
-        processRunSlideRuleClicked();
-    }
-
-    function abortClicked() {
-        console.log('abortClicked');
-        processAbortClicked();
     }
 
 </script>
 <template>
     <div class="sr-run-abort-panel">
-        <div class="button-spinner-container">
-            <Button class="sr-run-button" label="Run SlideRule" @click="runSlideRuleClicked" :disabled="mapStore.isLoading"></Button>
-            <Button class="sr-abort-button" label="Abort" @click="abortClicked" :disabled="(mapStore.isAborting || !mapStore.isLoading) "></Button>
-            <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 3rem; height: 3rem"/>
+        <div class="control-container">
+            <SrModeSelect class="sr-mode-select" />
+            <div class="button-spinner-container">
+                <div v-if="mapStore.isLoading" class="loading-indicator">
+                    <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
+                    <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
+                </div>
+                <Button 
+                    class="sr-run-abort-button" 
+                    :class="{ 'abort-mode': mapStore.isLoading }"
+                    :label="mapStore.isLoading ? 'Abort' : 'Run SlideRule'" 
+                    @click="toggleRunAbort" 
+                    :disabled="mapStore.isAborting"
+                >
+                    <template #icon>
+                        <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
+                    </template>
+                </Button>
+            </div>
         </div>
-        <div class="sr-progressbar-panel ">
-            <div>
+        <div class="sr-msg-panel">
                 <span class="sr-console-msg">{{requestsStore.getConsoleMsg()}}</span>
-            </div>
-            <div>
                 <span class="sr-svr-msg">{{requestsStore.getSvrMsg()}}</span>
-            </div>
-            <div class="sr-progressbar">
-                <span></span>
-                <ProgressBar v-if="mapStore.isLoading" :value="useCurReqSumStore().getPercentComplete()" />
-            </div>
         </div>
-        <div>
-            <SrModeSelect />
-        </div>  
     </div>  
 </template>
 <style scoped>
@@ -75,74 +75,76 @@
     .sr-run-abort-panel {
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .control-container {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
+        width: 100%;
     }
-    .sr-run-button {
-        margin: 0.25rem;
-    }   
-    .sr-abort-button {
-        margin: 0.25rem;
+
+    .sr-mode-select {
+        flex: 1;
     }
+
     .button-spinner-container {
         display: flex;
-        align-items: center; /* This will vertically center the spinner with the button */
-        justify-content: center; /* Center the content horizontally */
+        align-items: center;
+        flex-direction: row;
+        gap: 0.5rem;
     }
-    .runtest-sr-button {
+
+    .loading-indicator {
+        display: flex;
+        align-items: center;
+    }
+
+    .loading-percentage {
+        margin-left: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .sr-run-abort-button {
+        height: 3rem;
+        border-radius: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-direction: column;
-        margin: 2rem;
+        gap: 0.5rem;
     }
 
-    .sr-console-msg {
-        display: block;
-        font-size: x-small;
-        white-space: nowrap;
-        overflow: hidden;
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* text-overflow: ellipsis; */
-        max-width: 25rem; 
-        justify-content:center;
-        align-items: left;
-    } 
+    .sr-run-abort-button:not(.abort-mode) {
+        background-color: #A4DEEB;
+        color: #000000;
+        border-color: #A4DEEB;
+    }
 
+    .sr-run-abort-button.abort-mode {
+        background-color: #FFD4FD;
+        color: #000000;
+        border-color: #FFD4FD;
+    }
+
+    .sr-msg-panel {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        background-color: #2c2c2c;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .sr-console-msg,
     .sr-svr-msg {
         display: block;
         font-size: x-small;
         white-space: nowrap;
         overflow: hidden;
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* text-overflow: ellipsis; */
-        max-width: 25rem; 
-        justify-content:center;
-        align-items: left;
-    } 
-
-    .sr-progressbar-panel {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        margin: 0.25rem;
-        padding: 0.25rem;
-        overflow-x: auto;
-        overflow-y: hidden;
-        max-width: 25rem;
-        min-width: 15rem;
-        height: 3rem;
+        text-overflow: ellipsis;
+        width: 100%;
     }
 
-    .sr-progressbar {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: left;
-        font-size: x-small;
-        min-width: 15rem;
-    } 
 </style>

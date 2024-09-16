@@ -1,62 +1,99 @@
 <template>
     <div class="sr-req-display-panel">
-        <div class="sr-req-display-panel-content">
             <div class="sr-req-display-panel-header"> 
                 <SrCheckbox
                     v-model="showReqParms"
                     label="Show Request Parameters"
                 />
             </div>
-            <div class="sr-req-display-parms" v-if="showReqParms">
+            <div 
+                class="sr-req-display-parms" 
+                v-if="showReqParms"
+                @click="copyToClipboard"
+                @mouseenter="isHovered = true"
+                @mouseleave="isHovered = false"
+            >
+                <div class="hover-overlay" v-if="isHovered"></div>
                 <pre><code>{{ reqParms }}</code></pre>
             </div>
-        </div>
+        
     </div>
   </template>
   
   <script setup lang="ts">
-    import { computed,ref } from "vue";
+    import { computed, ref } from "vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrCheckbox from "./SrCheckbox.vue";
 
     const reqParamsStore = useReqParamsStore();
     const showReqParms = ref(false);
+    const isHovered = ref(false);
+
     const reqParms = computed(() => {
       // NOTE: we use request ID of zero as a placeholder for the current request
       return  JSON.stringify(reqParamsStore.getAtlpReqParams(0),null,2);
     });
+
+    const copyToClipboard = () => {
+      navigator.clipboard.writeText(reqParms.value)
+        .then(() => {
+          console.log('Content copied to clipboard');
+          // You can add a notification here if desired
+        })
+        .catch(err => {
+          console.error('Failed to copy content: ', err);
+        });
+    };
   </script>
   
   <style>
-  /* Style your button and component here */
-  .sr-req-display-panel {
-    display: flex;
-    flex-direction: column;
-    padding: 0rem;
-    margin-top: 0rem;
-  }
-  .sr-req-display-panel-header {
-    display: flex;
-    margin-top: 0;
-    font-size: medium;
-    font-weight: bold;
-    justify-content: center;
-  }
-  .sr-req-display-panel-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    font-size: smaller;
-    padding: 0rem;
-  }
-.sr-req-display-parms {
-    display: flex;
-    justify-content: center;
-    margin-top: 0rem;
-    max-height: 10rem;
-    overflow-y: auto;
-    overflow-x: auto;
+.sr-req-display-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px; /* Limit the overall height */
+  overflow-y: auto; /* Add vertical scrolling if needed */
 }
-  </style>
+
+.sr-req-display-panel-header {
+  display: flex;
+  margin-bottom: 0.25rem;
+  font-size: medium;
+  justify-content: flex-start; /* Align to the left */
+}
+
+.sr-req-display-parms {
+  position: relative;
+  cursor: pointer;
+  background-color: #2c2c2c;
+  padding: 1rem;
+  border-radius: 0.5rem;
   
+  display: flex;
+  justify-content: flex-start;
+  max-height: 5rem; /* Limit the height of the JSON display */
+  overflow-y: auto;
+  overflow-x: auto;
+  width: 100%; /* Ensure full width */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.sr-req-display-parms::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+.sr-req-display-parms pre {
+  margin: 0;
+  width: 100%;
+}
+
+.hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+</style>

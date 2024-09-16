@@ -307,22 +307,17 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin: 0.125rem;
-    margin-top: 0rem;
 }
 .adv-opts-wrapper{
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin: 0.1250rem;
-    padding: 0.1250rem;
+    width: 100%;
 }
 
 .sr-adv-accordian {
-    min-width: 25vw;
-    margin: 0.125rem;
-    padding: 0.1250rem;
+    width: 100%;
 }
 
 .sr-color-palette {
@@ -341,8 +336,6 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0.125rem;
-    padding: 0.125rem;
 }
 .sr-raster-sampling-table {
     flex:auto;
@@ -356,8 +349,6 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: left;
-    margin: 0.125rem;
-    padding: 0.125rem;
 }
 
 
