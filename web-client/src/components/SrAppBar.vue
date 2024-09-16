@@ -132,8 +132,6 @@ const toggleMobileMenu = (event: Event) => {
     mobileMenu.value?.toggle(event);
 };
 
-// Remove this unused variable declaration
-// const router = useRouter();
 </script>
 
 <template>
@@ -143,6 +141,7 @@ const toggleMobileMenu = (event: Event) => {
                 @click="toggleMobileMenu"></Button>
             <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
             <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
+            <span class = "sr-title">SlideRule</span>
             <p class="sr-version-text">Beta {{ formattedVersion }}</p>
         </div>
         <div class="right-content">
@@ -179,6 +178,13 @@ const toggleMobileMenu = (event: Event) => {
 .center-content {
     display: flex;
     align-items: center;
+}
+
+.sr-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--p-button-text-primary-color);
+    margin-left: 0.5rem;
 }
 
 .ol-geocoder {
@@ -270,7 +276,7 @@ const toggleMobileMenu = (event: Event) => {
     font-weight: 600;
     font-size: 0.7rem;
     white-space: nowrap;
-    background-color: #A4DEEB;
+    background-color: var(--p-button-text-primary-color);
     color: #333;
     border-radius: 1rem;
     padding: 0.5rem 0.75rem;
