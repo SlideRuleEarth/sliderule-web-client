@@ -18,7 +18,6 @@
         height: 100%;
         overflow-y: auto;
         width: 100%;
-        padding: 1rem;
     }
 
 </style>
