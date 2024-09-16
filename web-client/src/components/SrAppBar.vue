@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 const build_env = import.meta.env.VITE_BUILD_ENV;
 
@@ -47,12 +47,23 @@ const handleLogoClick = () => {
 const handleMapButtonClick = () => {
     emit('map-button-click');
 };
-const handleRecordButtonClick = () => {
-    emit('record-button-click');
+const handleRecordButtonClick = async () => {
+    try {
+        await prefetchRecordData();
+        const recordData = await recordDataPromise;
+        // You can store this data in a global state management solution like Pinia
+        // or pass it as a route parameter
+        router.push({ name: 'record', params: { preloadedData: recordData } });
+    } catch (error) {
+        console.error('Failed to load record data:', error);
+        router.push({ name: 'record' });
+    }
 };
+
 const handleAnalysisButtonClick = () => {
     emit('analysis-button-click');
 };
+
 const handleAboutButtonClick = () => {
     emit('about-button-click');
 };
@@ -134,7 +145,36 @@ const toggleMobileMenu = (event: Event) => {
     mobileMenu.value?.toggle(event);
 };
 
+const selectedMenuItem = ref('');
+
+const handleMenuItemClick = (itemName: string) => {
+    selectedMenuItem.value = itemName;
+    // Call the appropriate handler function
+    switch (itemName) {
+        case 'Map':
+            handleMapButtonClick();
+            break;
+        case 'Record':
+            handleRecordButtonClick();
+            break;
+        case 'Analysis':
+            handleAnalysisButtonClick();
+            break;
+        case 'About':
+            handleAboutButtonClick();
+            break;
+        // Add other cases as needed
+    }
+};
+
+const prefetchRecordData = () => {
+    if (!recordDataPromise) {
+        recordDataPromise = fetch('/api/record-data').then(res => res.json());
+    }
+};
+
 const router = useRouter();
+let recordDataPromise: Promise<any> | null = null;
 </script>
 
 <template>
@@ -149,20 +189,26 @@ const router = useRouter();
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="Map" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleMapButtonClick"></Button>
+                    :class="{ 'selected-menu-item': selectedMenuItem === 'Map' }"
+                    @click="handleMenuItemClick('Map')"></Button>
             <Button icon="pi pi-list" label="Record" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleRecordButtonClick"></Button>
+                    :class="{ 'selected-menu-item': selectedMenuItem === 'Record' }"
+                    @click="handleRecordButtonClick"
+                    @mouseenter="prefetchRecordData"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleAnalysisButtonClick"></Button>
+                    :class="{ 'selected-menu-item': selectedMenuItem === 'Analysis' }"
+                    @click="handleMenuItemClick('Analysis')"></Button>
             <Button icon="pi pi-book" label="Docs" 
                     class="p-button-rounded p-button-text desktop-only"
+                    :class="{ 'selected-menu-item': selectedMenuItem === 'Docs' }"
                     @click="toggleDocsMenu"></Button>
             <Menu :model="docMenuItems" popup ref="docsMenu" />
             <Button icon="pi pi-info-circle" label="About" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleAboutButtonClick"></Button>
+                    :class="{ 'selected-menu-item': selectedMenuItem === 'About' }"
+                    @click="handleMenuItemClick('About')"></Button>
         </div>
     </div>
 </template>
@@ -280,5 +326,10 @@ const router = useRouter();
 .mobile-menu-button {
     display: none;
     /* Hide by default for desktop */
+}
+
+.selected-menu-item {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    font-weight: bold !important;
 }
 </style>
