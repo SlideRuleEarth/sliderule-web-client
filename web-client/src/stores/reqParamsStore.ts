@@ -6,7 +6,6 @@ import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/slid
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
-import { time } from 'console';
 export interface NullReqParams {
   null: null;
 }
@@ -75,7 +74,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Land Ice', value: 3 },
           { name: 'Inland Water',value: 4 },
         ] as SrMultiSelectNumberItem[],
-        surfaceReferenceType:[] as number[],
+        surfaceReferenceType:[-1] as number[],
         signalConfidenceOptions: 
         [
           { name: 'TEP', value: 'atl03_tep' },
@@ -103,7 +102,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 3 },
           { name: 'High', value: 4 },
         ] as SrMultiSelectNumberItem[],
-        signalConfidenceNumber: [ 4 ],
+        signalConfidenceNumber: [ 0,1,2,3,4 ],
         qualityPHOptions: [
           { name: 'Nominal', value: 0 },
           { name: 'Possible Afterpulse', value: 1 },

@@ -1,6 +1,6 @@
   <script setup lang="ts">
   import { useMapParamsStore } from "@/stores/mapParamsStore";
-  import { ref, onMounted, computed } from "vue";
+  import { ref, onMounted } from "vue";
   import { Map as OLMapType} from "ol";
   import { useToast } from "primevue/usetoast";
   import { type SrView } from "@/composables/SrViews";
@@ -8,7 +8,6 @@
   import { srProjections } from "@/composables/SrProjections";
   import proj4 from 'proj4';
   import { register } from 'ol/proj/proj4';
-  import 'ol/ol.css'; 
   import 'ol-geocoder/dist/ol-geocoder.min.css';
   import { useMapStore } from "@/stores/mapStore";
   import { useGeoCoderStore } from '@/stores/geoCoderStore';
@@ -26,7 +25,6 @@
   import { DragBox as DragBoxType } from 'ol/interaction';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
-  import { useSrToastStore } from "@/stores/srToastStore.js";
   import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
@@ -42,10 +40,8 @@
   import SrViewControl from "./SrViewControl.vue";
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
-  const build_env = import.meta.env.VITE_BUILD_ENV;
 
   const reqParamsStore = useReqParamsStore();
-  const srToastStore = useSrToastStore();
 
   interface SrDrawControlMethods {
     resetPicked: () => void;
@@ -88,7 +84,7 @@
         //console.log("Original polyCoords:", rings);
 
         // Convert each ring's coordinates to lon/lat using toLonLat
-        const convertedRings: Coordinate[][] = rings.map(ring =>
+        const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
           ring.map(coord => toLonLat(coord) as Coordinate)
         );
 
