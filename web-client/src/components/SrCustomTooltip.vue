@@ -13,12 +13,39 @@
   const showTooltip = (event: MouseEvent, content: string) => {
     text.value = content;
     visible.value = true;
+    
     const { clientX: x, clientY: y } = event;
+    const tooltipOffset = 10; // distance from the cursor
+    // Estimate tooltip width based on the number of characters
+    const averageCharWidth = 8; // Adjust this based on your font size
+    const tooltipWidth = content.length * averageCharWidth;
+    const tooltipHeight = 10; // estimated or actual height of your tooltip
+
+    // Get the window's dimensions
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Calculate the desired position
+    let calculatedLeft = x + tooltipOffset;
+    let calculatedTop = y + tooltipOffset;
+
+    // Adjust position if the tooltip would be clipped horizontally
+    if (calculatedLeft + tooltipWidth > windowWidth) {
+      calculatedLeft = x - tooltipWidth - tooltipOffset;
+    }
+
+    // Adjust position if the tooltip would be clipped vertically
+    if (calculatedTop + tooltipHeight > windowHeight) {
+      calculatedTop = y - tooltipHeight - tooltipOffset;
+    }
+
+    // Apply the calculated position
     tooltipStyle.value = {
-      top: `${y + 10}px`,
-      left: `${x + 10}px`,
+      top: `${calculatedTop}px`,
+      left: `${calculatedLeft}px`,
     };
   };
+
   
   const hideTooltip = () => {
     visible.value = false;

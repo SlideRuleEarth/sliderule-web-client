@@ -83,7 +83,7 @@ function formatBytes(bytes: number, decimals = 2): string {
 }
 </script>
 
-<style>
+<style scoped>
 /* Style your button and component here */
 .sr-storage-panel {
   display: flex;

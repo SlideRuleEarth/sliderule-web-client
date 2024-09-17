@@ -27,7 +27,7 @@
     
   </script>
   
-  <style>
+  <style scoped>
   /* Style your button and component here */
   .sr-checksum-panel {
     display: flex;

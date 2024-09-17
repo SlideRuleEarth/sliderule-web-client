@@ -49,7 +49,7 @@
     };
   </script>
   
-  <style>
+  <style scoped>
 .sr-req-display-panel {
   display: flex;
   flex-direction: column;

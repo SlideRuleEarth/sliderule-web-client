@@ -251,7 +251,13 @@ const tooltipRef = ref();
             </Column>
             <Column field="Actions" header="" class="sr-export">
                 <template #header>
-                    <SrImportParquetFile />
+                    <div 
+                        class="sr-file-import"
+                        @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
+                        @mouseleave="tooltipRef.hideTooltip"
+                    >
+                        <SrImportParquetFile />
+                    </div>
                 </template>
                 <template #body="slotProps">
                     <i 

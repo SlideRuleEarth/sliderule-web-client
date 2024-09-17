@@ -1,15 +1,13 @@
 <template>
     <div class="sr-rec-req-display-panel">
-        <div class="sr-rec-req-display-panel-content">
-            <div class="sr-rec-req-display-panel-header"> 
-                <SrCheckbox
-                    v-model="showReqParms"
-                    label="Show Request Parameters"
-                />
-            </div>
-            <div class="sr-rec-req-display-parms" v-if="showReqParms">
-                <pre><code>{{ reqParms }}</code></pre>
-            </div>
+        <div class="sr-rec-req-display-panel-header"> 
+            <SrCheckbox
+                v-model="showReqParms"
+                label="Show Request Parameters"
+            />
+        </div>
+        <div class="sr-rec-req-display-parms" v-if="showReqParms">
+            <pre><code>{{ reqParms }}</code></pre>
         </div>
     </div>
   </template>
@@ -21,7 +19,7 @@
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     const atlChartFilterStore = useAtlChartFilterStore();
 
-    const showReqParms = ref(false);
+    const showReqParms = ref(true);
     const reqParms = ref<string>('');
 
     onMounted(async () => {
@@ -42,35 +40,37 @@
     });
   </script>
   
-  <style>
+  <style scoped>
   /* Style your button and component here */
   .sr-rec-req-display-panel {
     display: flex;
     flex-direction: column;
     padding: 0rem;
     margin-top: 0rem;
+    max-height: 30rem;
+    overflow-y: auto;
   }
   .sr-rec-req-display-panel-header {
     display: flex;
     margin-top: 0;
     font-size: medium;
     font-weight: bold;
-    justify-content: center;
+    justify-content: flex-start;
   }
-  .sr-rec-req-display-panel-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    font-size: smaller;
-    padding: 0rem;
-  }
+
 .sr-rec-req-display-parms {
-    display: flex;
-    justify-content: center;
+    position: relative;
     margin-top: 0rem;
+    display: flex;
+    justify-content: flex-start;
+    max-height: 15rem;
+    max-width: 15rem;
     overflow-y: auto;
-    max-height: 10rem;
+    overflow-x: auto;
+    width: 100%;
+    text-overflow: clip;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
   </style>
   

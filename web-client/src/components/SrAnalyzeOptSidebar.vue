@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
-import SrMenuInput, { SrMenuItem } from './SrMenuInput.vue';
+import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
 import SrRecReqDisplay from './SrRecReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
@@ -348,7 +348,6 @@ const getCnt = computed(() => {
             {{ atlChartFilterStore.getDescription() }}
         </div>
         <div>
-            <FieldSet class="sr-map-fieldset" legend="Map Options" :toggleable="true" :collapsed="true">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
@@ -367,7 +366,7 @@ const getCnt = computed(() => {
                         tooltipText="Color Map for elevation plot"
                     /> 
                 </div>
-            </FieldSet>
+            
         </div>
         <div class="sr-analyze-filters">
             <SrListbox id="spots" 

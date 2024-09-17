@@ -71,7 +71,7 @@ const percentageArrowMetaRecs = computed(() => {
 
 </script>
 
-<style>
+<style scoped>
 /* Style your button and component here */
 .sr-progress-panel {
   display: flex;
