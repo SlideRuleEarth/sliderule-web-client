@@ -29,7 +29,7 @@ import SrGranuleSelection from './SrGranuleSelection.vue';
 import SrDebug from './SrDebug.vue';
 import SrColorPalette  from "./SrColorPalette.vue";
 import SrAdvancedConfig from './SrAdvancedConfig.vue';
-import SrGenUserOptions from './SrGenUserOptions.vue';
+import SrGenUserPresets from './SrGenUserPresets.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 
@@ -68,7 +68,7 @@ onMounted(() => {
                 <AccordionPanel value="0">
                     <AccordionHeader>Presets</AccordionHeader>
                     <AccordionContent>
-                        <SrGenUserOptions />
+                        <SrGenUserPresets />
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="1">

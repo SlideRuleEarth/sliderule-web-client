@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import SrRunControl from "@/components/SrRunControl.vue";
-    import SrGenUserSidebarOptions from "@/components/SrGenUserOptions.vue";
+    import SrGenUserSidebarOptions from "@/components/SrGenUserPresets.vue";
 </script>
 
 <template>
