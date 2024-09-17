@@ -21,58 +21,6 @@ const upload_progress = ref(0);
 //////////////
 
 
-const importFile = async (event) => {
-    console.log('Importing file');
-    try {
-        // Step 1: Open file picker dialog for the user to select a file
-        const file = event.files[0];
-        // Step 2: Get access to the OPFS directory
-        const opfsRoot = await navigator.storage.getDirectory();
-        const folderName = 'SlideRule'; 
-        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true }); // Create folder if not exists
-
-
-        const srReqRec = await requestsStore.createNewSrRequestRecord();
-        if(srReqRec && srReqRec.req_id) {
-            const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
-            srReqRec.file = newFilename;
-            srReqRec.func = func;
-            srReqRec.status = 'imported';
-            srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
-            await db.updateRequestRecord(srReqRec);
-            // Step 3: Create a file handle in the OPFS with the same name as the selected file
-            const opfsFileHandle = await directoryHandle.getFileHandle(newFilename, { create: true });
-
-            // Step 4: Write the contents of the selected file into the OPFS file
-            const writableStream = await opfsFileHandle.createWritable();
-            await writableStream.write(file);
-            await writableStream.close();
-            const heightFieldname = await getHeightFieldname(srReqRec.req_id);
-            await duckDbReadOrCacheSummary(srReqRec.req_id, heightFieldname);
-            const summary = await db.getWorkerSummary(srReqRec.req_id);
-            console.log('Summary:', summary);
-            if(summary){
-                const opfsFile = await opfsFileHandle.getFile();
-                srReqRec.num_bytes  = opfsFile.size;
-                srReqRec.cnt = summary.numPoints;
-                await db.updateRequestRecord(srReqRec); 
-                const msg = `File imported and copied to OPFS successfully!`;
-                console.log(msg);
-                alert(msg);
-            } else {
-                console.error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-                alert(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-            }
-        } else {
-            console.error(`Failed File create new SlideRule request record`);
-            alert(`Failed to import File. Unable to create new SlideRule request record`);
-        }
-    } catch (error) {
-        console.error(`Failed to import and copy file`, error);
-        alert(`Failed to import and copy file`);
-        throw error;
-    }
-};
 
 
 const customUploader = async (event:any) => {
@@ -163,8 +111,7 @@ const onClear = () => {
             </template>
         </SrToast>
         <div class="sr-file-import-panel">       
-            <FileUpload v-tooltip="'Import a SlideRule Parquet file'"
-                        mode="basic" 
+            <FileUpload mode="basic" 
                         name="SrFileUploadsImport[]"
                         chooseLabel="Imp"
                         class="p-button-icon-only p-button-text p-button-sm"
@@ -188,8 +135,8 @@ const onClear = () => {
     display: flex;
     justify-content: left;
     align-items: center;
-    margin: 0.5rem;
 }
+
 .sr-file-import-panel { 
     display: flex;
     justify-content: center;
@@ -229,6 +176,10 @@ const onClear = () => {
     font-size: var(--p-button-sm-font-size);
 }
 
+:deep(.pi-file-import) {
+    color: white; /* Changes the icon color to white */
+}
+
 .message-container {
     display: flex;
     flex-direction: column;
@@ -262,5 +213,7 @@ const onClear = () => {
     font-size: 0.75rem; /* text-xs */
     color:var(--p-text-color);
 }
-
+.sr-file-import-panel .pi-file-import {
+    color: white; 
+}
 </style>

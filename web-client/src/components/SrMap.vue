@@ -305,29 +305,29 @@
         console.error('Map is not defined');
     }
   }
-  function updateCurrentParms(){
-    const newZoom = mapRef.value?.map.getView().getZoom();
-    if (newZoom !== undefined) {
-      mapParamsStore.setZoom(newZoom);
-    }
-    const newCenter = mapRef.value?.map.getView().getCenter();
-    if (newCenter !== undefined) {
-      mapParamsStore.setCenter(newCenter);
-    }
-    const newRotation = mapRef.value?.map.getView().getRotation();
-    if (newRotation !== undefined) {
-      mapParamsStore.setRotation(newRotation);
-    }
-    const newExtent = mapRef.value?.map.getView().calculateExtent();
-    if (newExtent !== undefined) {
-      mapParamsStore.setExtent(newExtent);
-    }
-  }
+  // function updateCurrentParms(){
+  //   const newZoom = mapRef.value?.map.getView().getZoom();
+  //   if (newZoom !== undefined) {
+  //     mapParamsStore.setZoom(newZoom);
+  //   }
+  //   const newCenter = mapRef.value?.map.getView().getCenter();
+  //   if (newCenter !== undefined) {
+  //     mapParamsStore.setCenter(newCenter);
+  //   }
+  //   const newRotation = mapRef.value?.map.getView().getRotation();
+  //   if (newRotation !== undefined) {
+  //     mapParamsStore.setRotation(newRotation);
+  //   }
+  //   const newExtent = mapRef.value?.map.getView().calculateExtent();
+  //   if (newExtent !== undefined) {
+  //     mapParamsStore.setExtent(newExtent);
+  //   }
+  // }
 
-  function onResolutionChange(){
-    ////console.log("onResolutionChange:",event);
-    updateCurrentParms();
-  };
+  // function onResolutionChange(){
+  //   ////console.log("onResolutionChange:",event);
+  //   updateCurrentParms();
+  // };
 
   onMounted(() => {
     //console.log("SrMap onMounted");
@@ -338,6 +338,7 @@
     });
     register(proj4);
     if (mapRef.value?.map) {
+      console.log("map:",mapRef.value.map);
       mapStore.setMap(mapRef.value.map);
       const map = mapStore.getMap() as OLMapType;
       if(map){
@@ -359,10 +360,11 @@
         } else {
           console.log("Error:geocoder is null?");
         }
-        const initialZoom = map.getView().getZoom();
-        if (initialZoom !== undefined) {
-          mapParamsStore.setZoom(initialZoom);
-        }
+        console.log("map.getView():",map.getView());
+        // const initialZoom = map.getView().getZoom();
+        // if (initialZoom !== undefined) {
+        //   mapParamsStore.setZoom(initialZoom);
+        // }
         const projectionNames = useProjectionNames();
 
         projectionNames.value.forEach(name => {
@@ -536,9 +538,9 @@
             mapParamsStore.setProjection(newProj.getCode());
             map.setView(newView);
             newView.fit(extent);
-            updateCurrentParms();
+            //updateCurrentParms();
             addLayersForCurrentView();      
-            map.getView().on('change:resolution', onResolutionChange);
+            //map.getView().on('change:resolution', onResolutionChange);
             initDeck(map);
             // Permalink
             // if(mapStore.plink){

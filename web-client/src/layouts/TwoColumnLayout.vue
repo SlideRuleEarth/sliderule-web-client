@@ -29,6 +29,7 @@
     min-width: 26rem;
     padding-left: 1rem;
     padding-right: 1rem;
+    overflow-x: auto;
   }
 
   main {

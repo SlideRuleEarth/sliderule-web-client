@@ -122,6 +122,10 @@ provide(THEME_KEY, "dark");
 const selectedAtl03ColorMap = ref({name:'viridis', value:'viridis'});
 const option = shallowRef();
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
+interface AtColorChangeEvent {
+  label: string;
+  color?: string; // color can be undefined
+}
 
 const fetchScatterOptions = async () => {
   const reqId = atlChartFilterStore.getReqId();
@@ -210,7 +214,7 @@ function changedColorKey() {
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-const atl03CnfColorChanged = ({ label, color }) => {
+const atl03CnfColorChanged = ({ label, color }:AtColorChangeEvent): void =>{
     console.log(`atl03CnfColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();
@@ -220,7 +224,7 @@ const atl03CnfColorChanged = ({ label, color }) => {
     }
 };
 
-const atl08ClassColorChanged = ({ label, color }) => {
+const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();

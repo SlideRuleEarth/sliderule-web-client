@@ -83,29 +83,29 @@
     updateAnalysisMapView("New maxNumPntsToDisplay");
   });
 
-  function updateCurrentParms(){
-    const newZoom = mapRef.value?.map.getView().getZoom();
-    if (newZoom !== undefined) {
-      mapParamsStore.setZoom(newZoom);
-    }
-    const newCenter = mapRef.value?.map.getView().getCenter();
-    if (newCenter !== undefined) {
-      mapParamsStore.setCenter(newCenter);
-    }
-    const newRotation = mapRef.value?.map.getView().getRotation();
-    if (newRotation !== undefined) {
-      mapParamsStore.setRotation(newRotation);
-    }
-    const newExtent = mapRef.value?.map.getView().calculateExtent();
-    if (newExtent !== undefined) {
-      mapParamsStore.setExtent(newExtent);
-    }
-  }
+  // function updateCurrentParms(){
+  //   const newZoom = mapRef.value?.map.getView().getZoom();
+  //   if (newZoom !== undefined) {
+  //     mapParamsStore.setZoom(newZoom);
+  //   }
+  //   const newCenter = mapRef.value?.map.getView().getCenter();
+  //   if (newCenter !== undefined) {
+  //     mapParamsStore.setCenter(newCenter);
+  //   }
+  //   const newRotation = mapRef.value?.map.getView().getRotation();
+  //   if (newRotation !== undefined) {
+  //     mapParamsStore.setRotation(newRotation);
+  //   }
+  //   const newExtent = mapRef.value?.map.getView().calculateExtent();
+  //   if (newExtent !== undefined) {
+  //     mapParamsStore.setExtent(newExtent);
+  //   }
+  // }
 
-  function onResolutionChange(){
-    //console.log("onResolutionChange:",event);
-    updateCurrentParms();
-  };
+  // function onResolutionChange(){
+  //   //console.log("onResolutionChange:",event);
+  //   updateCurrentParms();
+  // };
 
   onMounted(() => {
     console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
@@ -120,10 +120,6 @@
       mapStore.setMap(mapRef.value.map);
       const map = mapStore.getMap() as OLMap;
       if(map){
-        const initialZoom = map.getView().getZoom();
-        if (initialZoom !== undefined) {
-          mapParamsStore.setZoom(initialZoom);
-        }
         const defaultBaseLayer = getDefaultBaseLayer(getDefaultProjection().name);
         if(defaultBaseLayer){
           const newLayer = getLayer(defaultBaseLayer.title);
@@ -246,7 +242,7 @@
               });
               mapParamsStore.setProjection(newProj.getCode());
               map.setView(newView);
-              updateCurrentParms();
+              //updateCurrentParms();
               addLayersForCurrentView(); 
               let reqExtremeLatLon = [0,0,0,0];
               if(props.reqId > 0){   
@@ -275,8 +271,8 @@
               extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
               //console.log('Using extent:',extent);               
               map.getView().fit(extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
-              map.getView().on('change:resolution', onResolutionChange);
-              updateCurrentParms();
+              //map.getView().on('change:resolution', onResolutionChange);
+              //updateCurrentParms();
               initDeck(map);
             } else {
               console.error("Error: invalid projection bbox:",srView.bbox);

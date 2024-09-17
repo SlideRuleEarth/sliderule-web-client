@@ -37,7 +37,7 @@
 
   </script>
   
-  <style>
+  <style scoped>
   /* Style your button and component here */
   .sr-sql-stmnt-display-panel {
     display: flex;
