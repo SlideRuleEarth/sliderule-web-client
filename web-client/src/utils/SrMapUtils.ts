@@ -2,9 +2,10 @@ import { useMapStore } from '@/stores/mapStore';
 import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
-import { GeoJSON} from 'ol/format';
+import GeoJSON from 'ol/format/GeoJSON';
 import VectorLayer from 'ol/layer/Vector';
 import Feature from 'ol/Feature';
+import VectorSource from 'ol/source/Vector';
 import { Geometry } from 'ol/geom';
 import { Polygon } from 'ol/geom';
 import { Deck } from '@deck.gl/core';
@@ -20,6 +21,9 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+
+import { fromLonLat } from 'ol/proj';
+
 
 // const elevationColorMapStore = useElevationColorMapStore();
 // const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -47,67 +51,80 @@ export const clearPolyCoords = () => {
     }
 }
 
-export function drawGeoJson(geoJsonData:string, noFill:boolean = false, overlayExisting:boolean = true, zoomTo=false): null {
-    console.log('drawGeoJson:',geoJsonData,' noFill:',noFill);
+export function drawGeoJson(
+    geoJsonData: string, 
+    noFill: boolean = false, 
+    overlayExisting: boolean = true, 
+    zoomTo: boolean = false
+): void {
+
     const map = useMapStore().map
-    if(map){
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer') as VectorLayer<Feature<Geometry>>;
-        if (!vectorLayer) {
-            console.error('Vector layer is not defined.');
-        }
-        const geoJSON = new GeoJSON(); 
-        const features = geoJSON.readFeatures(geoJsonData, {
-            featureProjection: useMapParamsStore().projection, 
-        }) as Feature<Geometry>[];
-        const src = vectorLayer.getSource();
-        if(src){
-            // Add the features to the vector layer source
-            if(!overlayExisting){
-                src.clear(); // Optional: Remove existing features
-            }
-            src.addFeatures(features);
-            let style;
-            if(noFill){
-                style = new Style({
-                    stroke: new Stroke({
-                        color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
-                        width: 2,
-                    }),
-                });
-             } else {
-               // Define a style with the desired colors
-               style = new Style({
-                    fill: new Fill({
-                        color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-                    }),
-                    stroke: new Stroke({
-                        color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
-                        width: 2,
-                    }),
-                });
-            }
-            // Apply the style to each feature
-            features.forEach(feature => {
-                feature.setStyle(style);
-            });
-            const geometry = features[0].getGeometry();
-            if (geometry instanceof Polygon) {
-                const nestedCoords = geometry.getCoordinates();
-                useMapStore().polyCoords = nestedCoords;
-                //console.log('Using extent:',extent);
-                if(zoomTo){
-                    map.getView().fit(geometry, {size: map.getSize(), padding: [40, 40, 40, 40]});
-                }               
-                //console.log('useMapStore().polyCoords:',useMapStore().polyCoords);
-            } else {
-                console.error('The geometry type Polygon is only type supported. got geometry:',geometry);
-            }        
-        }
-    } else {
+    if(!map){
         console.error('Map is not defined.');
+        return;
     }
-    return null;
+    // Parse GeoJSON data
+    const format = new GeoJSON();
+    const features = format.readFeatures(geoJsonData, {
+        featureProjection: useMapParamsStore().projection, 
+    });
+//         const features = geoJSON.readFeatures(geoJsonData, {
+//             featureProjection: useMapParamsStore().projection, 
+//         }) as Feature<Geometry>[];
+
+    // Create a vector source and layer
+    const vectorSource = new VectorSource({
+        features: features,
+    });
+
+    let style: Style;
+
+    if (noFill) {
+        // Define a style without a fill
+        style = new Style({
+            stroke: new Stroke({
+                color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
+                width: 2,
+            }),
+        });
+    } else {
+        // Define a style with both fill and stroke
+        style = new Style({
+            fill: new Fill({
+                color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+            }),
+            stroke: new Stroke({
+                color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
+                width: 2,
+            }),
+        });
+    }
+    
+    const vectorLayer = new VectorLayer({
+        source: vectorSource,
+        style: style,
+    });
+    
+    // Handle overlaying the existing layers
+    if (!overlayExisting) {
+        // Clear existing vector layers
+        map.getLayers().forEach(layer => {
+        if (layer instanceof VectorLayer) {
+            map.removeLayer(layer);
+        }
+        });
+    }
+
+    // Add the new layer to the map
+    map.addLayer(vectorLayer);
+
+    // Zoom to the extent of the new features
+    if (zoomTo) {
+        const extent = vectorSource.getExtent();
+        map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+    }
 }
+
 
 function formatObject(obj: { [key: string]: any }): string {
     return Object.entries(obj)
@@ -391,7 +408,7 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     console.log('addDeckLayerToMap:',name);
     const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
-        const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME) as VectorLayer<Feature<Geometry>>;
+        const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME);
         if (selectedLayer) {
             //console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
             map.removeLayer(selectedLayer);
