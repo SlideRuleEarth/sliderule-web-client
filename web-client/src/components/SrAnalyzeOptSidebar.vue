@@ -22,7 +22,7 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
-import { useSrToastStore } from "@/stores/srToastStore.js";
+import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
 
 const requestsStore = useRequestsStore();
