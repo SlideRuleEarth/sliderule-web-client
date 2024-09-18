@@ -3,6 +3,7 @@ import { db } from '@/db/SlideRuleDb';
 import { ref, watch, onMounted } from 'vue';
 import InputText from 'primevue/inputtext';
 import FloatLabel from 'primevue/floatlabel';
+import { useSrToastStore } from "@/stores/srToastStore";
 
 // Define props first
 const props = defineProps({
@@ -38,7 +39,8 @@ const onEditComplete = (event: Event) => {
     const newValue = inputElement.value.trim();
     descrRef.value = newValue; // Update the specific field with the new value
     db.updateRequestRecord({ req_id: props.reqId, description: descrRef.value });
-    console.log('Edit completed, new value:', newValue, 'Description:', descrRef.value);
+    useSrToastStore().info('Description Updated', 'You updated the description');
+    //console.log('Edit completed, new value:', newValue, 'Description:', descrRef.value);
 };
 </script>
 

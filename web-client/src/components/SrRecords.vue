@@ -173,6 +173,13 @@ const tooltipRef = ref();
             </Column>
             <Column field="func" header="Function"></Column>
             <Column field="description" header="Description" :editable="true">
+                <template #header>
+                    <i 
+                      class="pi pi-pencil"
+                      @mouseover="tooltipRef.showTooltip($event, 'Editable Description')"
+                      @mouseleave="tooltipRef.hideTooltip"
+                    ></i>
+                </template>
                 <template #editor="{ data }">
                     <InputText
                         v-model="data.description"
@@ -312,5 +319,9 @@ const tooltipRef = ref();
     max-height: 10rem;
     overflow: auto;
     overflow-x: auto;
+}
+:deep(.p-inputtext.p-component) {
+    width: 100%;
+    border: 1px solid var(--p-border-color);
 }
 </style>
