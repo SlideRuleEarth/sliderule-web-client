@@ -40,6 +40,7 @@
   import SrViewControl from "./SrViewControl.vue";
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
+  import { Map, MapControls, Layers, Sources, Styles, Interactions } from "vue3-openlayers";
 
   const reqParamsStore = useReqParamsStore();
 
@@ -60,16 +61,16 @@
   const dragBox = new DragBoxType();
 
   const handleEvent = (event: any) => {
-    //console.log(event);
+    console.log(event);
   };
   const drawstart = (event: any) => {
-    //console.log("drawstart:",event);
+    console.log("drawstart:",event);
   };
 
   const drawend = (event: any) => {
 
     try{
-      //console.log("drawend:", event);
+      console.log("drawend:", event);
       // Access the feature that was drawn
       const feature = event.feature;
       //console.log("feature:", feature);
@@ -234,7 +235,7 @@
           vectorSource.clear();
           cleared = true;
         } else {
-          console.warn("vectorSource has no features");
+            console.log("vectorSource has no features");
         }
       } else {
         console.error("Error:vectorSource is null");
@@ -602,15 +603,15 @@
 </script>
 
 <template>
-  <ol-map ref="mapRef" @error="handleEvent"
+  <Map.OlMap ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
     style="height: calc(100vh - 4rem); border-top-left-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >
-    <ol-layerswitcher-control 
+    <MapControls.OlLayerswitcherControl
       :selection="true"
-      :displayInLayerSwitcher="true"
+      :displayInLayerSwitcher="() => true"
       :show_progress="true"
       :mouseover="false"
       :reordering="true"
@@ -618,42 +619,42 @@
       :extent="true"
     />
 
-    <ol-zoom-control  />
+    <MapControls.OlZoomControl  />
     
-    <ol-mouseposition-control 
-      :coordinateFormat="stringifyFunc"
+    <MapControls.OlMousepositionControl 
+      :coordinateFormat="stringifyFunc as any"
       projection="EPSG:4326"
     />
+    <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
-    <ol-scaleline-control />
+    <MapControls.OlScalelineControl />
     <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrLegendControl @legend-control-created="handleLegendControlCreated" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateView"/>
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
-    <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
-      <ol-source-vector :projection="mapParamsStore.projection">
-        <ol-interaction-draw
-          v-if="mapParamsStore.drawType==='Polygon'"
-          type="Polygon"
+    <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
+      <Sources.OlSourceVector :projection="mapParamsStore.projection">
+        <Interactions.OlInteractionDraw
+          v-if="mapParamsStore.getIsDrawingPoly()"
+          :type="mapParamsStore.getDrawTypeAsGeometryType()"
           @drawend="drawend"
           @drawstart="drawstart"
         >
-        <ol-style>
-          <ol-style-stroke color="blue" :width="2"></ol-style-stroke>
-          <ol-style-fill color="rgba(255, 255, 0, 0.4)"></ol-style-fill>
-        </ol-style>
-        </ol-interaction-draw>
-      </ol-source-vector>
-      <ol-style>
-        <ol-style-stroke color="red" :width="2"></ol-style-stroke>
-        <ol-style-fill color="rgba(255,255,255,0.1)"></ol-style-fill>
-        <ol-style-circle :radius="7">
-          <ol-style-fill color="red"></ol-style-fill>
-        </ol-style-circle>
-      </ol-style>
-    </ol-vector-layer>
-    <ol-attribution-control :collapsible="true" :collapsed="true" />
-  </ol-map>
+          <Styles.OlStyle>
+            <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+            <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+          </Styles.OlStyle>
+        </Interactions.OlInteractionDraw>
+      </Sources.OlSourceVector>
+      <Styles.OlStyle>
+        <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+        <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+        <Styles.OlStyleCircle :radius="7">
+          <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+        </Styles.OlStyleCircle>
+      </Styles.OlStyle>
+    </Layers.OlVectorLayer>
+  </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
   <div class="current-view-params">
     <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>

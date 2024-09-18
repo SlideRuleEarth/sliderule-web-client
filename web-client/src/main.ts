@@ -1,5 +1,3 @@
-//import 'primevue/resources/themes/lara-dark-blue/theme.css'
-//import 'primevue/resources/primevue.min.css'; // core css
 import './assets/app.css'
 import Lara from '@primevue/themes/lara';
 import 'primeicons/primeicons.css'
@@ -47,7 +45,7 @@ export const app = createApp(App)
 app.config.errorHandler = (err, vm, info) => {
   console.error('Global Vue Error Handler:', err, info);
 };
-const options: Vue3OpenlayersGlobalOptions = {
+const vue3_openlayer_options: Vue3OpenlayersGlobalOptions = {
     debug: false,
 };
 const pinia = createPinia();
@@ -57,7 +55,7 @@ pinia.use(createPersistedState({
 }))
 
 app.use(pinia);
-app.use(OpenLayersMap, options );
+app.use(OpenLayersMap, vue3_openlayer_options );
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
 app.use(PrimeVue, {

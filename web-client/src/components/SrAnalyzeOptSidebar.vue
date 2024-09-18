@@ -318,6 +318,9 @@ const getCnt = computed(() => {
 
 <template>
     <div class="sr-analysis-opt-sidebar-container">
+        <div class="sr-req-description">  
+            <SrEditDesc :reqId="Number(selectedReqId.value)"/>
+        </div>
         <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
             <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
             <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
@@ -345,10 +348,6 @@ const getCnt = computed(() => {
             </div>
         </div>
         </div>
-        <div class="sr-req-description">  
-            <SrEditDesc :reqId="Number(selectedReqId.value)"/>
-        </div>
-
         <div>
             <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             <div class="sr-analysis-max-pnts">
@@ -505,7 +504,6 @@ direction."
         flex-direction: column;
         align-items: center;
         justify-content: space-between; 
-        margin-top: 1rem;
         min-height: 30%;
         max-height: 30%;
         min-width: 30vw;
@@ -517,8 +515,7 @@ direction."
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin: 0.25rem;
-        margin-top: 0.125rem;
+        margin: 0rem;
         font-size: smaller;
         border: 1px solid;
         padding: 0.25rem;

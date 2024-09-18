@@ -6,8 +6,8 @@ import { getDefaultProjection } from '@/composables/SrProjections.js';
 import { srViews } from '@/composables/SrViews';
 import type { SrView } from '@/composables/SrViews';
 import { layers } from '@/composables/SrLayers';
-import { getTransform } from 'ol/proj.js';
-
+import { transform,toLonLat } from 'ol/proj.js';
+import {type Type as OlGeometryType} from 'ol/geom/Geometry';
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
@@ -18,7 +18,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     zoom: 12,
     rotation: 0,
     selectedBaseLayer: layers.value['Esri World Topo'] as SrLayer,
-    drawType: 'undefined',
+    drawType: '' as string,
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     showCurrentViewDetails: false,
@@ -36,7 +36,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       this.zoom = 12;
       this.rotation = 0;
       this.selectedBaseLayer=getDefaultBaseLayer(getDefaultProjection().name) as SrLayer,
-      this.drawType = 'undefined';
+      this.drawType = '' as string;
       this.layerCache = new Map(), // Note this is a javascript Map, not an OpenLayers Map
       this.layerGroupCache =new Map() // Note this is a javascript Map, not an OpenLayers Map
     },
@@ -66,8 +66,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
       return this.center;
     },
     getCenterLonLat(){
-      const toLonLat = getTransform(this.projection,'EPSG:4326');
-      const lonlat = toLonLat(this.center, undefined, 2);
+      //const toLonLat = olGetTransform(this.projection,'EPSG:4326');
+      const newCenter = transform(this.center, this.projection, 'EPSG:4326');
+      const lonlat = toLonLat(newCenter);
       return lonlat;
     },
     getRotation() {
@@ -97,6 +98,18 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     getShowCurrentViewDetails() {
       return this.showCurrentViewDetails;
+    },
+    getDrawType(): string {
+      return this.drawType;
+    },
+    getDrawTypeAsGeometryType(): OlGeometryType {
+      return this.drawType as OlGeometryType;
+    },
+    setDrawType(drawType: string) {
+      this.drawType = drawType;
+    },
+    getIsDrawingPoly(): boolean {
+      return this.drawType === 'Polygon';
     }
   },
 });
