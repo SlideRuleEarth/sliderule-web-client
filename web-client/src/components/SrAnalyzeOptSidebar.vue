@@ -23,6 +23,7 @@ import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore.js";
+import SrEditDesc from './SrEditDesc.vue';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -344,29 +345,29 @@ const getCnt = computed(() => {
             </div>
         </div>
         </div>
-        <div class="sr-req-description">
-            {{ atlChartFilterStore.getDescription() }}
+        <div class="sr-req-description">  
+            <SrEditDesc :reqId="Number(selectedReqId.value)"/>
         </div>
+
         <div>
-                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
-                <div class="sr-analysis-max-pnts">
-                    <SrSliderInput
-                        v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                        label="Max Num Pnts"
-                        :min="10000"
-                        :max="5000000"
-                        :defaultValue="100000"
-                        :decimalPlaces=0
-                        tooltipText="Maximum number of points to display"
-                    />
-                    <SrMenuInput 
-                        label="Color Map" 
-                        :menuOptions="getColorMapOptions()" 
-                        v-model="selectedElevationColorMap"
-                        tooltipText="Color Map for elevation plot"
-                    /> 
-                </div>
-            
+            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+            <div class="sr-analysis-max-pnts">
+                <SrSliderInput
+                    v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+                    label="Max Num Pnts"
+                    :min="10000"
+                    :max="5000000"
+                    :defaultValue="100000"
+                    :decimalPlaces=0
+                    tooltipText="Maximum number of points to display"
+                />
+                <SrMenuInput 
+                    label="Color Map" 
+                    :menuOptions="getColorMapOptions()" 
+                    v-model="selectedElevationColorMap"
+                    tooltipText="Color Map for elevation plot"
+                /> 
+            </div>  
         </div>
         <div class="sr-analyze-filters">
             <SrListbox id="spots" 
@@ -521,8 +522,7 @@ direction."
         font-size: smaller;
         border: 1px solid;
         padding: 0.25rem;
-        border-radius: var(--p-border-radius);
-        color: #888; /*  grey color */
+        color:transparent
  
     }
 
