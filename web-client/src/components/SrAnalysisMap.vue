@@ -27,7 +27,7 @@
   import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
   import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
   import { useRequestsStore } from "@/stores/requestsStore";
-  import { useAdvancedModeStore } from "@/stores/advancedModeStore";
+  import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
 
   const stringifyFunc = createStringXY(4);
   const mapContainer = ref<HTMLElement | null>(null);
@@ -306,39 +306,39 @@
     {{ computedLoadMsg }}
   </div>
   <div ref="mapContainer" class="sr-map-container" >
-    <ol-map ref="mapRef" @error="handleEvent"
+    <Map.OlMap ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
       style="height: 30vh; border-radius: 15px; overflow: hidden;"
       :controls="controls"
     >
 
-      <ol-zoom-control  />
+      <MapControls.OlZoomControl  />
       
-      <ol-mouseposition-control 
-        :coordinateFormat="stringifyFunc"
+      <MapControls.OlMousepositionControl 
+        :coordinateFormat="stringifyFunc as any"
         projection="EPSG:4326"
       />
 
-      <ol-scaleline-control />
+      <MapControls.OlScalelineControl />
       <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-      <ol-vector-layer title="Drawing Layer" name= 'Drawing Layer' zIndex="999" >
-        <ol-source-vector :projection="mapParamsStore.projection">
-          <ol-style>
-            <ol-style-stroke color="blue" :width="2"></ol-style-stroke>
-            <ol-style-fill color="rgba(255, 255, 0, 0.4)"></ol-style-fill>
-          </ol-style>
-        </ol-source-vector>
-        <ol-style>
-          <ol-style-stroke color="red" :width="2"></ol-style-stroke>
-          <ol-style-fill color="rgba(255,255,255,0.1)"></ol-style-fill>
-          <ol-style-circle :radius="7">
-            <ol-style-fill color="red"></ol-style-fill>
-          </ol-style-circle>
-        </ol-style>
-      </ol-vector-layer>
-      <ol-attribution-control :collapsible="true" :collapsed="true" />
-    </ol-map>
+      <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
+        <Sources.OlSourceVector :projection="mapParamsStore.projection">
+          <Styles.OlStyle>
+            <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+            <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+          </Styles.OlStyle>
+        </Sources.OlSourceVector>
+        <Styles.OlStyle>
+          <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+          <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+          <Styles.OlStyleCircle :radius="7">
+            <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+          </Styles.OlStyleCircle>
+        </Styles.OlStyle>
+      </Layers.OlVectorLayer>
+      <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+    </Map.OlMap>
     <div class="sr-tooltip-style" id="tooltip"></div>
   </div>
   <div class="current-view-params">

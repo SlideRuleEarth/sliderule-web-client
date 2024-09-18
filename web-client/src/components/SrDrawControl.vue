@@ -37,10 +37,9 @@ defineExpose({
   }
 });
 
-
 const handlePickedChange = (newPickedValue: string) => {
     console.log(`Picked value changed: ${newPickedValue}`);
-    mapParamsStore.drawType = newPickedValue;
+    mapParamsStore.setDrawType(newPickedValue);
     // Handle the change as needed
 };
 </script>
