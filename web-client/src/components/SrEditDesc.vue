@@ -2,12 +2,17 @@
 import { db } from '@/db/SlideRuleDb';
 import { ref, watch, onMounted } from 'vue';
 import InputText from 'primevue/inputtext';
+import FloatLabel from 'primevue/floatlabel';
 
 // Define props first
 const props = defineProps({
     reqId: {
         type: Number,
         default: 0
+    },
+    label: {
+        type: String,
+        default: 'Description'
     }
 });
 
@@ -38,12 +43,15 @@ const onEditComplete = (event: Event) => {
 </script>
 
 <template>
-    <InputText
-        v-model="descrRef"
-        class="p-inputtext p-component"
-        @keydown.enter="onEditComplete"
-        @blur="onEditComplete"
-    />
+    <FloatLabel>
+        <InputText
+            v-model="descrRef"
+            class="p-inputtext p-component"
+            @keydown.enter="onEditComplete"
+            @blur="onEditComplete"
+        />
+        <label v-if="props.label !=''">{{ label }}</label>
+    </FloatLabel>   
 </template>
 
 <style scoped>

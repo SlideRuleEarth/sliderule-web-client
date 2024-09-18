@@ -19,7 +19,7 @@
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     const atlChartFilterStore = useAtlChartFilterStore();
 
-    const showReqParms = ref(true);
+    const showReqParms = ref(false);
     const reqParms = ref<string>('');
 
     onMounted(async () => {
