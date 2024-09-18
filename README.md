@@ -3,7 +3,7 @@
 
 # Web Client for [SlideRule Earth](https://www.slideruleearth.io)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
+[![License: University of Washington](https://img.shields.io/badge/OpenSource-UniveristyofWashington-blue)](LICENSE)  
 This repository contains the web client for [SlideRule Earth](https://www.slideruleearth.io), built on top of the secure static site architecture derived from [Amazon CloudFront Secure Static Site](https://github.com/aws-samples/amazon-cloudfront-secure-static-site) v0.11.
 The UI/UX was developed at the [Savannah College of Art and Design](www.scad.edu) by the following: 
 - Gabriel Lam
@@ -72,7 +72,7 @@ We use [HashiCorp Terraform](https://www.terraform.io/) to deploy this website.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the following University of Washington Open Source License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
