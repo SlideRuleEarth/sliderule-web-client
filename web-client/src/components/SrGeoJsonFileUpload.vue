@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref,PropType } from 'vue';
 import { drawGeoJson } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
@@ -11,15 +11,19 @@ import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import type { SrRegion } from "@/sliderule/icesat2"
-
+import { Map as OLMapType} from "ol";
+import { Layer as OLlayer } from 'ol/layer';
+import { useMapStore } from '@/stores/mapStore';
 
 const props = defineProps({
     reportUploadProgress: {
         type: Boolean,
         default: false
     },
+
 });
 
+const mapStore = useMapStore();
 const toast = useToast();
 const geoJsonStore = useGeoJsonStore();
 const reqParamsStore = useReqParamsStore();
@@ -29,12 +33,16 @@ const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
 
-const customUploader = async (event: any) => {
+const customUploader = async (event: { files: File[] }) => {
     console.log('GeoJson customUploader event:', event);
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
         reader.readAsText(file);
+        reader.onerror = (e) => {
+            console.error('Error reading file:', e);
+            toast.add({ severity: 'error', summary: 'File Read Error', detail: 'Error reading the uploaded file', group: 'headless' });
+        };
         reader.onload = async (e) => {
             try {
                 if (e.target === null) {
@@ -45,37 +53,56 @@ const customUploader = async (event: any) => {
                         const geoJsonData = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(geoJsonData);
                         toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000 });
-                        drawGeoJson(geoJsonData, true, false, true); // noFill, !overlayExisting i.e. clear existing, zoomTo = true
-
-                        const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
-                            return { lon: coord[0], lat: coord[1] };
-                        });
-                        if (isClockwise(srLonLatCoordinates)) {
-                            reqParamsStore.poly = srLonLatCoordinates.reverse();
-                        } else {
-                            reqParamsStore.poly = srLonLatCoordinates;
-                        }
-                        reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
-                        const geoJson = {
-                            type: "Feature",
-                            geometry: {
-                                type: "Polygon",
-                                coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
-                            },
-                            properties: {
-                                name: "Convex Hull Polygon"
+                        const map = mapStore.getMap() as OLMapType;
+                        if(map){
+                            const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+                            if(vectorLayer && vectorLayer instanceof OLlayer){
+                                const vectorSource = vectorLayer.getSource();
+                                if(vectorSource){
+                                    drawGeoJson(vectorSource,geoJsonData, true, true); // noFill, zoomTo = true
+                                    console.log('returned from drawGeoJson');   
+                                    const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
+                                        return { lon: coord[0], lat: coord[1] };
+                                    });
+                                    if (isClockwise(srLonLatCoordinates)) {
+                                        reqParamsStore.poly = srLonLatCoordinates.reverse();
+                                    } else {
+                                        reqParamsStore.poly = srLonLatCoordinates;
+                                    }
+                                    console.log('calling convexHull');
+                                    reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+                                    const geoJson = {
+                                        type: "Feature",
+                                        geometry: {
+                                            type: "Polygon",
+                                            coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+                                        },
+                                        properties: {
+                                            name: "Convex Hull Polygon"
+                                        }
+                                    };
+                                    drawGeoJson(vectorSource,JSON.stringify(geoJson)); // with Fill and overlayExisting
+                                    reqParamsStore.poly = reqParamsStore.convexHull; 
+                                } else {
+                                    console.error('Error parsing GeoJSON:', e.target.result);
+                                    toast.add({ severity: 'error', summary: 'error with map source object', group: 'headless' });
+                                }
+                            } else {
+                                console.error('Error parsing GeoJSON:', e.target.result);
+                                toast.add({ severity: 'error', summary: 'error with layers', group: 'headless' });
                             }
-                        };
-                        drawGeoJson(JSON.stringify(geoJson)); // with Fill and overlayExisting
-                        reqParamsStore.poly = reqParamsStore.convexHull; 
+                        } else {
+                            console.error('Error parsing GeoJSON:', e.target.result);
+                            toast.add({ severity: 'error', summary: 'error with map', group: 'headless' });
+                        }
                     } else {
                         console.error('Error parsing GeoJSON:', e.target.result);
-                        toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                        toast.add({ severity: 'error', summary: 'error with filereader', group: 'headless' });
                     }
                 }
             } catch (error) {
                 console.error('Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
+                toast.add({ severity: 'error', summary: 'error: caught exception', group: 'headless' });
             }
         };
 

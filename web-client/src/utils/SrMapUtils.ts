@@ -52,76 +52,58 @@ export const clearPolyCoords = () => {
 }
 
 export function drawGeoJson(
+    vectorSource: VectorSource,
     geoJsonData: string, 
     noFill: boolean = false, 
-    overlayExisting: boolean = true, 
     zoomTo: boolean = false
 ): void {
-
+    console.log('drawGeoJson geoJsonData:',geoJsonData);
     const map = useMapStore().map
     if(!map){
         console.error('Map is not defined.');
         return;
     }
-    // Parse GeoJSON data
-    const format = new GeoJSON();
-    const features = format.readFeatures(geoJsonData, {
-        featureProjection: useMapParamsStore().projection, 
-    });
-//         const features = geoJSON.readFeatures(geoJsonData, {
-//             featureProjection: useMapParamsStore().projection, 
-//         }) as Feature<Geometry>[];
-
-    // Create a vector source and layer
-    const vectorSource = new VectorSource({
-        features: features,
-    });
-
-    let style: Style;
-
-    if (noFill) {
-        // Define a style without a fill
-        style = new Style({
-            stroke: new Stroke({
-                color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
-                width: 2,
-            }),
+    if(vectorSource){
+        // Parse GeoJSON data
+        const format = new GeoJSON();
+        const features = format.readFeatures(geoJsonData, {
+            featureProjection: useMapParamsStore().projection, 
         });
-    } else {
-        // Define a style with both fill and stroke
-        style = new Style({
-            fill: new Fill({
-                color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-            }),
-            stroke: new Stroke({
-                color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
-                width: 2,
-            }),
-        });
-    }
-    
-    const vectorLayer = new VectorLayer({
-        source: vectorSource,
-        style: style,
-    });
-    
-    // Handle overlaying the existing layers
-    if (!overlayExisting) {
-        // Clear existing vector layers
-        map.getLayers().forEach(layer => {
-        if (layer instanceof VectorLayer) {
-            map.removeLayer(layer);
+        // add features to source
+        let style: Style;
+        if (noFill) {
+            // Define a style without a fill
+            style = new Style({
+                stroke: new Stroke({
+                    color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
+                    width: 2,
+                }),
+            });
+        } else {
+            // Define a style with both fill and stroke
+            style = new Style({
+                fill: new Fill({
+                    color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+                }),
+                stroke: new Stroke({
+                    color: 'rgba(0, 0, 255, 2)', // Blue stroke with 100% opacity
+                    width: 2,
+                }),
+            });
         }
-        });
-    }
+        // add style to features
+        features.forEach(feature => {
+            feature.setStyle(style);
+        });        
+        vectorSource.addFeatures(features);
 
-    // Add the new layer to the map
-    map.addLayer(vectorLayer);
-
-    // Zoom to the extent of the new features
-    if (zoomTo) {
-        const extent = vectorSource.getExtent();
-        map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+        // Zoom to the extent of the new features
+        if (zoomTo) {
+            const extent = vectorSource.getExtent();
+            map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+        }
+    } else {
+        console.error('VectorSource is not defined.');
     }
 }
 

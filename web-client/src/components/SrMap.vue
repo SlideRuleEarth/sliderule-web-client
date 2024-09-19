@@ -19,10 +19,13 @@
   import { Layer as OLlayer } from 'ol/layer';
   import { useWmsCap } from "@/composables/useWmsCap";
   import { getDefaultProjection } from '@/composables/SrProjections';
-  import { Feature } from 'ol';
+  import { Feature as OlFeature } from 'ol';
+  import { Polygon as OlPolygon } from 'ol/geom';
   import { getCenter as getExtentCenter } from 'ol/extent.js';
   import { type SrLayer } from '@/composables/SrLayers';
   import { DragBox as DragBoxType } from 'ol/interaction';
+  import { Draw as DrawType } from 'ol/interaction';
+  import { Vector as VectorSource } from 'ol/source';
   import { fromExtent }  from 'ol/geom/Polygon';
   import { Stroke, Style } from 'ol/style';
   import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
@@ -40,7 +43,7 @@
   import SrViewControl from "./SrViewControl.vue";
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
-  import { Map, MapControls, Layers, Sources, Styles, Interactions } from "vue3-openlayers";
+  import { Map, MapControls, Layers, Sources } from "vue3-openlayers";
 
   const reqParamsStore = useReqParamsStore();
 
@@ -59,82 +62,86 @@
   const controls = ref([]);
   const toast = useToast();
   const dragBox = new DragBoxType();
+  const drawPolygon = new DrawType({
+    source: new VectorSource({wrapX: false}),
+    type: 'Polygon',
+  });
 
   const handleEvent = (event: any) => {
     console.log(event);
   };
-  const drawstart = (event: any) => {
-    console.log("drawstart:",event);
-  };
+  // const drawstart = (event: any) => {
+  //   console.log("drawstart:",event);
+  // };
 
-  const drawend = (event: any) => {
+  // const drawend = (event: any) => {
 
-    try{
-      console.log("drawend:", event);
-      // Access the feature that was drawn
-      const feature = event.feature;
-      //console.log("feature:", feature);
-      // Get the geometry of the feature
-      const geometry = feature.getGeometry();
+  //   try{
+  //     console.log("drawend:", event);
+  //     // Access the feature that was drawn
+  //     const feature = event.feature;
+  //     //console.log("feature:", feature);
+  //     // Get the geometry of the feature
+  //     const geometry = feature.getGeometry();
 
-      //console.log("geometry:", geometry);
-      // Check if the geometry is a polygon
-      if (geometry.getType() === 'Polygon') {
-        // Get the coordinates of all the rings of the polygon
-        const rings = geometry.getCoordinates(); // This retrieves all rings
-        //console.log("Original polyCoords:", rings);
+  //     //console.log("geometry:", geometry);
+  //     // Check if the geometry is a polygon
+  //     if (geometry.getType() === 'Polygon') {
+  //       // Get the coordinates of all the rings of the polygon
+  //       const rings = geometry.getCoordinates(); // This retrieves all rings
+  //       //console.log("Original polyCoords:", rings);
 
-        // Convert each ring's coordinates to lon/lat using toLonLat
-        const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-          ring.map(coord => toLonLat(coord) as Coordinate)
-        );
+  //       // Convert each ring's coordinates to lon/lat using toLonLat
+  //       const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
+  //         ring.map(coord => toLonLat(coord) as Coordinate)
+  //       );
 
-        mapStore.polyCoords = convertedRings;
-        //console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
-        const flatLonLatPairs = convertedRings.flatMap(ring => ring);
-        const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
-          lon: coord[0],
-          lat: coord[1]
-        }));
-        if(isClockwise(srLonLatCoordinates)){
-          //console.log('poly is clockwise, reversing');
-          reqParamsStore.poly = srLonLatCoordinates.reverse();
-        } else {
-          //console.log('poly is counter-clockwise');
-          reqParamsStore.poly = srLonLatCoordinates;
-        }
-        //console.log('srLonLatCoordinates:',srLonLatCoordinates);
-        reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
-        //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
-        // Create GeoJSON from reqParamsStore.convexHull
-        const geoJson = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
-          },
-          properties: {
-            name: "Convex Hull Polygon"
-          }
-        };
-        //console.log('GeoJSON:', JSON.stringify(geoJson));
-        drawGeoJson(JSON.stringify(geoJson));
-      } else {
-        console.error("Error: Geometry is not a polygon?");
-      }
+  //       mapStore.polyCoords = convertedRings;
+  //       //console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
+  //       const flatLonLatPairs = convertedRings.flatMap(ring => ring);
+  //       const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
+  //         lon: coord[0],
+  //         lat: coord[1]
+  //       }));
+  //       if(isClockwise(srLonLatCoordinates)){
+  //         //console.log('poly is clockwise, reversing');
+  //         reqParamsStore.poly = srLonLatCoordinates.reverse();
+  //       } else {
+  //         //console.log('poly is counter-clockwise');
+  //         reqParamsStore.poly = srLonLatCoordinates;
+  //       }
+  //       //console.log('srLonLatCoordinates:',srLonLatCoordinates);
+  //       reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+  //       //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+  //       // Create GeoJSON from reqParamsStore.convexHull
+  //       const geoJson = {
+  //         type: "Feature",
+  //         geometry: {
+  //           type: "Polygon",
+  //           coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+  //         },
+  //         properties: {
+  //           name: "Convex Hull Polygon"
+  //         }
+  //       };
+  //       //console.log('GeoJSON:', JSON.stringify(geoJson));
+  //       drawGeoJson(JSON.stringify(geoJson));
+  //     } else {
+  //       console.error("Error: Geometry is not a polygon?");
+  //     }
 
-      if (srDrawControlRef.value) {
-        srDrawControlRef.value.resetPicked();
-      }
-    } catch (error) {
-      console.error("Error:drawend:",error);
-    }
-  };
+  //     if (srDrawControlRef.value) {
+  //       srDrawControlRef.value.resetPicked();
+  //     }
+  //   } catch (error) {
+  //     console.error("Error:drawend:",error);
+  //   }
+  // };
 
 
   // Function to toggle the DragBox interaction.
   function disableDragBox() {
-    //console.log("disableDragBox");
+    console.log("disableDragBox");
     // Check if the DragBox interaction is added to the map.
     if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
       // If it is, remove it.
@@ -143,8 +150,9 @@
   }
 
   function enableDragBox() {
-    //console.log("enableDragBox");
+    console.log("enableDragBox");
     disableDragBox(); // reset then add
+    disableDrawPolygon();
     mapRef.value?.map.addInteraction(dragBox);
   }
 
@@ -155,7 +163,15 @@
     }),
   });
 
+  var polygonStyle = new Style({
+    stroke: new Stroke({
+      color: 'Red', // Red stroke color
+      width: 2, // Stroke width
+    }),
+  });
+
   dragBox.on('boxend', function() {
+    console.log("boxend");
     const extent = dragBox.getGeometry().getExtent();
     //console.log("Box extent in map coordinates:", extent);
 
@@ -191,7 +207,7 @@
       const vectorSource = vectorLayer.getSource();
       if(vectorSource){
         // Create a rectangle feature using the extent
-        let boxFeature = new Feature(fromExtent(extent));
+        let boxFeature = new OlFeature(fromExtent(extent));
         // Apply the style to the feature
         boxFeature.setStyle(boxStyle);    
         // Add the feature to the vector layer
@@ -214,15 +230,106 @@
     } else {
       console.error("Error:vectorLayer is null");
     }
-    if(srDrawControlRef.value){
+    disableDragBox();
+    disableDrawPolygon();
+    if (srDrawControlRef.value) {
       srDrawControlRef.value.resetPicked();
     }
-    disableDragBox();
   });
 
+  // Function to toggle the Draw interaction.
+  function disableDrawPolygon() {
+    console.log("disableDrawPolygon");
+    // Check if the Draw interaction is added to the map.
+    if (mapRef.value?.map.getInteractions().getArray().includes(drawPolygon)) {
+      // If it is, remove it.
+      mapRef.value?.map.removeInteraction(drawPolygon);
+    }
+  }
+
+  function enableDrawPolygon() {
+    disableDragBox();
+    disableDrawPolygon(); // reset then add
+    mapRef.value?.map.addInteraction(drawPolygon);
+    console.log("enableDrawPolygon");
+  }
+
+  drawPolygon.on('drawend', function(event) {
+    console.log("drawend:", event);
+
+    const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+
+    if(vectorLayer && vectorLayer instanceof OLlayer){
+      const vectorSource = vectorLayer.getSource();
+      if(vectorSource){
+        // Access the feature that was drawn
+        const feature = event.feature;
+        feature.setStyle(polygonStyle);
+        vectorSource.addFeature(feature);
+        //console.log("feature:", feature);
+        // Get the geometry of the feature
+        const geometry = feature.getGeometry() as OlPolygon;
+        //console.log("geometry:", geometry);
+        // Check if the geometry is a polygon
+        if (geometry && geometry.getType() === 'Polygon') {
+          console.log("geometry:",geometry);
+          // Get the coordinates of all the rings of the polygon
+          const rings = geometry.getCoordinates(); // This retrieves all rings
+          //console.log("Original polyCoords:", rings);
+
+          // Convert each ring's coordinates to lon/lat using toLonLat
+          const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
+            ring.map(coord => toLonLat(coord) as Coordinate)
+          );
+
+          mapStore.polyCoords = convertedRings;
+          //console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
+          const flatLonLatPairs = convertedRings.flatMap(ring => ring);
+          const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
+            lon: coord[0],
+            lat: coord[1]
+          }));
+          if(isClockwise(srLonLatCoordinates)){
+            //console.log('poly is clockwise, reversing');
+            reqParamsStore.poly = srLonLatCoordinates.reverse();
+          } else {
+            //console.log('poly is counter-clockwise');
+            reqParamsStore.poly = srLonLatCoordinates;
+          }
+          //console.log('srLonLatCoordinates:',srLonLatCoordinates);
+          reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+          //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+          // Create GeoJSON from reqParamsStore.convexHull
+          const geoJson = {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+            },
+            properties: {
+              name: "Convex Hull Polygon"
+            }
+          };
+          //console.log('GeoJSON:', JSON.stringify(geoJson));
+          drawGeoJson(vectorSource,JSON.stringify(geoJson));
+          reqParamsStore.poly = reqParamsStore.convexHull; 
+        } else {
+          console.error("Error: invalid Geometry is not a polygon?:",geometry);
+        }
+        disableDrawPolygon();
+        if (srDrawControlRef.value) {
+          srDrawControlRef.value.resetPicked();
+        }
+      } else {
+        console.error("Error:vectorSource is null");
+      }
+    } else {
+      console.error("Error:vectorLayer is null");
+    }
+  });
 
   const clearDrawingLayer = () =>{
-    //console.log("Clearing Drawing Layer");
+    console.log("Clearing Drawing Layer");
     let cleared = false;
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
     if(vectorLayer && vectorLayer instanceof OLlayer){
@@ -235,7 +342,7 @@
           vectorSource.clear();
           cleared = true;
         } else {
-            console.log("vectorSource has no features");
+            console.log("vectorSource has no features:",vectorSource);
         }
       } else {
         console.error("Error:vectorSource is null");
@@ -247,41 +354,34 @@
   }
 
   const handlePickedChanged = (newPickedValue: string) => {
-    //console.log(`Draw Picked value changed: ${newPickedValue}`);
-    let clearExisting = true;
-    if (newPickedValue === 'TrashCan'){
-      //console.log("TrashCan selected Clearing Drawing Layer");
-    } else if (newPickedValue === 'Polygon'){
-      //console.log("Drawing Polygon");
-    } else if (newPickedValue === 'Box'){
-      //console.log("Drawing Box");
-    } else {
-      // deselecting all
-      clearExisting = false;
-      //console.log("draw type:",newPickedValue);
-    }
-    if(clearExisting){
-      if(clearDrawingLayer()){
-        //toast.add({ severity: 'info', summary: 'Clear vector layer', detail: 'Deleted all drawn items', life: srToastStore.getLife()});
-      }
-      clearPolyCoords();
-      //console.log("Cleared uploaded GeoJson polyCoords");
-      
-    }
+    console.log(`handlePickedChanged: ${newPickedValue}`);
+
     if (newPickedValue === 'Box'){
       toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: 5000 });
-
+      disableDragBox();
+      disableDrawPolygon();
+      clearDrawingLayer();
+      clearPolyCoords();
       enableDragBox();
     } else if (newPickedValue === 'Polygon'){
       disableDragBox();
+      disableDrawPolygon();
+      clearDrawingLayer();
+      clearPolyCoords();
+      enableDrawPolygon();
       toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
-
     } else if (newPickedValue === 'TrashCan'){
       disableDragBox();
+      disableDrawPolygon();
+      clearDrawingLayer();
+      clearPolyCoords();
       //console.log("TrashCan selected Clearing Drawing Layer, disabling draw");
-      // if(srDrawControlRef.value){
-      //   srDrawControlRef.value.resetPicked();
-      // }
+    } else if (newPickedValue === ''){ // Reset Picked called and cleared highlight
+      disableDragBox();
+      disableDrawPolygon();
+    } else {
+      console.error("unsupported draw type:",newPickedValue);
+      toast.add({ severity: 'error', summary: 'Unsupported draw type error', detail: 'Error' });
     }
   };
 
@@ -306,29 +406,6 @@
         console.error('Map is not defined');
     }
   }
-  // function updateCurrentParms(){
-  //   const newZoom = mapRef.value?.map.getView().getZoom();
-  //   if (newZoom !== undefined) {
-  //     mapParamsStore.setZoom(newZoom);
-  //   }
-  //   const newCenter = mapRef.value?.map.getView().getCenter();
-  //   if (newCenter !== undefined) {
-  //     mapParamsStore.setCenter(newCenter);
-  //   }
-  //   const newRotation = mapRef.value?.map.getView().getRotation();
-  //   if (newRotation !== undefined) {
-  //     mapParamsStore.setRotation(newRotation);
-  //   }
-  //   const newExtent = mapRef.value?.map.getView().calculateExtent();
-  //   if (newExtent !== undefined) {
-  //     mapParamsStore.setExtent(newExtent);
-  //   }
-  // }
-
-  // function onResolutionChange(){
-  //   ////console.log("onResolutionChange:",event);
-  //   updateCurrentParms();
-  // };
 
   onMounted(() => {
     //console.log("SrMap onMounted");
@@ -634,7 +711,7 @@
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
       <Sources.OlSourceVector :projection="mapParamsStore.projection">
-        <Interactions.OlInteractionDraw
+        <!-- <Interactions.OlInteractionDraw
           v-if="mapParamsStore.getIsDrawingPoly()"
           :type="mapParamsStore.getDrawTypeAsGeometryType()"
           @drawend="drawend"
@@ -644,15 +721,15 @@
             <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
             <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
           </Styles.OlStyle>
-        </Interactions.OlInteractionDraw>
+        </Interactions.OlInteractionDraw> -->
       </Sources.OlSourceVector>
-      <Styles.OlStyle>
+      <!-- <Styles.OlStyle>
         <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
         <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
         <Styles.OlStyleCircle :radius="7">
           <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
         </Styles.OlStyleCircle>
-      </Styles.OlStyle>
+      </Styles.OlStyle> -->
     </Layers.OlVectorLayer>
   </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
@@ -683,10 +760,9 @@
 }
 
 :deep( .ol-control.ol-layerswitcher ){
-  top: 6.25rem;
+  top: 2.25rem;
   bottom: auto;
-  left: 0.0rem;
-  right: auto;
+  left: auto;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px ;
@@ -806,10 +882,10 @@
 }
 
 :deep( .ol-control.ol-wmscapabilities  ) {
-  top: 4.5rem;
+  top: 0.5rem;
   bottom: auto;
-  left: 0.5rem;
-  right: auto;
+  left: auto;
+  right: 0.75rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   padding: 0.125rem;
@@ -827,7 +903,7 @@
 }
 
 :deep(.ol-zoom){
-  top: 9.0rem; 
+  top: 6.0rem; 
   left: 0.5rem; 
   right: auto;  
   background-color: black;
@@ -837,7 +913,7 @@
 }
 
 :deep(.sr-draw-control){
-  top: 13.5rem; 
+  top: 12rem; 
   left: 0.5rem; 
   right: auto;  
   background-color: black;
@@ -869,6 +945,15 @@
   font-weight: normal;
 }
 
+:deep(.ol-zoom .ol-zoom-in):active {
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+  transform: translateY(2px); /* Slight downward movement to simulate press */
+}
+
+:deep(.ol-zoom .ol-zoom-in):hover{
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+}
+
 :deep(.ol-zoom .ol-zoom-out) {
   position: relative;
   margin: 2px;
@@ -876,6 +961,15 @@
   background-color: black;
   color: var(--ol-font-color);
   font-weight: normal;
+}
+
+:deep(.ol-zoom .ol-zoom-out):active {
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+  transform: translateY(2px); /* Slight downward movement to simulate press */
+}
+
+:deep(.ol-zoom .ol-zoom-out):hover{
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
 }
 
 :deep(.ol-zoom .ol-zoom-out):before {
