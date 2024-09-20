@@ -72,13 +72,13 @@
   };
 
   function onMoveStart(event) {
-    console.log("SrMap onMoveStart");
+    //console.log("SrMap onMoveStart");
     const map = event.map; // Get map from event
     map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
   }
 
   function onMoveEnd(event) {
-    console.log("SrMaponMoveEnd");
+    //console.log("SrMaponMoveEnd");
     const map = event.map; // Get map from event
     map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
   }
