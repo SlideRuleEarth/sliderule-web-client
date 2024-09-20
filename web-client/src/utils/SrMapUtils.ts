@@ -255,21 +255,9 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        // const deck = useDeckStore().getDeckInstance()
-        // if(deck){
-            // if(!getDeckLayerByName(SELECTED_LAYER_NAME)){
-            //     //console.log('updateSelectedLayerWithObject getDeckLayerByName:',getDeckLayerByName(SELECTED_LAYER_NAME));
-            //     const map = useMapStore().getMap() as OLMap;
-            //     if(map){
-            //         addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
-            //     }
-            // }        
-            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
-            useDeckStore().replaceOrAddHighlightLayer(layer);
-            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-        // } else {
-        //     console.error('updateSelectedLayerWithObject Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
-        // }
+        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
+        useDeckStore().replaceOrAddHighlightLayer(layer);
+        useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
     } catch (error) {
         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
     } finally {
