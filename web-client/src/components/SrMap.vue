@@ -70,78 +70,22 @@
   const handleEvent = (event: any) => {
     console.log(event);
   };
-  // const drawstart = (event: any) => {
-  //   console.log("drawstart:",event);
-  // };
 
-  // const drawend = (event: any) => {
+  function onMoveStart(event) {
+    console.log("SrMap onMoveStart");
+    const map = event.map; // Get map from event
+    map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
+  }
 
-  //   try{
-  //     console.log("drawend:", event);
-  //     // Access the feature that was drawn
-  //     const feature = event.feature;
-  //     //console.log("feature:", feature);
-  //     // Get the geometry of the feature
-  //     const geometry = feature.getGeometry();
-
-  //     //console.log("geometry:", geometry);
-  //     // Check if the geometry is a polygon
-  //     if (geometry.getType() === 'Polygon') {
-  //       // Get the coordinates of all the rings of the polygon
-  //       const rings = geometry.getCoordinates(); // This retrieves all rings
-  //       //console.log("Original polyCoords:", rings);
-
-  //       // Convert each ring's coordinates to lon/lat using toLonLat
-  //       const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-  //         ring.map(coord => toLonLat(coord) as Coordinate)
-  //       );
-
-  //       mapStore.polyCoords = convertedRings;
-  //       //console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
-  //       const flatLonLatPairs = convertedRings.flatMap(ring => ring);
-  //       const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
-  //         lon: coord[0],
-  //         lat: coord[1]
-  //       }));
-  //       if(isClockwise(srLonLatCoordinates)){
-  //         //console.log('poly is clockwise, reversing');
-  //         reqParamsStore.poly = srLonLatCoordinates.reverse();
-  //       } else {
-  //         //console.log('poly is counter-clockwise');
-  //         reqParamsStore.poly = srLonLatCoordinates;
-  //       }
-  //       //console.log('srLonLatCoordinates:',srLonLatCoordinates);
-  //       reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
-  //       //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
-  //       // Create GeoJSON from reqParamsStore.convexHull
-  //       const geoJson = {
-  //         type: "Feature",
-  //         geometry: {
-  //           type: "Polygon",
-  //           coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
-  //         },
-  //         properties: {
-  //           name: "Convex Hull Polygon"
-  //         }
-  //       };
-  //       //console.log('GeoJSON:', JSON.stringify(geoJson));
-  //       drawGeoJson(JSON.stringify(geoJson));
-  //     } else {
-  //       console.error("Error: Geometry is not a polygon?");
-  //     }
-
-  //     if (srDrawControlRef.value) {
-  //       srDrawControlRef.value.resetPicked();
-  //     }
-  //   } catch (error) {
-  //     console.error("Error:drawend:",error);
-  //   }
-  // };
-
+  function onMoveEnd(event) {
+    console.log("SrMaponMoveEnd");
+    const map = event.map; // Get map from event
+    map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
+  }
 
   // Function to toggle the DragBox interaction.
   function disableDragBox() {
-    console.log("disableDragBox");
+    console.log("SrMap disableDragBox");
     // Check if the DragBox interaction is added to the map.
     if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
       // If it is, remove it.
@@ -150,7 +94,7 @@
   }
 
   function enableDragBox() {
-    console.log("enableDragBox");
+    console.log("SrMap enableDragBox");
     disableDragBox(); // reset then add
     disableDrawPolygon();
     mapRef.value?.map.addInteraction(dragBox);
@@ -683,6 +627,8 @@
   <Map.OlMap ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
+    @movestart="onMoveStart"
+    @moveend="onMoveEnd"
     style="height: calc(100vh - 4rem); border-top-left-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >

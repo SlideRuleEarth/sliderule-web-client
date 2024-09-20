@@ -40,6 +40,19 @@
   const handleEvent = (event: any) => {
     console.log(event);
   };
+
+  function onMoveStart(event) {
+    console.log("SrAnalysisMap onMoveStart");
+    const map = event.map; // Get map from event
+    map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
+  }
+
+  function onMoveEnd(event) {
+    console.log("SrAnalysisMap onMoveEnd");
+    const map = event.map; // Get map from event
+    map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
+  }
+
   const atlChartFilterStore = useAtlChartFilterStore();
   const elevationIsLoading = computed(() => mapStore.getIsLoading());
   const loadStateStr = computed(() => {
@@ -82,30 +95,6 @@
     console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
     updateAnalysisMapView("New maxNumPntsToDisplay");
   });
-
-  // function updateCurrentParms(){
-  //   const newZoom = mapRef.value?.map.getView().getZoom();
-  //   if (newZoom !== undefined) {
-  //     mapParamsStore.setZoom(newZoom);
-  //   }
-  //   const newCenter = mapRef.value?.map.getView().getCenter();
-  //   if (newCenter !== undefined) {
-  //     mapParamsStore.setCenter(newCenter);
-  //   }
-  //   const newRotation = mapRef.value?.map.getView().getRotation();
-  //   if (newRotation !== undefined) {
-  //     mapParamsStore.setRotation(newRotation);
-  //   }
-  //   const newExtent = mapRef.value?.map.getView().calculateExtent();
-  //   if (newExtent !== undefined) {
-  //     mapParamsStore.setExtent(newExtent);
-  //   }
-  // }
-
-  // function onResolutionChange(){
-  //   //console.log("onResolutionChange:",event);
-  //   updateCurrentParms();
-  // };
 
   onMounted(() => {
     console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
@@ -309,6 +298,8 @@
     <Map.OlMap ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
+      @movestart="onMoveStart"
+      @moveend="onMoveEnd"
       style="height: 30vh; border-radius: 15px; overflow: hidden;"
       :controls="controls"
     >

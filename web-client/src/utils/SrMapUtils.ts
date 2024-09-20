@@ -3,11 +3,7 @@ import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
 import VectorSource from 'ol/source/Vector';
-import { Geometry } from 'ol/geom';
-import { Polygon } from 'ol/geom';
 import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
@@ -22,11 +18,7 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 
-import { fromLonLat } from 'ol/proj';
 
-
-// const elevationColorMapStore = useElevationColorMapStore();
-// const atl03ColorMapStore = useAtl03ColorMapStore();
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
@@ -242,6 +234,12 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
              return color;
         },
         pointSize: useDeckStore().getPointSize(),
+        onDragStart: () => {
+            document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
+          },
+        onDragEnd: () => {
+            document.body.style.cursor = 'default'; // Revert to default when dragging ends
+        },
     });
 }
 
@@ -249,23 +247,11 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        const deck = useDeckStore().getDeckInstance()
-        if(deck){
-            if(!getDeckLayerByName(SELECTED_LAYER_NAME)){
-                //console.log('updateSelectedLayerWithObject getDeckLayerByName:',getDeckLayerByName(SELECTED_LAYER_NAME));
-                const map = useMapStore().getMap() as OLMap;
-                if(map){
-                    addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);
-                }
-            }        
-            const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
-            useDeckStore().replaceOrAddHighlightLayer(layer);
-            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-        } else {
-            console.error('createHighlightLayer Error updating elevation useMapStore().deckInstance:',useDeckStore().getDeckInstance());
-        }
+        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
+        useDeckStore().replaceOrAddHighlightLayer(layer);
+        useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
     } catch (error) {
-        console.error('createHighlightLayer Error updating elevation layer:',error);
+        console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
     } finally {
         const endTime = performance.now(); // End time
         console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
@@ -302,7 +288,13 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
             if (object) {
                 clicked(object);
             }
-        }
+        },
+        onDragStart: () => {
+            document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
+          },
+        onDragEnd: () => {
+            document.body.style.cursor = 'default'; // Revert to default when dragging ends
+        },
     });
 }
 
@@ -375,17 +367,6 @@ export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
     }
 }
 
-export function removeDeckLayersFromMap(map: OLMap){
-    const current_layers = useMapStore().getDeckLayers();
-    if(current_layers.length > 0){
-        current_layers.forEach(layer => {
-            map.removeLayer(layer);
-        });
-    } else {
-        console.warn('removeDeckLayersFromMap: No current_layers to remove.');
-    }
-}
-
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     console.log('addDeckLayerToMap:',name);
     const deckLayer = createNewDeckLayer(deck,name);
@@ -399,34 +380,6 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
         //console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
         console.error('No current_layer to add.');
-    }
-}
-
-export function getDeckLayerByName(name:string): OL_Layer | undefined {
-    const deckLayers = useMapStore().getDeckLayers();
-    return deckLayers.find(layer => layer.get('name') === name);
-}
-
-export function addExistingDeckLayersToMap(map: OLMap, deck:Deck){
-    const deckLayers = useMapStore().getDeckLayers() as OL_Layer[];
-    if (deckLayers.length > 0){
-        deckLayers.forEach(layer => {
-            addDeckLayerToMap(map,deck,layer.get('name'));
-        });
-    } else {
-        console.warn('No current_layers to add.');
-    }
-}
-
-export function resetDeck(map: OLMap){
-    console.log('resetDeck')
-    const tgt = map.getViewport() as HTMLDivElement;
-    const deck = resetDeckGLInstance(tgt); 
-    if(deck){
-        removeDeckLayersFromMap(map);
-        addExistingDeckLayersToMap(map,deck);        
-    } else {
-      console.error('resetDeck(): deck Instance is null');
     }
 }
 
