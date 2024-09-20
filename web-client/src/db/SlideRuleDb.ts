@@ -689,7 +689,9 @@ export class SlideRuleDexie extends Dexie {
                 func: '', 
                 parameters: {} as NullReqParams, 
                 start_time: new Date(), 
-                end_time: new Date()
+                end_time: new Date(),
+                description: 'Click here to edit description', 
+                star: false
             });
             //console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;

@@ -369,25 +369,15 @@
     max-width: 20rem;
 }
 .sr-analysis-max-pnts {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center; 
-        margin-top: 0.5rem;
-        min-height: 30%;
-        max-height: 30%;
-        min-width: 30vw;
-        width: 100%;
-}
-
-:deep(.ol-zoom){
-  top: 0.5rem; 
-  right: 0.5rem; /* right align -- override the default */
-  left: auto;  /* Override the default positioning */
-  background-color: black;
-  border-radius: var(--p-border-radius);
-  margin: auto;
-  font-size: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; 
+    margin-top: 0.5rem;
+    min-height: 30%;
+    max-height: 30%;
+    min-width: 30vw;
+    width: 100%;
 }
 
 :deep(.ol-mouse-position) {
@@ -406,34 +396,6 @@
   bottom: 0.5rem;
   right: 2.5rem;
 }
-
-
-:deep(.ol-zoom .ol-zoom-in) {
-  margin: 2px;
-  border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
-  font-weight: normal;
-}
-
-:deep(.ol-zoom .ol-zoom-out) {
-  position: relative;
-  margin: 2px;
-  border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
-  font-weight: normal;
-}
-
-:deep(.ol-zoom .ol-zoom-out):before {
-  content: '';
-  position: absolute;
-  top: 0px;
-  left: 25%; /* Adjust this value to control where the border starts */
-  right: 25%; /* Adjust this value to control where the border ends */
-  border-top: 1px dashed rgb(200, 200, 200);
-}
-
 .sr-isLoadingEl {
   color: #e9df1c;
   padding: 0.5rem;
@@ -447,6 +409,61 @@
 .hidden-control {
     display: none;
 }
+
+:deep(.ol-zoom){
+  top: 0.5rem; 
+  right: 0.75rem; /* right align -- override the default */
+  left: auto;  /* Override the default positioning */
+  background-color: black;
+  border-radius: var(--p-border-radius);
+  margin: auto;
+  font-size: 0.75rem;
+  z-index: 99999;      /* Ensure it stays on top */
+}
+
+:deep(.ol-zoom button) {
+  width: 1.5rem; /* Smaller button size */
+  height: 1.5rem;
+}
+
+  :deep(.ol-zoom .ol-zoom-in) ,
+  :deep(.ol-zoom .ol-zoom-out) {
+  position: relative;
+  margin: 1px;
+  border-radius: var(--p-border-radius);
+  background-color: black;
+  color: var(--ol-font-color);
+  font-size: 1rem;  /* Reduce text size in buttons */
+  font-weight: normal;
+}
+
+:deep(.ol-zoom .ol-zoom-out):active {
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+  transform: translateY(2px); /* Slight downward movement to simulate press */
+}
+
+:deep(.ol-zoom .ol-zoom-out):hover{
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+}
+
+:deep(.ol-zoom .ol-zoom-in):active {
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+  transform: translateY(2px); /* Slight downward movement to simulate press */
+}
+
+:deep(.ol-zoom .ol-zoom-in):hover{
+  background-color:rgba(60, 60, 60, 1); /* Change color on hover */
+}
+
+:deep(.ol-zoom .ol-zoom-out):before {
+  content: '';
+  position: absolute;
+  top: 0px;
+  left: 25%; /* Adjust this value to control where the border starts */
+  right: 25%; /* Adjust this value to control where the border ends */
+  border-top: 1px dashed rgb(200, 200, 200);
+}
+
 
 
 </style>
