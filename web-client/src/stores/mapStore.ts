@@ -37,8 +37,7 @@ export const useMapStore = defineStore('map', {
     polygonSource:'Draw on Map' as string,
     polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
-    //theDeckLayer: null as OL_Layer | null,
-    dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
+    //dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
     isLoading: false as boolean,
     isAborting: false as boolean,
     currentReqId: 0 as number,
@@ -125,12 +124,12 @@ export const useMapStore = defineStore('map', {
           this.graticule.setMap(null);
       }
     },
-    addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
-      this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
-    },
-    getDeckLayers():  OL_Layer_Type<Source, LayerRenderer<any>>[]{
-      return this.dLayers as OL_Layer_Type<Source, LayerRenderer<any>>[];
-    },
+    // addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
+    //   this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
+    // },
+    // getDeckLayers():  OL_Layer_Type<Source, LayerRenderer<any>>[]{
+    //   return this.dLayers as OL_Layer_Type<Source, LayerRenderer<any>>[];
+    // },
     getCurrentReqId() {
       return this.currentReqId;
     },
