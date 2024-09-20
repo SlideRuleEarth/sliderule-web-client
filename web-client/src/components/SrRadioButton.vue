@@ -1,7 +1,7 @@
 <template>
   <label
     class="radio-button-label"
-    :title="tooltipText"
+    :title="computedTooltipText"
     :class="{ 'disabled': isDisabled }" 
   >
     <input
@@ -20,7 +20,7 @@
     <span v-else class="icon-svg">{{ value }}</span>
   </label>
 </template>
- 
+
 <script setup lang="ts">
 import { computed } from 'vue';
 
@@ -53,7 +53,14 @@ const isChecked = computed(() => {
   return props.modelValue === props.value;
 });
 
-const isDisabled = computed(() => props.disabled); 
+const isDisabled = computed(() => props.disabled);
+
+// Dynamically set the tooltip text
+const computedTooltipText = computed(() => {
+  return isDisabled.value
+    ? "Choose: General -> Polygon Source -> Draw on Map to enable"
+    : props.tooltipText || '';
+});
 
 const handleChange = (event: Event) => {
   if (!isDisabled.value) { 
@@ -116,4 +123,3 @@ input[type='radio'] {
   height: 1.6em;
 }
 </style>
-
