@@ -86,6 +86,7 @@ import { computed } from 'vue';
     transform: translateY(4px); /* Further downward movement when clicked */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Even smaller shadow */
     background-color: #A9A9A9; /* Darker grey to simulate pressed state */
+    transform: translateY(2px); /* Slight downward movement to simulate press */
   }
 
   /* Visually hide the radio input but keep it accessible */
