@@ -297,4 +297,12 @@ onMounted(() => {
     display: none;
     /* Hide by default for desktop */
 }
+
+/* Add this to your existing styles */
+:deep(.p-button-rounded:hover) {
+    border-width: 1px;
+    border-color: var(--p-border-color); /* Change this to the desired border color */
+    box-shadow: 0 0 10px var(--p-border-shadow); /*  Add a glow effect */
+}
+
 </style>
