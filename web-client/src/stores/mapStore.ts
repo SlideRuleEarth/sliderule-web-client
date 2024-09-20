@@ -6,12 +6,6 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
-import { type Layer as OL_Layer_Type} from 'ol/layer';
-import { Source } from 'ol/source';
-import LayerRenderer   from 'ol/renderer/Layer';
-import VectorLayer from 'ol/layer/Vector';
-
-//import { fetchAndUpdateElevationData } from '@/utils/SrMapUtils';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
 

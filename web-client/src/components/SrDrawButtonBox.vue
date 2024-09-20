@@ -1,36 +1,42 @@
 <template>
-<div class="sr-draw-button-box">
-      <SrRadioButton
-        v-if="(mapStore.polygonSource === 'Draw on Map')"
-        name="drawButtonBoxPoly"
-        class="sr-draw-poly-button"
-        v-model="picked"
-        value="Polygon"
-        :icon="getPolygonIcon"
-        aria-label="Select Polygon"
-        tooltipText="Draw a Polygon"
-      />
-      <span class="sr-button-box-divider" v-if="(mapStore.polygonSource === 'Draw on Map')"></span>
-      <SrRadioButton
-        v-if="(mapStore.polygonSource === 'Draw on Map')"
-        name="drawButtonBoxBox"
-        class="sr-draw-box-button"
-        v-model="picked"
-        value="Box"
-        :icon="getRectangleIcon"
-        aria-label="Select Rectangle"
-        tooltipText="Draw a Rectangle by clicking and dragging on the map."
-      />
-      <SrRadioButton
-        name="drawButtonBoxTrashCan"
-        class="sr-draw-trashcan-button"
-        v-model="picked"
-        value="TrashCan"
-        :icon="getTrashCanIcon"
-        aria-label="Select TrashCan"
-        tooltipText="Delete drawn features"
-      />
-</div> 
+  <div class="sr-draw-button-box">
+    <SrRadioButton
+      name="drawButtonBoxPoly"
+      class="sr-draw-poly-button"
+      v-model="picked"
+      value="Polygon"
+      :icon="getPolygonIcon"
+      aria-label="Select Polygon"
+      tooltipText="Draw a Polygon"
+      :disabled="mapStore.polygonSource !== 'Draw on Map'"
+    />
+    <span
+      class="sr-button-box-divider"
+      :insensitive="mapStore.polygonSource === 'Draw on Map'"
+    ></span>
+    <SrRadioButton
+      name="drawButtonBoxBox"
+      class="sr-draw-box-button"
+      v-model="picked"
+      value="Box"
+      :icon="getRectangleIcon"
+      aria-label="Select Rectangle"
+      tooltipText="Draw a Rectangle by clicking and dragging on the map."
+      :disabled="mapStore.polygonSource !== 'Draw on Map'"
+    />
+    <SrRadioButton
+      name="drawButtonBoxTrashCan"
+      class="sr-draw-trashcan-button"
+      v-model="picked"
+      value="TrashCan"
+      :icon="getTrashCanIcon"
+      aria-label="Select TrashCan"
+      tooltipText="Delete drawn features"
+      :disabled="mapStore.polygonSource !== 'Draw on Map'"
+    />
+  </div>
+
+
 </template>
 
 <script setup lang="ts">

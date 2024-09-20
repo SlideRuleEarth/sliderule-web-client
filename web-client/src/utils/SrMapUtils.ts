@@ -3,11 +3,7 @@ import { computed, h } from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
 import VectorSource from 'ol/source/Vector';
-import { Geometry } from 'ol/geom';
-import { Polygon } from 'ol/geom';
 import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
@@ -22,11 +18,7 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 
-import { fromLonLat } from 'ol/proj';
 
-
-// const elevationColorMapStore = useElevationColorMapStore();
-// const atl03ColorMapStore = useAtl03ColorMapStore();
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
