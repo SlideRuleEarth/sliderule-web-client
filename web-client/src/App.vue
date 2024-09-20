@@ -14,12 +14,6 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const toast = useToast();
 
-const logoClick = () => {
-  // console.log('logoClick');
-  //toast.add({ severity: 'info', summary: 'Logo', detail: 'Logo was clicked', life: srToastStore.getLife()});
-  router.push('/');
-};
-
 const toolButtonClick = () => {
   // console.log('toolButtonClick');
   //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
@@ -69,7 +63,6 @@ const aboutButtonClick = () => {
   </div>  
   <header>
     <SrAppBar 
-      @logo-click="logoClick"
       @map-button-click="toolButtonClick"
       @record-button-click="recordButtonClick"
       @analysis-button-click="analysisButtonClick"

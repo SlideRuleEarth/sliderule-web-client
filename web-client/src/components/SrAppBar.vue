@@ -37,11 +37,9 @@ const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['logo-click', 'map-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
+const emit = defineEmits(['map-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
 
-const handleLogoClick = () => {
-    emit('logo-click');
-};
+
 const handleMapButtonClick = () => {
     emit('map-button-click');
 };
@@ -153,7 +151,7 @@ onMounted(() => {
             <Button icon="pi pi-bars" class="p-button-rounded p-button-text mobile-menu-button"
                 @click="toggleMobileMenu"></Button>
             <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
-            <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" @click="handleLogoClick" class="logo" />
+            <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
             <span class = "sr-title">SlideRule</span>
             <p class="sr-version-text">Beta {{ formattedVersion }}</p>
         </div>
@@ -174,7 +172,6 @@ onMounted(() => {
             <Button icon="pi pi-info-circle" label="About" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleAboutButtonClick"></Button>
-            <!-- <Button label="Toggle Dark Mode" @click="setDarkMode()" /> -->
         </div>
     </div>
 </template>

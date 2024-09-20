@@ -77,7 +77,6 @@ import { computed } from 'vue';
   /* When the button is hovered, change background and "depress" it */
   .radio-button-label:hover {
     background-color:rgba(60, 60, 60, 1); /* Change color on hover */
-    transform: translateY(2px); /* Slight downward movement to simulate press */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reduce shadow to enhance the pressed look */
   }
 
