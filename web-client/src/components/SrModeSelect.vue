@@ -20,22 +20,19 @@ onMounted(() => {
 
 // Function to sync the mode with the current route
 function syncModeWithRoute() {
-    const isAdvancedRoute = route.path === '/advanced-user';
-    selectedMode.value = isAdvancedRoute ? 'Advanced' : 'General';
-    advancedModeStore.setAdvanced(isAdvancedRoute);
+    const isAdvancedMode = route.query.mode === 'advanced';
+    selectedMode.value = isAdvancedMode ? 'Advanced' : 'General';
+    advancedModeStore.setAdvanced(isAdvancedMode);
 }
 
 // Handle the mode change
 async function handleModeChange(mode: string) {
     if (isLoading.value) return; // Prevent multiple clicks while loading
     
-    const newRoute = mode === 'Advanced' ? '/advanced-user' : '/general-user';
+    const newQuery = { ...route.query, mode: mode === 'Advanced' ? 'advanced' : 'general' };
     
-    // Check if we're already on the correct route
-    if (route.path === newRoute) {
-        // Just update the store and UI without navigation
-        selectedMode.value = mode;
-        advancedModeStore.setAdvanced(mode === 'Advanced');
+    // Check if we're already on the correct mode
+    if (route.query.mode === newQuery.mode) {
         return;
     }
     
@@ -44,14 +41,10 @@ async function handleModeChange(mode: string) {
     advancedModeStore.setAdvanced(mode === 'Advanced');
     
     try {
-        await router.push(newRoute);
+        await router.replace({ query: newQuery });
     } catch (error) {
-        if (isNavigationFailure(error, NavigationFailureType.aborted)) {
-            toast.add({severity:'info', summary:'Save?', detail:'You have unsaved changes, discard and leave anyway?'});
-        } else {
-            console.error('Navigation error:', error);
-            toast.add({severity:'error', summary:'Error', detail:'Failed to switch mode. Please try again.'});
-        }
+        console.error('Navigation error:', error);
+        toast.add({severity:'error', summary:'Error', detail:'Failed to switch mode. Please try again.'});
     } finally {
         isLoading.value = false;
     }
