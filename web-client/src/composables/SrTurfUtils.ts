@@ -1,5 +1,6 @@
-import { featureCollection, point, convex } from '@turf/turf';
-import type { SrLatLon,SrRegion } from '@/sliderule/icesat2';
+import { featureCollection, point, convex, area } from '@turf/turf';
+import type { SrLatLon, SrRegion } from '@/sliderule/icesat2';
+import { type Polygon } from 'geojson';  // Import the correct GeoJSON type
 
 export function isClockwise(coords: SrRegion): boolean {
     let wind = 0;
@@ -22,12 +23,28 @@ export function convexHull(inputCoords: SrLatLon[]): SrLatLon[] {
         lat: coord[1],
     }));
 
-    if(isClockwise(coords)){
-      console.log('Convex hull is clockwise, reversing convex hull to make it counter-clockwise');
-      coords.reverse();
+    if (isClockwise(coords)) {
+        console.log('Convex hull is clockwise, reversing convex hull to make it counter-clockwise');
+        coords.reverse();
     } else {
-      console.log('Convex hull is counter-clockwise');
+        console.log('Convex hull is counter-clockwise');
     }
 
-  return coords;
+    return coords;
+}
+
+export function calculatePolygonArea(coords: SrLatLon[]): number {
+    // Convert coordinates to a polygon
+    const polygon: Polygon = {
+        type: 'Polygon',
+        coordinates: [coords.map(coord => [coord.lon, coord.lat])]
+    };
+
+    // Calculate the area in square meters using turf's area function
+    const areaSqMeters = area(polygon);
+
+    // Convert square meters to square kilometers
+    const areaSqKm = areaSqMeters / 1_000_000;
+    
+    return areaSqKm;
 }

@@ -8,16 +8,20 @@ import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OL_Layer} from 'ol/layer';
 import type OLMap from "ol/Map.js";
+import { unByKey } from 'ol/Observable';
+import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
 import { useMapParamsStore } from '@/stores/mapParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
-
+import { useSrToastStore } from '@/stores/srToastStore';
+import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -47,10 +51,11 @@ export function drawGeoJson(
     vectorSource: VectorSource,
     geoJsonData: string, 
     noFill: boolean = false, 
-    zoomTo: boolean = false
+    zoomTo: boolean = false,
+    tag: string = '', 
 ): void {
     console.log('drawGeoJson geoJsonData:',geoJsonData);
-    const map = useMapStore().map
+    const map = useMapStore().map;
     if(!map){
         console.error('Map is not defined.');
         return;
@@ -78,15 +83,17 @@ export function drawGeoJson(
                     color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
                 }),
                 stroke: new Stroke({
-                    color: 'rgba(0, 0, 255, 2)', // Blue stroke with 100% opacity
+                    color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
                     width: 2,
                 }),
             });
         }
-        // add style to features
+        // add style and tag to features
         features.forEach(feature => {
             feature.setStyle(style);
-        });        
+            feature.set('tag', tag);  // Add the tag to the feature's properties
+        });
+        
         vectorSource.addFeatures(features);
 
         // Zoom to the extent of the new features
@@ -96,6 +103,52 @@ export function drawGeoJson(
         }
     } else {
         console.error('VectorSource is not defined.');
+    }
+}
+
+export function enableTagDisplay(map: OLMap, vectorSource: VectorSource): void {
+    const tooltipEl = document.getElementById('tooltip');
+
+    // Listen for pointer move (hover) events
+    useMapStore().pointerMoveListenerKey = map.on('pointermove', function (evt) {
+        //console.log('pointermove');
+        const pixel = map.getEventPixel(evt.originalEvent);
+        const features = map.getFeaturesAtPixel(pixel);
+        
+        // Check if any feature is under the cursor
+        if (features && features.length > 0) {
+            const feature = features[0];
+            const tag = feature.get('tag');  // Retrieve the tag
+
+            if (tag && tooltipEl) {
+                // Display the tag in the tooltip
+                tooltipEl.innerHTML = `Area: ${tag}`;
+                tooltipEl.style.display = 'block';
+                tooltipEl.style.left = `${evt.originalEvent.clientX}px`;
+                tooltipEl.style.top = `${evt.originalEvent.clientY - 15}px`; // Offset the tooltip above the cursor
+            }
+        } else {
+            // Hide the tooltip if no feature is found
+            if (tooltipEl) {
+                tooltipEl.style.display = 'none';
+            }
+        }
+    });
+
+    // Hide tooltip when the mouse leaves the map
+    map.getViewport().addEventListener('mouseout', function () {
+        //console.log('mouseout');
+        if (tooltipEl) {
+            tooltipEl.style.display = 'none';
+        }
+    });
+}
+
+export function disableTagDisplay(): void {
+    const pointerMoveListenerKey = useMapStore().getPointerMoveListenerKey();
+    if (pointerMoveListenerKey !== null) {  
+        unByKey(pointerMoveListenerKey as EventsKey);  // Remove the pointermove event listener
+        useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
 
@@ -235,9 +288,11 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         },
         pointSize: useDeckStore().getPointSize(),
         onDragStart: () => {
+            console.log('onDragStart');
             document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
           },
         onDragEnd: () => {
+            console.log('onDragEnd');
             document.body.style.cursor = 'default'; // Revert to default when dragging ends
         },
     });
@@ -294,9 +349,11 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
             }
         },
         onDragStart: () => {
+            console.log('onDragStart');
             document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
           },
         onDragEnd: () => {
+            console.log('onDragEnd');
             document.body.style.cursor = 'default'; // Revert to default when dragging ends
         },
     });
@@ -411,4 +468,34 @@ export function swapLongLatToLatLong(coordString: string): string {
 
     // Return the swapped coordinates as a string
     return `${lat.toFixed(4)}, ${long.toFixed(4)}`;
+}
+
+export function checkAreaOfConvexHullWarning(): boolean {
+    const limit = useReqParamsStore().getAreaWarningThreshold()
+    console.log('checkAreaOfConvexHullWarning area:',limit);
+    if(useReqParamsStore().getAreaOfConvexHull() > limit){
+        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useReqParamsStore().getAreaWarningThreshold()} km²).`;
+        if(!useAdvancedModeStore().getAdvanced()){
+            useSrToastStore().warn('Warn',msg);
+        } else {
+            console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+        }
+        return false;
+    }
+    return true;
+}
+
+export function checkAreaOfConvexHullError(): boolean {
+    const limit = useReqParamsStore().getAreaErrorThreshold()
+    console.log('checkAreaOfConvexHullError area:',limit);
+    if(useReqParamsStore().getAreaOfConvexHull() > limit){
+        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
+        if(!useAdvancedModeStore().getAdvanced()){
+            useSrToastStore().error('Error',msg);
+        } else {
+            console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+        }
+        return false;
+    }
+    return true;
 }
