@@ -7,6 +7,7 @@ export const useDeckStore = defineStore('deck', {
         deckInstance: null as any,
         pointCloudLayers: [] as any[],
         pointSize: 3,
+        isDragging: false,
     }),
     actions: {
         setDeckInstance(instance:Deck) {
@@ -75,6 +76,12 @@ export const useDeckStore = defineStore('deck', {
         },
         getPointSize() {
             return this.pointSize;
+        },
+        setIsDragging(isDragging: boolean) {
+            this.isDragging = isDragging;
+        },
+        getIsDragging(): boolean {
+            return this.isDragging;
         },
     }
 });

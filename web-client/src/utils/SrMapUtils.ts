@@ -276,8 +276,12 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         pointSize: 3,
         pickable: true, // Enable picking
+        getCursor: () => 'default',
+        parameters: {
+            depthTest: false
+        },
         onHover: ({ object, x, y }) => {
-            if (object) {
+            if (object && !useDeckStore().isDragging) {
                 const tooltip = formatObject(object);
                 showTooltip({ x, y, tooltip });
             } else {
@@ -357,7 +361,8 @@ export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
             controller: false,
             parent: tgt,
             style: {pointerEvents: 'none', zIndex: '1'},
-            layers: []
+            layers: [],
+            getCursor: () => 'default'
         });
         useDeckStore().setDeckInstance(deck);
         return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
