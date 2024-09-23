@@ -27,11 +27,11 @@
   import { Draw as DrawType } from 'ol/interaction';
   import { Vector as VectorSource } from 'ol/source';
   import { fromExtent }  from 'ol/geom/Polygon';
-  import { Stroke, Style } from 'ol/style';
-  import { clearPolyCoords, drawGeoJson } from "@/utils/SrMapUtils";
+  import { Stroke, Style, Fill } from 'ol/style';
+  import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay } from "@/utils/SrMapUtils";
   import { onActivated } from "vue";
   import { onDeactivated } from "vue";
-  import { initDeck } from "@/utils/SrMapUtils";
+  import { initDeck,checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
   import { toLonLat } from 'ol/proj';
   import { useReqParamsStore } from "@/stores/reqParamsStore";
   import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -105,6 +105,9 @@
       color: 'red', // Red stroke color
       width: 2, // Stroke width
     }),
+    fill: new Fill({
+        color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+    }),
   });
 
   var polygonStyle = new Style({
@@ -142,7 +145,8 @@
     ];
     reqParamsStore.poly = poly;
     //console.log("Poly:", poly);
-    reqParamsStore.convexHull = convexHull(poly);
+    reqParamsStore.setConvexHull(convexHull(poly));
+    const tag = reqParamsStore.getFormattedAreaOfConvexHull();
     //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
 
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -153,7 +157,9 @@
         // Create a rectangle feature using the extent
         let boxFeature = new OlFeature(fromExtent(extent));
         // Apply the style to the feature
-        boxFeature.setStyle(boxStyle);    
+        boxFeature.setStyle(boxStyle); 
+        console.log("boxFeature tag:",tag);
+        boxFeature.set('tag',tag);   
         // Add the feature to the vector layer
         vectorSource.addFeature(boxFeature);
         //console.log("boxFeature:",boxFeature);
@@ -164,7 +170,13 @@
           //console.log("geometry.getType():",geometry.getType());
           // Get the coordinates of the polygon shaped as a rectangle
           mapStore.polyCoords = geometry.getCoordinates();
+          if(mapRef.value?.map){
+            enableTagDisplay(mapRef.value?.map,vectorSource);
+          } else {
+            console.error("Error:map is null");
+          }
           //console.log(`polyCoords:${mapStore.polyCoords}`);
+          checkAreaOfConvexHullWarning(); 
         } else {
           console.error("Error:geometry is null");
         }
@@ -241,22 +253,34 @@
             reqParamsStore.poly = srLonLatCoordinates;
           }
           //console.log('srLonLatCoordinates:',srLonLatCoordinates);
-          reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+          reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates)); // this also poplates the area
           //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
           // Create GeoJSON from reqParamsStore.convexHull
-          const geoJson = {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
-            },
-            properties: {
-              name: "Convex Hull Polygon"
+          const thisConvexHull = reqParamsStore.getConvexHull();
+          const tag = reqParamsStore.getFormattedAreaOfConvexHull();
+          if(thisConvexHull){
+            const geoJson = {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [thisConvexHull.map(coord => [coord.lon, coord.lat])]
+              },
+              properties: {
+                name: "Convex Hull Polygon"
+              }
+            };
+            if(mapRef.value?.map){
+              enableTagDisplay(mapRef.value?.map,vectorSource);
+            } else {
+              console.error("Error:map is null");
             }
-          };
-          //console.log('GeoJSON:', JSON.stringify(geoJson));
-          drawGeoJson(vectorSource,JSON.stringify(geoJson));
-          reqParamsStore.poly = reqParamsStore.convexHull; 
+            //console.log('GeoJSON:', JSON.stringify(geoJson));
+            drawGeoJson(vectorSource, JSON.stringify(geoJson), false, false, tag );
+            reqParamsStore.poly = thisConvexHull;
+            checkAreaOfConvexHullWarning(); 
+          } else {
+            console.error("Error:convexHull is null");
+          }
         } else {
           console.error("Error: invalid Geometry is not a polygon?:",geometry);
         }
@@ -274,6 +298,7 @@
 
   const clearDrawingLayer = () =>{
     console.log("Clearing Drawing Layer");
+    disableTagDisplay();
     let cleared = false;
     const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
     if(vectorLayer && vectorLayer instanceof OLlayer){
@@ -657,25 +682,7 @@
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer"/>
     <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
       <Sources.OlSourceVector :projection="mapParamsStore.projection">
-        <!-- <Interactions.OlInteractionDraw
-          v-if="mapParamsStore.getIsDrawingPoly()"
-          :type="mapParamsStore.getDrawTypeAsGeometryType()"
-          @drawend="drawend"
-          @drawstart="drawstart"
-        >
-          <Styles.OlStyle>
-            <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-            <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
-          </Styles.OlStyle>
-        </Interactions.OlInteractionDraw> -->
       </Sources.OlSourceVector>
-      <!-- <Styles.OlStyle>
-        <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-        <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-        <Styles.OlStyleCircle :radius="7">
-          <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-        </Styles.OlStyleCircle>
-      </Styles.OlStyle> -->
     </Layers.OlVectorLayer>
   </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>

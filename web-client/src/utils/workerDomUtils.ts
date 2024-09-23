@@ -1,5 +1,6 @@
 import { type SrRequestRecord } from '@/db/SlideRuleDb';
 import { updateElevationForReqId } from '@/utils/SrParquetUtils';
+import { checkAreaOfConvexHullError } from './SrMapUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
@@ -243,6 +244,11 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked() {
+
+    if(!checkAreaOfConvexHullError()){
+        return;
+    }
+
     mapStore.isLoading = true;
     console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);

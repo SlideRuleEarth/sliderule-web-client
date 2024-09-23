@@ -6,6 +6,8 @@ import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/slid
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
+import { calculatePolygonArea } from "@/composables/SrTurfUtils";
+
 export interface NullReqParams {
   null: null;
 }
@@ -36,6 +38,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         ignorePolygon: false,
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
+        areaOfConvexHull: 0.0 as number, // in square kilometers
+        areaWarningThreshold: 1000.0 as number, // in square kilometers
+        areaErrorThreshold: 10000.0 as number, // in square kilometers
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks: [] as SrListNumberItem[],
@@ -584,6 +589,34 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setGediAPI(value:string) {
           this.gediSelectedAPI = value;
+        },
+        setConvexHull(convexHull: SrRegion) {
+          this.convexHull = convexHull;
+          this.areaOfConvexHull = calculatePolygonArea(convexHull);
+        },
+        getConvexHull() {
+          return this.convexHull;
+        },
+        getAreaOfConvexHull() : number {
+          return this.areaOfConvexHull;
+        },
+        getFormattedAreaOfConvexHull() {
+          return this.areaOfConvexHull.toFixed(2).toString()+" km²";
+        },
+        setAreaOfConvexHull(value:number) { 
+          this.areaOfConvexHull = value;
+        },
+        getAreaWarningThreshold() {
+          return this.areaWarningThreshold;
+        },
+        setAreaWarningThreshold(value:number) { 
+          this.areaWarningThreshold = value;
+        },
+        getAreaErrorThreshold() {
+          return this.areaErrorThreshold;
+        },
+        setAreaErrorThreshold(value:number) { 
+          this.areaErrorThreshold = value;
         },
     },
 })

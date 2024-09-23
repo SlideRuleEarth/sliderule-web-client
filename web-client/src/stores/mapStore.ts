@@ -6,6 +6,7 @@ import { usePermalink } from '@/composables/usePermalink';
 import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
+import type { EventsKey } from 'ol/events';
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -39,6 +40,7 @@ export const useMapStore = defineStore('map', {
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
     totalRows: 0 as number,
     currentRows: 0 as number,
+    pointerMoveListenerKey: null as EventsKey | null,
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -168,6 +170,12 @@ export const useMapStore = defineStore('map', {
     },
     setPolySource(source: string) {
       this.polygonSource = source;
+    },
+    getPointerMoveListenerKey() {
+      return this.pointerMoveListenerKey;
+    },
+    setPointerMoveListenerKey(key: EventsKey|null) {
+      this.pointerMoveListenerKey = key;
     },
   },
 });
