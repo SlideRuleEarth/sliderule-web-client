@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-
+import { ref, computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import { useReqParamsStore } from '../stores/reqParamsStore';
-// Import any other components or utilities you need
+import Listbox from 'primevue/listbox';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+
 const reqParamsStore = useReqParamsStore();
 const newResource = ref('ATL03_20230529000937_10481906_006_02.h5');
 
+// Computed property to track resources from the store
+const resources = computed(() => reqParamsStore.resources);
+
 const addResource = () => {
-  reqParamsStore.addResource(newResource.value);
-  newResource.value = ''; // Clear the input after adding
+  if (newResource.value) {
+    reqParamsStore.addResource(newResource.value);
+    newResource.value = ''; // Clear the input after adding
+  }
 };
 
 const removeResource = (index: number) => {
@@ -18,71 +23,110 @@ const removeResource = (index: number) => {
 };
 
 </script>
+
 <template>
-  <div class="sr-new_resource-container">
-    <h3 class="sr-resources-header">Resources</h3>
+  <div class="sr-resources-panel">
+    <div class="sr-resources-header">
+      <h3>Resources</h3>
+    </div>
     <div class="sr-add-resource">
       <InputText v-model="newResource" placeholder="Add a new resource" />
-      <Button label="Add" @click="addResource" class="sr-add-resource-button" />
+      <Button 
+        label="Add" 
+        @click="addResource" 
+        class="sr-add-resource-button" 
+        :disabled="!newResource"  
+      />
     </div>
-    <div class="sr-resources-container">
-      <ul class="sr-resources-ul">
-        <li v-for="(resource, index) in reqParamsStore.resources" :key="index" class="sr-resource-list-item" >
+  </div>
+  <div class="sr-resources-container">
+    <Listbox 
+      class="sr-resources-ul" 
+      :options="resources"  
+      optionLabel="label"
+    >
+      <template #option="{ option, index }">
+        <li class="sr-resource-list-item">
           <div class="sr-resource-item">
-            {{ resource }}
-            <Button icon="pi pi-times" @click="reqParamsStore.removeResource(index)" size="small" class="sr-remove-resource-button" />
+            <Button
+              icon="pi pi-times"
+              @click="removeResource(index)"
+              class="sr-remove-resource-button"
+            />
+            <div class="sr-resource-text">
+              <span>{{ option }}</span>
+            </div>
           </div>
         </li>
-      </ul>
-    </div>
+      </template>
+    </Listbox>
   </div>
 
 </template>
 
 <style scoped>
 
-.sr-add-resource {
-  display: flex; /* Flex layout */
-  align-items: center; /* Center vertically */
-  margin: 1rem; /* Space below the input */
-  height: 2rem;
-}
-.sr-add-resource-button {
-  margin-left: 0.5rem; /* Space between input and button */
-  height: 2rem; /* Button height */
-}
-.sr-remove-resource-button {
-  height: 1.5rem; /* Button height */
-  width: 1.5rem; /* Button width */
-  padding: 0; /* Remove default padding */
-  margin-left: 0.5rem; /* Space between text and button */
-}
-.sr-resources-ul {
-  padding: 0; /* Remove default padding */
-}
-.sr-resource-list-item {
-  list-style-type: none; /* Remove default list styling */
-}
-.sr-resource-item {
-  display: flex; /* Flex layout */
-  justify-content: space-between; /* Space between text and button */
-  align-items: center; /* Center vertically */
-  margin-bottom: 0.5rem; /* Space below each item */
-  height: 2rem;
-}
-.sr-new_resource-container {
-  display: flex; /* Flex layout */
-  flex-direction: column; /* Stack children vertically */
-  align-items: center; /* Center vertically */
+.sr-resources-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-top: 0.5rem;
-  border: 1px solid var(--p-primary-300); /* Border around the container */
-  border-radius: var(--p-border-radius); /* Rounded corners */
 }
-.sr-resources-container {
-  border-radius: var(--p-border-radius); /* Rounded corners */
-}
+
 .sr-resources-header {
-  color: var(--p-text-color); /* Text color */
+  align-items: center;
+  justify-content: center;
+  color: var(--p-text-color);
+}
+
+.sr-add-resource {
+  display: flex;
+  align-items: center;
+  margin: 0.25rem;
+}
+
+.sr-add-resource-button {
+  margin-left: 0.5rem;
+  height: 2rem;
+}
+
+.sr-resource-text {
+  margin-left: 0.5rem;
+}
+
+:deep(.sr-remove-resource-button) {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.sr-resources-container {
+  display: block;
+  margin:0.25rem;
+}
+
+:deep(.p-listbox .p-component .sr-resources-ul) {
+  padding: 0;
+}
+
+:deep(.p-listbox-option) {
+  overflow-x: auto;
+}
+
+.sr-resource-list-item {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+} 
+
+.sr-resource-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  height: 2rem;
+  overflow-y: auto;
 }
 
 </style>
