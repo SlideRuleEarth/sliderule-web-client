@@ -95,8 +95,8 @@ export type OutputFormat = {
 export interface AtlReqParams {
     asset: string;
     cnf: number[];
-    ats: number;
-    cnt: number;
+    ats?: number;
+    cnt?: number;
     len: number;
     res: number;
     maxi: number;
