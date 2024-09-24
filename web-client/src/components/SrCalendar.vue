@@ -1,18 +1,26 @@
 <template>
     <div class="sr-calendar">
         <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <DatePicker v-model="dateDisplay" showIcon showTime hourFormat="24" :showOnFocus="false" :inputId="inputId" dateFormat="yy-m-dT"/>
+        <DatePicker v-model="innerModelValue" showIcon showTime showSeconds hourFormat="24" timeSeperator=':' :showOnFocus="false" :inputId="inputId" dateFormat="yy-mm-ddT" :disabled="insensitive"/>
     </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
+import { computed } from 'vue';
 import DatePicker from 'primevue/datepicker';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 const props = defineProps({
     label: {type:String,
         default: 'undefined'
+    },
+    getValue: {
+        type: Function,
+        required: true
+    },
+    setValue: {
+        type: Function,
+        required: true
     },
     insensitive: {
         type: Boolean,
@@ -31,7 +39,18 @@ const props = defineProps({
     }
 });
 
-const dateDisplay = ref();
+const innerModelValue = computed({
+        get(): Date {
+            const value = props.getValue();
+            console.log('SrCalendar:', props.label, 'get:', value, typeof value);
+            console.log(`SrCalendar: ${value}`);
+            return value; // calling the getter function
+        },
+        set(value: Date) {
+            console.log('SrCalendar:', props.label, 'set:', value, typeof value);
+            props.setValue(value); // calling the setter function
+        }
+    });
 
 
 const emit = defineEmits(['update:modelValue']);
