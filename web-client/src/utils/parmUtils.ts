@@ -144,3 +144,20 @@ export function getScOrientFromSpotGt(spot:number,gt:number) {
   //console.log('getScOrientFromSpotGt: spot:', spot, 'gt:', gt, 'scOrient:', scOrient);
   return scOrient;
 }
+
+export function convertTimeFormat(timeObj: Date, fmt: string): string {
+  const padZero = (num: number): string => num < 10 ? `0${num}` : String(num);
+
+  const replacements: Record<string, string> = {
+      '%Y': String(timeObj.getUTCFullYear()),              // Full year (e.g., 2024)
+      '%m': padZero(timeObj.getUTCMonth() + 1),            // Month (01-12)
+      '%d': padZero(timeObj.getUTCDate()),                 // Day of the month (01-31)
+      '%H': padZero(timeObj.getUTCHours()),                // Hours (00-23)
+      '%M': padZero(timeObj.getUTCMinutes()),              // Minutes (00-59)
+      '%S': padZero(timeObj.getUTCSeconds()),              // Seconds (00-59)
+      'Z': 'Z'                                             // Append 'Z' for UTC time
+  };
+
+  // Replace the placeholders in the format string with actual values
+  return fmt.replace(/%[YmdHMS]|Z/g, match => replacements[match]);
+}

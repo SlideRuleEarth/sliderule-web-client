@@ -7,6 +7,7 @@ import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
+import { convertTimeFormat } from '@/utils/parmUtils';
 
 export interface NullReqParams {
   null: null;
@@ -53,8 +54,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         cycleValue: 1,
         useRegion: false,
         regionValue: 1,
-        t0Value: '2020-01-01',
-        t1Value: '2020-01-01',
+        useTime: false,
+        t0Value: new Date,
+        t1Value: new Date,
         totalTimeoutValue: 600,
         useReqTimeout: false,
         reqTimeoutValue: 600,
@@ -287,12 +289,27 @@ export const useReqParamsStore = defineStore('reqParams', {
             }
           }
         
-          if (this.enableGranuleSelection) {
+          if (this.getEnableGranuleSelection()) {
             if (this.tracks.length > 0) {
               req.tracks = this.tracks.map(track => track.value);
             }
             if (this.beams.length > 0) {
               req.beams = this.beams.map(beam => beam.value);
+            }
+            if(this.getUseRgt()){
+              req.rgt = this.getRgt();
+            }
+            if(this.getUseCycle()){
+              req.cycle = this.getCycle();
+            }
+            if(this.getUseRegion()){
+              req.region = this.getRegion();
+            }
+            if(this.getT0()){
+              req.t0 = convertTimeFormat(this.getT0(),'%Y-%m-%dT%H:%M:%SZ');
+            }
+            if(this.getT1()){
+              req.t1 = convertTimeFormat(this.getT1(),'%Y-%m-%dT%H:%M:%SZ');
             }
           }
           if(this.enableAtl03Confidence) {
@@ -366,6 +383,12 @@ export const useReqParamsStore = defineStore('reqParams', {
           }
           return baseParams;
         },
+        getEnableGranuleSelection() {
+          return this.enableGranuleSelection;
+        },
+        setEnableGranuleSelection(enableGranuleSelection:boolean) {
+          this.enableGranuleSelection = enableGranuleSelection;
+        },
         getUseRgt() {
             return this.useRGT;
         },
@@ -402,16 +425,16 @@ export const useReqParamsStore = defineStore('reqParams', {
         getRegion() {
           return this.regionValue;
         },
-        setT0(t0Value:string) {
+        setT0(t0Value:Date) {
           this.t0Value = t0Value;
         },
-        getT0() {
+        getT0(): Date {
           return this.t0Value;
         },
-        setT1(t1Value:string) {
+        setT1(t1Value:Date) {
           this.t1Value = t1Value;
         },
-        getT1() {
+        getT1(): Date {
           return this.t1Value;
         },
         setBeams(beams: SrListNumberItem[]) {

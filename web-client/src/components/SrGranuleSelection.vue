@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import Fieldset from 'primevue/fieldset';
 import SrCalendar from './SrCalendar.vue';
-import SrSliderInput from './SrSliderInput.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrListbox from './SrListbox.vue';
@@ -38,6 +38,8 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
         <div class="sr-granule-selection-header">
             <SrCheckbox
                 v-model="reqParamsStore.enableGranuleSelection"
+                :getCheckboxValue="reqParamsStore.getEnableGranuleSelection"
+                :setCheckboxValue="reqParamsStore.setEnableGranuleSelection"
                 label="Granule Selection"
                 labelFontSize="large"
                 tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed." 
@@ -82,9 +84,13 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
             tooltipText="RGT is the reference ground track: defaults to all if not specified"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
         />
-        <SrSliderInput
+        <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.cycleValue"
+            :getCheckboxValue="reqParamsStore.getUseCycle"
+            :setCheckboxValue="reqParamsStore.setUseCycle"
+            :getValue="reqParamsStore.getCycle"
+            :setValue="reqParamsStore.setCycle"
             label="Cycle"
             :min="1"
             :max="100" 
@@ -92,9 +98,13 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
             tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
         />
-        <SrSliderInput
+        <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
             v-model="reqParamsStore.regionValue"
+            :getCheckboxValue="reqParamsStore.getUseRegion"
+            :setCheckboxValue="reqParamsStore.setUseRegion"
+            :getValue="reqParamsStore.getRegion"
+            :setValue="reqParamsStore.setRegion"
             label="Atl03 Granule Region"
             :min="0"
             :max="14" 
@@ -102,21 +112,26 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
             tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
             tooltipUrl="https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf"
         />
-        <SrCalendar
-            :insensitive="!reqParamsStore.enableGranuleSelection"
-            v-model="reqParamsStore.t0Value"
-            label="T0"
-            tooltipText="Start Time for filtering granules"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-        />
-        <SrCalendar
-            :insensitive="!reqParamsStore.enableGranuleSelection"
-            v-model="reqParamsStore.t1Value"
-            label="T1"
-            tooltipText="End Time for filtering granules"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
-        />
-
+        <Fieldset legend="Time Range" class="sr-time-range-content" :toggleable="true" :collapsed="true">
+            <SrCalendar
+                :insensitive="!reqParamsStore.enableGranuleSelection"
+                v-model="reqParamsStore.t0Value"
+                label="T0"
+                :getValue="reqParamsStore.getT0"
+                :setValue="reqParamsStore.setT0"
+                tooltipText="Start Time for filtering granules"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            />
+            <SrCalendar
+                :insensitive="!reqParamsStore.enableGranuleSelection"
+                v-model="reqParamsStore.t1Value"
+                label="T1"
+                :getValue="reqParamsStore.getT1"
+                :setValue="reqParamsStore.setT1"
+                tooltipText="End Time for filtering granules"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            />
+        </Fieldset>
     </div>
 
 </template>
