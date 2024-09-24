@@ -11,7 +11,7 @@ const reqParamsStore = useReqParamsStore();
     <div class="sr-surface-elevation-container">
         <div class="sr-surface-elevation-header">
             <SrLabelInfoIconButton 
-                label="Surface Elevation"
+                label="Surface Elevation Algorithm"
                 labelFontSize="large" 
                 tooltipText="The surface elevation of the selected photons"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"

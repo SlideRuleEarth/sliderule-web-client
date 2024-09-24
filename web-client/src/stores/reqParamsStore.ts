@@ -16,10 +16,11 @@ export interface NullReqParams {
 export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
 
 interface YapcConfig {
+  version: number;
   score: number;
   knn?: number; // Optional property
-  window_height?: number; // Optional property
-  window_width?: number; // Optional property
+  win_h?: number; // Optional property
+  win_x?: number; // Optional property
 }
 
 export const useReqParamsStore = defineStore('reqParams', {
@@ -203,6 +204,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           {name:"sa-east-1", value:"sa-east-1"},
         ],
         enableYAPC: false,
+        useYAPCScore: false,
         YAPCScore: 0.0,
         usesYAPCKnn: false,
         YAPCKnn: 0,
@@ -211,13 +213,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         usesYAPCWindowWidth: false,
         YAPCWindowWidth: 0.0,
         usesYAPCVersion: false,
-        YAPCVersion: {name:"version1", value:"version1"},
-        YAPCVersionOptions: [
-          {name:"version1", value:"version1"},
-          {name:"version2", value:"version2"},
-          {name:"version3", value:"version3"},
-        ],
-
+        YAPCVersion: '0' as string,
+        YAPCVersionOptions: ['0','1','2','3'],
         resources: [] as string[],
         target_numAtl06Recs: 0,
         target_numAtl06pRecs: 0,
@@ -270,8 +267,6 @@ export const useReqParamsStore = defineStore('reqParams', {
             asset: this.asset,
             srt: this.getSrt(),
             cnf: this.signalConfidenceNumber,
-            ats: this.alongTrackSpread,  
-            cnt: this.minimumPhotonCount,
             H_min_win: this.minWindowHeight, 
             len: this.lengthValue,        
             res: this.stepValue, 
@@ -280,6 +275,13 @@ export const useReqParamsStore = defineStore('reqParams', {
             poly: this.poly,
           };
         
+          if(this.passInvalid) {
+            req.pass_invalid = true;
+          } else {
+            req.ats = this.alongTrackSpread;  
+            req.cnt = this.minimumPhotonCount;
+          }
+
           if (this.fileOutput) {
             const path = getOutputPath();
             const output = getOutputFormat(path);
@@ -321,13 +323,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           }
           if(this.enableYAPC) {
             const yapc:YapcConfig = {
-              score: this.YAPCScore,
+              version: Number(this.getYAPCVersion()),
+              score: this.getYAPCScore(),
             };
             if(this.usesYAPCKnn) {
               yapc.knn = this.YAPCKnn
             }
             if(this.usesYAPCWindowHeight) {
-              yapc.window_height= this.YAPCWindowHeight
+              yapc.win_h= this.YAPCWindowHeight
             }
             req.yapc = yapc;
           }
@@ -476,6 +479,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         getUseChecksum() {
           return this.useChecksum;
         },
+        getPassInvalid() {
+          return this.passInvalid;
+        },
+        setPassInvalid(passInvalid:boolean) {
+          this.passInvalid = passInvalid;
+        },
         setAsset(asset:string) {
           this.asset = asset;
         },
@@ -543,6 +552,18 @@ export const useReqParamsStore = defineStore('reqParams', {
         useGlobalTimeout(){
           return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
         },
+        getYAPCScore() {
+          return this.YAPCScore;
+        },
+        setYAPCScore(value:number) {
+          this.YAPCScore = value;
+        },
+        getUseYAPCScore() {
+          return this.useYAPCScore;
+        },
+        setUseYAPCScore(value:boolean) {
+          this.useYAPCScore = value;
+        },
         getUseYAPCKnn() {
           return this.usesYAPCKnn;
         },
@@ -579,10 +600,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         setYAPCWindowWidth(value:number) {
           this.YAPCWindowWidth = value;
         },
-        getYAPCVersion() {
+        getYAPCVersion():string {
           return this.YAPCVersion;
         },
-        setYAPCVersion(value:{name:string, value:string}) {
+        setYAPCVersion(value:string) {
           this.YAPCVersion = value;
         },
         getMissionValue() : string {
