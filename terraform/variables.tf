@@ -5,7 +5,7 @@ variable "domainApex" {
 }
 
 variable "domainName" {
-    description = "full domain name of client site to use with extension e.g. testsliderule.client.org or just testsliderule.org"
+    description = "full domain name of client site to use with extension e.g. testsliderule-client.org or just testsliderule.org"
     default = "testsliderule.org"
 }
 

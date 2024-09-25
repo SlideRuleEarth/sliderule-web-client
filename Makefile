@@ -30,7 +30,7 @@ live-update: build # Update the web client in the S3 bucket and invalidate the C
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 live-update-testsliderule: ## Update the testsliderule.org with new build
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
@@ -41,12 +41,6 @@ build: ## Build the web client and update the dist folder
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	npm run build
-
-# type-check: ## Build the web client and update the dist folder
-# 	cd web-client && npm run type-check
-
-build-with-maps: ## Build the web client and update the dist folder with src map files
-	cd web-client && npm run build_with_maps
 
 run: ## Run the web client locally for development
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
@@ -70,18 +64,14 @@ destroy: # Destroy the web client
 	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
 deploy-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
+	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client && \
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
 
 destroy-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
+	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	make live-update DOMAIN=testsliderule.org 
-
-release-deploy-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make deploy DOMAIN=testsliderule.org && \
-	make live-update DOMAIN=testsliderule.org
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
