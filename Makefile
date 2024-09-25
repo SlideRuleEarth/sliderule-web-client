@@ -8,7 +8,9 @@ SHELL := /bin/bash
 ROOT = $(shell pwd)
 DOMAIN ?= 
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
-DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='client.$(DOMAIN)'].Id" --output text)
+DOMAIN_APEX ?= $(DOMAIN)
+S3_BUCKET ?= 
+DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN_APEX)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 
@@ -24,11 +26,11 @@ src-tag-and-push: ## Tag and push the web client source code to the repository
 live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
 	export VITE_LIVE_UPDATE_DATE=$$(date +"%Y-%m-%d %T"); \
 	echo "VITE_LIVE_UPDATE_DATE=$$VITE_LIVE_UPDATE_DATE" && \
-	aws s3 sync web-client/dist/ s3://client.$(DOMAIN) --delete
+	aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 live-update-testsliderule: ## Update the testsliderule.org with new build
-	make live-update DOMAIN=testsliderule.org
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
@@ -61,18 +63,18 @@ preview: ## Preview the web client production build locally for development
 
 deploy: # Deploy the web client to the S3 bucket
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform apply -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT) 
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
 destroy: # Destroy the web client 
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform destroy -var domainName=client.$(DOMAIN) -var domainApex=$(DOMAIN) -var domain_root=$(DOMAIN_ROOT)
+	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
 deploy-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=testsliderule.org && \
-	make live-update DOMAIN=testsliderule.org
+	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client && \
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
 
 destroy-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=testsliderule.org 
+	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule.client
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	make live-update DOMAIN=testsliderule.org 
@@ -90,4 +92,6 @@ help: ## That's me!
 	@echo BUILD_ENV: $(BUILD_ENV)
 	@echo DOMAIN: $(DOMAIN)	
 	@echo DOMAIN_ROOT: $(DOMAIN_ROOT)
+	@echo DOMAIN_APEX: $(DOMAIN_APEX)
+	@echo S3_BUCKET: $(S3_BUCKET)
 	@echo DISTRIBUTION_ID: $(DISTRIBUTION_ID)

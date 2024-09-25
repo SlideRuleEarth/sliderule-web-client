@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "webclient_site_bucket" {
-  bucket = var.domainName
+  bucket = var.s3_bucket_name
   force_destroy = true
 }
 
