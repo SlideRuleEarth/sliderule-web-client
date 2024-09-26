@@ -1,5 +1,5 @@
 resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
-  name = "my-security-headers-policy"
+  name = "${replace(var.domainName, ".", "-")}-shp"
   security_headers_config {
     content_type_options {
       override = true
@@ -24,7 +24,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://server.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://nimbus.cr.usgs.gov ; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: https://*.testsliderule.org https://*.slideruleearth.io https://nominatim.openstreetmap.org https://server.arcgisonline.com https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://elevation.nationalmap.gov https://extensions.duckdb.org;"
+      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://server.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://nimbus.cr.usgs.gov ; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: https://*.${var.domainApex} https://nominatim.openstreetmap.org https://server.arcgisonline.com https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://elevation.nationalmap.gov https://extensions.duckdb.org;"
       override                = true
     }
   }
@@ -32,32 +32,33 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
 
 resource "aws_cloudfront_distribution" "my_cloudfront" {
   depends_on = [
-    aws_s3_bucket.webclient_site_bucket
+    aws_s3_bucket.this_site_bucket
   ]
 
   origin {
-    domain_name = aws_s3_bucket.webclient_site_bucket.bucket_regional_domain_name
-    origin_id   = "s3-cloudfront"
+    domain_name = aws_s3_bucket.this_site_bucket.bucket_regional_domain_name
+    origin_id   = "s3-${replace(var.domainName, ".", "-")}-cloudfront"
 
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
     }
   }
+
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
-  aliases = [var.domainName]
-  
+  aliases             = [var.domainName]
+
   restrictions {
     geo_restriction {
       restriction_type = "none"
     }
   }
-  
+
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "s3-cloudfront"
+    target_origin_id = "s3-${replace(var.domainName, ".", "-")}-cloudfront"
 
     forwarded_values {
       query_string = false
@@ -74,13 +75,14 @@ resource "aws_cloudfront_distribution" "my_cloudfront" {
 
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security_headers_policy.id
   }
+
   price_class = "PriceClass_200"
 
   viewer_certificate {
     cloudfront_default_certificate = true
-    acm_certificate_arn = aws_acm_certificate.mysite.arn
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1"
+    acm_certificate_arn            = aws_acm_certificate.mysite.arn
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version        = "TLSv1"
   }
 
   custom_error_response {
@@ -96,9 +98,8 @@ resource "aws_cloudfront_distribution" "my_cloudfront" {
     response_code         = 200
     response_page_path    = "/index.html"
   }
-
 }
 
 resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
-  comment = "access-identity-${var.domainName}.s3.amazonaws.com"
+  comment = "access-identity-${replace(var.domainName, ".", "-")}.s3.amazonaws.com"
 }
