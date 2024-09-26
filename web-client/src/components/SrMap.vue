@@ -71,17 +71,17 @@
     console.log(event);
   };
 
-  function onMoveStart(event) {
-    //console.log("SrMap onMoveStart");
-    const map = event.map; // Get map from event
-    map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
-  }
+  // function onMoveStart(event) {
+  //   //console.log("SrMap onMoveStart");
+  //   const map = event.map; // Get map from event
+  //   map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
+  // }
 
-  function onMoveEnd(event) {
-    //console.log("SrMaponMoveEnd");
-    const map = event.map; // Get map from event
-    map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
-  }
+  // function onMoveEnd(event) {
+  //   //console.log("SrMaponMoveEnd");
+  //   const map = event.map; // Get map from event
+  //   map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
+  // }
 
   // Function to toggle the DragBox interaction.
   function disableDragBox() {
@@ -652,8 +652,6 @@
   <Map.OlMap ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
-    @movestart="onMoveStart"
-    @moveend="onMoveEnd"
     style="height: calc(100vh - 4rem); border-top-left-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >

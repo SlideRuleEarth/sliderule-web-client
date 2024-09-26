@@ -322,7 +322,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
             return [d['longitude'], d['latitude'], 0];
         },
         getNormal: [0, 0, 1],
-        getColor: (d) => {
+        getColor: (d:any) => {
             const h = d[heightFieldName];
             const c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
             c[3] = 255; // Set the alpha channel to 255 (fully opaque)
@@ -348,14 +348,20 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
                 clicked(object);
             }
         },
-        onDragStart: () => {
-            console.log('onDragStart');
-            document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
-          },
-        onDragEnd: () => {
-            console.log('onDragEnd');
-            document.body.style.cursor = 'default'; // Revert to default when dragging ends
-        },
+        // onDragStart: ({ object, x, y }, event) => {
+        //     if (object) {
+        //         console.log('Drag started at:', x, y);
+        //         document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
+        //         return true; // Mark the event as handled
+        //     }
+        // },
+        // onDragEnd: ({ object, x, y }, event) => {
+        //     if (object) {
+        //         console.log('Drag ended at:', x, y);
+        //         document.body.style.cursor = 'default'; // Revert to default when dragging ends
+        //         return true; // Mark the event as handled
+        //     }
+        // },        
     });
 }
 

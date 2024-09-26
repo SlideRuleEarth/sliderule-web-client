@@ -41,17 +41,30 @@
     console.log(event);
   };
 
-  function onMoveStart(event) {
-    console.log("SrAnalysisMap onMoveStart");
-    const map = event.map; // Get map from event
-    map.getTargetElement().style.cursor = 'grabbing'; // Change cursor to grabbing
-  }
+  // function onMoveStart(event) {
+  //   console.log("SrAnalysisMap onMoveStart event:",event);
+  //   //const map = event.map; // Get map from event
+  //   const map = mapRef.value?.map;
+  //   if(map){
+  //     map.getTargetElement().style.cursor = 'grabbing !important'; // Change cursor to grabbing
+  //   }
+  // }
 
-  function onMoveEnd(event) {
-    console.log("SrAnalysisMap onMoveEnd");
-    const map = event.map; // Get map from event
-    map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
-  }
+  // function onMoveEnd(event) {
+  //   console.log("SrAnalysisMap onMoveEnd");
+  //   //const map = event.map; // Get map from event
+  //   const map = mapRef.value?.map;
+  //   if(map){
+  //     map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
+
+  //   }
+  // }
+  // function onPointerDrag(event) {
+  //   console.log("SrAnalysisMap onPointerDrag");
+  //   const map = event.map; // Get map from event
+  //   map.getTargetElement().style.cursor = 'grabbing !important'; // Change cursor to grabbing
+  // }
+
 
   const atlChartFilterStore = useAtlChartFilterStore();
   const elevationIsLoading = computed(() => mapStore.getIsLoading());
@@ -298,8 +311,6 @@
     <Map.OlMap ref="mapRef" @error="handleEvent"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
-      @movestart="onMoveStart"
-      @moveend="onMoveEnd"
       style="height: 30vh; border-radius: 15px; overflow: hidden;"
       :controls="controls"
     >
