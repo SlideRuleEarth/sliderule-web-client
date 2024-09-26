@@ -29,8 +29,8 @@ live-update: build # Update the web client in the S3 bucket and invalidate the C
 	aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
-live-update-testsliderule: ## Update the testsliderule.org with new build
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
+live-update-testsliderule: ## Update the web client at testsliderule.org with new build
+	make live-update S3_BUCKET=$(DOMAIN_ROOT)-client
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
@@ -57,21 +57,27 @@ preview: ## Preview the web client production build locally for development
 
 deploy: # Deploy the web client to the S3 bucket
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) 
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
 destroy: # Destroy the web client 
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
 	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
-deploy-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
+deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
+	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient && \
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient
 
-destroy-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
+destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
+	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-client
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient
+
+deploy-docs-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
+	make deploy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org  
+
+destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
+	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
