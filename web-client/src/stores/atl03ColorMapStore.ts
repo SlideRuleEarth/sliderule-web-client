@@ -6,10 +6,13 @@ import { atl08 } from '@/sliderule/icesat2';
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
         isInitialized: false as boolean,
+        largeData: false as boolean,
+        largeDataThreshold: 1000000 as number,
+        numOfPlottedPnts: 0 as number,
         selectedAtl03ColorMap: 'viridis' as string,
         numShadesForAtl03Yapc: 1024 as number,
         atl03YapcColorMap: [] as[number, number, number, number][],
-        atl03ColorKey: 'YAPC' as string,
+        atl03ColorKey: 'atl03_cnf' as string,
         atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
         atl03CnfOptions: [
             {label:'atl03_tep',value:-2}, 
@@ -171,6 +174,24 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         async restoreDefaultColors() {
             await db.restoreDefaultColors();
             this.namedColorPalette = await db.getAllColors();
+        },
+        getLargeData() {
+            return this.largeData;
+        },
+        setLargeData(largeData: boolean) {
+            this.largeData = largeData;
+        },
+        getLargeDataThreshold() {
+            return this.largeDataThreshold;
+        },
+        setLargeDataThreshold(largeDataThreshold: number) {
+            this.largeDataThreshold = largeDataThreshold;
+        },
+        getNumOfPlottedPnts() {
+            return this.numOfPlottedPnts;
+        },
+        setNumOfPlottedPnts(numOfPlottedPnts: number) {
+            this.numOfPlottedPnts = numOfPlottedPnts;
         },
     },
 });
