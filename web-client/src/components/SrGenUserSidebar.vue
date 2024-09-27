@@ -1,11 +1,9 @@
 <script setup lang="ts">
-    import SrRunControl from "@/components/SrRunControl.vue";
     import SrGenUserSidebarOptions from "@/components/SrGenUserPresets.vue";
 </script>
 
 <template>
     <div class="sr-gen-user-sidebar-container">
-        <SrRunControl />
         <SrGenUserSidebarOptions />
     </div>
 </template>
@@ -15,9 +13,7 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        height: 100%;
-        overflow-y: auto;
-        width: 100%;
+        height: 100vh;
     }
 
 </style>

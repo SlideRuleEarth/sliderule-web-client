@@ -16,7 +16,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/GeneralUserView.vue')
+      component: () => import('@/views/MapView.vue')
     },
     {
       path: '/about',
@@ -34,14 +34,9 @@ const router = createRouter({
       component: () => import('@/views/RecordView.vue')
     },
     {
-      path: '/general-user',
-      name: 'general-user',
-      component: () => import('@/views/GeneralUserView.vue') 
-    },
-    {
-      path: '/advanced-user',
-      name: 'advanced-user',
-      component: () => import('@/views/AdvancedUserView.vue'),
+      path: '/map',
+      name: 'map',
+      component: () => import('@/views/MapView.vue') 
     },
     {
       path: '/analyze/:id',

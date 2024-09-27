@@ -1,14 +1,9 @@
 <script setup lang="ts">
-    import SrSideBarLayout from "@/layouts/SrSideBarLayout.vue";
     import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
     import SrMap from "@/components/SrMap.vue";
-    import SrAdvOptSidebar from "@/components/SrAdvOptSidebar.vue";
     import { onMounted } from 'vue';
-    import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
- 
-
-    const advancedModeStore = useAdvancedModeStore();
-
+    import SrSideBar from "@/components/SrSideBar.vue";
+    
     onMounted(() => {
         // Get the computed style of the document's root element
         const rootStyle = window.getComputedStyle(document.documentElement);
@@ -16,10 +11,6 @@
         const fontSize = rootStyle.fontSize;
         // Log the font size to the console
         console.log(`Current root font size: ${fontSize}`);
-
-        advancedModeStore.advanced = true;
-
-        //console.log('AdvancedUserView onMounted');
     });
 
 </script>
@@ -27,16 +18,10 @@
 <template>
     <TwoColumnLayout>
         <template v-slot:sidebar-col>
-            <SrSideBarLayout>
-                <template v-slot:sr-sidebar-body>
-                    <SrAdvOptSidebar/>
-                </template>
-                <template v-slot:sr-sidebar-footer>
-                </template>
-            </SrSideBarLayout>
+            <SrSideBar />
         </template>
         <template v-slot:main>
-            <div class="sr-map-container" ID="AdvUserMapDiv">
+            <div class="sr-map-container" ID="MapDiv">
                 <SrMap />
             </div>
         </template>

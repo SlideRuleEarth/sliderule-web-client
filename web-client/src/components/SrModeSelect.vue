@@ -1,65 +1,41 @@
 <script setup lang="ts">
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
-import { NavigationFailureType, isNavigationFailure } from 'vue-router'
-import { useRouter, useRoute } from 'vue-router';
-import { useToast } from 'primevue/usetoast';
 import { ref, computed, onMounted } from 'vue';
 
-const toast = useToast();
-const router = useRouter();
-const route = useRoute();
 
 const advancedModeStore = useAdvancedModeStore();
-const selectedMode = ref(advancedModeStore.advanced ? 'Advanced' : 'General');
 const isLoading = ref(false);
 
 // Sync the UI with the current route on component mount
 onMounted(() => {
-    syncModeWithRoute();
 });
 
-// Function to sync the mode with the current route
-function syncModeWithRoute() {
-    const isAdvancedRoute = route.path === '/advanced-user';
-    selectedMode.value = isAdvancedRoute ? 'Advanced' : 'General';
-    advancedModeStore.setAdvanced(isAdvancedRoute);
-}
+
 
 // Handle the mode change
 async function handleModeChange(mode: string) {
-    if (isLoading.value) return; // Prevent multiple clicks while loading
-    
-    const newRoute = mode === 'Advanced' ? '/advanced-user' : '/general-user';
-    
-    // Check if we're already on the correct route
-    if (route.path === newRoute) {
-        // Just update the store and UI without navigation
-        selectedMode.value = mode;
-        advancedModeStore.setAdvanced(mode === 'Advanced');
-        return;
-    }
-    
     isLoading.value = true;
-    selectedMode.value = mode;
-    advancedModeStore.setAdvanced(mode === 'Advanced');
-    
-    try {
-        await router.push(newRoute);
-    } catch (error) {
-        if (isNavigationFailure(error, NavigationFailureType.aborted)) {
-            toast.add({severity:'info', summary:'Save?', detail:'You have unsaved changes, discard and leave anyway?'});
-        } else {
-            console.error('Navigation error:', error);
-            toast.add({severity:'error', summary:'Error', detail:'Failed to switch mode. Please try again.'});
-        }
-    } finally {
-        isLoading.value = false;
+    if(mode === 'Advanced') {
+        advancedModeStore.setAdvanced(true);
+    } else {
+        advancedModeStore.setAdvanced(false);
     }
+    isLoading.value = false;
 }
+
+const isButtonActive = computed(() => (mode: string) => {
+    if(((mode === 'Advanced') && (advancedModeStore.getAdvanced())) || ((mode === 'General') && (!advancedModeStore.getAdvanced()))) {
+        return true;
+    } else {
+        return false;
+    }
+});
+
+
 
 const buttonClass = computed(() => (mode: string) => [
     'sr-segment-button',
-    { active: selectedMode.value === mode },
+    { active: isButtonActive.value(mode) },
     { disabled: isLoading.value }
 ]);
 </script>
@@ -67,7 +43,7 @@ const buttonClass = computed(() => (mode: string) => [
 <template>
     <div class="sr-mode-box">
         <div class="sr-segment-control" :class="{ 'is-loading': isLoading }">
-            <div class="sr-segment-background" :class="{ 'right': selectedMode === 'Advanced' }"></div>
+            <div class="sr-segment-background" :class="{ 'right': advancedModeStore.getAdvanced() }"></div>
             <button 
                 :class="buttonClass('General')"
                 @click="handleModeChange('General')"
