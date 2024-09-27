@@ -3,25 +3,19 @@ import {useToast} from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
 import router from './router/index.js';
-import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useRequestsStore } from "@/stores/requestsStore";
 
 const srToastStore = useSrToastStore()
-const advancedModeStore = useAdvancedModeStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const toast = useToast();
 
-const toolButtonClick = () => {
-  // console.log('toolButtonClick');
+const mapButtonClick = () => {
+  // console.log('mapButtonClick');
   //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
-  if(advancedModeStore.getAdvanced()){
-    router.push('/advanced-user');
-  } else {
-    router.push('/general-user');
-  }
+  router.push('/map'); 
 };
 
 const recordButtonClick = () => {
@@ -61,21 +55,33 @@ const aboutButtonClick = () => {
   <div>
     <SrToast position="top-center"/>
   </div>  
-  <header>
+  <header class="app-header">
     <SrAppBar 
-      @map-button-click="toolButtonClick"
+      @map-button-click="mapButtonClick"
       @record-button-click="recordButtonClick"
       @analysis-button-click="analysisButtonClick"
       @about-button-click="aboutButtonClick"
     />
-  </header>
-  <RouterView />
+  </header >
+  <div class="content">
+    <RouterView />
+  </div>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* Adjust z-index to ensure it stays above other elements */
+}
+
+.content {
+  margin-top: 60px; /* Adjust margin based on the height of your SrAppBar */
+  padding: 16px; /* Optional padding for better content spacing */
+  overflow-y: auto;
+  height: calc(100vh - 60px); /* Full height minus the SrAppBar height */
 }
 /* Global style for toast popups */
 .p-toast-message {
