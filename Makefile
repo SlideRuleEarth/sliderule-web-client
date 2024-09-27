@@ -26,11 +26,12 @@ src-tag-and-push: ## Tag and push the web client source code to the repository
 live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
 	export VITE_LIVE_UPDATE_DATE=$$(date +"%Y-%m-%d %T"); \
 	echo "VITE_LIVE_UPDATE_DATE=$$VITE_LIVE_UPDATE_DATE" && \
+	echo "S3_BUCKET=$(S3_BUCKET)" && \
 	aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=$(DOMAIN_ROOT)-client
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
