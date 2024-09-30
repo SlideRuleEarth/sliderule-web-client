@@ -133,6 +133,7 @@
         background-color: #2c2c2c;
         border-radius: 0.5rem;
         padding: 0.5rem;
+        margin-bottom: 0.25rem;
     }
 
     .sr-console-msg,

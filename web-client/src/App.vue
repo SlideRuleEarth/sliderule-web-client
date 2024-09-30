@@ -52,35 +52,42 @@ const aboutButtonClick = () => {
 </script>
 
 <template>
-  <div>
-    <SrToast position="top-center"/>
-  </div>  
-  <header class="app-header">
-    <SrAppBar 
-      @map-button-click="mapButtonClick"
-      @record-button-click="recordButtonClick"
-      @analysis-button-click="analysisButtonClick"
-      @about-button-click="aboutButtonClick"
-    />
-  </header >
-  <div class="content">
-    <RouterView />
+  <div class="app-layout">
+    <div>
+      <SrToast position="top-center"/>
+    </div>  
+    <header class="app-header">
+      <SrAppBar 
+        @map-button-click="mapButtonClick"
+        @record-button-click="recordButtonClick"
+        @analysis-button-click="analysisButtonClick"
+        @about-button-click="aboutButtonClick"
+      />
+    </header >
+    <div class="content">
+      <RouterView />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full height for the layout */
+}
 .app-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
+  height: 60px; /* Adjust height based on your design */
   z-index: 1000; /* Adjust z-index to ensure it stays above other elements */
 }
 
 .content {
   margin-top: 60px; /* Adjust margin based on the height of your SrAppBar */
-  padding: 16px; /* Optional padding for better content spacing */
-  overflow-y: auto;
+  overflow-y: hidden; /* Hide vertical scrollbar */
   height: calc(100vh - 60px); /* Full height minus the SrAppBar height */
 }
 /* Global style for toast popups */
@@ -93,5 +100,6 @@ const aboutButtonClick = () => {
 /* Global styles */
 body, #app {
   margin: 0;
+  overflow: hidden;
 }
 </style>
