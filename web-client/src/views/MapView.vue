@@ -21,9 +21,7 @@
             <SrSideBar />
         </template>
         <template v-slot:main>
-            <div class="sr-map-container" ID="MapDiv">
-                <SrMap />
-            </div>
+            <SrMap />
         </template>
     </TwoColumnLayout>
 </template>

@@ -317,174 +317,174 @@ const getCnt = computed(() => {
 </script>
 
 <template>
-    <div class="sr-analysis-opt-sidebar-container">
-        <div class="sr-req-description">  
-            <SrEditDesc :reqId="Number(selectedReqId.value)"/>
-        </div>
-        <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-            <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
-            <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
-        </div>
-        <div class="sr-analysis-opt-sidebar-req-menu">
-            <div class="sr-analysis-reqid-sz">
-            <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
-            <div class="sr-analysis-reqid" v-else>
-                <SrMenuInput 
-                    label="Record Id" 
-                    :menuOptions="reqIds" 
-                    v-model="selectedReqId"
-                    @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
-                    :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                    tooltipText="Request Id from Record table"
-                />
+    <div class="sr-analysis-opt-sidebar">
+        <div class="sr-analysis-opt-sidebar-container">
+            <div class="sr-req-description">  
+                <SrEditDesc :reqId="Number(selectedReqId.value)"/>
             </div>
-            <div class="sr-analysis-sz" v-if="!loading">
-                <div>
-                    {{ getSize }} 
-                </div>
-                <div>
-                    {{ getCnt }} recs
-                </div>
+            <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
+                <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
+                <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
             </div>
-        </div>
-        </div>
-        <div>
-            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
-            <div class="sr-analysis-max-pnts">
-                <SrSliderInput
-                    v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                    label="Max Num Pnts"
-                    :min="10000"
-                    :max="5000000"
-                    :defaultValue="100000"
-                    :decimalPlaces=0
-                    tooltipText="Maximum number of points to display"
-                />
-                <SrMenuInput 
-                    label="Color Map" 
-                    :menuOptions="getColorMapOptions()" 
-                    v-model="selectedElevationColorMap"
-                    tooltipText="Color Map for elevation plot"
-                /> 
-            </div>  
-        </div>
-        <div class="sr-analyze-filters">
-            <SrListbox id="spots" 
-                    label="Spot(s)" 
-                    v-model="atlChartFilterStore.spots"
-                    :getSelectedMenuItem="atlChartFilterStore.getSpots"
-                    :setSelectedMenuItem="atlChartFilterStore.setSpots"
-                    :menuOptions="spotsOptions" 
-                    tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
-trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
-numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
-far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
-approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
-direction."
-                    @update:modelValue="onSpotSelection"
-                />
-            <SrListbox id="beams" 
-                    v-if="useDebugStore().enableSpotPatternDetails"
-                    :insensitive="true"
-                    label="Beam(s)" 
-                    v-model="atlChartFilterStore.beams"
-                    :getSelectedMenuItem="atlChartFilterStore.getBeams"
-                    :setSelectedMenuItem="atlChartFilterStore.setBeams"
-                    :menuOptions="beamsOptions" 
-                    tooltipText="ATLAS laser beams are divided into weak and strong beams"
-                    @update:modelValue="BeamSelection"
-                />
-            <div class="sr-rgts-cycles-panel">
-                <SrListbox id="rgts"
-                    label="Rgt(s)" 
-                    v-model="atlChartFilterStore.rgts" 
-                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                    :menuOptions="rgtsOptions" 
-                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-    vector within the observatory is pointed" 
-                    @update:modelValue="RgtsSelection"
-                />
-                <SrListbox id="cycles" 
-                    label="Cycle(s)" 
-                    v-model="atlChartFilterStore.cycles"
-                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                    :menuOptions="cyclesOptions" 
-                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                    @update:modelValue="CyclesSelection"
-                />
-            </div>
-        </div>
-        <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" >
-            <div class="sr-user-guide-link">
-                <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
-            </div>
-            <div class="sr-sc-orient-panel">
-                <div class="sr-sc-orientation">
-                    <p>
-                        <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===1">S/C Orientation: Forward</span>
-                        <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===0">S/C Orientation: Backward</span>
-                        <span v-if="atlChartFilterStore.getScOrients().length===0">S/C Orientation: Both</span>
-                    </p>
-                </div>
-                <div class="sr-pair-sc-orient">
-                    <SrListbox id="scOrients"
-                        label="scOrient(s)" 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
-                        v-model="atlChartFilterStore.scOrients" 
-                        :getSelectedMenuItem="atlChartFilterStore.getScOrients"
-                        :setSelectedMenuItem="atlChartFilterStore.setScOrients"
-                        :menuOptions="atlChartFilterStore.scOrientOptions" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
-                        @update:modelValue="scOrientsSelection"
-                        />
-                    <SrListbox id="pairs"
-                        label="pair(s)" 
-                        v-if="atlChartFilterStore.getFunc().includes('atl03')"
-                        v-model="atlChartFilterStore.pairs" 
-                        :getSelectedMenuItem="atlChartFilterStore.getPairs"
-                        :setSelectedMenuItem="atlChartFilterStore.setPairs"
-                        :menuOptions="atlChartFilterStore.pairOptions" 
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                        tooltipText="A pair is a set of weak and strong beams."
-                        @update:modelValue="pairsSelection"
+            <div class="sr-analysis-opt-sidebar-req-menu">
+                <div class="sr-analysis-reqid-sz">
+                <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
+                <div class="sr-analysis-reqid" v-else>
+                    <SrMenuInput 
+                        label="Record Id" 
+                        :menuOptions="reqIds" 
+                        v-model="selectedReqId"
+                        @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
+                        :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
+                        tooltipText="Request Id from Record table"
                     />
                 </div>
-            </div> 
-            <div class="sr-tracks-beams-panel">
-                <SrListbox id="tracks" 
-                    label="Track(s)" 
-                    v-model="atlChartFilterStore.tracks" 
-                    :getSelectedMenuItem="atlChartFilterStore.getTracks"
-                    :setSelectedMenuItem="atlChartFilterStore.setTracks"
-                    :menuOptions="tracksOptions" 
-                    tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                    @update:modelValue="tracksSelection"
-                />
+                <div class="sr-analysis-sz" v-if="!loading">
+                    <div>
+                        {{ getSize }} 
+                    </div>
+                    <div>
+                        {{ getCnt }} recs
+                    </div>
+                </div>
             </div>
-        </FieldSet>
+            </div>
+            <div>
+                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+                <div class="sr-analysis-max-pnts">
+                    <SrSliderInput
+                        v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+                        label="Max Num Pnts"
+                        :min="10000"
+                        :max="5000000"
+                        :defaultValue="100000"
+                        :decimalPlaces=0
+                        tooltipText="Maximum number of points to display"
+                    />
+                    <SrMenuInput 
+                        label="Color Map" 
+                        :menuOptions="getColorMapOptions()" 
+                        v-model="selectedElevationColorMap"
+                        tooltipText="Color Map for elevation plot"
+                    /> 
+                </div>  
+            </div>
+            <div class="sr-analyze-filters">
+                <SrListbox id="spots" 
+                        label="Spot(s)" 
+                        v-model="atlChartFilterStore.spots"
+                        :getSelectedMenuItem="atlChartFilterStore.getSpots"
+                        :setSelectedMenuItem="atlChartFilterStore.setSpots"
+                        :menuOptions="spotsOptions" 
+                        tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
+    trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
+    numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
+    far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
+    approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
+    direction."
+                        @update:modelValue="onSpotSelection"
+                    />
+                <SrListbox id="beams" 
+                        v-if="useDebugStore().enableSpotPatternDetails"
+                        :insensitive="true"
+                        label="Beam(s)" 
+                        v-model="atlChartFilterStore.beams"
+                        :getSelectedMenuItem="atlChartFilterStore.getBeams"
+                        :setSelectedMenuItem="atlChartFilterStore.setBeams"
+                        :menuOptions="beamsOptions" 
+                        tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                        @update:modelValue="BeamSelection"
+                    />
+                <div class="sr-rgts-cycles-panel">
+                    <SrListbox id="rgts"
+                        label="Rgt(s)" 
+                        v-model="atlChartFilterStore.rgts" 
+                        :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                        :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                        :menuOptions="rgtsOptions" 
+                        tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+        vector within the observatory is pointed" 
+                        @update:modelValue="RgtsSelection"
+                    />
+                    <SrListbox id="cycles" 
+                        label="Cycle(s)" 
+                        v-model="atlChartFilterStore.cycles"
+                        :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                        :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                        :menuOptions="cyclesOptions" 
+                        tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                        @update:modelValue="CyclesSelection"
+                    />
+                </div>
+            </div>
+            <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" >
+                <div class="sr-user-guide-link">
+                    <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
+                </div>
+                <div class="sr-sc-orient-panel">
+                    <div class="sr-sc-orientation">
+                        <p>
+                            <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===1">S/C Orientation: Forward</span>
+                            <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===0">S/C Orientation: Backward</span>
+                            <span v-if="atlChartFilterStore.getScOrients().length===0">S/C Orientation: Both</span>
+                        </p>
+                    </div>
+                    <div class="sr-pair-sc-orient">
+                        <SrListbox id="scOrients"
+                            label="scOrient(s)" 
+                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-model="atlChartFilterStore.scOrients" 
+                            :getSelectedMenuItem="atlChartFilterStore.getScOrients"
+                            :setSelectedMenuItem="atlChartFilterStore.setScOrients"
+                            :menuOptions="atlChartFilterStore.scOrientOptions" 
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                            tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                            @update:modelValue="scOrientsSelection"
+                            />
+                        <SrListbox id="pairs"
+                            label="pair(s)" 
+                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-model="atlChartFilterStore.pairs" 
+                            :getSelectedMenuItem="atlChartFilterStore.getPairs"
+                            :setSelectedMenuItem="atlChartFilterStore.setPairs"
+                            :menuOptions="atlChartFilterStore.pairOptions" 
+                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                            tooltipText="A pair is a set of weak and strong beams."
+                            @update:modelValue="pairsSelection"
+                        />
+                    </div>
+                </div> 
+                <div class="sr-tracks-beams-panel">
+                    <SrListbox id="tracks" 
+                        label="Track(s)" 
+                        v-model="atlChartFilterStore.tracks" 
+                        :getSelectedMenuItem="atlChartFilterStore.getTracks"
+                        :setSelectedMenuItem="atlChartFilterStore.setTracks"
+                        :menuOptions="tracksOptions" 
+                        tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                        @update:modelValue="tracksSelection"
+                    />
+                </div>
+            </FieldSet>
+        </div>
     </div>
 </template>
 <style scoped>
-    .sr-analysis-opt-sidebar-req-menu {
+    .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content:center;
-        margin-top: 0.75rem;
+        height: 100vh;
+        margin-top: auto;
     }
     .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-between; 
         margin-top: 1rem;
-        min-height: 30%;
-        max-height: 30%;
-        min-width: 30vw;
+        height: 100%;
+        min-width: 20vw;
         width: 100%;
+        overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
     }
     .sr-analysis-reqid-sz{
         display: flex;
@@ -506,8 +506,15 @@ direction."
         justify-content: space-between; 
         min-height: 30%;
         max-height: 30%;
-        min-width: 30vw;
+        min-width: 20vw;
         width: 100%;
+    }
+    .sr-analysis-opt-sidebar-req-menu {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content:center;
+        margin-top: 0.75rem;
     }
     
     .sr-req-description {

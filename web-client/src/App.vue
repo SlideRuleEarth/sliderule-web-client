@@ -87,7 +87,7 @@ const aboutButtonClick = () => {
 
 .content {
   margin-top: 60px; /* Adjust margin based on the height of your SrAppBar */
-  overflow-y: hidden; /* Hide vertical scrollbar */
+  overflow-y: auto; 
   height: calc(100vh - 60px); /* Full height minus the SrAppBar height */
 }
 /* Global style for toast popups */
