@@ -355,8 +355,7 @@
   min-height: 15rem;
   min-width: 15rem; 
   width: 100%; 
-  border-radius: 
-  0.25rem; 
+  border-radius: var(--p-border-radius); 
   overflow: hidden;
 }
 .sr-tooltip-style {
