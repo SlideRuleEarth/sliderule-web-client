@@ -65,8 +65,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         nodeTimeoutValue: 600,
         useReadTimeout: false,
         readTimeoutValue: 600,
-        lengthValue: 40.0,
-        stepValue: 20.0,
+        lengthValue: -1.0,
+        stepValue: -1.0,
         confidenceValue: 4,
         iterationsValue: 6,
         spreadValue: 20.0,
@@ -82,7 +82,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Land Ice', value: 3 },
           { name: 'Inland Water',value: 4 },
         ] as SrMultiSelectNumberItem[],
-        surfaceReferenceType:[-1] as number[],
+        surfaceReferenceType:[] as number[],
         signalConfidenceOptions: 
         [
           { name: 'TEP', value: 'atl03_tep' },
@@ -93,13 +93,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 'atl03_medium' },
           { name: 'High', value: 'atl03_high' },
         ] as SrMultiSelectTextItem[],
-        signalConfidence: [ 
-          'atl03_background' ,
-          'atl03_within_10m' ,
-          'atl03_low' ,
-          'atl03_medium' ,
-          'atl03_high' ,
-        ],
+        signalConfidence: [],
         signalConfidenceNumberOptions: 
         [
           { name: 'TEP', value: -2 },
@@ -133,10 +127,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         ] as SrMultiSelectTextItem[],
         distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
-        alongTrackSpread: 20.0,
-        minimumPhotonCount: 10,
-        maxIterations: 6,
-        minWindowHeight: 3.0,
+        alongTrackSpread: -1.0,
+        minimumPhotonCount: -1,
+        maxIterations: -1,
+        minWindowHeight: -1.0,
         maxRobustDispersion: 0.0,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
@@ -265,21 +259,42 @@ export const useReqParamsStore = defineStore('reqParams', {
         
           const req: AtlReqParams = {
             asset: this.asset,
-            srt: this.getSrt(),
-            cnf: this.signalConfidenceNumber,
-            H_min_win: this.minWindowHeight, 
-            len: this.lengthValue,        
-            res: this.stepValue, 
-            sigma_r_max: this.sigmaValue,         
-            maxi: this.maxIterations,
-            poly: this.poly,
-          };
-        
+          }
+          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+            req.srt = -1;
+          } else {
+            req.srt = this.getSrt();
+          }
+          if(this.signalConfidence.length>0){
+            req.cnf = this.signalConfidence;
+          }
+          if(this.getMinWindowHeight() >= 0.0){
+            req.win = this.getMinWindowHeight();
+          }
+          if(this.getLengthValue() >= 0.0){
+            req.len = this.getLengthValue();
+          }
+          if(this.getStepValue() >= 0.0){
+            req.res = this.getStepValue();
+          }
+          if(this.getSigmaValue() >= 0.0){
+            req.sigma_r_max = this.getSigmaValue();
+          }
+          if(this.getMaxIterations() > 0){
+            req.maxi = this.getMaxIterations();
+          }
+          if(this.poly && !this.ignorePolygon) {
+            req.poly = this.poly;
+          }
           if(this.passInvalid) {
             req.pass_invalid = true;
           } else {
-            req.ats = this.alongTrackSpread;  
-            req.cnt = this.minimumPhotonCount;
+            if(this.getAlongTrackSpread() >= 0.0){
+              req.ats = this.alongTrackSpread;
+            }
+            if(this.minimumPhotonCount > 0){ 
+              req.cnt = this.minimumPhotonCount;
+            }
           }
 
           if (this.fileOutput) {
@@ -347,30 +362,26 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }
-          if(this.useGlobalTimeout()) {
-            req.timeout = this.totalTimeoutValue
-          } else {
-            if(this.useReqTimeout) {
-              req['rqst-timeout'] = this.reqTimeoutValue;
-            }
-            if(this.useNodeTimeout) {
-              req['node-timeout'] = this.nodeTimeoutValue;
-            }
-            if(this.useReadTimeout) {
-              req['read-timeout'] = this.readTimeoutValue;
-            }
+          // if(this.useGlobalTimeout()) {
+          //   req.timeout = this.totalTimeoutValue
+          // } else {
+          if(this.useReqTimeout) {
+            req['rqst-timeout'] = this.reqTimeoutValue;
           }
+          if(this.useNodeTimeout) {
+            req['node-timeout'] = this.nodeTimeoutValue;
+          }
+          if(this.useReadTimeout) {
+            req['read-timeout'] = this.readTimeoutValue;
+          }
+          //}
           return req;
         },
         setSrt(srt:number[]) {
           this.surfaceReferenceType = srt;
         },
-        getSrt(): number[] | number {
-          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
-            return -1;
-          } else {
-            return this.surfaceReferenceType;
-          }        
+        getSrt(): number[] {
+          return this.surfaceReferenceType;       
         },
         getSurfaceReferenceType(name: string): number {
           const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);
@@ -386,13 +397,13 @@ export const useReqParamsStore = defineStore('reqParams', {
           }
           return baseParams;
         },
-        getEnableGranuleSelection() {
+        getEnableGranuleSelection(): boolean {
           return this.enableGranuleSelection;
         },
         setEnableGranuleSelection(enableGranuleSelection:boolean) {
           this.enableGranuleSelection = enableGranuleSelection;
         },
-        getUseRgt() {
+        getUseRgt() : boolean {
             return this.useRGT;
         },
         setUseRgt(useRGT:boolean) {
@@ -401,31 +412,31 @@ export const useReqParamsStore = defineStore('reqParams', {
         setRgt(rgtValue:number) {
           this.rgtValue = rgtValue;
         },
-        getRgt() {
+        getRgt(): number {
           return this.rgtValue;
         },
         setUseCycle(useCycle:boolean) {
             this.useCycle = useCycle;
         },
-        getUseCycle() {
+        getUseCycle() : boolean {
             return this.useCycle;
         },
         setCycle(cycleValue:number) {
           this.cycleValue = cycleValue;
         },
-        getCycle() {
+        getCycle() : number {
           return this.cycleValue;
         },
         setUseRegion(useRegion:boolean) {
             this.useRegion = useRegion;
         },
-        getUseRegion() {
+        getUseRegion(): boolean {
             return this.useRegion;
         },
         setRegion(regionValue:number) {
           this.regionValue = regionValue;
         },
-        getRegion() {
+        getRegion(): number {
           return this.regionValue;
         },
         setT0(t0Value:Date) {
@@ -443,10 +454,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         setBeams(beams: SrListNumberItem[]) {
           this.beams = beams;
         },
-        getBeams() {
+        getBeams(): SrListNumberItem[] {
           return this.beams;
         },
-        getBeamValues() { 
+        getBeamValues(): number[] { 
           return this.beams.map(beam => beam.value);
         },
         setBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
@@ -470,16 +481,16 @@ export const useReqParamsStore = defineStore('reqParams', {
         setSelectAllBeams(selectAllBeams:boolean) {
           this.selectAllBeams = selectAllBeams;
         },
-        getSelectAllBeams() {
+        getSelectAllBeams(): boolean {
           return this.selectAllBeams;
         },
         setUseChecksum(useChecksum:boolean) {
           this.useChecksum = useChecksum;
         },
-        getUseChecksum() {
+        getUseChecksum(): boolean {
           return this.useChecksum;
         },
-        getPassInvalid() {
+        getPassInvalid(): boolean {
           return this.passInvalid;
         },
         setPassInvalid(passInvalid:boolean) {
@@ -488,56 +499,98 @@ export const useReqParamsStore = defineStore('reqParams', {
         setAsset(asset:string) {
           this.asset = asset;
         },
-        getAsset() {
+        getAsset(): string {
           return this.asset;
         },
-        initParmsForGenUser() {
-          this.asset = 'icesat2';
-          this.surfaceReferenceType = [-1];
-          this.signalConfidenceNumber = [4];
-          this.alongTrackSpread = 20.0;
-          this.minimumPhotonCount = 10;
-          this.maxIterations = 6;
-          this.minWindowHeight = 3.0;
-          this.sigmaValue = 5.0;
-          this.fileOutput = true;
-          this.outputFormat = {name:"parquet", value:"parquet"};
-          this.useChecksum = false;
-          this.stepValue = 20.0;
-          this.lengthValue = 40.0;
-          this.outputLocationPath=''; // forces auto creation of a unique path
+        // initParmsForGenUser() {
+        //   this.asset = 'icesat2';
+        //   this.surfaceReferenceType = [-1];
+        //   this.signalConfidenceNumber = [4];
+        //   this.alongTrackSpread = 20.0;
+        //   this.minimumPhotonCount = 10;
+        //   this.maxIterations = 6;
+        //   this.minWindowHeight = 3.0;
+        //   this.sigmaValue = 5.0;
+        //   this.fileOutput = true;
+        //   this.outputFormat = {name:"parquet", value:"parquet"};
+        //   this.useChecksum = false;
+        //   this.stepValue = 20.0;
+        //   this.lengthValue = 40.0;
+        //   this.outputLocationPath=''; // forces auto creation of a unique path
+        // },
+        getMinWindowHeight():number {
+          return this.minWindowHeight;
+        },
+        setMinWindowHeight(minWindowHeight:number) {
+          this.minWindowHeight = minWindowHeight;
+        },
+        getLengthValue(): number {
+          return this.lengthValue;
+        },
+        setLengthValue(lengthValue:number) {
+          this.lengthValue = lengthValue;
+        },
+        getStepValue(): number {
+          return this.stepValue;
+        },
+        setStepValue(stepValue:number) {
+          this.stepValue = stepValue;
+        },
+        getSigmaValue(): number {
+          return this.sigmaValue;
+        },
+        setSigmaValue(sigmaValue:number) {
+          this.sigmaValue = sigmaValue;
+        },
+        getMaxIterations():number {
+          return this.maxIterations;
+        },
+        setMaxIterations(maxIterations:number) {
+          this.maxIterations = maxIterations;
+        },
+        getAlongTrackSpread():number {
+          return this.alongTrackSpread;
+        },
+        setAlongTrackSpread(alongTrackSpread:number) {
+          this.alongTrackSpread = alongTrackSpread;
+        },
+        getMinimumPhotonCount(): number {
+          return this.minimumPhotonCount;
+        },
+        setMinimumPhotonCount(minimumPhotonCount:number) {
+          this.minimumPhotonCount = minimumPhotonCount;
         },
         setUseReqTimeout(useReqTimeout:boolean) {
           this.useReqTimeout = useReqTimeout;
         },
-        getUseReqTimeout() {
+        getUseReqTimeout(): boolean {
           return this.useReqTimeout;
         },
         setReqTimeout(reqTimeoutValue:number) {
           this.reqTimeoutValue = reqTimeoutValue;
         },
-        getReqTimeout() {
+        getReqTimeout(): number {
           return this.reqTimeoutValue;
         },
         setUseNodeTimeout(useNodeTimeout:boolean) {
           this.useNodeTimeout = useNodeTimeout;
         },
-        getUseNodeTimeout() {
+        getUseNodeTimeout(): boolean {
           return this.useNodeTimeout;
         },
         setNodeTimeout(nodeTimeoutValue:number) {
           this.nodeTimeoutValue = nodeTimeoutValue;
         },
-        getNodeTimeout() {
+        getNodeTimeout(): number {
           return this.nodeTimeoutValue;
         },
         setUseReadTimeout(useReadTimeout:boolean) {
           this.useReadTimeout = useReadTimeout;
         },
-        getUseReadTimeout() {
+        getUseReadTimeout(): boolean {
           return this.useReadTimeout;
         },
-        getReadTimeout() {
+        getReadTimeout(): number {
           return this.readTimeoutValue;
         },
         setReadTimeout(readTimeoutValue:number) {
@@ -549,28 +602,28 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
         },
-        useGlobalTimeout(){
-          return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
-        },
-        getYAPCScore() {
+        // useGlobalTimeout(): boolean {
+        //   return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
+        // },
+        getYAPCScore():number {
           return this.YAPCScore;
         },
         setYAPCScore(value:number) {
           this.YAPCScore = value;
         },
-        getUseYAPCScore() {
+        getUseYAPCScore():boolean {
           return this.useYAPCScore;
         },
         setUseYAPCScore(value:boolean) {
           this.useYAPCScore = value;
         },
-        getUseYAPCKnn() {
+        getUseYAPCKnn():boolean {
           return this.usesYAPCKnn;
         },
         setUseYAPCKnn(value:boolean) {
           this.usesYAPCKnn = value;
         },
-        getYAPCKnn() {
+        getYAPCKnn():number {
           return this.YAPCKnn;
         },
         setYAPCKnn(value:number) {
@@ -619,7 +672,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           }
           this.missionValue = value;
         },
-        getMissionItems() {
+        getMissionItems(): string[] {
           return this.missionItems;
         },
         getIceSat2API() : string {
@@ -638,25 +691,25 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.convexHull = convexHull;
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
         },
-        getConvexHull() {
+        getConvexHull(): SrRegion|null {
           return this.convexHull;
         },
         getAreaOfConvexHull() : number {
           return this.areaOfConvexHull;
         },
-        getFormattedAreaOfConvexHull() {
+        getFormattedAreaOfConvexHull(): string {
           return this.areaOfConvexHull.toFixed(2).toString()+" km²";
         },
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
         },
-        getAreaWarningThreshold() {
+        getAreaWarningThreshold(): number {
           return this.areaWarningThreshold;
         },
         setAreaWarningThreshold(value:number) { 
           this.areaWarningThreshold = value;
         },
-        getAreaErrorThreshold() {
+        getAreaErrorThreshold(): number {
           return this.areaErrorThreshold;
         },
         setAreaErrorThreshold(value:number) { 

@@ -94,12 +94,12 @@ export type OutputFormat = {
 // Define the parameter type for the atl06p function
 export interface AtlReqParams {
     asset: string;
-    cnf: number[];
+    cnf?: number[];
     ats?: number;
     cnt?: number;
-    len: number;
-    res: number;
-    maxi: number;
+    len?: number;
+    res?: number;
+    maxi?: number;
     poly?: SrRegion | null;
     cmr?: { polygon: SrRegion };
     output?:OutputFormat;

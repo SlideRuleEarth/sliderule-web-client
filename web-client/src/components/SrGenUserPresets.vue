@@ -6,12 +6,14 @@
     const selectedBox = ref<number | null>(null);
 
     const boxes = [
-        { id: 1, name: "ICESat-2 Ice Sheet", description: "For regions with ice", image: "/SrSeaIce.webp" },
-        { id: 2, name: "ICESat-2 Land Vegetation", description: "For regions with vegetation", image: "/SrCanopy.webp" },
-        { id: 3, name: "ICESat-2 Bathymetry", description: "For shallow water bathymetry", image: "/SrOcean.webp" },
-        { id: 4, name: "ICESat-2 Photons", description: "For photon cloud", image: "/SrNoise.webp" },
-        { id: 5, name: "GEDI Vegetation Density", description: "For regions with vegetation using GEDI ", image: "/SrInlandWater.webp" },
-        { id: 6, name: "GEDI Footprint", description: "GEDI footprint region", image: "/SrGround.webp" },
+        { id: 1, name: "ICESat-2 Surface Elevations", description: "For all surface types", image: "/SrGround.webp" },
+        { id: 2, name: "ICESat-2 Land Ice Sheet", description: "For ice sheets and glaciers", image: "/SrSeaIce.webp" },
+        { id: 3, name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+        { id: 4, name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
+        { id: 5, name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
+        { id: 6, name: "GEDI Aboveground Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+        { id: 7, name: "GEDI Canopy Heights", description: "For geolocated elevation and height metrics", image: "/SrInlandWater.webp" },
+        { id: 8, name: "GEDI geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
     ];
 
     const selectBox = (boxId: number) => {
@@ -22,10 +24,15 @@
             return;
         }
         if (selectedBoxInfo?.name) {
+            console.log(`${selectedBoxInfo.name} box selected.`);
             switch (selectedBoxInfo.name) {
-                case 'ICESat-2 Ice Sheet':
+                case 'ICESat-2 Surface Elevations':
+                    // Add specific logic for ICESat-2 Surface Elevations
+                    reqParameterStore.setMissionValue('ICESat-2');
+                    reqParameterStore.setIceSat2API('atl06');
+                   break;
+                case 'ICESat-2 Land Ice Sheet':
                     // Add specific logic for ICESat-2 Ice Sheet
-                    console.log("ICESat-2 Ice Sheet box selected.");
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
                     reqParameterStore.setSrt([
@@ -33,42 +40,45 @@
                         reqParameterStore.getSurfaceReferenceType('Land Ice'),
                     ]);
                     break;
-                case 'ICESat-2 Land Vegetation':
+                case 'ICESat-2 Canopy Heights':
                     // Add specific logic for ICESat-2 Land Vegetation
-                    console.log("ICESat-2 Land Vegetation box selected.");
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
                     reqParameterStore.setSrt([
                         reqParameterStore.getSurfaceReferenceType('Land'),
                     ]);
                     break;
-                case 'ICESat-2 Bathymetry':
+                case 'ICESat-2 Coastal Bathymetry':
                     // Add specific logic for ICESat-2 Bathymetry
-                    console.log("ICESat-2 Bathymetry box selected.");
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
                     reqParameterStore.setSrt([
                         reqParameterStore.getSurfaceReferenceType('Inland Water'),
                     ]);
                     break;
-                case 'ICESat-2 Photons':
+                case 'ICESat-2 Geolocated Photons':
                     // Add specific logic for ICESat-2 Photons
-                    console.log("ICESat-2 Photons box selected.");
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl03');
                     break;
-                case 'GEDI Vegetation Density':
+                case 'GEDI Aboveground Biomass Density':
+                    // Add specific logic for GEDI Aboveground Biomass Density
+                    reqParameterStore.setMissionValue('GEDI');
+                    reqParameterStore.setGediAPI('gedi03');
+                    reqParameterStore.setSrt([
+                        reqParameterStore.getSurfaceReferenceType('Land'),
+                    ]);
+                    break;
+                case 'GEDI Canopy Heights':
                     // Add specific logic for GEDI Vegetation Density
-                    console.log("GEDI Vegetation Density box selected.");
                     reqParameterStore.setMissionValue('GEDI');
                     reqParameterStore.setGediAPI('gedi04a');
                     reqParameterStore.setSrt([
                         reqParameterStore.getSurfaceReferenceType('Land'),
                     ]);
                     break;
-                case 'GEDI Footprint':
+                case 'GEDI geolocated Waveforms':
                     // Add specific logic for GEDI Footprint
-                    console.log("GEDI Footprint box selected.");
                     reqParameterStore.setMissionValue('GEDI');
                     reqParameterStore.setGediAPI('gedi01b');
                     reqParameterStore.setSrt([

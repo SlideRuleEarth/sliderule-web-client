@@ -34,9 +34,6 @@
         } else {
             console.log('runSlideRuleClicked');
             emit('run-sliderule-clicked');
-            if (!advancedModeStore.getAdvanced()) {
-                reqParamsStore.initParmsForGenUser();
-            }
             processRunSlideRuleClicked();
         }
     }
