@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 import { db } from '@/db/SlideRuleDb';
-import { atl08 } from '@/sliderule/icesat2';
 
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({

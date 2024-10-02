@@ -339,7 +339,7 @@
           </Styles.OlStyleCircle>
         </Styles.OlStyle>
       </Layers.OlVectorLayer>
-      <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+      <MapControls.OlAttributionControl :collapsible="true" :collapsed="false" />
     </Map.OlMap>
     <div class="sr-tooltip-style" id="tooltip"></div>
   </div>

@@ -36,7 +36,6 @@ export const useMapStore = defineStore('map', {
     isLoading: false as boolean,
     isAborting: false as boolean,
     currentReqId: 0 as number,
-    redrawTimeOutSeconds: 5,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
     totalRows: 0 as number,
     currentRows: 0 as number,

@@ -11,7 +11,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
-import { atl03 } from '@/sliderule/icesat2';
 
 interface SummaryRowData {
     minLat: number;
@@ -273,7 +272,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         let queryStr = `SELECT * FROM '${filename}'`;
         const rgts = useAtlChartFilterStore().getRgtValues();
         const cycles = useAtlChartFilterStore().getCycleValues(); 
-        if(func === 'atl06'){
+        if(func.includes('atl06')){
             const spots = useAtlChartFilterStore().getSpotValues();
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
@@ -282,11 +281,11 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
-        } else if(func === 'atl03'){
+        } else if(func.includes('atl03')){
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useAtlChartFilterStore().getAtl03WhereClause();
-        } else if(func === 'atl08'){
+        } else if(func.includes('atl08')){
             const spots = useAtlChartFilterStore().getSpotValues();
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
@@ -959,11 +958,11 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
         let seriesData = [] as SrScatterSeriesData[];
         if(sop.fileName){
             if(sop.spots?.length && sop.rgts && sop.cycles){
-                if(sop.func === 'atl06'){
+                if(sop.func.includes('atl06')){
                     seriesData = await getSeriesForAtl06(sop.fileName, sop.x, sop.y);
-                } else if(sop.func === 'atl03'){
+                } else if(sop.func.includes('atl03')){
                     seriesData = await getSeriesForAtl03(sop.fileName, sop.x, sop.y);
-                } else if(sop.func === 'atl08'){
+                } else if(sop.func.includes('atl08')){
                     seriesData = await getSeriesForAtl08(sop.fileName, sop.x, sop.y);
                 } else {
                     console.error('getScatterOptions invalid func:', sop.func);

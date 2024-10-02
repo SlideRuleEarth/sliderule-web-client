@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -13,7 +13,7 @@ export interface NullReqParams {
   null: null;
 }
 
-export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
+export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 
 interface YapcConfig {
   version: number;
@@ -28,12 +28,12 @@ export const useReqParamsStore = defineStore('reqParams', {
     state: () => ({
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
-        iceSat2SelectedAPI: 'atl06' as string,
-        iceSat2APIsItems: ['atl06','atl03','atl08','atl24'] as string[],
-        gediSelectedAPI: 'gedi01b' as string,
-        gediAPIsItems: ['gedi01b','gedi02a','gedi04a'] as string[],
+        iceSat2SelectedAPI: 'atl06p' as string,
+        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
+        gediSelectedAPI: 'gedi01bp' as string,
+        gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
         using_worker: false,
-        asset: 'icesat2',
+        asset: '', // TBD add a control for this?
         isArrowStream: false,
         isFeatherStream: false,
         rasterizePolyCellSize: 0.0001,
@@ -58,9 +58,9 @@ export const useReqParamsStore = defineStore('reqParams', {
         useTime: false,
         t0Value: new Date,
         t1Value: new Date,
-        totalTimeoutValue: 600,
+        totalTimeoutValue: -1, // this needs to be > the default in the server
         useReqTimeout: false,
-        reqTimeoutValue: 600,
+        reqTimeoutValue: 600, // this needs to match the default in the server
         useNodeTimeout: false,
         nodeTimeoutValue: 600,
         useReadTimeout: false,
@@ -72,7 +72,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         spreadValue: 20.0,
         PE_CountValue: 10,
         windowValue: 3.0,
-        sigmaValue: 5.0,
+        sigmaValue: -1.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
           { name: 'Dynamic', value: -1 },
@@ -82,18 +82,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Land Ice', value: 3 },
           { name: 'Inland Water',value: 4 },
         ] as SrMultiSelectNumberItem[],
-        surfaceReferenceType:[] as number[],
-        signalConfidenceOptions: 
-        [
-          { name: 'TEP', value: 'atl03_tep' },
-          { name: 'Not Considered', value: 'atl03_not_considered' },
-          { name: 'Background', value: 'atl03_background' },
-          { name: 'Within 10m', value: 'atl03_within_10m' },
-          { name: 'Low', value: 'atl03_low' },
-          { name: 'Medium', value: 'atl03_medium' },
-          { name: 'High', value: 'atl03_high' },
-        ] as SrMultiSelectTextItem[],
-        signalConfidence: [],
+        surfaceReferenceType: [-1] as number[], // TBD change this to [] when the server is updated
         signalConfidenceNumberOptions: 
         [
           { name: 'TEP', value: -2 },
@@ -104,7 +93,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 3 },
           { name: 'High', value: 4 },
         ] as SrMultiSelectNumberItem[],
-        signalConfidenceNumber: [ 0,1,2,3,4 ],
+        signalConfidenceNumber: [ ], 
         qualityPHOptions: [
           { name: 'Nominal', value: 0 },
           { name: 'Possible Afterpulse', value: 1 },
@@ -256,17 +245,31 @@ export const useReqParamsStore = defineStore('reqParams', {
             console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             return undefined;
           };
-        
           const req: AtlReqParams = {
-            asset: this.asset,
+          }
+          if(this.missionValue === 'ICESat-2') { // TBD when server is fixed no need to set this is will be preset by server based on mission and api selected
+            req.asset = 'icesat2'
+          } else if (this.missionValue === 'GEDI') {
+            console.log('GEDI API:', this.gediSelectedAPI);
+            if(this.gediSelectedAPI === 'gedi01bp') {
+              req.asset = 'gedil1b'
+            } else if(this.gediSelectedAPI === 'gedi02ap') {
+              req.asset = 'gedil2a'
+            } else if(this.gediSelectedAPI === 'gedi04ap') {
+              req.asset = 'gedil4a'
+            }
           }
           if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
-            req.srt = -1;
+            req.srt = -1; // and not [-1]
           } else {
+            if(this.surfaceReferenceType.length>0){
             req.srt = this.getSrt();
+            req.srt = this.getSrt();
+              req.srt = this.getSrt();
+            }
           }
-          if(this.signalConfidence.length>0){
-            req.cnf = this.signalConfidence;
+          if(this.signalConfidenceNumber.length>0){
+            req.cnf = this.signalConfidenceNumber;
           }
           if(this.getMinWindowHeight() >= 0.0){
             req.win = this.getMinWindowHeight();
@@ -362,19 +365,21 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }
-          // if(this.useGlobalTimeout()) {
-          //   req.timeout = this.totalTimeoutValue
-          // } else {
-          if(this.useReqTimeout) {
-            req['rqst-timeout'] = this.reqTimeoutValue;
+          if(this.useGlobalTimeout()) {
+            if(this.totalTimeoutValue > 0) {
+              req.timeout = this.totalTimeoutValue;
+            }
+          } else {
+            if(this.useReqTimeout) {
+              req['rqst-timeout'] = this.reqTimeoutValue;
+            }
+            if(this.useNodeTimeout) {
+              req['node-timeout'] = this.nodeTimeoutValue;
+            }
+            if(this.useReadTimeout) {
+              req['read-timeout'] = this.readTimeoutValue;
+            }
           }
-          if(this.useNodeTimeout) {
-            req['node-timeout'] = this.nodeTimeoutValue;
-          }
-          if(this.useReadTimeout) {
-            req['read-timeout'] = this.readTimeoutValue;
-          }
-          //}
           return req;
         },
         setSrt(srt:number[]) {
@@ -387,8 +392,11 @@ export const useReqParamsStore = defineStore('reqParams', {
           const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);
           return option ? option.value : -1;
         },
-        getAtlpReqParams(req_id: number): AtlpReqParams {
-          const baseParams:AtlpReqParams = {
+        getWorkerThreadTimeout(): number {
+          return(this.getReqTimeout()*1000) + 5000; //millisecs; add 5 seconds to the request timeout to allow server to timeout first;        
+        },
+        getAtlxxReqParams(req_id: number): AtlxxReqParams {
+          const baseParams:AtlxxReqParams = {
             parms: this.getAtlReqParams(req_id),
           };
       
@@ -502,22 +510,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         getAsset(): string {
           return this.asset;
         },
-        // initParmsForGenUser() {
-        //   this.asset = 'icesat2';
-        //   this.surfaceReferenceType = [-1];
-        //   this.signalConfidenceNumber = [4];
-        //   this.alongTrackSpread = 20.0;
-        //   this.minimumPhotonCount = 10;
-        //   this.maxIterations = 6;
-        //   this.minWindowHeight = 3.0;
-        //   this.sigmaValue = 5.0;
-        //   this.fileOutput = true;
-        //   this.outputFormat = {name:"parquet", value:"parquet"};
-        //   this.useChecksum = false;
-        //   this.stepValue = 20.0;
-        //   this.lengthValue = 40.0;
-        //   this.outputLocationPath=''; // forces auto creation of a unique path
-        // },
         getMinWindowHeight():number {
           return this.minWindowHeight;
         },
@@ -597,14 +589,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.readTimeoutValue = readTimeoutValue;
         },
         restoreTimeouts() {
-          this.totalTimeoutValue = 600;
+          this.totalTimeoutValue = -1;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
         },
-        // useGlobalTimeout(): boolean {
-        //   return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
-        // },
+        useGlobalTimeout(): boolean {
+          return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
+        },
         getYAPCScore():number {
           return this.YAPCScore;
         },
@@ -665,10 +657,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         setMissionValue(value:string) {
           if (value === 'ICESat-2') {
               this.iceSat2SelectedAPI = this.iceSat2APIsItems[0]; // Reset to default when mission changes
-              this.asset ='icesat2';
           } else if (value === 'GEDI') {
               this.gediSelectedAPI = this.gediAPIsItems[0]; // Reset to default when mission changes
-              this.asset ='gedi';
           }
           this.missionValue = value;
         },

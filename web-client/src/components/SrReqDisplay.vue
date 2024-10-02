@@ -32,7 +32,7 @@
 
     const reqParms = computed(() => {
       // NOTE: we use request ID of zero as a placeholder for the current request
-      return  JSON.stringify(reqParamsStore.getAtlpReqParams(0),null,2);
+      return  JSON.stringify(reqParamsStore.getAtlxxReqParams(0),null,2);
     });
 
     const copyToClipboard = () => {

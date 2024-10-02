@@ -1,6 +1,6 @@
 <template>
     <div class="sr-debug-panel">
-      <Fieldset legend="Debug Panel" class="sr-debug-panel-content" :toggleable="true" :collapsed="true" >
+      <Fieldset legend="Debug Panel" class="sr-debug-panel-content" :toggleable="true" :collapsed="false" >
             <div class="sr-debug-cnts"> 
               <SrProgressCnts />
             </div>

@@ -27,7 +27,7 @@
                     zlevel:100
                     }" 
             />
-            <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
+            <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="false">
 
             <div class="sr-data-set-options">
                 <label>Num points in plot</label>

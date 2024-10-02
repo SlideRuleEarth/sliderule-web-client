@@ -26,8 +26,8 @@ let percentComplete: number | null = null;
 
 function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
-    const timeoutDuration = (reqParamsStore.totalTimeoutValue*1000) + 5000; //millisecs; add 5 seconds to allow server to timeout first;
-    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds redraw Elevations every:',mapStore.redrawTimeOutSeconds, ' seconds');
+    const timeoutDuration = reqParamsStore.getWorkerThreadTimeout(); 
+    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
@@ -279,44 +279,18 @@ export async function processRunSlideRuleClicked() {
             useSrToastStore().error('Error','There was an error');
             return;
         }
-
         if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
-            if(useReqParamsStore().iceSat2SelectedAPI === 'atl06') {
-                console.log('atl06 selected');
-                srReqRec.func = 'atl06';
-                srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
-                srReqRec.start_time = new Date();
-                srReqRec.end_time = new Date();
-                runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl03') {
-                console.log('atl03 selected');
-                srReqRec.func = 'atl03';
-                srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
-                srReqRec.start_time = new Date();
-                srReqRec.end_time = new Date();
-                runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl08') {
-                console.log('atl08 selected');
-                srReqRec.func = 'atl08';
-                srReqRec.parameters = reqParamsStore.getAtlpReqParams(srReqRec.req_id);
-                srReqRec.start_time = new Date();
-                srReqRec.end_time = new Date();
-                runFetchToFileWorker(srReqRec);
-            } else if(useReqParamsStore().iceSat2SelectedAPI === 'atl24') {
-                console.log('atl24 TBD');
-                //toast.add({severity: 'info',summary: 'Info', detail: 'atl24 TBD', life: srToastStore.getLife() });
-                useSrToastStore().info('Info','atl24 is TBD');
-                requestsStore.setConsoleMsg('stopped... atl24 TBD');
-                mapStore.isLoading = false;
-            } else {
-                console.error('runSlideRuleClicked iceSat2SelectedAPI was undefined');
-                useSrToastStore().warn('Unsupported','That selection is TBD');
-                requestsStore.setConsoleMsg('stopped...');
-                mapStore.isLoading = false;
-            }
+            srReqRec.func = useReqParamsStore().getIceSat2API();
+            srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+            srReqRec.start_time = new Date();
+            srReqRec.end_time = new Date();
+            runFetchToFileWorker(srReqRec);
         } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
-            console.log('GEDI TBD');
-            useSrToastStore().info('Info','GEDI TBD');
+            srReqRec.func = useReqParamsStore().getGediAPI();
+            srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+            srReqRec.start_time = new Date();
+            srReqRec.end_time = new Date();
+            runFetchToFileWorker(srReqRec);
         }
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');

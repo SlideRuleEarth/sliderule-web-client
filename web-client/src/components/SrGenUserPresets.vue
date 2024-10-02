@@ -35,26 +35,16 @@
                     // Add specific logic for ICESat-2 Ice Sheet
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Sea Ice'),
-                        reqParameterStore.getSurfaceReferenceType('Land Ice'),
-                    ]);
                     break;
                 case 'ICESat-2 Canopy Heights':
                     // Add specific logic for ICESat-2 Land Vegetation
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Land'),
-                    ]);
                     break;
                 case 'ICESat-2 Coastal Bathymetry':
                     // Add specific logic for ICESat-2 Bathymetry
                     reqParameterStore.setMissionValue('ICESat-2');
                     reqParameterStore.setIceSat2API('atl06');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Inland Water'),
-                    ]);
                     break;
                 case 'ICESat-2 Geolocated Photons':
                     // Add specific logic for ICESat-2 Photons
@@ -64,26 +54,17 @@
                 case 'GEDI Aboveground Biomass Density':
                     // Add specific logic for GEDI Aboveground Biomass Density
                     reqParameterStore.setMissionValue('GEDI');
-                    reqParameterStore.setGediAPI('gedi03');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Land'),
-                    ]);
+                    reqParameterStore.setGediAPI('gedi04ap');
                     break;
                 case 'GEDI Canopy Heights':
                     // Add specific logic for GEDI Vegetation Density
                     reqParameterStore.setMissionValue('GEDI');
-                    reqParameterStore.setGediAPI('gedi04a');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Land'),
-                    ]);
-                    break;
+                    reqParameterStore.setGediAPI('gedi02ap');
+                     break;
                 case 'GEDI geolocated Waveforms':
                     // Add specific logic for GEDI Footprint
                     reqParameterStore.setMissionValue('GEDI');
-                    reqParameterStore.setGediAPI('gedi01b');
-                    reqParameterStore.setSrt([
-                        reqParameterStore.getSurfaceReferenceType('Land'),
-                    ]);
+                    reqParameterStore.setGediAPI('gedi01bp');
                     break;
                 default:
                     console.error("GenUserOptions Unknown selection.");

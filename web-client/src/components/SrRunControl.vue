@@ -8,13 +8,11 @@
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
-    import { useAdvancedModeStore } from '@/stores/advancedModeStore';
     import SrModeSelect from './SrModeSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
-    const advancedModeStore = useAdvancedModeStore();
 
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
 

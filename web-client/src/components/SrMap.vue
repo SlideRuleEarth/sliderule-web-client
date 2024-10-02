@@ -671,7 +671,7 @@
       :coordinateFormat="stringifyFunc as any"
       projection="EPSG:4326"
     />
-    <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+    <MapControls.OlAttributionControl :collapsible="true" :collapsed="false" />
 
     <MapControls.OlScalelineControl />
     <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
