@@ -37,7 +37,7 @@ const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['map-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
+const emit = defineEmits(['version-button-click','map-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
 
 
 const handleMapButtonClick = () => {
@@ -51,6 +51,9 @@ const handleAnalysisButtonClick = () => {
 };
 const handleAboutButtonClick = () => {
     emit('about-button-click');
+};
+const handleVersionButtonClick = () => {
+    emit('version-button-click');
 };
 
 function getVersionString(input: string): string {
@@ -153,7 +156,11 @@ onMounted(() => {
             <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
             <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
             <span class = "sr-title">SlideRule</span>
-            <p class="sr-version-text">Beta {{ formattedVersion }}</p>
+            <Button
+                class="p-button-rounded p-button-text desktop-only"
+                @click="handleVersionButtonClick">
+                Beta {{ formattedVersion }}
+            </Button>
         </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="Map" 
@@ -261,10 +268,6 @@ onMounted(() => {
 
     .logo {
         height: 2.5rem; /* Slightly reduce logo size on mobile if needed */
-    }
-
-    .sr-version-text {
-        font-size: 0.7rem; /* Reduce font size on mobile if needed */
     }
 }
 

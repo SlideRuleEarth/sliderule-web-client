@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import {useToast} from "primevue/usetoast";
+import { ref } from 'vue';
+import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
+import SrBuildDate from './components/SrBuildDate.vue';
+import SrNavigatorInfo from './components/SrNavigatorInfo.vue';
+import SrUserAgent from './components/SrUserAgent.vue';
+import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useRequestsStore } from "@/stores/requestsStore";
 
-const srToastStore = useSrToastStore()
+const srToastStore = useSrToastStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const toast = useToast();
 
+const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
+
 const mapButtonClick = () => {
-  // console.log('mapButtonClick');
-  //toast.add({ severity: 'info', summary: 'Tool Button', detail: 'Tool button was pushed',life: srToastStore.getLife()});
   router.push('/map'); 
 };
 
@@ -23,31 +28,32 @@ const recordButtonClick = () => {
 };
 
 const analysisButtonClick = async () => {
-  console.log('analysisButtonClick req_id: ', atlChartFilterStore.getReqId());
-  if (atlChartFilterStore.getReqId()){
+  if (atlChartFilterStore.getReqId()) {
     router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
   } else {
-    const items =  await requestsStore.getMenuItems();
-    if(items.length === 0){ 
-        console.warn('No requests found');
-        toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife()});
-        return;
+    const items = await requestsStore.getMenuItems();
+    if (items.length === 0) {
+      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+      return;
     }  
     const reqIdStr = items[0].value;
     const reqId = Number(reqIdStr);
-    if(reqId > 0){
+    if (reqId > 0) {
       atlChartFilterStore.setReqId(reqId);
       router.push(`/analyze/${reqId}`);
-      console.log('analysisButtonClick changed to req_id: ', reqId);
     } else {
-      console.warn('No requests found');
-      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife()});
+      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
     }
   }
 };
 
 const aboutButtonClick = () => {
   router.push('/about');
+};
+
+// Function to handle the version button click and show the dialog
+const handleVersionButtonClick = () => {
+  showVersionDialog.value = true; // Show the dialog
 };
 </script>
 
@@ -62,11 +68,21 @@ const aboutButtonClick = () => {
         @record-button-click="recordButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
+        @version-button-click="handleVersionButtonClick"
       />
-    </header >
+    </header>
     <div class="content">
       <RouterView />
     </div>
+    
+    <!-- Dialog for displaying version information -->
+    <Dialog v-model:visible="showVersionDialog" header="About This Application" :modal="true" :closable="true" style="width: 50vw;">
+      <div class="sr-about">
+        <SrBuildDate />
+        <SrNavigatorInfo />
+        <SrUserAgent />
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -74,32 +90,26 @@ const aboutButtonClick = () => {
 .app-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full height for the layout */
+  height: 100vh;
 }
 .app-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 60px; /* Adjust height based on your design */
-  z-index: 1000; /* Adjust z-index to ensure it stays above other elements */
+  height: 60px;
+  z-index: 1000;
 }
 
 .content {
-  margin-top: 60px; /* Adjust margin based on the height of your SrAppBar */
-  overflow-y: auto; 
-  height: calc(100vh - 60px); /* Full height minus the SrAppBar height */
+  margin-top: 60px;
+  overflow-y: auto;
+  height: calc(100vh - 60px);
 }
-/* Global style for toast popups */
-.p-toast-message {
-  opacity: 1.0 !important;
-}
-</style>
 
-<style>
-/* Global styles */
-body, #app {
-  margin: 0;
-  overflow: hidden;
+.sr-about {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 </style>

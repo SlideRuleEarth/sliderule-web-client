@@ -25,8 +25,8 @@
   const emit = defineEmits(['legendbox-created', 'picked-changed']);
   const gradientStyle = computed(() => {
     const style = colorMapStore.getColorGradientStyle();
-    console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
-    return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '20px', width: '100%' };
+    //console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
+    return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
   });
   
   onMounted(() => {
