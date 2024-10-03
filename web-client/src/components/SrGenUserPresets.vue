@@ -29,7 +29,7 @@
                 case 'ICESat-2 Surface Elevations':
                     // Add specific logic for ICESat-2 Surface Elevations
                     reqParameterStore.setMissionValue('ICESat-2');
-                    reqParameterStore.setIceSat2API('atl06');
+                    reqParameterStore.setIceSat2API('atl06p');
                    break;
                 case 'ICESat-2 Land Ice Sheet':
                     // Add specific logic for ICESat-2 Ice Sheet
