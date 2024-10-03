@@ -31,13 +31,13 @@
 
             <div class="sr-data-set-options">
                 <label>Num points in plot</label>
-                {{ numberFormatter.format(useAtl03ColorMapStore().getNumOfPlottedPnts()) }}
+                {{ numberFormatter.format(useAtlChartFilterStore().getNumOfPlottedPnts()) }}
                 <SrSwitchedSliderInput 
-                    v-model="atl03ColorMapStore.largeDataThreshold"
-                    :getCheckboxValue="atl03ColorMapStore.getLargeData"
-                    :setCheckboxValue="atl03ColorMapStore.setLargeData"
-                    :getValue="atl03ColorMapStore.getLargeDataThreshold"
-                    :setValue="atl03ColorMapStore.setLargeDataThreshold"
+                    v-model="atlChartFilterStore.largeDataThreshold"
+                    :getCheckboxValue="atlChartFilterStore.getLargeData"
+                    :setCheckboxValue="atlChartFilterStore.setLargeData"
+                    :getValue="atlChartFilterStore.getLargeDataThreshold"
+                    :setValue="atlChartFilterStore.setLargeDataThreshold"
                     label="Large Data Threshold (optimization-single color)"
                     :min="1"
                     :max="1000000" 
@@ -218,12 +218,12 @@ onMounted(async () => {
     if (reqId > 0) {
         const func = await indexedDb.getFunc(reqId);
         atl03ColorMapStore.initializeAtl03ColorMapStore();
-        if (func === 'atl03') {
-        atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-        } else if (func === 'atl06') {
-        atl03ColorMapStore.setAtl03ColorKey('YAPC');
-        } else if (func === 'atl08') {
-        atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+        if (func.includes('atl03')) {
+          atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+        } else if (func.includes('atl06')) {
+          atl03ColorMapStore.setAtl03ColorKey('YAPC');
+        } else if (func.includes('atl08')) {
+          atl03ColorMapStore.setAtl03ColorKey('atl08_class');
         }
         debouncedFetchScatterOptions();
     } else {

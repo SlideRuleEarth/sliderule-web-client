@@ -236,42 +236,55 @@ async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
     console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
     console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
-    if(useAtlChartFilterStore().getFunc() === 'atl03'){
+    if(useAtlChartFilterStore().getFunc()==='atl03sp'){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
             useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
 
-            let atl03WhereClause = `
+            let atl03spWhereClause = `
                     WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
                     AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
                     AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
                 `;
                 if (useAtlChartFilterStore().getPairValues() !== undefined) {
-                    atl03WhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+                    atl03spWhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
                 }
                 if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
-                    atl03WhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+                    atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
                 }
-            useAtlChartFilterStore().setAtl03WhereClause(atl03WhereClause);
+            useAtlChartFilterStore().setAtl03spWhereClause(atl03spWhereClause);
         }
-    } else if (useAtlChartFilterStore().getFunc() === 'atl06'){
+        console.log('Clicked: atl03spWhereClause',useAtlChartFilterStore().getAtl03spWhereClause())
+    } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
+        const atl03vpWhereClause = `
+            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
+            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+        `;
+        useAtlChartFilterStore().setAtl03vpWhereClause(atl03vpWhereClause);
+        console.log('Clicked: atl06spWhereClause',useAtlChartFilterStore().getAtl03vpWhereClause())
+    } else if (useAtlChartFilterStore().getFunc().includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
             AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
             AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
         `;
         useAtlChartFilterStore().setAtl06WhereClause(atl06WhereClause);
-    } else {
-        const atl08WhereClause = `
+        console.log('Clicked: atl06WhereClause',useAtlChartFilterStore().getAtl06WhereClause())
+    } else if (useAtlChartFilterStore().getFunc()==='atl08p'){
+        const atl08pWhereClause = `
             WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
             AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
             AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
         `;
-        useAtlChartFilterStore().setAtl08WhereClause(atl08WhereClause);
+        useAtlChartFilterStore().setAtl08pWhereClause(atl08pWhereClause);
+        console.log('Clicked: atl08pWhereClause',useAtlChartFilterStore().getAtl08pWhereClause())
+    } else {
+        console.error('Clicked: Unknown func?:',useAtlChartFilterStore().getFunc());
     }
+
     console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
     console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
-    console.log('Clicked: atl03WhereClause',useAtlChartFilterStore().getAtl03WhereClause())
 
 }
 
@@ -323,11 +336,17 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         getNormal: [0, 0, 1],
         getColor: (d:any) => {
-            const h = d[heightFieldName];
-            const c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-            c[3] = 255; // Set the alpha channel to 255 (fully opaque)
-            //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
-            return c;
+            
+            try{
+                const h = d[heightFieldName];
+                const c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+                //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
+                c[3] = 255; // Set the alpha channel to 255 (fully opaque)
+                return c;
+            } catch (error) {
+                console.error('Error getting color:',error);
+                return [255, 0, 0, 255];
+            }
         },
         pointSize: 3,
         pickable: true, // Enable picking

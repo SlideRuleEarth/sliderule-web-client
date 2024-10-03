@@ -27,7 +27,7 @@ const reqParamsStore = useReqParamsStore();
                 :default="[
                     reqParamsStore.surfaceReferenceTypeOptions[0],
                 ]"
-                tooltipText="The surface type used in the ATL03 photon classification"
+                tooltipText="srt: The surface type used in the ATL03 photon classification"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
             <SrMultiSelectNumber
@@ -43,7 +43,7 @@ const reqParamsStore = useReqParamsStore();
                     reqParamsStore.signalConfidenceNumberOptions[6],
                     ]"
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
-                tooltipText="Confidence level for photon selection, can be supplied as a single value (which means the confidence must be at least that), or a list (which means the confidence must be in the list)"
+                tooltipText="cnf: Confidence level for photon selection"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />            
             <SrMultiSelectNumber
@@ -51,11 +51,9 @@ const reqParamsStore = useReqParamsStore();
                 label="Quality PH"
                 ariaLabel="Quality PH"
                 :menuOptions="reqParamsStore.qualityPHOptions"
-                :default="[
-                    reqParamsStore.qualityPHOptions[0],
-                ]"
+                :default="reqParamsStore.qualityPHNumber"
                 @update:value="reqParamsStore.qualityPHNumber = $event"
-                tooltipText="quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts, can be supplied as a single value (which means the classification must be exactly that), or a list (which means the classification must be in the list))"
+                tooltipText="quality_ph: quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />  
         </div>

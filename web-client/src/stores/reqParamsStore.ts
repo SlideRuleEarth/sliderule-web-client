@@ -31,7 +31,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         iceSat2SelectedAPI: 'atl06p' as string,
         iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
         gediSelectedAPI: 'gedi01bp' as string,
-        gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
+        gediAPIsItems: ['gedi01b','gedi01bp','gedi02a','gedi02ap','gedi04a','gedi04ap'] as string[],
         using_worker: false,
         asset: '', // TBD add a control for this?
         isArrowStream: false,
@@ -72,7 +72,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         spreadValue: 20.0,
         PE_CountValue: 10,
         windowValue: 3.0,
-        sigmaValue: -1.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
           { name: 'Dynamic', value: -1 },
@@ -93,14 +92,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 3 },
           { name: 'High', value: 4 },
         ] as SrMultiSelectNumberItem[],
-        signalConfidenceNumber: [ ], 
+        signalConfidenceNumber: [] as number[], 
         qualityPHOptions: [
           { name: 'Nominal', value: 0 },
           { name: 'Possible Afterpulse', value: 1 },
           { name: 'Possible Impulse Response Effect', value: 2 },
           { name: 'Possible TEP', value: 3 },
         ] as SrMultiSelectNumberItem[],
-        qualityPHNumber: [0],
+        qualityPHNumber: [],
         enableAtl08Classification: false,
         atl08LandTypeOptions: [
           {name:'Noise', value:'atl08_noise'}, 
@@ -120,7 +119,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         minimumPhotonCount: -1,
         maxIterations: -1,
         minWindowHeight: -1.0,
-        maxRobustDispersion: 0.0,
+        maxRobustDispersion: -1.0,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
         geoLocationOptions: [
@@ -259,6 +258,9 @@ export const useReqParamsStore = defineStore('reqParams', {
               req.asset = 'gedil4a'
             }
           }
+          if(this.iceSat2SelectedAPI==='atl08p') {
+            req.phoreal = {};
+          }
           if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
             req.srt = -1; // and not [-1]
           } else {
@@ -272,7 +274,7 @@ export const useReqParamsStore = defineStore('reqParams', {
             req.cnf = this.signalConfidenceNumber;
           }
           if(this.getMinWindowHeight() >= 0.0){
-            req.win = this.getMinWindowHeight();
+            req.H_min_win = this.getMinWindowHeight();
           }
           if(this.getLengthValue() >= 0.0){
             req.len = this.getLengthValue();
@@ -280,8 +282,8 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.getStepValue() >= 0.0){
             req.res = this.getStepValue();
           }
-          if(this.getSigmaValue() >= 0.0){
-            req.sigma_r_max = this.getSigmaValue();
+          if(this.getSigmaRmax() >= 0.0){
+            req.sigma_r_max = this.getSigmaRmax();
           }
           if(this.getMaxIterations() > 0){
             req.maxi = this.getMaxIterations();
@@ -333,11 +335,15 @@ export const useReqParamsStore = defineStore('reqParams', {
             }
           }
           if(this.enableAtl03Confidence) {
-            req.quality_ph = this.qualityPHNumber;
+            if(this.qualityPHNumber.length>0){
+              req.quality_ph = this.qualityPHNumber;
+            }
           }
 
           if(this.enableAtl08Classification) {
-            req.alt08_class = this.atl08LandType;
+            if(this.atl08LandType.length>0){
+              req.alt08_class = this.atl08LandType;
+            }
           }
           if(this.enableYAPC) {
             const yapc:YapcConfig = {
@@ -393,7 +399,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           return option ? option.value : -1;
         },
         getWorkerThreadTimeout(): number {
-          return(this.getReqTimeout()*1000) + 5000; //millisecs; add 5 seconds to the request timeout to allow server to timeout first;        
+          let timeout = 600000; // 10 minutes
+          if(this.getReqTimeout()>0){
+            timeout = (this.getReqTimeout()*1000) + 5000; //millisecs; add 5 seconds to the request timeout to allow server to timeout first; 
+          } else {
+            timeout = 600*1000+5000; // default to 10 minutes 5 seconds. TBD use server defaults api to set this
+          } 
+          console.log('getWorkerThreadTimeout this.getReqTimeout:', this.getReqTimeout(), 'timeout:', timeout); 
+          return timeout;      
         },
         getAtlxxReqParams(req_id: number): AtlxxReqParams {
           const baseParams:AtlxxReqParams = {
@@ -528,11 +541,11 @@ export const useReqParamsStore = defineStore('reqParams', {
         setStepValue(stepValue:number) {
           this.stepValue = stepValue;
         },
-        getSigmaValue(): number {
-          return this.sigmaValue;
+        getSigmaRmax(): number {
+          return this.maxRobustDispersion;
         },
-        setSigmaValue(sigmaValue:number) {
-          this.sigmaValue = sigmaValue;
+        setSigmaRmax(sigma_r_max:number) {
+          this.maxRobustDispersion= sigma_r_max;
         },
         getMaxIterations():number {
           return this.maxIterations;
@@ -666,9 +679,11 @@ export const useReqParamsStore = defineStore('reqParams', {
           return this.missionItems;
         },
         getIceSat2API() : string {
+          console.log('getIceSat2API:', this.iceSat2SelectedAPI);
           return this.iceSat2SelectedAPI;
         },
         setIceSat2API(value:string) {
+          console.log('setIceSat2API:', value);
           this.iceSat2SelectedAPI = value;
         },
         getGediAPI() : string {

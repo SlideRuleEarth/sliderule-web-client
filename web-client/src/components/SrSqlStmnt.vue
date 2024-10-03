@@ -25,7 +25,11 @@
         return atlChartFilterStore.getFunc();
     });
     const computedSqlStmnt = computed(() => {
-        return atlChartFilterStore.getSqlStmnt(computedCurFunc.value);
+        const sqlStmnt = atlChartFilterStore.getSqlStmnt(computedCurFunc.value);
+        if ((sqlStmnt === undefined) ||(sqlStmnt === null) || (sqlStmnt === '')) {
+            return `No SQL statement available for this function: ${computedCurFunc.value}`;
+        }
+        return sqlStmnt;
     }); 
 
     onMounted(async () => {

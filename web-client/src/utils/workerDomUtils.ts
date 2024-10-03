@@ -30,8 +30,8 @@ function startFetchToFileWorker(){
     console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
-            const msg = `Timeout: Worker operation timed out in:${timeoutDuration} secs`;
-            console.error(msg); // add thirty seconds to the timeout to let server timeout first
+            const msg = `Timeout: Worker operation timed out in:${(timeoutDuration/1000)} secs`;
+            console.error(msg); // added to the timeout to let server timeout first
             //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
             useSrToastStore().info('Timeout',msg);
             cleanUpWorker();
@@ -95,7 +95,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
                 if(workerMsg.msg){
                     requestsStore.setSvrMsg(workerMsg.msg);
-                    requestsStore.setConsoleMsg(`Received ${workerMsg.progress.numArrowDataRecs} arrowData records`);
+                    requestsStore.setConsoleMsg(`Received ${workerMsg.progress.numSvrExceptions}`);
                 }
             }
             break;
@@ -280,17 +280,33 @@ export async function processRunSlideRuleClicked() {
             return;
         }
         if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
-            srReqRec.func = useReqParamsStore().getIceSat2API();
-            srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-            srReqRec.start_time = new Date();
-            srReqRec.end_time = new Date();
-            runFetchToFileWorker(srReqRec);
+            if((useReqParamsStore().getIceSat2API() !== undefined) || (useReqParamsStore().getIceSat2API() !== null) || (useReqParamsStore().getIceSat2API() !== '')){
+                console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
+                srReqRec.func = useReqParamsStore().getIceSat2API();
+                srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+                srReqRec.start_time = new Date();
+                srReqRec.end_time = new Date();
+                runFetchToFileWorker(srReqRec);
+            } else {
+                console.error('runSlideRuleClicked IceSat2API was undefined');
+                useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
+                requestsStore.setConsoleMsg('stopped...');
+                mapStore.isLoading = false;
+            }
         } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
-            srReqRec.func = useReqParamsStore().getGediAPI();
-            srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-            srReqRec.start_time = new Date();
-            srReqRec.end_time = new Date();
-            runFetchToFileWorker(srReqRec);
+            if(useReqParamsStore().getGediAPI() || (useReqParamsStore().getGediAPI() !== undefined) || (useReqParamsStore().getGediAPI() !== null) || (useReqParamsStore().getGediAPI() !== '')){
+                console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
+                srReqRec.func = useReqParamsStore().getGediAPI();
+                srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+                srReqRec.start_time = new Date();
+                srReqRec.end_time = new Date();
+                runFetchToFileWorker(srReqRec);
+            } else {
+                console.error('runSlideRuleClicked GediAPI was undefined');
+                useSrToastStore().error('Error','There was an error. GediAPI was undefined');
+                requestsStore.setConsoleMsg('stopped...');
+                mapStore.isLoading = false;
+            }
         }
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');

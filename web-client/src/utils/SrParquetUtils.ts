@@ -172,11 +172,15 @@ export function updateExtremeLatLon(elevationData:ElevationPlottable[],
 }
 
 export function getHFieldName(funcStr:string) {
-    if (funcStr.includes('atl06')) {
+    if (funcStr === 'atl06p') {
         return 'h_mean';
-    } else if (funcStr.includes('atl03')){
+    } else if (funcStr === 'atl06sp') {
+        return 'bsnow_h';
+    } else if (funcStr=== 'atl03vp'){
+        return 'segment_ph_cnt';
+    } else if (funcStr=== 'atl03sp'){
         return 'height';
-    } else if (funcStr.includes('atl08')){
+    } else if (funcStr==='atl08p'){
         return 'h_mean_canopy';
     } else {
         throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);

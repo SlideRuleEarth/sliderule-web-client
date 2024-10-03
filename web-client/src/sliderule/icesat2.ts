@@ -93,6 +93,7 @@ export type OutputFormat = {
 };
 // Define the parameter type for the atl06p function
 export interface AtlReqParams {
+    phoreal?: {};
     asset?: string;
     cnf?: number[];
     ats?: number;

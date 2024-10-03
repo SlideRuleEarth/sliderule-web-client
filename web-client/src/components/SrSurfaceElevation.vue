@@ -25,7 +25,7 @@ const reqParamsStore = useReqParamsStore();
                         :max="200"
                         :defaultValue="reqParamsStore.maxIterations" 
                         :decimalPlaces="0"
-                        tooltipText="The maximum number of iterations, not including initial least-squares-fit selection"
+                        tooltipText="maxi: The maximum number of iterations, not including initial least-squares-fit selection"
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
                     />
             <SrSliderInput
@@ -35,7 +35,7 @@ const reqParamsStore = useReqParamsStore();
                 :max="200"
                 :defaultValue="reqParamsStore.minWindowHeight" 
                 :decimalPlaces="0"
-                tooltipText="The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
+                tooltipText="H_min_win: The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
             />
             <SrSliderInput
@@ -45,7 +45,7 @@ const reqParamsStore = useReqParamsStore();
                 :max="200"
                 :defaultValue="reqParamsStore.maxRobustDispersion" 
                 :decimalPlaces="0"
-                tooltipText="The maximum robust dispersion in meters"
+                tooltipText="sigma_r_max: The maximum robust dispersion in meters"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
             />
         </div>

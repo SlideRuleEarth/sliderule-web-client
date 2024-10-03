@@ -155,7 +155,7 @@ export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:
     //console.log('getWhereClause: rgts:', rgts);
     //console.log('getWhereClause: cycles:', cycles);
     let whereStr = '';
-    if (func === 'atl03'){
+    if (func.includes('atl03')){
         if ((rgts.length > 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if (rgts.length > 0) {
@@ -171,7 +171,7 @@ export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:
                 whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
             }
         }
-    } else if ((func === 'atl06') || (func === 'atl08')) {
+    } else if ((func.includes('atl06')) || (func.includes('atl08'))) {
         if ((rgts.length > 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if (rgts.length > 0) {

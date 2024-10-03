@@ -34,22 +34,22 @@
                 case 'ICESat-2 Land Ice Sheet':
                     // Add specific logic for ICESat-2 Ice Sheet
                     reqParameterStore.setMissionValue('ICESat-2');
-                    reqParameterStore.setIceSat2API('atl06');
+                    reqParameterStore.setIceSat2API('atl06sp');
                     break;
                 case 'ICESat-2 Canopy Heights':
                     // Add specific logic for ICESat-2 Land Vegetation
                     reqParameterStore.setMissionValue('ICESat-2');
-                    reqParameterStore.setIceSat2API('atl06');
+                    reqParameterStore.setIceSat2API('atl08p');
                     break;
                 case 'ICESat-2 Coastal Bathymetry':
                     // Add specific logic for ICESat-2 Bathymetry
                     reqParameterStore.setMissionValue('ICESat-2');
-                    reqParameterStore.setIceSat2API('atl06');
+                    reqParameterStore.setIceSat2API('atl24s');
                     break;
                 case 'ICESat-2 Geolocated Photons':
                     // Add specific logic for ICESat-2 Photons
                     reqParameterStore.setMissionValue('ICESat-2');
-                    reqParameterStore.setIceSat2API('atl03');
+                    reqParameterStore.setIceSat2API('atl03vp');
                     break;
                 case 'GEDI Aboveground Biomass Density':
                     // Add specific logic for GEDI Aboveground Biomass Density
