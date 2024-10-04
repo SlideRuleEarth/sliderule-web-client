@@ -227,7 +227,11 @@ export const useReqParamsStore = defineStore('reqParams', {
             if (this.outputLocationPath.length === 0) {
               //Note: This is only used by the server. It needs to be unique for each request.
               // We create a similar filename for our local client elsewhere.
-              path = `${this.iceSat2SelectedAPI}_${req_id}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+              let reqIdStr = 'nnn';
+              if(req_id > 0) {
+                reqIdStr = `${req_id}`;
+              }
+              path = `${this.iceSat2SelectedAPI}_${reqIdStr}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
             }
             return path;
           };
