@@ -1,7 +1,7 @@
 <template>
 <div class="sr-ancillary-fields-container">
     <SrMenuMultiInputText
-        v-if="props.iceSat2SelectedAPI.includes('atl03') || props.iceSat2SelectedAPI.includes('atl06')"
+        v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
         label="ATL03 GeoSpatial Fields"
         ariaLabel="Select ATL03 GeoSpatial Fields"
@@ -12,7 +12,7 @@
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     />  
     <SrMenuMultiInputText
-        v-if="props.iceSat2SelectedAPI.includes('atl03') || props.iceSat2SelectedAPI.includes('atl06')"
+        v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
         label="ATL03 Photon Fields"
         ariaLabel="Select ATL03 Photon Fields"

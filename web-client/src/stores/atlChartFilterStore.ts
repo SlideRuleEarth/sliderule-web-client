@@ -267,6 +267,29 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getYDataForChart() {
       return this.yDataForChart;
     },
+    setYDataForChart(yDataForChart: string[]) {
+      this.yDataForChart = yDataForChart;
+    },    
+    getXDataForChart() {
+      return this.xDataForChart;
+    },
+    setXDataForChart(xDataForChart: string) {
+      this.xDataForChart = xDataForChart;
+    },
+    setXDataForChartUsingFunc(func: string) {
+      if (func.includes('atl03')) {
+        this.setXDataForChart('x_atc');
+        if (func.includes('atl03vp')) {
+          this.setXDataForChart('segment_dist_x');
+        }
+      } else if (func.includes('atl06')) {
+        this.setXDataForChart('x_atc');
+      } else if (func.includes('atl08')) {
+        this.setXDataForChart('x_atc');
+      } else {
+        console.error('setXDataForChartFromFunc() unknown function:', func);
+      }
+    },
     getNdxOfelevationDataOptionsForHeight() {
       return this.ndxOfelevationDataOptionsForHeight;
     },
@@ -349,8 +372,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
         fileName: this.currentFile,
         func: this.func,
-        y: this.yDataForChart,
-        x: this.xDataForChart,
+        y: this.getYDataForChart(),
+        x: this.getXDataForChart(),
         beams: this.beams.map(beam => beam.value),
         spots: this.spots.map(spot => spot.value),
         pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),

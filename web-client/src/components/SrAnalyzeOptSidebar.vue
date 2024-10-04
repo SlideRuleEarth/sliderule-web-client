@@ -129,11 +129,11 @@ const onSelection = async() => {
     } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
         useAtlChartFilterStore().setAtl03vpWhereClause(whereClause);
     } else if (useAtlChartFilterStore().getFunc()==='atl06p'){
-        useAtlChartFilterStore().setAtl06pWhereClause(whereClause);
+        useAtlChartFilterStore().setAtl06WhereClause(whereClause);
     } else if (useAtlChartFilterStore().getFunc()==='atl06sp'){
-        useAtlChartFilterStore().setAtl06spWhereClause(whereClause);
+        useAtlChartFilterStore().setAtl06WhereClause(whereClause);
     } else if (useAtlChartFilterStore().getFunc()==='atl08sp'){
-        useAtlChartFilterStore().setAtl08spWhereClause(whereClause);
+        useAtlChartFilterStore().setAtl08pWhereClause(whereClause);
     }
     useAtlChartFilterStore().updateScatterPlot();
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
@@ -255,7 +255,7 @@ const updateElevationMap = async (req_id: number) => {
         //console.log('watch req_id rgts:',rgts);
         const cycles = await updateCycleOptions(req_id);
         //console.log('watch req_id cycles:',cycles);
-        if(atlChartFilterStore.getFunc().includes('atl03')){
+        if(atlChartFilterStore.getFunc()==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             //console.log('watch req_id pairs:',pairs);
             const scOrients = await updateScOrientOptions(req_id);
@@ -354,7 +354,6 @@ const getCnt = computed(() => {
                 <SrEditDesc :reqId="Number(selectedReqId.value)"/>
             </div>
             <div>
-                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
                         v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
@@ -436,7 +435,7 @@ const getCnt = computed(() => {
                     <div class="sr-pair-sc-orient">
                         <SrListbox id="scOrients"
                             label="scOrient(s)" 
-                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
                             v-model="atlChartFilterStore.scOrients" 
                             :getSelectedMenuItem="atlChartFilterStore.getScOrients"
                             :setSelectedMenuItem="atlChartFilterStore.setScOrients"
@@ -447,7 +446,7 @@ const getCnt = computed(() => {
                             />
                         <SrListbox id="pairs"
                             label="pair(s)" 
-                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
                             v-model="atlChartFilterStore.pairs" 
                             :getSelectedMenuItem="atlChartFilterStore.getPairs"
                             :setSelectedMenuItem="atlChartFilterStore.setPairs"
@@ -470,6 +469,7 @@ const getCnt = computed(() => {
                     />
                 </div>
             </FieldSet>
+            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
         </div>
     </div>
 </template>

@@ -196,7 +196,7 @@ export const getTrackFieldname = async (req_id:number) => {
     const result = await db.getFunc(req_id);
     if (result.includes('atl06')) {
         return 'gt';
-    } else if (result.includes('atl03')){
+    } else if (result === 'atl03sp'){
         return 'track';
     } else {
         throw new Error(`Unknown height fieldname for ${result} in getTrackFieldname`);
