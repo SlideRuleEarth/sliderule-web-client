@@ -509,7 +509,6 @@ const getCnt = computed(() => {
         align-items: center;
         justify-content: space-between; 
         min-height: 30%;
-        max-height: 30%;
         min-width: 20vw;
         width: 100%;
     }
