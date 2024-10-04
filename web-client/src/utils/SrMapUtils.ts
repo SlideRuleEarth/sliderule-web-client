@@ -336,17 +336,21 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         getNormal: [0, 0, 1],
         getColor: (d:any) => {
-            
+            let c; 
             try{
                 const h = d[heightFieldName];
-                const c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+                c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
-                c[3] = 255; // Set the alpha channel to 255 (fully opaque)
-                return c;
+                if(c){
+                    c[3] = 255; // Set the alpha channel to 255 (fully opaque)
+                }
             } catch (error) {
-                console.error('Error getting color:',error);
-                return [255, 0, 0, 255];
+                console.error('Error getting color:',c,' error:',error);
             }
+            if((c === undefined) || (c === null)){
+                c = [255, 255, 255, 255] as [number,number,number,number];// flag illegal points with white
+            }   
+            return c;
         },
         pointSize: 3,
         pickable: true, // Enable picking
