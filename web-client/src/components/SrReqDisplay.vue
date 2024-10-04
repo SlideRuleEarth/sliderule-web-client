@@ -13,8 +13,10 @@
                 @mouseenter="isHovered = true"
                 @mouseleave="isHovered = false"
             >
-                <div class="hover-overlay" v-if="isHovered"></div>
-                <pre><code>{{ reqParms }}</code></pre>
+                <div class = "sr-parms-panel">
+                  <pre><code>{{ curAPI }}:</code></pre>
+                  <pre><code>{{ reqParms }}</code></pre>
+                </div>
             </div>
         
     </div>
@@ -34,6 +36,7 @@
       // NOTE: we use request ID of zero as a placeholder for the current request
       return  JSON.stringify(reqParamsStore.getAtlxxReqParams(0),null,2);
     });
+    const curAPI = computed(() => reqParamsStore.getCurAPI());
 
     const copyToClipboard = () => {
       navigator.clipboard.writeText(reqParms.value)
@@ -87,6 +90,11 @@
 
 .sr-req-display-parms pre {
   margin: 0;
+  width: 100%;
+}
+.sr-parms-panel {
+  display: flex;
+  flex-direction: column;
   width: 100%;
 }
 

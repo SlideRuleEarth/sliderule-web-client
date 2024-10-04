@@ -692,6 +692,14 @@ export const useReqParamsStore = defineStore('reqParams', {
         setGediAPI(value:string) {
           this.gediSelectedAPI = value;
         },
+        getCurAPI() : string {
+          if(this.missionValue === 'ICESat-2') {
+            return this.iceSat2SelectedAPI;
+          } else if(this.missionValue === 'GEDI') {
+            return this.gediSelectedAPI;
+          }
+          return '';
+        },
         setConvexHull(convexHull: SrRegion) {
           this.convexHull = convexHull;
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
