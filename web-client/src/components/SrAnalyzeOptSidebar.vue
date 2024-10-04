@@ -2,7 +2,7 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
-import SrRecReqDisplay from './SrRecReqDisplay.vue';
+import SrRecReqDisplay from './SrRecIdReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';

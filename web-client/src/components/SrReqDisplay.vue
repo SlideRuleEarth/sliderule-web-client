@@ -14,8 +14,7 @@
                 @mouseleave="isHovered = false"
             >
                 <div class = "sr-parms-panel">
-                  <pre><code>{{ curAPI }}:</code></pre>
-                  <pre><code>{{ reqParms }}</code></pre>
+                  <pre><code>endpoint = {{ curAPI }}<br>{{ reqParms }}<br></code></pre>
                 </div>
             </div>
         

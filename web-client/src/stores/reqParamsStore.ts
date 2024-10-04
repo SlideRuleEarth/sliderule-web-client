@@ -218,6 +218,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.resources.splice(index, 1);
         },
         getAtlReqParams(req_id: number): AtlReqParams { 
+          console.log('getAtlReqParams req_id:', req_id);
           const getOutputPath = (): string => {
             let path = this.outputLocationPath;
             if (this.outputLocation.value === 'S3') {
@@ -386,6 +387,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               req['read-timeout'] = this.readTimeoutValue;
             }
           }
+          console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
         },
         setSrt(srt:number[]) {
