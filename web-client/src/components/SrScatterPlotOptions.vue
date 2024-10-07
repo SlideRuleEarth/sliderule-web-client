@@ -52,7 +52,9 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 </script>
 <template>
 <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
-
+    <div class="sr-sql-stmnt">
+    <SrSqlStmnt />
+</div>
 <div class="sr-data-set-options">
     <label>Num points in plot</label>
     {{ numberFormatter.format(useAtlChartFilterStore().getNumOfPlottedPnts()) }}
@@ -137,9 +139,7 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
         tooltipText="Symbol size for Atl08 Scatter Plot"
     />
 </div>  
-<div class="sr-sql-stmnt">
-    <SrSqlStmnt />
-</div>
+
 </Fieldset>
 </template>
 <style scoped>
