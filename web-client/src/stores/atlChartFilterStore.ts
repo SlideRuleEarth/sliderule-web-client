@@ -4,7 +4,9 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
-import { set } from 'lodash';
+import VChart from "vue-echarts";
+import { get } from 'lodash';
+
 
 export interface SrListNumberItem {
   label: string;
@@ -63,6 +65,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
     numOfPlottedPnts: 0 as number,
+    plotRef: null as InstanceType<typeof VChart> | null, 
+    selectedAtl03ColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
 }),
 
   actions: {
@@ -494,9 +498,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       } else {
         console.warn('getSymbolSize() unknown function:',this.func);
         return 5;
-      }
-
-        
+      }        
     },
     getMessage() {
       return this.message;
@@ -540,6 +542,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setNumOfPlottedPnts(numOfPlottedPnts: number) {
         this.numOfPlottedPnts = numOfPlottedPnts;
+    },
+    setPlotRef(ref: InstanceType<typeof VChart> | null) {
+      this.plotRef = ref;
+    },
+    getPlotRef() {
+      return this.plotRef;
+    },
+    getSelectedAtl03ColorMap() {
+      return this.selectedAtl03ColorMap;
+    },
+    setSelectedAtl03ColorMap(selectedAtl03ColorMap: {name:string, value:string}) {
+      this.selectedAtl03ColorMap = selectedAtl03ColorMap;
     },
   }
 });
