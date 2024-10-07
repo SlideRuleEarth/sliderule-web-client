@@ -51,7 +51,7 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 };
 </script>
 <template>
-<Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="false">
+<Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
 
 <div class="sr-data-set-options">
     <label>Num points in plot</label>
@@ -143,4 +143,20 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 </Fieldset>
 </template>
 <style scoped>
+.sr-scatter-plot-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+.sr-sql-stmnt {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
 </style>

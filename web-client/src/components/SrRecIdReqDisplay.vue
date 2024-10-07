@@ -69,6 +69,7 @@
     justify-content: column;
     max-height: 15rem;
     max-width: 15rem;
+    min-height: 10rem;
     overflow-y: auto;
     overflow-x: auto;
     width: 100%;

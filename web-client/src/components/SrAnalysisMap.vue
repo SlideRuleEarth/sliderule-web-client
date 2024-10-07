@@ -358,6 +358,7 @@
   border-radius: var(--p-border-radius); 
   overflow: hidden;
   margin: 0.5rem;
+  margin-top: 0;
   padding: 0.5rem;
 }
 .sr-tooltip-style {
@@ -401,12 +402,16 @@
 }
 .sr-isLoadingEl {
   color: #e9df1c;
-  padding: 0.5rem;
+  padding-top: 0.5rem;
+  margin-bottom: 0rem;
+  padding-bottom: 0;
   font-size: 1rem;
 }
 .sr-notLoadingEl {
   color: #4CAF50;
-  padding: 0.5rem;
+  padding-top: 0.5rem;
+  margin-bottom: 0rem;
+  padding-bottom: 0;
   font-size: 1rem;
 }
 .hidden-control {

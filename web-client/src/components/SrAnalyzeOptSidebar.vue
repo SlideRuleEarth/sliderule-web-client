@@ -24,6 +24,7 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
+import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -364,6 +365,8 @@ const getCnt = computed(() => {
                         :decimalPlaces=0
                         tooltipText="Maximum number of points to display"
                     />
+                </div>
+                <div class="sr-analysis-color-map">
                     <SrMenuInput 
                         label="Color Map" 
                         :menuOptions="getColorMapOptions()" 
@@ -469,7 +472,10 @@ const getCnt = computed(() => {
                     />
                 </div>
             </FieldSet>
-            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+            <div class="sr-analysis-rec-parms">
+                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
+            </div>
+            <SrScatterPlotOptions />
         </div>
     </div>
 </template>
@@ -479,18 +485,24 @@ const getCnt = computed(() => {
         flex-direction: column;
         height: 100vh;
         margin-top: auto;
+        overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
     }
     .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         margin-top: 1rem;
-        height: 100%;
+        min-height: 100%;
         min-width: 20vw;
         width: 100%;
-        overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
     }
     .sr-analysis-reqid-sz{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .sr-analysis-reqid{
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -525,7 +537,7 @@ const getCnt = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin: 2rem;
+        margin: 0.75rem;
         border: 0.5rem solid;
         font-size: smaller;
         border: 1px solid;
@@ -533,7 +545,20 @@ const getCnt = computed(() => {
         color:transparent
  
     }
-
+    .sr-analysis-max-pnts {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+    .sr-analysis-color-map {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content:flex-start;
+        margin-top: 0.5rem;
+    }
     .sr-fieldset {
         display: flex;
         flex-direction: column;
@@ -597,4 +622,13 @@ const getCnt = computed(() => {
         padding-top: 0.125rem;
         padding-bottom: 0rem;
     }
+
+    .sr-analysis-rec-parms{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+
 </style>

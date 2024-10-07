@@ -36,9 +36,6 @@
         console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
     });
 
-
-    
-
   </script>
   
   <style scoped>
@@ -47,6 +44,7 @@
     display: flex;
     flex-direction: column;
     align-self: start;
+    justify-content: left;
     padding: 0rem;
     margin-top: 0rem;
   }
@@ -55,13 +53,13 @@
     margin-top: 0;
     font-size: medium;
     font-weight: bold;
-    justify-content: center;
+    justify-content:left;
   }
   .sr-sql-stmnt-display-panel-content {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    align-items: center;
+    align-items: left;
     font-size: smaller;
     padding: 0rem;
   }
@@ -70,7 +68,7 @@
     justify-content: left;
     margin-top: 0rem;
     overflow-x: auto;
-    max-width: 40rem;
+    max-width: 20rem;
 }
   </style>
   

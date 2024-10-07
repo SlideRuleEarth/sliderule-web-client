@@ -27,7 +27,6 @@
                       zlevel:100
                     }" 
             />
-            <SrScatterPlotOptions />
           </div> 
     </div>
 </template>
@@ -45,7 +44,6 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
-import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
