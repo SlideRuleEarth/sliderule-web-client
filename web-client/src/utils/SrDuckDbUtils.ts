@@ -1199,7 +1199,14 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 lazyUpdate: true,
                 xAxis: {
                     min: useAtlChartFilterStore().getMinX(),
-                    max: useAtlChartFilterStore().getMaxX()
+                    max: useAtlChartFilterStore().getMaxX(),
+                    name: 'Meters', // Add the label for the x-axis here
+                    nameLocation: 'middle', // Position the label in the middle of the axis
+                    nameTextStyle: {
+                        fontSize: 10,
+                        padding:[10,0,10,0],
+                        margin:10,
+                    }
                 },
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',
@@ -1217,11 +1224,14 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                         type: 'slider', // This creates a slider to zoom in the X-axis
                         xAxisIndex: 0,
                         filterMode: 'none',
+                        bottom: 1,
                     },
                     {
                         type: 'slider', // This creates a slider to zoom in the Y-axis
                         yAxisIndex: seriesData.length > 1 ? [0, 1] : 0, // Adjusting for multiple y-axes if necessary
                         filterMode: 'none',
+                        left: '95%',
+                        width: 20,
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
@@ -1233,7 +1243,8 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                         yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
                         filterMode: 'none',
                     },
-                ],            };
+                ],            
+            };
         } else {
             console.warn('getScatterOptions seriesData is empty');
         }

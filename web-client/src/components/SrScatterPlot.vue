@@ -21,10 +21,10 @@
                     :autoresize="{throttle:500}" 
                     :loading="atlChartFilterStore.isLoading" 
                     :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
+                      text:'Data Loading', 
+                      fontSize:20, 
+                      showSpinner: true, 
+                      zlevel:100
                     }" 
             />
             <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="false">
