@@ -39,6 +39,14 @@ const customUploader = async (event:any) => {
             const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
             srReqRec.file = newFilename;
             srReqRec.func = func;
+            if(srReqRec.func === 'atl06'){
+                srReqRec.func = 'atl06p'; // backward compatibility
+                console.warn('Updating func to atl06p');
+            }
+            if(srReqRec.func === 'atl03'){
+                srReqRec.func = 'atl03sp'; // backward compatibility
+                console.warn('Updating func to atl03sp');
+            }
             srReqRec.status = 'imported';
             srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
             await db.updateRequestRecord(srReqRec);
