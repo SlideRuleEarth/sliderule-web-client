@@ -17,14 +17,15 @@ import SrCustomTooltip from './SrCustomTooltip.vue';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
-const isCodeFormat = ref(true);
+const isReqParmCodeFmt = ref(true);
+const isSvrParmCodeFmt = ref(true);
 
 
 const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
     const inputElement = event.target as HTMLInputElement;
     const newValue = inputElement.value.trim();
     //data[field] = newValue; // Update the specific field with the new value
-    db.updateRequestRecord({req_id: data.req_id, description: data.description});
+    db.updateRequestRecord({req_id: data.req_id, description: data.description}, false);
     console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
 };
 const analyze = (id:number) => {
@@ -189,19 +190,35 @@ const tooltipRef = ref();
                     />
                 </template>
             </Column>
-            <Column field="parameters" header="Parameters" class="sr-par-fmt">
+            <Column field="parameters" header="Req Parms" class="sr-par-fmt">
                 <template #header>
                     <i 
                       class="pi pi-code sr-toggle-icon"
-                      @click="isCodeFormat = !isCodeFormat"
+                      @click="isReqParmCodeFmt = !isReqParmCodeFmt"
                       @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
                       @mouseleave="tooltipRef.hideTooltip"
                     > </i>
                 </template> 
                 <template #body="slotProps">
                     <div class="sr-col-par-style" >
-                        <span v-if="isCodeFormat"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
+                        <span v-if="isReqParmCodeFmt"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
                         <span v-else>{{slotProps.data.parameters}}</span>
+                    </div>
+                </template>
+            </Column>
+            <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
+                <template #header>
+                    <i 
+                      class="pi pi-code sr-toggle-icon"
+                      @click="isSvrParmCodeFmt = !isSvrParmCodeFmt"
+                      @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
+                      @mouseleave="tooltipRef.hideTooltip"
+                    > </i>
+                </template> 
+                <template #body="slotProps">
+                    <div class="sr-col-par-style" >
+                        <span v-if="isSvrParmCodeFmt"><pre><code>{{slotProps.data.svr_parms}}</code></pre></span>
+                        <span v-else>{{slotProps.data.svr_parms}}</span>
                     </div>
                 </template>
             </Column>
@@ -314,7 +331,7 @@ const tooltipRef = ref();
     margin-top: 1rem;
 }
 :deep(.sr-col-par-style) {
-    min-width: 20rem;
+    min-width: 7rem;
     max-width: 25rem;
     max-height: 10rem;
     overflow: auto;

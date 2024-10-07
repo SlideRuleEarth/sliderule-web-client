@@ -38,7 +38,7 @@ const onEditComplete = (event: Event) => {
     const inputElement = event.target as HTMLInputElement;
     const newValue = inputElement.value.trim();
     descrRef.value = newValue; // Update the specific field with the new value
-    db.updateRequestRecord({ req_id: props.reqId, description: descrRef.value });
+    db.updateRequestRecord({ req_id: props.reqId, description: descrRef.value },false);
     useSrToastStore().info('Description Updated', 'You updated the description');
     //console.log('Edit completed, new value:', newValue, 'Description:', descrRef.value);
 };

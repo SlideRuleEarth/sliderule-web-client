@@ -19,10 +19,10 @@
     onMounted(async () => {
         console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
+        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
-        requestsStore.setConsoleMsg(`Select a geographic region ( a couple sq miles).  Then click 'Run SlideRule' to start the process`);
+        requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
     });
 
     function toggleRunAbort() {
