@@ -85,13 +85,13 @@ const isExpanded = (panelIndex: number) => {
                         <SrExtents />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="5" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI==='atl06'"  > 
+                <AccordionPanel value="5" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl06')"  > 
                     <AccordionHeader>Surface Elevation</AccordionHeader>
                     <AccordionContent  v-if="isExpanded(5)">
                         <SrSurfaceElevation />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="6" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI==='atl08'" >
+                <AccordionPanel value="6" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl08')" >
                     <AccordionHeader>Veg Density Alg</AccordionHeader>
                     <AccordionContent v-if="isExpanded(6)">
                         <SrVegDensity />

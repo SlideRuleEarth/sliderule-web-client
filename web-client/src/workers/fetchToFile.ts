@@ -1,6 +1,6 @@
 import { db } from "@/db/SlideRuleDb";
-import { atl06,atl03,atl08 } from '@/sliderule/icesat2.js';
-import { type AtlpReqParams,type AtlReqParams } from '@/sliderule/icesat2';
+import { atlxx } from '@/sliderule/icesat2';
+import { type AtlxxReqParams,type AtlReqParams } from '@/sliderule/icesat2';
 import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
@@ -324,16 +324,8 @@ onmessage = async (event) => {
                                 console.warn("&&&&&&&&&&&&&&&&&&&& STATE ERROR &&&&&&&&&&&&&&&&&&&");
                             }
                             got_all_cbs = false;
-                            if(cmd.func.includes('atl06')){  
-                                result = await atl06(cmd.parameters as AtlpReqParams,callbacks);
-                            } else if(cmd.func.includes('atl03')){
-                                result = await atl03(cmd.parameters as AtlpReqParams,callbacks);
-                            } else if(cmd.func.includes('atl08')){
-                                result = await atl08(cmd.parameters as AtlpReqParams,callbacks);
-                            } else {
-                                console.error('Unknown cmd.func provided');
-                                postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Unknown cmd.func provided' }));
-                            }
+                            result = await atlxx(cmd.func as string, cmd.parameters as AtlxxReqParams,callbacks);
+
                             if(result){
                                 read_result = result as Sr_Results_type;
                                 target_numSvrExceptions = 'exceptrec'       in read_result ? Number(read_result['exceptrec']) : 0;

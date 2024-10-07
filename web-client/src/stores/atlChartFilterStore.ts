@@ -49,9 +49,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03QuerySql: '' as string,
     atl06QuerySql: '' as string,  
     atl08QuerySql: '' as string,
-    atl03WhereClause: '' as string,
+    atl03spWhereClause: '' as string,
+    atl03vpWhereClause: '' as string,
     atl06WhereClause: '' as string,
-    atl08WhereClause: '' as string,
+    atl08pWhereClause: '' as string,
     atl03SymbolSize: 1 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
@@ -59,7 +60,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: false as boolean,
     showMessage: false as boolean,
     recCnt: 0 as number,
-  }),
+    largeData: false as boolean,
+    largeDataThreshold: 1000000 as number,
+    numOfPlottedPnts: 0 as number,
+}),
 
   actions: {
     setRegion(regionValue: number) {
@@ -263,6 +267,29 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getYDataForChart() {
       return this.yDataForChart;
     },
+    setYDataForChart(yDataForChart: string[]) {
+      this.yDataForChart = yDataForChart;
+    },    
+    getXDataForChart() {
+      return this.xDataForChart;
+    },
+    setXDataForChart(xDataForChart: string) {
+      this.xDataForChart = xDataForChart;
+    },
+    setXDataForChartUsingFunc(func: string) {
+      if (func.includes('atl03')) {
+        this.setXDataForChart('x_atc');
+        if (func.includes('atl03vp')) {
+          this.setXDataForChart('segment_dist_x');
+        }
+      } else if (func.includes('atl06')) {
+        this.setXDataForChart('x_atc');
+      } else if (func.includes('atl08')) {
+        this.setXDataForChart('x_atc');
+      } else {
+        console.error('setXDataForChartFromFunc() unknown function:', func);
+      }
+    },
     getNdxOfelevationDataOptionsForHeight() {
       return this.ndxOfelevationDataOptionsForHeight;
     },
@@ -345,8 +372,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
         fileName: this.currentFile,
         func: this.func,
-        y: this.yDataForChart,
-        x: this.xDataForChart,
+        y: this.getYDataForChart(),
+        x: this.getXDataForChart(),
         beams: this.beams.map(beam => beam.value),
         spots: this.spots.map(spot => spot.value),
         pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
@@ -387,11 +414,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getAtl03QuerySql() {
       return this.atl03QuerySql;
     },
-    setAtl03WhereClause(sql: string) {
-      this.atl03WhereClause = sql;
+    setAtl03spWhereClause(sql: string) {
+      this.atl03spWhereClause = sql;
     },
-    getAtl03WhereClause() {
-      return this.atl03WhereClause
+    getAtl03spWhereClause() {
+      return this.atl03spWhereClause
+    },
+    setAtl03vpWhereClause(sql: string) {
+      this.atl03vpWhereClause = sql;
+    },
+    getAtl03vpWhereClause() {
+      return this.atl03vpWhereClause
     },
     setAtl06WhereClause(sql: string) {
       this.atl06WhereClause = sql;
@@ -399,11 +432,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getAtl06WhereClause() {
       return this.atl06WhereClause;
     },
-    setAtl08WhereClause(sql: string) {
-      this.atl08WhereClause = sql;
+    setAtl08pWhereClause(sql: string) {
+      this.atl08pWhereClause = sql;
     },
-    getAtl08WhereClause() {
-      return this.atl08WhereClause;
+    getAtl08pWhereClause() {
+      return this.atl08pWhereClause;
     },
     setAtl06QuerySql(sql: string) {
       this.atl06QuerySql = sql;
@@ -419,11 +452,15 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getSqlStmnt(func: string) {
       switch (func) {
-        case 'atl03':
+        case 'atl03sp':
           return this.atl03QuerySql;
-        case 'atl06':
+        case 'atl03vp':
+          return this.atl03QuerySql;
+        case 'atl06p':
           return this.atl06QuerySql;
-        case 'atl08':
+        case 'atl06sp':
+          return this.atl06QuerySql;
+        case 'atl08p':
           return this.atl08QuerySql;
         default:
           return '';
@@ -448,17 +485,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.atl08SymbolSize;
     },
     getSymbolSize() {
-      switch (this.func) {
-        case 'atl03':
-          return this.atl03SymbolSize;
-        case 'atl06':
-          return this.atl06SymbolSize;
-        case 'atl08':
-          return this.atl08SymbolSize;
-        default:
-          console.warn('atlChartFilterStore.getSymbolSize() unknown function:', this.func);
-          return 5;
+      if(this.func.includes('atl03')){
+        return this.atl03SymbolSize;
+      } else if(this.func.includes('atl06')){
+        return this.atl06SymbolSize;
+      } else if(this.func.includes('atl08')){
+        return this.atl08SymbolSize;
+      } else {
+        console.warn('getSymbolSize() unknown function:',this.func);
+        return 5;
       }
+
+        
     },
     getMessage() {
       return this.message;
@@ -483,6 +521,25 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getRecCnt() {
       return this.recCnt;
+    },
+
+    getLargeData() {
+      return this.largeData;
+    },
+    setLargeData(largeData: boolean) {
+        this.largeData = largeData;
+    },
+    getLargeDataThreshold() {
+        return this.largeDataThreshold;
+    },
+    setLargeDataThreshold(largeDataThreshold: number) {
+        this.largeDataThreshold = largeDataThreshold;
+    },
+    getNumOfPlottedPnts() {
+      return this.numOfPlottedPnts;
+    },
+    setNumOfPlottedPnts(numOfPlottedPnts: number) {
+        this.numOfPlottedPnts = numOfPlottedPnts;
     },
   }
 });

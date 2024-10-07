@@ -93,95 +93,49 @@ export type OutputFormat = {
 };
 // Define the parameter type for the atl06p function
 export interface AtlReqParams {
-    asset: string;
-    cnf: number[];
+    phoreal?: {};
+    asset?: string;
+    cnf?: number[];
     ats?: number;
     cnt?: number;
-    len: number;
-    res: number;
-    maxi: number;
+    len?: number;
+    res?: number;
+    maxi?: number;
     poly?: SrRegion | null;
     cmr?: { polygon: SrRegion };
     output?:OutputFormat;
     [key: string]: any; // Other dynamic keys
 }
 
-export interface AtlpReqParams {
+export interface AtlxxReqParams {
     parms: AtlReqParams;
     resources?: Resource[];
 }
 
-//
-// ATL06P
-//
-export async function atl06(alt06preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
+
+export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {
-    console.log("atl06 params: ", alt06preqparams);
+    console.log("atlxx params: ", atlxxReqParams);
 
     if (callbacks == null) {
-        throw new Error("SlideRuleError: atl06 requires a callback function");
+        throw new Error("SlideRuleError: atlxx requires a callback function");
     }
     try {
         //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
-        if((alt06preqparams.resources && alt06preqparams.resources.length > 0) || (alt06preqparams.parms.poly && alt06preqparams.parms.poly.length > 0)){
-            const result = await core.source('atl06p', alt06preqparams, true, callbacks);
-            console.log("atl06p result: ", result);
+        if((atlxxReqParams.resources && atlxxReqParams.resources.length > 0) || (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0)){
+            const result = await core.source(func, atlxxReqParams, true, callbacks);
+            console.log("atlxx result: ", result);
             return result as core.Sr_Results_type;
         } else {
-            console.error("atl06p error: ", "atl06 requires either a polygon or a resource parameter");
-            throw new Error("SlideRuleError: atl06 requires either a polygon or a resource parameter");
+            console.error("atlxx error: ", "atlxx requires either a polygon or a resource parameter");
+            throw new Error("SlideRuleError: atlxx requires either a polygon or a resource parameter");
         }
     } catch (error) {
-        console.log("atl06 error: ", error);
+        console.log("atlxx error: ", error);
         throw error;
     }
 };
 
-//
-// ATL03P
-//
-export async function atl03(alt03preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
-{
-    console.log("atl03 params: ", alt03preqparams);
-
-    if (callbacks == null) {
-        throw new Error("atl03 requires a callback function");
-    }
-    try{
-        console.log("atl03sp rqst: ", JSON.stringify(alt03preqparams));
-        const result = await core.source('atl03sp', alt03preqparams, true, callbacks);
-        console.log("atl03sp result: ", result);
-        return result as core.Sr_Results_type;
-    }
-    catch (error) {
-        console.error("atl03 error: ", error);
-        throw error;
-    }
-
-};
-
-//
-// ATL08P
-//
-export async function atl08(alt08preqparams: AtlpReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
-{
-    console.log("atl08 params: ", alt08preqparams);
-
-    if (callbacks == null) {
-        throw new Error("atl08 requires a callback function");
-    }
-    try{
-        console.log("atl08p rqst: ", JSON.stringify(alt08preqparams));
-        const result = await core.source('atl08p', alt08preqparams, true, callbacks);
-        console.log("atl08p result: ", result);
-        return result as core.Sr_Results_type;
-    }
-    catch (error) {
-        console.error("atl08p error: ", error);
-        throw error;
-    }
-
-};
 
 // Export any other constants or functions if necessary
 export {

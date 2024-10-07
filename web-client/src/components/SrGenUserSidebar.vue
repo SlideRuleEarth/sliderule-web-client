@@ -1,10 +1,12 @@
 <script setup lang="ts">
     import SrGenUserSidebarOptions from "@/components/SrGenUserPresets.vue";
+import SrReqDisplay from "./SrReqDisplay.vue";
 </script>
 
 <template>
     <div class="sr-gen-user-sidebar-container">
         <SrGenUserSidebarOptions />
+        <SrReqDisplay />
     </div>
 </template>
 

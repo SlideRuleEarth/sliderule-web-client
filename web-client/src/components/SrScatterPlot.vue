@@ -21,23 +21,23 @@
                     :autoresize="{throttle:500}" 
                     :loading="atlChartFilterStore.isLoading" 
                     :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
+                      text:'Data Loading', 
+                      fontSize:20, 
+                      showSpinner: true, 
+                      zlevel:100
                     }" 
             />
-            <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
+            <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="false">
 
             <div class="sr-data-set-options">
                 <label>Num points in plot</label>
-                {{ numberFormatter.format(useAtl03ColorMapStore().getNumOfPlottedPnts()) }}
+                {{ numberFormatter.format(useAtlChartFilterStore().getNumOfPlottedPnts()) }}
                 <SrSwitchedSliderInput 
-                    v-model="atl03ColorMapStore.largeDataThreshold"
-                    :getCheckboxValue="atl03ColorMapStore.getLargeData"
-                    :setCheckboxValue="atl03ColorMapStore.setLargeData"
-                    :getValue="atl03ColorMapStore.getLargeDataThreshold"
-                    :setValue="atl03ColorMapStore.setLargeDataThreshold"
+                    v-model="atlChartFilterStore.largeDataThreshold"
+                    :getCheckboxValue="atlChartFilterStore.getLargeData"
+                    :setCheckboxValue="atlChartFilterStore.setLargeData"
+                    :getValue="atlChartFilterStore.getLargeDataThreshold"
+                    :setValue="atlChartFilterStore.setLargeDataThreshold"
                     label="Large Data Threshold (optimization-single color)"
                     :min="1"
                     :max="1000000" 
@@ -49,7 +49,7 @@
 
             <div class="sr-select-color-key">
                 <SrMenu 
-                        v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+                        v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
                         label="Color Map Key" 
                         v-model="atl03ColorMapStore.atl03ColorKey"
                         @update:modelValue="changedColorKey"
@@ -61,26 +61,26 @@
             </div>
             <div class="sr-select-color-map">
                 <SrMenuInput 
-                    v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
+                    v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
                     label="Color Map" 
                     :menuOptions="getColorMapOptions()" 
                     v-model="selectedAtl03ColorMap"
                     tooltipText="Color Map for atl03 scatter plot"
                 />
                 <SrAtl03CnfColors 
-                    v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+                    v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
                     @selectionChanged="atl03CnfColorChanged"
                     @defaultsChanged="atl03CnfColorChanged"
                     />
                 <SrAtl08ClassColors 
-                    v-if = "atlChartFilterStore.getFunc().includes('atl03') && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
+                    v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
                     @selectionChanged="atl08ClassColorChanged"
                     @defaultsChanged="atl08ClassColorChanged"
                 />
             </div>
             <div class="sr-select-symbol-size">
                 <SrSliderInput
-                    v-if = "atlChartFilterStore.getFunc().includes('atl03')"
+                    v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
                     v-model="atlChartFilterStore.atl03SymbolSize"
                     @update:model-value="symbolSizeSelection"
                     label="Atl03 Scatter Plot symbol size"
@@ -162,7 +162,7 @@ interface AtColorChangeEvent {
 const fetchScatterOptions = async () => {
   const reqId = atlChartFilterStore.getReqId();
   if(reqId > 0){
-    const y_options = atlChartFilterStore.yDataForChart;
+    const y_options = atlChartFilterStore.getYDataForChart();
     if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
       atlChartFilterStore.setShowMessage(false);
       const startTime = performance.now(); // Start time
@@ -172,6 +172,7 @@ const fetchScatterOptions = async () => {
         const req_id = atlChartFilterStore.getReqId();
         const func = await indexedDb.getFunc(req_id);
         atlChartFilterStore.setFunc(func);
+        atlChartFilterStore.setXDataForChartUsingFunc(func);
         const sop = atlChartFilterStore.getScatterOptionsParms();
         //console.log('fetchScatterOptions sop:',sop);
         const scatterOptions = await getScatterOptions(sop);
@@ -218,12 +219,12 @@ onMounted(async () => {
     if (reqId > 0) {
         const func = await indexedDb.getFunc(reqId);
         atl03ColorMapStore.initializeAtl03ColorMapStore();
-        if (func === 'atl03') {
-        atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-        } else if (func === 'atl06') {
-        atl03ColorMapStore.setAtl03ColorKey('YAPC');
-        } else if (func === 'atl08') {
-        atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+        if (func === 'atl03sp') {
+          atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+        } else if (func.includes('atl06')) {
+          atl03ColorMapStore.setAtl03ColorKey('YAPC');
+        } else if (func.includes('atl08')) {
+          atl03ColorMapStore.setAtl03ColorKey('atl08_class');
         }
         debouncedFetchScatterOptions();
     } else {

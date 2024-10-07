@@ -112,7 +112,7 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
             tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
             tooltipUrl="https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf"
         />
-        <Fieldset legend="Time Range" class="sr-time-range-content" :toggleable="true" :collapsed="true">
+        <Fieldset legend="Time Range" class="sr-time-range-content" :toggleable="true" :collapsed="false">
             <SrCalendar
                 :insensitive="!reqParamsStore.enableGranuleSelection"
                 v-model="reqParamsStore.t0Value"

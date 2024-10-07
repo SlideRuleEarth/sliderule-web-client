@@ -24,7 +24,7 @@ const reqParamsStore = useReqParamsStore();
             :menuOptions="reqParamsStore.atl08LandTypeOptions"
             :insensitive="!reqParamsStore.enableAtl08Classification"
             :default="reqParamsStore.atl08LandTypeOptions"
-            tooltipText="The ATL08 classifications used to select which photons are used in the processing."
+            tooltipText="atl08_class: The ATL08 classifications used to select which photons are used in the processing."
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
         />
 

@@ -8,23 +8,21 @@
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
-    import { useAdvancedModeStore } from '@/stores/advancedModeStore';
     import SrModeSelect from './SrModeSelect.vue';
 
     const reqParamsStore = useReqParamsStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
-    const advancedModeStore = useAdvancedModeStore();
 
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
 
     onMounted(async () => {
         console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
-        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square miles.    Then:\n 2) Click 'Run SlideRule' to start the process");
+        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
-        requestsStore.setConsoleMsg(`Select a geographic region ( a couple sq miles).  Then click 'Run SlideRule' to start the process`);
+        requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
     });
 
     function toggleRunAbort() {
@@ -34,9 +32,6 @@
         } else {
             console.log('runSlideRuleClicked');
             emit('run-sliderule-clicked');
-            if (!advancedModeStore.getAdvanced()) {
-                reqParamsStore.initParmsForGenUser();
-            }
             processRunSlideRuleClicked();
         }
     }

@@ -1,10 +1,11 @@
 <template>
-  <div class="sr-build-date">
-    <span v-if="build_date">Build Date: {{ build_date }}</span>
-    <span v-if="build_env">Build Env: {{ build_env }}</span>
-    <span v-if="run_dev_date">Run Dev Date: {{ run_dev_date }}</span>
-    <span v-if="live_update_date">Live Update: {{ live_update_date }}</span>
-    <span v-if="client_version">Version: {{ client_version }}</span>
+  <div>
+    <h2>Build Information</h2>
+    <p v-if="build_date"><strong>Build Date:</strong> {{ build_date }}</p>
+    <p v-if="build_env"><strong>Build Env:</strong> {{ build_env }}</p>
+    <p v-if="run_dev_date"><strong>Run Dev Date:</strong> {{ run_dev_date }}</p>
+    <p v-if="live_update_date"><strong>Live Update:</strong> {{ live_update_date }}</p>
+    <p v-if="client_version"><strong>Version:</strong> {{ client_version }}</p>
   </div>
 </template>
 
@@ -21,15 +22,6 @@ const client_version = import.meta.env.VITE_APP_VERSION
 </script>
 
 <style scoped>
-.sr-build-date {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  font-size: 1.5em;
-  text-align: center;
-}
+
 </style>
 

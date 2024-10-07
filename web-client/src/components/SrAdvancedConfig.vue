@@ -1,6 +1,6 @@
 <template>
     <div class="sr-advanced-config">
-    <Fieldset legend="Advanced Config" class="sr-advanced-config-content" :toggleable="true" :collapsed="true">
+    <Fieldset legend="Advanced Config" class="sr-advanced-config-content" :toggleable="true" :collapsed="false">
         <SrSelectParquetReader />
         <SrSliderInput
                 v-model="srParquetCfgStore.chunkSizeToRead"

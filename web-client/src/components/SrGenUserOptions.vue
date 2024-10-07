@@ -37,11 +37,10 @@ const reqParamsStore = useReqParamsStore();
         tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
     />
     <SrResources v-if="reqParamsStore.ignorePolygon"/>
-    <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="true">
+    <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="false">
         <SrSliderInput
-            :insensitive="!reqParamsStore.useGlobalTimeout()"
             v-model="reqParamsStore.totalTimeoutValue"
-            label="Timeout"
+            label="Server Timeout"
             :min="60"
             :max="1000000"
             :defaultValue="reqParamsStore.totalTimeoutValue" 

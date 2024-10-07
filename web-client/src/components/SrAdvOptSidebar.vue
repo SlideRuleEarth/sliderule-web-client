@@ -34,6 +34,7 @@
                 :menuOptions="useReqParamsStore().iceSat2APIsItems"
                 :getSelectedMenuItem="useReqParamsStore().getIceSat2API"
                 :setSelectedMenuItem="useReqParamsStore().setIceSat2API"
+                :defaultOptionIndex=0
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
             />
@@ -44,6 +45,7 @@
                 :menuOptions="useReqParamsStore().gediAPIsItems"
                 :getSelectedMenuItem="useReqParamsStore().getGediAPI"
                 :setSelectedMenuItem="useReqParamsStore().setGediAPI"
+                :defaultOptionIndex=0
                 tooltipText="Select an API to use for the selected mission."
                 tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
             />

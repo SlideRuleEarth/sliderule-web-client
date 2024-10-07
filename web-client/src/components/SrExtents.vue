@@ -39,7 +39,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="5"
                     :max="200" 
                     :decimal-places="0"                  
-                    tooltipText="The length of the extent in meters"
+                    tooltipText="len: The length of the extent in meters"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
                 <SrSliderInput
@@ -49,7 +49,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="5"
                     :max="100" 
                     :decimal-places="0"
-                    tooltipText="The Step Size of the extent in meters"
+                    tooltipText="res: The Step Size of the extent in meters"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
                 <SrSliderInput
@@ -59,7 +59,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="5"
                     :max="200" 
                     :decimal-places="0"                  
-                    tooltipText="The length of the extent in segments"
+                    tooltipText="len: The length of the extent in segments"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
                 <SrSliderInput
@@ -69,7 +69,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="1"
                     :max="100" 
                     :decimal-places="0"
-                    tooltipText="The length of the extent in segments"
+                    tooltipText="res: The length of the extent in segments"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
             </div>
@@ -80,7 +80,7 @@ const reqParamsStore = useReqParamsStore();
                     label="Pass Invalid"
                     labelFontSize="large"
                     v-model="reqParamsStore.passInvalid"
-                    tooltipText="indicating whether or not extents that fail validation checks are still used and returned in the results" 
+                    tooltipText="pass_invalid: indicating whether or not extents that fail validation checks are still used and returned in the results" 
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
             </div> 
@@ -92,7 +92,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="0"
                     :max="200" 
                     :decimal-places="0"
-                    tooltipText="minimum along track spread"
+                    tooltipText="ats: minimum along track spread"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
                 <SrSliderInput
@@ -102,7 +102,7 @@ const reqParamsStore = useReqParamsStore();
                     :min="0"
                     :max="200" 
                     :decimal-places="0"
-                    tooltipText="minimum photon count in segments"
+                    tooltipText="cnt: minimum photon count in segments"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
             </div> 

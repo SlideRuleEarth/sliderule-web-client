@@ -1,6 +1,6 @@
 <template>
     <div class="sr-color-palette">
-        <Fieldset legend="Color Palette" class="sr-color-palette-content" :toggleable="true" :collapsed="true">
+        <Fieldset legend="Color Palette" class="sr-color-palette-content" :toggleable="true" :collapsed="false">
             <h2>Select Your Color Palette</h2>
             <PickList v-model="colors" dataKey="label">
                 <!-- Custom source header with different background color -->

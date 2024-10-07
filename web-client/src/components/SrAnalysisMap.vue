@@ -357,6 +357,8 @@
   width: 100%; 
   border-radius: var(--p-border-radius); 
   overflow: hidden;
+  margin: 0.5rem;
+  padding: 0.5rem;
 }
 .sr-tooltip-style {
     position: absolute;

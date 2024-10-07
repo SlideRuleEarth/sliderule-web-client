@@ -11,16 +11,14 @@ export interface SrTimeDelta{
     seconds : number
 }
 
-
 export type ElevationPlottable = [number, number, number];
-
-
 export interface SrRequestRecord {
     req_id?: number; // auto incrementing
     star?: boolean; // mark as favorite
     status?: string; // status: 'pending', 'processing', 'success', 'error'
     func?: string; // function name
     parameters?: ReqParams; //  parameters
+    svr_parms?: ReqParams; //  parameters used/returned from server
     start_time?: Date; // start time of request
     end_time?: Date; //end time of request
     elapsed_time?: string; //  elapsed time
@@ -59,7 +57,7 @@ export class SlideRuleDexie extends Dexie {
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(1).stores({
+        this.version(2).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
@@ -191,8 +189,6 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-
-
     // Function to restore default colors for atl03CnfColors
     async restoreDefaultAtl03CnfColors(): Promise<void> {
         try {
@@ -251,8 +247,6 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
-    
-
     // Method to add or update a color for a given number in atl03CnfColors
     async addOrUpdateAtl03CnfColor(number: number, color: string): Promise<void> {
         try {
@@ -623,7 +617,7 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async updateRequestRecord(updateParams: Partial<SrRequestRecord>): Promise<void> {
+    async updateRequestRecord(updateParams: Partial<SrRequestRecord>, updateTime=true): Promise<void> {
         const { req_id } = updateParams;
         if (!req_id) {
             console.error('Request ID is required to update. updateParams:', updateParams);
@@ -646,26 +640,35 @@ export class SlideRuleDexie extends Dexie {
                 return;
             }
     
-            // Set the end time to now and calculate elapsed time
-            const endTime = new Date();
-            const startTime = new Date(request.start_time);   
-            const elapsedTime = this._srTimeDelta(startTime, endTime);
-            const elapsedTimeString = this._srTimeDeltaString(elapsedTime);
-    
-            // Prepare the update object
-            const updates = {
-                ...updateParams,
-                end_time: endTime,
-                elapsed_time: elapsedTimeString
-            };
-            //console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
-            await this.updateRequest(req_id, updates);
+            if(updateTime){
+                // Set the end time to now and calculate elapsed time
+                const endTime = new Date();
+                const startTime = new Date(request.start_time);   
+                const elapsedTime = this._srTimeDelta(startTime, endTime);
+                const elapsedTimeString = this._srTimeDeltaString(elapsedTime);
+                // Prepare the update object
+                const updates = {
+                    ...updateParams,
+                    end_time: endTime,
+                    elapsed_time: elapsedTimeString
+                };
+                //console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
+                await this.updateRequest(req_id, updates);
+            } else {
+                // Prepare the update object
+                const updates = {
+                    ...updateParams,
+                };
+               //console.log('updateRequestRecord calling UpdateRequest:',req_id,' with:', updates);
+               await this.updateRequest(req_id, updates);
+            }
             //console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
         } catch (error) {
             console.error(`Failed to update req_id ${req_id}:`, error);
             throw error;
         }
     }
+
 
     async getRequest(req_id:number): Promise<SrRequestRecord | undefined> {
         try {

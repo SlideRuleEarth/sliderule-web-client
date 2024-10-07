@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { AtlReqParams, AtlpReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -13,7 +13,7 @@ export interface NullReqParams {
   null: null;
 }
 
-export type ReqParams = AtlReqParams | AtlpReqParams | NullReqParams;
+export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 
 interface YapcConfig {
   version: number;
@@ -28,12 +28,12 @@ export const useReqParamsStore = defineStore('reqParams', {
     state: () => ({
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
-        iceSat2SelectedAPI: 'atl06' as string,
-        iceSat2APIsItems: ['atl06','atl03','atl08','atl24'] as string[],
-        gediSelectedAPI: 'gedi01b' as string,
-        gediAPIsItems: ['gedi01b','gedi02a','gedi04a'] as string[],
+        iceSat2SelectedAPI: 'atl06p' as string,
+        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
+        gediSelectedAPI: 'gedi01bp' as string,
+        gediAPIsItems: ['gedi01b','gedi01bp','gedi02a','gedi02ap','gedi04a','gedi04ap'] as string[],
         using_worker: false,
-        asset: 'icesat2',
+        asset: '', // TBD add a control for this?
         isArrowStream: false,
         isFeatherStream: false,
         rasterizePolyCellSize: 0.0001,
@@ -58,21 +58,20 @@ export const useReqParamsStore = defineStore('reqParams', {
         useTime: false,
         t0Value: new Date,
         t1Value: new Date,
-        totalTimeoutValue: 600,
+        totalTimeoutValue: -1, // this needs to be > the default in the server
         useReqTimeout: false,
-        reqTimeoutValue: 600,
+        reqTimeoutValue: 600, // this needs to match the default in the server
         useNodeTimeout: false,
         nodeTimeoutValue: 600,
         useReadTimeout: false,
         readTimeoutValue: 600,
-        lengthValue: 40.0,
-        stepValue: 20.0,
+        lengthValue: -1.0,
+        stepValue: -1.0,
         confidenceValue: 4,
         iterationsValue: 6,
         spreadValue: 20.0,
         PE_CountValue: 10,
         windowValue: 3.0,
-        sigmaValue: 5.0,
         enableAtl03Confidence: false,
         surfaceReferenceTypeOptions: [
           { name: 'Dynamic', value: -1 },
@@ -82,24 +81,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Land Ice', value: 3 },
           { name: 'Inland Water',value: 4 },
         ] as SrMultiSelectNumberItem[],
-        surfaceReferenceType:[-1] as number[],
-        signalConfidenceOptions: 
-        [
-          { name: 'TEP', value: 'atl03_tep' },
-          { name: 'Not Considered', value: 'atl03_not_considered' },
-          { name: 'Background', value: 'atl03_background' },
-          { name: 'Within 10m', value: 'atl03_within_10m' },
-          { name: 'Low', value: 'atl03_low' },
-          { name: 'Medium', value: 'atl03_medium' },
-          { name: 'High', value: 'atl03_high' },
-        ] as SrMultiSelectTextItem[],
-        signalConfidence: [ 
-          'atl03_background' ,
-          'atl03_within_10m' ,
-          'atl03_low' ,
-          'atl03_medium' ,
-          'atl03_high' ,
-        ],
+        surfaceReferenceType: [-1] as number[], // TBD change this to [] when the server is updated
         signalConfidenceNumberOptions: 
         [
           { name: 'TEP', value: -2 },
@@ -110,14 +92,14 @@ export const useReqParamsStore = defineStore('reqParams', {
           { name: 'Medium', value: 3 },
           { name: 'High', value: 4 },
         ] as SrMultiSelectNumberItem[],
-        signalConfidenceNumber: [ 0,1,2,3,4 ],
+        signalConfidenceNumber: [] as number[], 
         qualityPHOptions: [
           { name: 'Nominal', value: 0 },
           { name: 'Possible Afterpulse', value: 1 },
           { name: 'Possible Impulse Response Effect', value: 2 },
           { name: 'Possible TEP', value: 3 },
         ] as SrMultiSelectNumberItem[],
-        qualityPHNumber: [0],
+        qualityPHNumber: [],
         enableAtl08Classification: false,
         atl08LandTypeOptions: [
           {name:'Noise', value:'atl08_noise'}, 
@@ -133,11 +115,11 @@ export const useReqParamsStore = defineStore('reqParams', {
         ] as SrMultiSelectTextItem[],
         distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
-        alongTrackSpread: 20.0,
-        minimumPhotonCount: 10,
-        maxIterations: 6,
-        minWindowHeight: 3.0,
-        maxRobustDispersion: 0.0,
+        alongTrackSpread: -1.0,
+        minimumPhotonCount: -1,
+        maxIterations: -1,
+        minWindowHeight: -1.0,
+        maxRobustDispersion: -1.0,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
         geoLocationOptions: [
@@ -236,6 +218,7 @@ export const useReqParamsStore = defineStore('reqParams', {
           this.resources.splice(index, 1);
         },
         getAtlReqParams(req_id: number): AtlReqParams { 
+          //console.log('getAtlReqParams req_id:', req_id);
           const getOutputPath = (): string => {
             let path = this.outputLocationPath;
             if (this.outputLocation.value === 'S3') {
@@ -244,7 +227,11 @@ export const useReqParamsStore = defineStore('reqParams', {
             if (this.outputLocationPath.length === 0) {
               //Note: This is only used by the server. It needs to be unique for each request.
               // We create a similar filename for our local client elsewhere.
-              path = `${this.iceSat2SelectedAPI}_${req_id}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+              let reqIdStr = 'nnn';
+              if(req_id > 0) {
+                reqIdStr = `${req_id}`;
+              }
+              path = `${this.iceSat2SelectedAPI}_${reqIdStr}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
             }
             return path;
           };
@@ -262,24 +249,62 @@ export const useReqParamsStore = defineStore('reqParams', {
             console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             return undefined;
           };
-        
           const req: AtlReqParams = {
-            asset: this.asset,
-            srt: this.getSrt(),
-            cnf: this.signalConfidenceNumber,
-            H_min_win: this.minWindowHeight, 
-            len: this.lengthValue,        
-            res: this.stepValue, 
-            sigma_r_max: this.sigmaValue,         
-            maxi: this.maxIterations,
-            poly: this.poly,
-          };
-        
+          }
+          if(this.missionValue === 'ICESat-2') { // TBD when server is fixed no need to set this is will be preset by server based on mission and api selected
+            req.asset = 'icesat2'
+          } else if (this.missionValue === 'GEDI') {
+            console.log('GEDI API:', this.gediSelectedAPI);
+            if(this.gediSelectedAPI === 'gedi01bp') {
+              req.asset = 'gedil1b'
+            } else if(this.gediSelectedAPI === 'gedi02ap') {
+              req.asset = 'gedil2a'
+            } else if(this.gediSelectedAPI === 'gedi04ap') {
+              req.asset = 'gedil4a'
+            }
+          }
+          if(this.iceSat2SelectedAPI==='atl08p') {
+            req.phoreal = {};
+          }
+          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+            req.srt = -1; // and not [-1]
+          } else {
+            if(this.surfaceReferenceType.length>0){
+            req.srt = this.getSrt();
+            req.srt = this.getSrt();
+              req.srt = this.getSrt();
+            }
+          }
+          if(this.signalConfidenceNumber.length>0){
+            req.cnf = this.signalConfidenceNumber;
+          }
+          if(this.getMinWindowHeight() >= 0.0){
+            req.H_min_win = this.getMinWindowHeight();
+          }
+          if(this.getLengthValue() >= 0.0){
+            req.len = this.getLengthValue();
+          }
+          if(this.getStepValue() >= 0.0){
+            req.res = this.getStepValue();
+          }
+          if(this.getSigmaRmax() >= 0.0){
+            req.sigma_r_max = this.getSigmaRmax();
+          }
+          if(this.getMaxIterations() > 0){
+            req.maxi = this.getMaxIterations();
+          }
+          if(this.poly && !this.ignorePolygon) {
+            req.poly = this.poly;
+          }
           if(this.passInvalid) {
             req.pass_invalid = true;
           } else {
-            req.ats = this.alongTrackSpread;  
-            req.cnt = this.minimumPhotonCount;
+            if(this.getAlongTrackSpread() >= 0.0){
+              req.ats = this.alongTrackSpread;
+            }
+            if(this.minimumPhotonCount > 0){ 
+              req.cnt = this.minimumPhotonCount;
+            }
           }
 
           if (this.fileOutput) {
@@ -315,11 +340,15 @@ export const useReqParamsStore = defineStore('reqParams', {
             }
           }
           if(this.enableAtl03Confidence) {
-            req.quality_ph = this.qualityPHNumber;
+            if(this.qualityPHNumber.length>0){
+              req.quality_ph = this.qualityPHNumber;
+            }
           }
 
           if(this.enableAtl08Classification) {
-            req.alt08_class = this.atl08LandType;
+            if(this.atl08LandType.length>0){
+              req.alt08_class = this.atl08LandType;
+            }
           }
           if(this.enableYAPC) {
             const yapc:YapcConfig = {
@@ -348,7 +377,9 @@ export const useReqParamsStore = defineStore('reqParams', {
             req.dist_in_seg = true;
           }
           if(this.useGlobalTimeout()) {
-            req.timeout = this.totalTimeoutValue
+            if(this.totalTimeoutValue > 0) {
+              req.timeout = this.totalTimeoutValue;
+            }
           } else {
             if(this.useReqTimeout) {
               req['rqst-timeout'] = this.reqTimeoutValue;
@@ -360,24 +391,31 @@ export const useReqParamsStore = defineStore('reqParams', {
               req['read-timeout'] = this.readTimeoutValue;
             }
           }
+          //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
         },
         setSrt(srt:number[]) {
           this.surfaceReferenceType = srt;
         },
-        getSrt(): number[] | number {
-          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
-            return -1;
-          } else {
-            return this.surfaceReferenceType;
-          }        
+        getSrt(): number[] {
+          return this.surfaceReferenceType;       
         },
         getSurfaceReferenceType(name: string): number {
           const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);
           return option ? option.value : -1;
         },
-        getAtlpReqParams(req_id: number): AtlpReqParams {
-          const baseParams:AtlpReqParams = {
+        getWorkerThreadTimeout(): number {
+          let timeout = 600000; // 10 minutes
+          if(this.getReqTimeout()>0){
+            timeout = (this.getReqTimeout()*1000) + 5000; //millisecs; add 5 seconds to the request timeout to allow server to timeout first; 
+          } else {
+            timeout = 600*1000+5000; // default to 10 minutes 5 seconds. TBD use server defaults api to set this
+          } 
+          console.log('getWorkerThreadTimeout this.getReqTimeout:', this.getReqTimeout(), 'timeout:', timeout); 
+          return timeout;      
+        },
+        getAtlxxReqParams(req_id: number): AtlxxReqParams {
+          const baseParams:AtlxxReqParams = {
             parms: this.getAtlReqParams(req_id),
           };
       
@@ -386,13 +424,13 @@ export const useReqParamsStore = defineStore('reqParams', {
           }
           return baseParams;
         },
-        getEnableGranuleSelection() {
+        getEnableGranuleSelection(): boolean {
           return this.enableGranuleSelection;
         },
         setEnableGranuleSelection(enableGranuleSelection:boolean) {
           this.enableGranuleSelection = enableGranuleSelection;
         },
-        getUseRgt() {
+        getUseRgt() : boolean {
             return this.useRGT;
         },
         setUseRgt(useRGT:boolean) {
@@ -401,31 +439,31 @@ export const useReqParamsStore = defineStore('reqParams', {
         setRgt(rgtValue:number) {
           this.rgtValue = rgtValue;
         },
-        getRgt() {
+        getRgt(): number {
           return this.rgtValue;
         },
         setUseCycle(useCycle:boolean) {
             this.useCycle = useCycle;
         },
-        getUseCycle() {
+        getUseCycle() : boolean {
             return this.useCycle;
         },
         setCycle(cycleValue:number) {
           this.cycleValue = cycleValue;
         },
-        getCycle() {
+        getCycle() : number {
           return this.cycleValue;
         },
         setUseRegion(useRegion:boolean) {
             this.useRegion = useRegion;
         },
-        getUseRegion() {
+        getUseRegion(): boolean {
             return this.useRegion;
         },
         setRegion(regionValue:number) {
           this.regionValue = regionValue;
         },
-        getRegion() {
+        getRegion(): number {
           return this.regionValue;
         },
         setT0(t0Value:Date) {
@@ -443,10 +481,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         setBeams(beams: SrListNumberItem[]) {
           this.beams = beams;
         },
-        getBeams() {
+        getBeams(): SrListNumberItem[] {
           return this.beams;
         },
-        getBeamValues() { 
+        getBeamValues(): number[] { 
           return this.beams.map(beam => beam.value);
         },
         setBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
@@ -470,16 +508,16 @@ export const useReqParamsStore = defineStore('reqParams', {
         setSelectAllBeams(selectAllBeams:boolean) {
           this.selectAllBeams = selectAllBeams;
         },
-        getSelectAllBeams() {
+        getSelectAllBeams(): boolean {
           return this.selectAllBeams;
         },
         setUseChecksum(useChecksum:boolean) {
           this.useChecksum = useChecksum;
         },
-        getUseChecksum() {
+        getUseChecksum(): boolean {
           return this.useChecksum;
         },
-        getPassInvalid() {
+        getPassInvalid(): boolean {
           return this.passInvalid;
         },
         setPassInvalid(passInvalid:boolean) {
@@ -488,89 +526,115 @@ export const useReqParamsStore = defineStore('reqParams', {
         setAsset(asset:string) {
           this.asset = asset;
         },
-        getAsset() {
+        getAsset(): string {
           return this.asset;
         },
-        initParmsForGenUser() {
-          this.asset = 'icesat2';
-          this.surfaceReferenceType = [-1];
-          this.signalConfidenceNumber = [4];
-          this.alongTrackSpread = 20.0;
-          this.minimumPhotonCount = 10;
-          this.maxIterations = 6;
-          this.minWindowHeight = 3.0;
-          this.sigmaValue = 5.0;
-          this.fileOutput = true;
-          this.outputFormat = {name:"parquet", value:"parquet"};
-          this.useChecksum = false;
-          this.stepValue = 20.0;
-          this.lengthValue = 40.0;
-          this.outputLocationPath=''; // forces auto creation of a unique path
+        getMinWindowHeight():number {
+          return this.minWindowHeight;
+        },
+        setMinWindowHeight(minWindowHeight:number) {
+          this.minWindowHeight = minWindowHeight;
+        },
+        getLengthValue(): number {
+          return this.lengthValue;
+        },
+        setLengthValue(lengthValue:number) {
+          this.lengthValue = lengthValue;
+        },
+        getStepValue(): number {
+          return this.stepValue;
+        },
+        setStepValue(stepValue:number) {
+          this.stepValue = stepValue;
+        },
+        getSigmaRmax(): number {
+          return this.maxRobustDispersion;
+        },
+        setSigmaRmax(sigma_r_max:number) {
+          this.maxRobustDispersion= sigma_r_max;
+        },
+        getMaxIterations():number {
+          return this.maxIterations;
+        },
+        setMaxIterations(maxIterations:number) {
+          this.maxIterations = maxIterations;
+        },
+        getAlongTrackSpread():number {
+          return this.alongTrackSpread;
+        },
+        setAlongTrackSpread(alongTrackSpread:number) {
+          this.alongTrackSpread = alongTrackSpread;
+        },
+        getMinimumPhotonCount(): number {
+          return this.minimumPhotonCount;
+        },
+        setMinimumPhotonCount(minimumPhotonCount:number) {
+          this.minimumPhotonCount = minimumPhotonCount;
         },
         setUseReqTimeout(useReqTimeout:boolean) {
           this.useReqTimeout = useReqTimeout;
         },
-        getUseReqTimeout() {
+        getUseReqTimeout(): boolean {
           return this.useReqTimeout;
         },
         setReqTimeout(reqTimeoutValue:number) {
           this.reqTimeoutValue = reqTimeoutValue;
         },
-        getReqTimeout() {
+        getReqTimeout(): number {
           return this.reqTimeoutValue;
         },
         setUseNodeTimeout(useNodeTimeout:boolean) {
           this.useNodeTimeout = useNodeTimeout;
         },
-        getUseNodeTimeout() {
+        getUseNodeTimeout(): boolean {
           return this.useNodeTimeout;
         },
         setNodeTimeout(nodeTimeoutValue:number) {
           this.nodeTimeoutValue = nodeTimeoutValue;
         },
-        getNodeTimeout() {
+        getNodeTimeout(): number {
           return this.nodeTimeoutValue;
         },
         setUseReadTimeout(useReadTimeout:boolean) {
           this.useReadTimeout = useReadTimeout;
         },
-        getUseReadTimeout() {
+        getUseReadTimeout(): boolean {
           return this.useReadTimeout;
         },
-        getReadTimeout() {
+        getReadTimeout(): number {
           return this.readTimeoutValue;
         },
         setReadTimeout(readTimeoutValue:number) {
           this.readTimeoutValue = readTimeoutValue;
         },
         restoreTimeouts() {
-          this.totalTimeoutValue = 600;
+          this.totalTimeoutValue = -1;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
         },
-        useGlobalTimeout(){
+        useGlobalTimeout(): boolean {
           return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
         },
-        getYAPCScore() {
+        getYAPCScore():number {
           return this.YAPCScore;
         },
         setYAPCScore(value:number) {
           this.YAPCScore = value;
         },
-        getUseYAPCScore() {
+        getUseYAPCScore():boolean {
           return this.useYAPCScore;
         },
         setUseYAPCScore(value:boolean) {
           this.useYAPCScore = value;
         },
-        getUseYAPCKnn() {
+        getUseYAPCKnn():boolean {
           return this.usesYAPCKnn;
         },
         setUseYAPCKnn(value:boolean) {
           this.usesYAPCKnn = value;
         },
-        getYAPCKnn() {
+        getYAPCKnn():number {
           return this.YAPCKnn;
         },
         setYAPCKnn(value:number) {
@@ -612,20 +676,20 @@ export const useReqParamsStore = defineStore('reqParams', {
         setMissionValue(value:string) {
           if (value === 'ICESat-2') {
               this.iceSat2SelectedAPI = this.iceSat2APIsItems[0]; // Reset to default when mission changes
-              this.asset ='icesat2';
           } else if (value === 'GEDI') {
               this.gediSelectedAPI = this.gediAPIsItems[0]; // Reset to default when mission changes
-              this.asset ='gedi';
           }
           this.missionValue = value;
         },
-        getMissionItems() {
+        getMissionItems(): string[] {
           return this.missionItems;
         },
         getIceSat2API() : string {
+          console.log('getIceSat2API:', this.iceSat2SelectedAPI);
           return this.iceSat2SelectedAPI;
         },
         setIceSat2API(value:string) {
+          console.log('setIceSat2API:', value);
           this.iceSat2SelectedAPI = value;
         },
         getGediAPI() : string {
@@ -634,29 +698,37 @@ export const useReqParamsStore = defineStore('reqParams', {
         setGediAPI(value:string) {
           this.gediSelectedAPI = value;
         },
+        getCurAPI() : string {
+          if(this.missionValue === 'ICESat-2') {
+            return this.iceSat2SelectedAPI;
+          } else if(this.missionValue === 'GEDI') {
+            return this.gediSelectedAPI;
+          }
+          return '';
+        },
         setConvexHull(convexHull: SrRegion) {
           this.convexHull = convexHull;
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
         },
-        getConvexHull() {
+        getConvexHull(): SrRegion|null {
           return this.convexHull;
         },
         getAreaOfConvexHull() : number {
           return this.areaOfConvexHull;
         },
-        getFormattedAreaOfConvexHull() {
+        getFormattedAreaOfConvexHull(): string {
           return this.areaOfConvexHull.toFixed(2).toString()+" km²";
         },
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
         },
-        getAreaWarningThreshold() {
+        getAreaWarningThreshold(): number {
           return this.areaWarningThreshold;
         },
         setAreaWarningThreshold(value:number) { 
           this.areaWarningThreshold = value;
         },
-        getAreaErrorThreshold() {
+        getAreaErrorThreshold(): number {
           return this.areaErrorThreshold;
         },
         setAreaErrorThreshold(value:number) { 

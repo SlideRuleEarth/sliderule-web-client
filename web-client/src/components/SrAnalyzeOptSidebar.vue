@@ -2,7 +2,7 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
-import SrRecReqDisplay from './SrRecReqDisplay.vue';
+import SrRecReqDisplay from './SrRecIdReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';
@@ -124,12 +124,16 @@ const onSelection = async() => {
         useAtlChartFilterStore().getRgtValues(),
         useAtlChartFilterStore().getCycleValues(),
     );
-    if(useAtlChartFilterStore().getFunc().includes('atl03')){
-        useAtlChartFilterStore().setAtl03WhereClause(whereClause);
-    } else if (useAtlChartFilterStore().getFunc().includes('atl06')){
+    if(useAtlChartFilterStore().getFunc()==='atl03sp'){
+        useAtlChartFilterStore().setAtl03spWhereClause(whereClause);
+    } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
+        useAtlChartFilterStore().setAtl03vpWhereClause(whereClause);
+    } else if (useAtlChartFilterStore().getFunc()==='atl06p'){
         useAtlChartFilterStore().setAtl06WhereClause(whereClause);
-    } else if (useAtlChartFilterStore().getFunc().includes('atl08')){
-        useAtlChartFilterStore().setAtl08WhereClause(whereClause);
+    } else if (useAtlChartFilterStore().getFunc()==='atl06sp'){
+        useAtlChartFilterStore().setAtl06WhereClause(whereClause);
+    } else if (useAtlChartFilterStore().getFunc()==='atl08sp'){
+        useAtlChartFilterStore().setAtl08pWhereClause(whereClause);
     }
     useAtlChartFilterStore().updateScatterPlot();
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
@@ -251,7 +255,7 @@ const updateElevationMap = async (req_id: number) => {
         //console.log('watch req_id rgts:',rgts);
         const cycles = await updateCycleOptions(req_id);
         //console.log('watch req_id cycles:',cycles);
-        if(atlChartFilterStore.getFunc().includes('atl03')){
+        if(atlChartFilterStore.getFunc()==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             //console.log('watch req_id pairs:',pairs);
             const scOrients = await updateScOrientOptions(req_id);
@@ -319,38 +323,37 @@ const getCnt = computed(() => {
 <template>
     <div class="sr-analysis-opt-sidebar">
         <div class="sr-analysis-opt-sidebar-container">
-            <div class="sr-req-description">  
-                <SrEditDesc :reqId="Number(selectedReqId.value)"/>
+            <div class="sr-analysis-opt-sidebar-req-menu">
+                <div class="sr-analysis-reqid-sz">
+                    <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
+                    <div class="sr-analysis-reqid" v-else>
+                        <SrMenuInput 
+                            label="Record Id" 
+                            :menuOptions="reqIds" 
+                            v-model="selectedReqId"
+                            @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
+                            :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
+                            tooltipText="Request Id from Record table"
+                        />
+                    </div>
+                    <div class="sr-analysis-sz" v-if="!loading">
+                        <div>
+                            {{ getSize }} 
+                        </div>
+                        <div>
+                            {{ getCnt }} recs
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
                 <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
                 <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
             </div>
-            <div class="sr-analysis-opt-sidebar-req-menu">
-                <div class="sr-analysis-reqid-sz">
-                <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
-                <div class="sr-analysis-reqid" v-else>
-                    <SrMenuInput 
-                        label="Record Id" 
-                        :menuOptions="reqIds" 
-                        v-model="selectedReqId"
-                        @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
-                        :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                        tooltipText="Request Id from Record table"
-                    />
-                </div>
-                <div class="sr-analysis-sz" v-if="!loading">
-                    <div>
-                        {{ getSize }} 
-                    </div>
-                    <div>
-                        {{ getCnt }} recs
-                    </div>
-                </div>
-            </div>
+            <div class="sr-req-description">  
+                <SrEditDesc :reqId="Number(selectedReqId.value)"/>
             </div>
             <div>
-                <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
                         v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
@@ -417,7 +420,7 @@ const getCnt = computed(() => {
                     />
                 </div>
             </div>
-            <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="true" >
+            <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
                 <div class="sr-user-guide-link">
                     <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
                 </div>
@@ -432,7 +435,7 @@ const getCnt = computed(() => {
                     <div class="sr-pair-sc-orient">
                         <SrListbox id="scOrients"
                             label="scOrient(s)" 
-                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
                             v-model="atlChartFilterStore.scOrients" 
                             :getSelectedMenuItem="atlChartFilterStore.getScOrients"
                             :setSelectedMenuItem="atlChartFilterStore.setScOrients"
@@ -443,7 +446,7 @@ const getCnt = computed(() => {
                             />
                         <SrListbox id="pairs"
                             label="pair(s)" 
-                            v-if="atlChartFilterStore.getFunc().includes('atl03')"
+                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
                             v-model="atlChartFilterStore.pairs" 
                             :getSelectedMenuItem="atlChartFilterStore.getPairs"
                             :setSelectedMenuItem="atlChartFilterStore.setPairs"
@@ -466,6 +469,7 @@ const getCnt = computed(() => {
                     />
                 </div>
             </FieldSet>
+            <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
         </div>
     </div>
 </template>
@@ -505,7 +509,6 @@ const getCnt = computed(() => {
         align-items: center;
         justify-content: space-between; 
         min-height: 30%;
-        max-height: 30%;
         min-width: 20vw;
         width: 100%;
     }
@@ -522,7 +525,8 @@ const getCnt = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin: 0rem;
+        margin: 2rem;
+        border: 0.5rem solid;
         font-size: smaller;
         border: 1px solid;
         padding: 0.25rem;
