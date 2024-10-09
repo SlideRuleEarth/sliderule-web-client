@@ -72,12 +72,18 @@ async function calculateCS(req_id:number) {
 
 const deleteReq = async (id:number) => {
     try {
-        console.log('Delete ', id);
-        const fn = await db.getFilename(id);
-        await deleteOpfsFile(fn);
-        requestsStore.deleteReq(id);
+        const userConfirmed = window.confirm('Are you sure you want to delete this record?');
+        if (userConfirmed) {
+            console.log('Delete ', id);
+            const fn = await db.getFilename(id);
+            await deleteOpfsFile(fn);
+            requestsStore.deleteReq(id);
+            console.log('Record deleted successfully for id:', id);
+        } else {
+            console.log('Deletion cancelled');
+        }
     } catch (error) {
-        console.error(`Failed to delete request for id:${id}`, error);
+        console.error(`Failed to delete record for id:${id}`, error);
         throw error;
     }
 };
