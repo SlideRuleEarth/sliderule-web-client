@@ -25,7 +25,7 @@ export interface SrLayer {
   type: string;
   isBaseLayer: boolean;
   url: string;
-  title: string;
+  title: string; // unique title for the layer
   attributionKey: keyof typeof srAttributions; // Use the keys from the srAttributions object
   source_projection: string; // if view is different from source an automatic reprojection will be attempted
   allowed_reprojections: string[]; // List of allowed reprojections
