@@ -341,12 +341,15 @@ async queryChunkSampled(
 
         const conn = await duckDB.connect();
         await conn.query(
-          `CREATE VIEW IF NOT EXISTS '${name}' AS SELECT * FROM parquet_scan('${name}')`,
+          `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`,
         );
+        console.log('insertOpfsParquet view created for name:',name);
         // Add the file to the set of registered files
         if(isRegistered === false){
           this._filesInDb.add(name);
           //console.log('insertOpfsParquet inserted name:',name);
+        } else {
+          console.log(`insertOpfsParquet File ${name} already registered`);
         }
       } else {
         console.log(`insertOpfsParquet File ${name} already registered`);
@@ -356,21 +359,6 @@ async queryChunkSampled(
       throw error;
     }
   }
-
-  // Method to execute SQL queries
-//   async sql(strings: TemplateStringsArray, ...args: any[]): Promise<Row[]> {
-//     const query = strings.join("?");
-//     const results: QueryResult = await this.query(query, args);
-//     const rows: Row[] = [];
-
-//     for await (const row of results.readRows()) {
-//       rows.push(Object.fromEntries(Object.entries(row)));
-//     }
-
-//     (rows as any).columns = results.schema.map((d) => d.name);
-
-//     return rows;
-//   }
 
 }
 

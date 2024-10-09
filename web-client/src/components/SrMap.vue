@@ -44,6 +44,7 @@
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import { Map, MapControls, Layers, Sources } from "vue3-openlayers";
+import { useRequestsStore } from "@/stores/requestsStore";
 
   const reqParamsStore = useReqParamsStore();
 
@@ -322,11 +323,13 @@
     return cleared;
   }
 
-  const handlePickedChanged = (newPickedValue: string) => {
+  const handlePickedChanged = async (newPickedValue: string) => {
     console.log(`handlePickedChanged: ${newPickedValue}`);
 
     if (newPickedValue === 'Box'){
-      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: 5000 });
+      if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
+        toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: 5000 });
+      }
       disableDragBox();
       disableDrawPolygon();
       clearDrawingLayer();
@@ -338,7 +341,9 @@
       clearDrawingLayer();
       clearPolyCoords();
       enableDrawPolygon();
-      toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
+      if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
+        toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
+      }
     } else if (newPickedValue === 'TrashCan'){
       disableDragBox();
       disableDrawPolygon();

@@ -25,7 +25,6 @@ const checkUnsupported = () =>{
   console.log('checkUnsupported browser:', deviceStore.getBrowser(), 'OS:', deviceStore.getOS());
   if (
     (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS') ||
-    (deviceStore.getBrowser() === 'Firefox' && ((deviceStore.getOS() !== 'iOS'))) ||
     (deviceStore.getBrowser() === 'Edge' && ((deviceStore.getOS() !== 'Android')))  
   ) {
     showUnsupportedDialog.value = true;

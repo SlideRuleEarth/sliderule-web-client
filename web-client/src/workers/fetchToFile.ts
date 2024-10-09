@@ -109,7 +109,11 @@ onmessage = async (event) => {
         const opfsRoot = await navigator.storage.getDirectory();
         const folderName = 'SlideRule'; 
         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        const fileName = `${cmd.func}_${reqID}_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}.parquet`;
+        const fileName = `${cmd.func}_${reqID}_${new Date().toISOString()
+            .replace(/:/g, '_')
+            .replace(/\./g, '_')
+            .replace(/T/g, '_')
+            .replace(/Z/g, '')}.parquet`;
         console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
 
         const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });

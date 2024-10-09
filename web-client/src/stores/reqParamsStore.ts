@@ -231,7 +231,11 @@ export const useReqParamsStore = defineStore('reqParams', {
               if(req_id > 0) {
                 reqIdStr = `${req_id}`;
               }
-              path = `${this.iceSat2SelectedAPI}_${reqIdStr}_SVR_TMP_${new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-').replace(/T/g, '-').replace(/Z/g, '')}`;
+              path = `${this.iceSat2SelectedAPI}_${reqIdStr}_SVR_TMP_${new Date().toISOString()
+                .replace(/:/g, '_')
+                .replace(/\./g, '_')
+                .replace(/T/g, '_')
+                .replace(/Z/g, '')}`;
             }
             return path;
           };
