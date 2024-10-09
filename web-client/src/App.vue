@@ -201,20 +201,14 @@ const handleVersionButtonClick = () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 4rem;
   z-index: 1000;
 }
 
 .content {
-  margin-top: 60px;
+  margin-top: 4rem;
   overflow-y: auto;
-  height: calc(100vh - 60px);
-}
-
-.sr-about {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  height: calc(100vh - 4rem);
 }
 
 .sr-unsupported-panel {
