@@ -28,6 +28,8 @@ export interface SrRequestRecord {
     cnt?: number; // number of points
     num_bytes?: number; // number of bytes
     description?: string; // description
+    projection?: string;
+    srViewName?: string;
 }
 
 export interface SrRequestSummary {
@@ -57,7 +59,7 @@ export class SlideRuleDexie extends Dexie {
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(2).stores({
+        this.version(3).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
@@ -587,6 +589,48 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    async getProjection(req_id:number): Promise<string> {
+        try {
+            if(req_id && req_id > 0){
+                const request = await this.requests.get(req_id);
+                if (!request) {
+                    console.error(`getProjection No request found with req_id ${req_id}`);
+                    return '';
+                }
+                //console.log('getProjection req_id:',req_id,'func:',request.func, 'request:',request);
+                return request.projection || '';
+            } else {
+                console.warn(`getProjection req_id must be a positive integer. req_id: ${req_id}`);
+                return '';
+            }
+
+        } catch (error) {
+            console.error(`getProjection Failed to get ptojection for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    async getSrViewName(req_id:number): Promise<string> {
+        try {
+            if(req_id && req_id > 0){
+                const request = await this.requests.get(req_id);
+                if (!request) {
+                    console.error(`getSrViewName No request found with req_id ${req_id}`);
+                    return '';
+                }
+                //console.log('getSrViewName req_id:',req_id,'func:',request.func, 'request:',request);
+                return request.srViewName || '';
+            } else {
+                console.warn(`getSrViewName req_id must be a positive integer. req_id: ${req_id}`);
+                return '';
+            }
+
+        } catch (error) {
+            console.error(`getSrViewName Failed to get SrViewName for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
     async getChecksum(req_id:number): Promise<bigint> {
         try {
             const request = await this.requests.get(req_id);
@@ -694,7 +738,8 @@ export class SlideRuleDexie extends Dexie {
                 start_time: new Date(), 
                 end_time: new Date(),
                 description: 'Click here to edit description', 
-                star: false
+                star: false,
+                projection: 'unset'
             });
             //console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;
