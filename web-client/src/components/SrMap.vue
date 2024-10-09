@@ -1,7 +1,7 @@
   <script setup lang="ts">
   import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { ref, onMounted } from "vue";
-  import { Map as OLMapType} from "ol";
+  import { Map as OLMap} from "ol";
   import { useToast } from "primevue/usetoast";
   import { type SrView } from "@/composables/SrViews";
   import { useProjectionNames } from "@/composables/SrProjections";
@@ -44,7 +44,7 @@
   import SrLegendControl  from "./SrLegendControl.vue";
   import SrDrawControl from "@/components/SrDrawControl.vue";
   import { Map, MapControls, Layers, Sources } from "vue3-openlayers";
-import { useRequestsStore } from "@/stores/requestsStore";
+  import { useRequestsStore } from "@/stores/requestsStore";
 
   const reqParamsStore = useReqParamsStore();
 
@@ -57,7 +57,7 @@ import { useRequestsStore } from "@/stores/requestsStore";
     return format(coordinate, template, 4);
   };
   const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
-  const mapRef = ref<{ map: OLMapType }>();
+  const mapRef = ref<{ map: OLMap }>();
   const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
   const controls = ref([]);
@@ -392,7 +392,7 @@ import { useRequestsStore } from "@/stores/requestsStore";
     if (mapRef.value?.map) {
       console.log("map:",mapRef.value.map);
       mapStore.setMap(mapRef.value.map);
-      const map = mapStore.getMap() as OLMapType;
+      const map = mapStore.getMap() as OLMap;
       if(map){
         if(!geoCoderStore.isInitialized()){
           //console.log("Initializing geocoder");
@@ -413,10 +413,6 @@ import { useRequestsStore } from "@/stores/requestsStore";
           console.log("Error:geocoder is null?");
         }
         console.log("map.getView():",map.getView());
-        // const initialZoom = map.getView().getZoom();
-        // if (initialZoom !== undefined) {
-        //   mapParamsStore.setZoom(initialZoom);
-        // }
         const projectionNames = useProjectionNames();
 
         projectionNames.value.forEach(name => {
