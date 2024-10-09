@@ -8,6 +8,7 @@ import type { SrView } from '@/composables/SrViews';
 import { layers } from '@/composables/SrLayers';
 import { transform,toLonLat } from 'ol/proj.js';
 import {type Type as OlGeometryType} from 'ol/geom/Geometry';
+import type { get } from 'lodash';
 
 export const useMapParamsStore = defineStore('mapParamsStore', {
   state: () => ({
@@ -18,6 +19,7 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     zoom: 12,
     rotation: 0,
     selectedBaseLayer: layers.value['Esri World Topo'] as SrLayer,
+    selectedBaseLayerTitle: '',
     drawType: '' as string,
     layerCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
     layerGroupCache: new Map(), // Note this is a javascript Map, not an OpenLayers Map
@@ -52,6 +54,10 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     setSelectedBaseLayer(layer: SrLayer) {
       this.selectedBaseLayer = layer;
     },
+    setSelectedBaseLayerByName(layerName: string) { 
+      this.selectedBaseLayerTitle = layerName;
+      this.selectedBaseLayer = layers.value[layerName];
+    },
     setProjection(proj: string) {
       //console.log('setProjection', proj);
       this.projection = proj;
@@ -76,6 +82,9 @@ export const useMapParamsStore = defineStore('mapParamsStore', {
     },
     getSelectedBaseLayer() {
       return this.selectedBaseLayer;
+    },
+    getSelectedBaseLayerName() {
+      return this.selectedBaseLayer.title;
     },
     getProjection() : string {
       return this.projection;
