@@ -168,10 +168,14 @@
   };
 
   const updateAnalysisMapView = async (reason:string) => {
-    const srViewName = await db.getSrViewName(props.reqId);
+    let srViewName = await db.getSrViewName(props.reqId);
+    if((!srViewName) || (srViewName == '')){
+        console.warn(`inserting global srViewName:${srViewName} for reqId:${props.reqId}`);
+        srViewName = 'Global';
+    }
     const srView = srViews.value[`${srViewName}`];
     console.log(`SrAnalysisMap updateAnalysisMapView from ${reason}  for srViewName:${srViewName} reqID:${props.reqId} using view:`,srView);
-
+    
     try {
         const map = mapRef.value?.map;
         if(map){
@@ -186,7 +190,14 @@
             });
             let baseLayer = mapParamsStore.getSelectedBaseLayer();
             console.log(`SrAnalysisMap  baseLayer:`,baseLayer);
-            const newProj = getProjection(await db.getProjection(props.reqId));
+            let projName = await db.getProjection(props.reqId);
+            console.log(`SrAnalysisMap  projName:`,projName);
+            if((!projName) || (projName == '')){
+                projName = 'EPSG:3857';
+                console.warn(`inserting  projName:${projName} for reqId:${props.reqId}`);
+            }
+            const newProj = getProjection(projName);
+
             if(newProj){
                 if(baseLayer){
                     //console.log('adding Base Layer', baseLayer);
