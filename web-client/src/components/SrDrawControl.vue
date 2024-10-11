@@ -6,9 +6,9 @@
 import { onMounted, ref } from 'vue';
 import { Control } from 'ol/control';
 import SrDrawButtonBox from './SrDrawButtonBox.vue';
-import { useMapParamsStore } from "@/stores/mapParamsStore";
+import { useMapStore } from "@/stores/mapStore";
 
-const mapParamsStore = useMapParamsStore();
+const mapStore = useMapStore();
 
 const emit = defineEmits(['draw-control-created']);
 
@@ -39,7 +39,7 @@ defineExpose({
 
 const handlePickedChange = (newPickedValue: string) => {
     console.log(`Picked value changed: ${newPickedValue}`);
-    mapParamsStore.setDrawType(newPickedValue);
+    mapStore.setDrawType(newPickedValue);
     // Handle the change as needed
 };
 </script>

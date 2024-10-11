@@ -1,12 +1,12 @@
 
 import { ref } from "vue";
-import { useMapParamsStore } from "@/stores/mapParamsStore";
 import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
 import TileGrid from "ol/tilegrid/TileGrid.js";
 import { useMapStore } from "@/stores/mapStore.js";
 import type { ServerType } from 'ol/source/wms.js';
 import { XYZ } from 'ol/source.js';
+import { get as getProjection } from 'ol/proj.js';
 
 
 export const srAttributions = {
@@ -303,13 +303,13 @@ export const layers = ref<{ [key: string]: SrLayer }>({
 });
 
 export const getSrLayersForCurrentView = () => {
-  const mapParamsStore = useMapParamsStore();
-  return  Object.values(layers.value).filter(layer => layer.allowed_views.includes(mapParamsStore.getSrView().name));
+  const mapStore = useMapStore();
+  return  Object.values(layers.value).filter(layer => layer.allowed_views.includes(mapStore.getSrView()));
 }
 
 export const getSrLayersForCurrentProjection = () => {
-  const mapParamsStore = useMapParamsStore();
-  return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(mapParamsStore.getProjection()));
+  const mapStore = useMapStore();
+  return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(mapStore.getSrViewObj().projectionName));
 }
 
 export const getSrBaseLayersForView = (view: string) => {
@@ -319,38 +319,35 @@ export const getSrBaseLayersForView = (view: string) => {
   return layerList;
 }
 
-export const addLayersForCurrentView = () => {
+export const addLayersForCurrentView = (projectionName:string) => {
   //console.log('--------------------addLayersForCurrentView--------------------');
   const srLayersForView = getSrLayersForCurrentView(); 
   srLayersForView.forEach(srLayerForView => {
     if(!srLayerForView.isBaseLayer){ // base layer is managed by baseLayerControl
       //console.log(`adding non base layer:`,srLayerForView.title);
-      const newLayer = getLayer(srLayerForView.title);
-      const map = useMapStore().map;
-      if(map){
-        map.addLayer(newLayer);
-      } else {
-        console.log('map not available');
+      const newLayer = getLayer(projectionName, srLayerForView.title);
+      if(newLayer){
+        const map = useMapStore().map;
+        if(map){
+          map.addLayer(newLayer);
+        } else {
+          console.log('map not available');
+        }
+      } else{
+        console.error(`SKIPPING - No layer found for title: ${srLayerForView.title} projection: ${projectionName}`);
       }
-    } else{
-      //console.log(`skipping layer: ${srLayerForView.title} for projection: ${mapStore.map?.getView().getProjection()}`);
-    }
+  }
   });
 }
 
-export const getDefaultBaseLayer = (view: string): SrLayer | undefined  => {
-  const srLayer = Object.values(layers.value).find(layer => layer.isBaseLayer && layer.allowed_views.includes(view));
-  //console.log(`getDefaultBaseLayer for: ${view} --> ${srLayer?.title}`);
-  return srLayer;
-}
-
-export const getLayer = (title: string) => {
+export const getLayer = (projectionName: string, title: string): TileLayer | undefined => {
   //console.log(`getLayer ${title}`);
+
   const srLayer =  Object.values(layers.value).find(layer => layer.title === title);
   let layerInstance;
   if(srLayer){
-    const mapParamsStore = useMapParamsStore();
-    const cachedLayer = mapParamsStore.getLayerFromCache(title);
+    const mapStore = useMapStore();
+    const cachedLayer = mapStore.getLayerFromCache(projectionName,title);
     let lname = srLayer.title;
     if (srLayer.isBaseLayer) {
       lname = "Base Layer";
@@ -372,7 +369,7 @@ export const getLayer = (title: string) => {
 
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
-          //console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapParamsStore.getProjection()}`);
+          //console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapStore.getProjection()}`);
           layerInstance = new TileLayer({
             // if we specify it, the layer will be reprojected to the view's projection
             // if we don't specify it we assume it is in the view's projection
@@ -383,9 +380,9 @@ export const getLayer = (title: string) => {
               params: {
                 'LAYERS': srLayer.layerName, // the WMS layer name(s) to load
                 'TILED': true,
-                'CRS': mapParamsStore.getProjection(),
+                'CRS': projectionName,
               },
-              projection: srLayer.source_projection,
+              projection: projectionName,
               serverType: srLayer.serverType, //  WMS server type 
               //crossOrigin: '', // Consider CORS policies
               crossOrigin: 'anonymous', // Consider CORS policies
@@ -395,10 +392,10 @@ export const getLayer = (title: string) => {
           });
 
         } else if(srLayer.type === "xyz"){
-          //console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapParamsStore.getProjection()}`);
+          //console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
           const xyzOptions = {
             url: srLayer.url,
-            //extent: mapParamsStore.extent,
+            //extent: mapStore.extent,
             attributions: srAttributions[srLayer.attributionKey],
           }
           layerInstance = new TileLayer({
@@ -406,10 +403,10 @@ export const getLayer = (title: string) => {
             ... localTileLayerOptions
           });
         // } else if(srLayer.type === "ArcGisRest"){
-        //   console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapParamsStore.getProjection()}`);
+        //   console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
         //   const arcGisRestOptions = {
         //     url: srLayer.url,
-        //     //extent: mapParamsStore.extent,
+        //     //extent: mapStore.extent,
         //     attributions: srAttributions[srLayer.attributionKey],
         //   }
         //   layerInstance = new TileLayer({
@@ -419,7 +416,7 @@ export const getLayer = (title: string) => {
         }
         if (layerInstance) {
           //console.log('Caching layer', title);
-          mapParamsStore.cacheLayer(title, layerInstance);
+          mapStore.addLayerToCache(projectionName, lname, layerInstance);
         }
     }
     //console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);

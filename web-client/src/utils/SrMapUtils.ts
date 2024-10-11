@@ -6,7 +6,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
-import { Layer as OL_Layer} from 'ol/layer';
+import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
 import type { EventsKey } from 'ol/events';
@@ -14,7 +14,6 @@ import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
 import { getSpotNumber,getGroundTrack } from './spotUtils';
-import { useMapParamsStore } from '@/stores/mapParamsStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -64,7 +63,7 @@ export function drawGeoJson(
         // Parse GeoJSON data
         const format = new GeoJSON();
         const features = format.readFeatures(geoJsonData, {
-            featureProjection: useMapParamsStore().projection, 
+            featureProjection: useMapStore().getSrViewObj().projectionName, 
         });
         // add features to source
         let style: Style;
@@ -410,12 +409,12 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
 
 }
 
-export function createNewDeckLayer(deck:Deck,name:String): OL_Layer{
+export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
     console.log('createNewDeckLayer:',name);
     const layerOptions = {
         title: name,
     }
-    const new_layer = new OL_Layer({
+    const new_layer = new OLlayer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
             const [width, height] = size;
             const [longitude, latitude] = toLonLat(viewState.center);
@@ -480,7 +479,6 @@ export function initDeck(map: OLMap){
     const deck = resetDeckGLInstance(tgt); 
     if(deck){
         addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
-        //addDeckLayerToMap(map,deck,SELECTED_LAYER_NAME);        
     } else {
       console.error('initDeck(): deck Instance is null');
     }
@@ -527,4 +525,10 @@ export function checkAreaOfConvexHullError(): boolean {
         return false;
     }
     return true;
+}
+
+export function dumpMapLayers(map: OLMap): void {
+    map.getAllLayers().forEach((layer: OLlayer) => {
+      console.log(`dumpMapLayers layer:`,layer.getProperties());
+    });
 }

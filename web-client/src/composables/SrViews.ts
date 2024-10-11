@@ -3,6 +3,8 @@ import { ref, computed } from "vue";
 export interface SrView {
   name: string;
   description: string;
+  projectionName: string;
+  baseLayerName?: string;
   default_zoom?: number;
   min_zoom: number;
   max_zoom: number;
@@ -13,7 +15,19 @@ export interface SrView {
 export const srViews = ref<{ [key: string]: SrView }>({
   "Global": {
     name: "Global",
-    description: "Web Mercator",
+    description: "WGS 84",
+    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "Esri World Topo",
+    default_zoom: 1,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [90.0, -180.0, -90.0, 180.0],
+  },
+  "Global google": {
+    name: "Global google",
+    description: "WGS 84",
+    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "Google",
     default_zoom: 1,
     min_zoom: 0,
     max_zoom: 16,
@@ -22,6 +36,8 @@ export const srViews = ref<{ [key: string]: SrView }>({
   "North": {
     name: "North",
     description: "North Polar Stereographic",
+    projectionName: "EPSG:5936",// +proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs
+    baseLayerName: "Artic Ocean Base",
     default_zoom: 5,
     min_zoom: 0,
     max_zoom: 16,
@@ -30,6 +46,8 @@ export const srViews = ref<{ [key: string]: SrView }>({
   "South": {
     name: "South",
     description: "South: Antarctic Polar Stereographic",
+    projectionName: "EPSG:3031", // +proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs
+    baseLayerName: "Antartic Imagery",
     default_zoom: 2,
     min_zoom: 0,
     max_zoom: 16,

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Map as OLMap } from 'ol';
+import TileLayer from 'ol/layer/Tile.js';
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { usePermalink } from '@/composables/usePermalink';
@@ -7,6 +8,16 @@ import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import type { EventsKey } from 'ol/events';
+import {type Type as OlGeometryType} from 'ol/geom/Geometry';
+import { srViews } from '@/composables/SrViews';
+import type { SrView } from '@/composables/SrViews';
+import type { SrLayer } from '@/composables/SrLayers.js';
+import { layers } from '@/composables/SrLayers';
+
+
+interface LayerCache {
+  [projectionName: string]: Map<string, TileLayer>;
+}
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -40,7 +51,11 @@ export const useMapStore = defineStore('map', {
     totalRows: 0 as number,
     currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
-  }),
+    srView: 'Global' as string, // Or a more specific type if needed
+    drawType: '' as string,
+    layerCache: {} as LayerCache, // A dictionary of projection names to maps of layers
+    layerGroupCache: new Map<string, Map<string, SrLayer>>(), // If you need a similar structure for groups
+}),
   actions: {
     setMap(mapInstance: OLMap) {
       this.map = mapInstance;
@@ -176,5 +191,49 @@ export const useMapStore = defineStore('map', {
     setPointerMoveListenerKey(key: EventsKey|null) {
       this.pointerMoveListenerKey = key;
     },
+    addLayerToCache(projectionName: string, title: string, layer: TileLayer): void {
+      if (!this.layerCache[projectionName]) {
+          this.layerCache[projectionName] = new Map<string, TileLayer>();
+      }
+      this.layerCache[projectionName].set(title, layer);
+    },
+    getLayerFromCache(projectionName: string, title: string): TileLayer | null {
+        const projectionLayers = this.layerCache[projectionName];
+        return projectionLayers ? projectionLayers.get(title) || null : null;
+    },
+    removeLayerFromCache(projectionName: string, title: string): void {
+        const projectionLayers = this.layerCache[projectionName];
+        if (projectionLayers) {
+        projectionLayers.delete(title);
+        // Optionally, clean up empty projection maps
+        if (projectionLayers.size === 0) {
+            delete this.layerCache[projectionName];
+        }
+        }
+    },
+    resetMap() {
+        this.srView = 'Global';
+        this.drawType = '' as string;
+        this.layerCache = {} as LayerCache;
+    },
+    setSrView(srView: string) {
+        this.srView = srView;
+        const srViewObj = srViews.value[srView] as SrView;
+    },
+    getSrView() {
+        return this.srView;
+    },
+    getSrViewObj() : SrView {
+        return srViews.value[this.srView] as SrView;
+    },
+    getDrawType(): string {
+        return this.drawType;
+    },
+    getDrawTypeAsGeometryType(): OlGeometryType {
+        return this.drawType as OlGeometryType;
+    },
+    setDrawType(drawType: string) {
+        this.drawType = drawType;
+    },  
   },
 });

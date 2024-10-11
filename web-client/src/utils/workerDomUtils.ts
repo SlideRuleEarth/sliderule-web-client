@@ -12,7 +12,6 @@ import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
-import { useMapParamsStore } from '@/stores/mapParamsStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -285,8 +284,7 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
                 srReqRec.func = useReqParamsStore().getIceSat2API();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.projection = useMapParamsStore().projection;
-                srReqRec.srViewName = useMapParamsStore().srView.name;
+                srReqRec.srViewName = useMapStore().srView;
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
@@ -301,8 +299,7 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
                 srReqRec.func = useReqParamsStore().getGediAPI();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.projection = useMapParamsStore().projection;
-                srReqRec.srViewName = useMapParamsStore().srView.name;
+                srReqRec.srViewName = useMapStore().srView;
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);

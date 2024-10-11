@@ -2,9 +2,9 @@
     import { ref,onMounted } from "vue";
     import { Control } from 'ol/control';
     import { srViews } from '@/composables/SrViews';
-    import { useMapParamsStore } from "@/stores/mapParamsStore";
+    import { useMapStore } from "@/stores/mapStore";
 
-    const mapParamsStore = useMapParamsStore();
+    const mapStore = useMapStore();
     const viewControlElement = ref(null);
 
     const emit = defineEmits(['view-control-created', 'update-view']);
@@ -22,7 +22,7 @@
         const view = srViews.value[selectedLabel];
         //console.log("updateView view:", view);
         if (view) {
-          mapParamsStore.setSrView(view);
+          mapStore.setSrView(view.name);
           emit('update-view', view);
         }
     }
