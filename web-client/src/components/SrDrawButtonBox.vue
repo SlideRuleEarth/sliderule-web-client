@@ -61,7 +61,7 @@
   // Expose a reset function to the parent
   defineExpose({
     resetPicked() {
-      console.log("SrDrawButtonBox resetPicked");
+      //console.log("SrDrawButtonBox resetPicked");
       const changed = picked.value !== '';
       picked.value = '';
       if (changed) {

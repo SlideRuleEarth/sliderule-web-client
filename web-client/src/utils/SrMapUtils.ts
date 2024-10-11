@@ -4,6 +4,7 @@ import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
+import { Feature } from 'ol';
 import { Deck } from '@deck.gl/core';
 import { toLonLat} from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
@@ -53,55 +54,61 @@ export function drawGeoJson(
     zoomTo: boolean = false,
     tag: string = '', 
 ): void {
-    console.log('drawGeoJson geoJsonData:',geoJsonData);
-    const map = useMapStore().map;
-    if(!map){
-        console.error('Map is not defined.');
-        return;
-    }
-    if(vectorSource){
-        // Parse GeoJSON data
-        const format = new GeoJSON();
-        const features = format.readFeatures(geoJsonData, {
-            featureProjection: useMapStore().getSrViewObj().projectionName, 
-        });
-        // add features to source
-        let style: Style;
-        if (noFill) {
-            // Define a style without a fill
-            style = new Style({
-                stroke: new Stroke({
-                    color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
-                    width: 2,
-                }),
+    console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
+    try{
+        const map = useMapStore().map;
+        if(!map){
+            console.error('Map is not defined.');
+            return;
+        }
+        if(vectorSource){
+            dumpFeaturesToConsole(vectorSource);
+            // Parse GeoJSON data
+            const format = new GeoJSON();
+            const features = format.readFeatures(geoJsonData, {
+                featureProjection: useMapStore().getSrViewObj().projectionName, 
             });
+            // add features to source
+            let style: Style;
+            if (noFill) {
+                // Define a style without a fill
+                style = new Style({
+                    stroke: new Stroke({
+                        color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
+                        width: 2,
+                    }),
+                });
+            } else {
+                // Define a style with both fill and stroke
+                style = new Style({
+                    fill: new Fill({
+                        color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+                    }),
+                    stroke: new Stroke({
+                        color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
+                        width: 2,
+                    }),
+                });
+            }
+            // add style and tag to features
+            features.forEach((feature,index) => {
+                feature.setId(`feature-${index}`);
+                feature.setStyle(style);
+                feature.set('tag', tag);  // Add the tag to the feature's properties
+            });
+            console.log('drawGeoJson add features:',features);
+            vectorSource.addFeatures(features);
+            // Zoom to the extent of the new features
+            if (zoomTo) {
+                const extent = vectorSource.getExtent();
+                map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+            }
+            dumpFeaturesToConsole(vectorSource);
         } else {
-            // Define a style with both fill and stroke
-            style = new Style({
-                fill: new Fill({
-                    color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-                }),
-                stroke: new Stroke({
-                    color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
-                    width: 2,
-                }),
-            });
+            console.error('VectorSource is not defined.');
         }
-        // add style and tag to features
-        features.forEach(feature => {
-            feature.setStyle(style);
-            feature.set('tag', tag);  // Add the tag to the feature's properties
-        });
-        
-        vectorSource.addFeatures(features);
-
-        // Zoom to the extent of the new features
-        if (zoomTo) {
-            const extent = vectorSource.getExtent();
-            map.getView().fit(extent, { padding: [50, 50, 50, 50] });
-        }
-    } else {
-        console.error('VectorSource is not defined.');
+    } catch (error) {
+        console.error('drawGeoJson error:',error);
     }
 }
 
@@ -392,16 +399,23 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
     //console.log('updateElLayerWithObject startTime:',startTime);
     try{
         if(useDeckStore().getDeckInstance()){
+            //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
             const layer = createElLayer(elevationData,extHMean,heightFieldName);
-            useDeckStore().replaceOrAddElLayer(layer);
+            const replaced = useDeckStore().replaceOrAddElLayer(layer);
             //console.log('updateElLayerWithObject layer:',layer);
+            console.log('updateElLayerWithObject useDeckStore().useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
+            // if(replaced){
+            //     console.log('Replaced using elevation layer:',layer);
+            // } else {
+            //     console.log('Added using elevation layer:',layer);
+            // }
         } else {
-            console.error('Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
+            console.error('updateElLayerWithObject Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
         }
     } catch (error) {
-        console.error('Error updating elevation layer:',error);
+        console.error('updateElLayerWithObject Error updating elevation layer:',error);
     } finally {
         const endTime = performance.now(); // End time
         console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
@@ -458,23 +472,23 @@ export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
 }
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    console.log('addDeckLayerToMap:',name);
+    //console.log('addDeckLayerToMap:',name);
     const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
         const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME);
         if (selectedLayer) {
-            //console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
+            console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
             map.removeLayer(selectedLayer);
         }
         map.addLayer(deckLayer);
-        //console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
         console.error('No current_layer to add.');
     }
 }
 
 export function initDeck(map: OLMap){
-    console.log('initDeck')
+    console.log('initDeck start')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(tgt); 
     if(deck){
@@ -482,6 +496,7 @@ export function initDeck(map: OLMap){
     } else {
       console.error('initDeck(): deck Instance is null');
     }
+    console.log('initDeck end: deck:',deck);
 }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -499,7 +514,7 @@ export function swapLongLatToLatLong(coordString: string): string {
 
 export function checkAreaOfConvexHullWarning(): boolean {
     const limit = useReqParamsStore().getAreaWarningThreshold()
-    console.log('checkAreaOfConvexHullWarning area:',limit);
+    //console.log('checkAreaOfConvexHullWarning area:',limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
         const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useReqParamsStore().getAreaWarningThreshold()} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
@@ -527,8 +542,31 @@ export function checkAreaOfConvexHullError(): boolean {
     return true;
 }
 
-export function dumpMapLayers(map: OLMap): void {
+export function dumpMapLayers(map: OLMap, tag:string=''): void {
     map.getAllLayers().forEach((layer: OLlayer) => {
-      console.log(`dumpMapLayers layer:`,layer.getProperties());
+      console.log(`dumpMapLayers ${tag} layer:`,layer.getProperties());
     });
+}
+
+/**
+ * Dumps all features from a given VectorSource to the console in GeoJSON format.
+ * @param vectorSource - The VectorSource containing the features.
+ */
+export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
+    if (!vectorSource) {
+        console.error('VectorSource is not defined.');
+        return;
+    }
+
+    const format = new GeoJSON();
+    const features: Feature[] = vectorSource.getFeatures();
+
+    features.forEach((feature, index) => {
+        const geoJsonFeature = format.writeFeatureObject(feature, {
+            featureProjection: 'EPSG:3857', // Replace with your desired projection
+        });
+        console.log(`Feature #${index + 1}:`, JSON.stringify(geoJsonFeature, null, 2));
+    });
+
+    console.log(`Total features: ${features.length}`);
 }

@@ -41,6 +41,7 @@
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
     import VectorLayer from "ol/layer/Vector";
+import { map } from "lodash";
 
     const reqParamsStore = useReqParamsStore();
 
@@ -75,7 +76,7 @@
 
     // Function to toggle the DragBox interaction.
     function disableDragBox() {
-        console.log("SrMap disableDragBox");
+        //console.log("SrMap disableDragBox");
         // Check if the DragBox interaction is added to the map.
         if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
         // If it is, remove it.
@@ -84,7 +85,7 @@
     }
 
     function enableDragBox() {
-        console.log("SrMap enableDragBox");
+        //console.log("SrMap enableDragBox");
         disableDragBox(); // reset then add
         disableDrawPolygon();
         mapRef.value?.map.addInteraction(dragBox);
@@ -108,7 +109,7 @@
     });
 
     dragBox.on('boxend', function() {
-        console.log("dragBox.on boxend");
+        //console.log("dragBox.on boxend");
         const extent = dragBox.getGeometry().getExtent();
         //console.log("Box extent in map coordinates:", extent);
 
@@ -154,7 +155,7 @@
             let boxFeature = new OlFeature(fromExtent(extent));
             // Apply the style to the feature
             boxFeature.setStyle(boxStyle); 
-            console.log("dragBox.on boxend boxFeature tag:",tag);
+            //console.log("dragBox.on boxend boxFeature tag:",tag);
             boxFeature.set('tag',tag);   
             // Add the feature to the vector layer
             vectorSource.addFeature(boxFeature);
@@ -188,7 +189,7 @@
 
     // Function to toggle the Draw interaction.
     function disableDrawPolygon() {
-        console.log("disableDrawPolygon");
+        //console.log("disableDrawPolygon");
         // Check if the Draw interaction is added to the map.
         if (mapRef.value?.map.getInteractions().getArray().includes(drawPolygon)) {
         // If it is, remove it.
@@ -200,11 +201,11 @@
         disableDragBox();
         disableDrawPolygon(); // reset then add
         mapRef.value?.map.addInteraction(drawPolygon);
-        console.log("enableDrawPolygon");
+        //console.log("enableDrawPolygon");
     }
 
     drawPolygon.on('drawend', function(event) {
-        console.log("drawend:", event);
+        //console.log("drawend:", event);
 
         const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
 
@@ -214,26 +215,31 @@
                 // Access the feature that was drawn
                 const feature = event.feature;
                 feature.setStyle(polygonStyle);
-                vectorSource.addFeature(feature);
                 //console.log("feature:", feature);
                 // Get the geometry of the feature
                 const geometry = feature.getGeometry() as OlPolygon;
-                //console.log("geometry:", geometry);
+                console.log("geometry:", geometry);
                 // Check if the geometry is a polygon
                 if (geometry && geometry.getType() === 'Polygon') {
-                    console.log("geometry:",geometry);
+                    //console.log("geometry:",geometry);
                     // Get the coordinates of all the rings of the polygon
                     const rings = geometry.getCoordinates(); // This retrieves all rings
-                    //console.log("Original polyCoords:", rings);
+                    console.log("Original polyCoords:", rings);
 
                     // Convert each ring's coordinates to lon/lat using toLonLat
-                    const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-                        ring.map(coord => toLonLat(coord) as Coordinate)
-                    );
-
-                    mapStore.polyCoords = convertedRings;
-                    //console.log("Converted mapStore.polyCoords:", mapStore.polyCoords);
-                    const flatLonLatPairs = convertedRings.flatMap(ring => ring);
+                    // const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
+                    //     ring.map(coord => toLonLat(coord) as Coordinate)
+                    // );
+                    // console.log("Converted polyCoords:", convertedRings);
+                    // mapStore.polyCoords = convertedRings;
+                    // const flatLonLatPairs = convertedRings.flatMap(ring => ring);
+                    // const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
+                    //     lon: coord[0],
+                    //     lat: coord[1]
+                    // }));
+                    
+                    mapStore.polyCoords = rings;
+                    const flatLonLatPairs = rings.flatMap(ring => ring);
                     const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
                         lon: coord[0],
                         lat: coord[1]
@@ -245,22 +251,24 @@
                         //console.log('poly is counter-clockwise');
                         reqParamsStore.poly = srLonLatCoordinates;
                     }
+                    console.log('reqParamsStore.poly:',reqParamsStore.poly);
+
                     //console.log('srLonLatCoordinates:',srLonLatCoordinates);
                     reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates)); // this also poplates the area
-                    //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+                    console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
                     // Create GeoJSON from reqParamsStore.convexHull
                     const thisConvexHull = reqParamsStore.getConvexHull();
                     const tag = reqParamsStore.getFormattedAreaOfConvexHull();
                     if(thisConvexHull){
                         const geoJson = {
-                        type: "Feature",
-                        geometry: {
-                            type: "Polygon",
-                            coordinates: [thisConvexHull.map(coord => [coord.lon, coord.lat])]
-                        },
-                        properties: {
-                            name: "Convex Hull Polygon"
-                        }
+                            type: "Feature",
+                            geometry: {
+                                type: "Polygon",
+                                coordinates: [thisConvexHull.map(coord => [coord.lon, coord.lat])]
+                            },
+                            properties: {
+                                name: "Convex Hull Polygon"
+                            }
                         };
                         if(mapRef.value?.map){
                             enableTagDisplay(mapRef.value?.map,vectorSource);
@@ -290,33 +298,33 @@
     });
 
     const clearDrawingLayer = () =>{
-        console.log("Clearing Drawing Layer");
+        //console.log("Clearing Drawing Layer");
         disableTagDisplay();
         let cleared = false;
         const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
         if(vectorLayer && vectorLayer instanceof OLlayer){
-        const vectorSource = vectorLayer.getSource();
-        if(vectorSource){
-            const features = vectorSource.getFeatures()
-            //console.log("VectorSource hasFeature:",features.length);
-            if(features.length > 0){
-                //console.log("Clearing VectorSource features");
-                vectorSource.clear();
-                cleared = true;
+            const vectorSource = vectorLayer.getSource();
+            if(vectorSource){
+                const features = vectorSource.getFeatures()
+                //console.log("VectorSource hasFeature:",features.length);
+                if(features.length > 0){
+                    //console.log("Clearing VectorSource features");
+                    vectorSource.clear();
+                    cleared = true;
+                } else {
+                    //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
+                }
             } else {
-                console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
+                console.error("clearDrawingLayer Error:vectorSource is null");
             }
         } else {
-            console.error("clearDrawingLayer Error:vectorSource is null");
-        }
-        } else {
-        console.log("clearDrawingLayer Error:vectorLayer is null");
+            console.log("clearDrawingLayer vectorLayer is null");
         }
         return cleared;
     }
 
     const handlePickedChanged = async (newPickedValue: string) => {
-        console.log(`handlePickedChanged: ${newPickedValue}`);
+        //console.log(`handlePickedChanged: ${newPickedValue}`);
         if (newPickedValue === 'Box'){
             if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
                 toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a rectangle by clicking and dragging on the map', life: 5000 });
@@ -375,13 +383,14 @@
     onMounted(() => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
+        drawVectorLayer.set('name', 'Drawing Layer');
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
         if (mapRef.value?.map) {
-            console.log("SrMap onMounted map:",mapRef.value.map);
+            //console.log("SrMap onMounted map:",mapRef.value.map);
             mapStore.setMap(mapRef.value.map);
             const map = mapStore.getMap() as OLMap;
             if(map){
@@ -428,7 +437,7 @@
                     const newLayer = getLayer(curProj, defaultBaseLayer);
                     if(newLayer){
                         if(mapStore.map){
-                            console.log(`SrMap adding Base Layer: ${newLayer} for proj:${curProj}`);
+                            //console.log(`SrMap adding Base Layer for proj:${curProj}:`, newLayer );
                             mapStore.map.addLayer(newLayer);
                         } else {
                             console.log('SrMap map not available');
@@ -448,7 +457,7 @@
             } else {
                 console.log("SrMap Error:map is null");
             } 
-            dumpMapLayers(map);
+            //dumpMapLayers(map, 'SrMap onMounted');
         } else {
             console.log("SrMap Error:mapRef.value?.map is null");
         }
@@ -515,15 +524,7 @@
                     } else {
                         console.error(`Error: no layer found for curProj:${srViewObj.projectionName} baseLayer.title:${baseLayer}`);
                     }
-                    const dlayer = getLayer(srViewObj.projectionName,'Drawing Layer');
-                    if(dlayer){
-                        map.addLayer(dlayer);
-                    } else {
-                        console.log(`Error: no layer found for curProj:${srViewObj.projectionName} title:Drawing Layer`);
-                    }
-                    drawVectorLayer.set('name', 'Drawing Layer');
                     map.addLayer(drawVectorLayer);
-
                     //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
                     let extent = newProj.getExtent();
                     //console.log("projection's extent:",extent);          
@@ -566,7 +567,8 @@
                         addLayersForCurrentView(srViewObj.projectionName);      
                         //map.getView().on('change:resolution', onResolutionChange);
                         initDeck(map);
-                        dumpMapLayers(map);
+                        // dumpMapLayers(map, 'SrMap updateMapView initDeck');
+
                         // Permalink
                         // if(mapStore.plink){
                         //   var url = mapStore.plink.getUrlParam('url');
@@ -603,11 +605,11 @@
             console.error(`SrMap Error: updateMapView failed for ${reason}`,error);
         } finally {
             if(map){
-                dumpMapLayers(map);
+                //dumpMapLayers(map,'SrMap updateMapView');
             } else {
                 console.error("SrMap Error:map is null");
             }
-            console.log("SrMap mapRef.value?.map.getView()",mapRef.value?.map.getView());
+            //console.log("SrMap mapRef.value?.map.getView()",mapRef.value?.map.getView());
             console.log(`------ SrMap updateMapView Done for ${reason} ------`);
         }
   };

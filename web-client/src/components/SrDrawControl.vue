@@ -19,7 +19,7 @@ onMounted(() => {
   const element = document.createElement('div');
   element.className = 'sr-draw-control ol-unselectable ol-control';
   if(drawButtonBox.value == null){
-    console.log("Error:drawButtonBox is null");
+    console.error("Error:drawButtonBox is null");
   } else {
     //console.log("drawButtonBox is not null");
     element.appendChild(drawButtonBox.value.$el);
@@ -32,13 +32,13 @@ onMounted(() => {
 
 defineExpose({
   resetPicked() {
-    console.log("SrDrawControl resetPicked");
+    //console.log("SrDrawControl resetPicked");
     drawButtonBox.value?.resetPicked();
   }
 });
 
 const handlePickedChange = (newPickedValue: string) => {
-    console.log(`Picked value changed: ${newPickedValue}`);
+    //console.log(`Picked value changed: ${newPickedValue}`);
     mapStore.setDrawType(newPickedValue);
     // Handle the change as needed
 };
