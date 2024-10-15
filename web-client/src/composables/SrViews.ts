@@ -15,8 +15,18 @@ export interface SrView {
 export const srViews = ref<{ [key: string]: SrView }>({
   "Global": {
     name: "Global",
-    description: "WGS 84",
+    description: "WGS 84 Lat/Long",
     projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "Esri World Topo",
+    default_zoom: 1,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [90.0, -180.0, -90.0, 180.0],
+  },
+  "Global Mercator": {
+    name: "Global Mercator",
+    description: "WGS 84 Mercator",
+    projectionName: "EPSG:3857", // 
     baseLayerName: "Esri World Topo",
     default_zoom: 1,
     min_zoom: 0,

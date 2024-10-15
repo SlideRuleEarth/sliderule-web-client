@@ -140,12 +140,12 @@
                     } else {
                         console.error(`Error: no layer found for curProj:${srViewObj.projectionName} baseLayer.title:${baseLayer}`);
                     }
-                    const dlayer = getLayer(srViewObj.projectionName,'Drawing Layer');
-                    if(dlayer){
-                        map.addLayer(dlayer);
-                    } else {
-                        console.error(`Error: no layer found for curProj:${srViewObj.projectionName} title:Drawing Layer`);
-                    }
+                    // const dlayer = getLayer(srViewObj.projectionName,'Drawing Layer');
+                    // if(dlayer){
+                    //     map.addLayer(dlayer);
+                    // } else {
+                    //     console.error(`Error: no layer found for curProj:${srViewObj.projectionName} title:Drawing Layer`);
+                    // }
                     //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
                     let extent = newProj.getExtent();
                     //console.log("projection's extent:",extent);         
@@ -185,7 +185,7 @@
                         });
                         map.setView(newView);
                         //updateCurrentParms();
-                        addLayersForCurrentView(srViewObj.projectionName); 
+                        //addLayersForCurrentView(map,srViewObj.projectionName); 
                         let reqExtremeLatLon = [0,0,0,0];
                         if(props.reqId > 0){   
                             //console.log('calling readOrCacheSummary(',props.reqId,')');  
@@ -256,8 +256,8 @@
       <MapControls.OlZoomControl  />
       
       <MapControls.OlMousepositionControl 
+        :projection="computedProjName"
         :coordinateFormat="stringifyFunc as any"
-        projection="EPSG:4326"
       />
 
       <MapControls.OlScalelineControl />

@@ -6,7 +6,7 @@ import TileGrid from "ol/tilegrid/TileGrid.js";
 import { useMapStore } from "@/stores/mapStore.js";
 import type { ServerType } from 'ol/source/wms.js';
 import { XYZ } from 'ol/source.js';
-import { get as getProjection } from 'ol/proj.js';
+import type OLMap from "ol/Map.js";
 
 
 export const srAttributions = {
@@ -319,25 +319,31 @@ export const getSrBaseLayersForView = (view: string) => {
   return layerList;
 }
 
-export const addLayersForCurrentView = (projectionName:string) => {
+export const addLayersForCurrentView = (map:OLMap, projectionName:string) => {
   //console.log('--------------------addLayersForCurrentView--------------------');
-  const srLayersForView = getSrLayersForCurrentView(); 
-  srLayersForView.forEach(srLayerForView => {
-    if(!srLayerForView.isBaseLayer){ // base layer is managed by baseLayerControl
-      //console.log(`adding non base layer:`,srLayerForView.title);
-      const newLayer = getLayer(projectionName, srLayerForView.title);
-      if(newLayer){
-        const map = useMapStore().map;
-        if(map){
-          map.addLayer(newLayer);
-        } else {
-          console.log('map not available');
+  try{
+    const srLayersForView = getSrLayersForCurrentView(); 
+    srLayersForView.forEach(srLayerForView => {
+      if(!srLayerForView.isBaseLayer){ // base layer is managed by baseLayerControl
+        //console.log(`adding non base layer:`,srLayerForView.title);
+        const newLayer = getLayer(projectionName, srLayerForView.title);
+        if(newLayer){
+          if(map){
+            console.log(`addLayersForCurrentView adding layer:`,srLayerForView.title);
+            map.addLayer(newLayer);
+          } else {
+            console.error('addLayersForCurrentView map not available map:',map);
+          }
+        } else{
+          console.error(`addLayersForCurrentView SKIPPING - No layer found for title: ${srLayerForView.title} projection: ${projectionName}`);
         }
-      } else{
-        console.error(`SKIPPING - No layer found for title: ${srLayerForView.title} projection: ${projectionName}`);
+      } else {
+        console.log(`addLayersForCurrentView SKIPPING - base layer:`,srLayerForView.title);
       }
+    });
+  } catch (error) {
+    console.error('addLayersForCurrentView error:',error);
   }
-  });
 }
 
 export const getLayer = (projectionName: string, title: string): TileLayer | undefined => {

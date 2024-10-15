@@ -41,7 +41,6 @@
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
     import VectorLayer from "ol/layer/Vector";
-import { map } from "lodash";
 
     const reqParamsStore = useReqParamsStore();
 
@@ -504,7 +503,7 @@ import { map } from "lodash";
     };
 
     const updateMapView = async (reason:string) => {
-        //console.log(`****** SrMap updateMapView for ${reason} ******`);
+        console.log(`****** SrMap updateMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
             if(map){
@@ -564,7 +563,7 @@ import { map } from "lodash";
                         map.setView(newView);
                         newView.fit(extent);
                         //updateCurrentParms();
-                        addLayersForCurrentView(srViewObj.projectionName);      
+                        addLayersForCurrentView(map,srViewObj.projectionName);      
                         //map.getView().on('change:resolution', onResolutionChange);
                         initDeck(map);
                         // dumpMapLayers(map, 'SrMap updateMapView initDeck');
@@ -641,8 +640,8 @@ import { map } from "lodash";
     <MapControls.OlZoomControl  />
     
     <MapControls.OlMousepositionControl 
-      :coordinateFormat="stringifyFunc as any"
-      projection="EPSG:4326"
+        :projection="computedProjName"
+        :coordinateFormat="stringifyFunc as any"
     />
     <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 

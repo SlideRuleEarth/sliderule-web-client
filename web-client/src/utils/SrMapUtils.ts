@@ -1,12 +1,14 @@
 import { useMapStore } from '@/stores/mapStore';
-import { computed, h } from 'vue';
+import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
+import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Deck } from '@deck.gl/core';
-import { toLonLat} from 'ol/proj';
+import proj4 from 'proj4';
+import { toLonLat } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -294,13 +296,18 @@ async function clicked(d:ElevationDataItem): Promise<void> {
 
 }
 
-function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number]): PointCloudLayer {
+function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
+    console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
     return new PointCloudLayer({
         id: name,
         data: elevationData,
         getPosition: (d) => {
             return [d['longitude'], d['latitude'], 0];
         },
+        // getPosition: (d) => {
+        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]);
+        //     return new Float64Array(coords); // Use Float64Array for higher precision
+        // },
         getNormal: [0, 0, 1],
         getColor: () => {
              return color;
@@ -317,11 +324,11 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
     });
 }
 
-export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[]): void{
+export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], projName:string): void{
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255]);
+        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255],projName);
         useDeckStore().replaceOrAddHighlightLayer(layer);
         useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
     } catch (error) {
@@ -333,13 +340,25 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[])
 
 }
 
-function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): PointCloudLayer {
+function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
+    console.log('createElLayer elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
+    //let coordSys;
+    //if(projName === 'EPSG:4326'){
+    //    coordSys = COORDINATE_SYSTEM.LNGLAT; // Deck.gl’s internal system for EPSG:4326
+    //} else {
+    //    coordSys = COORDINATE_SYSTEM.DEFAULT;
+    //}
     return new PointCloudLayer({
         id: EL_LAYER_NAME,
         data: elevationData,
+        //coordinateSystem: coordSys, 
         getPosition: (d) => {
             return [d['longitude'], d['latitude'], 0];
         },
+        // getPosition: (d) => {
+        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]); // Deck is in EPSG:3857
+        //     return new Float64Array(coords); // Use Float64Array for higher precision
+        // },
         getNormal: [0, 0, 1],
         getColor: (d:any) => {
             let c; 
@@ -394,16 +413,16 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
     });
 }
 
-export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string): void{
+export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
     //console.log('updateElLayerWithObject startTime:',startTime);
     try{
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-            const layer = createElLayer(elevationData,extHMean,heightFieldName);
+            const layer = createElLayer(elevationData,extHMean,heightFieldName,projName);
             const replaced = useDeckStore().replaceOrAddElLayer(layer);
             //console.log('updateElLayerWithObject layer:',layer);
-            console.log('updateElLayerWithObject useDeckStore().useDeckStore().getLayers():',useDeckStore().getLayers());
+            console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
             // if(replaced){
@@ -430,8 +449,13 @@ export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
     }
     const new_layer = new OLlayer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
+            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             const [width, height] = size;
-            const [longitude, latitude] = toLonLat(viewState.center);
+            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+            let [longitude, latitude] = viewState.center;
+            //if(projectionUnits !== 'degrees'){
+            //let [longitude, latitude] = toLonLat(viewState.center);
+            //}
             const zoom = viewState.zoom - 1;
             const bearing = (-viewState.rotation * 180) / Math.PI;
             const deckViewState = {bearing, longitude, latitude, zoom};
@@ -451,19 +475,30 @@ export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
 // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
 // Sync deck view with OL view
 
-export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
+export function resetDeckGLInstance(map:OLMap): Deck | null{
     //console.log('resetDeckGLInstance tgt:',tgt);
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
-        const deck = new Deck({
-            initialViewState: {longitude: 0, latitude: 0, zoom: 1},
-            controller: false,
-            parent: tgt,
-            style: {pointerEvents: 'none', zIndex: '1'},
-            layers: [],
-            getCursor: () => 'default'
-        });
-        useDeckStore().setDeckInstance(deck);
+        let deck = null;
+        const mapView =  map.getView();
+        const mapCenter = mapView.getCenter();
+        const mapZoom = mapView.getZoom();
+        if(mapCenter && mapZoom){
+            console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            const tgt = map.getViewport() as HTMLDivElement;
+            deck = new Deck({
+                initialViewState: {longitude:mapCenter[0], latitude: mapCenter[1], zoom: mapZoom},
+                controller: false,
+                parent: tgt,
+                style: {pointerEvents: 'none', zIndex: '1'},
+                layers: [],
+                getCursor: () => 'default'
+            });
+            useDeckStore().setDeckInstance(deck);
+        } else {
+            console.error('resetDeckGLInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            deck = null;
+        }
         return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
@@ -472,7 +507,7 @@ export function resetDeckGLInstance(tgt:HTMLDivElement): Deck | null{
 }
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    //console.log('addDeckLayerToMap:',name);
+    console.log('addDeckLayerToMap:',name);
     const deckLayer = createNewDeckLayer(deck,name);
     if(deckLayer){
         const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME);
@@ -481,7 +516,7 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
             map.removeLayer(selectedLayer);
         }
         map.addLayer(deckLayer);
-        console.log('addDeckLayerToMap: deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
         console.error('No current_layer to add.');
     }
@@ -490,7 +525,7 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
 export function initDeck(map: OLMap){
     console.log('initDeck start')
     const tgt = map.getViewport() as HTMLDivElement;
-    const deck = resetDeckGLInstance(tgt); 
+    const deck = resetDeckGLInstance(map); 
     if(deck){
         addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
     } else {
