@@ -27,8 +27,21 @@
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
     import { srViews } from "@/composables/SrViews";
+    import { type Coordinate } from "ol/coordinate";
+    import { toLonLat } from 'ol/proj';
+    import { format } from 'ol/coordinate';
     
-    const stringifyFunc = createStringXY(4);
+    //const stringifyFunc = createStringXY(4);
+    const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
+    const stringifyFunc = (coordinate: Coordinate) => {
+        const projName = computedProjName.value;
+        let newProj = getProjection(projName);
+        let newCoord = coordinate;
+        if(newProj?.getUnits() !== 'degrees'){
+            newCoord = toLonLat(coordinate,projName);
+        }
+        return format(newCoord, template, 4);
+    };
     const mapContainer = ref<HTMLElement | null>(null);
     const mapRef = ref<{ map: OLMap }>();
     const mapStore = useMapStore();
@@ -127,8 +140,8 @@
                     console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${props.reqId}`);
                 }
                 const srViewObj = srViews.value[`${srViewName}`];
-                const baseLayer = srViewObj.baseLayerName;
                 let newProj = getProjection(srViewObj.projectionName);
+                const baseLayer = srViewObj.baseLayerName;
                 console.log(`updateAnalysisMapView: ${reason} baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
                 if(baseLayer && newProj && srViewObj){
                     map.getAllLayers().forEach((layer: OLlayer) => {

@@ -442,8 +442,9 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
 
 }
 
-export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
-    console.log('createNewDeckLayer:',name);
+export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string): OLlayer{
+    console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
+
     const layerOptions = {
         title: name,
     }
@@ -453,9 +454,9 @@ export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
             const [width, height] = size;
             //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             let [longitude, latitude] = viewState.center;
-            //if(projectionUnits !== 'degrees'){
-            //let [longitude, latitude] = toLonLat(viewState.center);
-            //}
+            if(projectionUnits !== 'degrees'){
+                [longitude, latitude] = toLonLat(viewState.center);
+            }
             const zoom = viewState.zoom - 1;
             const bearing = (-viewState.rotation * 180) / Math.PI;
             const deckViewState = {bearing, longitude, latitude, zoom};
@@ -509,7 +510,10 @@ export function resetDeckGLInstance(map:OLMap): Deck | null{
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     console.log('addDeckLayerToMap:',name);
-    const deckLayer = createNewDeckLayer(deck,name);
+    const mapView =  map.getView();
+    const projection = mapView.getProjection();
+    const projectionUnits = projection.getUnits();
+    const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
     if(deckLayer){
         const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME);
         if (selectedLayer) {
