@@ -51,7 +51,7 @@ export const useMapStore = defineStore('map', {
     totalRows: 0 as number,
     currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
-    srView: 'Global' as string, // Or a more specific type if needed
+    srView: 'Global Mercator Esri' as string, 
     drawType: '' as string,
     layerCache: {} as LayerCache, // A dictionary of projection names to maps of layers
     layerGroupCache: new Map<string, Map<string, SrLayer>>(), // If you need a similar structure for groups

@@ -13,36 +13,66 @@ export interface SrView {
 
 // srViews is now an object with keys as view names
 export const srViews = ref<{ [key: string]: SrView }>({
-  "Global": {
-    name: "Global",
-    description: "WGS 84 Lat/Long",
-    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
-    baseLayerName: "Esri World Topo",
-    default_zoom: 1,
-    min_zoom: 0,
-    max_zoom: 16,
-    bbox: [90.0, -180.0, -90.0, 180.0],
-  },
-  "Global Mercator": {
-    name: "Global Mercator",
+  "Global Mercator Esri": {
+    name: "Global Mercator Esri",
     description: "WGS 84 Mercator",
     projectionName: "EPSG:3857", // 
     baseLayerName: "Esri World Topo",
     default_zoom: 1,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [90.0, -180.0, -90.0, 180.0],
+    bbox: [-180.0, -85.06, 180.0, 85.06],
   },
-  "Global google": {
-    name: "Global google",
-    description: "WGS 84",
+  "Global Esri": {
+    name: "Global Esri",
+    description: "WGS 84 Lat/Long",
     projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "Esri World Topo",
+    default_zoom: 2.85,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -90.0, 180.0, 90.0,],
+  },
+  "Global Mercator Google": {
+    name: "Global Mercator Google",
+    description: "WGS 84",
+    projectionName: "EPSG:3857", // +proj=longlat +datum=WGS84 +no_defs
     baseLayerName: "Google",
     default_zoom: 1,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [90.0, -180.0, -90.0, 180.0],
+    bbox: [-180.0, -85.06, 180.0, 85.06],
   },
+  "Global Google": {
+    name: "Global Google",
+    description: "WGS 84",
+    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "Google",
+    default_zoom: 2.85,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+  },
+  "Global Mercator OSM": {
+    name: "Global Mercator OSM",
+    description: "WGS 84",
+    projectionName: "EPSG:3857", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "OpenStreet",
+    default_zoom: 1,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -85.06, 180.0,85.06],
+  },
+  "Global OSM": {
+    name: "Global OSM",
+    description: "WGS 84",
+    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    baseLayerName: "OpenStreet",
+    default_zoom: 2.85,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+  },  
   "North": {
     name: "North",
     description: "North Polar Stereographic",
@@ -51,7 +81,9 @@ export const srViews = ref<{ [key: string]: SrView }>({
     default_zoom: 5,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [90.0, -180.0, 60.0, 180.0],
+    //bbox: [60.0, -180.0, 90.0, 180.0],
+    bbox: [-180,60,180,90], //[minX, minY, maxX, maxY]
+    //bbox: [-1390458.63, -1402023.01, 5390458.63, 5402023.01],
   },
   "South": {
     name: "South",
@@ -61,7 +93,7 @@ export const srViews = ref<{ [key: string]: SrView }>({
     default_zoom: 2,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [-60.0, -180.0, -90.0, 180.0],
+    bbox: [-180.0, -90.0, 180.0,-60.0],
   }
 });
 

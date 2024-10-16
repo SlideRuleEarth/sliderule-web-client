@@ -118,7 +118,11 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnts=100000, chunkSize:number=100000) => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
-    const srViewName = await indexedDb.getSrViewName(req_id);
+    let srViewName = await indexedDb.getSrViewName(req_id);
+    if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
+        srViewName = 'Global Mercator Esri';
+        console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+    }
     const projName = srViews.value[srViewName].projectionName;
     if(req_id === undefined || req_id === null || req_id === 0){
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);

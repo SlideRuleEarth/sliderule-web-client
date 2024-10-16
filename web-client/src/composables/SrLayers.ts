@@ -7,6 +7,7 @@ import { useMapStore } from "@/stores/mapStore.js";
 import type { ServerType } from 'ol/source/wms.js';
 import { XYZ } from 'ol/source.js';
 import type OLMap from "ol/Map.js";
+import { srViews } from "./SrViews";
 
 
 export const srAttributions = {
@@ -33,7 +34,6 @@ export interface SrLayer {
   serverType?: ServerType;  //  WMS server type
   init_visibility: boolean;
   init_opacity: number;
-  allowed_views: string[];
   //tileGrid?: TileGrid;
 }
 
@@ -86,7 +86,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
-    allowed_views: ["Global"],
   },
   "OpenStreet": {
     type: "xyz",
@@ -98,7 +97,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections:["EPSG:4326","EPSG:3857"],
     init_visibility: true,
     init_opacity: 1,
-    allowed_views: ["Global"],
   },
   "Google": {
     type: "xyz",
@@ -110,7 +108,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections:["EPSG:3857","EPSG:4326"],
     init_visibility: true,
     init_opacity: 1,
-    allowed_views: ["Global"],
   },
   "USGS 3DEP": {
     type: "wms",
@@ -124,7 +121,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "3DEPElevation:Hillshade Gray",
     init_visibility: false, // Note: This layer is not visible by default
     init_opacity: 0.2,
-    allowed_views: ["Global"],
   },
   "Nasa Shaded Relief": {
     type: "xyz",
@@ -136,7 +132,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections:["EPSG:3857"],
     init_visibility: false,
     init_opacity: 0.5,
-    allowed_views: ["Global"],
   },
   "Artic Ocean Base": {
     type: "xyz",
@@ -148,7 +143,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections:["EPSG:5936","EPSG:4326","EPSG::3413"],
     init_visibility: true,
     init_opacity: 1,
-    allowed_views: ["North"],
   },
   // {
   //   type: "xyz",
@@ -163,15 +157,14 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   "Artic Reference": {
     //type: "ArcGisRest",
     type: "xyz",
-    isBaseLayer: false,
+    isBaseLayer: true,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Reference",
     attributionKey: "esri",
     source_projection: "EPSG:5936",
-    allowed_reprojections:["EPSG:5936","EPSG:4326"],
+    allowed_reprojections:["EPSG:5936"],
     init_visibility: true,
     init_opacity: 1,
-    allowed_views: ["North"],
   },
   // "Artic Imagery": {
   //   //type: "ArcGisRest",
@@ -210,7 +203,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 0.5,
     serverType: "mapserver",
     //tileGrid: antarticTileGrid,
-    allowed_views: ["South"],
   },
   "LIMA": {
     type: "wms",
@@ -223,7 +215,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "LIMA_Full_1km",
     init_visibility: true,
     init_opacity: 0.2,
-    allowed_views: ["South"],
   },
   "MOA": {
     type: "wms",
@@ -236,7 +227,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "MOA_125_HP1_090_230",
     init_visibility: true,
     init_opacity: 0.2,
-    allowed_views: ["South"],
   },  
   "REMA": {
     type: "wms",
@@ -249,7 +239,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "Antartic_DEM",
     init_visibility: true,
     init_opacity: 0.2,
-    allowed_views: ["South"],
   },
   "RadarMosaic": {
     type: "wms",
@@ -262,7 +251,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "Radar_Mosaic",
     init_visibility: false,
     init_opacity: 0.2,
-    allowed_views: ["South"],
   },  
   // {
   //   type: "wms",
@@ -287,7 +275,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: "GLIMS_GLACIER",
     init_visibility: false,
     init_opacity: 0.2,    
-    allowed_views: ["Global","North","South"],
   },
   // {
   //   isBaseLayer: false,
@@ -304,7 +291,9 @@ export const layers = ref<{ [key: string]: SrLayer }>({
 
 export const getSrLayersForCurrentView = () => {
   const mapStore = useMapStore();
-  return  Object.values(layers.value).filter(layer => layer.allowed_views.includes(mapStore.getSrView()));
+  const srView = mapStore.getSrView();
+  const projName = srViews.value[srView].projectionName;
+  return  getSrLayersForCurrentProjection().filter(layer => layer.allowed_reprojections.includes(projName));
 }
 
 export const getSrLayersForCurrentProjection = () => {
@@ -314,7 +303,8 @@ export const getSrLayersForCurrentProjection = () => {
 
 export const getSrBaseLayersForView = (view: string) => {
   //console.log('getSrBaseLayersForView', view);
-  const layerList =  Object.values(layers.value).filter(layer => layer.allowed_views.includes(view) && layer.isBaseLayer);
+  const allLayersList = getSrLayersForCurrentView(); 
+  const layerList = Object.values(allLayersList).filter(layer => layer.isBaseLayer);
   //console.log('getSrBaseLayersForView', layerList);
   return layerList;
 }
@@ -368,6 +358,7 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
     }
     if (cachedLayer) {
       layerInstance = cachedLayer; // Return the cached layer if it exists
+      console.log('Using cached layer:', cachedLayer);
     } else {
         if(srLayer.type === "wmts"){
 
@@ -386,9 +377,9 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
               params: {
                 'LAYERS': srLayer.layerName, // the WMS layer name(s) to load
                 'TILED': true,
-                'CRS': projectionName,
+                //'CRS': srLayer.source_projection, // TBD verify this !!!!
               },
-              projection: projectionName,
+              //projection:srLayer.source_projection,  // TBD verify this !!!!
               serverType: srLayer.serverType, //  WMS server type 
               //crossOrigin: '', // Consider CORS policies
               crossOrigin: 'anonymous', // Consider CORS policies
@@ -402,6 +393,7 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
           const xyzOptions = {
             url: srLayer.url,
             //extent: mapStore.extent,
+            projection: srLayer.source_projection,
             attributions: srAttributions[srLayer.attributionKey],
           }
           layerInstance = new TileLayer({

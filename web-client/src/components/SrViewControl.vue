@@ -18,7 +18,7 @@
     });
     
     function updateView(selectedLabel: string) {
-        //console.log("updateView:", selectedLabel);
+        console.log("updateView:", selectedLabel);
         const view = srViews.value[selectedLabel];
         //console.log("updateView view:", view);
         if (view) {

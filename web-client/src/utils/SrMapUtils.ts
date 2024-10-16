@@ -476,18 +476,19 @@ export function createNewDeckLayer(deck:Deck,name:String): OLlayer{
 // Sync deck view with OL view
 
 export function resetDeckGLInstance(map:OLMap): Deck | null{
-    //console.log('resetDeckGLInstance tgt:',tgt);
+    console.log('resetDeckGLInstance');
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
         let deck = null;
         const mapView =  map.getView();
+        console.log('mapView:',mapView);
         const mapCenter = mapView.getCenter();
         const mapZoom = mapView.getZoom();
+        console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
         if(mapCenter && mapZoom){
-            console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
             const tgt = map.getViewport() as HTMLDivElement;
             deck = new Deck({
-                initialViewState: {longitude:mapCenter[0], latitude: mapCenter[1], zoom: mapZoom},
+                initialViewState: {longitude:0, latitude:0, zoom: 1},
                 controller: false,
                 parent: tgt,
                 style: {pointerEvents: 'none', zIndex: '1'},
