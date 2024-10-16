@@ -243,8 +243,22 @@
                     //     lat: coord[1]
                     // }));
                     
-                    mapStore.polyCoords = rings;
-                    const flatLonLatPairs = rings.flatMap(ring => ring);
+
+                    const projName = useMapStore().getSrViewObj().projectionName;
+                    let thisProj = getProjection(projName);
+                    let flatLonLatPairs;
+                    if(thisProj?.getUnits() !== 'degrees'){
+                        //Convert each ring's coordinates to lon/lat using toLonLat
+                        const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
+                            ring.map(coord => toLonLat(coord) as Coordinate)
+                        );
+                        console.log("Converted polyCoords:", convertedRings);
+                        mapStore.polyCoords = convertedRings;
+                        flatLonLatPairs = convertedRings.flatMap(ring => ring);
+                    } else {
+                        mapStore.polyCoords = rings;
+                        flatLonLatPairs = rings.flatMap(ring => ring);
+                    }
                     const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
                         lon: coord[0],
                         lat: coord[1]
