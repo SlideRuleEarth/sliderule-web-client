@@ -11,7 +11,7 @@
     import { useMapStore } from "@/stores/mapStore";
     import { useGeoCoderStore } from '@/stores/geoCoderStore';
     import { get as getProjection } from 'ol/proj.js';
-    import { getTransform } from 'ol/proj.js';
+    import { getTransform,transform } from 'ol/proj.js';
     import { addLayersForCurrentView,getLayer } from "@/composables/SrLayers";
     import { View as OlView } from 'ol';
     import { applyTransform } from 'ol/extent.js';
@@ -41,22 +41,31 @@
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
     import VectorLayer from "ol/layer/Vector";
+    import { useDebugStore } from "@/stores/debugStore";
 
     const reqParamsStore = useReqParamsStore();
+    const debugStore = useDebugStore();
 
     interface SrDrawControlMethods {
         resetPicked: () => void;
     }
     const geoCoderStore = useGeoCoderStore();
-    const template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0';
+    const lonlat_template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0';
+    const meters_template = 'y:{y}m, x:{x}m';
     const stringifyFunc = (coordinate: Coordinate) => {
         const projName = useMapStore().getSrViewObj().projectionName;
         let newProj = getProjection(projName);
         let newCoord = coordinate;
-        if(newProj?.getUnits() !== 'degrees'){
-            newCoord = toLonLat(coordinate,projName);
+        if(!debugStore.useMetersForMousePosition){
+            if(newProj?.getUnits() !== 'degrees'){
+                //const customProjectedCoordinates = transform(coordinate, projName, 'EPSG:4326');
+                newCoord = toLonLat(coordinate,projName);
+                //console.log(`customProjectedCoordinates:\n${customProjectedCoordinates}, newCoord:\n${newCoord}`);
+            }
+            return format(newCoord, lonlat_template, 4);
+        } else {
+            return format(coordinate, meters_template, 4);
         }
-        return format(newCoord, template, 4);
     };
     const srDrawControlRef = ref<SrDrawControlMethods | null>(null);
     const mapRef = ref<{ map: OLMap }>();
@@ -546,19 +555,31 @@
                     }
                     map.addLayer(drawVectorLayer);
                     //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
-                    let extent = newProj.getExtent();
+                    let extent;
+                    if(srViewObj.extent){
+                        extent = srViewObj.extent;
+                    } else {
+                        extent = newProj.getExtent();
+                    }
                     console.log("projection's extent:",extent);          
                     //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
                     const initZoom = srViewObj.default_zoom;
-                    let newView;
+                    let thisCenter;
+                    if(srViewObj.center){
+                        thisCenter = srViewObj.center;
+                    } else {
+                        thisCenter = getExtentCenter(extent);
+                    }
+                     let newView;
                     if(extent){
                         newView = new OlView({
                             projection: newProj,
                             //constrainResolution: true,
                             extent: extent || undefined,
                             zoom: initZoom || undefined,
-                            center:getExtentCenter(extent) || undefined,
+                            center:thisCenter,
                         });
+                        console.log('srViewObj.center:',srViewObj.center,'viewCenter:',newView.getCenter(),'extentCenter:',getExtentCenter(extent));
                         map.setView(newView);
                         newView.fit(extent);
                     } else {
@@ -583,10 +604,10 @@
                         console.log(`Setting zoom level to ${initZoom}`);
                         newView.setZoom(initZoom);
                     }
-                    // newView.on('change:resolution', function() {
-                    //     const zoomLevel = newView.getZoom();
-                    //     console.log('Zoom level changed to:', zoomLevel);
-                    // });
+                    newView.on('change:resolution', function() {
+                        const zoomLevel = newView.getZoom();
+                        console.log('Zoom level changed to:', zoomLevel);
+                    });
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                     initDeck(map);
 

@@ -157,7 +157,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   "Artic Reference": {
     //type: "ArcGisRest",
     type: "xyz",
-    isBaseLayer: true,
+    isBaseLayer: false,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Reference",
     attributionKey: "esri",
