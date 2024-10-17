@@ -55,7 +55,7 @@ export const useElevationColorMapStore = defineStore('elevationColorMap', {
             return c;
         },
         getColorGradientStyle() {
-            console.log('getColorGradientStyle');
+            //console.log('getColorGradientStyle');
             const gradientColors = this.elevationColorMap
                 .map(color => `rgba(${color.join(',')})`) // Convert each color to a valid CSS rgba string
                 .join(', '); // Join colors to create a CSS gradient string

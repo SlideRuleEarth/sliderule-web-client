@@ -11,6 +11,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
+import { srViews } from '@/composables/SrViews';
 
 interface SummaryRowData {
     minLat: number;
@@ -117,6 +118,12 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnts=100000, chunkSize:number=100000) => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    let srViewName = await indexedDb.getSrViewName(req_id);
+    if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
+        srViewName = 'Global Mercator Esri';
+        console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+    }
+    const projName = srViews.value[srViewName].projectionName;
     if(req_id === undefined || req_id === null || req_id === 0){
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return;
@@ -226,7 +233,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
                     throw error;
                 }
             }
-            updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname);
+            updateElLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
         } else {
             if(summary === undefined){
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
@@ -245,8 +252,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
     }
 };
-
-
 
 export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=100000, maxNumPnts=1000000) => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
@@ -351,7 +356,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                 throw error;
             }
         }
-        updateSelectedLayerWithObject(rowChunks as ElevationDataItem[]);
+        const srViewName = await indexedDb.getSrViewName(req_id);
+        const projName = srViews.value[srViewName].projectionName;
+        updateSelectedLayerWithObject(rowChunks as ElevationDataItem[], projName);
  
     } catch (error) {
         console.error('duckDbReadAndUpdateSelectedLayer error:', error);

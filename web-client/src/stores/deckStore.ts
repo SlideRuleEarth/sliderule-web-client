@@ -11,7 +11,7 @@ export const useDeckStore = defineStore('deck', {
     }),
     actions: {
         setDeckInstance(instance:Deck) {
-            console.log('setDeckInstance:',instance,'this.deckInstance:',this.deckInstance);
+            //console.log('setDeckInstance to:',instance,' from this.deckInstance:',this.deckInstance);
             this.deckInstance = instance;
         },
         getDeckInstance() {
@@ -31,7 +31,6 @@ export const useDeckStore = defineStore('deck', {
                 if (this.pointCloudLayers[i].id === EL_LAYER_NAME) {
                     this.pointCloudLayers[i] = layer;
                     return true;
-                    break;
                 }
             }
             this.pointCloudLayers.push(layer);

@@ -42,12 +42,10 @@
 <script setup lang="ts">
   import { onMounted, ref, computed, watch } from 'vue'
   import SrRadioButton from './SrRadioButton.vue';
-  import { useMapParamsStore } from "@/stores/mapParamsStore";
   import { useMapStore } from "@/stores/mapStore.js";
 
-  const mapParamsStore = useMapParamsStore();
   const mapStore = useMapStore();
-  const picked = ref<string>(mapParamsStore.drawType);
+  const picked = ref<string>(mapStore.drawType);
   const emit = defineEmits(['draw-buttonbox-created', 'picked-changed']);
   
   onMounted(() => {
@@ -63,7 +61,7 @@
   // Expose a reset function to the parent
   defineExpose({
     resetPicked() {
-      console.log("SrDrawButtonBox resetPicked");
+      //console.log("SrDrawButtonBox resetPicked");
       const changed = picked.value !== '';
       picked.value = '';
       if (changed) {

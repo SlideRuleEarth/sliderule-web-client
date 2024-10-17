@@ -76,6 +76,10 @@
         :decimalPlaces=0
         tooltipText="Symbol size for Atl06 Scatter Plot"
         />
+        <SrCheckbox
+        v-model="debugStore.useMetersForMousePosition"
+        label="Use Meters for mouse position"
+        ></SrCheckbox>
     </Fieldset>
     </div>
 </template>
@@ -94,6 +98,7 @@
     import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
+import SrCheckbox from './SrCheckbox.vue';
 
 
     const debugStore = useDebugStore();

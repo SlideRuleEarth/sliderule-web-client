@@ -196,6 +196,7 @@ const tooltipRef = ref();
                     />
                 </template>
             </Column>
+            <Column field="srViewName" header="View"></Column>
             <Column field="parameters" header="Req Parms" class="sr-par-fmt">
                 <template #header>
                     <i 
