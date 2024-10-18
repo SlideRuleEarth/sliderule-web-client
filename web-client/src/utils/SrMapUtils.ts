@@ -24,6 +24,14 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+import { srViews } from "@/composables/SrViews";
+import { srProjections } from "@/composables/SrProjections";
+import { get as getProjection } from 'ol/proj.js';
+import { getLayer } from "@/composables/SrLayers";
+import { getTransform } from 'ol/proj.js';
+import { applyTransform } from 'ol/extent.js';
+import { View as OlView } from 'ol';
+import { getCenter as getExtentCenter } from 'ol/extent.js';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -609,4 +617,86 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
     });
 
     console.log(`Total features: ${features.length}`);
+}
+
+export async function updateMapView(map:OLMap, srViewName:string, reason:string){
+    try {
+        if(map){
+            console.log(`------ updateMapView for srViewName:${srViewName} ${reason} ------`);
+            const srViewObj = srViews.value[`${srViewName}`];
+            const srProjObj = srProjections.value[srViewObj.projectionName];
+            let newProj = getProjection(srViewObj.projectionName);
+            const baseLayer = srViewObj.baseLayerName;
+            console.log(`updateMapView for ${reason} with baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
+            if(baseLayer && newProj && srViewObj){
+                map.getAllLayers().forEach((layer: OLlayer) => {
+                    //console.log(`removing layer:`,layer.get('title'));
+                    map.removeLayer(layer);
+                });
+                //console.log('adding Base Layer', baseLayer);
+                const layer = getLayer(srViewObj.projectionName, baseLayer);
+                if(layer){
+                    map.addLayer(layer);
+                } else {
+                    console.error(`Error: no layer found for curProj:${srViewObj.projectionName} baseLayer.title:${baseLayer}`);
+                }
+                //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
+                const fromLonLat = getTransform('EPSG:4326', newProj);
+                let extent = newProj.getExtent();
+                console.log("newProj:",newProj);         
+                console.log("newProj.getExtent():",extent);         
+                if((extent===undefined)||(extent===null)){
+                    if(srProjObj.extent){
+                        console.log("extent is null using srProjObj.extent");
+                        extent = srProjObj.extent;
+                    } else {
+                        console.error("extent is null using bbox");
+                        let bbox = srProjObj.bbox;
+                        if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+                            bbox[2] += 360;
+                        }
+                        extent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                        newProj.setExtent(extent);
+                    }
+                }
+
+                let worldExtent = newProj.getWorldExtent();
+                if(worldExtent===undefined){
+                    console.log("worldExtent is null using bbox");
+                    let bbox = srProjObj.bbox;
+                    if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+                        bbox[2] += 360;
+                    }
+                    worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                    newProj.setWorldExtent(worldExtent);                        
+                }
+                console.log("newProj:",newProj);          
+                console.log("newProj final extent:",extent);          
+                console.log("newProj final WorldExtent:",worldExtent);          
+                console.log("newProj final Center:",getExtentCenter(extent));          
+                const newView = new OlView({
+                    projection: newProj,
+                    extent: extent,
+                    center:getExtentCenter(extent),
+                    zoom: srProjObj.default_zoom,
+                });
+                map.setView(newView);
+
+            } else {
+                if(!baseLayer){
+                    console.error("Error:baseLayer is null");
+                }
+                if(!newProj){
+                    console.error("Error:newProj is null");
+                }
+                if(!srViewObj){
+                    console.error("Error:srView is null");
+                }
+            }
+        } else {
+            console.error("Error:map is null");
+        }
+    } catch (error) {
+        console.error(`Error: updateMapView failed for ${reason}`,error);
+    }
 }

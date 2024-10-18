@@ -34,7 +34,7 @@ export const useMapStore = defineStore('map', {
         // Style options go here
         strokeStyle: new Stroke({
             color: 'rgba(255,120,0,0.9)',
-            width: 1,
+            width: 2,
             lineDash: [0.5, 4]
         }),
         showLabels: true,

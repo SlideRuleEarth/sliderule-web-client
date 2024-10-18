@@ -42,6 +42,7 @@
     import { useRequestsStore } from "@/stores/requestsStore";
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
+    import { updateMapView } from "@/utils/SrMapUtils";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -58,8 +59,10 @@
         let newCoord = coordinate;
         if(!debugStore.useMetersForMousePosition){
             if(newProj?.getUnits() !== 'degrees'){
-                //const customProjectedCoordinates = transform(coordinate, projName, 'EPSG:4326');
                 newCoord = toLonLat(coordinate,projName);
+                //const polarStereographic = "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs";
+                //const customProjectedCoordinates = proj4(polarStereographic, "EPSG:4326", coordinate);
+                //const customProjectedCoordinates = transform(coordinate, projName, 'EPSG:4326');
                 //console.log(`customProjectedCoordinates:\n${customProjectedCoordinates}, newCoord:\n${newCoord}`);
             }
             return format(newCoord, lonlat_template, 4);
@@ -482,7 +485,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                updateMapView("SrMap onMounted");
+                updateThisMapView("SrMap onMounted");
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -532,113 +535,37 @@
         }
     };
 
-    const updateMapView = async (reason:string) => {
-        console.log(`****** SrMap updateMapView for ${reason} ******`);
+    const updateThisMapView = async (reason:string) => {
+        console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
             if(map){
                 const srViewObj = mapStore.getSrViewObj();
-                let baseLayer = srViewObj.baseLayerName;
-                let newProj = getProjection(srViewObj.projectionName);
-                console.log(`updateMapView: ${reason} baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);
-                if(baseLayer && newProj && srViewObj){
-                    map.getAllLayers().forEach((layer: OLlayer) => {
-                        //console.log(`removing layer:`,layer.get('title'));
-                        map.removeLayer(layer);
-                    });
-                    //console.log('adding Base Layer', baseLayer);
-                    const layer = getLayer(srViewObj.projectionName, baseLayer);
-                    if(layer){
-                        map.addLayer(layer);
-                    } else {
-                        console.error(`Error: no layer found for curProj:${srViewObj.projectionName} baseLayer.title:${baseLayer}`);
-                    }
-                    map.addLayer(drawVectorLayer);
-                    //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
-                    let extent;
-                    if(srViewObj.extent){
-                        extent = srViewObj.extent;
-                    } else {
-                        extent = newProj.getExtent();
-                    }
-                    console.log("projection's extent:",extent);          
-                    //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
-                    const initZoom = srViewObj.default_zoom;
-                    let thisCenter;
-                    if(srViewObj.center){
-                        thisCenter = srViewObj.center;
-                    } else {
-                        thisCenter = getExtentCenter(extent);
-                    }
-                     let newView;
-                    if(extent){
-                        newView = new OlView({
-                            projection: newProj,
-                            //constrainResolution: true,
-                            extent: extent || undefined,
-                            zoom: initZoom || undefined,
-                            center:thisCenter,
-                        });
-                        console.log('srViewObj.center:',srViewObj.center,'viewCenter:',newView.getCenter(),'extentCenter:',getExtentCenter(extent));
-                        map.setView(newView);
-                        newView.fit(extent);
-                    } else {
-                        console.log("extent is null using bbox");
-                        const fromLonLat = getTransform('EPSG:4326', newProj);
-                        let bbox = srViewObj.bbox;
-                        // if (srViewObj.bbox[0] > srViewObj.bbox[2]) {
-                        //     bbox[2] += 360;
-                        // }
-                        newProj.setWorldExtent(bbox);
-                        const newExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
-                        newProj.setExtent(newExtent);
-                        console.log("newExtent:",newExtent);
-                        newView = new OlView({
-                            projection: newProj,
-                        });
-                        console.log("newView:",newView);
-                        map.setView(newView);
-                        newView.fit(newExtent);
-                    }                    
-                    if(initZoom){
-                        console.log(`Setting zoom level to ${initZoom}`);
-                        newView.setZoom(initZoom);
-                    }
-                    newView.on('change:resolution', function() {
-                        const zoomLevel = newView.getZoom();
-                        console.log('Zoom level changed to:', zoomLevel);
-                    });
-                    addLayersForCurrentView(map,srViewObj.projectionName);      
-                    initDeck(map);
-
-                    // dumpMapLayers(map, 'SrMap updateMapView initDeck');
-
-                    // Permalink
-                    // if(mapStore.plink){
-                    //   var url = mapStore.plink.getUrlParam('url');
-                    //   var layerName = mapStore.plink.getUrlParam('layer');
-                    //   //console.log(`url: ${url} layerName: ${layerName}`);
-                    //   if (url) {
-                    //     const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
-                    //     currentWmsCapCntrl.loadLayer(url, layerName,() => {
-                    //       // TBD: Actions to perform after the layer is loaded, if any
-                    //       console.log(`wms Layer loaded from permalink: ${layerName}`);
-                    //     });
-                    //   } else {
-                    //     console.log("No url in permalink");
-                    //   }
-                    // }
-                } else {
-                    if(!baseLayer){
-                        console.error("Error:baseLayer is null");
-                    }
-                    if(!newProj){
-                        console.error("Error:newProj is null");
-                    }
-                    if(!srViewObj){
-                        console.error("Error:srView is null");
-                    }
-                }
+                updateMapView(map,srViewObj.name,reason)
+                //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
+                // thisView.on('change:resolution', function() {
+                //     const zoomLevel = thisView.getZoom();
+                //     console.log('Zoom level changed to:', zoomLevel);
+                // });
+                map.addLayer(drawVectorLayer);
+                addLayersForCurrentView(map,srViewObj.projectionName);      
+                initDeck(map);
+                // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
+                // Permalink
+                // if(mapStore.plink){
+                //   var url = mapStore.plink.getUrlParam('url');
+                //   var layerName = mapStore.plink.getUrlParam('layer');
+                //   //console.log(`url: ${url} layerName: ${layerName}`);
+                //   if (url) {
+                //     const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
+                //     currentWmsCapCntrl.loadLayer(url, layerName,() => {
+                //       // TBD: Actions to perform after the layer is loaded, if any
+                //       console.log(`wms Layer loaded from permalink: ${layerName}`);
+                //     });
+                //   } else {
+                //     console.log("No url in permalink");
+                //   }
+                // }
             } else {
                 console.error("SrMap Error:map is null");
             };
@@ -658,7 +585,7 @@
 
     const handleUpdateSrView = (srView: SrView) => {
         console.log(`handleUpdateSrView: |${srView.name}|`);
-        updateMapView("handleUpdateView");
+        updateThisMapView("handleUpdateSrView");
     };
 
 </script>

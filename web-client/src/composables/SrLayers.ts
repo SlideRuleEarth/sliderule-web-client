@@ -155,14 +155,13 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   //   init_opacity: 1,
   // },
   "Artic Reference": {
-    //type: "ArcGisRest",
     type: "xyz",
     isBaseLayer: false,
     url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
     title: "Artic Reference",
     attributionKey: "esri",
     source_projection: "EPSG:5936",
-    allowed_reprojections:["EPSG:5936"],
+    allowed_reprojections:["EPSG:5936","EPSG:3413"],
     init_visibility: true,
     init_opacity: 1,
   },
@@ -293,7 +292,7 @@ export const getSrLayersForCurrentView = () => {
   const mapStore = useMapStore();
   const srView = mapStore.getSrView();
   const projName = srViews.value[srView].projectionName;
-  return  getSrLayersForCurrentProjection().filter(layer => layer.allowed_reprojections.includes(projName));
+  return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(projName));
 }
 
 export const getSrLayersForCurrentProjection = () => {
