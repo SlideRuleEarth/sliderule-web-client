@@ -277,8 +277,9 @@ const updateElevationMap = async (req_id: number) => {
     }
     
 };
-const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
 
+//const debouncedUpdateElevationMap = debounce(() => console.log('stubbedUpdateElevationMap'), 500);
+const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
 
 watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);

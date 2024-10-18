@@ -17,7 +17,7 @@
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
 
     onMounted(async () => {
-        console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
+        //console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
         requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');

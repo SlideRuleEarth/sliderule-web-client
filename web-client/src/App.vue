@@ -59,12 +59,18 @@ const detectBrowserAndOS = () => {
 };
 
 onMounted(() => {
-  console.log('App.vue onMounted');
-  detectBrowserAndOS();
-  checkUnsupported();
+    // Get the computed style of the document's root element
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    // Extract the font size from the computed style
+    const fontSize = rootStyle.fontSize;
+    // Log the font size to the console
+    console.log(`App.vue onMounted Current root font size: ${fontSize}`);
+    detectBrowserAndOS();
+    checkUnsupported();
 });
 
 const mapButtonClick = () => {
+  console.log('Map button clicked');
   router.push('/map'); 
 };
 

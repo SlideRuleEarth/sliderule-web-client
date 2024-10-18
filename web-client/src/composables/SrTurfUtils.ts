@@ -24,10 +24,10 @@ export function convexHull(inputCoords: SrLatLon[]): SrLatLon[] {
     }));
 
     if (isClockwise(coords)) {
-        console.log('Convex hull is clockwise, reversing convex hull to make it counter-clockwise');
+        //console.log('Convex hull is clockwise, reversing convex hull to make it counter-clockwise');
         coords.reverse();
     } else {
-        console.log('Convex hull is counter-clockwise');
+        //console.log('Convex hull is counter-clockwise');
     }
 
     return coords;
