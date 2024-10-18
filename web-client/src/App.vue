@@ -70,6 +70,7 @@ onMounted(() => {
 });
 
 const mapButtonClick = () => {
+  console.log('Map button clicked');
   router.push('/map'); 
 };
 

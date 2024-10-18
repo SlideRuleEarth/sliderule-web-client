@@ -32,6 +32,8 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
+import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+import { db } from "@/db/SlideRuleDb";
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -521,13 +523,14 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     const mapView =  map.getView();
     const projection = mapView.getProjection();
     const projectionUnits = projection.getUnits();
+    const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === name);
+    if (updatingLayer) {
+        console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
+        map.removeLayer(updatingLayer);
+    }
+    useDeckStore().deleteLayer(name);
     const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
     if(deckLayer){
-        const selectedLayer = map.getLayers().getArray().find(layer => layer.get('title') === SELECTED_LAYER_NAME);
-        if (selectedLayer) {
-            console.log('addDeckLayerToMap: removeLayer:',selectedLayer);
-            map.removeLayer(selectedLayer);
-        }
         map.addLayer(deckLayer);
         console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
@@ -655,7 +658,13 @@ export async function updateMapView(map:OLMap, srViewName:string, reason:string)
                         if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
                             bbox[2] += 360;
                         }
-                        extent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                        if(newProj.getUnits() === 'degrees'){
+                            console.log("using bbox for extent in degrees bbox:",bbox);
+                            extent = bbox;
+                        } else {
+                            console.log("using bbox for extent transformed from degrees to meters bbox:",bbox);
+                            extent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                        }
                         newProj.setExtent(extent);
                     }
                 }
@@ -667,7 +676,13 @@ export async function updateMapView(map:OLMap, srViewName:string, reason:string)
                     if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
                         bbox[2] += 360;
                     }
-                    worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                    if(newProj.getUnits() === 'degrees'){
+                        console.log("using bbox for worldExtent in degrees bbox:",bbox);
+                        worldExtent = bbox;
+                    } else {
+                        console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
+                        worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
+                    }
                     newProj.setWorldExtent(worldExtent);                        
                 }
                 console.log("newProj:",newProj);          
@@ -698,5 +713,53 @@ export async function updateMapView(map:OLMap, srViewName:string, reason:string)
         }
     } catch (error) {
         console.error(`Error: updateMapView failed for ${reason}`,error);
+    }
+}
+
+export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewName:string){
+    try{
+        let reqExtremeLatLon = [0,0,0,0];
+        if(reqId > 0){   
+            console.log('calling readOrCacheSummary(',reqId,')');  
+            const workerSummary = await readOrCacheSummary(reqId);
+            if(workerSummary){
+                const extremeLatLon = workerSummary.extLatLon;
+                if (extremeLatLon) {
+                    reqExtremeLatLon = [
+                        extremeLatLon.minLon,
+                        extremeLatLon.minLat,
+                        extremeLatLon.maxLon,
+                        extremeLatLon.maxLat
+                    ];
+                    //console.log('Using reqId:',props.reqId,' with extent:',extent);
+                } else {
+                    console.error("Error: invalid lat-lon data for request:",reqId);
+                }
+            } else {
+                console.error("Error: invalid workerSummary for request:",reqId);
+            } 
+        } else {
+            console.info("no reqId:",reqId);
+        }
+        //console.log('reqExtremeLatLon:',reqExtremeLatLon);
+        //console.log('Using extent:',extent);               
+        //let srViewName = await db.getSrViewName(reqId);
+        const srViewObj = srViews.value[`${srViewName}`];
+        const srProjObj = srProjections.value[srViewObj.projectionName];
+        let newProj = getProjection(srViewObj.projectionName);
+        console.log(`zoomMapForReqIdUsingView:${reqId} srViewName:${srViewName} srViewObj:`,srViewObj);
+        console.log(`zoomMapForReqIdUsingView:${reqId} newProj:`,newProj);
+        let view_extent = reqExtremeLatLon;
+        if(newProj?.getUnits() !== 'degrees'){
+            console.log('transforming view_extent to degrees for projection:',newProj);
+            const fromLonLat = getTransform('EPSG:4326', srViewObj.projectionName);
+            view_extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
+        } else {
+            console.log('using degrees view_extent?:',view_extent);
+        }
+        console.log(`zoomMapForReqIdUsingView:${reqId} view_extent:`,view_extent);
+        map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
+    } catch (error) {
+        console.error(`Error: zoomMapForReqIdUsingView failed for reqId:${reqId}`,error);
     }
 }

@@ -11,15 +11,11 @@
     import { useMapStore } from "@/stores/mapStore";
     import { useGeoCoderStore } from '@/stores/geoCoderStore';
     import { get as getProjection } from 'ol/proj.js';
-    import { getTransform,transform } from 'ol/proj.js';
     import { addLayersForCurrentView,getLayer } from "@/composables/SrLayers";
-    import { View as OlView } from 'ol';
-    import { applyTransform } from 'ol/extent.js';
     import { Layer as OLlayer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
     import { Polygon as OlPolygon } from 'ol/geom';
-    import { getCenter as getExtentCenter } from 'ol/extent.js';
     import { DragBox as DragBoxType } from 'ol/interaction';
     import { Draw as DrawType } from 'ol/interaction';
     import { Vector as VectorSource } from 'ol/source';
@@ -43,6 +39,8 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
+    import { zoomMapForReqIdUsingView } from "@/utils/SrMapUtils";
+    import { updateElevationForReqId } from '@/utils/SrParquetUtils';
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -396,7 +394,6 @@
         const map = mapStore.getMap();
         if(map){
             const view = map.getView();
-
             if (view) {
                 view.animate({
                     center: evt.coordinate,
@@ -411,7 +408,7 @@
         }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         drawVectorLayer.set('name', 'Drawing Layer');
@@ -463,29 +460,33 @@
                     // }
                 });
                 mapStore.setCurrentWmsCap(mapStore.getSrViewObj().projectionName);
-                const defaultBaseLayer = mapStore.getSrViewObj().baseLayerName;
-                const curProj = mapStore.getSrViewObj().projectionName;
-                if(defaultBaseLayer){
-                    const newLayer = getLayer(curProj, defaultBaseLayer);
-                    if(newLayer){
-                        if(mapStore.map){
-                            //console.log(`SrMap adding Base Layer for proj:${curProj}:`, newLayer );
-                            mapStore.map.addLayer(newLayer);
-                        } else {
-                            console.log('SrMap map not available');
-                        }
-                    } else {
-                        console.error(`SrMap Error: no layer found for curProj:${curProj} defaultBaseLayer.title:${defaultBaseLayer}`);
-                    }
-                } else {
-                    console.error("SrMap Error:defaultBaseLayer is null");    
-                }
+                //const defaultBaseLayer = mapStore.getSrViewObj().baseLayerName;
+                //const curProj = mapStore.getSrViewObj().projectionName;
+                // if(defaultBaseLayer){
+                //     const newLayer = getLayer(curProj, defaultBaseLayer);
+                //     if(newLayer){
+                //         if(mapStore.map){
+                //             //console.log(`SrMap adding Base Layer for proj:${curProj}:`, newLayer );
+                //             mapStore.map.addLayer(newLayer);
+                //         } else {
+                //             console.log('SrMap map not available');
+                //         }
+                //     } else {
+                //         console.error(`SrMap Error: no layer found for curProj:${curProj} defaultBaseLayer.title:${defaultBaseLayer}`);
+                //     }
+                // } else {
+                //     console.error("SrMap Error:defaultBaseLayer is null");    
+                // }
                 //mapStore.setCurrentWmtsCap(mapStore.getProjection());
                 // if(mapStore.plink){
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                updateThisMapView("SrMap onMounted");
+                if(mapStore.getCurrentReqId() > 0){
+                    await updateThisMapView("SrMap onMounted",true);
+                } else {
+                    await updateThisMapView("SrMap onMounted",false);
+                }
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -503,7 +504,7 @@
         console.log("SrMap onDeactivated");
     })
 
-    const handleDrawControlCreated = (drawControl: any) => {
+    function handleDrawControlCreated(drawControl: any) {
         //console.log(drawControl);
         const map = mapRef.value?.map;
         if(map){
@@ -513,14 +514,14 @@
         }
     };
 
-    const handleViewControlCreated = (viewControl: any) => {
+    function handleViewControlCreated(viewControl: any) {
         //console.log(viewControl);
         const map = mapRef.value?.map;
         if(map){
-        //console.log("adding viewControl");
-        map.addControl(viewControl);
+            //console.log("adding viewControl");
+            map.addControl(viewControl);
         } else {
-        console.error("Error:map is null");
+            console.error("Error:map is null");
         }
     };
 
@@ -528,20 +529,20 @@
         //console.log(legendControl);
         const map = mapRef.value?.map;
         if(map){
-        //console.log("adding legendControl");
-        map.addControl(legendControl);
+            //console.log("adding legendControl");
+            map.addControl(legendControl);
         } else {
-        console.error("Error:map is null");
+            console.error("Error:map is null");
         }
     };
 
-    const updateThisMapView = async (reason:string) => {
+    const updateThisMapView = async (reason:string,restoreCurrReq:boolean) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
             if(map){
                 const srViewObj = mapStore.getSrViewObj();
-                updateMapView(map,srViewObj.name,reason)
+                await updateMapView(map,srViewObj.name,reason)
                 //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
                 // thisView.on('change:resolution', function() {
                 //     const zoomLevel = thisView.getZoom();
@@ -549,7 +550,17 @@
                 // });
                 map.addLayer(drawVectorLayer);
                 addLayersForCurrentView(map,srViewObj.projectionName);      
-                initDeck(map);
+                if(restoreCurrReq){
+                    const reqId = mapStore.getCurrentReqId();
+                    if(reqId > 0){
+                        await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewObj.name);
+                        initDeck(map);
+                        await updateElevationForReqId(reqId); 
+                    }
+                } else {
+                    initDeck(map);
+                }
+
                 // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
                 // Permalink
                 // if(mapStore.plink){
@@ -583,9 +594,18 @@
     };
 
 
-    const handleUpdateSrView = (srView: SrView) => {
+    const handleUpdateSrView = async (srView: SrView) => {
         console.log(`handleUpdateSrView: |${srView.name}|`);
-        updateThisMapView("handleUpdateSrView");
+        const map = mapRef.value?.map;
+        try{
+            if(map){
+                await updateThisMapView("handleUpdateSrView",true);
+            } else {
+                console.error("SrMap Error:map is null");
+            }
+        } catch (error) {
+            console.error(`SrMap Error: handleUpdateSrView failed:`,error);
+        } 
     };
 
 </script>

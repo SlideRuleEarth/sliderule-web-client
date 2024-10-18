@@ -597,7 +597,12 @@ export class SlideRuleDexie extends Dexie {
                     return '';
                 }
                 //console.log('getSrViewName req_id:',req_id,'func:',request.func, 'request:',request);
-                return request.srViewName || '';
+                let srViewName = request.srViewName || '';
+                if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
+                    srViewName = 'Global Mercator Esri';
+                    console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+                }
+                return srViewName
             } else {
                 console.warn(`getSrViewName req_id must be a positive integer. req_id: ${req_id}`);
                 return '';

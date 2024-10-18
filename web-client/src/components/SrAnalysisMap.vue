@@ -2,7 +2,6 @@
     import { useMapStore } from "@/stores/mapStore";
     import { ref, onMounted, watch, computed } from "vue";
     import type OLMap from "ol/Map.js";
-    import {createStringXY} from 'ol/coordinate';
     import ProgressSpinner from "primevue/progressspinner";
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
@@ -10,29 +9,20 @@
     import 'ol/ol.css'; 
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
-    import { getTransform } from 'ol/proj.js';
-    import { addLayersForCurrentView,getLayer } from "@/composables/SrLayers";
-    import { View as OlView } from 'ol';
-    import { applyTransform } from 'ol/extent.js';
-    import { Layer as OLlayer } from 'ol/layer';
-    import { getCenter as getExtentCenter } from 'ol/extent.js';
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import SrLegendControl from './SrLegendControl.vue';
-    import { dumpMapLayers, initDeck } from '@/utils/SrMapUtils';
-    import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+    import { dumpMapLayers, initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
-    import { srViews } from "@/composables/SrViews";
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView } from "@/utils/SrMapUtils";
     
-    //const stringifyFunc = createStringXY(4);
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
         const projName = computedProjName.value;
@@ -66,9 +56,9 @@
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-        return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
+            return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
         } else {
-        return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
+            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
         }
     });
 
@@ -133,45 +123,12 @@
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
         let srViewName = await db.getSrViewName(props.reqId);
-        if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
-            srViewName = 'Global Mercator Esri';
-            console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${props.reqId}`);
-        }
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with reqId:${props.reqId} ------`);
 
-        console.log(`------ SrAnalysisMap updateAnalysisMapView for ${reason} with reqId:${props.reqId} ------`);
         try {
             if(map){
-                console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName} ------`);
-                const srViewObj = srViews.value[`${srViewName}`];
                 await updateMapView(map, srViewName, reason);
-                let reqExtremeLatLon = [0,0,0,0];
-                if(props.reqId > 0){   
-                    //console.log('calling readOrCacheSummary(',props.reqId,')');  
-                    const workerSummary = await readOrCacheSummary(props.reqId);
-                    if(workerSummary){
-                        const extremeLatLon = workerSummary.extLatLon;
-                        if (extremeLatLon) {
-                            reqExtremeLatLon = [
-                                extremeLatLon.minLon,
-                                extremeLatLon.minLat,
-                                extremeLatLon.maxLon,
-                                extremeLatLon.maxLat
-                            ];
-                            //console.log('Using reqId:',props.reqId,' with extent:',extent);
-                        } else {
-                            console.error("Error: invalid lat-lon data for request:",props.reqId);
-                        }
-                    } else {
-                        console.error("Error: invalid workerSummary for request:",props.reqId);
-                    } 
-                } else {
-                    console.info("no reqId:",props.reqId);
-                }
-                //console.log('reqExtremeLatLon:',reqExtremeLatLon);
-                //console.log('Using extent:',extent);               
-                const fromLonLat = getTransform('EPSG:4326', srViewObj.projectionName);
-                const view_extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
-                map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
+                zoomMapForReqIdUsingView(map, props.reqId,srViewName);
                 initDeck(map);
             } else {
                 console.error("SrMap Error:map is null");
@@ -187,6 +144,7 @@
             console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
             console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
         }
+        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with reqId:${props.reqId} ------`);
     };
 </script>
 

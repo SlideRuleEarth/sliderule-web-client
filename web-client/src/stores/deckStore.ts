@@ -45,6 +45,7 @@ export const useDeckStore = defineStore('deck', {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
                 if (this.pointCloudLayers[i].id === layerId) {
                     this.pointCloudLayers.splice(i,1);
+                    this.getDeckInstance().setProps({layers:this.getLayers()});
                     return true;
                 }
             }
