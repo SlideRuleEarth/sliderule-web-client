@@ -228,7 +228,7 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
                     cleanUpWorker();
                 }
             };
-            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: sysConfigStore.getSysConfig(), func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
+            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization()}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
             worker.postMessage(JSON.stringify(cmd));
         } else {
             console.error('runFetchToFileWorker req_id is undefined');
