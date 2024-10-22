@@ -76,8 +76,8 @@
                 toast.add({ severity: 'error', summary: 'Failed to Retrieve Nodes', detail: `Error: ${response.statusText}`, life: srToastStore.getLife()});
             }  
         } else {
-            console.error('Authentication failed');
-            toast.add({ severity: 'error', summary: 'Authentication Error', detail: 'Please log in again', life: srToastStore.getLife()});
+            console.error('Login expired or not logged in');
+            toast.add({ severity: 'info', summary: 'Need to Login', detail: 'Please log in again', life: srToastStore.getLife()});
         }
     }
   </script>

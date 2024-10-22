@@ -136,14 +136,43 @@
       return false;
     }
   }
-
+  async function desiredOrgNumNodes() {
+      const psHost = `https://ps.${sysConfigStore.getDomain()}`;
+      let jwt = jwtStore.getCredentials();
+      if(jwt){
+          const response = await fetch(`${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`, {
+              method: 'GET',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'Authorization': `Bearer ${jwt.accessToken}`,
+              },
+          });
+          if (response.ok) {
+              const result = await response.json();
+              if(result.status === 'QUEUED'){
+                  toast.add({ severity: 'info', summary: 'Desired Nodes Request Queued', detail: result.msg, life: srToastStore.getLife()});
+              } else {
+                  console.error(`Failed to get Desired Nodes: ${response.statusText}`);
+                  toast.add({ severity: 'error', summary: 'Failed to Retrieve Desired Nodes', detail: `Error: ${result.msg}`, life: srToastStore.getLife()});
+              }
+          } else {
+              console.error(`Failed to get Num Nodes: ${response.statusText}`);
+              toast.add({ severity: 'error', summary: 'Failed to Retrieve Nodes', detail: `Error: ${response.statusText}`, life: srToastStore.getLife()});
+          }  
+      } else {
+          console.error('Login expired or not logged in');
+          toast.add({ severity: 'info', summary: 'Need to Login', detail: 'Please log in again', life: srToastStore.getLife()});
+      }
+    }
+ 
   function updateDesiredNodes() {
     console.log('updateDesiredNodes:', desiredNodes.value, ttl.value);
     showDesiredNodesDialog.value = false; // Close the dialog
     // Add your logic to update desired nodes here
     sysConfigStore.setDesiredNodes(desiredNodes.value);
     sysConfigStore.setTimeToLive(ttl.value);
-    //getOrgNumNodes();
+    desiredOrgNumNodes();
   }
 
   onMounted(async () => {
