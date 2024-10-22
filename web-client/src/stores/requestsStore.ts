@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
-import {type  NullReqParams } from '@/stores/reqParamsStore';
+import {type  NullReqParams } from '@/sliderule/icesat2';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import { findParam } from '@/utils/parmUtils';
