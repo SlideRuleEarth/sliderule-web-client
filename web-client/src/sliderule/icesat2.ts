@@ -111,7 +111,12 @@ export interface AtlxxReqParams {
     parms: AtlReqParams;
     resources?: Resource[];
 }
-
+export interface NullReqParams {
+    null: null;
+  }
+  
+  
+export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 
 export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {

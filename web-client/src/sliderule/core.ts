@@ -1,12 +1,5 @@
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 
-//import { NetRC } from 'netrc-reader';
-import { useSysConfigStore } from "@/stores/sysConfigStore";
-//var netrc = require('netrc'); 
-// @ts-ignore
-//import netrc from 'netrc';
-const sysConfigStore = useSysConfigStore();
-
 export type SysConfig = {
   domain: string;
   organization: string;

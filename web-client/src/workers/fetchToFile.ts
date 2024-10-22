@@ -77,6 +77,7 @@ onmessage = async (event) => {
             return;
         }
         if (cmd.sysConfig){
+            console.log('cmd.sysConfig:', cmd.sysConfig);
             init(cmd.sysConfig.domain, cmd.sysConfig.organization);
         } else {
             console.error('cmd.sysConfig was not provided');

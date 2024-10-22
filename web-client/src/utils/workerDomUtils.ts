@@ -226,19 +226,26 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
                     console.error('Worker error:', error);
                     handleWorkerError(error, 'Worker faced an unexpected error');
                     cleanUpWorker();
+                    requestsStore.setConsoleMsg('Worker faced an unexpected error');
+                    requestsStore.setSvrMsg('');
                 }
             };
             const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization()}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
+            console.log('runFetchToFileWorker cmd:',cmd);
             worker.postMessage(JSON.stringify(cmd));
         } else {
             console.error('runFetchToFileWorker req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             useSrToastStore().error('Error','There was an error');
+            requestsStore.setConsoleMsg('There was an error');
+            requestsStore.setSvrMsg('');
         }
     } catch (error) {
         console.error('runFetchToFileWorker error:',error);
         //toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         useSrToastStore().error('Error','An error occurred running the worker');
+        requestsStore.setConsoleMsg('There was an error');
+        requestsStore.setSvrMsg('');
     }
 }
 

@@ -9,11 +9,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 
-export interface NullReqParams {
-  null: null;
-}
-
-export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 
 interface YapcConfig {
   version: number;
