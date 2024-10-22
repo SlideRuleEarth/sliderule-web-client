@@ -11,6 +11,7 @@ import type { EventsKey } from 'ol/events';
 import {type Type as OlGeometryType} from 'ol/geom/Geometry';
 import { srViews } from '@/composables/SrViews';
 import type { SrView } from '@/composables/SrViews';
+import { findSrView } from '@/composables/SrViews';
 import type { SrLayer } from '@/composables/SrLayers.js';
 import { layers } from '@/composables/SrLayers';
 
@@ -51,7 +52,8 @@ export const useMapStore = defineStore('map', {
     totalRows: 0 as number,
     currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
-    srView: 'Global Mercator Esri' as string, 
+    selectedView: 'Global Mercator' as string,
+    selectedBaseLayer: 'Esri World Topo' as string,
     drawType: '' as string,
     layerCache: {} as LayerCache, // A dictionary of projection names to maps of layers
     layerGroupCache: new Map<string, Map<string, SrLayer>>(), // If you need a similar structure for groups
@@ -212,19 +214,19 @@ export const useMapStore = defineStore('map', {
         }
     },
     resetMap() {
-        this.srView = 'Global';
+        this.selectedView = 'Global Mercator' as string;
         this.drawType = '' as string;
         this.layerCache = {} as LayerCache;
     },
     setSrView(srView: string) {
-        this.srView = srView;
+        this.selectedView = srView;
         const srViewObj = srViews.value[srView] as SrView;
     },
     getSrView() {
-        return this.srView;
+        return this.selectedView;
     },
     getSrViewObj() : SrView {
-        return srViews.value[this.srView] as SrView;
+        return findSrView(this.selectedView,this.selectedBaseLayer).value as SrView;
     },
     getDrawType(): string {
         return this.drawType;
@@ -234,6 +236,28 @@ export const useMapStore = defineStore('map', {
     },
     setDrawType(drawType: string) {
         this.drawType = drawType;
-    },  
+    }, 
+    setSelectedBaseLayer(baseLayer: string) {
+        this.selectedBaseLayer = baseLayer;
+        console.log('setSelectedBaseLayer:', baseLayer);
+    },
+    getSelectedBaseLayer() {
+      console.log('getSelectedBaseLayer:', this.selectedBaseLayer);
+      return this.selectedBaseLayer;
+    },
+    setSelectedView(view: string) {
+        this.selectedView = view;
+    },
+    getSelectedView() {
+        return this.selectedView;
+    },
+    getUniqueBaseLayersForView(view: string): string[] {
+        const baseLayerSet = new Set<string>(
+          Object.values(srViews.value)
+            .filter((srView) => srView.view === view)
+            .map((srView) => srView.baseLayerName)
+        );
+        return Array.from(baseLayerSet);
+      }
   },
 });

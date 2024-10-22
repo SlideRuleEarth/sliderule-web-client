@@ -290,8 +290,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
 
 export const getSrLayersForCurrentView = () => {
   const mapStore = useMapStore();
-  const srView = mapStore.getSrView();
-  const projName = srViews.value[srView].projectionName;
+  const srViewObj = mapStore.getSrViewObj();
+  const projName = srViewObj.projectionName;
   return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(projName));
 }
 
@@ -300,11 +300,11 @@ export const getSrLayersForCurrentProjection = () => {
   return  Object.values(layers.value).filter(layer => layer.allowed_reprojections.includes(mapStore.getSrViewObj().projectionName));
 }
 
-export const getSrBaseLayersForView = (view: string) => {
-  //console.log('getSrBaseLayersForView', view);
+export const getSrBaseLayersForCurrentView = () => {
+  //console.log('getSrBaseLayersForCurrentView', view);
   const allLayersList = getSrLayersForCurrentView(); 
   const layerList = Object.values(allLayersList).filter(layer => layer.isBaseLayer);
-  //console.log('getSrBaseLayersForView', layerList);
+  //console.log('getSrBaseLayersForCurrentView', layerList);
   return layerList;
 }
 

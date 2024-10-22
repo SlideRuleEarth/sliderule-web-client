@@ -32,6 +32,7 @@
     import type { SrRegion } from "@/sliderule/icesat2"
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
+    import SrBaseLayerControl from "./SrBaseLayerControl.vue";
     import SrLegendControl  from "./SrLegendControl.vue";
     import SrDrawControl from "@/components/SrDrawControl.vue";
     import { Map, MapControls } from "vue3-openlayers";
@@ -525,6 +526,17 @@
         }
     };
 
+    function handleBaseLayerControlCreated(baseLayerControl: any) {
+        //console.log(baseLayerControl);
+        const map = mapRef.value?.map;
+        if(map){
+            //console.log("adding baseLayerControl");
+            map.addControl(baseLayerControl);
+        } else {
+            console.error("Error:map is null");
+        }
+    };
+
     const handleLegendControlCreated = (legendControl: any) => {
         //console.log(legendControl);
         const map = mapRef.value?.map;
@@ -594,7 +606,8 @@
     };
 
 
-    const handleUpdateSrView = async (srView: SrView) => {
+    const handleUpdateSrView = async () => {
+        const srView = mapStore.getSrViewObj();
         console.log(`handleUpdateSrView: |${srView.name}|`);
         const map = mapRef.value?.map;
         try{
@@ -605,6 +618,21 @@
             }
         } catch (error) {
             console.error(`SrMap Error: handleUpdateSrView failed:`,error);
+        } 
+    };
+
+    const handleUpdateBaseLayer = async () => {
+        const baseLayer = mapStore.getSelectedBaseLayer();
+        console.log(`handleUpdateBaseLayer: |${baseLayer}|`);
+        const map = mapRef.value?.map;
+        try{
+            if(map){
+                await updateThisMapView("handleUpdateBaseLayer",true);
+            } else {
+                console.error("SrMap Error:map is null");
+            }
+        } catch (error) {
+            console.error(`SrMap Error: handleUpdateBaseLayer failed:`,error);
         } 
     };
 
@@ -632,17 +660,14 @@
     <MapControls.OlMousepositionControl 
         :projection="computedProjName"
         :coordinateFormat="stringifyFunc as any"
-    />
+    ></MapControls.OlMousepositionControl>  
     <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
     <MapControls.OlScalelineControl />
     <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
     <SrLegendControl @legend-control-created="handleLegendControlCreated" />
     <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
-    <!-- <Layers.OlVectorLayer title="Drawing Layer" name='Drawing Layer' :zIndex=999 >
-      <Sources.OlSourceVector :projection="computedProjName">
-      </Sources.OlSourceVector>
-    </Layers.OlVectorLayer> -->
+    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
   </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
 
@@ -755,7 +780,7 @@
 }
 
 :deep( .ol-control.sr-view-control ){
-  top: 0.55rem;
+  top: 0rem;
   bottom: auto;
   left: 0.5rem;
   right: auto;
@@ -764,18 +789,22 @@
   max-width: 30rem; 
 }
 
-:deep( .ol-control.sr-base-layer-control ){
-  top: 0.55rem;
+:deep( .sr-select-menu-default ){
+    padding: 0;
+}
+
+:deep( .ol-control.sr-baselayer-control ){
+  top: 0rem;
   bottom: auto;
   right: auto;
-  left: 4.5rem;
+  left: 8.5rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem; 
 }
 
-:deep( .ol-control.sr-layers-control ){
+/* :deep( .ol-control.sr-layers-control ){
   top: 0.55rem;
   bottom: auto;
   right: auto;
@@ -784,7 +813,7 @@
   border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem; 
-}
+} */
 :deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
   color: white;
   background-color: var(--p-primary-600);

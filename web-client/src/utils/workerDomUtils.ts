@@ -291,7 +291,7 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
                 srReqRec.func = useReqParamsStore().getIceSat2API();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.srViewName = useMapStore().srView;
+                srReqRec.srViewName = useMapStore().selectedView;
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
@@ -306,7 +306,7 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
                 srReqRec.func = useReqParamsStore().getGediAPI();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.srViewName = useMapStore().srView;
+                srReqRec.srViewName = useMapStore().selectedView;
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);
