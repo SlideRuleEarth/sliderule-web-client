@@ -4,15 +4,15 @@ export const useSysConfigStore = defineStore('sysConfig', {
 
     state: () => ({
         domain: "slideruleearth.io",
-        organization: "sliderule",        
-        verbose: false,
-        useDesiredNodes: false, // false means use existing nodes or specify number of nodes
+        organization: "sliderule",
+        is_public: true,        
         desired_nodes: 1,
         time_to_live: 720, // minutes
-        accessToken: "", 
-        refreshToken: "", 
-        expiration: 0, 
-      }),
+        min_nodes: 0,
+        max_nodes: 0,
+        current_nodes: 0,
+        version: "0.0.0",
+       }),
     actions: {
         setDomain(value: string) {
             this.domain = value
@@ -26,23 +26,11 @@ export const useSysConfigStore = defineStore('sysConfig', {
         getOrganization() : string {
             return this.organization
         },
-        setVerbose(value: boolean) {
-            this.verbose = value
-        },
-        getVerbose() : boolean {
-            return this.verbose
-        },
         getTimeToLive() : number {
             return this.time_to_live
         },
         setTimeToLive(value: number) {
             this.time_to_live = value
-        },
-        setUseDesiredNodes(value: boolean) {
-            this.useDesiredNodes = value
-        },
-        getUseDesiredNodes(): boolean {
-            return this.useDesiredNodes
         },
         setDesiredNodes(value: number) {
             this.desired_nodes = value
@@ -50,27 +38,40 @@ export const useSysConfigStore = defineStore('sysConfig', {
         getDesiredNodes(): number {
             return this.desired_nodes
         },
-        setAccessToken(token: string) {
-            this.accessToken = token
-        },
-        getAccessToken() : string {
-            return this.accessToken
-        },
-        setRefreshToken(token: string) {
-            this.refreshToken = token
-        },
-        getRefreshToken() {
-            return this.refreshToken
-        },
-        setExpiration(expiration: number) {
-            this.expiration = expiration
-        },
-        getExpiration() : number {
-            return this.expiration
-        },
         orgIsPublic() : boolean {
-            return (this.organization === 'sliderule' || this.organization.includes('hackweek'));
-        }
+            this.is_public = (this.organization === 'sliderule' || this.organization.includes('hackweek'));
+            return this.is_public;
+        },
+        setIsPublic(value: boolean) {
+            this.is_public = value
+        },
+        getIsPublic(): boolean {
+            return this.is_public
+        },
+        setMinNodes(value: number) {
+            this.min_nodes = value
+        },
+        getMinNodes(): number {
+            return this.min_nodes
+        },
+        setMaxNodes(value: number) {
+            this.max_nodes = value
+        },
+        getMaxNodes(): number {
+            return this.max_nodes
+        },
+        setCurrentNodes(value: number) {
+            this.current_nodes = value
+        },
+        getCurrentNodes(): number {
+            return this.current_nodes
+        },
+        setVersion(value: string) {
+            this.version = value
+        },
+        getVersion(): string {
+            return this.version
+        },
     },
 })
 
