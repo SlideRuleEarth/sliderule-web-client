@@ -1,297 +1,151 @@
 <script setup lang="ts">
-  import { useMapStore } from "@/stores/mapStore";
-  import { useMapParamsStore } from "@/stores/mapParamsStore";
-  import { ref, onMounted, watch, computed } from "vue";
-  import type OLMap from "ol/Map.js";
-  import {createStringXY} from 'ol/coordinate';
-  import ProgressSpinner from "primevue/progressspinner";
-  import { srProjections } from "@/composables/SrProjections";
-  import proj4 from 'proj4';
-  import { register } from 'ol/proj/proj4';
-  import 'ol/ol.css'; 
-  import 'ol-geocoder/dist/ol-geocoder.min.css';
-  import { get as getProjection } from 'ol/proj.js';
-  import { getTransform } from 'ol/proj.js';
-  import { addLayersForCurrentView,getLayer,getDefaultBaseLayer } from "@/composables/SrLayers";
-  import View from 'ol/View';
-  import { applyTransform } from 'ol/extent.js';
-  import Layer from 'ol/layer/Layer';
-  import { getDefaultProjection } from '@/composables/SrProjections';
-  import  { getCenter as getExtentCenter } from 'ol/extent.js';
-  import { onActivated } from "vue";
-  import { onDeactivated } from "vue";
-  import SrCurrentMapViewParms from './SrCurrentMapViewParms.vue';
-  import SrLegendControl from './SrLegendControl.vue';
-  import { initDeck } from '@/utils/SrMapUtils';
-  import { readOrCacheSummary } from "@/utils/SrParquetUtils";
-  import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-  import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-  import { useRequestsStore } from "@/stores/requestsStore";
-  import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
-  import { db } from "@/db/SlideRuleDb";
-  import { srViews } from "@/composables/SrViews";
+    import { useMapStore } from "@/stores/mapStore";
+    import { ref, onMounted, watch, computed } from "vue";
+    import type OLMap from "ol/Map.js";
+    import ProgressSpinner from "primevue/progressspinner";
+    import { srProjections } from "@/composables/SrProjections";
+    import proj4 from 'proj4';
+    import { register } from 'ol/proj/proj4';
+    import 'ol/ol.css'; 
+    import 'ol-geocoder/dist/ol-geocoder.min.css';
+    import { get as getProjection } from 'ol/proj.js';
+    import { onActivated } from "vue";
+    import { onDeactivated } from "vue";
+    import SrLegendControl from './SrLegendControl.vue';
+    import { dumpMapLayers, initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
+    import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { useRequestsStore } from "@/stores/requestsStore";
+    import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
+    import { db } from "@/db/SlideRuleDb";
+    import { type Coordinate } from "ol/coordinate";
+    import { toLonLat } from 'ol/proj';
+    import { format } from 'ol/coordinate';
+    import { updateMapView } from "@/utils/SrMapUtils";
     
-  const stringifyFunc = createStringXY(4);
-  const mapContainer = ref<HTMLElement | null>(null);
-  const mapRef = ref<{ map: OLMap }>();
-  const mapParamsStore = useMapParamsStore();
-  const mapStore = useMapStore();
-  const requestsStore = useRequestsStore();
-  const controls = ref([]);
-
-  const handleEvent = (event: any) => {
-    console.log(event);
-  };
-
-  // function onMoveStart(event) {
-  //   console.log("SrAnalysisMap onMoveStart event:",event);
-  //   //const map = event.map; // Get map from event
-  //   const map = mapRef.value?.map;
-  //   if(map){
-  //     map.getTargetElement().style.cursor = 'grabbing !important'; // Change cursor to grabbing
-  //   }
-  // }
-
-  // function onMoveEnd(event) {
-  //   console.log("SrAnalysisMap onMoveEnd");
-  //   //const map = event.map; // Get map from event
-  //   const map = mapRef.value?.map;
-  //   if(map){
-  //     map.getTargetElement().style.cursor = 'default'; // Reset cursor to default
-
-  //   }
-  // }
-  // function onPointerDrag(event) {
-  //   console.log("SrAnalysisMap onPointerDrag");
-  //   const map = event.map; // Get map from event
-  //   map.getTargetElement().style.cursor = 'grabbing !important'; // Change cursor to grabbing
-  // }
-
-
-  const atlChartFilterStore = useAtlChartFilterStore();
-  const elevationIsLoading = computed(() => mapStore.getIsLoading());
-  const loadStateStr = computed(() => {
-    return elevationIsLoading.value ? "Loading" : "Loaded";
-  }); 
-  const computedFunc = computed(() => atlChartFilterStore.getFunc());
-
-  const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
-  const computedLoadMsg = computed(() => {
-    const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
-    const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
-    if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-      return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
-    } else {
-      return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
-    }
-  });
-
-  const props = defineProps({
-      reqId: {
-          type: Number,
-          required: true
-      }
-  });
-
-  // Watch for changes on reqId
-  watch(() => props.reqId, (newReqId, oldReqId) => {
-    console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
-    updateAnalysisMapView("New reqId");  
-  });
-
-
-  // Watch for changes on parquetReader
-  watch(() => useSrParquetCfgStore().parquetReader, (newReader, oldReader) => {
-    console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
-    updateAnalysisMapView("New parquetReader");
-  });
-
-  watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
-    console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
-    updateAnalysisMapView("New maxNumPntsToDisplay");
-  });
-
-  onMounted(() => {
-    console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
-    mapStore.setIsLoading();
-    //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
-    Object.values(srProjections.value).forEach(projection => {
-        //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
-        proj4.defs(projection.name, projection.proj4def);
-    });
-    register(proj4);
-    if (mapRef.value?.map) {
-      mapStore.setMap(mapRef.value.map);
-      const map = mapStore.getMap() as OLMap;
-      if(map){
-        const defaultBaseLayer = getDefaultBaseLayer(getDefaultProjection().name);
-        if(defaultBaseLayer){
-          const newLayer = getLayer(defaultBaseLayer.title);
-          if(mapStore.map){
-            console.log('adding Base Layer', newLayer);
-            mapStore.map.addLayer(newLayer);
-          } else {
-            console.log('map not available');
-          }    
+    const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
+    const stringifyFunc = (coordinate: Coordinate) => {
+        const projName = computedProjName.value;
+        let newProj = getProjection(projName);
+        let newCoord = coordinate;
+        if(newProj?.getUnits() !== 'degrees'){
+            newCoord = toLonLat(coordinate,projName);
         }
-        //mapStore.setCurrentWmtsCap(mapParamsStore.getProjection());
+        return format(newCoord, template, 4);
+    };
+    const mapContainer = ref<HTMLElement | null>(null);
+    const mapRef = ref<{ map: OLMap }>();
+    const mapStore = useMapStore();
+    const requestsStore = useRequestsStore();
+    const controls = ref([]);
 
-        updateAnalysisMapView("SrAnalysisMap onMounted");
+    const handleEvent = (event: any) => {
+        console.log(event);
+    };
+    const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
+
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const elevationIsLoading = computed(() => mapStore.getIsLoading());
+    const loadStateStr = computed(() => {
+        return elevationIsLoading.value ? "Loading" : "Loaded";
+    }); 
+    const computedFunc = computed(() => atlChartFilterStore.getFunc());
+
+    const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+    const computedLoadMsg = computed(() => {
+        const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
+        const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
+        if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
+            return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
+        } else {
+            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
+        }
+    });
+
+    const props = defineProps({
+        reqId: {
+            type: Number,
+            required: true
+        }
+    });
+
+    // Watch for changes on reqId
+    watch( () => props.reqId, async (newReqId, oldReqId) => {
+        console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
+        await updateAnalysisMapView("New reqId");  
+    });
+
+
+    // Watch for changes on parquetReader
+    watch(() => useSrParquetCfgStore().parquetReader, async (newReader, oldReader) => {
+        console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
+        await updateAnalysisMapView("New parquetReader");
+    });
+
+    watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
+        console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
+        await updateAnalysisMapView("New maxNumPntsToDisplay");
+    });
+
+    onMounted(() => {
+        console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
+        mapStore.setIsLoading();
+        //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
+        Object.values(srProjections.value).forEach(projection => {
+            //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
+            proj4.defs(projection.name, projection.proj4def);
+        });
+        register(proj4);
+
+        updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
+    });
 
-      } else {
-        console.log("Error:map is null");
-      } 
-    } else {
-      console.error("Error:map is null");
-    }
+    onActivated(() => {
+        console.log("SrAnalysisMap onActivated");
+    })
 
-  });
+    onDeactivated(() => {
+        console.log("SrAnalysisMap onDeactivated");
+    })
 
-  onActivated(() => {
-    console.log("SrAnalysisMap onActivated");
-  })
-
-  onDeactivated(() => {
-    console.log("SrAnalysisMap onDeactivated");
-  })
-
-  const handleLegendControlCreated = (legendControl: any) => {
-    //console.log(legendControl);
-    const map = mapRef.value?.map;
-    if(map){
-      console.log("adding legendControl");
-      map.addControl(legendControl);
-    } else {
-      console.error("Error:map is null");
-    }
-  };
-
-  const updateAnalysisMapView = async (reason:string) => {
-    let srViewName = await db.getSrViewName(props.reqId);
-    if((!srViewName) || (srViewName == '')){
-        console.warn(`inserting global srViewName:${srViewName} for reqId:${props.reqId}`);
-        srViewName = 'Global';
-    }
-    const srView = srViews.value[`${srViewName}`];
-    console.log(`SrAnalysisMap updateAnalysisMapView from ${reason}  for srViewName:${srViewName} reqID:${props.reqId} using view:`,srView);
-    
-    try {
+    const handleLegendControlCreated = (legendControl: any) => {
+        //console.log(legendControl);
         const map = mapRef.value?.map;
         if(map){
-            map.getAllLayers().forEach((layer: Layer) => {
-                // drawiing Layer is never changed/removed
-                if(layer.get('name') !== 'Drawing Layer'){
-                    console.log(`removing layer:`,layer.get('title'));
-                    map.removeLayer(layer);
-                } else {
-                    //console.log(`skipping layer:`,layer.get('name'));
-                }
-            });
-            let baseLayer = mapParamsStore.getSelectedBaseLayer();
-            console.log(`SrAnalysisMap  baseLayer:`,baseLayer);
-            let projName = await db.getProjection(props.reqId);
-            console.log(`SrAnalysisMap  projName:`,projName);
-            if((!projName) || (projName == '')){
-                projName = 'EPSG:3857';
-                console.warn(`inserting  projName:${projName} for reqId:${props.reqId}`);
-            }
-            const newProj = getProjection(projName);
-
-            if(newProj){
-                if(baseLayer){
-                    //console.log('adding Base Layer', baseLayer);
-                    const layer = getLayer(baseLayer.title);
-                    console.log('SrAnalysisMap adding Base Layer', layer);
-                    map.addLayer(layer);
-                } else {
-                    console.error("SrAnalysisMap Error:baseLayer is null");
-                }
-                //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
-                let extent = newProj.getExtent();
-                //console.log("projection's extent:",extent);         
-                const fromLonLat = getTransform('EPSG:4326', newProj);
-                //console.log("extent:",extent);
-                //console.log(`${newProj.getCode()} using our BB:${srView.bbox}`);
-                if (srView.bbox){
-                    // 5936 is North Alaska; 3413 is North Sea Ice;  3031 is South Pole
-                    if ((newProj.getCode() == 'EPSG:5936') || (newProj.getCode() == 'EPSG:3031') || (newProj.getCode() == 'EPSG:3413')){
-                        //if(projection.getUnits() == 'm'){
-                        //console.log("srView.bbox:",srView.bbox);
-                        let worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3], srView.bbox[0]];
-                        //projection.setWorldExtent(worldExtent);
-                        // approximate calculation of projection extent,
-                        // checking if the world extent crosses the dateline
-                        if (srView.bbox[1] > srView.bbox[3]) {
-                            console.warn("SrAnalysisMap View crosses the dateline");
-                            worldExtent = [srView.bbox[1], srView.bbox[2], srView.bbox[3] + 360, srView.bbox[0]];
-                        }
-                        extent = applyTransform(worldExtent, fromLonLat, undefined, 8);
-                        newProj.setExtent(extent);
-                        //console.log("extent:",extent);
-                    } else {
-                        //console.log("projection units pole units:",newProj.getUnits());
-                    }
-                    let center = getExtentCenter(extent);
-                    console.log(`extent: ${extent}, center: ${center}`);
-                    const newView = new View({
-                        projection: newProj,
-                        //constrainResolution: true,
-                        extent: extent || undefined,
-                        center:center || undefined,
-                        zoom: srView.default_zoom,
-                    });
-                    mapParamsStore.setProjection(newProj.getCode());
-                    map.setView(newView);
-                    //updateCurrentParms();
-                    addLayersForCurrentView(); 
-                    let reqExtremeLatLon = [0,0,0,0];
-                    if(props.reqId > 0){   
-                        //console.log('calling readOrCacheSummary(',props.reqId,')');  
-                        const workerSummary = await readOrCacheSummary(props.reqId);
-                        if(workerSummary){
-                            const extremeLatLon = workerSummary.extLatLon;
-                            if (extremeLatLon) {
-                                reqExtremeLatLon = [
-                                    extremeLatLon.minLon,
-                                    extremeLatLon.minLat,
-                                    extremeLatLon.maxLon,
-                                    extremeLatLon.maxLat
-                                ];
-                                //console.log('Using reqId:',props.reqId,' with extent:',extent);
-                            } else {
-                                console.error("Error: invalid lat-lon data for request:",props.reqId);
-                            }
-                        } else {
-                            console.error("Error: invalid workerSummary for request:",props.reqId);
-                        } 
-                    } else {
-                        console.info("no reqId:",props.reqId);
-                    }
-                    //console.log('reqExtremeLatLon:',reqExtremeLatLon);
-                    extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
-                    //console.log('Using extent:',extent);               
-                    map.getView().fit(extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
-                    initDeck(map);
-                } else {
-                    console.error("Error: invalid projection bbox:",srView.bbox);
-                }
-            } else {
-                console.error("Error:projection is null");
-            }
-            
+            console.log("adding legendControl");
+            map.addControl(legendControl);
         } else {
-        console.error("Error:map is null");
+            console.error("Error:map is null");
         }
+    };
 
-    } catch (error) {
-        console.error(`Error: updateAnalysisMapView failed for ${reason}`,error);
-    }
+    const updateAnalysisMapView = async (reason:string) => {
+        const map = mapRef.value?.map;
+        let srViewName = await db.getSrViewName(props.reqId);
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with reqId:${props.reqId} ------`);
 
-    console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ******`);
-
-  };
-
+        try {
+            if(map){
+                await updateMapView(map, srViewName, reason);
+                zoomMapForReqIdUsingView(map, props.reqId,srViewName);
+                initDeck(map);
+            } else {
+                console.error("SrMap Error:map is null");
+            }
+        } catch (error) {
+            console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
+        } finally {
+            if(map){
+                dumpMapLayers(map,'SrAnalysisMap');
+            } else {
+                console.error("SrAnalysisMap Error:map is null");
+            }
+            console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
+            console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
+        }
+        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with reqId:${props.reqId} ------`);
+    };
 </script>
 
 <template>
@@ -313,14 +167,14 @@
       <MapControls.OlZoomControl  />
       
       <MapControls.OlMousepositionControl 
+        :projection="computedProjName"
         :coordinateFormat="stringifyFunc as any"
-        projection="EPSG:4326"
       />
 
       <MapControls.OlScalelineControl />
       <SrLegendControl @legend-control-created="handleLegendControlCreated" />
       <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
-        <Sources.OlSourceVector :projection="mapParamsStore.projection">
+        <Sources.OlSourceVector :projection="computedProjName">
           <Styles.OlStyle>
             <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
             <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
@@ -338,9 +192,7 @@
     </Map.OlMap>
     <div class="sr-tooltip-style" id="tooltip"></div>
   </div>
-  <div class="current-view-params">
-    <SrCurrentMapViewParms v-if="mapParamsStore.getShowCurrentViewDetails()"/>
-  </div>
+
 
 </template>
 

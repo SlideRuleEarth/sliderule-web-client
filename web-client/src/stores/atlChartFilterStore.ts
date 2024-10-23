@@ -119,7 +119,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return;
       }
       this.rgtOptions = rgtOptions.map(option => ({ label: option.toString(), value: option }));
-      console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions,' this.rgtOptions:', this.rgtOptions);
+      //console.log('atlChartFilterStore.setRgtOptionsWithNumbers():', rgtOptions,' this.rgtOptions:', this.rgtOptions);
     },
     getRgtOptions() {
       //console.log('atlChartFilterStore.getRgtOptions():', this.rgtOptions);

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Map as OLMap } from 'ol';
+import TileLayer from 'ol/layer/Tile.js';
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { usePermalink } from '@/composables/usePermalink';
@@ -7,6 +8,17 @@ import { Graticule } from 'ol';
 import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import type { EventsKey } from 'ol/events';
+import {type Type as OlGeometryType} from 'ol/geom/Geometry';
+import { srViews } from '@/composables/SrViews';
+import type { SrView } from '@/composables/SrViews';
+import { findSrView } from '@/composables/SrViews';
+import type { SrLayer } from '@/composables/SrLayers.js';
+import { layers } from '@/composables/SrLayers';
+
+
+interface LayerCache {
+  [projectionName: string]: Map<string, TileLayer>;
+}
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -23,7 +35,7 @@ export const useMapStore = defineStore('map', {
         // Style options go here
         strokeStyle: new Stroke({
             color: 'rgba(255,120,0,0.9)',
-            width: 1,
+            width: 2,
             lineDash: [0.5, 4]
         }),
         showLabels: true,
@@ -40,7 +52,12 @@ export const useMapStore = defineStore('map', {
     totalRows: 0 as number,
     currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
-  }),
+    selectedView: 'Global Mercator' as string,
+    selectedBaseLayer: 'Esri World Topo' as string,
+    drawType: '' as string,
+    layerCache: {} as LayerCache, // A dictionary of projection names to maps of layers
+    layerGroupCache: new Map<string, Map<string, SrLayer>>(), // If you need a similar structure for groups
+}),
   actions: {
     setMap(mapInstance: OLMap) {
       this.map = mapInstance;
@@ -176,5 +193,71 @@ export const useMapStore = defineStore('map', {
     setPointerMoveListenerKey(key: EventsKey|null) {
       this.pointerMoveListenerKey = key;
     },
+    addLayerToCache(projectionName: string, title: string, layer: TileLayer): void {
+      if (!this.layerCache[projectionName]) {
+          this.layerCache[projectionName] = new Map<string, TileLayer>();
+      }
+      this.layerCache[projectionName].set(title, layer);
+    },
+    getLayerFromCache(projectionName: string, title: string): TileLayer | null {
+        const projectionLayers = this.layerCache[projectionName];
+        return projectionLayers ? projectionLayers.get(title) || null : null;
+    },
+    removeLayerFromCache(projectionName: string, title: string): void {
+        const projectionLayers = this.layerCache[projectionName];
+        if (projectionLayers) {
+        projectionLayers.delete(title);
+        // Optionally, clean up empty projection maps
+        if (projectionLayers.size === 0) {
+            delete this.layerCache[projectionName];
+        }
+        }
+    },
+    resetMap() {
+        this.selectedView = 'Global Mercator' as string;
+        this.drawType = '' as string;
+        this.layerCache = {} as LayerCache;
+    },
+    setSrView(srView: string) {
+        this.selectedView = srView;
+        const srViewObj = srViews.value[srView] as SrView;
+    },
+    getSrView() {
+        return this.selectedView;
+    },
+    getSrViewObj() : SrView {
+        return findSrView(this.selectedView,this.selectedBaseLayer).value as SrView;
+    },
+    getDrawType(): string {
+        return this.drawType;
+    },
+    getDrawTypeAsGeometryType(): OlGeometryType {
+        return this.drawType as OlGeometryType;
+    },
+    setDrawType(drawType: string) {
+        this.drawType = drawType;
+    }, 
+    setSelectedBaseLayer(baseLayer: string) {
+        this.selectedBaseLayer = baseLayer;
+        console.log('setSelectedBaseLayer:', baseLayer);
+    },
+    getSelectedBaseLayer() {
+      console.log('getSelectedBaseLayer:', this.selectedBaseLayer);
+      return this.selectedBaseLayer;
+    },
+    setSelectedView(view: string) {
+        this.selectedView = view;
+    },
+    getSelectedView() {
+        return this.selectedView;
+    },
+    getUniqueBaseLayersForView(view: string): string[] {
+        const baseLayerSet = new Set<string>(
+          Object.values(srViews.value)
+            .filter((srView) => srView.view === view)
+            .map((srView) => srView.baseLayerName)
+        );
+        return Array.from(baseLayerSet);
+      }
   },
 });

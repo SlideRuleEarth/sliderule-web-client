@@ -1,12 +1,12 @@
 <script setup lang="ts">
     import { ref,onMounted } from "vue";
     import { Control } from 'ol/control';
-    import { srViews } from '@/composables/SrViews';
-    import { useMapParamsStore } from "@/stores/mapParamsStore";
+    import { getDefaultBaseLayerForView,getUniqueViews } from '@/composables/SrViews';
+    import { useMapStore } from "@/stores/mapStore";
+    import SrMenu from './SrMenu.vue';
 
-    const mapParamsStore = useMapParamsStore();
+    const mapStore = useMapStore();
     const viewControlElement = ref(null);
-
     const emit = defineEmits(['view-control-created', 'update-view']);
 
     onMounted(() => {
@@ -17,27 +17,30 @@
       }
     });
     
-    function updateView(selectedLabel: string) {
-        //console.log("updateView:", selectedLabel);
-        const view = srViews.value[selectedLabel];
-        //console.log("updateView view:", view);
-        if (view) {
-          mapParamsStore.setSrView(view);
-          emit('update-view', view);
+    function updateView(event) {
+        //console.log("updateView view:", event);
+        const baseLayer = getDefaultBaseLayerForView(mapStore.getSelectedView());
+        if(baseLayer.value){
+            mapStore.setSelectedBaseLayer(baseLayer.value);
+        } else {
+            console.error("updateView Error: defaulted baseLayer is null");
         }
+        console.log("updateView view:", mapStore.selectedView);
+
+        emit('update-view');
+        
     }
 </script>
 
 <template>
   <div ref="viewControlElement" class="sr-view-control ol-unselectable ol-control">
-    <form class="select-view" name="select-view-form">
-      <select @change="updateView(($event.target as HTMLInputElement).value)" class="sel-view-menu" name="sr-view-sel-menu">
-        <option v-for="srView in srViews" :value="srView.name" :key="srView.name">
-          {{ srView.name }}
-        </option>
-      </select>
-    </form>
-    <!-- <SrViewButtonBox /> -->
+    <SrMenu 
+      v-model="mapStore.selectedView" 
+      @change="updateView" 
+      :menuOptions="getUniqueViews().value" 
+      :getSelectedMenuItem="mapStore.getSelectedView"
+      :setSelectedMenuItem="mapStore.setSelectedView"
+      />
   </div>
 
 </template>

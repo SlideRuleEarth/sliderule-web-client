@@ -1,66 +1,62 @@
 <script setup lang="ts">
-    import { useMapParamsStore } from "@/stores/mapParamsStore";
-    import { ref,onMounted } from "vue";
-    import { Control } from 'ol/control';
-    import { computed } from 'vue';
-    import { getSrBaseLayersForView, getDefaultBaseLayer } from '@/composables/SrLayers.js';
-    import { getDefaultProjection } from '@/composables/SrProjections';
+import { ref, onMounted, onUnmounted } from "vue";
+import { Control } from 'ol/control';
+import { getBaseLayersForView } from '@/composables/SrViews';
+import { useMapStore } from "@/stores/mapStore";
+import SrMenu from './SrMenu.vue';
 
-    const mapParamsStore = useMapParamsStore();
-    const baseLayerOptions = computed(() => getSrBaseLayersForView(mapParamsStore.srView.name));
-    const baseLayerOptionNames = computed(() => baseLayerOptions.value.map(layer => layer.title));
-    const baseLayerControlElement = ref(null);
-    const emit = defineEmits(['baselayer-control-created', 'update-baselayer']);
+const mapStore = useMapStore();
+const baseLayerControlElement = ref<HTMLElement | null>(null);
+const emit = defineEmits<{
+  (e: 'baselayer-control-created', control: Control): void;
+  (e: 'update-baselayer', baseLayer: string): void;
+}>();
 
-    onMounted(() => {
-        //console.log("SrBaseLayerControl onMounted baseLayerControlElement:", baseLayerControlElement.value);
+let customControl: Control | null = null;
 
-        if (baseLayerControlElement.value) {
-            const customControl = new Control({ element: baseLayerControlElement.value });
-            emit('baselayer-control-created', customControl);
-            //console.log("SrBaseLayerControl onMounted customControl:", customControl);
-        }
-        const defaultBaseLayer = getDefaultBaseLayer(getDefaultProjection().name);
-        if (defaultBaseLayer) {
-            mapParamsStore.setSelectedBaseLayer(defaultBaseLayer);
-        }
-    });
+onMounted(() => {
+  if (baseLayerControlElement.value) {
+    customControl = new Control({ element: baseLayerControlElement.value });
+    emit('baselayer-control-created', customControl);
+  }
+});
 
-    // Define a computed property that references the getter and setter
-    const selectedMenuItem = computed({
-        get() {
-            const menuItem = mapParamsStore.getSelectedBaseLayerName();
-            //console.log('SrMenu:', props.label, 'get:', menuItem);
-            return menuItem; // calling the getter function
-        },
-        set(value) {
-            //console.log('SrMenu:', props.label, 'set:', value)
-            const oldBaseLayer = mapParamsStore.getSelectedBaseLayer();
-            mapParamsStore.setSelectedBaseLayerByName(value); // calling the setter function
-            emit('update-baselayer', oldBaseLayer);
-        }
-    });
+onUnmounted(() => {
+  if (customControl) {
+    customControl.setMap(null); // Clean up control on unmount
+  }
+});
+
+function updateBaseLayer(event: Event) {
+  emit('update-baselayer', mapStore.selectedBaseLayer);
+  console.log("updateBaseLayer:", event);
+}
 </script>
 
 <template>
-  <div ref="baseLayerControlElement" class="sr-base-layer-control ol-unselectable ol-control">
-    <form class="select-baselayer" name="sr-select-baselayer-form">
-      <select v-model="selectedMenuItem" class="select-default" name="sr-select-baselayer-menu">
-        <option v-for="layer in baseLayerOptionNames" :value="layer" :key="layer">
-          {{ layer }}
-        </option>
-      </select>
-    </form>
+  <div ref="baseLayerControlElement" class="sr-baselayer-control ol-unselectable ol-control">
+    <SrMenu 
+      v-model="mapStore.selectedBaseLayer" 
+      @change="updateBaseLayer" 
+      :menuOptions="getBaseLayersForView(mapStore.selectedView).value" 
+      :getSelectedMenuItem="mapStore.getSelectedBaseLayer"
+      :setSelectedMenuItem="mapStore.setSelectedBaseLayer"
+    />
   </div>
-
 </template>
 
 <style scoped>
+.ol-control.sr-baselayer-control .select-baseLayer select {
+  color: white;
+  background-color: black;
+  border-radius: var(--p-border-radius);
+}
 
-  .ol-control.sr-base-layer-control .select-baselayer select {
-    color: white;
-    background-color: black;
-    border-radius: var(--p-border-radius);
-  }
-
+.sr-baselayer-control .sr-baselayer-button-box {
+  display: flex; /* Aligns children (input and icon) in a row */
+  flex-direction: row; /* Stack children horizontally */
+  align-items: center; /* Centers children vertically */
+  justify-content: center; /* Centers children horizontally */
+  margin: 0px;
+}
 </style>

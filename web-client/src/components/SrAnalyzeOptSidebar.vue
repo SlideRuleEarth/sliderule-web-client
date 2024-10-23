@@ -8,7 +8,6 @@ import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
 import { formatBytes, updateElevationForReqId, addHighlightLayerForReq } from '@/utils/SrParquetUtils';
-import FieldSet from 'primevue/fieldset';
 import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
@@ -25,6 +24,7 @@ import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
 import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
+import Fieldset from 'primevue/fieldset';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -277,8 +277,9 @@ const updateElevationMap = async (req_id: number) => {
     }
     
 };
-const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
 
+//const debouncedUpdateElevationMap = debounce(() => console.log('stubbedUpdateElevationMap'), 500);
+const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
 
 watch (() => selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
@@ -423,7 +424,7 @@ const getCnt = computed(() => {
                     />
                 </div>
             </div>
-            <FieldSet v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
+            <Fieldset v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
                 <div class="sr-user-guide-link">
                     <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
                 </div>
@@ -471,7 +472,7 @@ const getCnt = computed(() => {
                         @update:modelValue="tracksSelection"
                     />
                 </div>
-            </FieldSet>
+            </Fieldset>
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>

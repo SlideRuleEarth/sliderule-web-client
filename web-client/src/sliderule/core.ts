@@ -1,15 +1,13 @@
-//import https from 'https';
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
-//import pkg from './package.json' assert { type: 'json' };
 
 export type SysConfig = {
   domain: string;
   organization: string;
-  protocol: string;
-  verbose: boolean;
-  desired_nodes: number | null | undefined;
-  time_to_live: number;
-  timeout: number;
+  // protocol: string;
+  // verbose: boolean;
+  // desired_nodes: number | null | undefined;
+  // time_to_live: number;
+  // timeout: number;
 };
 //
 // System Configuration
@@ -17,11 +15,11 @@ export type SysConfig = {
 const globalSysConfig = {
   domain: "slideruleearth.io",
   organization: "sliderule",
-  protocol: 'https',
-  verbose: true,
-  desired_nodes: null,
-  time_to_live: 60,
-  timeout: 120000, // milliseconds
+  //protocol: 'https',
+  //verbose: true,
+  //desired_nodes: null,
+  //time_to_live: 60,
+  //timeout: 120000, // milliseconds
 };
 
 
@@ -268,8 +266,8 @@ async function decodeRecord(rec_type:string, buffer:any, offset:number, rec_size
 
 async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: string]: any } ={}, stream: boolean) {
   try {
-      //console.log('fetchAndProcessResult url:', url);
-      //console.log('fetchAndProcessResult options:', options);
+      console.log('fetchAndProcessResult url:', url);
+      console.log('fetchAndProcessResult options:', options);
       //console.log('fetchAndProcessResult callbacks:', callbacks);
       // Fetch the resource
       const response = await fetch(url, options);
@@ -444,19 +442,24 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 // Initialize Client
 //
 // Define type for the init function
-export function init(config: {
-  domain?: string;
-  organization?: string;
-  protocol?: string;
-  verbose?: boolean;
-  desired_nodes?: number|null; 
-  time_to_live?: number;
-  timeout?: number;
-}): void
-{
-  Object.assign(globalSysConfig, config)
+// export function init(config: {
+//   domain?: string;
+//   organization?: string;
+//   protocol?: string;
+//   verbose?: boolean;
+//   desired_nodes?: number|null; 
+//   time_to_live?: number;
+//   timeout?: number;
+// }): void
+// {
+//   Object.assign(globalSysConfig, config)
+//   //console.log('globalSysConfig:', globalSysConfig); 
+// };
+export function init(domain: string, organization: string): void {
+  globalSysConfig.domain = domain;
+  globalSysConfig.organization = organization;
   //console.log('globalSysConfig:', globalSysConfig); 
-};
+}
 export interface Callbacks {
   [key: string]: ((result: any) => void) | undefined; 
 }
@@ -472,7 +475,7 @@ export async function source(
   //console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
   const host = globalSysConfig.organization && (globalSysConfig.organization + '.' + globalSysConfig.domain) || globalSysConfig.domain;
   const api_path = 'source/'+ api;
-  const url = globalSysConfig.protocol+'://' + host + '/' + api_path;
+  const url = 'https://' + host + '/' + api_path;
   //console.log('source url:', url);
   // Setup Request Options
   let body = null;
@@ -506,60 +509,21 @@ export async function source(
   return result;
 }; 
 
-// Define type for the authenticate function
-// export function authenticate(
-//   ps_username?: string | null,
-//   ps_password?: string | null
-// ): Promise<number | undefined>;
 //
 // Authenticate User
 //
-// export function authenticate(ps_username=null, ps_password=null) {
-//     // Build Provisioning System URL
-//     let psHost = 'ps.' + sysConfig.domain;
-//     // Obtain Username and Password
-//     ps_username = ps_username ?? process.env.PS_USERNAME;
-//     ps_password = ps_password ?? process.env.PS_PASSWORD;
-//     if (ps_username == null || ps_password == null) {
-//       let myNetrc = netrc();
-//       if (psHost in myNetrc) {
-//         ps_username = myNetrc[psHost].login;
-//         ps_password = myNetrc[psHost].password;
-//       }
-//     }
-//     // Bail If Username and Password Not Found
-//     if(!ps_username && !ps_password) {
-//       console.error(`Unable to obtain username and/or password for ${psHost}`);
-//       return Promise.resolve();
-//     }
-//     // Build Request Body
-//     let body = JSON.stringify({username: ps_username, password: ps_password, org_name: sysConfig.organization});
-//     // Setup Request Options
-//     const options = {
-//       host: psHost,
-//       path: '/api/org_token/',
-//       method: 'POST',
-//       headers: {'Content-Type': 'application/json', 'Content-Length': body.length},
-//     };
 
-//     // Make Authentication Request
-//     return httpRequest(options, body).then(
-//       result => {
-//         let expiration = 0;
-//         try {
-//           sysCredentials.access = result.access;
-//           sysCredentials.refresh = result.refresh;
-//           sysCredentials.expiration =  (Date.now() / 1000) + (result.access_lifetime / 2);
-//           expiration = sysCredentials.expiration;
-//         }
-//         catch (e) {
-//           console.error("Error processing authentication response\n", result);
-//         }
-//         return expiration;
-//       }
-//     );
-// }
+interface SysCredentials {
+    access: string;
+    refresh: string;
+    expiration: number;
+}
 
+const sysCredentials: SysCredentials = {
+    access: '',
+    refresh: '',
+    expiration: 0,
+};
 
 // Define type for the get_version function
 export function get_version(): Promise<{

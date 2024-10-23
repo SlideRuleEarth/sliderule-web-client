@@ -20,47 +20,47 @@
             tooltipText='Use Checksum to verify the integrity of the data'
         />            
         <SrToggleButton 
-        :value="debugStore.enableSpotPatternDetails"
-        :getValue="debugStore.getEnableSpotPatternDetails" 
-        :setValue="debugStore.setEnableSpotPatternDetails" 
-        label="Enable Spot Pattern Details" 
+            :value="debugStore.enableSpotPatternDetails"
+            :getValue="debugStore.getEnableSpotPatternDetails" 
+            :setValue="debugStore.setEnableSpotPatternDetails" 
+            label="Enable Spot Pattern Details" 
         />
         <SrGraticuleSelect/>
         <SrSliderInput
-        v-model="atlChartFilterStore.atl03SymbolSize"
-        label="Atl03 Scatter Plot symbol size"
-        :min="1"
-        :max="20"
-        :defaultValue="atlChartFilterStore.atl03SymbolSize"
-        :decimalPlaces=0
-        tooltipText="Symbol size for Atl03 Scatter Plot"
+            v-model="atlChartFilterStore.atl03SymbolSize"
+            label="Atl03 Scatter Plot symbol size"
+            :min="1"
+            :max="20"
+            :defaultValue="atlChartFilterStore.atl03SymbolSize"
+            :decimalPlaces=0
+            tooltipText="Symbol size for Atl03 Scatter Plot"
         />
         <SrSliderInput
-        v-model="atlChartFilterStore.atl06SymbolSize"
-        label="Atl06 Scatter Plot symbol size"
-        :min="1"
-        :max="20"
-        :defaultValue="atlChartFilterStore.atl06SymbolSize"
-        :decimalPlaces=0
-        tooltipText="Symbol size for Atl06 Scatter Plot"
+            v-model="atlChartFilterStore.atl06SymbolSize"
+            label="Atl06 Scatter Plot symbol size"
+            :min="1"
+            :max="20"
+            :defaultValue="atlChartFilterStore.atl06SymbolSize"
+            :decimalPlaces=0
+            tooltipText="Symbol size for Atl06 Scatter Plot"
         />
         <SrSliderInput
-        v-model="atlChartFilterStore.atl08SymbolSize"
-        label="Atl08 Scatter Plot symbol size"
-        :min="1"
-        :max="20"
-        :defaultValue="atlChartFilterStore.atl08SymbolSize"
-        :decimalPlaces=0
-        tooltipText="Symbol size for Atl08 Scatter Plot"
+            v-model="atlChartFilterStore.atl08SymbolSize"
+            label="Atl08 Scatter Plot symbol size"
+            :min="1"
+            :max="20"
+            :defaultValue="atlChartFilterStore.atl08SymbolSize"
+            :decimalPlaces=0
+            tooltipText="Symbol size for Atl08 Scatter Plot"
         />
         <SrSliderInput
-        v-model="deckStore.pointSize"
-        label="Elevation Plot point size"
-        :min="1"
-        :max="20"
-        :defaultValue="deckStore.pointSize"
-        :decimalPlaces=0
-        tooltipText="Point size for Elevation Plot"
+            v-model="deckStore.pointSize"
+            label="Elevation Plot point size"
+            :min="1"
+            :max="20"
+            :defaultValue="deckStore.pointSize"
+            :decimalPlaces=0
+            tooltipText="Point size for Elevation Plot"
         />
         <SrMenuInput 
                 label="Num of Shades for Elevation Plot" 
@@ -69,13 +69,17 @@
                 tooltipText="Number of shades for elevation plot"
         />
         <SrSliderInput
-        v-model="requestsStore.helpfulReqAdviceCnt"
-        label="Give Helpful Advice when # Requests < this"
-        :min="1"
-        :max="30"
-        :decimalPlaces=0
-        tooltipText="Symbol size for Atl06 Scatter Plot"
+            v-model="requestsStore.helpfulReqAdviceCnt"
+            label="Give Helpful Advice when # Requests < this"
+            :min="1"
+            :max="30"
+            :decimalPlaces=0
+            tooltipText="Symbol size for Atl06 Scatter Plot"
         />
+        <SrCheckbox
+            v-model="debugStore.useMetersForMousePosition"
+            label="Use Meters for mouse position"
+        ></SrCheckbox>
     </Fieldset>
     </div>
 </template>
@@ -94,6 +98,7 @@
     import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
+import SrCheckbox from './SrCheckbox.vue';
 
 
     const debugStore = useDebugStore();

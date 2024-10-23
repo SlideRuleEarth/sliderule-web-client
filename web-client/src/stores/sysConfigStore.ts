@@ -1,63 +1,76 @@
-import type { get } from 'lodash'
+import { set, type get } from 'lodash'
 import { defineStore } from 'pinia'
 export const useSysConfigStore = defineStore('sysConfig', {
 
     state: () => ({
         domain: "slideruleearth.io",
-        organization: "sliderule",        
-        protocol: 'https', // Assuming default protocol is https
-        verbose: false,
-        useDesiredNodes: false, // false means use existing nodes or specify number of nodes
+        organization: "sliderule",
+        is_public: true,        
         desired_nodes: 1,
-        time_to_live: 60,
-        timeout: 120000, // milliseconds
-      }),
+        time_to_live: 720, // minutes
+        min_nodes: 0,
+        max_nodes: 0,
+        current_nodes: 0,
+        version: "0.0.0",
+       }),
     actions: {
         setDomain(value: string) {
             this.domain = value
         },
-        getDomain() {
+        getDomain(): string {
             return this.domain
         },
         setOrganization(value: string) {
             this.organization = value
         },
-        getOrganization() {
+        getOrganization() : string {
             return this.organization
         },
-        setProtocol(value: string) {
-            this.protocol = value
-        },
-        getProtocol() {
-            return this.protocol
-        },
-        setVerbose(value: boolean) {
-            this.verbose = value
-        },
-        getVerbose() {
-            return this.verbose
-        },
-        getTimeToLive() {
+        getTimeToLive() : number {
             return this.time_to_live
         },
-        getTimeout() {
-            return this.timeout
-        },
-        getSysConfig() {
-            //console.log("getSysConfig: ", this.$state);
-            return this.$state;
-        },
-        setUseDesiredNodes(value: boolean) {
-            this.useDesiredNodes = value
-        },
-        getUseDesiredNodes() {
-            return this.useDesiredNodes
+        setTimeToLive(value: number) {
+            this.time_to_live = value
         },
         setDesiredNodes(value: number) {
             this.desired_nodes = value
         },
-        getDesiredNodes() {
+        getDesiredNodes(): number {
             return this.desired_nodes
+        },
+        orgIsPublic() : boolean {
+            this.is_public = (this.organization === 'sliderule' || this.organization.includes('hackweek'));
+            return this.is_public;
+        },
+        setIsPublic(value: boolean) {
+            this.is_public = value
+        },
+        getIsPublic(): boolean {
+            return this.is_public
+        },
+        setMinNodes(value: number) {
+            this.min_nodes = value
+        },
+        getMinNodes(): number {
+            return this.min_nodes
+        },
+        setMaxNodes(value: number) {
+            this.max_nodes = value
+        },
+        getMaxNodes(): number {
+            return this.max_nodes
+        },
+        setCurrentNodes(value: number) {
+            this.current_nodes = value
+        },
+        getCurrentNodes(): number {
+            return this.current_nodes
+        },
+        setVersion(value: string) {
+            this.version = value
+        },
+        getVersion(): string {
+            return this.version
         },
     },
 })

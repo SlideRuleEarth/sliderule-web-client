@@ -1,7 +1,7 @@
 import type { SysConfig } from "@/sliderule/core"
 import { db } from "@/db/SlideRuleDb";
-import { type ReqParams } from "@/stores/reqParamsStore";
-
+import { type ReqParams } from "@/sliderule/icesat2";
+// No Pinia store can be used in this file because it is called from a web worker   
 export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;

@@ -1,6 +1,6 @@
 import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
-import { type ReqParams, type NullReqParams } from '@/stores/reqParamsStore';
+import { type ReqParams, type NullReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
 
@@ -28,7 +28,6 @@ export interface SrRequestRecord {
     cnt?: number; // number of points
     num_bytes?: number; // number of bytes
     description?: string; // description
-    projection?: string;
     srViewName?: string;
 }
 
@@ -589,27 +588,6 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async getProjection(req_id:number): Promise<string> {
-        try {
-            if(req_id && req_id > 0){
-                const request = await this.requests.get(req_id);
-                if (!request) {
-                    console.error(`getProjection No request found with req_id ${req_id}`);
-                    return '';
-                }
-                //console.log('getProjection req_id:',req_id,'func:',request.func, 'request:',request);
-                return request.projection || '';
-            } else {
-                console.warn(`getProjection req_id must be a positive integer. req_id: ${req_id}`);
-                return '';
-            }
-
-        } catch (error) {
-            console.error(`getProjection Failed to get ptojection for req_id ${req_id}:`, error);
-            throw error;
-        }
-    }
-
     async getSrViewName(req_id:number): Promise<string> {
         try {
             if(req_id && req_id > 0){
@@ -619,7 +597,12 @@ export class SlideRuleDexie extends Dexie {
                     return '';
                 }
                 //console.log('getSrViewName req_id:',req_id,'func:',request.func, 'request:',request);
-                return request.srViewName || '';
+                let srViewName = request.srViewName || '';
+                if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
+                    srViewName = 'Global Mercator Esri';
+                    console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+                }
+                return srViewName
             } else {
                 console.warn(`getSrViewName req_id must be a positive integer. req_id: ${req_id}`);
                 return '';
@@ -739,7 +722,6 @@ export class SlideRuleDexie extends Dexie {
                 end_time: new Date(),
                 description: 'Click here to edit description', 
                 star: false,
-                projection: 'unset'
             });
             //console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;

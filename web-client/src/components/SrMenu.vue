@@ -32,7 +32,10 @@
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
     const props = defineProps({
-        label: String,
+        label: {
+            type: String,
+            default: ''
+        },
         menuOptions: Array as () => string[],
         insensitive: {
             type: Boolean,
@@ -83,9 +86,9 @@
     const emit = defineEmits(['update:modelValue']);
 
     watch(selectedMenuItem, (newValue) => {
-        console.log('Menu:', props.label, 'selected:', newValue);
+        //console.log('Menu:', props.label, 'selected:', newValue);
         props.setSelectedMenuItem(newValue);
-        console.log('Menu:', props.label, 'readback:', props.getSelectedMenuItem());
+        //console.log('Menu:', props.label, 'readback:', props.getSelectedMenuItem());
         emit('update:modelValue', newValue); 
     });
 

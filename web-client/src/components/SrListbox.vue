@@ -93,7 +93,7 @@ watch(selectedMenuItem, (newValue) => {
 });
 
 watch(() => props.menuOptions, (newValue) => {
-    console.log('SrListbox:', props.label, 'Watch menuOptions:', newValue);
+    //console.log('SrListbox:', props.label, 'Watch menuOptions:', newValue);
     //selectedMenuItem.value = newValue;
 });
 

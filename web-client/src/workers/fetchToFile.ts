@@ -77,7 +77,8 @@ onmessage = async (event) => {
             return;
         }
         if (cmd.sysConfig){
-            init(cmd.sysConfig)
+            console.log('cmd.sysConfig:', cmd.sysConfig);
+            init(cmd.sysConfig.domain, cmd.sysConfig.organization);
         } else {
             console.error('cmd.sysConfig was not provided');
             errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'cmd.sysConfig was not provided' });
