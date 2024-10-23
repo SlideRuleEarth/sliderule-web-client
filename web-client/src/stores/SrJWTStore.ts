@@ -39,7 +39,7 @@ export const useJwtStore = defineStore('jwtStore', {
       this.jwtMap = {};
     },
     getCredentials() : SrJWT | null {
-        console.log('getCredentials');
+        //console.log('getCredentials');
         let jwt: SrJWT | null = null;
         try {
           jwt = this.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
@@ -55,7 +55,7 @@ export const useJwtStore = defineStore('jwtStore', {
               console.log('No authentication needed: JWT is valid');
             }
           } else {
-            console.log('No JWT found');
+            //console.log('No JWT found');
           }
         } catch (error) {
             console.error('Error during get Num Nodes:', error);

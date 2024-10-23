@@ -266,8 +266,8 @@ async function decodeRecord(rec_type:string, buffer:any, offset:number, rec_size
 
 async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: string]: any } ={}, stream: boolean) {
   try {
-      //console.log('fetchAndProcessResult url:', url);
-      //console.log('fetchAndProcessResult options:', options);
+      console.log('fetchAndProcessResult url:', url);
+      console.log('fetchAndProcessResult options:', options);
       //console.log('fetchAndProcessResult callbacks:', callbacks);
       // Fetch the resource
       const response = await fetch(url, options);
