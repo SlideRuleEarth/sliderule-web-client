@@ -63,7 +63,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     min_zoom: 0,
     max_zoom: 16,
     extent:[-3299207.53, -3333134.03, 3299207.53, 3333134.03],
-    bbox: [-180.0,-60.0,180.0,-90.0], // minx, miny, maxx, maxy
+    center: [0.0, 1915741.27],
+    bbox: [-180.0,-90.0,180.0,-60.0], // minx, miny, maxx, maxy
   }
 });
 

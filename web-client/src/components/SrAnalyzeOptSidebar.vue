@@ -24,6 +24,7 @@ import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
 import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
+import Fieldset from 'primevue/fieldset';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -471,7 +472,7 @@ const getCnt = computed(() => {
                         @update:modelValue="tracksSelection"
                     />
                 </div>
-            </FieldSet>
+            </Fieldset>
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>

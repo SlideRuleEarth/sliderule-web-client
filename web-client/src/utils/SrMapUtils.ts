@@ -670,7 +670,7 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 }
 
                 let worldExtent = newProj.getWorldExtent();
-                if(worldExtent===undefined){
+                if((worldExtent===undefined) || (worldExtent===null) ||  worldExtent.some(value => !Number.isFinite(value))){
                     console.log("worldExtent is null using bbox");
                     let bbox = srProjObj.bbox;
                     if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
@@ -683,16 +683,28 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                         console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
                         worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
                     }
-                    newProj.setWorldExtent(worldExtent);                        
+                    if(worldExtent.some(value => !Number.isFinite(value))){
+                        console.warn("worldExtent is still invalid after transformation falling back to extent");
+                        worldExtent = extent;
+                        newProj.setWorldExtent(worldExtent);
+                    } else {
+                        newProj.setWorldExtent(worldExtent);                        
+                    }
                 }
+                let center = getExtentCenter(extent);
+                if(srProjObj.center){
+                    console.log("using srProjObj.center for center");
+                    center = srProjObj.center;
+                }
+
                 console.log("newProj:",newProj);          
                 console.log("newProj final extent:",extent);          
                 console.log("newProj final WorldExtent:",worldExtent);          
-                console.log("newProj final Center:",getExtentCenter(extent));          
+                console.log("newProj final Center:",center);          
                 const newView = new OlView({
                     projection: newProj,
                     extent: extent,
-                    center:getExtentCenter(extent),
+                    center:center,
                     zoom: srProjObj.default_zoom,
                 });
                 map.setView(newView);
