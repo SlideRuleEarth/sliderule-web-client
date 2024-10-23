@@ -2,7 +2,7 @@
     import { ref, onMounted, computed } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
-    import { type SrView } from "@/composables/SrViews";
+    import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
@@ -554,41 +554,46 @@
         try{
             if(map){
                 const srViewObj = mapStore.getSrViewObj();
-                await updateMapView(map,srViewObj.name,reason)
-                //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
-                // thisView.on('change:resolution', function() {
-                //     const zoomLevel = thisView.getZoom();
-                //     console.log('Zoom level changed to:', zoomLevel);
-                // });
-                map.addLayer(drawVectorLayer);
-                addLayersForCurrentView(map,srViewObj.projectionName);      
-                if(restoreCurrReq){
-                    const reqId = mapStore.getCurrentReqId();
-                    if(reqId > 0){
-                        await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewObj.name);
+                const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
+                if(srViewKey.value){
+                    await updateMapView(map,srViewKey.value,reason)
+                    //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
+                    // thisView.on('change:resolution', function() {
+                    //     const zoomLevel = thisView.getZoom();
+                    //     console.log('Zoom level changed to:', zoomLevel);
+                    // });
+                    map.addLayer(drawVectorLayer);
+                    addLayersForCurrentView(map,srViewObj.projectionName);      
+                    if(restoreCurrReq){
+                        const reqId = mapStore.getCurrentReqId();
+                        if(reqId > 0){
+                            await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewKey.value);
+                            initDeck(map);
+                            await updateElevationForReqId(reqId); 
+                        }
+                    } else {
                         initDeck(map);
-                        await updateElevationForReqId(reqId); 
                     }
-                } else {
-                    initDeck(map);
-                }
 
-                // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
-                // Permalink
-                // if(mapStore.plink){
-                //   var url = mapStore.plink.getUrlParam('url');
-                //   var layerName = mapStore.plink.getUrlParam('layer');
-                //   //console.log(`url: ${url} layerName: ${layerName}`);
-                //   if (url) {
-                //     const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
-                //     currentWmsCapCntrl.loadLayer(url, layerName,() => {
-                //       // TBD: Actions to perform after the layer is loaded, if any
-                //       console.log(`wms Layer loaded from permalink: ${layerName}`);
-                //     });
-                //   } else {
-                //     console.log("No url in permalink");
-                //   }
-                // }
+                    // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
+                    // Permalink
+                    // if(mapStore.plink){
+                    //   var url = mapStore.plink.getUrlParam('url');
+                    //   var layerName = mapStore.plink.getUrlParam('layer');
+                    //   //console.log(`url: ${url} layerName: ${layerName}`);
+                    //   if (url) {
+                    //     const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
+                    //     currentWmsCapCntrl.loadLayer(url, layerName,() => {
+                    //       // TBD: Actions to perform after the layer is loaded, if any
+                    //       console.log(`wms Layer loaded from permalink: ${layerName}`);
+                    //     });
+                    //   } else {
+                    //     console.log("No url in permalink");
+                    //   }
+                    // }
+                } else {
+                    console.error("SrMap Error: srViewKey is null");
+                }
             } else {
                 console.error("SrMap Error:map is null");
             };
@@ -607,18 +612,22 @@
 
 
     const handleUpdateSrView = async () => {
-        const srView = mapStore.getSrViewObj();
-        console.log(`handleUpdateSrView: |${srView.name}|`);
-        const map = mapRef.value?.map;
-        try{
-            if(map){
-                await updateThisMapView("handleUpdateSrView",true);
-            } else {
-                console.error("SrMap Error:map is null");
+        const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
+        if(srViewKey.value){
+            console.log(`handleUpdateSrView: |${srViewKey.value}|`);
+            const map = mapRef.value?.map;
+            try{
+                if(map){
+                    await updateThisMapView("handleUpdateSrView",true);
+                } else {
+                    console.error("SrMap Error:map is null");
+                }
+            } catch (error) {
+                console.error(`SrMap Error: handleUpdateSrView failed:`,error);
             }
-        } catch (error) {
-            console.error(`SrMap Error: handleUpdateSrView failed:`,error);
-        } 
+        } else {
+            console.error("SrMap Error: srViewKey is null");
+        }
     };
 
     const handleUpdateBaseLayer = async () => {

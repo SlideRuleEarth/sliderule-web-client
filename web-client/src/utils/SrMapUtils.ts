@@ -622,11 +622,11 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
     console.log(`Total features: ${features.length}`);
 }
 
-export async function updateMapView(map:OLMap, srViewName:string, reason:string){
+export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
     try {
         if(map){
-            console.log(`------ updateMapView for srViewName:${srViewName} ${reason} ------`);
-            const srViewObj = srViews.value[`${srViewName}`];
+            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------`);
+            const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);
             const baseLayer = srViewObj.baseLayerName;
@@ -716,7 +716,7 @@ export async function updateMapView(map:OLMap, srViewName:string, reason:string)
     }
 }
 
-export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewName:string){
+export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKey:string){
     try{
         let reqExtremeLatLon = [0,0,0,0];
         if(reqId > 0){   
@@ -743,11 +743,11 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewNa
         }
         //console.log('reqExtremeLatLon:',reqExtremeLatLon);
         //console.log('Using extent:',extent);               
-        //let srViewName = await db.getSrViewName(reqId);
-        const srViewObj = srViews.value[`${srViewName}`];
+        //let srViewKey = await db.getSrViewName(reqId);
+        const srViewObj = srViews.value[`${srViewKey}`];
         const srProjObj = srProjections.value[srViewObj.projectionName];
         let newProj = getProjection(srViewObj.projectionName);
-        console.log(`zoomMapForReqIdUsingView:${reqId} srViewName:${srViewName} srViewObj:`,srViewObj);
+        console.log(`zoomMapForReqIdUsingView:${reqId} srViewKey:${srViewKey} srViewObj:`,srViewObj);
         console.log(`zoomMapForReqIdUsingView:${reqId} newProj:`,newProj);
         let view_extent = reqExtremeLatLon;
         if(newProj?.getUnits() !== 'degrees'){

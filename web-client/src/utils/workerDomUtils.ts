@@ -12,7 +12,7 @@ import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
-import { findViewByName } from "@/composables/SrViews";
+import { findSrViewKey } from "@/composables/SrViews";
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -292,11 +292,20 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
                 srReqRec.func = useReqParamsStore().getIceSat2API();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.srViewName = findViewByName(useMapStore().selectedView).value.name;
-                srReqRec.start_time = new Date();
-                srReqRec.end_time = new Date();
-                runFetchToFileWorker(srReqRec);
-            } else {
+                const srViewKey = findSrViewKey(useMapStore().selectedView, mapStore.selectedBaseLayer);
+                const srviewName = srViewKey.value;
+                if(srviewName){
+                    srReqRec.srViewName = srviewName;
+                    srReqRec.start_time = new Date();
+                    srReqRec.end_time = new Date();
+                    runFetchToFileWorker(srReqRec);
+                } else {
+                    console.error('runSlideRuleClicked srviewName was undefined');
+                    useSrToastStore().error('Error','There was an error. srviewName was undefined');
+                    requestsStore.setConsoleMsg('stopped...');
+                    mapStore.isLoading = false;
+                }
+        } else {
                 console.error('runSlideRuleClicked IceSat2API was undefined');
                 useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
                 requestsStore.setConsoleMsg('stopped...');

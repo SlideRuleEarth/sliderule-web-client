@@ -1,7 +1,6 @@
 import { ref, computed } from "vue";
 
 export interface SrView {
-  name: string;
   hide: boolean;
   view: string;
   projectionName: string;
@@ -11,91 +10,83 @@ export interface SrView {
 // srViews is now an object with keys as view names
 export const srViews = ref<{ [key: string]: SrView }>({
   "Global Mercator Esri": {
-    name: "Global Mercator Esri",
     hide: false,
     view: "Global Mercator",
-    projectionName: "EPSG:3857", // 
+    projectionName: "EPSG:3857",
     baseLayerName: "Esri World Topo",
   },
   "Global Esri": {
-    hide: false,
-    name: "Global Esri",
+    hide: true,
     view: "Global WSG 84",
-    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    projectionName: "EPSG:4326",
     baseLayerName: "Esri World Topo",
   },
   "Global Mercator Google": {
-    name: "Global Mercator Google",
     hide: false,
     view: "Global Mercator",
-    projectionName: "EPSG:3857", // +proj=longlat +datum=WGS84 +no_defs
+    projectionName: "EPSG:3857",
     baseLayerName: "Google",
   },
   "Global Google": {
-    name: "Global Google",
-    hide: false,
+    hide: true,
     view: "Global WSG 84",
-    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    projectionName: "EPSG:4326",
     baseLayerName: "Google",
   },
   "Global Mercator OSM": {
-    name: "Global Mercator OSM",
     hide: false,
     view: "Global Mercator",
-    projectionName: "EPSG:3857", // +proj=longlat +datum=WGS84 +no_defs
+    projectionName: "EPSG:3857",
     baseLayerName: "OpenStreet",
   },
   "Global OSM": {
-    name: "Global OSM",
-    hide: false,
+    hide: true,
     view: "Global WSG 84",
-    projectionName: "EPSG:4326", // +proj=longlat +datum=WGS84 +no_defs
+    projectionName: "EPSG:4326",
     baseLayerName: "OpenStreet",
   },  
   "North": {
-    name: "North Polar Stereographic",
     hide: false,
     view: "North",
-    projectionName: "EPSG:5936",// +proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs
-    baseLayerName: "Artic Ocean Base",
+    projectionName: "EPSG:5936",
+    baseLayerName: "Arctic Ocean Base",
   },
   "North NSIDC": {
-    name: "North NSIDC",
     hide: false,
-    view: "North NSIDC",
-    projectionName: "EPSG:3413", //"+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs",
-    baseLayerName: "Artic Ocean Base",
+    view: "North NDIC",
+    projectionName: "EPSG:3413",
+    baseLayerName: "Arctic Ocean Base",
   },  
   "South Antarctic Polar Stereographic": {
-    name: "South",
     hide: false,
-    view: "South:",
-    projectionName: "EPSG:3031", // +proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs
-    baseLayerName: "Antartic Imagery",
+    view: "South",
+    projectionName: "EPSG:3031",
+    baseLayerName: "Antarctic Imagery",
   }
 });
 
-// Updated to work with an object
 export const useViewNames = () => {
-  const viewsNames = computed(() => Object.keys(srViews.value));
+  const viewsNames = computed(() => 
+    Object.keys(srViews.value).filter(key => !srViews.value[key].hide)
+  );
   return viewsNames;
 };
 
-// Directly access the view by its name
 export const findViewByName = (name: string) => {
-  return computed(() => srViews.value[name]);
+  return computed(() => srViews.value[name]?.hide ? null : srViews.value[name]);
 };
 
-// Assuming "Web Mercator" is the default view, or you can introduce a new ref to keep track of the default view's name
 export const getDefaultView = () => {
-  return srViews.value["Web Mercator"];
+  const defaultView = srViews.value["Global Mercator Esri"];
+  return defaultView?.hide ? null : defaultView;
 };
 
-// Get unique views
 export const getUniqueViews = () => {
   const uniqueViews = computed(() => {
     const viewSet = new Set<string>(
-      Object.values(srViews.value).map((srView) => srView.view)
+      Object.values(srViews.value)
+        .filter((srView) => !srView.hide)
+        .map((srView) => srView.view)
     );
     return Array.from(viewSet);
   });
@@ -103,12 +94,11 @@ export const getUniqueViews = () => {
   return uniqueViews;
 };
 
-// Get unique base layers by view
 export const getUniqueBaseLayersByView = (view: string) => {
   const uniqueBaseLayers = computed(() => {
     const baseLayerSet = new Set<string>(
       Object.values(srViews.value)
-        .filter((srView) => srView.view === view)
+        .filter((srView) => srView.view === view && !srView.hide)
         .map((srView) => srView.baseLayerName)
     );
     return Array.from(baseLayerSet);
@@ -117,21 +107,47 @@ export const getUniqueBaseLayersByView = (view: string) => {
   return uniqueBaseLayers;
 };
 
-export const getBaseLayersForCurrentView = (currentView: string) => { 
+export const getBaseLayersForView = (currentView: string) => { 
   const baseLayers = computed(() => {
     return Object.values(srViews.value)
-      .filter((srView) => srView.view === currentView)
+      .filter((srView) => srView.view === currentView && !srView.hide)
       .map((srView) => srView.baseLayerName);
   });
 
   return baseLayers;
-}
+};
+
+export const getDefaultBaseLayerForView = (currentView: string) => {
+  const defaultBaseLayer = computed(() => {
+    const baseLayers = getBaseLayersForView(currentView).value;
+    return baseLayers.length > 0 ? baseLayers[0] : null;
+  });
+
+  return defaultBaseLayer;
+};
+
 export const findSrView = (viewName: string, baseLayerName: string) => {
   const srView = computed(() => {
     return Object.values(srViews.value).find(
-      (srView) => srView.view === viewName && srView.baseLayerName === baseLayerName
-    ) || null;
+      (srView) =>
+        srView.view === viewName &&
+        srView.baseLayerName === baseLayerName &&
+        !srView.hide
+    ) || Object.values(srViews.value).find((srView) => srView.view === viewName) ||
+    null
   });
 
   return srView;
+};
+
+export const findSrViewKey = (viewName: string, baseLayerName: string) => {
+  return computed(() => {
+    const entry = Object.entries(srViews.value).find(
+      ([, srView]) =>
+        srView.view === viewName &&
+        srView.baseLayerName === baseLayerName &&
+        !srView.hide
+    );
+    return entry ? entry[0] : null; // Return the key if found, otherwise null
+  });
 };

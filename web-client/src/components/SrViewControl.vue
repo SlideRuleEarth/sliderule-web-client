@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { ref,onMounted } from "vue";
     import { Control } from 'ol/control';
-    import { srViews,getUniqueViews } from '@/composables/SrViews';
+    import { getDefaultBaseLayerForView,getUniqueViews } from '@/composables/SrViews';
     import { useMapStore } from "@/stores/mapStore";
     import SrMenu from './SrMenu.vue';
 
@@ -19,7 +19,14 @@
     
     function updateView(event) {
         //console.log("updateView view:", event);
+        const baseLayer = getDefaultBaseLayerForView(mapStore.getSelectedView());
+        if(baseLayer.value){
+            mapStore.setSelectedBaseLayer(baseLayer.value);
+        } else {
+            console.error("updateView Error: defaulted baseLayer is null");
+        }
         console.log("updateView view:", mapStore.selectedView);
+
         emit('update-view');
         
     }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { Control } from 'ol/control';
-import { getBaseLayersForCurrentView } from '@/composables/SrViews';
+import { getBaseLayersForView } from '@/composables/SrViews';
 import { useMapStore } from "@/stores/mapStore";
 import SrMenu from './SrMenu.vue';
 
@@ -38,7 +38,7 @@ function updateBaseLayer(event: Event) {
     <SrMenu 
       v-model="mapStore.selectedBaseLayer" 
       @change="updateBaseLayer" 
-      :menuOptions="getBaseLayersForCurrentView(mapStore.selectedView).value" 
+      :menuOptions="getBaseLayersForView(mapStore.selectedView).value" 
       :getSelectedMenuItem="mapStore.getSelectedBaseLayer"
       :setSelectedMenuItem="mapStore.setSelectedBaseLayer"
     />
