@@ -31,10 +31,10 @@ live-update: build # Update the web client in the S3 bucket and invalidate the C
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
-live-update-slideruleearth: ## Update the web client at testsliderule.org with new build
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=slideruleearth-webclient
+live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
+	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
