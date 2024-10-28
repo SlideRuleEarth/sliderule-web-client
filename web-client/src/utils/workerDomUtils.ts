@@ -28,7 +28,7 @@ let percentComplete: number | null = null;
 function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
     const timeoutDuration = reqParamsStore.getWorkerThreadTimeout(); 
-    console.log('runFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
+    console.log('startFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
     workerTimeoutHandle = setTimeout(() => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${(timeoutDuration/1000)} secs`;
@@ -287,15 +287,23 @@ export async function processRunSlideRuleClicked() {
             useSrToastStore().error('Error','There was an error');
             return;
         }
+        const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
+        if(srViewKey.value){
+            srReqRec.srViewName = srViewKey.value;
+        } else {
+            console.error('runSlideRuleClicked srViewKey was undefined');
+            useSrToastStore().error('Error','There was an error. srViewKey was undefined');
+            requestsStore.setConsoleMsg('stopped...');
+            mapStore.isLoading = false;
+            return;
+        }
         if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
             if((useReqParamsStore().getIceSat2API() !== undefined) || (useReqParamsStore().getIceSat2API() !== null) || (useReqParamsStore().getIceSat2API() !== '')){
                 console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
                 srReqRec.func = useReqParamsStore().getIceSat2API();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                const srViewKey = findSrViewKey(useMapStore().selectedView, mapStore.selectedBaseLayer);
-                const srviewName = srViewKey.value;
-                if(srviewName){
-                    srReqRec.srViewName = srviewName;
+
+                if(srViewKey.value){
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     runFetchToFileWorker(srReqRec);
@@ -316,7 +324,6 @@ export async function processRunSlideRuleClicked() {
                 console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
                 srReqRec.func = useReqParamsStore().getGediAPI();
                 srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.srViewName = useMapStore().selectedView;
                 srReqRec.start_time = new Date();
                 srReqRec.end_time = new Date();
                 runFetchToFileWorker(srReqRec);

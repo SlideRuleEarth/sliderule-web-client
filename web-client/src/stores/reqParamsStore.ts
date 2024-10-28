@@ -28,7 +28,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         gediSelectedAPI: 'gedi01bp' as string,
         gediAPIsItems: ['gedi01b','gedi01bp','gedi02a','gedi02ap','gedi04a','gedi04ap'] as string[],
         using_worker: false,
-        asset: '', // TBD add a control for this?
+        asset: 'icesat2',
         isArrowStream: false,
         isFeatherStream: false,
         rasterizePolyCellSize: 0.0001,
@@ -250,18 +250,23 @@ export const useReqParamsStore = defineStore('reqParams', {
           };
           const req: AtlReqParams = {
           }
-          if(this.missionValue === 'ICESat-2') { // TBD when server is fixed no need to set this is will be preset by server based on mission and api selected
-            req.asset = 'icesat2'
+          if(this.missionValue === 'ICESat-2') {
+            if(this.iceSat2SelectedAPI === 'atl06sp') { // land ice
+              this.setAsset('icesat2-atl06'); 
+            } else {
+              this.setAsset('icesat2');
+            }
           } else if (this.missionValue === 'GEDI') {
             console.log('GEDI API:', this.gediSelectedAPI);
             if(this.gediSelectedAPI === 'gedi01bp') {
-              req.asset = 'gedil1b'
+              this.setAsset('gedil1b');
             } else if(this.gediSelectedAPI === 'gedi02ap') {
-              req.asset = 'gedil2a'
+              this.setAsset('gedil2a');
             } else if(this.gediSelectedAPI === 'gedi04ap') {
-              req.asset = 'gedil4a'
+              this.setAsset('gedil4a');
             }
           }
+          req.asset = this.getAsset();
           if(this.iceSat2SelectedAPI==='atl08p') {
             req.phoreal = {};
           }

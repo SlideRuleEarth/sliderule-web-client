@@ -27,11 +27,20 @@
         />
         <SrGraticuleSelect/>
         <SrSliderInput
-            v-model="atlChartFilterStore.atl03SymbolSize"
-            label="Atl03 Scatter Plot symbol size"
+            v-model="atlChartFilterStore.atl03spSymbolSize"
+            label="Atl03sp Scatter Plot symbol size"
             :min="1"
             :max="20"
-            :defaultValue="atlChartFilterStore.atl03SymbolSize"
+            :defaultValue="atlChartFilterStore.atl03spSymbolSize"
+            :decimalPlaces=0
+            tooltipText="Symbol size for Atl03 Scatter Plot"
+        />
+        <SrSliderInput
+            v-model="atlChartFilterStore.atl03vpSymbolSize"
+            label="Atl03vp Scatter Plot symbol size"
+            :min="1"
+            :max="20"
+            :defaultValue="atlChartFilterStore.atl03vpSymbolSize"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl03 Scatter Plot"
         />

@@ -375,9 +375,14 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
     try{
         //console.log('duckDbLoadOpfsParquetFile');
         const duckDbClient = await createDuckDbClient();
-
         await duckDbClient.insertOpfsParquet(fileName);
-
+        try {
+            await duckDbClient.dumpParquetMetadata(fileName);
+            //await duckDbClient.dumpSpecificParquetMetadata(fileName,'sliderule');
+            //await duckDbClient.readParquetMetadata(fileName);
+        } catch (error) {
+            console.error('Error dumping parquet metadata:', error);
+        }
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
@@ -483,11 +488,12 @@ async function fetchAtl03vpScatterData(
     fileName: string, 
     x: string, 
     y: string[], 
-) {
-    console.log('fetchAtl03vpScatterData fileName:', fileName, ' x:', x, ' y:', y);
+): Promise<{ chartData: { [key: string]: SrScatterChartData[] }, normalizedMinMaxValues: { [key: string]: { min: number, max: number } }}> {
+    //console.log('fetchAtl03vpScatterData fileName:', fileName, ' x:', x, ' y:', y);
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
+    let normalizedMinMaxValues: { [key: string]: { min: number, max: number } } = {};
     const whereClause = useAtlChartFilterStore().getAtl03vpWhereClause();
 
     if(whereClause){
@@ -506,8 +512,8 @@ async function fetchAtl03vpScatterData(
             for await (const rowChunk of queryResult2.readRows()) {
                 for (const row of rowChunk) {
                     if (row) {
-                        useAtlChartFilterStore().setMinX(row.min_x);
-                        useAtlChartFilterStore().setMaxX(row.max_x+row.max_segment_dist-row.min_segment_dist);
+                        useAtlChartFilterStore().setMinX(0);
+                        useAtlChartFilterStore().setMaxX(row.max_x-row.min_x);
                         minMaxValues['x'] = {min: row[`min_x`], max: row[`max_x`]};
                         y.forEach((yName) => {
                             minMaxValues[yName] = { min: row[`min_${yName}`], max: row[`max_${yName}`] };
@@ -519,7 +525,7 @@ async function fetchAtl03vpScatterData(
             }
             //console.log('fetchAtl03vpScatterData minMaxValues:', minMaxValues);
             const yColumns = y.join(", ");
-            console.log('fetchAtl03vpScatterData yColumns:', yColumns);
+            //console.log('fetchAtl03vpScatterData yColumns:', yColumns);
             let query = `
                 SELECT 
                     ${x},
@@ -529,8 +535,8 @@ async function fetchAtl03vpScatterData(
             query += whereClause;
 
             useAtlChartFilterStore().setAtl03QuerySql(query);
-            console.log('fetchAtl03vpScatterData query:', useAtlChartFilterStore().getAtl03QuerySql());
-            console.log('fetchAtl03vpScatterData minMaxValues:', minMaxValues);
+            //console.log('fetchAtl03vpScatterData query:', useAtlChartFilterStore().getAtl03QuerySql());
+            //console.log('fetchAtl03vpScatterData minMaxValues:', minMaxValues);
             const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
             for await (const rowChunk of queryResult.readRows()) {
                 for (const row of rowChunk) {
@@ -542,7 +548,7 @@ async function fetchAtl03vpScatterData(
                             const dataPoint = { value: [row[x]-minMaxValues['x'].min, row[yName]] };
             
                             if (yName === 'segment_ph_cnt') {
-                                dataPoint.value.push(row['latitude'], row['longitude']);
+                                dataPoint.value.push(row['segment_dist_x']);
                             }
             
                             chartData[yName].push(dataPoint);
@@ -552,15 +558,21 @@ async function fetchAtl03vpScatterData(
                     }
                 }
             }
-            
-            return { chartData, minMaxValues };
+            normalizedMinMaxValues = {...minMaxValues};
+            normalizedMinMaxValues['x'] = {min: 0, max: minMaxValues['x'].max-minMaxValues['x'].min};
+        
+            // console.log('fetchAtl03vpScatterData minMaxValues:', minMaxValues);
+            // console.log('fetchAtl03vpScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
+            // console.log('fetchAtl03vpScatterData chartData:', chartData);
+            useAtlChartFilterStore().setXLegend(`${x} (normalized) - Meters`);    
+            return { chartData, normalizedMinMaxValues };
         } catch (error) {
             console.error('fetchAtl03vpScatterData fetchData Error fetching data:', error);
-            return { chartData: {}, minMaxValues: {} };
+            return { chartData: {}, normalizedMinMaxValues: {} };
         }
     } else {
         console.log('fetchAtl03vpScatterData whereClause is undefined');
-        return { chartData: {}, minMaxValues: {} };
+        return { chartData: {}, normalizedMinMaxValues: {} };
     }
 }
 
@@ -818,9 +830,10 @@ async function fetchAtl06ScatterData(
         // normalize the minMaxValues x to start at 0
         normalizedMinMaxValues = {...minMaxValues};
         normalizedMinMaxValues['x'] = {min: 0, max: minMaxValues['x'].max-minMaxValues['x'].min};
-        console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
-        console.log('fetchAtl06ScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
-        console.log('fetchAtl06ScatterData chartData:', chartData);
+        //console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchAtl06ScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
+        //console.log('fetchAtl06ScatterData chartData:', chartData);
+        useAtlChartFilterStore().setXLegend(`${x} (normalized) - Meters`);    
         return { chartData, normalizedMinMaxValues };
     } catch (error) {
         console.error('fetchAtl06ScatterData Error fetching data:', error);
@@ -902,9 +915,10 @@ async function fetchAtl08ScatterData(
         // normalize the minMaxValues x to start at 0
         normalizedMinMaxValues = {...minMaxValues};
         normalizedMinMaxValues['x'] = {min: 0, max: minMaxValues['x'].max-minMaxValues['x'].min};
-        console.log('fetchAtl08ScatterData minMaxValues:', minMaxValues);
-        console.log('fetchAtl08ScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
-        console.log('fetchAtl08ScatterData chartData:', chartData);
+        //console.log('fetchAtl08ScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchAtl08ScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
+        //console.log('fetchAtl08ScatterData chartData:', chartData);
+        useAtlChartFilterStore().setXLegend(`${x} (normalized) - Meters`);    
         return { chartData, normalizedMinMaxValues };
     } catch (error) {
         console.error('fetchAtl08ScatterData Error fetching data:', error);
@@ -931,10 +945,10 @@ interface SrScatterSeriesData{
 };
 
 let debugCnt = 0;
-function getAtl03Color(params: any):string {
+function getAtl03spColor(params: any):string {
     if(debugCnt++ < 10){
-        console.log('getAtl03Color Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
-        console.log('getAtl03Color params.data:', params.data);
+        console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
+        console.log('getAtl03spColor params.data:', params.data);
     }
     let colorStr = 'red';
     let value = -1;
@@ -950,7 +964,7 @@ function getAtl03Color(params: any):string {
         colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     }
     if(debugCnt++ < 10){
-        console.log(`getAtl03Color cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
+        console.log(`getAtl03spColor cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
     }
     return colorStr;
 }
@@ -981,7 +995,7 @@ async function getSeriesForAtl03sp(fileName: string, x: string, y: string[]): Pr
                     type: 'scatter',
                     data: data,
                     itemStyle: {
-                        color: getAtl03Color,
+                        color: getAtl03spColor,
                     },
                     large: useAtlChartFilterStore().getLargeData(),
                     largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
@@ -1009,36 +1023,38 @@ async function getSeriesForAtl03sp(fileName: string, x: string, y: string[]): Pr
 }
 
 
-async function getSeriesForAtl03vp(fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
-    console.log('getSeriesForAtl03vp fileName:', fileName, ' x:', x, ' y:', y);
+async function getSeriesForAtl03vp(
+    fileName: string, 
+    x: string, 
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    //console.log('getSeriesForAtl03vp fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now(); // Start time
     let yItems = [] as SrScatterSeriesData[];
 
     try {
         const name = 'Atl03vp';
-        const { chartData = {}, minMaxValues = {} } = await fetchAtl03vpScatterData(fileName, x, y);
-        console.log('getSeriesForAtl03vp chartData:', chartData);
-        //console.log('getSeriesForAtl03vp chartData:', chartData, ' minMaxValues:', minMaxValues);
+        const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl03vpScatterData(fileName, x, y);
+        //console.log('getSeriesForAtl03vp chartData:', chartData);
+        //console.log('getSeriesForAtl03vp minMaxValues:', normalizedMinMaxValues);
 
-        // Check if either chartData or minMaxValues is empty
-        if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
+        // Check if either chartData or normalizedMinMaxValues is empty
+        if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
             console.warn('getSeriesForAtl03vp chartData or minMaxValues is empty, skipping processing.');
             return yItems; // Return empty array if either is empty
         }
 
         yItems = y.map(yName => {
             const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
-            const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
-            const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-
+            const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+            const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+            //console.log('getSeriesForAtl03vp data:', data);
+            //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
             return {
                 series: {
                     name: `${name} - ${yName}`,
                     type: 'scatter',
                     data: data,
-                    itemStyle: {
-                        color: getAtl03Color,
-                    },
                     large: useAtlChartFilterStore().getLargeData(),
                     largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
                     animation: false,
@@ -1065,7 +1081,11 @@ async function getSeriesForAtl03vp(fileName: string, x: string, y: string[]): Pr
 }
 
 
-async function getSeriesForAtl06( fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
+async function getSeriesForAtl06( 
+    fileName: string, 
+    x: string, 
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' spots:', spots, ' rgt:', rgt, ' cycle:', cycle);
     const startTime = performance.now();
     let yItems=[] as SrScatterSeriesData[];
@@ -1073,8 +1093,8 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[]): Pro
     try{
         const name = 'Atl06';
         const { chartData = {} , normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(fileName, x, y);
-        console.log('getSeriesForAtl06 chartData:', chartData);
-        console.log('getSeriesForAtl06 minMaxValues:', normalizedMinMaxValues);
+        //console.log('getSeriesForAtl06 chartData:', chartData);
+        //console.log('getSeriesForAtl06 minMaxValues:', normalizedMinMaxValues);
         // Check if either chartData or minMaxValues is empty
         if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
             console.warn('getSeriesForAtl06 chartData or minMaxValues is empty, skipping processing.');
@@ -1084,7 +1104,8 @@ async function getSeriesForAtl06( fileName: string, x: string, y: string[]): Pro
             const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
             const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
             const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-            
+            //console.log('getSeriesForAtl06 data:', data);
+            //console.log('getSeriesForAtl06 min:', min, ' max:', max);
             return {
                 series: {
                     name: `${name} - ${yName}`,
@@ -1193,8 +1214,8 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                             const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
                             return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
                         } else {
-                            const [x, y] = params.value;
-                            return `x: ${x}<br>y: ${y}`;
+                            const [x, y, x_actual] = params.value;
+                            return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
                         }
                     }
                 },
@@ -1207,7 +1228,7 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 xAxis: {
                     min: useAtlChartFilterStore().getMinX(),
                     max: useAtlChartFilterStore().getMaxX(),
-                    name: 'Meters', // Add the label for the x-axis here
+                    name: useAtlChartFilterStore().getXLegend(), // Add the label for the x-axis here
                     nameLocation: 'middle', // Position the label in the middle of the axis
                     nameTextStyle: {
                         fontSize: 10,

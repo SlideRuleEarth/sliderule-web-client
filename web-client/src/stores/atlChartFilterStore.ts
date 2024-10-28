@@ -55,7 +55,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03vpWhereClause: '' as string,
     atl06WhereClause: '' as string,
     atl08pWhereClause: '' as string,
-    atl03SymbolSize: 1 as number,
+    atl03spSymbolSize: 1 as number,
+    atl03vpSymbolSize: 5 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
     message: 'Failed to load data. Please try again later.' as string,
@@ -67,6 +68,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
     selectedAtl03ColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
+    xLegend: 'Meters' as string,
 }),
 
   actions: {
@@ -470,11 +472,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
           return '';
       }
     },
-    setAtl03SymbolSize(size: number) {
-      this.atl03SymbolSize = size;
+    setAtl03spSymbolSize(size: number) {
+      this.atl03spSymbolSize = size;
     },
-    getAtl03SymbolSize() {
-      return this.atl03SymbolSize;
+    getAtl03spSymbolSize() {
+      return this.atl03spSymbolSize;
+    },
+    setAtl03vpSymbolSize(size: number) {
+      this.atl03vpSymbolSize = size;
+    },
+    getAtl03vpSymbolSize() {
+      return this.atl03vpSymbolSize;
     },
     setAtl06SymbolSize(size: number) {
       this.atl06SymbolSize = size;
@@ -489,8 +497,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.atl08SymbolSize;
     },
     getSymbolSize() {
-      if(this.func.includes('atl03')){
-        return this.atl03SymbolSize;
+      if(this.func.includes('atl03sp')){
+        return this.atl03spSymbolSize;
+      } else if(this.func.includes('atl03vp')){
+        return this.atl03vpSymbolSize;
       } else if(this.func.includes('atl06')){
         return this.atl06SymbolSize;
       } else if(this.func.includes('atl08')){
@@ -554,6 +564,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setSelectedAtl03ColorMap(selectedAtl03ColorMap: {name:string, value:string}) {
       this.selectedAtl03ColorMap = selectedAtl03ColorMap;
+    },
+    getXLegend() {
+      return this.xLegend;
+    },
+    setXLegend(xLegend: string) {
+      this.xLegend = xLegend;
     },
   }
 });

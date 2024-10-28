@@ -107,12 +107,23 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 <div class="sr-select-symbol-size">
     <SrSliderInput
         v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
-        v-model="atlChartFilterStore.atl03SymbolSize"
+        v-model="atlChartFilterStore.atl03spSymbolSize"
         @update:model-value="symbolSizeSelection"
-        label="Atl03 Scatter Plot symbol size"
+        label="Atl03sp Scatter Plot symbol size"
         :min="1"
         :max="20"
-        :defaultValue="atlChartFilterStore.atl03SymbolSize"
+        :defaultValue="atlChartFilterStore.atl03spSymbolSize"
+        :decimalPlaces=0
+        tooltipText="Symbol size for Atl03 Scatter Plot"
+    />
+    <SrSliderInput
+        v-if = "atlChartFilterStore.getFunc() === 'atl03vp'"
+        v-model="atlChartFilterStore.atl03spSymbolSize"
+        @update:model-value="symbolSizeSelection"
+        label="Atl03vp Scatter Plot symbol size"
+        :min="5"
+        :max="20"
+        :defaultValue="atlChartFilterStore.atl03spSymbolSize"
         :decimalPlaces=0
         tooltipText="Symbol size for Atl03 Scatter Plot"
     />

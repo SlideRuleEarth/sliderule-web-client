@@ -175,13 +175,17 @@ export function getHFieldName(funcStr:string) {
     if (funcStr === 'atl06p') {
         return 'h_mean';
     } else if (funcStr === 'atl06sp') {
-        return 'bsnow_h';
+        return 'h_li';
     } else if (funcStr=== 'atl03vp'){
         return 'segment_ph_cnt';
     } else if (funcStr=== 'atl03sp'){
         return 'height';
     } else if (funcStr==='atl08p'){
         return 'h_mean_canopy';
+    } else if (funcStr===('gedi02ap')) {
+        return 'elevation_hr';
+    } else if (funcStr===('gedi04ap')) {
+        return 'agbd';
     } else {
         throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
     }

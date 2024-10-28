@@ -210,66 +210,66 @@ export class DuckDBClient {
   }
   
   // Method to execute paginated queries with in-query random sampling
-async queryChunkSampled(
-  query: string,
-  chunkSize: number = 50000,
-  offset: number = 0,
-  random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
-  params?: any
-): Promise<QueryChunkResult> {
-  const conn = await this._db!.connect();
-  let tbl: arrow.Table<any>;
+  async queryChunkSampled(
+    query: string,
+    chunkSize: number = 50000,
+    offset: number = 0,
+    random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
+    params?: any
+  ): Promise<QueryChunkResult> {
+    const conn = await this._db!.connect();
+    let tbl: arrow.Table<any>;
 
-  try {
-    // Get the total number of rows for the query if this is the first chunk
-    let totalRows = null;
-    if (offset === 0) {
-      totalRows = await this.getTotalRowCount(query);
+    try {
+      // Get the total number of rows for the query if this is the first chunk
+      let totalRows = null;
+      if (offset === 0) {
+        totalRows = await this.getTotalRowCount(query);
+      }
+
+      // Construct the query with random sampling and pagination
+      let sampledQuery = query;
+      if (random_sample_factor < 1 && random_sample_factor > 0) {
+        // Add random sampling clause
+        sampledQuery = `${query} USING SAMPLE ${random_sample_factor * 100}% (bernoulli)`;
+      }
+
+      // Apply pagination to the potentially sampled query
+      const paginatedQuery = `${sampledQuery} LIMIT ${chunkSize} OFFSET ${offset}`;
+      console.log('queryChunkSampled paginatedQuery:', paginatedQuery);
+      if (params) {
+        const stmt = await conn.prepare(paginatedQuery);
+        tbl = await stmt.query(...params);
+      } else {
+        tbl = await conn.query(paginatedQuery);
+      }
+
+      const rows = tbl.toArray().map((r) => Object.fromEntries(r));
+      const schema = tbl.schema.fields.map(({ name, type }) => ({
+        name,
+        type: getType(String(type)),
+        databaseType: String(type),
+      }));
+      const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
+
+      return {
+        totalRows: totalRows,
+        length: rows.length,
+        hasMoreData,
+        schema,
+        async *readRows() {
+          for (let i = 0; i < rows.length; i += chunkSize) {
+            yield rows.slice(i, i + chunkSize);
+          }
+        },
+      };
+    } catch (error) {
+      console.error('Query execution error:', error);
+      throw error;
+    } finally {
+      await conn.close();
     }
-
-    // Construct the query with random sampling and pagination
-    let sampledQuery = query;
-    if (random_sample_factor < 1 && random_sample_factor > 0) {
-      // Add random sampling clause
-      sampledQuery = `${query} USING SAMPLE ${random_sample_factor * 100}% (bernoulli)`;
-    }
-
-    // Apply pagination to the potentially sampled query
-    const paginatedQuery = `${sampledQuery} LIMIT ${chunkSize} OFFSET ${offset}`;
-    console.log('queryChunkSampled paginatedQuery:', paginatedQuery);
-    if (params) {
-      const stmt = await conn.prepare(paginatedQuery);
-      tbl = await stmt.query(...params);
-    } else {
-      tbl = await conn.query(paginatedQuery);
-    }
-
-    const rows = tbl.toArray().map((r) => Object.fromEntries(r));
-    const schema = tbl.schema.fields.map(({ name, type }) => ({
-      name,
-      type: getType(String(type)),
-      databaseType: String(type),
-    }));
-    const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
-
-    return {
-      totalRows: totalRows,
-      length: rows.length,
-      hasMoreData,
-      schema,
-      async *readRows() {
-        for (let i = 0; i < rows.length; i += chunkSize) {
-          yield rows.slice(i, i + chunkSize);
-        }
-      },
-    };
-  } catch (error) {
-    console.error('Query execution error:', error);
-    throw error;
-  } finally {
-    await conn.close();
   }
-}
 
 
   // Method for constructing query templates
@@ -359,6 +359,99 @@ async queryChunkSampled(
       throw error;
     }
   }
+  // Method to dump detailed metadata from a Parquet file
+  async dumpParquetMetadata(parquetFilePath: string) {
+    const conn = await this._db!.connect();
+    try {
+        // Use parquet_metadata function to get detailed metadata from the Parquet file
+        const query = `SELECT key,value FROM parquet_kv_metadata('${parquetFilePath}');`;
+        const result = await conn.query(query);
+        console.log("Parquet KV Metadata:", result);
+        // Convert the result to a more readable format
+        const metadata = result.toArray();
+        console.log("Detailed Parquet Metadata:", metadata);
+
+        return metadata;
+    } catch (error) {
+        console.error('Error dumping Parquet metadata:', error);
+        throw error;
+    } finally {
+        await conn.close();
+    }
+  }
+
+  // Method to dump metadata from a Parquet file and extract a specific key-value pair
+  async dumpSpecificParquetMetadata(parquetFilePath: string, key: string) {
+    const conn = await this._db!.connect();
+    try {
+        // Use parquet_metadata to get detailed metadata from the Parquet file
+        const query = `SELECT * FROM parquet_kv_metadata('${parquetFilePath}');`;
+        const result = await conn.query(query);
+        console.log("Parquet Metadata:", result);
+        // Extract key-value metadata
+        const metadataArray = result.toArray();
+        console.log("Extracted Metadata Array:", metadataArray);
+        let foundValue: string | null = null;
+
+        // Iterate over the metadata entries to find the specified key
+        // for (const row of metadataArray) {
+        //     const metadataMap = row.key_value_metadata;
+        //     for (const [k, v] of Object.entries(metadataMap)) {
+        //         if (k === key) {
+        //             foundValue = v as string; // Cast to string
+        //             break;
+        //         }
+        //     }
+        //     if (foundValue) break;
+        // }
+
+        if (foundValue) {
+            console.log(`Metadata value for key "${key}":`, foundValue);
+        } else {
+            console.log(`Key "${key}" not found in the metadata.`);
+        }
+
+        return foundValue;
+    } catch (error) {
+        console.error('Error dumping Parquet metadata:', error);
+        throw error;
+    } finally {
+        await conn.close();
+    }
+  }
+
+// Method to read Parquet metadata and extract key-value pairs
+async readParquetMetadata(filePath: string) {
+  const conn = await this._db!.connect();
+
+  try {
+    // Query to extract key-value pairs from the Parquet metadata
+    const result = await conn.query(`
+        SELECT * FROM parquet_kv_metadata('${filePath}');
+    `);
+    console.log("Parquet Metadata:", result);
+    // Convert the result to a more readable format
+    const metadataArray = result.toArray();
+    const keyValuePairs: { [key: string]: string } = {};
+
+    // Iterate over the metadata to extract key-value pairs
+    for (const row of metadataArray) {
+      const metadataMap = row.key_value_metadata;
+      for (const [key, value] of Object.entries(metadataMap)) {
+        keyValuePairs[key] = value as string; // Cast value to string
+      }
+    }
+
+    console.log("Extracted Key-Value Pairs:", keyValuePairs);
+    return keyValuePairs;
+  } catch (error) {
+    console.error('Error reading Parquet metadata:', error);
+    throw error;
+  } finally {
+    await conn.close();
+  }
+}
+
 
 }
 
