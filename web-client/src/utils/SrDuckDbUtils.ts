@@ -1048,8 +1048,8 @@ async function getSeriesForAtl03vp(
             const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
             const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
             const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-            console.log('getSeriesForAtl03vp data:', data);
-            console.log('getSeriesForAtl03vp min:', min, ' max:', max);
+            //console.log('getSeriesForAtl03vp data:', data);
+            //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
             return {
                 series: {
                     name: `${name} - ${yName}`,
@@ -1104,8 +1104,8 @@ async function getSeriesForAtl06(
             const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
             const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
             const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-            console.log('getSeriesForAtl06 data:', data);
-            console.log('getSeriesForAtl06 min:', min, ' max:', max);
+            //console.log('getSeriesForAtl06 data:', data);
+            //console.log('getSeriesForAtl06 min:', min, ' max:', max);
             return {
                 series: {
                     name: `${name} - ${yName}`,
