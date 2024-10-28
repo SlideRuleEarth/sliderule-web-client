@@ -377,7 +377,8 @@ const getCnt = computed(() => {
                 </div>  
             </div>
             <div class="sr-analyze-filters">
-                <SrListbox id="spots" 
+                <SrListbox id="spots"
+                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
                         label="Spot(s)" 
                         v-model="atlChartFilterStore.spots"
                         :getSelectedMenuItem="atlChartFilterStore.getSpots"
@@ -392,7 +393,7 @@ const getCnt = computed(() => {
                         @update:modelValue="onSpotSelection"
                     />
                 <SrListbox id="beams" 
-                        v-if="useDebugStore().enableSpotPatternDetails"
+                        v-if="useDebugStore().enableSpotPatternDetails && !atlChartFilterStore.getFunc().includes('gedi')"
                         :insensitive="true"
                         label="Beam(s)" 
                         v-model="atlChartFilterStore.beams"
@@ -404,6 +405,7 @@ const getCnt = computed(() => {
                     />
                 <div class="sr-rgts-cycles-panel">
                     <SrListbox id="rgts"
+                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
                         label="Rgt(s)" 
                         v-model="atlChartFilterStore.rgts" 
                         :getSelectedMenuItem="atlChartFilterStore.getRgts"
@@ -414,6 +416,7 @@ const getCnt = computed(() => {
                         @update:modelValue="RgtsSelection"
                     />
                     <SrListbox id="cycles" 
+                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
                         label="Cycle(s)" 
                         v-model="atlChartFilterStore.cycles"
                         :getSelectedMenuItem="atlChartFilterStore.getCycles"

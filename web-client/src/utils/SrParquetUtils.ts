@@ -182,6 +182,10 @@ export function getHFieldName(funcStr:string) {
         return 'height';
     } else if (funcStr==='atl08p'){
         return 'h_mean_canopy';
+    } else if (funcStr===('gedi02ap')) {
+        return 'elevation_hr';
+    } else if (funcStr===('gedi04ap')) {
+        return 'agbd';
     } else {
         throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
     }
