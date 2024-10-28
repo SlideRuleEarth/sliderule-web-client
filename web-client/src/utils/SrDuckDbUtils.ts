@@ -375,9 +375,14 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
     try{
         //console.log('duckDbLoadOpfsParquetFile');
         const duckDbClient = await createDuckDbClient();
-
         await duckDbClient.insertOpfsParquet(fileName);
-
+        try {
+            await duckDbClient.dumpParquetMetadata(fileName);
+            //await duckDbClient.dumpSpecificParquetMetadata(fileName,'sliderule');
+            //await duckDbClient.readParquetMetadata(fileName);
+        } catch (error) {
+            console.error('Error dumping parquet metadata:', error);
+        }
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
