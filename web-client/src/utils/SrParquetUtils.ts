@@ -175,7 +175,7 @@ export function getHFieldName(funcStr:string) {
     if (funcStr === 'atl06p') {
         return 'h_mean';
     } else if (funcStr === 'atl06sp') {
-        return 'bsnow_h';
+        return 'h_li';
     } else if (funcStr=== 'atl03vp'){
         return 'segment_ph_cnt';
     } else if (funcStr=== 'atl03sp'){
