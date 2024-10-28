@@ -24,8 +24,7 @@ const showUnsupportedDialog = ref(false); // Reactive state for controlling dial
 const checkUnsupported = () =>{
   console.log('checkUnsupported browser:', deviceStore.getBrowser(), 'OS:', deviceStore.getOS());
   if (
-    (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS') ||
-    (deviceStore.getBrowser() === 'Edge' && ((deviceStore.getOS() !== 'Android')))  
+    (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS')
   ) {
     showUnsupportedDialog.value = true;
   }
