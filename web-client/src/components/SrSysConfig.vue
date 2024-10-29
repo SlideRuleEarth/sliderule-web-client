@@ -117,6 +117,7 @@
         });
         if (response.ok) {
           const result = await response.json();
+          console.log(`authenticate response: ${result}`);
           const jwt = {
             accessToken: result.access,
             refreshToken: result.refresh,
@@ -126,7 +127,7 @@
           toast.add({ severity: 'info', summary: 'Successfully Authenticated', detail: `Authentication successful for ${sysConfigStore.getDomain} ${sysConfigStore.getOrganization}`, life: srToastStore.getLife()});
           return true; // Assuming expiration is in the response
         } else {
-          console.error(`Failed to authenticate: ${response.statusText}`);
+          console.error(`Failed to authenticate: ${response}`);
           toast.add({ severity: 'error', summary: 'Failed Authenticate', detail: 'Login FAILED', life: srToastStore.getLife()});
           return false;
         }
