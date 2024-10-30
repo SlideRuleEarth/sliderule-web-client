@@ -13,6 +13,7 @@ import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/worke
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
+import { useJwtStore } from '@/stores/SrJWTStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -231,7 +232,12 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
                     requestsStore.setSvrMsg('');
                 }
             };
-            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization()}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
+            let srJWT = useJwtStore().getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
+            let accessToken = '';
+            if(srJWT){
+                accessToken = srJWT.accessToken;
+            }
+            const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization(), jwt:accessToken}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
             console.log('runFetchToFileWorker cmd:',cmd);
             worker.postMessage(JSON.stringify(cmd));
         } else {

@@ -3,11 +3,8 @@ import {Buffer} from 'buffer/'; // note: the trailing slash is important!
 export type SysConfig = {
   domain: string;
   organization: string;
-  // protocol: string;
-  // verbose: boolean;
-  // desired_nodes: number | null | undefined;
-  // time_to_live: number;
-  // timeout: number;
+  jwt: string;
+
 };
 //
 // System Configuration
@@ -15,11 +12,8 @@ export type SysConfig = {
 const globalSysConfig = {
   domain: "slideruleearth.io",
   organization: "sliderule",
-  //protocol: 'https',
-  //verbose: true,
-  //desired_nodes: null,
-  //time_to_live: 60,
-  //timeout: 120000, // milliseconds
+  jwt: "",
+
 };
 
 
@@ -455,9 +449,10 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
 //   Object.assign(globalSysConfig, config)
 //   //console.log('globalSysConfig:', globalSysConfig); 
 // };
-export function init(domain: string, organization: string): void {
+export function init(domain: string, organization: string, jwt:string): void {
   globalSysConfig.domain = domain;
   globalSysConfig.organization = organization;
+  globalSysConfig.jwt = jwt;
   //console.log('globalSysConfig:', globalSysConfig); 
 }
 export interface Callbacks {
@@ -480,7 +475,8 @@ export async function source(
   // Setup Request Options
   let body = null;
   const options: RequestInit = {
-    method: 'POST', 
+    method: 'POST',
+    mode: 'cors', 
   };
   
   if (parm != null) {
@@ -491,6 +487,13 @@ export async function source(
       'x-sliderule-streaming': stream ? '1' : '0',
     };
     options.body = body;
+  }
+  // add JWT for Authorization header if present
+  if(globalSysConfig.jwt){
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${globalSysConfig.jwt}`
+    };
   }
   // Make API Request
   // Await the fetchAndProcessResult call

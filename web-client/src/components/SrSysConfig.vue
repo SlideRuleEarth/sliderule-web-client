@@ -136,7 +136,7 @@
             expiration: result.expiration,
           };
           jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(),jwt ); // Assuming result contains the JWT
-          toast.add({ severity: 'info', summary: 'Successfully Authenticated', detail: `Authentication successful for ${orgName.value}`, life: srToastStore.getLife()});
+          toast.add({ severity: 'success', summary: 'Successfully Authenticated', detail: `Authentication successful for ${orgName.value}`, life: srToastStore.getLife()});
           return true; // Assuming expiration is in the response
         } else {
           console.error('Failed to authenticate:',response);
