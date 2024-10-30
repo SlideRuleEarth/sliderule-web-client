@@ -165,7 +165,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
-
+            await duckDbClient.dumpParquetMetadata(filename);
+            //await duckDbClient.readParquetMetadata(filename);
             // Step 4: Execute a SQL query to retrieve the elevation data
             //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
@@ -377,7 +378,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         try {
-            await duckDbClient.dumpParquetMetadata(fileName);
+            //await duckDbClient.dumpParquetMetadata(fileName);
             //await duckDbClient.dumpSpecificParquetMetadata(fileName,'sliderule');
             //await duckDbClient.readParquetMetadata(fileName);
         } catch (error) {
@@ -748,7 +749,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
             }
         } 
         useAtlChartFilterStore().setCycleOptionsWithNumbers(cycles);   
-        console.log('updateCycleOptions cycles:', useAtlChartFilterStore().getCycleOptions());
+        //console.log('updateCycleOptions cycles:', useAtlChartFilterStore().getCycleOptions());
     } catch (error) {
         console.error('updateCycleOptions Error:', error);
         throw error;

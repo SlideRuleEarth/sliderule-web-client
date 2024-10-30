@@ -88,7 +88,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.beams.map(beam => beam.value);
     },
     setSpots(spots: SrListNumberItem[]) {
-      console.log('atlChartFilterStore setSpots:', spots);
+      //console.log('atlChartFilterStore setSpots:', spots);
       this.spots = spots;
     },
     getSpots(): SrListNumberItem[] {
@@ -98,11 +98,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.spots.map(spot => spot.value);
     },
     setSpotWithNumber(spot: number) {
-      console.log('atlChartFilterStore.setSpotWithNumber():', spot);
+      //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
       this.setSpots([{ label: spot.toString(), value: spot }]);
     },
     setRgts(rgts: SrListNumberItem[]) {
-      console.log('atlChartFilterStore setRgts:', rgts);
+      //console.log('atlChartFilterStore setRgts:', rgts);
       this.rgts = rgts;
     },
     getRgts() {
@@ -128,7 +128,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.rgtOptions;
     },
     setRgtWithNumber(rgt: number) {
-      console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
+      //console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
       this.setRgts([{ label: rgt.toString(), value: rgt }]);
     },
     setCycleOptionsWithNumbers(cycleOptions: number[]) {
@@ -137,18 +137,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return;
       }
       this.cycleOptions = cycleOptions.map(option => ({ label: option.toString(), value: option }));
-      console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
+      //console.log('atlChartFilterStore.setCycleOptionsWithNumbers():', cycleOptions, ' this.cycleOptions:', this.cycleOptions);
     },
     getCycleOptions() {
       //console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);
       return this.cycleOptions;
     },
     setCycleWithNumber(cycle: number) {
-      console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
+      //console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
       this.setCycles([{ label: cycle.toString(), value: cycle }]);
     },
     setCycles(cycles: SrListNumberItem[]) {
-      console.log('atlChartFilterStore.setCycles():', cycles);
+      //console.log('atlChartFilterStore.setCycles():', cycles);
       this.cycles = cycles;
     },
     getCycles() {

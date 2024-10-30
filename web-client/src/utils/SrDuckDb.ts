@@ -420,37 +420,39 @@ export class DuckDBClient {
     }
   }
 
-// Method to read Parquet metadata and extract key-value pairs
-async readParquetMetadata(filePath: string) {
-  const conn = await this._db!.connect();
+  // Method to read Parquet metadata and extract key-value pairs
+  async readParquetMetadata(filePath: string) {
+    const conn = await this._db!.connect();
 
-  try {
-    // Query to extract key-value pairs from the Parquet metadata
-    const result = await conn.query(`
-        SELECT * FROM parquet_kv_metadata('${filePath}');
-    `);
-    console.log("Parquet Metadata:", result);
-    // Convert the result to a more readable format
-    const metadataArray = result.toArray();
-    const keyValuePairs: { [key: string]: string } = {};
+    try {
+      // Query to extract key-value pairs from the Parquet metadata
+      const result = await conn.query(`
+          SELECT * FROM parquet_kv_metadata('${filePath}');
+      `);
+      console.log("Parquet Metadata:", result);
+      // Convert the result to a more readable format
+      const metadataArray = result.toArray();
+      const keyValuePairs: { [key: string]: string } = {};
 
-    // Iterate over the metadata to extract key-value pairs
-    for (const row of metadataArray) {
-      const metadataMap = row.key_value_metadata;
-      for (const [key, value] of Object.entries(metadataMap)) {
-        keyValuePairs[key] = value as string; // Cast value to string
+      // Iterate over the metadata to extract key-value pairs
+      console.log("Extracted Metadata Array:", metadataArray);
+      for (const row of metadataArray) {
+        const metadataMap = row.key_value_metadata;
+        console.log("metadataMap:", metadataMap);
+        for (const [key, value] of Object.entries(metadataMap)) {
+          keyValuePairs[key] = value as string; // Cast value to string
+        }
       }
-    }
 
-    console.log("Extracted Key-Value Pairs:", keyValuePairs);
-    return keyValuePairs;
-  } catch (error) {
-    console.error('Error reading Parquet metadata:', error);
-    throw error;
-  } finally {
-    await conn.close();
+      console.log("Extracted Key-Value Pairs:", keyValuePairs);
+      return keyValuePairs;
+    } catch (error) {
+      console.error('Error reading Parquet metadata:', error);
+      throw error;
+    } finally {
+      await conn.close();
+    }
   }
-}
 
 
 }
