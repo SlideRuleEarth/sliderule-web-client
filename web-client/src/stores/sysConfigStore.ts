@@ -5,7 +5,6 @@ export const useSysConfigStore = defineStore('sysConfig', {
     state: () => ({
         domain: "slideruleearth.io",
         organization: "sliderule",
-        is_public: true,        
         desired_nodes: 1,
         time_to_live: 720, // minutes
         min_nodes: 0,
@@ -37,16 +36,6 @@ export const useSysConfigStore = defineStore('sysConfig', {
         },
         getDesiredNodes(): number {
             return this.desired_nodes
-        },
-        orgIsPublic() : boolean {
-            this.is_public = (this.organization === 'sliderule' || this.organization.includes('hackweek'));
-            return this.is_public;
-        },
-        setIsPublic(value: boolean) {
-            this.is_public = value
-        },
-        getIsPublic(): boolean {
-            return this.is_public
         },
         setMinNodes(value: number) {
             this.min_nodes = value

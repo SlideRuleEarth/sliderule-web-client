@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
+import type { get, set } from 'lodash';
 
 const sysConfigStore = useSysConfigStore();
 
@@ -10,14 +11,25 @@ interface SrJWT {
 }
 
 interface JwtStoreState {
+  isPublicMap: Record<string, Record<string, boolean>>;
   jwtMap: Record<string, Record<string, SrJWT>>;
 }
 
 export const useJwtStore = defineStore('jwtStore', {
   state: (): JwtStoreState => ({
+    isPublicMap: {},
     jwtMap: {},
   }),
   actions: {
+    setIsPublic(domain: string, org: string, isPublic: boolean) {
+      if (!this.isPublicMap[domain]) {
+        this.isPublicMap[domain] = {};
+      }
+      this.isPublicMap[domain][org] = isPublic;
+    },
+    getIsPublic(domain: string, org: string): boolean { 
+      return this.isPublicMap[domain]?.[org] || false; 
+    },
     setJwt(domain: string, org: string, jwt: SrJWT) {
       if (!this.jwtMap[domain]) {
         this.jwtMap[domain] = {};
@@ -55,7 +67,7 @@ export const useJwtStore = defineStore('jwtStore', {
               console.log('No authentication needed: JWT is valid');
             }
           } else {
-            //console.log('No JWT found');
+            //console.log('No JWT found:',jwt);
           }
         } catch (error) {
             console.error('Error during get Num Nodes:', error);

@@ -1,7 +1,7 @@
 <template>
   <div class="sr-sys-config-container">
-    <SrTextInput v-model="sysConfigStore.domain" label="Domain" />
-    <SrTextInput v-model="sysConfigStore.organization" label="Organization" />
+    <SrTextInput v-model="sysConfigStore.domain" label="Domain" @update:model-value="domainChanged" />
+    <SrTextInput v-model="sysConfigStore.organization" label="Organization" @update:model-value="orgChanged" />
     <Button label="Login" icon="pi pi-sign-in" :disabled="computedLoggedIn" @click="showAuthDialog=true" />
     <div>
       <SrClusterInfo/>
@@ -35,7 +35,7 @@
           v-model="desiredNodes"
           label="Desired Nodes" 
           :min="1" 
-          :max="30"
+          :max="maxNodes"
           :defaultValue="1" 
           :decimalPlaces="0"
         />
@@ -88,24 +88,37 @@
   }
 
   const computedOrgIsPublic = computed(() => {
-    return sysConfigStore.orgIsPublic();
+    return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
   });
 
   const computedLoggedIn = computed(() => {
     return jwtStore.getCredentials() !== null;
   });
 
+  const maxNodes = computed(() => sysConfigStore.getMaxNodes());
+
   const buttonIcon = computed(() => {
-    return sysConfigStore.orgIsPublic() ? 'pi pi-lock-open' : 'pi pi-lock';
+    return computedOrgIsPublic ? 'pi pi-lock-open' : 'pi pi-lock';
   });
 
+  function domainChanged(newDomain: string) {
+    jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
+    //console.log('Domain changed:', newDomain);
+  }
+
+  function orgChanged(newOrg: string) {
+    jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
+    //console.log('Organization changed:', newOrg);
+  }
+
   async function authenticate() : Promise<boolean>{
-    // Example function to get token using the input credentials
+    orgName.value = sysConfigStore.getOrganization();
     const psHost = `https://ps.${sysConfigStore.getDomain()}`;
+    console.log('authenticate:', username.value, orgName.value);
     const body = JSON.stringify({
       username: username.value,
       password: password.value,
-      org_name: orgName,
+      org_name: orgName.value,
     });
     try {
         const response = await fetch(`${psHost}/api/org_token/`, {
@@ -115,18 +128,18 @@
           },
           body,
         });
+        const result = await response.json();
         if (response.ok) {
-          const result = await response.json();
           const jwt = {
             accessToken: result.access,
             refreshToken: result.refresh,
             expiration: result.expiration,
           };
           jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(),jwt ); // Assuming result contains the JWT
-          toast.add({ severity: 'info', summary: 'Successfully Authenticated', detail: `Authentication successful for ${sysConfigStore.getDomain} ${sysConfigStore.getOrganization}`, life: srToastStore.getLife()});
+          toast.add({ severity: 'success', summary: 'Successfully Authenticated', detail: `Authentication successful for ${orgName.value}`, life: srToastStore.getLife()});
           return true; // Assuming expiration is in the response
         } else {
-          console.error(`Failed to authenticate: ${response.statusText}`);
+          console.error('Failed to authenticate:',response);
           toast.add({ severity: 'error', summary: 'Failed Authenticate', detail: 'Login FAILED', life: srToastStore.getLife()});
           return false;
         }
@@ -134,6 +147,8 @@
       console.error('Authentication request error:', error);
       toast.add({ severity: 'error', summary: 'Failed Authenticate', detail:  'Login FAILED', life: srToastStore.getLife()});
       return false;
+    } finally {
+      showAuthDialog.value = false; // Close the dialog
     }
   }
   async function desiredOrgNumNodes() {
@@ -141,7 +156,7 @@
       let jwt = jwtStore.getCredentials();
       if(jwt){
           const response = await fetch(`${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`, {
-              method: 'GET',
+              method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
