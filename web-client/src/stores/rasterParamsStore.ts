@@ -31,6 +31,7 @@ export const RasterParamsCols = [
 
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
+import { get } from 'lodash';
 // Define the store
 import { defineStore } from 'pinia';
 
@@ -92,6 +93,24 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     },
     clearRasterParams() {
       this.dataTable = []; // Method to clear all raster parameters
-    }
+    },
+    getT0() {
+      return this.t0;
+    },
+    getT1() {
+      return this.t1;
+    },
+    setT0(t0: Date) {
+      this.t0 = t0;
+    },
+    setT1(t1: Date) {
+      this.t1 = t1;
+    },
+    getClosestTime() {
+      return this.closestTime;
+    },
+    setClosestTime(closestTime: Date) {
+      this.closestTime = closestTime;
+    },
   }
 });

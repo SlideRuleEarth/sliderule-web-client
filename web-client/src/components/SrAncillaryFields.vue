@@ -1,6 +1,7 @@
 <template>
 <div class="sr-ancillary-fields-container">
     <SrMenuMultiInputText
+    :insensitive="true"
         v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
         label="ATL03 GeoSpatial Fields"
@@ -12,6 +13,7 @@
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     />  
     <SrMenuMultiInputText
+    :insensitive="true"
         v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
         label="ATL03 Photon Fields"
@@ -23,6 +25,7 @@
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     /> 
     <SrMenuMultiInputText
+    :insensitive="true"
         v-if="props.iceSat2SelectedAPI==='atl06s'"
         v-model="reqParamsStore.ATL06IceSegmentFieldsOptions"
         label="ATL03 IceSegment Fields"
@@ -34,6 +37,7 @@
         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#ancillary-field-parameters"
     />  
     <SrMenuMultiCheckInput
+    :insensitive="true"
         v-if="props.iceSat2SelectedAPI.includes('atl08')"
         v-model="reqParamsStore.ATL08LandSegmentFieldsOptions"
         label="ATL08 LandSegment Fields"
