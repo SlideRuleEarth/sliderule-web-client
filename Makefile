@@ -10,7 +10,7 @@ DOMAIN ?=
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DOMAIN_APEX ?= $(DOMAIN)
 S3_BUCKET ?= 
-DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN_APEX)'].Id" --output text)
+DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 
@@ -31,10 +31,10 @@ live-update: build # Update the web client in the S3 bucket and invalidate the C
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org
 
 live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io
+	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
 
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
