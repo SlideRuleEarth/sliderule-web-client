@@ -14,6 +14,12 @@ const catalogStore = useCatalogStore();
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
+const props = defineProps({
+  disabled: {
+    type: Boolean,
+    default: false
+  }
+});
 
 
 const customUploader = async (event:any) => {
@@ -104,6 +110,7 @@ const onClear = () => {
                     accept=".smp,.smpr" 
                     :maxFileSize="10000000000" 
                     customUpload
+                    :disabled="props.disabled"
                     chooseLabel="Upload a Catalog File"
                     @uploader="customUploader"
                     @select="onSelect"

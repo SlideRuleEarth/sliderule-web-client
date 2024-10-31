@@ -1,70 +1,118 @@
 <template>
     <div class="sr-raster-params_wrapper">
         <div class="sr-raster-params-header">
-            <SrLabelInfoIconButton label="Add new raster parameters" 
-                                labelFontSize='larger'
-                                tooltipText='SlideRule supports sampling raster datasets at the latitude and longitude of each calculated result from SlideRule processing. When raster sampling is requested, the DataFrame returned by SlideRule includes columns for each requested raster with their associated values.To request raster sampling, the "samples" parameter must be populated as a dictionary in the request. Each key in the dictionary is used to label the data returned for that raster in the returned DataFrame.' 
-                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            <SrLabelInfoIconButton
+            :insensitive="GLOBAL_DISABLE" 
+                label="Add new raster parameters" 
+                labelFontSize='larger'
+                tooltipText='SlideRule supports sampling raster datasets at the latitude and longitude of each calculated result from SlideRule processing. When raster sampling is requested, the DataFrame returned by SlideRule includes columns for each requested raster with their associated values.To request raster sampling, the "samples" parameter must be populated as a dictionary in the request. Each key in the dictionary is used to label the data returned for that raster in the returned DataFrame.' 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
         </div>
-        <div>
-            <SrTextInput label="Key" v-model="rasterParamsStore.key" 
+        <div class="sr-add-raster-fields">
+            <SrTextInput 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Key" 
+                v-model="rasterParamsStore.key" 
                 tooltipText="user supplied name used to identify results returned from sampling this raster"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrMenuInput label="Asset" :menuOptions="rasterParamsStore.assetOptions" v-model="rasterParamsStore.asset"
+            <SrMenuInput 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Asset" 
+                :menuOptions="rasterParamsStore.assetOptions" v-model="rasterParamsStore.asset"
                 tooltipText="name of the raster (as supplied in the Asset Directory) to be sampleds"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrMenuInput label="Algorithm" :menuOptions="rasterParamsStore.algorithmOptions" v-model="rasterParamsStore.algorithm"
+            <SrMenuInput 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Algorithm" 
+                :menuOptions="rasterParamsStore.algorithmOptions" v-model="rasterParamsStore.algorithm"
                 tooltipText="algorithm to use to sample the raster; the available algorithms for sampling rasters are: NearestNeighbour, Bilinear, Cubic, CubicSpline, Lanczos, Average, Mode, Gauss"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrSliderInput label="Radius" v-model="rasterParamsStore.radius" 
+            <SrSliderInput 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Radius" 
+                v-model="rasterParamsStore.radius" 
                 tooltipText="the size of the kernel in meters when sampling a raster; the size of the region in meters for zonal statistics"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCheckbox label="Zonal Stats" v-model="rasterParamsStore.zonalStats" 
+            <SrCheckbox 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Zonal Stats" 
+                v-model="rasterParamsStore.zonalStats" 
                 tooltipText="boolean whether to calculate and return zonal statistics for the region around the location being sampled"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCheckbox label="With Flags" v-model="rasterParamsStore.withFlags" 
+            <SrCheckbox 
+            :insensitive="GLOBAL_DISABLE" 
+                label="With Flags" 
+                v-model="rasterParamsStore.withFlags" 
                 tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCalendar label="T0" v-model="rasterParamsStore.t0"
+            <SrCalendar 
+            :insensitive="GLOBAL_DISABLE" 
+                label="T0" 
+                v-model="rasterParamsStore.t0"
+                :getValue="rasterParamsStore.getT0"
+                :setValue="rasterParamsStore.setT0"
                 tooltipText="Start time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCalendar label="T1" v-model="rasterParamsStore.t1" 
+            <SrCalendar 
+            :insensitive="GLOBAL_DISABLE" 
+                label="T1" 
+                v-model="rasterParamsStore.t1" 
+                :getValue="rasterParamsStore.getT1"
+                :setValue="rasterParamsStore.setT1"
                 tooltipText="Stop time for filtering rasters to be sampled (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrTextInput label="Substring" 
+            <SrTextInput 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Substring" 
                 v-model="rasterParamsStore.substring" 
                 tooltipText="substring filter for rasters to be sampled; the raster will only be sampled if the name of the raster includes the provided substring (useful for datasets that have multiple rasters for a given geolocation to be sampled)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <SrCalendar label="Closest Time" v-model="rasterParamsStore.closestTime" 
+            <SrCalendar 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Closest Time" 
+                v-model="rasterParamsStore.closestTime"
+                :getValue="rasterParamsStore.getClosestTime"
+                :setValue="rasterParamsStore.setClosestTime" 
                 tooltipText="Time used to filter rasters to be sampled; only the raster that is closest in time to the provided time will be sampled - can be multiple rasters if they all share the "
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"      
             />
-            <SrCheckbox label="Use POI Time"
+            <SrCheckbox 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Use POI Time"
                 v-model="rasterParamsStore.use_poi_time"
                 tooltipText="Overrides the “closest_time” setting (or provides one if not set) with the time associated with the point of interest being sampled"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
         </div>
         <div class="sr-raster-params-catalog">
-            <SrLabelInfoIconButton label="Catalog" 
-                                labelFontSize='large'
-                                tooltipText='geojson formatted stac query response (obtained through the sliderule.earthdata.stac Python API)' 
-                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+            <SrLabelInfoIconButton 
+            :insensitive="GLOBAL_DISABLE" 
+                label="Catalog" 
+                labelFontSize='large'
+                tooltipText='geojson formatted stac query response (obtained through the sliderule.earthdata.stac Python API)' 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
             />
-            <TextArea  v-model="rasterParamsStore.catalog" rows="3" cols="35" />
-            <SrCatalogFileUpload />
+            <TextArea  
+            :disable="GLOBAL_DISABLE" 
+                v-model="rasterParamsStore.catalog" 
+                rows="3" 
+                cols="35" />
+            <SrCatalogFileUpload 
+            :disabled="GLOBAL_DISABLE" 
+            />
         </div>
         <SrMultiSelectText label="Bands" 
+        :insensitive="GLOBAL_DISABLE" 
             :menuOptions="rasterParamsStore.bandOptions" 
             v-model="rasterParamsStore.bands"                         
             :default="[rasterParamsStore.bandOptions[0]]"
@@ -72,7 +120,11 @@
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
         />
         <div class="sr-add-raster-params-btn">
-            <Button size='small' @click="addRasterParams()">Add New Raster Params</Button>
+            <Button
+            :disabled="GLOBAL_DISABLE" 
+                size='small' 
+                @click="addRasterParams()">Add New Raster Params
+            </Button>
         </div>
     </div>
 </template>
@@ -89,6 +141,7 @@
     import type { RasterParams } from '@/stores/rasterParamsStore';
     import SrCatalogFileUpload from './SrCatalogFileUpload.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+    import { ref } from 'vue';
 
     const rasterParamsStore = useRasterParamsStore();
     const addRasterParams = () => {
@@ -109,7 +162,7 @@
         };
         rasterParamsStore.addRasterParams(rasterParams);
     };
-
+    const GLOBAL_DISABLE = ref(true);
 </script>
 <style scoped>
 .sr-raster-params_wrapper {

@@ -60,6 +60,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         nodeTimeoutValue: 600,
         useReadTimeout: false,
         readTimeoutValue: 600,
+        enableExtents: false,
         lengthValue: -1.0,
         stepValue: -1.0,
         confidenceValue: 4,
@@ -756,6 +757,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setEnableSurfaceElevation(enableSurfaceElevation:boolean) {
           this.enableSurfaceElevation = enableSurfaceElevation;
+        },
+        getEnableExtents(): boolean {
+          return this.enableExtents;
+        },
+        setEnableExtents(enableExtents:boolean) {
+          this.enableExtents = enableExtents;
         },
     },
 })
