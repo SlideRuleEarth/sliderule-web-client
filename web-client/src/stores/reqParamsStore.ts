@@ -738,6 +738,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         setAreaErrorThreshold(value:number) { 
           this.areaErrorThreshold = value;
         },
+        getEnableAtl08Classification(): boolean {
+          return this.enableAtl08Classification;
+        },
+        setEnableAtl08Classification(enableAtl08Classification:boolean) {
+          this.enableAtl08Classification = enableAtl08Classification;
+        },
     },
 })
 

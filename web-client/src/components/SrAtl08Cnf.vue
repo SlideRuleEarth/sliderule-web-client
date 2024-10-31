@@ -23,7 +23,11 @@ const reqParamsStore = useReqParamsStore();
             aria-label="Select Land Type"
             :menuOptions="reqParamsStore.atl08LandTypeOptions"
             :insensitive="!reqParamsStore.enableAtl08Classification"
-            :default="reqParamsStore.atl08LandTypeOptions"
+            :default="[
+                {name:'Ground', value: 'atl08_ground'},
+                {name:'Canopy', value:'atl08_canopy'},
+                {name:'Top of Canopy', value:'atl08_top_of_canopy'},
+            ]"
             tooltipText="atl08_class: The ATL08 classifications used to select which photons are used in the processing."
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
         />
