@@ -386,23 +386,23 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
         tracks: this.tracks.map(track => track.value),
       };
-      console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
+      //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
       return sop;
     },
     updateScatterPlot() {
       this.updateScatterPlotCnt += 1;
-      console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
+      //console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
     },
     setIsLoading() {
-      console.log('atlChartFilterStore.setIsLoading()');
+      //console.log('atlChartFilterStore.setIsLoading()');
       this.isLoading = true;
     },
     resetIsLoading() {
-      console.log('atlChartFilterStore.resetIsLoading()');
+      //console.log('atlChartFilterStore.resetIsLoading()');
       this.isLoading = false;
     },
     getIsLoading() {
-      console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
+      //console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
       return this.isLoading;
     },
     resetTheScatterPlot() {

@@ -759,17 +759,17 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
         const srViewObj = srViews.value[`${srViewKey}`];
         const srProjObj = srProjections.value[srViewObj.projectionName];
         let newProj = getProjection(srViewObj.projectionName);
-        console.log(`zoomMapForReqIdUsingView:${reqId} srViewKey:${srViewKey} srViewObj:`,srViewObj);
-        console.log(`zoomMapForReqIdUsingView:${reqId} newProj:`,newProj);
+        //console.log(`zoomMapForReqIdUsingView:${reqId} srViewKey:${srViewKey} srViewObj:`,srViewObj);
+        //console.log(`zoomMapForReqIdUsingView:${reqId} newProj:`,newProj);
         let view_extent = reqExtremeLatLon;
         if(newProj?.getUnits() !== 'degrees'){
-            console.log('transforming view_extent to degrees for projection:',newProj);
+            //console.log('transforming view_extent to degrees for projection:',newProj);
             const fromLonLat = getTransform('EPSG:4326', srViewObj.projectionName);
             view_extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
         } else {
             console.log('using degrees view_extent?:',view_extent);
         }
-        console.log(`zoomMapForReqIdUsingView:${reqId} view_extent:`,view_extent);
+        //console.log(`zoomMapForReqIdUsingView:${reqId} view_extent:`,view_extent);
         map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
     } catch (error) {
         console.error(`Error: zoomMapForReqIdUsingView failed for reqId:${reqId}`,error);

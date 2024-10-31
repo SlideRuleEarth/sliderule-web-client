@@ -165,7 +165,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
-            await duckDbClient.dumpParquetMetadata(filename);
+            const server_req = await duckDbClient.dumpParquetMetadata(filename);
+            console.log('duckDbReadAndUpdateElevationData server_req:', server_req);
             //await duckDbClient.readParquetMetadata(filename);
             // Step 4: Execute a SQL query to retrieve the elevation data
             //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
@@ -755,7 +756,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
     }
     return cycles;
 }
@@ -1177,7 +1178,7 @@ async function getSeriesForAtl08( fileName: string, x: string, y: string[]): Pro
 
 export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any> {
     const startTime = performance.now(); // Start time
-    console.log('getScatterOptions sop:', sop);
+    //console.log('getScatterOptions sop:', sop);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
@@ -1277,7 +1278,7 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
         } else {
             console.warn('getScatterOptions seriesData is empty');
         }
-        console.log('getScatterOptions options:', options);
+        //console.log('getScatterOptions options:', options);
     } catch (error) {
         console.error('getScatterOptions Error:', error);
     } finally {

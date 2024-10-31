@@ -236,7 +236,7 @@ export class DuckDBClient {
 
       // Apply pagination to the potentially sampled query
       const paginatedQuery = `${sampledQuery} LIMIT ${chunkSize} OFFSET ${offset}`;
-      console.log('queryChunkSampled paginatedQuery:', paginatedQuery);
+      //console.log('queryChunkSampled paginatedQuery:', paginatedQuery);
       if (params) {
         const stmt = await conn.prepare(paginatedQuery);
         tbl = await stmt.query(...params);
@@ -360,58 +360,48 @@ export class DuckDBClient {
     }
   }
   // Method to dump detailed metadata from a Parquet file
-  async dumpParquetMetadata(parquetFilePath: string) {
+  async dumpParquetMetadata(parquetFilePath: string): Promise<string | undefined> {
     const conn = await this._db!.connect();
     try {
-        // Use parquet_metadata function to get detailed metadata from the Parquet file
-        const query = `SELECT key,value FROM parquet_kv_metadata('${parquetFilePath}');`;
+        const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
         const result = await conn.query(query);
-        console.log("Parquet KV Metadata:", result);
-        // Convert the result to a more readable format
-        const metadata = result.toArray();
-        console.log("Detailed Parquet Metadata:", metadata);
 
-        return metadata;
-    } catch (error) {
-        console.error('Error dumping Parquet metadata:', error);
-        throw error;
-    } finally {
-        await conn.close();
-    }
-  }
-
-  // Method to dump metadata from a Parquet file and extract a specific key-value pair
-  async dumpSpecificParquetMetadata(parquetFilePath: string, key: string) {
-    const conn = await this._db!.connect();
-    try {
-        // Use parquet_metadata to get detailed metadata from the Parquet file
-        const query = `SELECT * FROM parquet_kv_metadata('${parquetFilePath}');`;
-        const result = await conn.query(query);
-        console.log("Parquet Metadata:", result);
-        // Extract key-value metadata
-        const metadataArray = result.toArray();
-        console.log("Extracted Metadata Array:", metadataArray);
-        let foundValue: string | null = null;
-
-        // Iterate over the metadata entries to find the specified key
-        // for (const row of metadataArray) {
-        //     const metadataMap = row.key_value_metadata;
-        //     for (const [k, v] of Object.entries(metadataMap)) {
-        //         if (k === key) {
-        //             foundValue = v as string; // Cast to string
-        //             break;
-        //         }
-        //     }
-        //     if (foundValue) break;
-        // }
-
-        if (foundValue) {
-            console.log(`Metadata value for key "${key}":`, foundValue);
+        if(result) {
+          
+          for (let i = 0; i < result.numRows; i++) {
+              // Decode the key from byte array to string
+              const kk = result.getChild("key");
+              const kv = result.getChild("value");
+              if(kk && kv){
+                const keyArray = kk.get(i) as Uint8Array;
+                const keyString = Array.from(keyArray).map(byte => String.fromCharCode(byte)).join('');
+                
+                if (keyString === 'sliderule') {
+                    // Decode the BLOB value to JSON string
+                    const valueArray = kv.get(i) as Uint8Array;
+                    const valueString = new TextDecoder().decode(valueArray);
+                    
+                    console.log("Raw Sliderule Metadata:", valueString);
+                    try {
+                        const parsedMetadata = JSON.parse(valueString);
+                        console.log("Parsed Sliderule Metadata:", parsedMetadata);
+                        return valueString;
+                    } catch (parseError) {
+                        console.error("Error parsing JSON metadata:", parseError);
+                        return undefined;
+                    }
+                } else {
+                    console.log("Key is unexpected:", keyString);
+                }
+              } else {
+                console.log("Key or Value is undefined");
+              }
+          }
         } else {
-            console.log(`Key "${key}" not found in the metadata.`);
+          console.log("No metadata found for the specified Parquet file.");
         }
-
-        return foundValue;
+        console.log("Sliderule metadata not found.");
+        return undefined;
     } catch (error) {
         console.error('Error dumping Parquet metadata:', error);
         throw error;
@@ -419,41 +409,6 @@ export class DuckDBClient {
         await conn.close();
     }
   }
-
-  // Method to read Parquet metadata and extract key-value pairs
-  async readParquetMetadata(filePath: string) {
-    const conn = await this._db!.connect();
-
-    try {
-      // Query to extract key-value pairs from the Parquet metadata
-      const result = await conn.query(`
-          SELECT * FROM parquet_kv_metadata('${filePath}');
-      `);
-      console.log("Parquet Metadata:", result);
-      // Convert the result to a more readable format
-      const metadataArray = result.toArray();
-      const keyValuePairs: { [key: string]: string } = {};
-
-      // Iterate over the metadata to extract key-value pairs
-      console.log("Extracted Metadata Array:", metadataArray);
-      for (const row of metadataArray) {
-        const metadataMap = row.key_value_metadata;
-        console.log("metadataMap:", metadataMap);
-        for (const [key, value] of Object.entries(metadataMap)) {
-          keyValuePairs[key] = value as string; // Cast value to string
-        }
-      }
-
-      console.log("Extracted Key-Value Pairs:", keyValuePairs);
-      return keyValuePairs;
-    } catch (error) {
-      console.error('Error reading Parquet metadata:', error);
-      throw error;
-    } finally {
-      await conn.close();
-    }
-  }
-
 
 }
 

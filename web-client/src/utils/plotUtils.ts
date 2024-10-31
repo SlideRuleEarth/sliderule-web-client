@@ -34,7 +34,7 @@ export const fetchScatterOptions = async () => {
           const sop = atlChartFilterStore.getScatterOptionsParms();
           //console.log('fetchScatterOptions sop:',sop);
           const scatterOptions = await getScatterOptions(sop);
-          console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
+          //console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
           if (scatterOptions) {
             const plotRef = atlChartFilterStore.getPlotRef();
             if(plotRef){
@@ -42,7 +42,7 @@ export const fetchScatterOptions = async () => {
                   console.log('fetchScatterOptions plotRef.chart.setOption:',scatterOptions);
                   plotRef.chart.setOption(scatterOptions);
                   const newOptions = plotRef.chart.getOption();
-                  console.log('fetchScatterOptions plotRef.chart.getOption:',newOptions);
+                  //console.log('fetchScatterOptions plotRef.chart.getOption:',newOptions);
                   //srObjectDetailsRef.value?.setObjectDetails(newOptions);
               } else {
                   console.warn('fetchScatterOptions plotRef.chart is undefined');
@@ -51,7 +51,7 @@ export const fetchScatterOptions = async () => {
               console.warn('fetchScatterOptions plotRef is undefined');
             }
           } else {
-            console.log('fetchScatterOptions Failed to get scatter options');
+            //console.log('fetchScatterOptions Failed to get scatter options');
             atlChartFilterStore.setShowMessage(true);
             atlChartFilterStore.setIsWarning(true);
             atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
@@ -63,7 +63,7 @@ export const fetchScatterOptions = async () => {
         } finally {
           atlChartFilterStore.resetIsLoading();
           const now = performance.now();
-          console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
+          //console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
         }
       } else {
         console.warn('fetchScatterOptions No y options selected');
