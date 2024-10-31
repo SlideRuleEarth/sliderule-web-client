@@ -159,7 +159,7 @@ onMounted(() => {
             <Button
                 class="p-button-rounded p-button-text desktop-only"
                 @click="handleVersionButtonClick">
-                Beta {{ formattedVersion }}
+                {{ formattedVersion }}
             </Button>
         </div>
         <div class="right-content">
