@@ -33,7 +33,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     }),
     actions: {
         async initializeAtl03ColorMapStore() {
-            console.log('initializeAtl03ColorMapStore isInitialized:',this.isInitialized);
+            //console.log('initializeAtl03ColorMapStore isInitialized:',this.isInitialized);
             if(!this.isInitialized){
                 this.isInitialized = true;
                 this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
@@ -87,7 +87,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             return c;
         },
         getColorGradientStyle() {
-            console.log('getColorGradientStyle');
+            //console.log('getColorGradientStyle');
             const gradientColors = this.atl03YapcColorMap
                 .map(color => `rgba(${color.join(',')})`) // Convert each color to a valid CSS rgba string
                 .join(', '); // Join colors to create a CSS gradient string

@@ -343,7 +343,7 @@ export class DuckDBClient {
         await conn.query(
           `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`,
         );
-        console.log('insertOpfsParquet view created for name:',name);
+        //console.log('insertOpfsParquet view created for name:',name);
         // Add the file to the set of registered files
         if(isRegistered === false){
           this._filesInDb.add(name);
@@ -360,50 +360,43 @@ export class DuckDBClient {
     }
   }
   // Method to dump detailed metadata from a Parquet file
-  async dumpParquetMetadata(parquetFilePath: string): Promise<string | undefined> {
+  async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
     const conn = await this._db!.connect();
     try {
         const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
         const result = await conn.query(query);
-
-        if(result) {
-          
-          for (let i = 0; i < result.numRows; i++) {
-              // Decode the key from byte array to string
-              const kk = result.getChild("key");
-              const kv = result.getChild("value");
-              if(kk && kv){
-                const keyArray = kk.get(i) as Uint8Array;
-                const keyString = Array.from(keyArray).map(byte => String.fromCharCode(byte)).join('');
-                
-                if (keyString === 'sliderule') {
-                    // Decode the BLOB value to JSON string
-                    const valueArray = kv.get(i) as Uint8Array;
-                    const valueString = new TextDecoder().decode(valueArray);
-                    
-                    console.log("Raw Sliderule Metadata:", valueString);
-                    try {
-                        const parsedMetadata = JSON.parse(valueString);
-                        console.log("Parsed Sliderule Metadata:", parsedMetadata);
-                        return valueString;
-                    } catch (parseError) {
-                        console.error("Error parsing JSON metadata:", parseError);
-                        return undefined;
+        if (result && result.numRows > 0) {
+            for (let i = 0; i < result.numRows; i++) {
+                const kk = result.getChild("key");
+                const kv = result.getChild("value");
+                if (kk && kv) {
+                    const keyArray = kk.get(i) as Uint8Array;
+                    const keyString = new TextDecoder().decode(keyArray);
+                    if (keyString === 'sliderule') {
+                        const valueArray = kv.get(i) as Uint8Array;
+                        const valueString = new TextDecoder().decode(valueArray);
+                        console.log("Raw Sliderule Metadata:", valueString);
+                        try {
+                          const parsedMetadata = JSON.parse(valueString);
+                          const formattedMetadata = JSON.stringify(parsedMetadata, null, 2);  // Format with 2 spaces for readability
+                          console.log("Formatted Sliderule Metadata:", formattedMetadata);
+                          return formattedMetadata;
+                        } catch (parseError) {
+                          console.error("Error parsing JSON metadata:", parseError);
+                          return undefined;
+                        }
                     }
                 } else {
-                    console.log("Key is unexpected:", keyString);
+                  console.log("Key or Value is undefined at index", i);
                 }
-              } else {
-                console.log("Key or Value is undefined");
-              }
-          }
+            }
         } else {
           console.log("No metadata found for the specified Parquet file.");
         }
         console.log("Sliderule metadata not found.");
         return undefined;
     } catch (error) {
-        console.error('Error dumping Parquet metadata:', error);
+        console.error("Error dumping Parquet metadata:", error);
         throw error;
     } finally {
         await conn.close();

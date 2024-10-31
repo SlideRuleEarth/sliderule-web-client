@@ -165,9 +165,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
-            const server_req = await duckDbClient.dumpParquetMetadata(filename);
-            console.log('duckDbReadAndUpdateElevationData server_req:', server_req);
-            //await duckDbClient.readParquetMetadata(filename);
+            //const server_req = await duckDbClient.getServerReqFromMetaData(filename);
+            //console.log('duckDbReadAndUpdateElevationData server_req:', server_req);
             // Step 4: Execute a SQL query to retrieve the elevation data
             //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
@@ -188,7 +187,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
                                                                         offset,
                                                                         sample_fraction);
                     if(result.totalRows){
-                        console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
+                        //console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
                         useMapStore().setTotalRows(result.totalRows);
                     } else {
                         if(result.schema === undefined){
@@ -213,7 +212,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
                             numDataItemsUsed += rowChunk.length;
                             useMapStore().setCurrentRows(numDataItemsUsed);
                             numDataItemsProcessed += chunkSize;
-                            console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
+                            //console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
                         }
                     }
                     
@@ -372,16 +371,18 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
 };
 
 
-export async function duckDbLoadOpfsParquetFile(fileName: string) {
+export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> {
     const startTime = performance.now(); // Start time
+    let serverReq = '';
     try{
         //console.log('duckDbLoadOpfsParquetFile');
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         try {
-            //await duckDbClient.dumpParquetMetadata(fileName);
-            //await duckDbClient.dumpSpecificParquetMetadata(fileName,'sliderule');
-            //await duckDbClient.readParquetMetadata(fileName);
+            const serverReqResult =  await duckDbClient.getServerReqFromMetaData(fileName);
+            if(serverReqResult){
+                serverReq = serverReqResult;
+            }
         } catch (error) {
             console.error('Error dumping parquet metadata:', error);
         }
@@ -391,7 +392,8 @@ export async function duckDbLoadOpfsParquetFile(fileName: string) {
     } finally {
         const endTime = performance.now(); // End time
         console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
-    }   
+    }
+    return serverReq;   
 }
 
 export interface SrScatterChartData { value: number[] };
