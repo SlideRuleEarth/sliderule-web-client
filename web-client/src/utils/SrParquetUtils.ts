@@ -224,12 +224,12 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
 
 export const updateElevationForReqId = async (req_id:number) => {
     try{
-        console.log('updateElevationForReqId req_id:',req_id);
+        //console.log('updateElevationForReqId req_id:',req_id);
         useMapStore().setIsLoading();
 
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
             const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
-            console.log('updateElevationForReqId maxNumPntsToDisplay:',maxNumPnts);
+            //console.log('updateElevationForReqId maxNumPntsToDisplay:',maxNumPnts);
             if(req_id >0 ){
                 await duckDbReadAndUpdateElevationData(req_id, maxNumPnts);
             } else {

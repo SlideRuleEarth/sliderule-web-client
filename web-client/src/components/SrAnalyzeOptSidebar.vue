@@ -249,7 +249,7 @@ const updateElevationMap = async (req_id: number) => {
         }
 
         deckStore.deleteSelectedLayer();
-        console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
+        //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
         //console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
@@ -269,7 +269,7 @@ const updateElevationMap = async (req_id: number) => {
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
     }
     try {
-        console.log('pushing selectedReqId:', req_id);
+        //console.log('pushing selectedReqId:', req_id);
         router.push(`/analyze/${useAtlChartFilterStore().getReqId()}`);
         console.log('Successfully navigated to analyze:', useAtlChartFilterStore().getReqId());
     } catch (error) {

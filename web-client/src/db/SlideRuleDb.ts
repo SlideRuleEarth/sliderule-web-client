@@ -152,14 +152,14 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Clear existing entries in the table
             await this.colors.clear();
-            console.log('colors table cleared.');
+            //console.log('colors table cleared.');
 
             // Add new colors
             for (const color of colors) {
                 await this.colors.add({ color });
             }
 
-            console.log('All colors restored:', colors);
+            //console.log('All colors restored:', colors);
         } catch (error) {
             console.error('Failed to restore all colors:', error);
             throw error;
@@ -171,7 +171,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const colorRecords = await this.colors.toArray();
             const colors = colorRecords.map(record => record.color);
-            console.log('Retrieved all colors from colors:', colors);
+            //console.log('Retrieved all colors from colors:', colors);
             return colors;
         } catch (error) {
             console.error('Failed to retrieve all colors from colors:', error);
@@ -318,7 +318,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
-            console.log('Retrieved all atl03CnfColors in ascending order:', colorRecords);
+            //console.log('Retrieved all atl03CnfColors in ascending order:', colorRecords);
             return colorRecords;
         } catch (error) {
             console.error('Failed to retrieve all atl03CnfColors:', error);
@@ -331,7 +331,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl08ClassColors.orderBy('number').toArray();
-            console.log('Retrieved all atl08ClassColors in ascending order:', colorRecords);
+            //console.log('Retrieved all atl08ClassColors in ascending order:', colorRecords);
             return colorRecords;
         } catch (error) {
             console.error('Failed to retrieve all atl08ClassColors:', error);
@@ -349,7 +349,7 @@ export class SlideRuleDexie extends Dexie {
             // Map the sorted records to get an array of colors
             const colors = colorRecords.map(record => record.color);
             
-            console.log('Retrieved ordered list of colors:', colors);
+            //console.log('Retrieved ordered list of colors:', colors);
             return colors;
         } catch (error) {
             console.error('Failed to retrieve ordered list of colors:', error);
@@ -366,7 +366,7 @@ export class SlideRuleDexie extends Dexie {
             // Map the sorted records to get an array of colors
             const colors = colorRecords.map(record => record.color);
             
-            console.log('Retrieved ordered list of colors:', colors);
+            //console.log('Retrieved ordered list of colors:', colors);
             return colors;
         } catch (error) {
             console.error('Failed to retrieve ordered list of colors:', error);

@@ -95,7 +95,7 @@ watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
 });
 
 watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
-  console.log('Watch updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
+  //console.log('Watch updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
   debouncedFetchScatterOptions();
 });
 
@@ -112,7 +112,7 @@ const computedSelectedAtl03ColorMap = computed(() => {
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
+    //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());

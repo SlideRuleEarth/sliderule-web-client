@@ -125,7 +125,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             try {
                 if(workerMsg?.req_id > 0){
                     fileName = await db.getFilename(workerMsg.req_id);
-                    await duckDbLoadOpfsParquetFile(fileName);
+                    const serverReq = await duckDbLoadOpfsParquetFile(fileName);
+                    await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReq });
                     await updateElevationForReqId(workerMsg.req_id);
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
