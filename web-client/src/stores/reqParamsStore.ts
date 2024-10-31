@@ -196,6 +196,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         target_numAtl06Recs: 0,
         target_numAtl06pRecs: 0,
         useChecksum: false,
+        enableSurfaceElevation: false,
     }),
     actions: {
         getRasterizePolyCellSize() {
@@ -282,8 +283,10 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.signalConfidenceNumber.length>0){
             req.cnf = this.signalConfidenceNumber;
           }
-          if(this.getMinWindowHeight() >= 0.0){
-            req.H_min_win = this.getMinWindowHeight();
+          if(this.getEnableSurfaceElevation()){
+            if(this.getMinWindowHeight() >= 0.0){
+              req.H_min_win = this.getMinWindowHeight();
+            }
           }
           if(this.getLengthValue() >= 0.0){
             req.len = this.getLengthValue();
@@ -291,11 +294,15 @@ export const useReqParamsStore = defineStore('reqParams', {
           if(this.getStepValue() >= 0.0){
             req.res = this.getStepValue();
           }
-          if(this.getSigmaRmax() >= 0.0){
-            req.sigma_r_max = this.getSigmaRmax();
+          if(this.getEnableSurfaceElevation()){
+            if(this.getSigmaRmax()>=0.0){
+              req.sigma_r_max = this.getSigmaRmax();
+            }
           }
-          if(this.getMaxIterations() > 0){
-            req.maxi = this.getMaxIterations();
+          if(this.getEnableSurfaceElevation()){
+            if(this.getMaxIterations()>=0){
+              req.maxi = this.getMaxIterations();
+            }
           }
           if(this.poly && !this.ignorePolygon) {
             req.poly = this.poly;
@@ -743,6 +750,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         setEnableAtl08Classification(enableAtl08Classification:boolean) {
           this.enableAtl08Classification = enableAtl08Classification;
+        },
+        getEnableSurfaceElevation(): boolean {
+          return this.enableSurfaceElevation;
+        },
+        setEnableSurfaceElevation(enableSurfaceElevation:boolean) {
+          this.enableSurfaceElevation = enableSurfaceElevation;
         },
     },
 })
