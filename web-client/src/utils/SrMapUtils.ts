@@ -171,11 +171,15 @@ export function disableTagDisplay(): void {
 }
 
 
-function formatObject(obj: { [key: string]: any }): string {
+function formatElObject(obj: { [key: string]: any }): string {
     return Object.entries(obj)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n');
-  }
+      .map(([key, value]) => {
+        return `<strong>${key}</strong>: <em>${value}</em>`;
+    })
+      .join('<br>'); // Use <br> for line breaks in HTML
+}
+
+
 interface TooltipParams {
     x: number;
     y: number;
@@ -395,7 +399,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         },
         onHover: ({ object, x, y }) => {
             if (object && !useDeckStore().isDragging) {
-                const tooltip = formatObject(object);
+                const tooltip = formatElObject(object);
                 showTooltip({ x, y, tooltip });
             } else {
                 hideTooltip();
