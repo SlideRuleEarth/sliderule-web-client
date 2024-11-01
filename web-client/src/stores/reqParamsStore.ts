@@ -31,7 +31,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         asset: 'icesat2',
         isArrowStream: false,
         isFeatherStream: false,
-        rasterizePolyCellSize: 0.0001,
+        rasterizePolyCellSize: 0.001,
         ignorePolygon: false,
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,

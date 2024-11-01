@@ -176,6 +176,7 @@ const onClear = () => {
             />
             <SrSliderInput
                 label="Rasterize Polygon cell size"
+                unitsLabel="Degrees"
                 v-model="reqParamsStore.rasterizePolyCellSize"
                 :getValue="reqParamsStore.getRasterizePolyCellSize"
                 :setValue="reqParamsStore.setRasterizePolyCellSize"

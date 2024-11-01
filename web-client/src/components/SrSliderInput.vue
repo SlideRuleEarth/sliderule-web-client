@@ -5,6 +5,7 @@
             <div class="sr-slider-input-row">
                 <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" :step="sliderStepSize" class="sr-slider" :disabled="props.insensitive" />
                 <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="props.insensitive"/>
+                <span class="sr-units-label">{{ props.unitsLabel }}</span>
             </div>
         </div>
     </div>
@@ -47,6 +48,10 @@
         label: {
             type: String,
             default: 'Label'
+        },
+        unitsLabel: {
+            type: String,
+            default: ''
         },
         id: {
             type: String,
@@ -210,19 +215,9 @@
     background: transparent;
     border-color: transparent;
 }
-
-/* :deep(.p-slider .p-slider-handle) {
-    width: 12px; 
-    height: 12px;
-}  */
-
-/* :deep(.p-slider.p-slider-horizontal) {
-    height: 0.2rem;
-} */
-
-/* :deep(.p-slider.p-slider-horizontal .p-slider-handle) {
-    margin-top: -0.25rem;
-    margin-left: -0.25rem;
-} */
+.sr-units-label {
+    font-size: 0.8rem; /* Adjust as needed */
+    margin-left: 0.25rem; /* Adjust spacing if necessary */
+}
 
 </style>
