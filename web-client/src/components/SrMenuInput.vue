@@ -113,10 +113,10 @@
     width: 100%; /* Ensures it spans the full width of its parent */
 }
 .sr-select-menu-default {
-    width: auto; 
+    width: auto;
     padding: 0.25rem;
     color: white;
-    background-color: transparent;
+    background-color: #2c2c2c; /* Set a default dark background */
     border-radius: var(--p-border-radius);
     font-family: var(--p-font-family);
     font-size: small;
@@ -125,11 +125,19 @@
 .sr-select-menu-default-insensitive {
     width: auto;
     padding: 0.25rem;
-    color: #888; /*  grey color */
-    background-color: transparent;
+    color: #888;
+    background-color: #1e2b38; /* Slightly different color for insensitive */
     border-radius: var(--p-border-radius);
     font-family: var(--p-font-family);
     font-size: small;
+    cursor: not-allowed;
 }
+
+/* Add hover effect to improve visibility */
+.sr-select-menu-default option:hover {
+    background-color: #444444; /* Darker background on hover */
+    color: white;
+}
+
 </style>
   
