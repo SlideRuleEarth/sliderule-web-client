@@ -1,7 +1,7 @@
 <template>
     <div class="sr-calendar">
         <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <DatePicker v-model="innerModelValue" showIcon showTime showSeconds hourFormat="24" timeSeperator=':' :showOnFocus="false" :inputId="inputId" dateFormat="yy-mm-ddT" :disabled="insensitive"/>
+        <DatePicker v-model="innerModelValue" showIcon showTime showSeconds hourFormat="24" timeSeperator=':' :showOnFocus="false" :inputId="inputId" dateFormat="yy-mm-ddT" :disabled="insensitive" :minDate="useReqParamsStore().minDate"/>
     </div>
 </template>
 
@@ -9,6 +9,7 @@
 import { computed } from 'vue';
 import DatePicker from 'primevue/datepicker';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 
 const props = defineProps({
     label: {type:String,

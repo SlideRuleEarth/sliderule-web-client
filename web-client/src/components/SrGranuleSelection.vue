@@ -113,8 +113,18 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
             tooltipUrl="https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf"
         />
         <Fieldset legend="Time Range" class="sr-time-range-content" :toggleable="true" :collapsed="false">
+            <SrCheckbox
+                :insensitive="!(reqParamsStore.enableGranuleSelection)"
+                v-model="reqParamsStore.useTime"
+                :getCheckboxValue="reqParamsStore.getUseTime"
+                :setCheckboxValue="reqParamsStore.setUseTime"
+                label="Use Time Filter"
+                labelFontSize="large"
+                tooltipText="Filter granules by time" 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            />
             <SrCalendar
-                :insensitive="!reqParamsStore.enableGranuleSelection"
+                :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
                 v-model="reqParamsStore.t0Value"
                 label="T0"
                 :getValue="reqParamsStore.getT0"
@@ -123,7 +133,7 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
             />
             <SrCalendar
-                :insensitive="!reqParamsStore.enableGranuleSelection"
+                :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
                 v-model="reqParamsStore.t1Value"
                 label="T1"
                 :getValue="reqParamsStore.getT1"
