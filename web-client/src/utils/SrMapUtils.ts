@@ -169,19 +169,39 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
+
 function formatElObject(obj: { [key: string]: any }): string {
+    const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
+    const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
+  
     return Object.entries(obj)
       .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
       .map(([key, value]) => {
-        // Check if the value is a number, and if so, format it to 3 significant figures
-        const formattedValue = typeof value === 'number' ? value.toPrecision(3) : value;
+        let formattedValue;
+  
+        if (key === 'time' && typeof value === 'number') {
+          // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
+          let adjustedTime = value - gpsToATLASOffset;
+          // Step 2: Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
+          adjustedTime += gpsToUnixOffset;
+          // Step 3: Adjust for UTC by subtracting the GPS-UTC offset
+          adjustedTime -= useReqParamsStore().getGpsToUTCOffset();
+  
+          const date = new Date(adjustedTime); // Convert seconds to milliseconds
+          formattedValue = date.toISOString(); // Format as ISO string in UTC
+          //console.log('value:',value,'adjustedTime:',adjustedTime,'date:',date,'formattedValue:',formattedValue);
+        } else if (typeof value === 'number') {
+          // Format other numbers to 3 significant figures
+          formattedValue = value.toPrecision(3);
+        } else {
+          formattedValue = value;
+        }
+  
         return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
       })
       .join('<br>'); // Use <br> for line breaks in HTML
   }
   
-
-
 interface TooltipParams {
     x: number;
     y: number;

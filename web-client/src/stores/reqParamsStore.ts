@@ -51,8 +51,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         useRegion: false,
         regionValue: 1,
         useTime: false,
-        t0Value: new Date,
-        t1Value: new Date,
+        gpsToUTCOffset: 18, // current leap seconds hack
+        minDate: new Date('2018-10-01T00:00:00Z'),
+        t0Value: new Date('2018-10-01T00:00:00Z'), // Sets to 2018-10-01 UTC, mission start
+        t1Value: new Date(),
         totalTimeoutValue: -1, // this needs to be > the default in the server
         useReqTimeout: false,
         reqTimeoutValue: 600, // this needs to match the default in the server
@@ -344,11 +346,13 @@ export const useReqParamsStore = defineStore('reqParams', {
             if(this.getUseRegion()){
               req.region = this.getRegion();
             }
-            if(this.getT0()){
-              req.t0 = convertTimeFormat(this.getT0(),'%Y-%m-%dT%H:%M:%SZ');
-            }
-            if(this.getT1()){
-              req.t1 = convertTimeFormat(this.getT1(),'%Y-%m-%dT%H:%M:%SZ');
+            if(this.getUseTime()){
+              if(this.getT0()){
+                req.t0 = convertTimeFormat(this.getT0(),'%Y-%m-%dT%H:%M:%SZ');
+              }
+              if(this.getT1()){
+                req.t1 = convertTimeFormat(this.getT1(),'%Y-%m-%dT%H:%M:%SZ');
+              }
             }
           }
           if(this.enableAtl03Confidence) {
@@ -478,6 +482,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         getRegion(): number {
           return this.regionValue;
         },
+        getUseTime(): boolean {
+          return this.useTime;
+        },
+        setUseTime(useTime:boolean) {
+          this.useTime = useTime;
+        },
         setT0(t0Value:Date) {
           this.t0Value = t0Value;
         },
@@ -489,6 +499,12 @@ export const useReqParamsStore = defineStore('reqParams', {
         },
         getT1(): Date {
           return this.t1Value;
+        },
+        getGpsToUTCOffset(): number { // hack a constant instead of a function of time
+          return this.gpsToUTCOffset;
+        },
+        setGpsToUTCOffset(gpsToUTCOffset:number) {
+          this.gpsToUTCOffset = gpsToUTCOffset;
         },
         setBeams(beams: SrListNumberItem[]) {
           this.beams = beams;
