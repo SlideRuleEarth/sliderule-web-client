@@ -169,15 +169,17 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
-
-
 function formatElObject(obj: { [key: string]: any }): string {
     return Object.entries(obj)
+      .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
       .map(([key, value]) => {
-        return `<strong>${key}</strong>: <em>${value}</em>`;
-    })
+        // Check if the value is a number, and if so, format it to 3 significant figures
+        const formattedValue = typeof value === 'number' ? value.toPrecision(3) : value;
+        return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
+      })
       .join('<br>'); // Use <br> for line breaks in HTML
-}
+  }
+  
 
 
 interface TooltipParams {
@@ -186,23 +188,37 @@ interface TooltipParams {
     tooltip: string;
 }
 
-// Utility functions to show and hide tooltip
 function showTooltip({ x, y, tooltip }: TooltipParams): void {
     const tooltipEl = document.getElementById('tooltip');
     if (tooltipEl) {
         tooltipEl.innerHTML = tooltip;
         tooltipEl.style.display = 'block';
 
-        // Calculate the percentage positions
-        const xPercent = (x / window.innerWidth) * 100;
-        const yPercent = (y / window.innerHeight) * 100;
-        const offset = 33; // Offset in percentage to position the tooltip below the pointer
+        const offset = 50; // Offset in pixels to position the tooltip to the right of the pointer
 
-        // Set the tooltip position using percentage
-        tooltipEl.style.left = `${xPercent}%`;
-        tooltipEl.style.top = `${yPercent + offset}%`;
+        // Set initial tooltip position to the right of the pointer
+        tooltipEl.style.left = `${x + offset}px`;
+        tooltipEl.style.top = `${y}px`;
+
+        // Re-check tooltip position and adjust if it goes off-screen
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+
+        if (tooltipRect.right > window.innerWidth) {
+            // If clipped at the right, reposition to the left of the pointer
+            tooltipEl.style.left = `${x - tooltipRect.width - offset}px`;
+        }
+        if (tooltipRect.bottom > window.innerHeight) {
+            // If clipped at the bottom, reposition slightly higher
+            tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - offset}px`;
+        }
+        if (tooltipRect.top < 0) {
+            // If clipped at the top, reposition slightly lower
+            tooltipEl.style.top = `${offset}px`;
+        }
     }
 }
+
+
 
 
 function hideTooltip():void {
