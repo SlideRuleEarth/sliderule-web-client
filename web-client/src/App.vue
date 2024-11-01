@@ -156,21 +156,21 @@ const handleVersionButtonClick = () => {
             <tr>
               <td class="sr-bold-data">Windows</td>
               <td>Yes</td> <!-- Chrome -->
-              <td class="sr-red-txt">No</td> <!-- Firefox -->
+              <td>Yes</td> <!-- Firefox -->
               <td>-</td>  <!-- Safari -->
               <td>Yes</td> <!-- Edge -->
             </tr>
             <tr>
               <td class="sr-bold-data">macOS</td>
               <td>Yes</td> <!-- Chrome -->
-              <td class="sr-red-txt">No</td> <!-- Firefox -->
+              <td>Yes</td> <!-- Firefox -->
               <td>Yes</td> <!-- Safari -->
               <td>Yes</td> <!-- Edge -->
             </tr>
             <tr>
               <td class="sr-bold-data">Linux</td>
               <td>Yes</td> <!-- Chrome -->
-              <td class="sr-red-txt">No</td> <!-- Firefox -->
+              <td>Yes</td> <!-- Firefox -->
               <td>-</td>  <!-- Safari -->
               <td>Yes</td>  <!-- Edge -->
             </tr>
@@ -184,9 +184,9 @@ const handleVersionButtonClick = () => {
             <tr>
               <td class="sr-bold-data">Android</td>
               <td>Yes</td> <!-- Chrome -->
-              <td class="sr-red-txt">No</td> <!-- Firefox -->
+              <td>Yes</td> <!-- Firefox -->
               <td>-</td> <!-- Safari -->
-              <td class="sr-yellow-txt">Unknown</td> <!-- Edge -->
+              <td>Yes</td> <!-- Edge -->
             </tr>
           </tbody>
         </table>
