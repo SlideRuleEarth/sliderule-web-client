@@ -1,6 +1,13 @@
 <script setup lang="ts">
     import SrGenUserSidebarOptions from "@/components/SrGenUserPresets.vue";
-import SrReqDisplay from "./SrReqDisplay.vue";
+    import SrReqDisplay from "./SrReqDisplay.vue";
+    import { useMapStore } from "@/stores/mapStore";
+    import { onMounted } from "vue";
+
+    onMounted(() => {
+        //console.log('Mounted SrGenUserSidebar');
+        useMapStore().setPolySource('Draw on Map');
+    });
 </script>
 
 <template>
