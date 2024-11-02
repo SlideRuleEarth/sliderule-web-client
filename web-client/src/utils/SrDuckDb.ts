@@ -1,10 +1,12 @@
-import { type AsyncDuckDB } from "@duckdb/duckdb-wasm";
-import * as duckdb from "@duckdb/duckdb-wasm";
-import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
-import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
-import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
-import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
-import * as arrow from 'apache-arrow';
+import type { Table } from 'apache-arrow';
+import type { DuckDBBundles,AsyncDuckDB } from "@duckdb/duckdb-wasm";
+//import * as duckdb from "@duckdb/duckdb-wasm";
+//import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
+//import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+//import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
+//import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
+//import * as arrow from 'apache-arrow';
+
 
 // Define the interface for QueryResult
 export interface QueryResult {
@@ -25,17 +27,6 @@ export interface Row {
   [key: string]: any;
 }
 
-// Define the manual bundles for DuckDB
-export const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-  mvp: {
-    mainModule: duckdb_wasm,
-    mainWorker: mvp_worker,
-  },
-  eh: {
-    mainModule: duckdb_wasm_eh,
-    mainWorker: eh_worker,
-  },
-};
 
 // Function to map database types to application types
 const getType = (type: string) => {
@@ -104,13 +95,31 @@ const getType = (type: string) => {
   }
 };
 
-// Function to create the DuckDB instance
+
+// Function to create the DuckDB instance with dynamic imports
 export async function createDb(): Promise<AsyncDuckDB> {
-  //console.log('createDb');
-  const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
+  const { selectBundle, AsyncDuckDB, ConsoleLogger } = await import('@duckdb/duckdb-wasm');
+  // Dynamically import WASM and worker modules to enable code splitting
+  const duckdb_wasm = (await import('@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url')).default;
+  const mvp_worker = (await import('@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url')).default;
+  const duckdb_wasm_eh = (await import('@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url')).default;
+  const eh_worker = (await import('@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url')).default;
+  // Define the manual bundles for DuckDB
+  const MANUAL_BUNDLES: DuckDBBundles = {
+    mvp: {
+      mainModule: duckdb_wasm,
+      mainWorker: mvp_worker,
+    },
+    eh: {
+      mainModule: duckdb_wasm_eh,
+      mainWorker: eh_worker,
+    },
+  };
+  const { mvp, eh } = MANUAL_BUNDLES;
+  const bundle = await selectBundle({ mvp, eh });
   const worker = new Worker(bundle.mainWorker!);
-  const logger = new duckdb.ConsoleLogger();
-  const duckDB = new duckdb.AsyncDuckDB(logger, worker);
+  const logger = new ConsoleLogger();
+  const duckDB = new AsyncDuckDB(logger, worker);
   await duckDB.instantiate(bundle.mainModule, bundle.pthreadWorker);
   return duckDB;
 }
@@ -120,6 +129,7 @@ export class DuckDBClient {
   private _db: AsyncDuckDB | null = null;
   private static _instance: Promise<DuckDBClient> | null = null;
   private _filesInDb: Set<string> = new Set(); // Use a set to store registered files
+  
   constructor(db?: AsyncDuckDB) {
     if (db) {
       this._db = db;
@@ -155,8 +165,9 @@ export class DuckDBClient {
 
   // Method to execute queries
   async query(query: string, params?: any): Promise<QueryResult> {
+    const { Table } = await import('apache-arrow');
     const conn = await this._db!.connect();
-    let tbl: arrow.Table<any>;
+    let tbl: Table<any>;
 
     try {
       if (params) {
@@ -218,7 +229,7 @@ export class DuckDBClient {
     params?: any
   ): Promise<QueryChunkResult> {
     const conn = await this._db!.connect();
-    let tbl: arrow.Table<any>;
+    let tbl: Table<any>;
 
     try {
       // Get the total number of rows for the query if this is the first chunk
@@ -312,6 +323,7 @@ export class DuckDBClient {
 
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
+    const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
     try {
       if (!this._filesInDb.has(name)) {
         const duckDB = await this.duckDB();
@@ -326,7 +338,7 @@ export class DuckDBClient {
           await duckDB.registerFileURL(
             name,
             url,
-            duckdb.DuckDBDataProtocol.HTTP,
+            DuckDBDataProtocol.HTTP,
             false,
           );
         } catch (error:any) {
