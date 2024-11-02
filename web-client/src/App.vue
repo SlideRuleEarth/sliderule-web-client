@@ -98,7 +98,8 @@ const analysisButtonClick = async () => {
 };
 
 const aboutButtonClick = () => {
-  router.push('/about');
+  //router.push('/about');
+  window.location.href = 'https://slideruleearth.io';
 };
 
 // Function to handle the version button click and show the dialog
