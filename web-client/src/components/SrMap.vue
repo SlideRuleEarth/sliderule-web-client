@@ -11,7 +11,7 @@
     import { useMapStore } from "@/stores/mapStore";
     import { useGeoCoderStore } from '@/stores/geoCoderStore';
     import { get as getProjection } from 'ol/proj.js';
-    import { addLayersForCurrentView,getLayer } from "@/composables/SrLayers";
+    import { addLayersForCurrentView } from "@/composables/SrLayers";
     import { Layer as OLlayer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';

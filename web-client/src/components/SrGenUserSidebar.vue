@@ -1,8 +1,8 @@
 <script setup lang="ts">
-    import SrGenUserSidebarOptions from "@/components/SrGenUserPresets.vue";
     import SrReqDisplay from "./SrReqDisplay.vue";
     import { useMapStore } from "@/stores/mapStore";
-    import { onMounted } from "vue";
+    import { onMounted,defineAsyncComponent } from "vue";
+    const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
 
     onMounted(() => {
         //console.log('Mounted SrGenUserSidebar');
@@ -12,7 +12,7 @@
 
 <template>
     <div class="sr-gen-user-sidebar-container">
-        <SrGenUserSidebarOptions />
+        <SrGenUserPresets />
         <SrReqDisplay />
     </div>
 </template>
