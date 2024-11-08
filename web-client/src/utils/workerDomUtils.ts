@@ -14,6 +14,7 @@ import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -25,6 +26,9 @@ const reqParamsStore = useReqParamsStore();
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
+
+let qworker: Worker | null = null;
+let qworkerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 
 function startFetchToFileWorker(){
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
@@ -43,6 +47,44 @@ function startFetchToFileWorker(){
     reqParamsStore.using_worker = true;
     return worker;
 } 
+
+export function startQueryRgtWorker(req_id:number){
+    console.log('startQueryRgtWorker',qworker);
+    if(qworker){
+        console.warn('startQueryRgtWorker qworker already exists');
+        return;
+    }
+    qworker = new Worker(new URL('../workers/queryRgtOptions', import.meta.url), { type: 'module' });
+    const timeoutDuration = 120000;  // 120 secs or 2 minutes
+    console.log('startQueryRgtWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
+
+    qworkerTimeoutHandle = setTimeout(() => {
+        if (qworker) {
+            const msg = `Timeout: Worker operation for queryRgt timed out in:${(timeoutDuration/1000)} secs`;
+            console.error(msg); // added to the timeout to let server timeout first
+            //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
+            useSrToastStore().info('Timeout',msg);
+            cleanUpQWorker();
+            worker = null;
+        }
+    }, timeoutDuration);
+    qworker.postMessage({req_id});
+    qworker.onmessage = async (event) => {
+        if (event.data.error) {
+            console.error('Worker Error:', event.data.error);
+        } else {
+            const { rgts } = event.data;
+            console.log('updateRgtOptions rgts:', rgts);
+            useAtlChartFilterStore().setRgtOptionsWithNumbers(rgts);
+            cleanUpQWorker();
+            //useAtlChartFilterStore().setRgtsWithNumbers(rgts);
+        }
+    }; 
+    qworker.onerror = (error) => {
+        console.error('QWorker error:', error);
+        cleanUpQWorker();
+    };   
+}
 
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
@@ -197,6 +239,17 @@ function cleanUpWorker(){
     mapStore.isAborting = false;
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
+}
+
+function cleanUpQWorker(){
+    if (qworkerTimeoutHandle) {
+        clearTimeout(qworkerTimeoutHandle);
+        qworkerTimeoutHandle = null;
+    }        
+    if(qworker){
+        qworker.terminate();
+        qworker = null;
+    }
 }
 
 function parseCompletionPercentage(message: string): number | null {

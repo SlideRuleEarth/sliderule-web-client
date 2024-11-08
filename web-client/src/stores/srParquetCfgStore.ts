@@ -6,7 +6,7 @@ export const useSrParquetCfgStore = defineStore("srParquetCfg", {
             { name: 'duckDb', value: 'duckDb' },
             // { name: 'hyparquet', value: 'hyparquet' },
         ],
-        maxNumPntsToDisplay: 100000,
+        maxNumPntsToDisplay: 10000,
         chunkSizeToRead: 100000,
     }),
     actions:{

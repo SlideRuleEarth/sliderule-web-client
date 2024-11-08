@@ -323,7 +323,10 @@ export class DuckDBClient {
 
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
+    const startTime = performance.now(); // Start time
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
+    // const endTime1 = performance.now(); // End time
+    // console.log(`insertOpfsParquet load duckdbWASM took:${startTime-endTime1} milliseconds`);
     try {
       if (!this._filesInDb.has(name)) {
         const duckDB = await this.duckDB();
@@ -369,6 +372,9 @@ export class DuckDBClient {
     } catch (error) {
       console.error('insertOpfsParquet error:', error);
       throw error;
+    } finally {
+      const now = performance.now();
+      console.log(`insertOpfsParquet took ${now - startTime} milliseconds. endTime:`,now);
     }
   }
   // Method to dump detailed metadata from a Parquet file

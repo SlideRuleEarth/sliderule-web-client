@@ -5,7 +5,6 @@ import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
 import SrRecReqDisplay from './SrRecIdReqDisplay.vue';
 import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
-import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
 import { formatBytes, updateElevationForReqId, addHighlightLayerForReq } from '@/utils/SrParquetUtils';
 import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
@@ -25,6 +24,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
 import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 import Fieldset from 'primevue/fieldset';
+//import { startQueryRgtWorker } from '@/utils/workerDomUtils';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -212,6 +212,19 @@ const tracksSelection = () => {
 
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
+    useAtlChartFilterStore().setScOrientOptions([]);
+    useAtlChartFilterStore().setPairOptions([]);
+    useAtlChartFilterStore().setTrackOptions([]);
+    useAtlChartFilterStore().setRgtOptionsWithNumbers([]);
+    useAtlChartFilterStore().setCycleOptionsWithNumbers([]);
+    useAtlChartFilterStore().setScOrients([]);
+    useAtlChartFilterStore().setPairs([]);
+    useAtlChartFilterStore().setTracks([]);
+    useAtlChartFilterStore().setBeams([]);
+    useAtlChartFilterStore().setRgts([]);
+    useAtlChartFilterStore().setCycles([]);
+
+    const startTime = performance.now(); // Start time
     if(req_id <= 0){
         console.warn(`updateElevationMap Invalid request ID:${req_id}`);
         return;
@@ -252,30 +265,31 @@ const updateElevationMap = async (req_id: number) => {
         //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
         updateElevationForReqId(atlChartFilterStore.getReqId());
         //console.log('watch req_id SrAnalyzeOptSidebar');
-        const rgts = await updateRgtOptions(req_id);
-        //console.log('watch req_id rgts:',rgts);
-        const cycles = await updateCycleOptions(req_id);
-        //console.log('watch req_id cycles:',cycles);
-        if(atlChartFilterStore.getFunc()==='atl03sp'){
-            const pairs = await updatePairOptions(req_id);
-            //console.log('watch req_id pairs:',pairs);
-            const scOrients = await updateScOrientOptions(req_id);
-            //console.log('watch req_id scOrients:',scOrients);
-            const tracks = await updateTrackOptions(req_id);
-            //console.log('watch req_id tracks:',tracks);
-        }
+        const rgts = updateRgtOptions(req_id);
+        // //console.log('watch req_id rgts:',rgts);
+        const cycles = updateCycleOptions(req_id);
+        // //console.log('watch req_id cycles:',cycles);
+        // if((atlChartFilterStore.getFunc()==='atl03sp') && (useDebugStore().enableSpotPatternDetails)){
+        //     const pairs = await updatePairOptions(req_id);
+        //     console.log('updateElevationMap pairs:',pairs);
+        //     const scOrients = await updateScOrientOptions(req_id);
+        //     console.log('updateElevationMap scOrients:',scOrients);
+        //     const tracks = await updateTrackOptions(req_id);
+        //     console.log('updateElevationMap tracks:',tracks);
+        // }
     } catch (error) {
         console.warn('Failed to update selected request:', error);
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
     }
-    try {
-        //console.log('pushing selectedReqId:', req_id);
-        router.push(`/analyze/${useAtlChartFilterStore().getReqId()}`);
-        console.log('Successfully navigated to analyze:', useAtlChartFilterStore().getReqId());
-    } catch (error) {
-        console.error('Failed to navigate to analyze:', error);
-    }
-    
+    // try {
+    //     //console.log('pushing selectedReqId:', req_id);
+    //     router.push(`/analyze/${useAtlChartFilterStore().getReqId()}`);
+    //     console.log('Successfully navigated to analyze:', useAtlChartFilterStore().getReqId());
+    // } catch (error) {
+    //     console.error('Failed to navigate to analyze:', error);
+    // }
+    const now = performance.now();
+    console.log(`updateElevationMap took ${now - startTime} milliseconds. endTime:`,now);
 };
 
 //const debouncedUpdateElevationMap = debounce(() => console.log('stubbedUpdateElevationMap'), 500);
@@ -360,9 +374,9 @@ const getCnt = computed(() => {
                     <SrSliderInput
                         v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
                         label="Max Num Pnts"
-                        :min="10000"
-                        :max="5000000"
-                        :defaultValue="100000"
+                        :min="10"
+                        :max="3000000"
+                        :defaultValue="10000"
                         :decimalPlaces=0
                         tooltipText="Maximum number of points to display"
                     />

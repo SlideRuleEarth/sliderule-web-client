@@ -1,5 +1,5 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient, type QueryResult } from './SrDuckDb';
+import { createDuckDbClient, type QueryResult } from '@/utils/SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from './SrMapUtils';
@@ -118,6 +118,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnts=100000, chunkSize:number=100000) => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    const startTime = performance.now(); // Start time
     let srViewName = await indexedDb.getSrViewName(req_id);
     if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
         srViewName = 'Global Mercator Esri';
@@ -128,7 +129,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return;
     }
-    const startTime = performance.now(); // Start time
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
@@ -157,7 +157,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
                 console.error('duckDbReadAndUpdateElevationData sample_fraction error:', error);
             }
             console.warn('duckDbReadAndUpdateElevationData maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
-                        // Step 1: Initialize the DuckDB client
+            // Step 1: Initialize the DuckDB client
             const duckDbClient = await createDuckDbClient();
 
             // Step 2: Retrieve the filename using req_id
@@ -165,8 +165,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, maxNumPnt
 
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
-            //const server_req = await duckDbClient.getServerReqFromMetaData(filename);
-            //console.log('duckDbReadAndUpdateElevationData server_req:', server_req);
+
             // Step 4: Execute a SQL query to retrieve the elevation data
             //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
@@ -588,10 +587,13 @@ export async function updateRgtOptions(req_id: number): Promise<number[]> {
     try{
         const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
+        const endTime1 = performance.now(); // End time
+        console.log(`updateRgtOptions Query took ${endTime1 - startTime} milliseconds.`);
+
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
-                    //console.log('getRgt row:', row);
+                    console.log('getRgt row:', row);
                     rgts.push(row.rgt);
                 } else {
                     console.warn('getRgts fetchData rowData is null');
@@ -620,7 +622,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
-                    //console.log('getPairs row:', row);
+                    console.log('getPairs row:', row);
                     pairs.push(row.pair);
                 } else {
                     console.warn('getPairs fetchData rowData is null');
@@ -752,7 +754,6 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
             }
         } 
         useAtlChartFilterStore().setCycleOptionsWithNumbers(cycles);   
-        //console.log('updateCycleOptions cycles:', useAtlChartFilterStore().getCycleOptions());
     } catch (error) {
         console.error('updateCycleOptions Error:', error);
         throw error;
@@ -762,6 +763,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
     }
     return cycles;
 }
+
 async function fetchAtl06ScatterData(
         fileName: string, 
         x: string, 
@@ -1180,7 +1182,7 @@ async function getSeriesForAtl08( fileName: string, x: string, y: string[]): Pro
 
 export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any> {
     const startTime = performance.now(); // Start time
-    //console.log('getScatterOptions sop:', sop);
+    console.log('getScatterOptions sop:', sop);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];

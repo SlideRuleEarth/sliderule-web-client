@@ -253,7 +253,7 @@ export interface ElevationDataItem {
 }
 
 async function clicked(d:ElevationDataItem): Promise<void> {
-    //console.log('Clicked:',d);
+    console.log('Clicked:',d);
     useAtlChartFilterStore().resetTheScatterPlot();
     useAtl03ColorMapStore().setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
@@ -410,9 +410,10 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         //     return new Float64Array(coords); // Use Float64Array for higher precision
         // },
         getNormal: [0, 0, 1],
-        getColor: (d:any) => {
-            let c; 
-            try{
+
+        getColor: (d: any) => {
+            let c = null;
+            try {
                 const h = d[heightFieldName];
                 c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
                 //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
@@ -434,6 +435,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
             depthTest: false
         },
         onHover: ({ object, x, y }) => {
+            //console.log('onHover object:',object,' x:',x,' y:',y);
             if (object && !useDeckStore().isDragging) {
                 const tooltip = formatElObject(object);
                 showTooltip({ x, y, tooltip });
@@ -442,6 +444,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
             }
         },
         onClick: ({ object, x, y }) => {
+            console.log('onClick object:',object,' x:',x,' y:',y);
             if (object) {
                 clicked(object);
             }
@@ -500,7 +503,7 @@ export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string)
     }
     const new_layer = new OLlayer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
-            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+            //console.log('OLlayer - render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             const [width, height] = size;
             //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             let [longitude, latitude] = viewState.center;

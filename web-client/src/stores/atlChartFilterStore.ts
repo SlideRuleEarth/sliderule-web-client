@@ -5,7 +5,6 @@ import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
-import { get } from 'lodash';
 
 
 export interface SrListNumberItem {
@@ -101,9 +100,23 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
       this.setSpots([{ label: spot.toString(), value: spot }]);
     },
+    setSpotsWithNumbers(spots: number[]) {
+      if (!Array.isArray(spots)) {
+        console.error('spots is not an array:', spots);
+        return;
+      }
+      this.setSpots(spots.map(spot => ({ label: spot.toString(), value: spot })));
+    },
     setRgts(rgts: SrListNumberItem[]) {
       //console.log('atlChartFilterStore setRgts:', rgts);
       this.rgts = rgts;
+    },
+    setRgtsWithNumbers(rgtOptions: number[]) {
+      if (!Array.isArray(rgtOptions)) {
+        console.error('rgtOptions is not an array:', rgtOptions);
+        return;
+      }
+      this.setRgts(rgtOptions.map(option => ({ label: option.toString(), value: option })));
     },
     getRgts() {
       //console.log('atlChartFilterStore getRgts:', this.rgts);
@@ -111,9 +124,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getRgtValues() {
       return this.rgts.map(rgt => rgt.value);
-    },
-    getCycleValues() {
-      return this.cycles.map(cycle => cycle.value);
     },
     setRgtOptionsWithNumbers(rgtOptions: number[]) {
       if (!Array.isArray(rgtOptions)) {
@@ -150,6 +160,16 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setCycles(cycles: SrListNumberItem[]) {
       //console.log('atlChartFilterStore.setCycles():', cycles);
       this.cycles = cycles;
+    },
+    getCycleValues() {
+      return this.cycles.map(cycle => cycle.value);
+    },
+    setCyclesWithNumbers(cycles: number[]) {
+      if (!Array.isArray(cycles)) {
+        console.error('cycles is not an array:', cycles);
+        return;
+      }
+      this.setCycles(cycles.map(cycle => ({ label: cycle.toString(), value: cycle })));
     },
     getCycles() {
       //console.log('atlChartFilterStore.getCycles():', this.cycles);
@@ -372,7 +392,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.size;
     },
     getScatterOptionsParms(): SrScatterOptionsParms {
-      //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
+      console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts:',this.rgts);
       const sop =  {
         rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
         cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),

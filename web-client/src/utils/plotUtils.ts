@@ -63,7 +63,7 @@ export const fetchScatterOptions = async () => {
         } finally {
           atlChartFilterStore.resetIsLoading();
           const now = performance.now();
-          //console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
+          console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
         }
       } else {
         console.warn('fetchScatterOptions No y options selected');
