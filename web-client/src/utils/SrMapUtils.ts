@@ -192,7 +192,7 @@ function formatElObject(obj: { [key: string]: any }): string {
           //console.log('value:',value,'adjustedTime:',adjustedTime,'date:',date,'formattedValue:',formattedValue);
         } else if (typeof value === 'number') {
           // Format other numbers to 3 significant figures
-          formattedValue = value.toPrecision(3);
+          formattedValue = value.toPrecision(5);
         } else {
           formattedValue = value;
         }

@@ -1,5 +1,5 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
-import { createDuckDbClient, type QueryResult } from './SrDuckDb';
+import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from './SrMapUtils';
@@ -584,6 +584,7 @@ export async function updateRgtOptions(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
     const rgts = [] as number[];
     try{
         const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
@@ -613,6 +614,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
     const pairs = [] as number[];
     try{
         const query = `SELECT DISTINCT pair FROM '${fileName}' order by pair ASC`;
@@ -737,6 +739,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
 
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
     const cycles = [] as number[];
     try{
         const query = `SELECT DISTINCT cycle FROM '${fileName}' order by cycle ASC`;
@@ -758,7 +761,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
     }
     return cycles;
 }
