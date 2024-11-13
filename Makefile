@@ -56,7 +56,7 @@ run: ## Run the web client locally for development
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	npm run dev
 
-preview: build ## Preview the web client production build locally for development with http-server
+preview: build ## Preview the web client production build locally for development 
 	cd web-client && npm run preview
 
 deploy: # Deploy the web client to the S3 bucket
