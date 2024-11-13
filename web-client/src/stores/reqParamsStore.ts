@@ -216,6 +216,17 @@ export const useReqParamsStore = defineStore('reqParams', {
         removeResource(index: number) {
           this.resources.splice(index, 1);
         },
+        getFunc(): string {
+          let func = 'xxx';
+          if(this.missionValue === 'ICESat-2') {
+            func = this.iceSat2SelectedAPI;
+          } else if (this.missionValue === 'GEDI') {
+            func = this.gediSelectedAPI;
+          } else {
+            console.error('getFunc: mission not recognized:', this.missionValue);
+          }
+          return func;
+        },
         getAtlReqParams(req_id: number): AtlReqParams { 
           //console.log('getAtlReqParams req_id:', req_id);
           const getOutputPath = (): string => {
@@ -230,7 +241,7 @@ export const useReqParamsStore = defineStore('reqParams', {
               if(req_id > 0) {
                 reqIdStr = `${req_id}`;
               }
-              path = `${this.iceSat2SelectedAPI}_${reqIdStr}_SVR_TMP_${new Date().toISOString()
+              path = `${this.getFunc()}_${reqIdStr}_SVR_TMP_${new Date().toISOString()
                 .replace(/:/g, '_')
                 .replace(/\./g, '_')
                 .replace(/T/g, '_')
@@ -713,11 +724,11 @@ export const useReqParamsStore = defineStore('reqParams', {
           return this.missionItems;
         },
         getIceSat2API() : string {
-          console.log('getIceSat2API:', this.iceSat2SelectedAPI);
+          //console.log('getIceSat2API:', this.iceSat2SelectedAPI);
           return this.iceSat2SelectedAPI;
         },
         setIceSat2API(value:string) {
-          console.log('setIceSat2API:', value);
+          //console.log('setIceSat2API:', value);
           this.iceSat2SelectedAPI = value;
         },
         getGediAPI() : string {
