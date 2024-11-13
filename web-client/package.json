@@ -75,6 +75,8 @@
     "start-server-and-test": "^2.0.8",
     "typescript": "~5.6.2",
     "vite": "^5.4.6",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-vue-devtools": "^7.6.4",
     "vitest": "^2.1.1",
     "vue-tsc": "^2.1.6"
   },

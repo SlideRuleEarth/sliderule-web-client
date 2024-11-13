@@ -43,8 +43,9 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "tests/**/*.ts",
-    "tests/**/*.tsx"
-, "workerMimeTypePlugin.ts"  ],
+    "tests/**/*.tsx",
+    "workerMimeTypePlugin.ts",  
+  ],
   "exclude": [
     "node_modules"
   ]
