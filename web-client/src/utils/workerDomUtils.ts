@@ -217,7 +217,7 @@ function parseCompletionPercentage(message: string): number | null {
 
 async function runFetchToFileWorker(srReqRec:SrRequestRecord){
     try{
-        //console.log('runFetchToFileWorker srReqRec:',srReqRec);
+        console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
             mapStore.setCurrentReqId(srReqRec.req_id);
