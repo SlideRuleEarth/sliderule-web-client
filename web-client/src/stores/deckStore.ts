@@ -18,6 +18,7 @@ export const useDeckStore = defineStore('deck', {
             return this.deckInstance;
         },
         clearDeckInstance() {
+            const startTime = performance.now(); // Start time
             if (this.deckInstance) {
                 console.warn('clearDeckInstance()');
                 this.deckInstance.finalize(); // This ensures all resources are properly released.
@@ -25,6 +26,8 @@ export const useDeckStore = defineStore('deck', {
             } else {
                 console.warn('clearDeckInstance(): deckInstance is null');
             }
+            const now = performance.now();
+            console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
         }, 
         replaceOrAddElLayer(layer:any): boolean {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {

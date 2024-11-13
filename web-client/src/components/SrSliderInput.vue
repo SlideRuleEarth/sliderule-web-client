@@ -80,7 +80,7 @@
         //console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
         sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
         innerValue.value = props.modelValue;
-        console.log(`${props.label} Slider Step Size: ${sliderStepSize.value}`);
+        //console.log(`${props.label} Slider Step Size: ${sliderStepSize.value}`);
     });
 
     const emit = defineEmits(['update:modelValue']);

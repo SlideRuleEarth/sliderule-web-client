@@ -5,8 +5,6 @@ import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
-import { get } from 'lodash';
-
 
 export interface SrListNumberItem {
   label: string;

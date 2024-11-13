@@ -307,6 +307,8 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('watch selectedReqId --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
         const req_id = Number(newSelection.value)
+        await updateRgtOptions(req_id);
+        await updateCycleOptions(req_id);
         debouncedUpdateElevationMap(req_id);
     } catch (error) {
         console.error('Failed to update selected request:', error);

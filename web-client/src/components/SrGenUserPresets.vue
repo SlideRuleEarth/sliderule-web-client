@@ -50,7 +50,7 @@ const selectBox = (boxId: number) => {
         break;
       case 'ICESat-2 Geolocated Photons':
         reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl03vp');
+        reqParameterStore.setIceSat2API('atl03sp');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'GEDI Aboveground Biomass Density':
