@@ -27,10 +27,8 @@
                       zlevel:100
                     }" 
             />
-            <SrAtl03ColorLegend />
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
           </div> 
-          <div class="sr-scatter-plot-legend">
-          </div>
     </div>
 </template>
 
