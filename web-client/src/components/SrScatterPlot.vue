@@ -27,7 +27,10 @@
                       zlevel:100
                     }" 
             />
+            <SrAtl03ColorLegend />
           </div> 
+          <div class="sr-scatter-plot-legend">
+          </div>
     </div>
 </template>
 
@@ -44,6 +47,7 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
+import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -152,11 +156,11 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 }
 .sr-scatter-plot-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
   align-items: left;
-  margin: 0.5rem;
-  padding: 1rem;
+  margin: 0rem;
+  padding: 0rem;
   overflow-y: auto;
   overflow-x: auto;
   height: 100%;
