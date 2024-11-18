@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
     import Button from 'primevue/button';
-    import { onMounted } from 'vue';
+    import { onMounted,ref } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import { db } from '@/db/SlideRuleDb';
@@ -14,12 +14,14 @@
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import router from '@/router/index.js';
     import { defineEmits, computed } from 'vue';
+    import SrCustomTooltip from './SrCustomTooltip.vue';
 
     const toast = useToast();
     const srToastStore = useSrToastStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
+    const tooltipRef = ref();
 
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
     const computedDataLoaded = computed(() =>(mapStore.getCurrentRows() == mapStore.getTotalRows()) && (mapStore.getTotalRows()>0) );
@@ -111,8 +113,9 @@
                 </div>
                 <Button
                     v-if=computedDataLoaded
-                    class="sr-analyze-button"
                     icon="pi pi-chart-line"
+                    @mouseover="tooltipRef.showTooltip($event, 'Analyze the current request')"
+                    @mouseleave="tooltipRef.hideTooltip"
                     @click="analysisButtonClick"
                     rounded 
                     aria-label="Analyze"
@@ -123,8 +126,9 @@
                 </Button>
                 <Button
                     v-if=computedDataLoaded
-                    class="sr-analyze-button"
                     icon="pi pi-file-export"
+                    @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
+                    @mouseleave="tooltipRef.hideTooltip"
                     @click="exportButtonClick"
                     rounded 
                     aria-label="Export"
@@ -133,6 +137,7 @@
                     variant="text"
                 >
                 </Button>
+                <SrCustomTooltip ref="tooltipRef"/>
 
                 <Button 
                     class="sr-run-abort-button" 
