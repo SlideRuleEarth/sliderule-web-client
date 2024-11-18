@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
+import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/sliderule/icesat2';
 import { liveQuery } from 'dexie';
 import type { SrMenuItem } from '@/components/SrMenuInput.vue';
@@ -133,8 +133,15 @@ export const useRequestsStore = defineStore('requests', {
       
       const promises = fetchedReqIds.map(async (id: number) => {
         const status = await db.getStatus(id);
+        const funcStr = await db.getFunc(id);
+        const descr = await db.getDescription(id);
+        let truncatedDescr = '';
+        if (descr !== DEFAULT_DESCRIPTION) {
+          truncatedDescr = descr.length > 10 ? descr.substring(0, 10) + '...' : descr;
+          truncatedDescr = ' - ' + truncatedDescr;
+        }
         if ((status == 'success') || (status == 'imported')) {
-          return { name: id.toString(), value: id.toString() };
+          return { name: `${id.toString()} - ${funcStr} ${truncatedDescr}`, value: id.toString() };
         }
       });
     

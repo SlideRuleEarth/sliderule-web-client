@@ -332,7 +332,7 @@ const getCnt = computed(() => {
                     <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
                     <div class="sr-analysis-reqid" v-else>
                         <SrMenuInput 
-                            label="Record Id" 
+                            label="Record" 
                             :menuOptions="reqIds" 
                             v-model="selectedReqId"
                             @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"

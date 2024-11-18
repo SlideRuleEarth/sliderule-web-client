@@ -3,7 +3,7 @@ import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateRespo
 import { type ReqParams, type NullReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-
+export const DEFAULT_DESCRIPTION = 'Click here to edit description';
 export interface SrTimeDelta{
     days : number,
     hours : number,
@@ -720,7 +720,7 @@ export class SlideRuleDexie extends Dexie {
                 parameters: {} as NullReqParams, 
                 start_time: new Date(), 
                 end_time: new Date(),
-                description: 'Click here to edit description', 
+                description: DEFAULT_DESCRIPTION, 
                 star: false,
             });
             //console.log(`Pending request added with req_id ${reqId}.`);
