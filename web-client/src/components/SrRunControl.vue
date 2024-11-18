@@ -4,18 +4,25 @@
     import { onMounted } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
-    import { useReqParamsStore } from "@/stores/reqParamsStore";
+    import { db } from '@/db/SlideRuleDb';
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
     import SrModeSelect from './SrModeSelect.vue';
+    import { useToast } from "primevue/usetoast";
+    import { useSrToastStore } from "@/stores/srToastStore";
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import router from '@/router/index.js';
+    import { defineEmits, computed } from 'vue';
 
-    const reqParamsStore = useReqParamsStore();
+    const toast = useToast();
+    const srToastStore = useSrToastStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const requestsStore = useRequestsStore();
     const mapStore = useMapStore();
 
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
-
+    const computedDataLoaded = computed(() =>(mapStore.getCurrentRows() == mapStore.getTotalRows()) && (mapStore.getTotalRows()>0) );
     onMounted(async () => {
         //console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
         mapStore.isAborting = false;
@@ -35,7 +42,63 @@
             processRunSlideRuleClicked();
         }
     }
+    const getActiveReqId = async () => {
+        const items = await requestsStore.getMenuItems();
+        if (items.length === 0) {
+            return 0;
+        }
+        const reqIdStr = items[0].value;
+        return Number(reqIdStr);
+    };
 
+    const goToAnalysisForCurrent = async () => {
+        const reqId = await getActiveReqId();
+        if (reqId > 0) {
+            atlChartFilterStore.setReqId(reqId);
+            router.push(`/analyze/${reqId}`);
+        } else {
+            toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+        }
+    };
+    const analysisButtonClick = async () => {
+        if (atlChartFilterStore.getReqId()) {
+            router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
+        } else {
+            goToAnalysisForCurrent();
+        }
+    };
+
+    const exportButtonClick = async () => {
+        let req_id = 0;
+        try {
+            req_id = await getActiveReqId();
+            const fileName = await db.getFilename(req_id);
+            const opfsRoot = await navigator.storage.getDirectory();
+            const folderName = 'SlideRule'; 
+            const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+            const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
+            const file = await fileHandle.getFile();
+            const url = URL.createObjectURL(file);
+            // Create a download link and click it programmatically
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Revoke the object URL
+            URL.revokeObjectURL(url);
+            const msg = `File ${fileName} exported successfully!`;
+            console.log(msg);
+            alert(msg);
+
+        } catch (error) {
+            console.error(`Failed to expport req_id:${req_id}`, error);
+            alert(`Failed to export file for req_id:${req_id}`);
+            throw error;
+        }
+    };
 </script>
 <template>
     <div class="sr-run-abort-panel">
@@ -46,6 +109,31 @@
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
+                <Button
+                    v-if=computedDataLoaded
+                    class="sr-analyze-button"
+                    icon="pi pi-chart-line"
+                    @click="analysisButtonClick"
+                    rounded 
+                    aria-label="Analyze"
+                    size="small"
+                    severity="text" 
+                    variant="text"
+                >
+                </Button>
+                <Button
+                    v-if=computedDataLoaded
+                    class="sr-analyze-button"
+                    icon="pi pi-file-export"
+                    @click="exportButtonClick"
+                    rounded 
+                    aria-label="Export"
+                    size="small"
+                    severity="text" 
+                    variant="text"
+                >
+                </Button>
+
                 <Button 
                     class="sr-run-abort-button" 
                     :class="{ 'abort-mode': mapStore.isLoading }"
@@ -57,7 +145,7 @@
                         <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
                     </template>
                 </Button>
-            </div>
+                </div>
         </div>
         <div class="sr-msg-panel">
                 <span class="sr-console-msg">{{requestsStore.getConsoleMsg()}}</span>
