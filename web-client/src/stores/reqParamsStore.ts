@@ -26,7 +26,7 @@ export const useReqParamsStore = defineStore('reqParams', {
         iceSat2SelectedAPI: 'atl06p' as string,
         iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
         gediSelectedAPI: 'gedi01bp' as string,
-        gediAPIsItems: ['gedi01b','gedi01bp','gedi02a','gedi02ap','gedi04a','gedi04ap'] as string[],
+        gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
         using_worker: false,
         asset: 'icesat2',
         isArrowStream: false,

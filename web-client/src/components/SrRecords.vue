@@ -134,8 +134,6 @@ const confirmDeleteAllReqs = () => {
     }
 };
 
-
-
 onMounted(() => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
@@ -155,8 +153,13 @@ const tooltipRef = ref();
         <DataTable 
             :value="requestsStore.reqs" 
             tableStyle="min-width: 50rem" 
+            table-layout="auto"
             scrollable 
-            scrollHeight="50rem"
+            scrollHeight="flex"
+            scrollWidth="200rem"
+            paginator="true"
+            :rows="3"
+            :rowsPerPageOptions="[3,5,10,20]"
             editMode="cell"
         >
             <Column field="Star" header="">
@@ -310,6 +313,16 @@ const tooltipRef = ref();
 </template>
 
 <style scoped>
+.sr-records-container {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    padding: 0.5rem;
+    border-color: transparent;
+    border-width: 0.5rem;
+    border-style: solid;
+}
+
 .sr-analyze {
     width: 5rem;
     text-align: center;

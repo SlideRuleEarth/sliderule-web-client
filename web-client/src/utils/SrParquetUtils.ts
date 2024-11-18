@@ -186,6 +186,8 @@ export function getHFieldName(funcStr:string) {
         return 'elevation_hr';
     } else if (funcStr===('gedi04ap')) {
         return 'agbd';
+    } else if(funcStr===('gedi01bp')) {
+        return 'elevation_start';
     } else {
         throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
     }
