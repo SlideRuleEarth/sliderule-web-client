@@ -5,29 +5,30 @@
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-multiselect-container">
                 <SrMultiSelectText 
-                v-model="atlChartFilterStore.yDataForChart"
-                label="Choose" 
-                @update:modelValue="changedYValues"
-                menuPlaceholder="Select elevation data"
-                :menuOptions="atlChartFilterStore.getElevationDataOptions()"
-                :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
+                  v-model="atlChartFilterStore.yDataForChart"
+                  label="Choose" 
+                  @update:modelValue="changedYValues"
+                  menuPlaceholder="Select elevation data"
+                  :menuOptions="atlChartFilterStore.getElevationDataOptions()"
+                  :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
                 />  
             </div>
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
-                    class="scatter-chart" 
-                    :manual-update="true"
-                    :autoresize="{throttle:500}" 
-                    :loading="atlChartFilterStore.isLoading" 
-                    :loadingOptions="{
-                      text:'Data Loading', 
-                      fontSize:20, 
-                      showSpinner: true, 
-                      zlevel:100
-                    }" 
+              class="scatter-chart" 
+              :manual-update="true"
+              :autoresize="{throttle:500}" 
+              :loading="atlChartFilterStore.isLoading" 
+              :loadingOptions="{
+                text:'Data Loading', 
+                fontSize:20, 
+                showSpinner: true, 
+                zlevel:100
+              }" 
             />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
+            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
           </div> 
     </div>
 </template>
@@ -46,6 +47,7 @@ import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
+import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();

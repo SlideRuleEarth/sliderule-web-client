@@ -78,6 +78,12 @@ export class SlideRuleDexie extends Dexie {
                 await this.restoreDefaultAtl03CnfColors();
             }
 
+            // Check and populate atl08ClassColors
+            const atl08ClassColorCount = await this.atl08ClassColors.count();
+            if (atl08ClassColorCount === 0) {
+                await this.restoreDefaultAtl08ClassColors();
+            }
+            
             // Check and populate colors
             const colorsCount = await this.colors.count();
             if (colorsCount === 0) {
