@@ -65,7 +65,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     largeDataThreshold: 1000000 as number,
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
-    selectedAtl03ColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
+    selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
     xLegend: 'Meters' as string,
 }),
 
@@ -558,10 +558,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       return this.plotRef;
     },
     getSelectedAtl03ColorMap() {
-      return this.selectedAtl03ColorMap;
+      return this.selectedAtl03YapcColorMap;
     },
-    setSelectedAtl03ColorMap(selectedAtl03ColorMap: {name:string, value:string}) {
-      this.selectedAtl03ColorMap = selectedAtl03ColorMap;
+    setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
+      this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
     },
     getXLegend() {
       return this.xLegend;
