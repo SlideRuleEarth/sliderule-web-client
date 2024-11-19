@@ -49,6 +49,13 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
       console.warn('atl08ClassColorChanged color is undefined');
     }
 };
+
+const alt03YAPCColorMapChanged = (colorMap:string): void => {
+    console.log(`alt03YAPCColorMapChanged:`,colorMap);
+    clearPlot();
+    debouncedFetchScatterOptions();
+};
+
 </script>
 <template>
 <Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
@@ -75,34 +82,41 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 
 <div class="sr-select-color-key">
     <SrMenu 
-            v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
-            label="Color Map Key" 
-            v-model="atl03ColorMapStore.atl03ColorKey"
-            @update:modelValue="changedColorKey"
-            :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
-            :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
-            :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
-            tooltipText="Data key for Color of atl03 scatter plot"
-        /> 
+        v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
+        label="Alt03 Color Map" 
+        v-model="atl03ColorMapStore.atl03ColorKey"
+        @update:modelValue="changedColorKey"
+        :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
+        :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
+        :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
+        tooltipText="Data key for Color of atl03 scatter plot"
+    /> 
 </div>
-<div class="sr-select-color-map">
-    <SrMenuInput 
-        v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
-        label="Color Map" 
-        :menuOptions="getColorMapOptions()" 
-        v-model="atlChartFilterStore.selectedAtl03ColorMap"
-        tooltipText="Color Map for atl03 scatter plot"
-    />
-    <SrAtl03CnfColors 
-        v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
-        @selectionChanged="atl03CnfColorChanged"
-        @defaultsChanged="atl03CnfColorChanged"
+<div class="sr-select-color-map-panel">
+    <div class="sr-select-atl03-colors">
+        <SrAtl03CnfColors 
+            v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+            @selectionChanged="atl03CnfColorChanged"
+            @defaultsChanged="atl03CnfColorChanged"
         />
-    <SrAtl08ClassColors 
-        v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
-        @selectionChanged="atl08ClassColorChanged"
-        @defaultsChanged="atl08ClassColorChanged"
-    />
+    </div>  
+    <div class="sr-select-atl08-colors">
+        <SrAtl08ClassColors 
+            v-if = "atlChartFilterStore.getFunc() === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
+            @selectionChanged="atl08ClassColorChanged"
+            @defaultsChanged="atl08ClassColorChanged"
+        />
+    </div>
+    <div class="sr-select-yapc-color-map">
+        <SrMenuInput 
+            v-if = "atlChartFilterStore.getFunc() === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
+            label="YAPC Color Map" 
+            :menuOptions="getColorMapOptions()" 
+            @update:modelValue="alt03YAPCColorMapChanged"
+            v-model="atlChartFilterStore.selectedAtl03YapcColorMap"
+            tooltipText="YAPC Color Map for atl03 scatter plot"
+        />
+    </div>
 </div>
 <div class="sr-select-symbol-size">
     <SrSliderInput
@@ -154,6 +168,52 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 </Fieldset>
 </template>
 <style scoped>
+
+.sr-select-color-map {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+
+.sr-select-color-key {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+
+.sr-select-atl03-colors {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+
+.sr-select-atl08-colors {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+
+.sr-select-yapc-color-map {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
+
 .sr-scatter-plot-options {
     display: flex;
     flex-direction: column;
@@ -162,6 +222,7 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     margin: 0.5rem;
     width: 100%;
 }
+
 .sr-sql-stmnt {
     display: flex;
     flex-direction: column;
