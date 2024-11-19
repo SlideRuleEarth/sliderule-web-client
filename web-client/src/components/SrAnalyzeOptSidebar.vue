@@ -16,7 +16,7 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
-import { debounce } from "lodash";
+import { at, debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
@@ -307,6 +307,10 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('watch selectedReqId --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
         const req_id = Number(newSelection.value)
+        deckStore.deleteSelectedLayer();
+        atlChartFilterStore.setSpots([]);
+        atlChartFilterStore.setRgts([]);
+        atlChartFilterStore.setCycles([]);
         await updateRgtOptions(req_id);
         await updateCycleOptions(req_id);
         debouncedUpdateElevationMap(req_id);

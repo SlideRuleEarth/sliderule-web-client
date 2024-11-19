@@ -28,21 +28,16 @@ export const useDeckStore = defineStore('deck', {
             }
             const now = performance.now();
             console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
-        }, 
-        replaceOrAddElLayer(layer:any): boolean {
+        },
+        replaceOrAddLayer(layer:any,name:string): boolean {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === EL_LAYER_NAME) {
+                if (this.pointCloudLayers[i].id === name) {
                     this.pointCloudLayers[i] = layer;
                     return true;
                 }
             }
             this.pointCloudLayers.push(layer);
             return false;
-        },
-        replaceOrAddHighlightLayer(layer:any): boolean {
-            const replaced = this.deleteLayer(SELECTED_LAYER_NAME);
-            this.pointCloudLayers.push(layer);
-            return replaced;
         },
         deleteLayer(layerId:string) {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
@@ -55,13 +50,7 @@ export const useDeckStore = defineStore('deck', {
             return false;
         },
         deleteSelectedLayer() {
-            for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === SELECTED_LAYER_NAME) {
-                    this.pointCloudLayers.splice(i,1);
-                    return true;
-                }
-            }
-            return false;
+            return this.deleteLayer(SELECTED_LAYER_NAME);
         },
         getLayers() {
             // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
