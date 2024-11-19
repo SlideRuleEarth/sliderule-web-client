@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
     import Button from 'primevue/button';
-    import { onMounted,ref } from 'vue';
+    import { onMounted,onBeforeUnmount,ref } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import { db } from '@/db/SlideRuleDb';
@@ -26,14 +26,16 @@
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
     const computedDataLoaded = computed(() =>(mapStore.getCurrentRows() == mapStore.getTotalRows()) && (mapStore.getTotalRows()>0) );
     onMounted(async () => {
-        //console.log('SrRunControl onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
+        console.log('SrRunControl onMounted');
         mapStore.isAborting = false;
         requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
         requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
     });
-
+    onBeforeUnmount(() => {
+        console.log('SrRunControl unmounted');
+    });
     function toggleRunAbort() {
         if (mapStore.isLoading) {
             console.log('abortClicked');
@@ -115,7 +117,7 @@
                     v-if=computedDataLoaded
                     icon="pi pi-chart-line"
                     @mouseover="tooltipRef.showTooltip($event, 'Analyze the current request')"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseleave="tooltipRef.hideTooltip()"
                     @click="analysisButtonClick"
                     rounded 
                     aria-label="Analyze"
@@ -128,7 +130,7 @@
                     v-if=computedDataLoaded
                     icon="pi pi-file-export"
                     @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseleave="tooltipRef.hideTooltip()"
                     @click="exportButtonClick"
                     rounded 
                     aria-label="Export"

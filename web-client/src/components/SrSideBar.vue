@@ -23,6 +23,8 @@ import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
     display: flex;
     flex-direction: column;
     height: 100vh; /* Ensure the sidebar takes up the full viewport height */
+    overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
+    overflow-x: auto; /* Enables horizontal scrolling if content exceeds available space */
   }
   
   .sr-sidebar-header {
