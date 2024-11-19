@@ -379,7 +379,7 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[],
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
         const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255],projName);
-        useDeckStore().replaceOrAddHighlightLayer(layer);
+        useDeckStore().replaceOrAddLayer(layer,SELECTED_LAYER_NAME);
         useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
     } catch (error) {
         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
@@ -470,7 +470,7 @@ export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHM
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
             const layer = createElLayer(elevationData,extHMean,heightFieldName,projName);
-            const replaced = useDeckStore().replaceOrAddElLayer(layer);
+            const replaced = useDeckStore().replaceOrAddLayer(layer,EL_LAYER_NAME);;
             //console.log('updateElLayerWithObject layer:',layer);
             console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
