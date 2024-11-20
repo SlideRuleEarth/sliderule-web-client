@@ -648,6 +648,7 @@
 </script>
 
 <template>
+<div class="sr-main-map">
   <Map.OlMap ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
@@ -679,10 +680,17 @@
     <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
   </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
-
+</div>
 </template>
 
 <style scoped>
+.sr-main-map {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  margin: 1rem;
+}
 .sr-tooltip-style {
   position: absolute;
     z-index: 10;

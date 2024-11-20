@@ -38,6 +38,27 @@ const SrPreset = definePreset(Lara, {
       },
       borderRadius: '0.25rem',
       fontFamily: '"Roboto", sans-serif;'
+  },
+  components: {
+    toast: {
+      colorScheme:{
+        dark: {
+          info: {
+            //background: 'var(--p-toast-info-background)',
+            background: 'color-mix(in srgb, {blue.800}, transparent 10%)',
+          },
+          success: {
+            background: 'color-mix(in srgb, {green.900}, transparent 10%)',
+          },
+          warn: {
+            background: 'color-mix(in srgb, {amber.300}, transparent 10%)',
+          },
+          error: {
+            background: 'color-mix(in srgb, {red.900}, transparent 10%)',
+          }
+        },
+      }
+    }
   }
 });
 
