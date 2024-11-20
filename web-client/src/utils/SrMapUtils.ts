@@ -7,7 +7,6 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Deck } from '@deck.gl/core';
-import proj4 from 'proj4';
 import { toLonLat } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
@@ -33,7 +32,8 @@ import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary } from "@/utils/SrParquetUtils";
-import { db } from "@/db/SlideRuleDb";
+import type { PickingInfo } from '@deck.gl/core';
+import type { MjolnirEvent } from 'mjolnir.js';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -238,9 +238,6 @@ function showTooltip({ x, y, tooltip }: TooltipParams): void {
     }
 }
 
-
-
-
 function hideTooltip():void {
     const tooltipEl = document.getElementById('tooltip');
     if (tooltipEl) {
@@ -254,6 +251,7 @@ export interface ElevationDataItem {
 
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
+    hideTooltip();
     useAtlChartFilterStore().resetTheScatterPlot();
     useAtl03ColorMapStore().setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
@@ -389,6 +387,36 @@ export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[],
     }
 
 }
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+// Check device dimensions
+const deviceWidth = Math.min(window.screen.width, window.screen.height); // Use the smaller value for width
+const deviceHeight = Math.max(window.screen.width, window.screen.height); // Use the larger value for height
+
+// Define breakpoints for iPhone and iPad
+const isIPhone = isTouchDevice && deviceWidth <= 430 && deviceHeight <= 932; // Typical iPhone dimensions
+const isIPad = isTouchDevice && deviceWidth > 430 && deviceWidth <= 768;    // Typical iPad dimensions
+
+// Nullify the handler only for iPhones
+const onHoverHandler = isIPhone
+    ? undefined
+    : (pickingInfo: PickingInfo, event?: MjolnirEvent) => {
+          const { object } = pickingInfo;
+          let x = pickingInfo.x ?? 0;
+          let y = pickingInfo.y ?? 0;
+
+          // Use event.srcEvent for fallback if pickingInfo.x and pickingInfo.y are undefined
+          if (event?.srcEvent instanceof MouseEvent || event?.srcEvent instanceof PointerEvent) {
+              x = pickingInfo.x ?? event.srcEvent.clientX;
+              y = pickingInfo.y ?? event.srcEvent.clientY;
+          }
+
+          if (object && !useDeckStore().isDragging) {
+              const tooltip = formatElObject(object);
+              showTooltip({ x, y, tooltip });
+          } else {
+              hideTooltip();
+          }
+      };
 
 function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
     //console.log('createElLayer elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
@@ -433,14 +461,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
         parameters: {
             depthTest: false
         },
-        onHover: ({ object, x, y }) => {
-            if (object && !useDeckStore().isDragging) {
-                const tooltip = formatElObject(object);
-                showTooltip({ x, y, tooltip });
-            } else {
-                hideTooltip();
-            }
-        },
+        onHover: onHoverHandler,
         onClick: ({ object, x, y }) => {
             if (object) {
                 clicked(object);
