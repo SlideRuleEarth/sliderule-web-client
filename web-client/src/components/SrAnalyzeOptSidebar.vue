@@ -327,7 +327,7 @@ const getCnt = computed(() => {
 });
 
 const tooltipTextStr = computed(() => {
-    return "Has" + getCnt.value + " records and is " + getSize.value + " in size";
+    return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
 </script>
 

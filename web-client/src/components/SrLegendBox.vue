@@ -5,10 +5,10 @@
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
-        {{ curReqSumStore.get_h_mean_Min() !== null && curReqSumStore.get_h_mean_Min() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) : '?' }}
+        {{ curReqSumStore.hMeanMin !== null && curReqSumStore.hMeanMin !== undefined ? parseFloat(curReqSumStore.hMeanMin.toFixed(1)) : '?' }}
       </span>
       <span class="sr-legend-max">
-        {{ curReqSumStore.get_h_mean_Max() !== null && curReqSumStore.get_h_mean_Max() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) : '?' }}
+        {{ curReqSumStore.hMeanMax !== null && curReqSumStore.hMeanMax !== undefined ? parseFloat(curReqSumStore.hMeanMax.toFixed(1)) : '?' }}
       </span>
     </div>
   </div>

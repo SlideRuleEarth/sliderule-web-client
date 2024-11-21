@@ -111,7 +111,7 @@
             <div class="button-spinner-container">
                 <div v-if="mapStore.isLoading" class="loading-indicator">
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
-                    <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
+                    <span class="loading-percentage">{{ useCurReqSumStore().percentComplete }}%</span>
                 </div>
                 <Button
                     v-if=computedDataLoaded

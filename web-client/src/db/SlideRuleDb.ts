@@ -47,6 +47,15 @@ export interface Atl03Color {
     number: number; // Primary key
     color: string;  // 
 }
+
+export interface OverlayRecord {
+    id?: number;            // Auto-incrementing primary key
+    name: string;           // Name or label for the overlay
+    description?: string;   // Optional description
+    req_ids: number[];      // List of req_ids belonging to this overlay
+    created_at?: Date;      // Timestamp of when the overlay was created
+}
+
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
@@ -55,15 +64,17 @@ export class SlideRuleDexie extends Dexie {
     colors!: Table<SrColors>;
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
+    overlays!: Table<OverlayRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(3).stores({
+        this.version(4).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
             atl03CnfColors: 'number',
-            atl08ClassColors: 'number' 
+            atl08ClassColors: 'number', 
+            overlays: '++id, name' // id is auto-incrementing, name is indexed for querying
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -712,7 +723,7 @@ export class SlideRuleDexie extends Dexie {
             return request;
         } catch (error) {
             console.error(`Failed to get request for req_id ${req_id}:`, error);
-            throw error;
+            return undefined;
         }
     }
 
@@ -870,5 +881,79 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+
+    async addOverlay(name: string, req_ids: number[], description = ''): Promise<number> {
+        try {
+            const id = await this.overlays.add({
+                name,
+                description,
+                req_ids,
+                created_at: new Date(),
+            });
+            console.log(`Overlay added with id ${id}`);
+            return id;
+        } catch (error) {
+            console.error('Failed to add overlay:', error);
+            throw error;
+        }
+    }
+
+    async updateOverlay(id: number, updates: Partial<OverlayRecord>): Promise<void> {
+        try {
+            const result = await this.overlays.update(id, updates);
+            if (result === 0) {
+                console.error(`No overlay found with id ${id}`);
+            }
+        } catch (error) {
+            console.error(`Failed to update overlay with id ${id}:`, error);
+            throw error;
+        }
+    }
+
+    async deleteOverlay(id: number): Promise<void> {
+        try {
+            await this.overlays.delete(id);
+            console.log(`Overlay with id ${id} deleted.`);
+        } catch (error) {
+            console.error(`Failed to delete overlay with id ${id}:`, error);
+            throw error;
+        }
+    }
+
+    async getAllOverlays(): Promise<OverlayRecord[]> {
+        try {
+            const overlays = await this.overlays.toArray();
+            console.log('Retrieved overlays:', overlays);
+            return overlays;
+        } catch (error) {
+            console.error('Failed to retrieve overlays:', error);
+            throw error;
+        }
+    }
+
+    async getOverlayByName(name: string): Promise<OverlayRecord | undefined> {
+        try {
+            const overlay = await this.overlays.where('name').equals(name).first();
+            return overlay;
+        } catch (error) {
+            console.error(`Failed to retrieve overlay with name ${name}:`, error);
+            throw error;
+        }
+    }
+
+    async getOverlaysByReqIds(req_ids: number[]): Promise<OverlayRecord[]> {
+        try {
+            const overlays = await this.overlays.filter(overlay => {
+                // Check if any of the req_ids in the overlay match the given req_ids
+                return overlay.req_ids.some(req_id => req_ids.includes(req_id));
+            }).toArray();
+            return overlays;
+        } catch (error) {
+            console.error('Failed to retrieve overlays by req_ids:', error);
+            throw error;
+        }
+    }
+    
+
 }
 export const db = new SlideRuleDexie();

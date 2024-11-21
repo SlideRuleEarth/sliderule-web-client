@@ -21,11 +21,11 @@
             </span>
         </span>
         <span>
-            {{ useCurReqSumStore().getPercentComplete() }} % complete 
+            {{ useCurReqSumStore().percentComplete }} % complete 
         </span>
     </div>
     <div class="sr-progress">
-        <ProgressBar :value="useCurReqSumStore().getPercentComplete()" />
+        <ProgressBar :value="useCurReqSumStore().percentComplete" />
     </div>
 
   </div>
@@ -39,32 +39,32 @@ import ProgressBar from 'primevue/progressbar';
 onMounted(() => {
     //console.log('SrProgress.vue onMounted ');
 });
-const targetArrowDataRecords = computed(() => useCurReqSumStore().getTgtArrowDataRecs());
-const numArrowDataRecords = computed(() => useCurReqSumStore().getNumArrowDataRecs());
-const targetArrowMetaRecords = computed(() => useCurReqSumStore().getTgtArrowMetaRecs());
-const numArrowMetaRecords = computed(() => useCurReqSumStore().getNumArrowMetaRecs());
-const targetExceptions = computed(() => useCurReqSumStore().getTgtExceptions());
-const numExceptions = computed(() => useCurReqSumStore().getNumExceptions());
-const readState = computed(() => useCurReqSumStore().getReadState());
+const targetArrowDataRecords = computed(() => useCurReqSumStore().tgtArrowDataRecs);
+const numArrowDataRecords = computed(() => useCurReqSumStore().numArrowDataRecs);
+const targetArrowMetaRecords = computed(() => useCurReqSumStore().tgtArrowMetaRecs);
+const numArrowMetaRecords = computed(() => useCurReqSumStore().numArrowMetaRecs);
+const targetExceptions = computed(() => useCurReqSumStore().tgtExceptions);
+const numExceptions = computed(() => useCurReqSumStore().numExceptions);
+const readState = computed(() => useCurReqSumStore().readState);
 
 const percentageExceptions = computed(() => {
     const curReqSumStore = useCurReqSumStore();
-    if (curReqSumStore.getTgtExceptions() > 0) {
-        return (curReqSumStore.getNumExceptions()/ curReqSumStore.getTgtExceptions()) * 100;
+    if (curReqSumStore.tgtExceptions > 0) {
+        return (curReqSumStore.numExceptions/ curReqSumStore.tgtExceptions) * 100;
     }
     return 0;
 });
 const percentageArrowDataRecs = computed(() => {
     const curReqSumStore = useCurReqSumStore();
-    if (curReqSumStore.getTgtArrowDataRecs() > 0) {
-        return (curReqSumStore.getNumArrowDataRecs()/ curReqSumStore.getTgtArrowDataRecs()) * 100;
+    if (curReqSumStore.tgtArrowDataRecs > 0) {
+        return (curReqSumStore.numArrowDataRecs/ curReqSumStore.tgtArrowDataRecs) * 100;
     }
     return 0;
 });
 const percentageArrowMetaRecs = computed(() => {
     const curReqSumStore = useCurReqSumStore();
-    if (curReqSumStore.getTgtArrowMetaRecs() > 0) {
-        return (curReqSumStore.getNumArrowMetaRecs()/ curReqSumStore.getTgtArrowMetaRecs()) * 100;
+    if (curReqSumStore.tgtArrowMetaRecs > 0) {
+        return (curReqSumStore.numArrowMetaRecs/ curReqSumStore.tgtArrowMetaRecs) * 100;
     }
     return 0;
 });
