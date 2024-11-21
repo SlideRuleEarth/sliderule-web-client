@@ -3,7 +3,7 @@
         <div class="sr-menu-row">
             <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
                 <SrLabelInfoIconButton :label="label" :labelFontSize="labelFontSize" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
-                <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form">
+                <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form" :title="tooltipText">
                     <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
                         <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
                             {{ item.name }}
@@ -16,7 +16,6 @@
 </template>
   
 <script setup lang="ts">
-    //import { $dt } from '@primevue/themes';
     import { onMounted,ref,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     export interface SrMenuItem {
