@@ -326,6 +326,9 @@ const getCnt = computed(() => {
     return new Intl.NumberFormat().format(parseInt(String(atlChartFilterStore.getRecCnt())));
 });
 
+const tooltipTextStr = computed(() => {
+    return "Has" + getCnt.value + " records and is " + getSize.value + " in size";
+});
 </script>
 
 <template>
@@ -341,16 +344,8 @@ const getCnt = computed(() => {
                             v-model="selectedReqId"
                             @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
                             :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                            tooltipText="Request Id from Record table"
+                            :tooltipText=tooltipTextStr
                         />
-                    </div>
-                    <div class="sr-analysis-sz" v-if="!loading">
-                        <div>
-                            {{ getSize }} 
-                        </div>
-                        <div>
-                            {{ getCnt }} recs
-                        </div>
                     </div>
                 </div>
             </div>
@@ -517,13 +512,6 @@ const getCnt = computed(() => {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
-    }
-    .sr-analysis-sz{
-        display: flex;
-        flex-direction: column;
-        align-items: left;
-        justify-content: space-between;
-        font-size: small;
     }
     .sr-analysis-opt-sidebar-map {
         display: flex;

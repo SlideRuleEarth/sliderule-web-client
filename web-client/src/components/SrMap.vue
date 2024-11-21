@@ -652,7 +652,7 @@
   <Map.OlMap ref="mapRef" @error="handleEvent"
     :loadTilesWhileAnimating="true"
     :loadTilesWhileInteracting="true"
-    style="height: calc(100vh - 4rem); border-top-left-radius: 1rem; overflow: hidden;"
+    style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
     :controls="controls"
   >
     <MapControls.OlLayerswitcherControl
@@ -687,7 +687,7 @@
 .sr-main-map {
   position: relative;
   height: 100%;
-  width: 100%;
+  width: 95%;
   border-radius: 1rem;
   margin: 1rem;
 }
