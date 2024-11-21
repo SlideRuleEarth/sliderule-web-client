@@ -16,7 +16,7 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
-import { at, debounce } from "lodash";
+import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
@@ -61,8 +61,6 @@ const selectedReqId = ref({name:'0', value:'0'});
 const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
 const reqIds = ref<SrMenuItem[]>([]);
-const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
-const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
 const srToastStore = useSrToastStore();
 
@@ -134,9 +132,9 @@ const onSelection = async() => {
     } else if (useAtlChartFilterStore().getFunc()==='atl06sp'){
         useAtlChartFilterStore().setAtl06WhereClause(whereClause);
     } else if (useAtlChartFilterStore().getFunc()==='atl08sp'){
-        useAtlChartFilterStore().setAtl08pWhereClause(whereClause);
+        useAtlChartFilterStore().setAtl08WhereClause(whereClause);
     }
-    useAtlChartFilterStore().updateScatterPlot();
+    useAtlChartFilterStore().incrementUpdateScatterPlotCnt();
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
         (useAtlChartFilterStore().getSpotValues().length > 0)
@@ -230,13 +228,6 @@ const updateElevationMap = async (req_id: number) => {
         } else {
             console.error('No func found for req_id:', req_id);
         }
-        if(request && request.description){
-            atlChartFilterStore.setDescription(request.description);
-        } else {
-            // this is not an error, just a warning
-            console.warn('No description found for req_id:', req_id);
-            atlChartFilterStore.setDescription('description');
-        }
         if(request && request.num_bytes){
             atlChartFilterStore.setSize(request.num_bytes);
         } else {
@@ -249,8 +240,8 @@ const updateElevationMap = async (req_id: number) => {
         }
 
         deckStore.deleteSelectedLayer();
-        //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
-        updateElevationForReqId(atlChartFilterStore.getReqId());
+        //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.func);
+        updateElevationForReqId(atlChartFilterStore.currentReqId);
         //console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
         //console.log('watch req_id rgts:',rgts);
@@ -411,7 +402,7 @@ const tooltipTextStr = computed(() => {
                         v-model="atlChartFilterStore.rgts" 
                         :getSelectedMenuItem="atlChartFilterStore.getRgts"
                         :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                        :menuOptions="rgtsOptions" 
+                        :menuOptions="atlChartFilterStore.rgtOptions" 
                         tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
         vector within the observatory is pointed" 
                         @update:modelValue="RgtsSelection"
@@ -422,7 +413,7 @@ const tooltipTextStr = computed(() => {
                         v-model="atlChartFilterStore.cycles"
                         :getSelectedMenuItem="atlChartFilterStore.getCycles"
                         :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                        :menuOptions="cyclesOptions" 
+                        :menuOptions="atlChartFilterStore.getCycleOptions()" 
                         tooltipText="Counter of 91-day repeat cycles completed by the mission" 
                         @update:modelValue="CyclesSelection"
                     />

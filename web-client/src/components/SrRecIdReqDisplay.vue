@@ -25,7 +25,7 @@
     const curAPI = ref<string>('');;
 
     onMounted(async () => {
-        const reqId = atlChartFilterStore.getReqId();
+        const reqId = atlChartFilterStore.reqId;
         if(reqId) {
             curAPI.value = await db.getFunc(reqId);
             const p = await db.getReqParams(reqId);
@@ -34,7 +34,7 @@
             console.log('SrRecReqDisplay onMounted: no reqId');
         }
     });
-    watch( () => atlChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
+    watch( () => atlChartFilterStore.reqId, async (newReqId, oldReqId) => {
         console.log(`SrRecReqDisplay watch atlChartFilterStore reqId oldReqId:'${oldReqId} to newReqId:'${newReqId}`);
         if (newReqId) {
             curAPI.value = await db.getFunc(newReqId);

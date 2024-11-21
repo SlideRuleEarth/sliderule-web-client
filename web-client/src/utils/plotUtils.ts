@@ -20,7 +20,7 @@ export function clearPlot() {
 export const fetchScatterOptions = async () => {
     const reqId = atlChartFilterStore.getReqId();
     if(reqId > 0){
-      const y_options = atlChartFilterStore.getYDataForChart();
+      const y_options = atlChartFilterStore.yDataForChart;
       if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
         atlChartFilterStore.setShowMessage(false);
         const startTime = performance.now(); // Start time
@@ -36,7 +36,7 @@ export const fetchScatterOptions = async () => {
           const scatterOptions = await getScatterOptions(sop);
           //console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
           if (scatterOptions) {
-            const plotRef = atlChartFilterStore.getPlotRef();
+            const plotRef = atlChartFilterStore.plotRef;
             if(plotRef){
               if(plotRef.chart){
                   console.log('fetchScatterOptions plotRef.chart.setOption:',scatterOptions);

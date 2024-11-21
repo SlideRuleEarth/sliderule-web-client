@@ -22,7 +22,7 @@
 
     const showSqlStmnt = ref(false);
     const computedCurFunc = computed(() => {
-        return atlChartFilterStore.getFunc();
+        return atlChartFilterStore.func;
     });
     const computedSqlStmnt = computed(() => {
         const sqlStmnt = atlChartFilterStore.getSqlStmnt(computedCurFunc.value);

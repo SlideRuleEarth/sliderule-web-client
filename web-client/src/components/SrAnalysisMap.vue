@@ -49,16 +49,14 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => atlChartFilterStore.getFunc());
-
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-            return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
+            return `${loadStateStr.value} ${atlChartFilterStore.getFunc()} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
         } else {
-            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
+            return `${loadStateStr.value} ${atlChartFilterStore.getFunc()} (${currentRowsFormatted})`;
         }
     });
 

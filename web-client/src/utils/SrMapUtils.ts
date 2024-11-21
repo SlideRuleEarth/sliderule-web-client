@@ -252,12 +252,12 @@ export interface ElevationDataItem {
 async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked:',d);
     hideTooltip();
-    useAtlChartFilterStore().resetTheScatterPlot();
+    useAtlChartFilterStore().resetClearScatterPlotFlag();
     useAtl03ColorMapStore().setDebugCnt(0);
     //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
-        useAtlChartFilterStore().setTrackWithNumber(d.track);
+        useAtlChartFilterStore().setTracksWithNumber(d.track);
         useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
     }
     if(d.gt !== undefined){ // for atl06
@@ -270,7 +270,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         useAtlChartFilterStore().setPairWithNumber(d.pair);
     }
     if(d.spot !== undefined){
-        useAtlChartFilterStore().setSpotWithNumber(d.spot);
+        useAtlChartFilterStore().setSpotsWithNumber(d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
         useAtlChartFilterStore().setScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
@@ -281,66 +281,66 @@ async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useAtlChartFilterStore().setCycleWithNumber(d.cycle);
+        useAtlChartFilterStore().setCyclesWithNumber(d.cycle);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
-    console.log('Clicked: func',useAtlChartFilterStore().getFunc())
-    console.log('Clicked: rgts',useAtlChartFilterStore().getRgtValues())
-    console.log('Clicked: cycles',useAtlChartFilterStore().getCycleValues())
-    console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
-    console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
-    console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
-    if(useAtlChartFilterStore().getFunc()==='atl03sp'){
+    console.log('Clicked: func',useAtlChartFilterStore().func)
+    console.log('Clicked: rgts',useAtlChartFilterStore().rgtValues)
+    console.log('Clicked: cycles',useAtlChartFilterStore().cycleValues)
+    console.log('Clicked: tracks',useAtlChartFilterStore().trackValues)
+    console.log('Clicked: sc_orient',useAtlChartFilterStore().scOrientValues)
+    console.log('Clicked: pair',useAtlChartFilterStore().pairValues);
+    if(useAtlChartFilterStore().func==='atl03sp'){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
-            useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+            useAtlChartFilterStore().setSpotsWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
+            useAtlChartFilterStore().setBeamsWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
 
             let atl03spWhereClause = `
-                    WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-                    AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-                    AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
+                    WHERE rgt IN (${useAtlChartFilterStore().rgtValues.join(', ')}) 
+                    AND cycle IN (${useAtlChartFilterStore().cycleValues.join(', ')})
+                    AND track IN (${useAtlChartFilterStore().trackValues.join(", ")}) 
                 `;
-                if (useAtlChartFilterStore().getPairValues() !== undefined) {
-                    atl03spWhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+                if (useAtlChartFilterStore().pairValues !== undefined) {
+                    atl03spWhereClause += ` AND pair IN (${useAtlChartFilterStore().pairValues.join(", ")})`;
                 }
-                if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
-                    atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+                if (useAtlChartFilterStore().scOrientValues !== undefined) {
+                    atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().scOrientValues.join(", ")})`;
                 }
             useAtlChartFilterStore().setAtl03spWhereClause(atl03spWhereClause);
         }
-        console.log('Clicked: atl03spWhereClause',useAtlChartFilterStore().getAtl03spWhereClause())
-    } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
+        console.log('Clicked: atl03spWhereClause',useAtlChartFilterStore().atl03spWhereClause)
+    } else if(useAtlChartFilterStore().func==='atl03vp'){
         const atl03vpWhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${useAtlChartFilterStore().rgtValues.join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().cycleValues.join(', ')})
+            AND spot IN (${useAtlChartFilterStore().spotValues.join(", ")}) 
         `;
         useAtlChartFilterStore().setAtl03vpWhereClause(atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',useAtlChartFilterStore().getAtl03vpWhereClause())
-    } else if (useAtlChartFilterStore().getFunc().includes('atl06')){ // all atl06
+        console.log('Clicked: atl06spWhereClause',useAtlChartFilterStore().atl03vpWhereClause)
+    } else if (useAtlChartFilterStore().func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${useAtlChartFilterStore().rgtValues.join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().cycleValues.join(', ')})
+            AND spot IN (${useAtlChartFilterStore().spotValues.join(", ")}) 
         `;
         useAtlChartFilterStore().setAtl06WhereClause(atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',useAtlChartFilterStore().getAtl06WhereClause())
-    } else if (useAtlChartFilterStore().getFunc()==='atl08p'){
+        console.log('Clicked: atl06WhereClause',useAtlChartFilterStore().atl06WhereClause)
+    } else if (useAtlChartFilterStore().func==='atl08p'){
         const atl08pWhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${useAtlChartFilterStore().rgtValues.join(', ')}) 
+            AND cycle IN (${useAtlChartFilterStore().cycleValues.join(', ')})
+            AND spot IN (${useAtlChartFilterStore().spotValues.join(", ")}) 
         `;
-        useAtlChartFilterStore().setAtl08pWhereClause(atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',useAtlChartFilterStore().getAtl08pWhereClause())
+        useAtlChartFilterStore().setAtl08WhereClause(atl08pWhereClause);
+        console.log('Clicked: atl08pWhereClause',useAtlChartFilterStore().atl08WhereClause)
     } else {
-        console.error('Clicked: Unknown func?:',useAtlChartFilterStore().getFunc());
+        console.error('Clicked: Unknown func?:',useAtlChartFilterStore().func);
     }
 
-    console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
-    console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
+    console.log('Clicked: spot',useAtlChartFilterStore().spotValues)
+    console.log('Clicked: beam',useAtlChartFilterStore().beamValues)
 
 }
 

@@ -9,7 +9,7 @@
                   label="Choose" 
                   @update:modelValue="changedYValues"
                   menuPlaceholder="Select elevation data"
-                  :menuOptions="atlChartFilterStore.getElevationDataOptions()"
+                  :menuOptions="atlChartFilterStore.getElevationDataOptions().value"
                   :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
                 />  
             </div>
@@ -79,7 +79,7 @@ onMounted(async () => {
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
+watch(() => atlChartFilterStore.clear_scatter_plot_flag, async (newState) => {
   if (newState === true) {
     clearPlot();
     atlChartFilterStore.resetClearScatterPlotFlag();
@@ -106,18 +106,16 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
 const messageClass = computed(() => {
   return {
     'message': true,
-    'message-red': !atlChartFilterStore.getIsWarning(),
-    'message-yellow': atlChartFilterStore.getIsWarning()
+    'message-red': !atlChartFilterStore.isWarning,
+    'message-yellow': atlChartFilterStore.isWarning
   };
 });
 
-const computedSelectedAtl03ColorMap = computed(() => {
-  return atlChartFilterStore.getSelectedAtl03ColorMap();
-});
 
-watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
+
+watch (() => atlChartFilterStore.selectedAtl03YapcColorMap, async (newColorMap, oldColorMap) => {    
     //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
+    atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     debouncedFetchScatterOptions();

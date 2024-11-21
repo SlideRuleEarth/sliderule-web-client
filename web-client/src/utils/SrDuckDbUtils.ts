@@ -276,10 +276,10 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
-        const rgts = useAtlChartFilterStore().getRgtValues();
-        const cycles = useAtlChartFilterStore().getCycleValues(); 
+        const rgts = useAtlChartFilterStore().rgtValues;
+        const cycles = useAtlChartFilterStore().cycleValues; 
         if(func.includes('atl06')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = useAtlChartFilterStore().spotValues;
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -290,9 +290,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         } else if(func === 'atl03sp'){
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
             queryStr = `SELECT * FROM '${filename}' `;
-            queryStr += useAtlChartFilterStore().getAtl03spWhereClause();
+            queryStr += useAtlChartFilterStore().atl03spWhereClause;
         } else if(func.includes('atl03vp')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = useAtlChartFilterStore().spotValues;
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -301,7 +301,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND spot IN (${spots.join(', ')})
                         `
         } else if(func.includes('atl08')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = useAtlChartFilterStore().spotValues;
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -407,7 +407,7 @@ async function fetchAtl03spScatterData(
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
-    const whereClause = useAtlChartFilterStore().getAtl03spWhereClause();
+    const whereClause = useAtlChartFilterStore().atl03spWhereClause;
 
     if(whereClause){
         try {
@@ -454,7 +454,7 @@ async function fetchAtl03spScatterData(
             query += whereClause;
 
             useAtlChartFilterStore().setAtl03QuerySql(query);
-            const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
+            const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().atl03QuerySql);
             for await (const rowChunk of queryResult.readRows()) {
                 for (const row of rowChunk) {
                     if (row) {
@@ -498,7 +498,7 @@ async function fetchAtl03vpScatterData(
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
     let normalizedMinMaxValues: { [key: string]: { min: number, max: number } } = {};
-    const whereClause = useAtlChartFilterStore().getAtl03vpWhereClause();
+    const whereClause = useAtlChartFilterStore().atl03vpWhereClause;
 
     if(whereClause){
         try {
@@ -539,9 +539,9 @@ async function fetchAtl03vpScatterData(
             query += whereClause;
 
             useAtlChartFilterStore().setAtl03QuerySql(query);
-            //console.log('fetchAtl03vpScatterData query:', useAtlChartFilterStore().getAtl03QuerySql());
+            //console.log('fetchAtl03vpScatterData query:', useAtlChartFilterStore().atl03QuerySql);
             //console.log('fetchAtl03vpScatterData minMaxValues:', minMaxValues);
-            const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl03QuerySql());
+            const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().atl03QuerySql);
             for await (const rowChunk of queryResult.readRows()) {
                 for (const row of rowChunk) {
                     if (row) {
@@ -649,7 +649,7 @@ export async function updatePairOptions(req_id: number): Promise<number[]> {
         console.error('getPairs Error:', error);
         throw error;
     }
-    console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
+    console.log('updatePairOptions pairs:', useAtlChartFilterStore().pairOptions);
     return pairs;
 }
 
@@ -775,7 +775,7 @@ async function fetchAtl06ScatterData(
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
     let normalizedMinMaxValues: { [key: string]: { min: number, max: number } } = {};
-    let whereClause = useAtlChartFilterStore().getAtl06WhereClause();
+    let whereClause = useAtlChartFilterStore().atl06WhereClause;
 
     try {
 
@@ -815,7 +815,7 @@ async function fetchAtl06ScatterData(
         query += whereClause;
     
         useAtlChartFilterStore().setAtl06QuerySql(query);
-        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl06QuerySql());
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().atl06QuerySql);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -861,7 +861,7 @@ async function fetchAtl08ScatterData(
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
     let normalizedMinMaxValues: { [key: string]: { min: number, max: number } } = {};
-    const whereClause = useAtlChartFilterStore().getAtl08pWhereClause();
+    const whereClause = useAtlChartFilterStore().atl08WhereClause;
 
     try {
         let query2 = `
@@ -899,7 +899,7 @@ async function fetchAtl08ScatterData(
             `;
         query += whereClause;
         useAtlChartFilterStore().setAtl08QuerySql(query);
-        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().getAtl08QuerySql());
+        const queryResult: QueryResult = await duckDbClient.query(useAtlChartFilterStore().atl08QuerySql);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
@@ -1004,11 +1004,11 @@ async function getSeriesForAtl03sp(fileName: string, x: string, y: string[]): Pr
                     itemStyle: {
                         color: getAtl03spColor,
                     },
-                    large: useAtlChartFilterStore().getLargeData(),
-                    largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    large: useAtlChartFilterStore().largeData,
+                    largeThreshold: useAtlChartFilterStore().largeDataThreshold,
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                    symbolSize: useAtlChartFilterStore().getSymbolSize(),
+                    symbolSize: useAtlChartFilterStore().getSymbolSize('atl03sp'),
                 },
                 min: min,
                 max: max
@@ -1062,11 +1062,11 @@ async function getSeriesForAtl03vp(
                     name: `${name} - ${yName}`,
                     type: 'scatter',
                     data: data,
-                    large: useAtlChartFilterStore().getLargeData(),
-                    largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    large: useAtlChartFilterStore().largeData,
+                    largeThreshold: useAtlChartFilterStore().largeDataThreshold,
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                    symbolSize: useAtlChartFilterStore().getSymbolSize(),
+                    symbolSize: useAtlChartFilterStore().getSymbolSize('atl03vp'),
                 },
                 min: min,
                 max: max
@@ -1118,11 +1118,11 @@ async function getSeriesForAtl06(
                     name: `${name} - ${yName}`,
                     type: 'scatter',
                     data: data,
-                    large: useAtlChartFilterStore().getLargeData(),
-                    largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    large: useAtlChartFilterStore().largeData,
+                    largeThreshold: useAtlChartFilterStore().largeDataThreshold,
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                    symbolSize: useAtlChartFilterStore().getSymbolSize(),
+                    symbolSize: useAtlChartFilterStore().getSymbolSize('atl06'),
                 },
                 min: min,
                 max: max
@@ -1156,11 +1156,11 @@ async function getSeriesForAtl08( fileName: string, x: string, y: string[]): Pro
                 name: `${name} - ${yName}`,
                 type: 'scatter',
                 data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
-                large: useAtlChartFilterStore().getLargeData(),
-                largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                large: useAtlChartFilterStore().largeData,
+                largeThreshold: useAtlChartFilterStore().largeDataThreshold,
                 animation: false,
                 yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                symbolSize: useAtlChartFilterStore().getSymbolSize(),
+                symbolSize: useAtlChartFilterStore().getSymbolSize('atl08'),
             })).map((series, index) => ({
                 series,
                 min: normalizedMinMaxValues[y[index]].min,
@@ -1233,9 +1233,9 @@ export async function getScatterOptions(sop:SrScatterOptionsParms): Promise<any>
                 notMerge: true,
                 lazyUpdate: true,
                 xAxis: {
-                    min: useAtlChartFilterStore().getMinX(),
-                    max: useAtlChartFilterStore().getMaxX(),
-                    name: useAtlChartFilterStore().getXLegend(), // Add the label for the x-axis here
+                    min: useAtlChartFilterStore().min_x,
+                    max: useAtlChartFilterStore().max_x,
+                    name: useAtlChartFilterStore().xLegend, // Add the label for the x-axis here
                     nameLocation: 'middle', // Position the label in the middle of the axis
                     nameTextStyle: {
                         fontSize: 10,
