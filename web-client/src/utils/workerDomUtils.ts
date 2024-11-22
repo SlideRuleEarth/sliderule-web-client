@@ -14,6 +14,7 @@ import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
+import { type AtlxxReqParams } from '@/sliderule/icesat2';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -242,6 +243,10 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization(), jwt:accessToken}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
             console.log('runFetchToFileWorker cmd:',cmd);
             worker.postMessage(JSON.stringify(cmd));
+            const arp = srReqRec.parameters as AtlxxReqParams;
+            if(arp.parms.poly){
+                db.addOrUpdateOverlayByPolyHash(arp.parms.poly, {req_ids:[srReqRec.req_id]});
+            }
         } else {
             console.error('runFetchToFileWorker req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
