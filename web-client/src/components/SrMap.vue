@@ -4,6 +4,7 @@
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
+    import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
@@ -41,7 +42,6 @@
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
     import { zoomMapForReqIdUsingView } from "@/utils/SrMapUtils";
-    import { updateElevationForReqId } from '@/utils/SrParquetUtils';
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -569,7 +569,7 @@
                         if(reqId > 0){
                             await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewKey.value);
                             initDeck(map);
-                            await updateElevationForReqId(reqId); 
+                            await duckDbReadAndUpdateElevationData(reqId);
                         }
                     } else {
                         initDeck(map);

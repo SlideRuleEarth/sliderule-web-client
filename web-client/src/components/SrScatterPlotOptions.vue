@@ -2,17 +2,18 @@
 import SrSqlStmnt from "./SrSqlStmnt.vue";
 import SrSliderInput from "./SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
-import SrMenuInput from "./SrMenuInput.vue";
-import SrMenu from "./SrMenu.vue";
+import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "./SrSwitchedSliderInput.vue";
 import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
-import { getColorMapOptions } from '@/utils/colorUtils';
+import { getColorMapOptions,colorMapNames } from '@/utils/colorUtils';
 import { debounce } from "lodash";
-import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
-import SrAtl08ClassColors from "./SrAtl08ClassColors.vue";
+import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
+import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
+import { useChartStore } from "@/stores/chartStore";
+import { watch } from "vue";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -50,11 +51,12 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     }
 };
 
-const alt03YAPCColorMapChanged = (colorMap:string): void => {
-    console.log(`alt03YAPCColorMapChanged:`,colorMap);
-    clearPlot();
-    debouncedFetchScatterOptions();
-};
+watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: string) => {
+  console.log(`watch atl03ColorMapStore.getSelectedAtl03ColorMap():`, newVal);
+  clearPlot();
+  debouncedFetchScatterOptions();
+});
+
 
 </script>
 <template>
@@ -108,12 +110,13 @@ const alt03YAPCColorMapChanged = (colorMap:string): void => {
         />
     </div>
     <div class="sr-select-yapc-color-map">
-        <SrMenuInput 
+        <SrMenu 
             v-if = "atlChartFilterStore.getFunc() === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
             label="YAPC Color Map" 
-            :menuOptions="getColorMapOptions()" 
-            @update:modelValue="alt03YAPCColorMapChanged"
             v-model="atlChartFilterStore.selectedAtl03YapcColorMap"
+            :menuOptions="colorMapNames" 
+            :getSelectedMenuItem="atl03ColorMapStore.getAtl03YapcColorMap"
+            :setSelectedMenuItem="atl03ColorMapStore.setAtl03YapcColorMap"
             tooltipText="YAPC Color Map for atl03 scatter plot"
         />
     </div>

@@ -1,5 +1,6 @@
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 export interface SrScatterOptionsParms {
+  reqIdStr: string;
   rgts: number[];
   cycles: number[];
   fileName: string;

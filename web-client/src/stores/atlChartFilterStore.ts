@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
-import { getHeightFieldname } from '@/utils/SrParquetUtils';
-import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
 
@@ -25,48 +23,48 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     cycles: [] as SrListNumberItem[],
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
-    currentFile: '' as string,
+    //currentFile: '' as string,
     currentReqId: 0 as number,
-    min_x: 0 as number,
-    max_x: 0 as number,
-    min_y: 0 as number,
-    max_y: 0 as number,
+    //min_x: 0 as number,
+    //max_x: 0 as number,
+    //min_y: 0 as number,
+    //max_y: 0 as number,
     updateScatterPlotCnt: 0 as number,
-    elevationDataOptions: [{ name: 'not_set', value: 'not_set' }] as { name: string, value: string }[],
-    yDataForChart: [] as string[],
-    xDataForChart: 'x_atc' as string,
-    ndxOfelevationDataOptionsForHeight: 0,
-    func: 'xxx' as string,
-    description: 'description here' as string,
+    //elevationDataOptions: [{ name: 'not_set', value: 'not_set' }] as { name: string, value: string }[],
+    //yDataForChart: [] as string[],
+    //xDataForChart: 'x_atc' as string,
+    //ndxOfelevationDataOptionsForHeight: 0,
+    func:  {} as Record<string, string>, // Keyed by req_id
+    //description: 'description here' as string,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
-    size: NaN as number,
+    //size: NaN as number,
     isLoading: false as boolean,
     clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
-    atl03QuerySql: '' as string,
-    atl06QuerySql: '' as string,  
-    atl08QuerySql: '' as string,
-    atl03spWhereClause: '' as string,
-    atl03vpWhereClause: '' as string,
-    atl06WhereClause: '' as string,
-    atl08pWhereClause: '' as string,
+    // atl03QuerySql: '' as string,
+    // atl06QuerySql: '' as string,  
+    // atl08QuerySql: '' as string,
+    // atl03spWhereClause: '' as string,
+    // atl03vpWhereClause: '' as string,
+    // atl06WhereClause: '' as string,
+    // atl08pWhereClause: '' as string,
     atl03spSymbolSize: 1 as number,
     atl03vpSymbolSize: 5 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
-    message: 'Failed to load data. Please try again later.' as string,
-    isWarning: false as boolean,
-    showMessage: false as boolean,
-    recCnt: 0 as number,
+    //message: 'Failed to load data. Please try again later.' as string,
+    //isWarning: false as boolean,
+    //showMessage: false as boolean,
+    //recCnt: 0 as number,
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
     selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
-    xLegend: 'Meters' as string,
+    //xLegend: 'Meters' as string,
 }),
 
   actions: {
@@ -214,39 +212,42 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setReqId(req_id: number) {
       this.currentReqId = req_id;
     },
-    getReqId() {
+    getReqId(): number {
       return this.currentReqId;
     },
-    setFileName(filename: string) {
-      this.currentFile = filename;
+    getReqIdStr():string {
+      return this.currentReqId.toString();
     },
-    getFileName() {
-      return this.currentFile;
-    },
-    setMinX(min_x: number) {
-      this.min_x = min_x;
-    },
-    getMinX() {
-      return this.min_x;
-    },
-    setMaxX(max_x: number) {
-      this.max_x = max_x;
-    },
-    getMaxX() {
-      return this.max_x;
-    },
-    setMinY(min_y: number) {
-      this.min_y = min_y;
-    },
-    getMinY() {
-      return this.min_y;
-    },
-    setMaxY(max_y: number) {
-      this.max_y = max_y;
-    },
-    getMaxY() {
-      return this.max_y;
-    },
+    // setFileName(filename: string) {
+    //   this.currentFile = filename;
+    // },
+    // getFileName() {
+    //   return this.currentFile;
+    // },
+    // setMinX(min_x: number) {
+    //   this.min_x = min_x;
+    // },
+    // getMinX() {
+    //   return this.min_x;
+    // },
+    // setMaxX(max_x: number) {
+    //   this.max_x = max_x;
+    // },
+    // getMaxX() {
+    //   return this.max_x;
+    // },
+    // setMinY(min_y: number) {
+    //   this.min_y = min_y;
+    // },
+    // getMinY() {
+    //   return this.min_y;
+    // },
+    // setMaxY(max_y: number) {
+    //   this.max_y = max_y;
+    // },
+    // getMaxY() {
+    //   return this.max_y;
+    // },
     incrementDebugCnt() {
       return ++this.debugCnt;
     },
@@ -256,59 +257,63 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
     },
-    async setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
-      const elevationDataOptions = fieldNames.map(fieldName => ({ name: fieldName, value: fieldName }));
-      const heightFieldname = await getHeightFieldname(this.currentReqId);
-      this.ndxOfelevationDataOptionsForHeight = fieldNames.indexOf(heightFieldname);
-      this.setElevationDataOptions(elevationDataOptions);
+    // async setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
+    //   const elevationDataOptions = fieldNames.map(fieldName => ({ name: fieldName, value: fieldName }));
+    //   const heightFieldname = await getHeightFieldname(this.currentReqId);
+    //   this.ndxOfelevationDataOptionsForHeight = fieldNames.indexOf(heightFieldname);
+    //   this.setElevationDataOptions(elevationDataOptions);
+    // },
+    // getElevationDataOptions() {
+    //   return this.elevationDataOptions;
+    // },
+    // setElevationDataOptions(elevationDataOptions: { name: string, value: string }[]) {
+    //   this.elevationDataOptions = elevationDataOptions;
+    // },
+    // getYDataForChart() {
+    //   return this.yDataForChart;
+    // },
+    // setYDataForChart(yDataForChart: string[]) {
+    //   this.yDataForChart = yDataForChart;
+    // },    
+    // getXDataForChart() {
+    //   return this.xDataForChart;
+    // },
+    // setXDataForChart(xDataForChart: string) {
+    //   this.xDataForChart = xDataForChart;
+    // },
+    // setXDataForChartUsingFunc(func: string) {
+    //   if (func.includes('atl03')) {
+    //     this.setXDataForChart('x_atc');
+    //     if (func.includes('atl03vp')) {
+    //       this.setXDataForChart('segment_dist_x');
+    //     }
+    //   } else if (func.includes('atl06')) {
+    //     this.setXDataForChart('x_atc');
+    //   } else if (func.includes('atl08')) {
+    //     this.setXDataForChart('x_atc');
+    //   } else {
+    //     console.error('setXDataForChartFromFunc() unknown function:', func);
+    //   }
+    // },
+    // getNdxOfelevationDataOptionsForHeight() {
+    //   return this.ndxOfelevationDataOptionsForHeight;
+    // },
+    setFunc(req_id:string, func: string) {
+      this.func[req_id] = func;
     },
-    getElevationDataOptions() {
-      return this.elevationDataOptions;
-    },
-    setElevationDataOptions(elevationDataOptions: { name: string, value: string }[]) {
-      this.elevationDataOptions = elevationDataOptions;
-    },
-    getYDataForChart() {
-      return this.yDataForChart;
-    },
-    setYDataForChart(yDataForChart: string[]) {
-      this.yDataForChart = yDataForChart;
-    },    
-    getXDataForChart() {
-      return this.xDataForChart;
-    },
-    setXDataForChart(xDataForChart: string) {
-      this.xDataForChart = xDataForChart;
-    },
-    setXDataForChartUsingFunc(func: string) {
-      if (func.includes('atl03')) {
-        this.setXDataForChart('x_atc');
-        if (func.includes('atl03vp')) {
-          this.setXDataForChart('segment_dist_x');
-        }
-      } else if (func.includes('atl06')) {
-        this.setXDataForChart('x_atc');
-      } else if (func.includes('atl08')) {
-        this.setXDataForChart('x_atc');
-      } else {
-        console.error('setXDataForChartFromFunc() unknown function:', func);
+    getFunc(req_id?:string) {
+      if(req_id){
+        return this.func[req_id];
       }
+      const values = Object.values(this.func);
+      return values.length === 1 ? values[0] : values.join(',');
     },
-    getNdxOfelevationDataOptionsForHeight() {
-      return this.ndxOfelevationDataOptionsForHeight;
-    },
-    setFunc(func: string) {
-      this.func = func;
-    },
-    getFunc() {
-      return this.func;
-    },
-    setDescription(description: string) {
-      this.description = description;
-    },
-    getDescription() {
-      return this.description;
-    },
+    // setDescription(description: string) {
+    //   this.description = description;
+    // },
+    // getDescription() {
+    //   return this.description;
+    // },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
     },
@@ -363,30 +368,30 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         this.scOrients.push({ label: scOrient.toString(), value: scOrient });
       }
     },
-    setSize(size: number) {
-      this.size = size;
-    },
-    getSize() {
-      return this.size;
-    },
-    getScatterOptionsParms(): SrScatterOptionsParms {
-      //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
-      const sop =  {
-        rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
-        cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
-        fileName: this.currentFile,
-        func: this.func,
-        y: this.getYDataForChart(),
-        x: this.getXDataForChart(),
-        beams: this.beams.map(beam => beam.value),
-        spots: this.spots.map(spot => spot.value),
-        pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
-        scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
-        tracks: this.tracks.map(track => track.value),
-      };
-      //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
-      return sop;
-    },
+    // setSize(size: number) {
+    //   this.size = size;
+    // },
+    // getSize() {
+    //   return this.size;
+    // },
+    // getScatterOptionsParms(req_id:string): SrScatterOptionsParms {
+    //   //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
+    //   const sop =  {
+    //     rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
+    //     cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
+    //     fileName: this.currentFile,
+    //     func: this.getFunc(req_id),
+    //     y: this.getYDataForChart(),
+    //     x: this.getXDataForChart(),
+    //     beams: this.beams.map(beam => beam.value),
+    //     spots: this.spots.map(spot => spot.value),
+    //     pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
+    //     scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
+    //     tracks: this.tracks.map(track => track.value),
+    //   };
+    //   //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
+    //   return sop;
+    // },
     updateScatterPlot() {
       this.updateScatterPlotCnt += 1;
       //console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
@@ -412,64 +417,64 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getClearPlot() {
       return this.clearScatterPlotFlag;
     },
-    setAtl03QuerySql(sql: string) {
-      this.atl03QuerySql = sql;
-    },
-    getAtl03QuerySql() {
-      return this.atl03QuerySql;
-    },
-    setAtl03spWhereClause(sql: string) {
-      this.atl03spWhereClause = sql;
-    },
-    getAtl03spWhereClause() {
-      return this.atl03spWhereClause
-    },
-    setAtl03vpWhereClause(sql: string) {
-      this.atl03vpWhereClause = sql;
-    },
-    getAtl03vpWhereClause() {
-      return this.atl03vpWhereClause
-    },
-    setAtl06WhereClause(sql: string) {
-      this.atl06WhereClause = sql;
-    },
-    getAtl06WhereClause() {
-      return this.atl06WhereClause;
-    },
-    setAtl08pWhereClause(sql: string) {
-      this.atl08pWhereClause = sql;
-    },
-    getAtl08pWhereClause() {
-      return this.atl08pWhereClause;
-    },
-    setAtl06QuerySql(sql: string) {
-      this.atl06QuerySql = sql;
-    },
-    getAtl06QuerySql() {
-      return this.atl06QuerySql;
-    },
-    setAtl08QuerySql(sql: string) {
-      this.atl08QuerySql = sql;
-    },
-    getAtl08QuerySql() {
-      return this.atl08QuerySql;
-    },
-    getSqlStmnt(func: string) {
-      switch (func) {
-        case 'atl03sp':
-          return this.atl03QuerySql;
-        case 'atl03vp':
-          return this.atl03QuerySql;
-        case 'atl06p':
-          return this.atl06QuerySql;
-        case 'atl06sp':
-          return this.atl06QuerySql;
-        case 'atl08p':
-          return this.atl08QuerySql;
-        default:
-          return '';
-      }
-    },
+    // setAtl03QuerySql(sql: string) {
+    //   this.atl03QuerySql = sql;
+    // },
+    // getAtl03QuerySql() {
+    //   return this.atl03QuerySql;
+    // },
+    // setAtl03spWhereClause(sql: string) {
+    //   this.atl03spWhereClause = sql;
+    // },
+    // getAtl03spWhereClause() {
+    //   return this.atl03spWhereClause
+    // },
+    // setAtl03vpWhereClause(sql: string) {
+    //   this.atl03vpWhereClause = sql;
+    // },
+    // getAtl03vpWhereClause() {
+    //   return this.atl03vpWhereClause
+    // },
+    // setAtl06WhereClause(sql: string) {
+    //   this.atl06WhereClause = sql;
+    // },
+    // getAtl06WhereClause() {
+    //   return this.atl06WhereClause;
+    // },
+    // setAtl08pWhereClause(sql: string) {
+    //   this.atl08pWhereClause = sql;
+    // },
+    // getAtl08pWhereClause() {
+    //   return this.atl08pWhereClause;
+    // },
+    // setAtl06QuerySql(sql: string) {
+    //   this.atl06QuerySql = sql;
+    // },
+    // getAtl06QuerySql() {
+    //   return this.atl06QuerySql;
+    // },
+    // setAtl08QuerySql(sql: string) {
+    //   this.atl08QuerySql = sql;
+    // },
+    // getAtl08QuerySql() {
+    //   return this.atl08QuerySql;
+    // },
+    // getSqlStmnt(func: string) {
+    //   switch (func) {
+    //     case 'atl03sp':
+    //       return this.atl03QuerySql;
+    //     case 'atl03vp':
+    //       return this.atl03QuerySql;
+    //     case 'atl06p':
+    //       return this.atl06QuerySql;
+    //     case 'atl06sp':
+    //       return this.atl06QuerySql;
+    //     case 'atl08p':
+    //       return this.atl08QuerySql;
+    //     default:
+    //       return '';
+    //   }
+    // },
     setAtl03spSymbolSize(size: number) {
       this.atl03spSymbolSize = size;
     },
@@ -494,44 +499,44 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getAtl08SymbolSize() {
       return this.atl08SymbolSize;
     },
-    getSymbolSize() {
-      if(this.func.includes('atl03sp')){
+    getSymbolSize(func:string) {
+      if(func.includes('atl03sp')){
         return this.atl03spSymbolSize;
-      } else if(this.func.includes('atl03vp')){
+      } else if(func.includes('atl03vp')){
         return this.atl03vpSymbolSize;
-      } else if(this.func.includes('atl06')){
+      } else if(func.includes('atl06')){
         return this.atl06SymbolSize;
-      } else if(this.func.includes('atl08')){
+      } else if(func.includes('atl08')){
         return this.atl08SymbolSize;
       } else {
-        console.warn('getSymbolSize() unknown function:',this.func);
+        console.warn('getSymbolSize() unknown function:',func);
         return 5;
       }        
     },
-    getMessage() {
-      return this.message;
-    },
-    setMessage(msg: string) {
-      this.message = msg;
-    },
-    setIsWarning(isWarning: boolean) {
-      this.isWarning = isWarning;
-    },
-    getIsWarning() {
-      return this.isWarning;
-    },
-    setShowMessage(showMessage: boolean) {
-      this.showMessage = showMessage;
-    },
-    getShowMessage() {
-      return this.showMessage;
-    },
-    setRecCnt(recCnt: number) {
-      this.recCnt = recCnt;
-    },
-    getRecCnt() {
-      return this.recCnt;
-    },
+    // getMessage() {
+    //   return this.message;
+    // },
+    // setMessage(msg: string) {
+    //   this.message = msg;
+    // },
+    // setIsWarning(isWarning: boolean) {
+    //   this.isWarning = isWarning;
+    // },
+    // getIsWarning() {
+    //   return this.isWarning;
+    // },
+    // setShowMessage(showMessage: boolean) {
+    //   this.showMessage = showMessage;
+    // },
+    // getShowMessage() {
+    //   return this.showMessage;
+    // },
+    // setRecCnt(recCnt: number) {
+    //   this.recCnt = recCnt;
+    // },
+    // getRecCnt() {
+    //   return this.recCnt;
+    // },
 
     getLargeData() {
       return this.largeData;
@@ -563,11 +568,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
       this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
     },
-    getXLegend() {
-      return this.xLegend;
-    },
-    setXLegend(xLegend: string) {
-      this.xLegend = xLegend;
-    },
+    // getXLegend() {
+    //   return this.xLegend;
+    // },
+    // setXLegend(xLegend: string) {
+    //   this.xLegend = xLegend;
+    // },
   }
 });

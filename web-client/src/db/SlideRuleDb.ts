@@ -986,7 +986,20 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-
+    async getOverlayedReqIdsAsStrings(req_id: number): Promise<string[]> {
+        try {
+            const overlay = await this.getOverlayByReqId(req_id);
+            return overlay 
+                ? overlay.req_ids
+                    .filter(id => id !== req_id)
+                    .map(id => id.toString()) 
+                : [];
+        } catch (error) {
+            console.error(`Failed to retrieve overlayed req_ids as strings for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+    
     // async addOverlayWithPolyHash(name: string, req_ids: number[], poly: {lat:number,lon:number}[], description = ''): Promise<number> {
     //     try {
     //         const polyHash = hashPoly(poly);

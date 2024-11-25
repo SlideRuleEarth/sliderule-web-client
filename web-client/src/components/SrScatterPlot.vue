@@ -2,15 +2,15 @@
     <div class="sr-scatter-plot-container">
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+            <div v-if="useChartStore().getShowMessage()" :class="messageClass">{{useChartStore().getMessage(computedReqIdStr)}}</div>
             <div class="sr-multiselect-container">
                 <SrMultiSelectText 
-                  v-model="atlChartFilterStore.yDataForChart"
+                  v-model="computedYData"
                   label="Choose" 
                   @update:modelValue="changedYValues"
                   menuPlaceholder="Select elevation data"
-                  :menuOptions="atlChartFilterStore.getElevationDataOptions()"
-                  :default="[atlChartFilterStore.getElevationDataOptions()[atlChartFilterStore.getNdxOfelevationDataOptionsForHeight()]]"
+                  :menuOptions="computedYOptions"
+                  :default="computedDefaultYData"
                 />  
             </div>
         </div>
@@ -48,10 +48,14 @@ import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
+import { useChartStore } from "@/stores/chartStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
-
+const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
+const computedYData = computed(() => useChartStore().getYDataForChart(computedReqIdStr.value));
+const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
+const computedDefaultYData = computed(() => [useChartStore().getElevationDataOptions(computedReqIdStr.value)[useChartStore().getNdxOfelevationDataOptionsForHeight(computedReqIdStr.value)]]);
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
@@ -106,8 +110,8 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
 const messageClass = computed(() => {
   return {
     'message': true,
-    'message-red': !atlChartFilterStore.getIsWarning(),
-    'message-yellow': atlChartFilterStore.getIsWarning()
+    'message-red': !useChartStore().getIsWarning(computedReqIdStr.value),
+    'message-yellow': useChartStore().getIsWarning(computedReqIdStr.value)
   };
 });
 
