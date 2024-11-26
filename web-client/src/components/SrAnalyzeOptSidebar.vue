@@ -384,19 +384,17 @@ const tooltipTextStr = computed(() => {
     <div class="sr-analysis-opt-sidebar">
         <div class="sr-analysis-opt-sidebar-container">
             <div class="sr-analysis-opt-sidebar-req-menu">
-                <div class="sr-analysis-reqid-sz">
-                    <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
-                    <div class="sr-analysis-reqid" v-else>
-                        <SrMenuInput 
-                            label="Record" 
-                            labelFontSize="medium"
-                            :menuOptions="reqIds" 
-                            v-model="selectedReqId"
-                            @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
-                            :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                            :tooltipText=tooltipTextStr
-                        />
-                    </div>
+                <div class="sr-analysis-reqid" v-if="loading">Loading... menu</div>
+                <div class="sr-analysis-reqid" v-else>
+                    <SrMenuInput 
+                        label="Record" 
+                        labelFontSize="medium"
+                        :menuOptions="reqIds" 
+                        v-model="selectedReqId"
+                        @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
+                        :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
+                        :tooltipText=tooltipTextStr
+                    />
                     <MultiSelect 
                         v-if=hasOverlayedReqs
                         v-model="selectedOverlayedReqIds" 
@@ -407,14 +405,16 @@ const tooltipTextStr = computed(() => {
                     />
                 </div>
             </div>
-            <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-                <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
-                <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
+            <div class="sr-map-descr">
+                <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
+                    <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
+                    <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
+                </div>
+                <div class="sr-req-description">  
+                    <SrEditDesc :reqId="Number(selectedReqId.value)"/>
+                </div>
             </div>
-            <div class="sr-req-description">  
-                <SrEditDesc :reqId="Number(selectedReqId.value)"/>
-            </div>
-            <div>
+            <div class="sr-pnts-colormap">
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
                         v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
@@ -437,104 +437,104 @@ const tooltipTextStr = computed(() => {
             </div>
             <div class="sr-analyze-filters">
                 <SrListbox id="spots"
-                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
-                        label="Spot(s)" 
-                        v-model="atlChartFilterStore.spots"
-                        :getSelectedMenuItem="atlChartFilterStore.getSpots"
-                        :setSelectedMenuItem="atlChartFilterStore.setSpots"
-                        :menuOptions="spotsOptions" 
-                        tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
+                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    label="Spot(s)" 
+                    v-model="atlChartFilterStore.spots"
+                    :getSelectedMenuItem="atlChartFilterStore.getSpots"
+                    :setSelectedMenuItem="atlChartFilterStore.setSpots"
+                    :menuOptions="spotsOptions" 
+                    tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
     trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
     numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
     far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
     approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
     direction."
-                        @update:modelValue="onSpotSelection"
-                    />
-                <SrListbox id="beams" 
-                        v-if="useDebugStore().enableSpotPatternDetails && !atlChartFilterStore.getFunc().includes('gedi')"
-                        :insensitive="true"
-                        label="Beam(s)" 
-                        v-model="atlChartFilterStore.beams"
-                        :getSelectedMenuItem="atlChartFilterStore.getBeams"
-                        :setSelectedMenuItem="atlChartFilterStore.setBeams"
-                        :menuOptions="beamsOptions" 
-                        tooltipText="ATLAS laser beams are divided into weak and strong beams"
-                        @update:modelValue="BeamSelection"
-                    />
-                <div class="sr-rgts-cycles-panel">
-                    <SrListbox id="rgts"
-                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
-                        label="Rgt(s)" 
-                        v-model="atlChartFilterStore.rgts" 
-                        :getSelectedMenuItem="atlChartFilterStore.getRgts"
-                        :setSelectedMenuItem="atlChartFilterStore.setRgts"
-                        :menuOptions="rgtsOptions" 
-                        tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
-        vector within the observatory is pointed" 
-                        @update:modelValue="RgtsSelection"
-                    />
-                    <SrListbox id="cycles" 
-                        v-if="!atlChartFilterStore.getFunc().includes('gedi')" 
-                        label="Cycle(s)" 
-                        v-model="atlChartFilterStore.cycles"
-                        :getSelectedMenuItem="atlChartFilterStore.getCycles"
-                        :setSelectedMenuItem="atlChartFilterStore.setCycles" 
-                        :menuOptions="cyclesOptions" 
-                        tooltipText="Counter of 91-day repeat cycles completed by the mission" 
-                        @update:modelValue="CyclesSelection"
-                    />
-                </div>
+                    @update:modelValue="onSpotSelection"
+                />
+                <SrListbox id="rgts"
+                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    label="Rgt(s)" 
+                    v-model="atlChartFilterStore.rgts" 
+                    :getSelectedMenuItem="atlChartFilterStore.getRgts"
+                    :setSelectedMenuItem="atlChartFilterStore.setRgts"
+                    :menuOptions="rgtsOptions" 
+                    tooltipText="Reference Ground Track: The imaginary track on Earth at which a specified unit
+    vector within the observatory is pointed" 
+                    @update:modelValue="RgtsSelection"
+                />
+                <SrListbox id="cycles" 
+                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    label="Cycle(s)" 
+                    v-model="atlChartFilterStore.cycles"
+                    :getSelectedMenuItem="atlChartFilterStore.getCycles"
+                    :setSelectedMenuItem="atlChartFilterStore.setCycles" 
+                    :menuOptions="cyclesOptions" 
+                    tooltipText="Counter of 91-day repeat cycles completed by the mission" 
+                    @update:modelValue="CyclesSelection"
+                />
             </div>
-            <Fieldset v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
-                <div class="sr-user-guide-link">
-                    <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
-                </div>
-                <div class="sr-sc-orient-panel">
-                    <div class="sr-sc-orientation">
-                        <p>
-                            <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===1">S/C Orientation: Forward</span>
-                            <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===0">S/C Orientation: Backward</span>
-                            <span v-if="atlChartFilterStore.getScOrients().length===0">S/C Orientation: Both</span>
-                        </p>
+            <div class="sr-debug-fieldset-panel" v-if="useDebugStore().enableSpotPatternDetails">
+                <Fieldset v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
+                    <div class="sr-user-guide-link">
+                        <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
                     </div>
-                    <div class="sr-pair-sc-orient">
-                        <SrListbox id="scOrients"
-                            label="scOrient(s)" 
-                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
-                            v-model="atlChartFilterStore.scOrients" 
-                            :getSelectedMenuItem="atlChartFilterStore.getScOrients"
-                            :setSelectedMenuItem="atlChartFilterStore.setScOrients"
-                            :menuOptions="atlChartFilterStore.scOrientOptions" 
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                            tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
-                            @update:modelValue="scOrientsSelection"
+                    <div class="sr-sc-orient-panel">
+                        <div class="sr-sc-orientation">
+                            <p>
+                                <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===1">S/C Orientation: Forward</span>
+                                <span v-if="atlChartFilterStore.getScOrients().length===1  && atlChartFilterStore.getScOrients()[0].value===0">S/C Orientation: Backward</span>
+                                <span v-if="atlChartFilterStore.getScOrients().length===0">S/C Orientation: Both</span>
+                            </p>
+                        </div>
+                        <div class="sr-pair-sc-orient">
+                            <SrListbox id="scOrients"
+                                label="scOrient(s)" 
+                                v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
+                                v-model="atlChartFilterStore.scOrients" 
+                                :getSelectedMenuItem="atlChartFilterStore.getScOrients"
+                                :setSelectedMenuItem="atlChartFilterStore.setScOrients"
+                                :menuOptions="atlChartFilterStore.scOrientOptions" 
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                                tooltipText="SC orientation is the orientation of the spacecraft relative to the surface normal at the time of the photon measurement."
+                                @update:modelValue="scOrientsSelection"
+                                />
+                            <SrListbox id="pairs"
+                                label="pair(s)" 
+                                v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
+                                v-model="atlChartFilterStore.pairs" 
+                                :getSelectedMenuItem="atlChartFilterStore.getPairs"
+                                :setSelectedMenuItem="atlChartFilterStore.setPairs"
+                                :menuOptions="atlChartFilterStore.pairOptions" 
+                                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
+                                tooltipText="A pair is a set of weak and strong beams."
+                                @update:modelValue="pairsSelection"
                             />
-                        <SrListbox id="pairs"
-                            label="pair(s)" 
-                            v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
-                            v-model="atlChartFilterStore.pairs" 
-                            :getSelectedMenuItem="atlChartFilterStore.getPairs"
-                            :setSelectedMenuItem="atlChartFilterStore.setPairs"
-                            :menuOptions="atlChartFilterStore.pairOptions" 
-                            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/Background.html"
-                            tooltipText="A pair is a set of weak and strong beams."
-                            @update:modelValue="pairsSelection"
+                        </div>
+                    </div> 
+                    <div class="sr-tracks-beams-panel">
+                        <SrListbox id="tracks" 
+                            label="Track(s)" 
+                            v-model="atlChartFilterStore.tracks" 
+                            :getSelectedMenuItem="atlChartFilterStore.getTracks"
+                            :setSelectedMenuItem="atlChartFilterStore.setTracks"
+                            :menuOptions="tracksOptions" 
+                            tooltipText="Weak and strong spots are determined by orientation of the satellite"
+                            @update:modelValue="tracksSelection"
+                        />
+                        <SrListbox id="beams" 
+                            v-if="useDebugStore().enableSpotPatternDetails && !atlChartFilterStore.getFunc().includes('gedi')"
+                            :insensitive="true"
+                            label="Beam(s)" 
+                            v-model="atlChartFilterStore.beams"
+                            :getSelectedMenuItem="atlChartFilterStore.getBeams"
+                            :setSelectedMenuItem="atlChartFilterStore.setBeams"
+                            :menuOptions="beamsOptions" 
+                            tooltipText="ATLAS laser beams are divided into weak and strong beams"
+                            @update:modelValue="BeamSelection"
                         />
                     </div>
-                </div> 
-                <div class="sr-tracks-beams-panel">
-                    <SrListbox id="tracks" 
-                        label="Track(s)" 
-                        v-model="atlChartFilterStore.tracks" 
-                        :getSelectedMenuItem="atlChartFilterStore.getTracks"
-                        :setSelectedMenuItem="atlChartFilterStore.setTracks"
-                        :menuOptions="tracksOptions" 
-                        tooltipText="Weak and strong spots are determined by orientation of the satellite"
-                        @update:modelValue="tracksSelection"
-                    />
-                </div>
-            </Fieldset>
+                </Fieldset>
+            </div>
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>
@@ -556,7 +556,7 @@ const tooltipTextStr = computed(() => {
         width: 8rem; 
         height: 2.25rem; 
     }
-   
+
     .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;
@@ -568,22 +568,21 @@ const tooltipTextStr = computed(() => {
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-top: 1rem;
-        min-height: 100%;
         min-width: 20vw;
         width: 100%;
-    }
-    .sr-analysis-reqid-sz{
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
     }
     .sr-analysis-reqid{
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
+    }
+    .sr-map-descr {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
     }
     .sr-analysis-opt-sidebar-map {
         display: flex;
@@ -593,6 +592,7 @@ const tooltipTextStr = computed(() => {
         min-height: 30%;
         min-width: 20vw;
         width: 100%;
+        height: 100%;
     }
     .sr-analysis-opt-sidebar-req-menu {
         display: flex;
@@ -615,18 +615,29 @@ const tooltipTextStr = computed(() => {
         color:transparent
  
     }
+    .sr-pnts-colormap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+    }
     .sr-analysis-max-pnts {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin-top: 0.5rem;
     }
     .sr-analysis-color-map {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content:flex-start;
+    }
+    .sr-debug-fieldset-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
         margin-top: 0.5rem;
     }
     .sr-fieldset {
@@ -661,22 +672,25 @@ const tooltipTextStr = computed(() => {
         align-items: flex-start;
         font-size: smaller;
     }
-    .sr-analyze-filters {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-evenly;
+
+
+    :deep(.sr-listbox-control){
+        min-height: fit-content;
     }
+
     .sr-tracks-beams-panel {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
         align-items:baseline;
     }
-    .sr-rgts-cycles-panel {
+
+    .sr-analyze-filters {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
-        align-items:baseline;
+        height: 100%;
+        min-height: 8rem;
     }
     .sr-sc-orient-panel {
         display: flex;
@@ -698,7 +712,8 @@ const tooltipTextStr = computed(() => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin-top: 0.5rem;
+        margin: 0.5rem;
+        
     }
     :deep(.p-multiselect-option) {
         font-size: smaller;
@@ -712,7 +727,19 @@ const tooltipTextStr = computed(() => {
     :deep(.p-multiselect-option) {
         font-size: smaller;
     }
-
-
+    .sr-analysis-rec-parms {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0.5rem;
+    }
+    .sr-fieldset {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0.25rem;
+    }
 
 </style>
