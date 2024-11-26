@@ -1,6 +1,5 @@
 <template>
     <div class="sr-menu-input-wrapper">
-        <div class="sr-menu-row">
             <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
                 <SrLabelInfoIconButton :label="label" :labelFontSize="labelFontSize" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form" :title="tooltipText">
@@ -11,7 +10,6 @@
                     </select>
                 </form>
             </div>
-        </div>
     </div>
 </template>
   
@@ -89,14 +87,6 @@
     display: flex;
     margin-left: 0.25rem;
     color: #888; /*  grey color */
-}
-.sr-menu-row  {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-right: 1rem;
-    padding-bottom: 0.5rem;
 }
 .sr-menu-control-center {
     display: flex; /* This enables Flexbox */

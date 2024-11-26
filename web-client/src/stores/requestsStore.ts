@@ -134,14 +134,14 @@ export const useRequestsStore = defineStore('requests', {
       const promises = fetchedReqIds.map(async (id: number) => {
         const status = await db.getStatus(id);
         const funcStr = await db.getFunc(id);
-        const descr = await db.getDescription(id);
-        let truncatedDescr = '';
-        if (descr !== DEFAULT_DESCRIPTION) {
-          truncatedDescr = descr.length > 10 ? descr.substring(0, 10) + '...' : descr;
-          truncatedDescr = ' - ' + truncatedDescr;
-        }
+        // const descr = await db.getDescription(id);
+        // let truncatedDescr = '';
+        // if (descr !== DEFAULT_DESCRIPTION) {
+        //   truncatedDescr = descr.length > 10 ? descr.substring(0, 10) + '...' : descr;
+        //   truncatedDescr = ' - ' + truncatedDescr;
+        // }
         if ((status == 'success') || (status == 'imported')) {
-          return { name: `${id.toString()} - ${funcStr} ${truncatedDescr}`, value: id.toString() };
+          return { name: `${id.toString()} - ${funcStr}`, value: id.toString() };
         }
       });
     

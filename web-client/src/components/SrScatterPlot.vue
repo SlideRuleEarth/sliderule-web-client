@@ -120,7 +120,9 @@ watch(
   (newVal, oldVal) => {
     console.log('yDataForChart changed:', oldVal, '->', newVal);
     clearPlot();
-   fetchScatterOptions();
+    if(newVal.length > 0) {
+      debouncedFetchScatterOptions();
+    }
 },
   { deep: true }
 );

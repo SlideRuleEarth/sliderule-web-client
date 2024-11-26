@@ -376,7 +376,7 @@ const getCnt = computed(() => {
 });
 
 const tooltipTextStr = computed(() => {
-    return "Has" + getCnt.value + " records and is " + getSize.value + " in size";
+    return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
 </script>
 
@@ -389,6 +389,7 @@ const tooltipTextStr = computed(() => {
                     <div class="sr-analysis-reqid" v-else>
                         <SrMenuInput 
                             label="Record" 
+                            labelFontSize="medium"
                             :menuOptions="reqIds" 
                             v-model="selectedReqId"
                             @update:modelValue="debouncedUpdateElevationMap(Number(selectedReqId.value))"
@@ -542,6 +543,20 @@ const tooltipTextStr = computed(() => {
     </div>
 </template>
 <style scoped>
+    
+    :deep(.sr-select-menu-item) {
+        padding: 1rem; 
+        font-size: small;
+        width: 8rem;
+    }
+
+    :deep(.sr-select-menu-default) {
+        padding: 0.25rem; 
+        font-size: small;
+        width: 8rem; 
+        height: 2.25rem; 
+    }
+   
     .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;

@@ -989,11 +989,22 @@ export class SlideRuleDexie extends Dexie {
     async getOverlayedReqIdsAsStrings(req_id: number): Promise<string[]> {
         try {
             const overlay = await this.getOverlayByReqId(req_id);
-            return overlay 
-                ? overlay.req_ids
-                    .filter(id => id !== req_id)
-                    .map(id => id.toString()) 
-                : [];
+            if (!overlay) {
+                return [];
+            }
+    
+            // Fetch the req_ids excluding the current one
+            const reqIds = overlay.req_ids.filter(id => id !== req_id);
+    
+            // Map over the reqIds and fetch the associated function names
+            const formattedReqIds = await Promise.all(
+                reqIds.map(async id => {
+                    const func = await this.getFunc(id); // Fetch the function name
+                    return `${id} - ${func || 'Unknown Function'}`; // Format the string
+                })
+            );
+    
+            return formattedReqIds;
         } catch (error) {
             console.error(`Failed to retrieve overlayed req_ids as strings for req_id ${req_id}:`, error);
             throw error;
