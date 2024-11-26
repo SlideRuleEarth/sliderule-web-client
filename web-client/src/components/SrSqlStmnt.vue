@@ -16,9 +16,9 @@
   
 <script setup lang="ts">
     import { ref,onMounted,computed } from "vue";
-    import SrCheckbox from "./SrCheckbox.vue";
+    import SrCheckbox from "@/components/SrCheckbox.vue";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { useChartStore } from "@/stores/chartStore";
+    import { useChartStore } from "@/stores/chartStore";
     const atlChartFilterStore = useAtlChartFilterStore();
 
     const showSqlStmnt = ref(false);
@@ -27,7 +27,7 @@ import { useChartStore } from "@/stores/chartStore";
     });
     const computedSqlStmnt = computed(() => {
         const sqlStmnt = useChartStore().getQuerySql();
-        if ((sqlStmnt === undefined) ||(sqlStmnt === null) || (sqlStmnt === '')) {
+        if ((sqlStmnt === undefined) || (sqlStmnt === null) || (sqlStmnt === '')) {
             return `No SQL statement available for this function: ${computedCurFunc.value}`;
         }
         return sqlStmnt;

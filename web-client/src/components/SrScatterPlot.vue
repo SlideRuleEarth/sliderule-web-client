@@ -4,14 +4,17 @@
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="useChartStore().getShowMessage()" :class="messageClass">{{useChartStore().getMessage(computedReqIdStr)}}</div>
             <div class="sr-multiselect-container">
-                <SrMultiSelectText 
-                  v-model="computedYData"
-                  label="Choose" 
-                  @update:modelValue="changedYValues"
-                  menuPlaceholder="Select elevation data"
-                  :menuOptions="computedYOptions"
-                  :default="computedDefaultYData"
-                />  
+                <FloatLabel variant="on">
+                    <MultiSelect
+                        class="sr-multiselect" 
+                        id="myID"
+                        v-model="yDataForChart"
+                        size="small" 
+                        :options="computedYOptions"
+                        display="chip"
+                    />
+                    <label for="myID"> {{ computedPlaceholder }}</label>
+                </FloatLabel>
             </div>
         </div>
         <div class="sr-scatter-plot-content">
@@ -35,13 +38,14 @@
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
+import MultiSelect from "primevue/multiselect";
+import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import SrMultiSelectText from "./SrMultiSelectText.vue";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
@@ -52,48 +56,74 @@ import { useChartStore } from "@/stores/chartStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
-const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
-const computedYData = computed(() => useChartStore().getYDataForChart(computedReqIdStr.value));
+const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
+const yDataForChart = computed({
+    get() { 
+        return useChartStore().stateByReqId[atlChartFilterStore.currentReqId.toString()]?.yDataForChart || [];
+    },
+    set(value: string[]) {
+        useChartStore().setYDataForChart(computedReqIdStr.value, value);
+    }
+});
+
+const computedPlaceholder = computed(() => {
+  return `Y Data for ${computedReqIdStr.value}`;
+});
 const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
-const computedDefaultYData = computed(() => [useChartStore().getElevationDataOptions(computedReqIdStr.value)[useChartStore().getNdxOfelevationDataOptionsForHeight(computedReqIdStr.value)]]);
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 onMounted(async () => {
+  try {
     atlChartFilterStore.setPlotRef(plotRef.value);
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
-        const func = await indexedDb.getFunc(reqId);
-        atl03ColorMapStore.initializeAtl03ColorMapStore();
-        if (func === 'atl03sp') {
-          atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-        } else if (func.includes('atl06')) {
-          atl03ColorMapStore.setAtl03ColorKey('YAPC');
-        } else if (func.includes('atl08')) {
-          atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-        }
-        debouncedFetchScatterOptions();
+      const func = await indexedDb.getFunc(reqId);
+      atl03ColorMapStore.initializeAtl03ColorMapStore();
+      if (func === 'atl03sp') {
+        atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+      } else if (func.includes('atl06')) {
+        atl03ColorMapStore.setAtl03ColorKey('YAPC');
+      } else if (func.includes('atl08')) {
+        atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+      }
+      debouncedFetchScatterOptions();
     } else {
-        console.warn('reqId is undefined');
+      console.warn('reqId is undefined');
     }
+  } catch (error) {
+    console.error('Error during onMounted initialization:', error);
+  }
 });
+
 
 
 const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 
-watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
-  if (newState === true) {
+// watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
+//   if (newState === true) {
+//     clearPlot();
+//     atlChartFilterStore.resetClearScatterPlotFlag();
+//   }
+// }, { deep: true });
+
+// async function changedYValues(event: any) {
+//   console.log('changedYValues:', yDataForChart.value);
+//   //useChartStore().setYDataForChart(computedReqIdStr.value,yDataForChart.value);
+//   fetchScatterOptions();
+// };
+
+watch(
+  yDataForChart,
+  (newVal, oldVal) => {
+    console.log('yDataForChart changed:', oldVal, '->', newVal);
     clearPlot();
-    atlChartFilterStore.resetClearScatterPlotFlag();
-  }
-}, { deep: true });
-
-
-async function changedYValues() {
-  debouncedFetchScatterOptions();
-}
+   fetchScatterOptions();
+},
+  { deep: true }
+);
 
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
   if (newReqId && (newReqId > 0)) {
@@ -188,6 +218,10 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
   border: 0.5rem;
 }
 
+.sr-multiselect {
+    width: 100%;
+}
+
 .sr-select-color-key {
   display: flex;
   flex-direction: column;
@@ -224,12 +258,14 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 
 .loading-indicator {
   margin-left: 1rem;
+  margin-bottom: 0.5rem;
   font-size: 1.2rem;
   color: #ffcc00; /* Yellow color */
 }
 
 .message {
   margin-left: 1rem;
+  margin-bottom: 0.5rem;
   font-size: 1.2rem;
 }
 

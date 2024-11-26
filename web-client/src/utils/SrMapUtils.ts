@@ -420,8 +420,8 @@ const onHoverHandler = isIPhone
           }
       };
 
-function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
-    //console.log('createElLayer elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
+function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
+    //console.log('createElLayer name:',name,' elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
     //let coordSys;
     //if(projName === 'EPSG:4326'){
     //    coordSys = COORDINATE_SYSTEM.LNGLAT; // Deck.gl’s internal system for EPSG:4326
@@ -429,7 +429,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
     //    coordSys = COORDINATE_SYSTEM.DEFAULT;
     //}
     return new PointCloudLayer({
-        id: EL_LAYER_NAME,
+        id: name,
         data: elevationData,
         //coordinateSystem: coordSys, 
         getPosition: (d) => {
@@ -492,7 +492,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
     try{
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-            const layer = createElLayer(elevationData,extHMean,heightFieldName,projName);
+            const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
             console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());

@@ -415,8 +415,10 @@ return options;
 export const fetchScatterOptions = async () => {
     const reqId = atlChartFilterStore.getReqId();
     const reqIdStr = reqId.toString();
+    console.log('fetchScatterOptions reqId:', reqId, ' reqIdStr:', reqIdStr);
     if(reqId > 0){
       const y_options = chartStore.getYDataForChart(reqIdStr);
+      console.log('fetchScatterOptions y_options:', y_options);
       if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
         chartStore.setShowMessage(reqIdStr,false);
         const startTime = performance.now(); // Start time
