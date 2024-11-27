@@ -145,6 +145,7 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].elevationDataOptions;
     },
     async setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
+        this.ensureState(reqIdStr);
         //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames);
         this.stateByReqId[reqIdStr].elevationDataOptions = fieldNames;
         const heightFieldname = await getHeightFieldname(Number(reqIdStr));
@@ -158,28 +159,31 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].yDataForChart;
     },
     setYDataForChart(reqIdStr: string,yDataForChart: string[]) {
-      this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
     },    
     getXDataForChart(reqIdStr: string) {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].xDataForChart;
     },
     setXDataForChart(reqIdStr: string, xDataForChart: string) {
-      this.stateByReqId[reqIdStr].xDataForChart = xDataForChart;
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].xDataForChart = xDataForChart;
     },
     setXDataForChartUsingFunc(reqIdStr: string,func: string) {
-      if (func.includes('atl03')) {
-        this.setXDataForChart(reqIdStr,'x_atc');
+        this.ensureState(reqIdStr);
+        if (func.includes('atl03')) {
+            this.setXDataForChart(reqIdStr,'x_atc');
         if (func.includes('atl03vp')) {
-          this.setXDataForChart(reqIdStr,'segment_dist_x');
+            this.setXDataForChart(reqIdStr,'segment_dist_x');
         }
-      } else if (func.includes('atl06')) {
-        this.setXDataForChart(reqIdStr,'x_atc');
-      } else if (func.includes('atl08')) {
-        this.setXDataForChart(reqIdStr,'x_atc');
-      } else {
-        console.error('setXDataForChartFromFunc() unknown function:', func);
-      }
+        } else if (func.includes('atl06')) {
+            this.setXDataForChart(reqIdStr,'x_atc');
+        } else if (func.includes('atl08')) {
+            this.setXDataForChart(reqIdStr,'x_atc');
+        } else {
+            console.error('setXDataForChartFromFunc() unknown function:', func);
+        }
     },
     getCurrentFile(reqIdStr: string) {
         this.ensureState(reqIdStr);
@@ -190,9 +194,11 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].func;
     },
     setFunc(reqIdStr: string,func: string) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
     },
     setShowMessage(reqIdStr: string,showMessage: boolean) { 
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].showMessage = showMessage;
     },
     getShowMessage(reqIdStr?: string): boolean {
@@ -205,20 +211,21 @@ export const useChartStore = defineStore('chartStore', {
         }
     },
     setMessage(reqIdStr: string,message: string) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].message = message;
     },
     getMessage(reqIdStr: string) {
-        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].message;
     },
     setIsWarning(reqIdStr: string,isWarning: boolean) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].isWarning = isWarning;
     },
     getIsWarning(reqIdStr: string) {
-        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].isWarning;
     },
     setXLegend(reqIdStr: string,xLegend: string) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].xLegend = xLegend;
     },
     getXLegend(reqIdStr: string) {
@@ -238,6 +245,7 @@ export const useChartStore = defineStore('chartStore', {
         }, 0);
     },
     setSize(reqIdStr: string,size: number) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].size = size;
     },
     getRecCnt(reqIdStr?: string): number {
@@ -253,6 +261,7 @@ export const useChartStore = defineStore('chartStore', {
         }, 0);
     },
     setRecCnt(reqIdStr: string,recCnt: number) {
+        this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].recCnt = recCnt;
     },
 
