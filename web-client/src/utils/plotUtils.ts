@@ -412,8 +412,8 @@ return options;
 }
 
 
-export const fetchScatterOptions = async () => {
-    const reqId = atlChartFilterStore.getReqId();
+export const fetchScatterOptionsFor = async (reqId:number) => {
+    //const reqId = atlChartFilterStore.getReqId();
     const reqIdStr = reqId.toString();
     console.log('fetchScatterOptions reqId:', reqId, ' reqIdStr:', reqIdStr);
     if(reqId > 0){
@@ -431,11 +431,8 @@ export const fetchScatterOptions = async () => {
           atlChartFilterStore.setFunc(reqIdStr,func);
           chartStore.setFunc(reqIdStr,func);
           chartStore.setXDataForChartUsingFunc(reqIdStr,func);
-          //const sop = getScatterOptionsParms(reqIdStr);
-          //console.log('fetchScatterOptions sop:',sop);
-          //const scatterOptions = await getScatterOptions(sop);
           const scatterOptions = await getScatterOptions(req_id);
-          //console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
+          console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
           if (scatterOptions) {
             const plotRef = atlChartFilterStore.getPlotRef();
             if(plotRef){
@@ -464,7 +461,7 @@ export const fetchScatterOptions = async () => {
         } finally {
           atlChartFilterStore.resetIsLoading();
           const now = performance.now();
-          //console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
+          console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
         }
       } else {
         console.warn('fetchScatterOptions No y options selected');

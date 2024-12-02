@@ -23,48 +23,25 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     cycles: [] as SrListNumberItem[],
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
-    //currentFile: '' as string,
     currentReqId: 0 as number,
-    //min_x: 0 as number,
-    //max_x: 0 as number,
-    //min_y: 0 as number,
-    //max_y: 0 as number,
     updateScatterPlotCnt: 0 as number,
-    //elevationDataOptions: [{ name: 'not_set', value: 'not_set' }] as { name: string, value: string }[],
-    //yDataForChart: [] as string[],
-    //xDataForChart: 'x_atc' as string,
-    //ndxOfelevationDataOptionsForHeight: 0,
     func:  {} as Record<string, string>, // Keyed by req_id
-    //description: 'description here' as string,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
-    //size: NaN as number,
     isLoading: false as boolean,
     clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
-    // atl03QuerySql: '' as string,
-    // atl06QuerySql: '' as string,  
-    // atl08QuerySql: '' as string,
-    // atl03spWhereClause: '' as string,
-    // atl03vpWhereClause: '' as string,
-    // atl06WhereClause: '' as string,
-    // atl08pWhereClause: '' as string,
     atl03spSymbolSize: 1 as number,
     atl03vpSymbolSize: 5 as number,
     atl06SymbolSize: 5 as number,
     atl08SymbolSize: 5 as number,
-    //message: 'Failed to load data. Please try again later.' as string,
-    //isWarning: false as boolean,
-    //showMessage: false as boolean,
-    //recCnt: 0 as number,
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
     selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
-    //xLegend: 'Meters' as string,
 }),
 
   actions: {
@@ -368,30 +345,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         this.scOrients.push({ label: scOrient.toString(), value: scOrient });
       }
     },
-    // setSize(size: number) {
-    //   this.size = size;
-    // },
-    // getSize() {
-    //   return this.size;
-    // },
-    // getScatterOptionsParms(req_id:string): SrScatterOptionsParms {
-    //   //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
-    //   const sop =  {
-    //     rgts: this.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
-    //     cycles: this.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
-    //     fileName: this.currentFile,
-    //     func: this.getFunc(req_id),
-    //     y: this.getYDataForChart(),
-    //     x: this.getXDataForChart(),
-    //     beams: this.beams.map(beam => beam.value),
-    //     spots: this.spots.map(spot => spot.value),
-    //     pairs: this.pairs.map(pair => pair.value).filter(value => value !== undefined),
-    //     scOrients: this.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
-    //     tracks: this.tracks.map(track => track.value),
-    //   };
-    //   //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
-    //   return sop;
-    // },
     updateScatterPlot() {
       this.updateScatterPlotCnt += 1;
       //console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
@@ -417,64 +370,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getClearPlot() {
       return this.clearScatterPlotFlag;
     },
-    // setAtl03QuerySql(sql: string) {
-    //   this.atl03QuerySql = sql;
-    // },
-    // getAtl03QuerySql() {
-    //   return this.atl03QuerySql;
-    // },
-    // setAtl03spWhereClause(sql: string) {
-    //   this.atl03spWhereClause = sql;
-    // },
-    // getAtl03spWhereClause() {
-    //   return this.atl03spWhereClause
-    // },
-    // setAtl03vpWhereClause(sql: string) {
-    //   this.atl03vpWhereClause = sql;
-    // },
-    // getAtl03vpWhereClause() {
-    //   return this.atl03vpWhereClause
-    // },
-    // setAtl06WhereClause(sql: string) {
-    //   this.atl06WhereClause = sql;
-    // },
-    // getAtl06WhereClause() {
-    //   return this.atl06WhereClause;
-    // },
-    // setAtl08pWhereClause(sql: string) {
-    //   this.atl08pWhereClause = sql;
-    // },
-    // getAtl08pWhereClause() {
-    //   return this.atl08pWhereClause;
-    // },
-    // setAtl06QuerySql(sql: string) {
-    //   this.atl06QuerySql = sql;
-    // },
-    // getAtl06QuerySql() {
-    //   return this.atl06QuerySql;
-    // },
-    // setAtl08QuerySql(sql: string) {
-    //   this.atl08QuerySql = sql;
-    // },
-    // getAtl08QuerySql() {
-    //   return this.atl08QuerySql;
-    // },
-    // getSqlStmnt(func: string) {
-    //   switch (func) {
-    //     case 'atl03sp':
-    //       return this.atl03QuerySql;
-    //     case 'atl03vp':
-    //       return this.atl03QuerySql;
-    //     case 'atl06p':
-    //       return this.atl06QuerySql;
-    //     case 'atl06sp':
-    //       return this.atl06QuerySql;
-    //     case 'atl08p':
-    //       return this.atl08QuerySql;
-    //     default:
-    //       return '';
-    //   }
-    // },
     setAtl03spSymbolSize(size: number) {
       this.atl03spSymbolSize = size;
     },
@@ -513,31 +408,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         return 5;
       }        
     },
-    // getMessage() {
-    //   return this.message;
-    // },
-    // setMessage(msg: string) {
-    //   this.message = msg;
-    // },
-    // setIsWarning(isWarning: boolean) {
-    //   this.isWarning = isWarning;
-    // },
-    // getIsWarning() {
-    //   return this.isWarning;
-    // },
-    // setShowMessage(showMessage: boolean) {
-    //   this.showMessage = showMessage;
-    // },
-    // getShowMessage() {
-    //   return this.showMessage;
-    // },
-    // setRecCnt(recCnt: number) {
-    //   this.recCnt = recCnt;
-    // },
-    // getRecCnt() {
-    //   return this.recCnt;
-    // },
-
     getLargeData() {
       return this.largeData;
     },
@@ -568,11 +438,5 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
       this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
     },
-    // getXLegend() {
-    //   return this.xLegend;
-    // },
-    // setXLegend(xLegend: string) {
-    //   this.xLegend = xLegend;
-    // },
   }
 });

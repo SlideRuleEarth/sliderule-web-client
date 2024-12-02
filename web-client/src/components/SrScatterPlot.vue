@@ -49,7 +49,7 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
+import { fetchScatterOptionsFor,clearPlot } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
@@ -75,6 +75,10 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
+const debouncedFetchScatterOptionsFor = debounce((reqId: number) => {
+    fetchScatterOptionsFor(reqId);
+}, 300);
+
 onMounted(async () => {
   try {
     atlChartFilterStore.setPlotRef(plotRef.value);
@@ -89,7 +93,7 @@ onMounted(async () => {
       } else if (func.includes('atl08')) {
         atl03ColorMapStore.setAtl03ColorKey('atl08_class');
       }
-      debouncedFetchScatterOptions();
+      debouncedFetchScatterOptionsFor(reqId);
     } else {
       console.warn('reqId is undefined');
     }
@@ -98,46 +102,28 @@ onMounted(async () => {
   }
 });
 
-
-
-const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
-
-// watch(() => atlChartFilterStore.clearScatterPlotFlag, async (newState) => {
-//   if (newState === true) {
-//     clearPlot();
-//     atlChartFilterStore.resetClearScatterPlotFlag();
-//   }
-// }, { deep: true });
-
-// async function changedYValues(event: any) {
-//   console.log('changedYValues:', yDataForChart.value);
-//   //useChartStore().setYDataForChart(computedReqIdStr.value,yDataForChart.value);
-//   fetchScatterOptions();
-// };
-
-watch(
-  yDataForChart,
-  (newVal, oldVal) => {
-    console.log('yDataForChart changed:', oldVal, '->', newVal);
-    clearPlot();
-    if(newVal.length > 0) {
-      debouncedFetchScatterOptions();
-    }
-},
-  { deep: true }
-);
-
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
-  if (newReqId && (newReqId > 0)) {
+  if (newReqId && newReqId > 0) {
     clearPlot();
-    fetchScatterOptions();
+    debouncedFetchScatterOptionsFor(newReqId);
   }
 });
 
 watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
-  //console.log('Watch updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
-  debouncedFetchScatterOptions();
+  const reqId = atlChartFilterStore.getReqId();
+  if (reqId && reqId > 0) {
+    debouncedFetchScatterOptionsFor(reqId);
+  }
 });
+
+watch(yDataForChart, (newVal, oldVal) => {
+  console.log('yDataForChart changed:', oldVal, '->', newVal);
+  clearPlot();
+  const reqId = atlChartFilterStore.getReqId();
+  if (newVal.length > 0 && reqId > 0) {
+    debouncedFetchScatterOptionsFor(reqId);
+  }
+}, { deep: true });
 
 const messageClass = computed(() => {
   return {
@@ -156,9 +142,11 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
     atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
-    debouncedFetchScatterOptions();
-  }, { deep: true, immediate: true });
-
+    const reqId = atlChartFilterStore.getReqId();
+    if (reqId > 0) {
+        debouncedFetchScatterOptionsFor(reqId);
+    }
+}, { deep: true, immediate: true });
 
 </script>
 

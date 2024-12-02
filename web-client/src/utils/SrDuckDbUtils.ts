@@ -160,7 +160,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
                 console.error('duckDbReadAndUpdateElevationData sample_fraction error:', error);
             }
             console.warn('duckDbReadAndUpdateElevationData maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
-                        // Step 1: Initialize the DuckDB client
+            // Step 1: Initialize the DuckDB client
             const duckDbClient = await createDuckDbClient();
 
             // Step 2: Retrieve the filename using req_id
@@ -375,10 +375,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
     }
 };
 
-export const duckDbReadAndOverlayElevationData = async (req_ids: number[]) => {
-    console.log('duckDbReadAndOverlayElevationData req_ids:', req_ids);
-    
-}
+
 
 export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> {
     const startTime = performance.now(); // Start time

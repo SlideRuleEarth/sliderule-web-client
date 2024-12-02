@@ -7,7 +7,7 @@ import SrListbox from './SrListbox.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadAndOverlayElevationData } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { tracksOptions,beamsOptions,spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
@@ -260,7 +260,6 @@ const updateElevationMap = async (req_id: number) => {
         deckStore.deleteSelectedLayer();
         //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
         useAtlChartFilterStore().setReqId(req_id);
-        await duckDbReadAndUpdateElevationData(req_id);
         //console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
         //console.log('watch req_id rgts:',rgts);
@@ -279,9 +278,8 @@ const updateElevationMap = async (req_id: number) => {
         if(selectedOverlayedReqIds.value.length > 0){
             all_req_ids = all_req_ids.concat(selectedOverlayedReqIds.value);
         }
-        updateFilter(all_req_ids);
+        updateFilter([req_id]);
         await duckDbReadAndUpdateElevationData(req_id);
-        await duckDbReadAndOverlayElevationData(selectedOverlayedReqIds.value);
 
     } catch (error) {
         console.warn('Failed to update selected request:', error);
@@ -363,6 +361,15 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         }
         updateFilter(all_req_ids);
         debouncedUpdateElevationMap(req_id);
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+});
+
+watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
+    console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    try{
+        console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -538,7 +545,7 @@ const tooltipTextStr = computed(() => {
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>
-            <SrScatterPlotOptions />
+            <SrScatterPlotOptions :req_id="useAtlChartFilterStore().getReqId()"/>
         </div>
     </div>
 </template>

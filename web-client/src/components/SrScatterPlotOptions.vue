@@ -4,7 +4,7 @@ import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
-import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
+import { fetchScatterOptionsFor,clearPlot } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
@@ -17,35 +17,46 @@ import { watch } from "vue";
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
+
 interface AtColorChangeEvent {
   label: string;
   color?: string; // color can be undefined
 }
 
+// Define props with TypeScript types
+const props = defineProps<{
+  req_id: number;
+}>();
+
+const debouncedFetchScatterOptionsFor = debounce((reqId: number) => {
+    fetchScatterOptionsFor(reqId);
+}, 300);
+
+
+
 const symbolSizeSelection = () => {
     //console.log('symbolSizeSelection');
     clearPlot();
-    debouncedFetchScatterOptions();
+    debouncedFetchScatterOptionsFor(props.req_id);
 };
 
 function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    debouncedFetchScatterOptions();
+    debouncedFetchScatterOptionsFor(props.req_id);
 }
 
 const atl03CnfColorChanged = (colorKey:string): void =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
     clearPlot();
-    debouncedFetchScatterOptions();
+    debouncedFetchScatterOptionsFor(props.req_id);
 };
 
 const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();
-      debouncedFetchScatterOptions();
+      debouncedFetchScatterOptionsFor(props.req_id);
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }
@@ -54,13 +65,18 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: string) => {
   //console.log(`watch atl03ColorMapStore.getSelectedAtl03ColorMap():`, newVal);
   clearPlot();
-  debouncedFetchScatterOptions();
+  debouncedFetchScatterOptionsFor(props.req_id);
 });
 
 
 </script>
 <template>
-<Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
+<Fieldset   
+    class="sr-scatter-plot-options" 
+    :legend="`Plot Options (Request ID: ${req_id})`" 
+    :toggleable="true" 
+    :collapsed="true"
+>
     <div class="sr-sql-stmnt">
     <SrSqlStmnt />
 </div>
