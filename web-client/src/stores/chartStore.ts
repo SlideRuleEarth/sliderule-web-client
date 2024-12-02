@@ -140,7 +140,7 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight;
     },
-    getElevationDataOptions(reqIdStr: string) {
+    getElevationDataOptions(reqIdStr: string) : string[] {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].elevationDataOptions;
     },
@@ -158,7 +158,7 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].yDataForChart;
     },
-    setYDataForChart(reqIdStr: string,yDataForChart: string[]) {
+    setYDataForChart(reqIdStr: string,yDataForChart: string[]): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
     },    

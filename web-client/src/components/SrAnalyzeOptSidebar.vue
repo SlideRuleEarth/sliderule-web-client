@@ -365,6 +365,7 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
         console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
+        atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }

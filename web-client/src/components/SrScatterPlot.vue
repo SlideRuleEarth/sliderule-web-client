@@ -7,13 +7,26 @@
                 <FloatLabel variant="on">
                     <MultiSelect
                         class="sr-multiselect" 
-                        id="myID"
+                        :id=computedElID
                         v-model="yDataForChart"
                         size="small" 
                         :options="computedYOptions"
                         display="chip"
                     />
-                    <label for="myID"> {{ computedPlaceholder }}</label>
+                    <label :for="computedElID"> {{ `Y Data for ${computedReqIdStr}` }}</label>
+                </FloatLabel>
+            </div>
+            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+                <FloatLabel variant="on">
+                    <MultiSelect
+                        class="sr-multiselect" 
+                        :id="`srMultiId-${overlayedReqId}`"
+                        v-model="yDataBindingsReactive[overlayedReqId]"
+                        size="small" 
+                        :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                        display="chip"
+                    />
+                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId}` }}</label>
                 </FloatLabel>
             </div>
         </div>
@@ -44,7 +57,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, ref, computed } from "vue";
+import { provide, watch, onMounted, ref, computed, reactive, WritableComputedRef } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
@@ -57,6 +70,7 @@ import { useChartStore } from "@/stores/chartStore";
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
+const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataForChart = computed({
     get() { 
         return useChartStore().stateByReqId[atlChartFilterStore.currentReqId.toString()]?.yDataForChart || [];
@@ -66,9 +80,28 @@ const yDataForChart = computed({
     }
 });
 
-const computedPlaceholder = computed(() => {
-  return `Y Data for ${computedReqIdStr.value}`;
-});
+const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
+
+function initializeBindings(reqIds: string[]) {
+    console.log('initializeBindings:', reqIds);
+    reqIds.forEach((reqId) => {
+    if (!(reqId in yDataBindingsReactive)) {
+      yDataBindingsReactive[reqId] = computed({
+        get: () => useChartStore().getYDataForChart(reqId),
+        set: (value: string[]) => useChartStore().setYDataForChart(reqId, value),
+      });
+    }
+  });
+}
+
+
+
+// Call `initializeBindings` whenever overlayedReqIds are updated
+watch(() => atlChartFilterStore.getSelectedOverlayedReqIds(), (overlayedReqIds) => {
+  initializeBindings(overlayedReqIds.map(String));
+}, { immediate: true });
+
+
 const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -201,15 +234,24 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 }
 
 .sr-multiselect-container {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
+    width: 100%;
+    margin: 1.5rem;
+    margin-bottom: 2.0rem;
+    border: 0.5rem;
+}
+
+.sr-overlayed-reqs {
+    width: 100%;
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 0.5rem;
+    border-bottom: 0.5rem;
 }
 
 .sr-multiselect {
     width: 100%;
+    margin: 0rem;
+    border: 0rem;
 }
 
 .sr-select-color-key {

@@ -3,6 +3,7 @@ import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
+import { get, set } from 'lodash';
 
 export interface SrListNumberItem {
   label: string;
@@ -42,7 +43,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
     selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
-}),
+    selectedOverlayedReqIds: [] as number[],
+  }),
 
   actions: {
     setRegion(regionValue: number) {
@@ -195,36 +197,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getReqIdStr():string {
       return this.currentReqId.toString();
     },
-    // setFileName(filename: string) {
-    //   this.currentFile = filename;
-    // },
-    // getFileName() {
-    //   return this.currentFile;
-    // },
-    // setMinX(min_x: number) {
-    //   this.min_x = min_x;
-    // },
-    // getMinX() {
-    //   return this.min_x;
-    // },
-    // setMaxX(max_x: number) {
-    //   this.max_x = max_x;
-    // },
-    // getMaxX() {
-    //   return this.max_x;
-    // },
-    // setMinY(min_y: number) {
-    //   this.min_y = min_y;
-    // },
-    // getMinY() {
-    //   return this.min_y;
-    // },
-    // setMaxY(max_y: number) {
-    //   this.max_y = max_y;
-    // },
-    // getMaxY() {
-    //   return this.max_y;
-    // },
     incrementDebugCnt() {
       return ++this.debugCnt;
     },
@@ -234,47 +206,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
     },
-    // async setElevationDataOptionsFromFieldNames(fieldNames: string[]) {
-    //   const elevationDataOptions = fieldNames.map(fieldName => ({ name: fieldName, value: fieldName }));
-    //   const heightFieldname = await getHeightFieldname(this.currentReqId);
-    //   this.ndxOfelevationDataOptionsForHeight = fieldNames.indexOf(heightFieldname);
-    //   this.setElevationDataOptions(elevationDataOptions);
-    // },
-    // getElevationDataOptions() {
-    //   return this.elevationDataOptions;
-    // },
-    // setElevationDataOptions(elevationDataOptions: { name: string, value: string }[]) {
-    //   this.elevationDataOptions = elevationDataOptions;
-    // },
-    // getYDataForChart() {
-    //   return this.yDataForChart;
-    // },
-    // setYDataForChart(yDataForChart: string[]) {
-    //   this.yDataForChart = yDataForChart;
-    // },    
-    // getXDataForChart() {
-    //   return this.xDataForChart;
-    // },
-    // setXDataForChart(xDataForChart: string) {
-    //   this.xDataForChart = xDataForChart;
-    // },
-    // setXDataForChartUsingFunc(func: string) {
-    //   if (func.includes('atl03')) {
-    //     this.setXDataForChart('x_atc');
-    //     if (func.includes('atl03vp')) {
-    //       this.setXDataForChart('segment_dist_x');
-    //     }
-    //   } else if (func.includes('atl06')) {
-    //     this.setXDataForChart('x_atc');
-    //   } else if (func.includes('atl08')) {
-    //     this.setXDataForChart('x_atc');
-    //   } else {
-    //     console.error('setXDataForChartFromFunc() unknown function:', func);
-    //   }
-    // },
-    // getNdxOfelevationDataOptionsForHeight() {
-    //   return this.ndxOfelevationDataOptionsForHeight;
-    // },
     setFunc(req_id:string, func: string) {
       this.func[req_id] = func;
     },
@@ -285,12 +216,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       const values = Object.values(this.func);
       return values.length === 1 ? values[0] : values.join(',');
     },
-    // setDescription(description: string) {
-    //   this.description = description;
-    // },
-    // getDescription() {
-    //   return this.description;
-    // },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
     },
@@ -437,6 +362,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
       this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
+    },
+    getSelectedOverlayedReqIds() {
+      return this.selectedOverlayedReqIds;
+    },
+    setSelectedOverlayedReqIds(selectedOverlayedReqIds: number[]) {
+      this.selectedOverlayedReqIds = selectedOverlayedReqIds;
     },
   }
 });
