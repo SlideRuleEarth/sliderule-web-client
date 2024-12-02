@@ -68,9 +68,10 @@ const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
 const srToastStore = useSrToastStore();
-const overlayedReqIds = ref<string[]>([]);
+const overlayedReqIdOptions = ref<{label:string,value:number}[]>([]);
 const selectedOverlayedReqIds = ref<number[]>([]);
-const hasOverlayedReqs = computed(() => overlayedReqIds.value.length > 0);
+const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
+const isMounted = ref(false);
 
 onMounted(async() => {
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId:${props.startingReqId}`);
@@ -100,7 +101,7 @@ onMounted(async() => {
         console.log('onMounted selectedReqId:', req_id);
         if(req_id > 0){
             atlChartFilterStore.setReqId(req_id);
-            overlayedReqIds.value = await db.getOverlayedReqIdsAsStrings(req_id);
+            overlayedReqIdOptions.value = await db.getOverlayedReqIdsOptions(req_id);
         } else {
             console.warn('Invalid request ID:', req_id);
             toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife()});
@@ -116,6 +117,7 @@ onMounted(async() => {
         useChartStore().setFunc(selectedReqId.value.value,atlChartFilterStore.getFunc());
         console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
+        isMounted.value = true;
         console.log(`onMounted took ${endTime - startTime} milliseconds.`);
     }
 });
@@ -274,10 +276,6 @@ const updateElevationMap = async (req_id: number) => {
             //console.log('watch req_id tracks:',tracks);
         }
 
-        let all_req_ids = [req_id];
-        if(selectedOverlayedReqIds.value.length > 0){
-            all_req_ids = all_req_ids.concat(selectedOverlayedReqIds.value);
-        }
         updateFilter([req_id]);
         await duckDbReadAndUpdateElevationData(req_id);
 
@@ -350,16 +348,13 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     console.log('watch selectedReqId --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
         const req_id = Number(newSelection.value)
-        overlayedReqIds.value = await db.getOverlayedReqIdsAsStrings(req_id);
+        atlChartFilterStore.setReqId(req_id);
+        overlayedReqIdOptions.value = await db.getOverlayedReqIdsOptions(req_id);
         deckStore.deleteSelectedLayer();
         atlChartFilterStore.setSpots([]);
         atlChartFilterStore.setRgts([]);
         atlChartFilterStore.setCycles([]);
-        let all_req_ids = [req_id];
-        if(selectedOverlayedReqIds.value.length > 0){
-            all_req_ids = all_req_ids.concat(selectedOverlayedReqIds.value);
-        }
-        updateFilter(all_req_ids);
+        updateFilter([req_id]);
         debouncedUpdateElevationMap(req_id);
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -374,6 +369,14 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
         console.error('Failed to update selected request:', error);
     }
 });
+
+const findLabel = (value:number) => {
+    console.log('findLabel reqIds:', reqIds.value);
+    const match = reqIds.value.find(item => Number(item.value) === value);
+    console.log('findLabel:', value, 'match:', match);
+    return match ? match.name : '';
+};
+
 
 const getSize = computed(() => {
     return formatBytes(useChartStore().getSize());
@@ -406,7 +409,9 @@ const tooltipTextStr = computed(() => {
                         v-if=hasOverlayedReqs
                         v-model="selectedOverlayedReqIds" 
                         size="small"
-                        :options="overlayedReqIds"  
+                        :options="overlayedReqIdOptions"
+                        optionValue="value"
+                        optionLabel="label"  
                         placeholder="Overlay" 
                         display="chip" 
                     />
@@ -545,7 +550,22 @@ const tooltipTextStr = computed(() => {
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>
-            <SrScatterPlotOptions :req_id="useAtlChartFilterStore().getReqId()"/>
+            <div class="sr-scatterplot-options-container">
+                <!-- SrScatterPlotOptions for the main req_id -->
+                <SrScatterPlotOptions
+                    v-if="isMounted" 
+                    :req_id="Number(selectedReqId.value)"
+                    :label="findLabel(Number(selectedReqId.value))"
+                    />
+
+                <!-- SrScatterPlotOptions for each overlayed req_id -->
+                <div v-for="overlayedReqId in selectedOverlayedReqIds" :key="overlayedReqId">
+                    <SrScatterPlotOptions 
+                        :req_id="overlayedReqId" 
+                        :label="findLabel(overlayedReqId)"
+                    />
+                </div>
+            </div>        
         </div>
     </div>
 </template>

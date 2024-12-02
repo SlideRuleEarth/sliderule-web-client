@@ -12,12 +12,11 @@ import { colorMapNames } from '@/utils/colorUtils';
 import { debounce } from "lodash";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
-import { watch } from "vue";
+import { onMounted, watch } from "vue";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-
 interface AtColorChangeEvent {
   label: string;
   color?: string; // color can be undefined
@@ -26,12 +25,18 @@ interface AtColorChangeEvent {
 // Define props with TypeScript types
 const props = defineProps<{
   req_id: number;
+  label: string;
 }>();
+const computedLabel = props.label?  `Plot Options (${props.label})` : `Plot Options:(${props.req_id})`;
 
 const debouncedFetchScatterOptionsFor = debounce((reqId: number) => {
     fetchScatterOptionsFor(reqId);
 }, 300);
 
+
+onMounted(() => {
+    console.log('SrScatterPlotOptions onMounted props.req_id:', props.req_id);
+});
 
 
 const symbolSizeSelection = () => {
@@ -73,7 +78,7 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
 <template>
 <Fieldset   
     class="sr-scatter-plot-options" 
-    :legend="`Plot Options (Request ID: ${req_id})`" 
+    :legend="computedLabel" 
     :toggleable="true" 
     :collapsed="true"
 >
@@ -139,7 +144,7 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
 </div>
 <div class="sr-select-symbol-size">
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
+        v-if = "props.label.includes('atl03sp')"
         v-model="atlChartFilterStore.atl03spSymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl03sp Scatter Plot symbol size"
@@ -150,7 +155,7 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
         tooltipText="Symbol size for Atl03 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc() === 'atl03vp'"
+        v-if = "props.label.includes('atl03vp')"
         v-model="atlChartFilterStore.atl03spSymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl03vp Scatter Plot symbol size"
@@ -161,7 +166,7 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
         tooltipText="Symbol size for Atl03 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+        v-if = "props.label.includes('atl06')"
         v-model="atlChartFilterStore.atl06SymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl06 Scatter Plot symbol size"
@@ -172,7 +177,7 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
         tooltipText="Symbol size for Atl06 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+        v-if = "props.label.includes('atl08')"
         v-model="atlChartFilterStore.atl08SymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl08 Scatter Plot symbol size"

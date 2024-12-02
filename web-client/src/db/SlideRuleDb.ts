@@ -986,7 +986,8 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-    async getOverlayedReqIdsAsStrings(req_id: number): Promise<string[]> {
+
+    async getOverlayedReqIdsOptions(req_id: number): Promise<{label:string, value:number}[]> {
         try {
             const overlay = await this.getOverlayByReqId(req_id);
             if (!overlay) {
@@ -997,20 +998,20 @@ export class SlideRuleDexie extends Dexie {
             const reqIds = overlay.req_ids.filter(id => id !== req_id);
     
             // Map over the reqIds and fetch the associated function names
-            const formattedReqIds = await Promise.all(
+            const reqIdOptions = await Promise.all(
                 reqIds.map(async id => {
                     const func = await this.getFunc(id); // Fetch the function name
-                    return `${id} - ${func || 'Unknown Function'}`; // Format the string
+                    return {label:`${id} - ${func || 'Unknown Function'}`, value: id}; // Format the string
                 })
             );
     
-            return formattedReqIds;
+            return reqIdOptions;
         } catch (error) {
             console.error(`Failed to retrieve overlayed req_ids as strings for req_id ${req_id}:`, error);
             throw error;
         }
     }
-    
+
     // async addOverlayWithPolyHash(name: string, req_ids: number[], poly: {lat:number,lon:number}[], description = ''): Promise<number> {
     //     try {
     //         const polyHash = hashPoly(poly);
