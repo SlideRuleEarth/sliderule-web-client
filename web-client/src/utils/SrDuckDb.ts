@@ -282,6 +282,22 @@ export class DuckDBClient {
     }
   }
 
+    // Method to execute paginated queries with in-query random sampling
+    async queryForColNames(fileName:string): Promise<string[]> {
+      const conn = await this._db!.connect();
+      let tbl: Table<any>;
+      const query = `SELECT * FROM "${fileName}" LIMIT 1`;
+      try {
+        tbl = await conn.query(query);
+        const rows = tbl.toArray().map((r) => Object.fromEntries(r));
+        return Object.keys(rows[0]);
+      } catch (error) {
+        console.error('Query execution error:', error);
+        throw error;
+      } finally {
+        await conn.close();
+      }
+    }
 
   // Method for constructing query templates
   queryTag(strings: TemplateStringsArray, ...params: any[]) {
@@ -292,35 +308,6 @@ export class DuckDBClient {
   escape(name: string) {
     return `"${name}"`;
   }
-
-  // Method to describe tables in the database
-  async describeTables() {
-    const conn = await this._db!.connect();
-    try {
-      const tables = (await conn.query(`SHOW TABLES`)).toArray();
-      //console.log('describeTables tables:',tables);
-      return tables.map(({ name }) => ({ name }));
-    } finally {
-      await conn.close();
-    }
-  }
-
-  // Method to describe columns of a table
-  async describeColumns({ table = 'default_table' }: { table?: string } = {}) {
-    //console.log('describeColumns table:',table);
-    const conn = await this._db!.connect();
-    try {
-      const columns = (await conn.query(`DESCRIBE ${table}`)).toArray();
-      return columns.map(({ column_name, column_type }) => ({
-        name: column_name,
-        type: getType(column_type),
-        databaseType: column_type,
-      }));
-    } finally {
-      await conn.close();
-    }
-  }
-
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
@@ -355,11 +342,11 @@ export class DuckDBClient {
         await conn.query(
           `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`,
         );
-        //console.log('insertOpfsParquet view created for name:',name);
+        console.log('insertOpfsParquet view created for name:',name);
         // Add the file to the set of registered files
         if(isRegistered === false){
           this._filesInDb.add(name);
-          //console.log('insertOpfsParquet inserted name:',name);
+          console.log('insertOpfsParquet inserted name:',name);
         } else {
           console.log(`insertOpfsParquet File ${name} already registered`);
         }

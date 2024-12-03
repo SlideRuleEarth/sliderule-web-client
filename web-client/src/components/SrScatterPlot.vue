@@ -66,6 +66,8 @@ import { fetchScatterOptionsFor,clearPlot } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
+import { db } from "@/db/SlideRuleDb";
+import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -85,21 +87,33 @@ const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<stri
 function initializeBindings(reqIds: string[]) {
     console.log('initializeBindings:', reqIds);
     reqIds.forEach((reqId) => {
-    if (!(reqId in yDataBindingsReactive)) {
-      yDataBindingsReactive[reqId] = computed({
-        get: () => useChartStore().getYDataForChart(reqId),
-        set: (value: string[]) => useChartStore().setYDataForChart(reqId, value),
-      });
-    }
-  });
+        if (!(reqId in yDataBindingsReactive)) {
+            yDataBindingsReactive[reqId] = computed({
+                get: () => useChartStore().getYDataForChart(reqId),
+                set: (value: string[]) => useChartStore().setYDataForChart(reqId, value),
+            });
+        }
+    });
 }
 
+watch(
+    () => atlChartFilterStore.getSelectedOverlayedReqIds(),
+    async (overlayedReqIds) => {
+        const duckDbClient = await createDuckDbClient();
+        for (const reqId of overlayedReqIds) {
+            const filename = await db.getFilename(reqId);
+            console.log('filename:', filename);
+            // Attach the Parquet file
+            await duckDbClient.insertOpfsParquet(filename);
+            const colNames = await duckDbClient.queryForColNames(filename);
+            useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
+        }
+        // Call `initializeBindings` whenever overlayedReqIds are updated
+        initializeBindings(overlayedReqIds.map(String));
+    },
+    { immediate: true }
+);
 
-
-// Call `initializeBindings` whenever overlayedReqIds are updated
-watch(() => atlChartFilterStore.getSelectedOverlayedReqIds(), (overlayedReqIds) => {
-  initializeBindings(overlayedReqIds.map(String));
-}, { immediate: true });
 
 
 const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
