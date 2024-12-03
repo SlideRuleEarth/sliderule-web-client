@@ -648,9 +648,7 @@ export async function fetchAtl06ScatterData(
                             chartData[yName] = [];
                         }
                         const dataPoint = { value: [row[x]-minMaxValues['x'].min, row[yName]] };
-                        if (yName === 'h_mean') {
-                            dataPoint.value.push(row['x_atc']); // to show in tooltip
-                        }
+                        dataPoint.value.push(row['x_atc']); // to show in tooltip
                         chartData[yName].push(dataPoint);
                     });
                 } else {
@@ -768,6 +766,7 @@ export async function fetchAtl03spScatterData(
     y: string[], 
   ) {
     //console.log('fetchAtl03spScatterData fileName:', fileName, ' x:', x, ' y:', y);
+    const startTime = performance.now(); // Start time
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -816,12 +815,13 @@ export async function fetchAtl03spScatterData(
                 FROM '${fileName}'
                 `;
             query += whereClause;
-  
+            //console.log('fetchAtl03spScatterData query:', query);
             useChartStore().setQuerySql(reqIdStr,query);
             const queryResult: QueryResult = await duckDbClient.query(useChartStore().getQuerySql(reqIdStr));
             for await (const rowChunk of queryResult.readRows()) {
                 for (const row of rowChunk) {
                     if (row) {
+                        //console.log('fetchAtl03spScatterData x:', x, ' row[x]:', row[x], ' minMaxValues[x].min:', minMaxValues[x].min);
                         y.forEach((yName) => {
                             if (!chartData[yName]) {
                                 chartData[yName] = [];
@@ -839,12 +839,16 @@ export async function fetchAtl03spScatterData(
                     }
                 }
             }
-            
+            useChartStore().setXLegend(reqIdStr,`${x} (normalized) - Meters`);    
             return { chartData, minMaxValues };
         } catch (error) {
             console.error('fetchAtl03spScatterData fetchData Error fetching data:', error);
             return { chartData: {}, minMaxValues: {} };
+        } finally {
+            const endTime = performance.now(); // End time
+            console.log(`fetchAtl03spScatterData took ${endTime - startTime} milliseconds.`);
         }
+
     } else {
         console.log('fetchAtl03spScatterData whereClause is undefined');
         return { chartData: {}, minMaxValues: {} };

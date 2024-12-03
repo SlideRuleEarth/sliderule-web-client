@@ -55,7 +55,7 @@ async function getSeriesForAtl03sp(reqIdStr:string, fileName: string, x: string,
   let yItems = [] as SrScatterSeriesData[];
 
   try {
-      const name = 'Atl03sp';
+      const name = 'atl03sp';
       const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
       //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
       // Check if either chartData or minMaxValues is empty
@@ -114,7 +114,7 @@ async function getSeriesForAtl03vp(
   let yItems = [] as SrScatterSeriesData[];
 
   try {
-      const name = 'Atl03vp';
+      const name = 'atl03vp';
       const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl03vpScatterData(reqIdStr,fileName, x, y);
       //console.log('getSeriesForAtl03vp chartData:', chartData);
       //console.log('getSeriesForAtl03vp minMaxValues:', normalizedMinMaxValues);
@@ -173,7 +173,7 @@ async function getSeriesForAtl06(
   let yItems=[] as SrScatterSeriesData[];
 
   try{
-      const name = 'Atl06';
+      const name = 'atl06';
       const { chartData = {} , normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(reqIdStr,fileName, x, y);
       //console.log('getSeriesForAtl06 chartData:', chartData);
       //console.log('getSeriesForAtl06 minMaxValues:', normalizedMinMaxValues);
@@ -226,7 +226,7 @@ async function getSeriesForAtl08(
     const startTime = performance.now();
     let yItems=[] as SrScatterSeriesData[];
     try{
-      const name = 'Atl08';
+      const name = 'atl08';
       const { chartData={}, normalizedMinMaxValues={} } = await fetchAtl08ScatterData(reqIdStr,fileName, x, y);
       console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
       if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
@@ -413,7 +413,6 @@ return options;
 
 
 export const fetchScatterOptionsFor = async (reqId:number) => {
-    //const reqId = atlChartFilterStore.getReqId();
     const reqIdStr = reqId.toString();
     console.log('fetchScatterOptions reqId:', reqId, ' reqIdStr:', reqIdStr);
     if(reqId > 0){

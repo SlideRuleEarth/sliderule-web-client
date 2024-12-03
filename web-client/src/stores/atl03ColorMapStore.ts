@@ -118,7 +118,9 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         getColorForAtl03CnfValue(value:number) { // value is the atl03_cnf value -2 to 4
             const ndx = value + 2;
             if(ndx < 0 || ndx > 6){
-                console.error('getColorForAtl03CnfValue invalid value:',value);
+                if(this.debugCnt++ < 10){
+                    console.error('getColorForAtl03CnfValue invalid value:',value);
+                }
                 return 'White'; // Return White for invalid values
             }
             const c = this.atl03CnfColorMap[ndx];
