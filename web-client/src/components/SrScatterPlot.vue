@@ -13,7 +13,7 @@
                         :options="computedYOptions"
                         display="chip"
                     />
-                    <label :for="computedElID"> {{ `Y Data for ${computedReqIdStr}` }}</label>
+                    <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
                 </FloatLabel>
             </div>
             <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
@@ -26,7 +26,7 @@
                         :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
                         display="chip"
                     />
-                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId}` }}</label>
+                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
                 </FloatLabel>
             </div>
         </div>
@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import MultiSelect from "primevue/multiselect";
+import { type SrMenuItem } from './SrMenuInput.vue';
 import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
@@ -67,7 +68,8 @@ import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { db } from "@/db/SlideRuleDb";
-import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
+import { createDuckDbClient } from '@/utils//SrDuckDb';
+import { useRequestsStore } from '@/stores/requestsStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -114,8 +116,6 @@ watch(
     { immediate: true }
 );
 
-
-
 const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -126,8 +126,19 @@ const debouncedFetchScatterOptionsFor = debounce((reqId: number) => {
     fetchScatterOptionsFor(reqId);
 }, 300);
 
+const reqIds = ref<SrMenuItem[]>([]);
+
+const findLabel = (value:number) => {
+    console.log('findLabel reqIds:', reqIds.value);
+    const match = reqIds.value.find(item => Number(item.value) === value);
+    console.log('findLabel:', value, 'match:', match);
+    return match ? match.name : '';
+};
+
 onMounted(async () => {
+
   try {
+    reqIds.value =  await useRequestsStore().getMenuItems();
     atlChartFilterStore.setPlotRef(plotRef.value);
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
