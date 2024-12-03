@@ -26,7 +26,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     regionValue: 1 as number,
     currentReqId: 0 as number,
     updateScatterPlotCnt: 0 as number,
-    func:  {} as Record<string, string>, // Keyed by req_id
+    func: '' as string, 
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
@@ -206,15 +206,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
     },
-    setFunc(req_id:string, func: string) {
-      this.func[req_id] = func;
+    setFunc(func: string) {
+      this.func = func;
     },
-    getFunc(req_id?:string) {
-      if(req_id){
-        return this.func[req_id];
-      }
-      const values = Object.values(this.func);
-      return values.length === 1 ? values[0] : values.join(',');
+    getFunc() {
+      return this.func;
     },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;

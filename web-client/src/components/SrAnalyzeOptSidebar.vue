@@ -113,7 +113,7 @@ onMounted(async() => {
     } finally {
         loading.value = false;
         console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:',defaultReqIdMenuItemIndex);
-        atlChartFilterStore.setFunc(selectedReqId.value.value,await db.getFunc(req_id));
+        atlChartFilterStore.setFunc(await db.getFunc(req_id));
         useChartStore().setFunc(selectedReqId.value.value,atlChartFilterStore.getFunc());
         console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
@@ -237,7 +237,7 @@ const updateElevationMap = async (req_id: number) => {
             console.error('No file found for req_id:', req_id);
         }
         if(request && request.func){
-            atlChartFilterStore.setFunc(reqIdStr,request.func);
+            atlChartFilterStore.setFunc(request.func);
         } else {
             console.error('No func found for req_id:', req_id);
         }

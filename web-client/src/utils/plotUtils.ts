@@ -280,17 +280,10 @@ export const getScatterOptionsParms = (reqIdStr:string): SrScatterOptionsParms =
     //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
     const sop =  {
         reqIdStr: reqIdStr,
-        rgts: atlChartFilterStore.rgts.map(rgt => rgt?.value).filter(value => value !== undefined),
-        cycles: atlChartFilterStore.cycles.map(cycle => cycle?.value).filter(value => value !== undefined),
         fileName: chartStore.getCurrentFile(reqIdStr),
         func: chartStore.getFunc(reqIdStr),
         y: chartStore.getYDataForChart(reqIdStr),
         x: chartStore.getXDataForChart(reqIdStr),
-        beams: atlChartFilterStore.beams.map(beam => beam.value),
-        spots: atlChartFilterStore.spots.map(spot => spot.value),
-        pairs: atlChartFilterStore.pairs.map(pair => pair.value).filter(value => value !== undefined),
-        scOrients: atlChartFilterStore.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined),
-        tracks: atlChartFilterStore.tracks.map(track => track.value),
     };
     //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
     return sop;
@@ -301,12 +294,19 @@ export async function getScatterOptions(req_id:number): Promise<any> {
   const startTime = performance.now(); // Start time
   const reqIdStr = req_id.toString();
   const sop = getScatterOptionsParms(reqIdStr);
-  //console.log('getScatterOptions sop:', sop);
+  const rgts = atlChartFilterStore.rgts.map(rgt => rgt?.value).filter(value => value !== undefined);
+  const cycles = atlChartFilterStore.cycles.map(cycle => cycle?.value).filter(value => value !== undefined);
+  //const beams = atlChartFilterStore.beams.map(beam => beam.value);
+  const spots = atlChartFilterStore.spots.map(spot => spot.value);
+  //const pairs = atlChartFilterStore.pairs.map(pair => pair.value).filter(value => value !== undefined);
+  //const scOrients = atlChartFilterStore.scOrients.map(scOrient => scOrient.value).filter(value => value !== undefined);
+  //const tracks = atlChartFilterStore.tracks.map(track => track.value);
+  console.log('getScatterOptions sop:', sop);
   let options = null;
   try{
       let seriesData = [] as SrScatterSeriesData[];
       if(sop.fileName){
-          if(sop.spots?.length && sop.rgts && sop.cycles){
+          if(spots?.length && rgts && cycles){
               if(sop.func==='atl03sp'){
                   seriesData = await getSeriesForAtl03sp(sop.reqIdStr, sop.fileName, sop.x, sop.y);
               } else if(sop.func==='atl03vp'){
@@ -320,7 +320,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
               }
               console.log('getScatterOptions seriesData:', seriesData);
           } else {
-              console.warn('getScatterOptions invalid? spots:', sop.spots, ' rgt:', sop.rgts, ' cycle:', sop.cycles);
+              console.warn('getScatterOptions invalid? spots:', spots, ' rgt:', rgts, ' cycle:', cycles);
           }
       } else {
           console.warn('getScatterOptions fileName is null');
@@ -428,7 +428,6 @@ export const fetchScatterOptionsFor = async (reqId:number) => {
           const req_id = atlChartFilterStore.getReqId();
           const reqIdStr = req_id.toString();
           const func = await indexedDb.getFunc(req_id);
-          atlChartFilterStore.setFunc(reqIdStr,func);
           chartStore.setFunc(reqIdStr,func);
           chartStore.setXDataForChartUsingFunc(reqIdStr,func);
           const scatterOptions = await getScatterOptions(req_id);
@@ -440,7 +439,7 @@ export const fetchScatterOptionsFor = async (reqId:number) => {
                   console.log('fetchScatterOptions plotRef.chart.setOption:',scatterOptions);
                   plotRef.chart.setOption(scatterOptions);
                   const newOptions = plotRef.chart.getOption();
-                  //console.log('fetchScatterOptions plotRef.chart.getOption:',newOptions);
+                  console.log('fetchScatterOptions plotRef.chart.getOption:',newOptions);
                   //srObjectDetailsRef.value?.setObjectDetails(newOptions);
               } else {
                   console.warn('fetchScatterOptions plotRef.chart is undefined');

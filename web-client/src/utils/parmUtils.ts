@@ -1,17 +1,10 @@
 import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 export interface SrScatterOptionsParms {
   reqIdStr: string;
-  rgts: number[];
-  cycles: number[];
   fileName: string;
   func: string;
   y: string[];
   x: string;
-  beams?: number[];
-  spots?: number[];
-  pairs?: number[];
-  scOrients?: number[];
-  tracks?: number[];
 };
 
 export const tracksOptions = [
