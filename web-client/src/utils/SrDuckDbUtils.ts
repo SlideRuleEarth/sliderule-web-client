@@ -662,7 +662,8 @@ export async function fetchAtl06ScatterData(
         //console.log('fetchAtl06ScatterData minMaxValues:', minMaxValues);
         //console.log('fetchAtl06ScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
         //console.log('fetchAtl06ScatterData chartData:', chartData);
-        useChartStore().setXLegend(reqIdStr,`${x} (normalized) - Meters`);    
+        useChartStore().setXLegend(reqIdStr,`${x} (normalized) - Meters`);
+        console.log('fetchAtl06ScatterData chartData:', chartData);   
         return { chartData, normalizedMinMaxValues };
     } catch (error) {
         console.error('fetchAtl06ScatterData Error fetching data:', error);
@@ -839,7 +840,8 @@ export async function fetchAtl03spScatterData(
                     }
                 }
             }
-            useChartStore().setXLegend(reqIdStr,`${x} (normalized) - Meters`);    
+            useChartStore().setXLegend(reqIdStr,`${x} (normalized) - Meters`);
+            console.log('fetchAtl03spScatterData chartData:', chartData);    
             return { chartData, minMaxValues };
         } catch (error) {
             console.error('fetchAtl03spScatterData fetchData Error fetching data:', error);

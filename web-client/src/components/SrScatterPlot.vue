@@ -129,15 +129,16 @@ const debouncedUpdateScatterPlotFor = debounce((reqId: number) => {
 const reqIds = ref<SrMenuItem[]>([]);
 
 const findLabel = (value:number) => {
-    console.log('findLabel reqIds:', reqIds.value);
+    //console.log('findLabel reqIds:', reqIds.value);
     const match = reqIds.value.find(item => Number(item.value) === value);
-    console.log('findLabel:', value, 'match:', match);
+    //console.log('findLabel:', value, 'match:', match);
     return match ? match.name : '';
 };
 
 onMounted(async () => {
 
   try {
+    console.log('SrScatterPlot onMounted');
     reqIds.value =  await useRequestsStore().getMenuItems();
     atlChartFilterStore.setPlotRef(plotRef.value);
     const reqId = atlChartFilterStore.getReqId();
@@ -161,17 +162,19 @@ onMounted(async () => {
 });
 
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
-  if (newReqId && newReqId > 0) {
-    clearPlot();
-    debouncedUpdateScatterPlotFor(newReqId);
-  }
+    console.log('reqId changed:', newReqId);
+    if (newReqId && newReqId > 0) {
+        clearPlot();
+        debouncedUpdateScatterPlotFor(newReqId);
+    }
 });
 
 watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
-  const reqId = atlChartFilterStore.getReqId();
-  if (reqId && reqId > 0) {
-    debouncedUpdateScatterPlotFor(reqId);
-  }
+    console.log('updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
+    const reqId = atlChartFilterStore.getReqId();
+    if (reqId && reqId > 0) {
+        debouncedUpdateScatterPlotFor(reqId);
+    }
 });
 
 watch(yDataForChart, (newVal, oldVal) => {
@@ -192,12 +195,11 @@ const messageClass = computed(() => {
 });
 
 const computedSelectedAtl03ColorMap = computed(() => {
-  return atlChartFilterStore.getSelectedAtl03ColorMap();
+  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    atl03ColorMapStore.setAtl03YapcColorMap(newColorMap.value.value);
+    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();

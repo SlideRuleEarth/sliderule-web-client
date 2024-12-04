@@ -4,7 +4,7 @@ import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 

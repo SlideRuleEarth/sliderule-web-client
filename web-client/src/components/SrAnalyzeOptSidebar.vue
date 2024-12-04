@@ -28,6 +28,7 @@ import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
+import { updateScatterPlotFor } from '@/utils/plotUtils';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -133,17 +134,6 @@ const onSelection = async() => {
         useAtlChartFilterStore().getCycleValues(),
     );
     useChartStore().setWhereClause(reqIdStr,whereClause);
-    // if(useAtlChartFilterStore().getFunc()==='atl03sp'){
-    //     useAtlChartFilterStore().setAtl03spWhereClause(whereClause);
-    // } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
-    //     useAtlChartFilterStore().setAtl03vpWhereClause(whereClause);
-    // } else if (useAtlChartFilterStore().getFunc()==='atl06p'){
-    //     useAtlChartFilterStore().setAtl06WhereClause(whereClause);
-    // } else if (useAtlChartFilterStore().getFunc()==='atl06sp'){
-    //     useAtlChartFilterStore().setAtl06WhereClause(whereClause);
-    // } else if (useAtlChartFilterStore().getFunc()==='atl08sp'){
-    //     useAtlChartFilterStore().setAtl08pWhereClause(whereClause);
-    // }
     useAtlChartFilterStore().updateScatterPlot();
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
@@ -354,8 +344,12 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setSpots([]);
         atlChartFilterStore.setRgts([]);
         atlChartFilterStore.setCycles([]);
-        updateFilter([req_id]);
-        debouncedUpdateElevationMap(req_id);
+        await updateFilter([req_id]);
+        await debouncedUpdateElevationMap(req_id);
+        selectedOverlayedReqIds.value.forEach(async (req_id) => {
+            await updateScatterPlotFor(req_id);
+        });
+
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -366,15 +360,18 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     try{
         console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
         atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
+        selectedOverlayedReqIds.value.forEach(async (req_id) => {
+            await updateScatterPlotFor(req_id);
+        });
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
 });
 
 const findLabel = (value:number) => {
-    console.log('findLabel reqIds:', reqIds.value);
+    //console.log('findLabel reqIds:', reqIds.value);
     const match = reqIds.value.find(item => Number(item.value) === value);
-    console.log('findLabel:', value, 'match:', match);
+    //console.log('findLabel:', value, 'match:', match);
     return match ? match.name : '';
 };
 

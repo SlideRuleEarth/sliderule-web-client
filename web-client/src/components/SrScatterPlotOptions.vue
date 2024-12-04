@@ -12,7 +12,7 @@ import { colorMapNames } from '@/utils/colorUtils';
 import { debounce } from "lodash";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
-import { onMounted, watch } from "vue";
+import { onMounted, watch, computed } from "vue";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -27,7 +27,15 @@ const props = defineProps<{
   req_id: number;
   label: string;
 }>();
-const computedLabel = props.label?  `Plot Options (${props.label})` : `Plot Options:(${props.req_id})`;
+
+const computedLabel = computed(() => {
+  return props.label
+    ? `Plot Options (${props.label})`
+    : `Plot Options (${props.req_id})`;
+});
+const computedSelectedAtl03ColorMap = computed(() => {
+  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
+});
 
 const debouncedUpdateScatterPlotFor = debounce((reqId: number) => {
     updateScatterPlotFor(reqId);
@@ -67,12 +75,13 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     }
 };
 
-watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: string) => {
-  //console.log(`watch atl03ColorMapStore.getSelectedAtl03ColorMap():`, newVal);
-  clearPlot();
-  debouncedUpdateScatterPlotFor(props.req_id);
-});
-
+watch(
+  () => props.label,
+  (newLabel, oldLabel) => {
+    console.log(`SrScatterPlotOptions: label changed from ${oldLabel} to ${newLabel}`);
+    console.log(`SrScatterPlotOptions: computedLabel changed to ${computedLabel}`);
+  }
+);
 
 </script>
 <template>
@@ -134,10 +143,10 @@ watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: st
         <SrMenu 
             v-if = "atlChartFilterStore.getFunc() === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
             label="YAPC Color Map" 
-            v-model="atlChartFilterStore.selectedAtl03YapcColorMap"
+            v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
             :menuOptions="colorMapNames" 
-            :getSelectedMenuItem="atl03ColorMapStore.getAtl03YapcColorMap"
-            :setSelectedMenuItem="atl03ColorMapStore.setAtl03YapcColorMap"
+            :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
+            :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
             tooltipText="YAPC Color Map for atl03 scatter plot"
         />
     </div>

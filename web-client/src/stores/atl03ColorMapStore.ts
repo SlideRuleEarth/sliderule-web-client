@@ -5,7 +5,7 @@ import { db } from '@/db/SlideRuleDb';
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
         isInitialized: false as boolean,
-        selectedAtl03YapcColorMap: 'viridis' as string,
+        selectedAtl03YapcColorMapName: 'viridis' as string,
         numShadesForAtl03Yapc: 1024 as number,
         atl03YapcColorMap: [] as[number, number, number, number][],
         atl03ColorKey: 'atl03_cnf' as string,
@@ -41,11 +41,11 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 this.namedColorPalette = await db.getAllColors();
             }
         },
-        setAtl03YapcColorMap(atl03YapcColorMap: string) {
-            this.selectedAtl03YapcColorMap = atl03YapcColorMap;
+        setSelectedAtl03YapcColorMapName(atl03YapcColorMap: string) {
+            this.selectedAtl03YapcColorMapName = atl03YapcColorMap;
         },
-        getSelectedAtl03ColorMap() {
-            return this.selectedAtl03YapcColorMap;
+        getSelectedAtl03YapcColorMapName() {
+            return this.selectedAtl03YapcColorMapName;
         },
         setNumShadesForAtl03Yapc(numShades: number) {
             this.numShadesForAtl03Yapc = numShades;
@@ -57,13 +57,13 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         {
             try{
                 this.atl03YapcColorMap = colormap({
-                    colormap: this.selectedAtl03YapcColorMap, // Use the selected colormap
+                    colormap: this.selectedAtl03YapcColorMapName, // Use the selected colormap
                     nshades: this.numShadesForAtl03Yapc, // Number of shades in the colormap
                     format: 'rgba', // Use RGBA format for alpha transparency
                     alpha: 1 // Fully opaque
                 });
             } catch (error) {
-                console.warn('updateAtl03YapcColorMapValues this.selectedAtl03YapcColorMap:',this.selectedAtl03YapcColorMap);
+                console.warn('updateAtl03YapcColorMapValues this.selectedAtl03YapcColorMap:',this.selectedAtl03YapcColorMapName);
                 console.warn('updateAtl03YapcColorMapValues this.numShadesForAtl03Yapc:',this.numShadesForAtl03Yapc);
                 console.error('updateAtl03YapcColorMapValues error:',error);
                 throw error;

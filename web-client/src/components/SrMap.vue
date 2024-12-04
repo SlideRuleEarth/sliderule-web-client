@@ -4,7 +4,7 @@
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
-    import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';

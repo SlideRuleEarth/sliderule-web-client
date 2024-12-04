@@ -62,6 +62,7 @@ export const useChartStore = defineStore('chartStore', {
         this.stateByReqId[reqIdStr].min_x = min_x;
     },
     getMinX(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].min_x;
     },
     setMaxX(reqIdStr: string, max_x: number) {
@@ -101,14 +102,9 @@ export const useChartStore = defineStore('chartStore', {
       this.stateByReqId[reqIdStr].whereClause = whereClause;
     },
     getWhereClause(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].whereClause;
     },
-    // Update scatter plot count for a reqIdStr
-    updateScatterPlot(reqIdStr: string) {
-      this.ensureState(reqIdStr);
-      this.stateByReqId[reqIdStr].updateScatterPlotCnt += 1;
-    },
-
     // Set and get symbol size for a specific function
     setSymbolSize(reqIdStr: string, func: string, size: number) {
       this.ensureState(reqIdStr);
@@ -215,6 +211,7 @@ export const useChartStore = defineStore('chartStore', {
         this.stateByReqId[reqIdStr].message = message;
     },
     getMessage(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].message;
     },
     setIsWarning(reqIdStr: string,isWarning: boolean) {
@@ -222,6 +219,7 @@ export const useChartStore = defineStore('chartStore', {
         this.stateByReqId[reqIdStr].isWarning = isWarning;
     },
     getIsWarning(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].isWarning;
     },
     setXLegend(reqIdStr: string,xLegend: string) {

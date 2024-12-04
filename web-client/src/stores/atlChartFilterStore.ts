@@ -42,7 +42,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     largeDataThreshold: 1000000 as number,
     numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
-    selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
+    //selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
     selectedOverlayedReqIds: [] as number[],
   }),
 
@@ -268,7 +268,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     updateScatterPlot() {
       this.updateScatterPlotCnt += 1;
-      //console.log('atlChartFilterStore.updateScatterPlot():', this.updateScatterPlotCnt);
+      console.log('atlChartFilterStore.updateScatterPlot() currentCnt:', this.updateScatterPlotCnt);
     },
     setIsLoading() {
       //console.log('atlChartFilterStore.setIsLoading()');
@@ -353,12 +353,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getPlotRef() {
       return this.plotRef;
     },
-    getSelectedAtl03ColorMap() {
-      return this.selectedAtl03YapcColorMap;
-    },
-    setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
-      this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
-    },
+    // getSelectedAtl03ColorMap() {
+    //   return this.selectedAtl03YapcColorMap;
+    // },
+    // setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
+    //   this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
+    // },
     getSelectedOverlayedReqIds() {
       return this.selectedOverlayedReqIds;
     },
