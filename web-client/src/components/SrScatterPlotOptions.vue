@@ -4,7 +4,7 @@ import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
-import { fetchScatterOptionsFor,clearPlot } from "@/utils/plotUtils";
+import { updateScatterPlotFor,clearPlot } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
@@ -29,8 +29,8 @@ const props = defineProps<{
 }>();
 const computedLabel = props.label?  `Plot Options (${props.label})` : `Plot Options:(${props.req_id})`;
 
-const debouncedFetchScatterOptionsFor = debounce((reqId: number) => {
-    fetchScatterOptionsFor(reqId);
+const debouncedUpdateScatterPlotFor = debounce((reqId: number) => {
+    updateScatterPlotFor(reqId);
 }, 300);
 
 
@@ -42,26 +42,26 @@ onMounted(() => {
 const symbolSizeSelection = () => {
     //console.log('symbolSizeSelection');
     clearPlot();
-    debouncedFetchScatterOptionsFor(props.req_id);
+    debouncedUpdateScatterPlotFor(props.req_id);
 };
 
 function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    debouncedFetchScatterOptionsFor(props.req_id);
+    debouncedUpdateScatterPlotFor(props.req_id);
 }
 
 const atl03CnfColorChanged = (colorKey:string): void =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
     clearPlot();
-    debouncedFetchScatterOptionsFor(props.req_id);
+    debouncedUpdateScatterPlotFor(props.req_id);
 };
 
 const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();
-      debouncedFetchScatterOptionsFor(props.req_id);
+      debouncedUpdateScatterPlotFor(props.req_id);
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }
@@ -70,7 +70,7 @@ const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
 watch(() => useAtl03ColorMapStore().selectedAtl03YapcColorMap, async (newVal: string) => {
   //console.log(`watch atl03ColorMapStore.getSelectedAtl03ColorMap():`, newVal);
   clearPlot();
-  debouncedFetchScatterOptionsFor(props.req_id);
+  debouncedUpdateScatterPlotFor(props.req_id);
 });
 
 

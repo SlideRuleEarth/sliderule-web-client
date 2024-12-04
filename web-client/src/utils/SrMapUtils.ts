@@ -347,7 +347,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
-    console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
+    //console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
     return new PointCloudLayer({
         id: name,
         data: elevationData,
