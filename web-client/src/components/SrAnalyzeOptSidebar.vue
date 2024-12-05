@@ -346,9 +346,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setCycles([]);
         await updateFilter([req_id]);
         await debouncedUpdateElevationMap(req_id);
-        selectedOverlayedReqIds.value.forEach(async (req_id) => {
-            await updateScatterPlotFor(req_id);
-        });
 
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -360,9 +357,14 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     try{
         console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
         atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
-        selectedOverlayedReqIds.value.forEach(async (req_id) => {
-            await updateScatterPlotFor(req_id);
-        });
+        // Only do updates if there was a previous selection
+        // This initial overly needs Y options that aren't available now
+        // This is handled elsewhere
+        if(oldSelection.length > 0){ 
+            if(selectedOverlayedReqIds.value.length > 0){
+                await updateScatterPlotFor(selectedOverlayedReqIds.value);
+            }
+        }
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }

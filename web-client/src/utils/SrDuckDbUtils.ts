@@ -200,11 +200,11 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
                     //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
                     for await (const rowChunk of result.readRows()) {
                         if (rowChunk.length > 0) {
-                            if (numDataItemsUsed === 0) {
-                                // Assuming we only need to set field names once, during the first chunk processing
-                                const fieldNames = Object.keys(rowChunk[0]);
-                                await useChartStore().setElevationDataOptionsFromFieldNames(reqIdStr,fieldNames);
-                            }
+                            // if (numDataItemsUsed === 0) {
+                            //     // Assuming we only need to set field names once, during the first chunk processing
+                            //     const fieldNames = Object.keys(rowChunk[0]);
+                            //     await useChartStore().setElevationDataOptionsFromFieldNames(reqIdStr,fieldNames);
+                            // }
                     
                             // Use the sample rate to push every nth element
                             for (let i = 0; i < rowChunk.length; i++) {

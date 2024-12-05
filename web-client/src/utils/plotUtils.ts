@@ -452,74 +452,76 @@ function cleanOptions(options:any):any {
     return options;
 }
   
+export const updateScatterPlotFor = async (reqIds: number[]) => {
+    const startTime = performance.now();
+    console.log(`updateScatterPlotFor ${reqIds} startTime:`, startTime);
 
-export const updateScatterPlotFor = async (reqId:number) => {
-    const startTime = performance.now(); // Start time
-    const reqIdStr = reqId.toString();
-    console.log(`updateScatterPlotFor ${reqId} startTime:`,startTime);
     const plotRef = atlChartFilterStore.getPlotRef();
-    if(!plotRef?.chart){
-        console.warn(`updateScatterPlotFor ${reqId} plotRef is undefined`);
+    if (!plotRef || !plotRef.chart) {
+        console.warn(`updateScatterPlotFor ${reqIds} plotRef is undefined`);
         return;
     }
 
-    if(reqId > 0){
+    if (reqIds.length === 0) {
+        console.error(`updateScatterPlotFor ${reqIds} reqIds is empty`);
+        return;
+    }
+
+    let finalOptions: EChartsOption = {}; // Initialize a container for the merged options.
+
+    for (const reqId of reqIds) {
+        const reqIdStr = reqId.toString();
         const y_options = chartStore.getYDataForChart(reqIdStr);
+
         console.log(`updateScatterPlotFor ${reqId} y_options:`, y_options);
 
-        if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-            chartStore.setShowMessage(reqIdStr,false);
-
-            try {
-                atlChartFilterStore.setIsLoading();
-                const req_id = atlChartFilterStore.getReqId();
-                const func = await indexedDb.getFunc(req_id);
-
-                chartStore.setFunc(reqIdStr,func);
-                chartStore.setXDataForChartUsingFunc(reqIdStr,func);
-
-                const newScatterOptions = await getScatterOptions(req_id);
-                // Retrieve existing options
-                const existingOptions = plotRef.chart.getOption()as EChartsOption;; // includes defaulted values
-                let cleanedExistingOptions = existingOptions;
-                if(existingOptions){
-                    cleanedExistingOptions = cleanOptions(existingOptions);
-                }
-                console.log(`updateScatterPlotFor ${reqId} existingOptions:`, cleanedExistingOptions);
-
-                if (newScatterOptions) {
-
-                    console.log(`updateScatterPlotFor ${reqId} plotRef.chart.setOption:`,newScatterOptions);
-                    let finalOptions: EChartsOption = newScatterOptions;
-
-                    if (cleanedExistingOptions) { // need to merge
-                        finalOptions = mergeOptions(cleanedExistingOptions, newScatterOptions);
-                    }
-                    // Update the chart with merged options
-                    plotRef.chart.setOption(finalOptions);
-                    const newOptions = plotRef.chart.getOption();
-                    console.log(`updateScatterPlotFor ${reqId} getOption:`,newOptions);
-                } else {
-                    //console.log('updateScatterPlotFor Failed to get scatter options');
-                    chartStore.setShowMessage(reqIdStr,true);
-                    chartStore.setIsWarning(reqIdStr,true);
-                    chartStore.setMessage(reqIdStr,`Failed to load data. Click on elevation in map to preset filters`);
-                }
-            } catch (error) {
-                console.error(`updateScatterPlotFor ${reqId} Error fetching scatter options:`, error);
-                chartStore.setShowMessage(reqIdStr,true);
-                chartStore.setMessage(reqIdStr,'Failed to load data. Please try again later.');
-            } finally {
-                atlChartFilterStore.resetIsLoading();
-                const now = performance.now();
-            }
-        } else {
-                console.warn(`updateScatterPlotFor ${reqId} No y options selected`);
+        if (!y_options.length || y_options[0] === 'not_set') {
+            console.warn(`updateScatterPlotFor ${reqId} No y options selected`);
+            continue;
         }
-    } else {
-      console.error(`updateScatterPlotFor ${reqId} reqId is undefined?`);
+
+        chartStore.setShowMessage(reqIdStr, false);
+
+        try {
+            atlChartFilterStore.setIsLoading();
+
+            const func = await indexedDb.getFunc(reqId);
+            chartStore.setFunc(reqIdStr, func);
+            chartStore.setXDataForChartUsingFunc(reqIdStr, func);
+
+            const newScatterOptions = await getScatterOptions(reqId);
+            if (!newScatterOptions) {
+                chartStore.setShowMessage(reqIdStr, true);
+                chartStore.setIsWarning(reqIdStr, true);
+                chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
+                continue;
+            }
+
+            const existingOptions = finalOptions; // Use the accumulated options so far.
+            const cleanedExistingOptions = cleanOptions(existingOptions);
+
+            // Merge the new options into the accumulated options.
+            finalOptions = mergeOptions(cleanedExistingOptions, newScatterOptions);
+
+            console.log(`updateScatterPlotFor ${reqId} merged finalOptions:`, finalOptions);
+        } catch (error) {
+            console.error(`updateScatterPlotFor ${reqId} Error fetching scatter options:`, error);
+            chartStore.setShowMessage(reqIdStr, true);
+            chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
+        } finally {
+            atlChartFilterStore.resetIsLoading();
+        }
     }
-    const endTime = performance.now(); // End time
-    console.log(`updateScatterPlotFor ${reqId} took ${endTime - startTime} milliseconds.`);
+
+    // Set the final merged options to the chart.
+    if (Object.keys(finalOptions).length > 0) {
+        plotRef.chart.setOption(finalOptions);
+        console.log(`updateScatterPlotFor Final options applied to chart:`, finalOptions);
+    } else {
+        console.warn(`updateScatterPlotFor No valid options to apply to chart`);
+    }
+
+    const endTime = performance.now();
+    console.log(`updateScatterPlotFor ${reqIds} took ${endTime - startTime} milliseconds.`);
 };
-  
+ 

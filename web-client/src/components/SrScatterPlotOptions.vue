@@ -37,8 +37,8 @@ const computedSelectedAtl03ColorMap = computed(() => {
   return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
 });
 
-const debouncedUpdateScatterPlotFor = debounce((reqId: number) => {
-    updateScatterPlotFor(reqId);
+const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
+    updateScatterPlotFor(reqIds);
 }, 300);
 
 
@@ -50,26 +50,26 @@ onMounted(() => {
 const symbolSizeSelection = () => {
     //console.log('symbolSizeSelection');
     clearPlot();
-    debouncedUpdateScatterPlotFor(props.req_id);
+    debouncedUpdateScatterPlotFor([props.req_id]);
 };
 
 function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    debouncedUpdateScatterPlotFor(props.req_id);
+    debouncedUpdateScatterPlotFor([props.req_id]);
 }
 
 const atl03CnfColorChanged = (colorKey:string): void =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
     clearPlot();
-    debouncedUpdateScatterPlotFor(props.req_id);
+    debouncedUpdateScatterPlotFor([props.req_id]);
 };
 
 const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();
-      debouncedUpdateScatterPlotFor(props.req_id);
+      debouncedUpdateScatterPlotFor([props.req_id]);
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }

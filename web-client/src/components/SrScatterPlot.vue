@@ -8,9 +8,9 @@
                     <MultiSelect
                         class="sr-multiselect" 
                         :id=computedElID
-                        v-model="yDataForChart"
+                        v-model="yDataBindingsReactive[computedReqIdStr]"
                         size="small" 
-                        :options="computedYOptions"
+                        :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
                         display="chip"
                     />
                     <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
@@ -75,15 +75,6 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
-const yDataForChart = computed({
-    get() { 
-        return useChartStore().stateByReqId[atlChartFilterStore.currentReqId.toString()]?.yDataForChart || [];
-    },
-    set(value: string[]) {
-        useChartStore().setYDataForChart(computedReqIdStr.value, value);
-    }
-});
-
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 
 function initializeBindings(reqIds: string[]) {
@@ -101,29 +92,28 @@ function initializeBindings(reqIds: string[]) {
 watch(
     () => atlChartFilterStore.getSelectedOverlayedReqIds(),
     async (overlayedReqIds) => {
-        const duckDbClient = await createDuckDbClient();
-        for (const reqId of overlayedReqIds) {
-            const filename = await db.getFilename(reqId);
-            console.log('filename:', filename);
-            // Attach the Parquet file
-            await duckDbClient.insertOpfsParquet(filename);
-            const colNames = await duckDbClient.queryForColNames(filename);
-            useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
-        }
-        // Call `initializeBindings` whenever overlayedReqIds are updated
-        initializeBindings(overlayedReqIds.map(String));
+        // const duckDbClient = await createDuckDbClient();
+        // for (const reqId of overlayedReqIds) {
+        //     const filename = await db.getFilename(reqId);
+        //     console.log('filename:', filename);
+        //     // Attach the Parquet file
+        //     await duckDbClient.insertOpfsParquet(filename);
+        //     const colNames = await duckDbClient.queryForColNames(filename);
+        //     useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
+        // }
+        // // Call `initializeBindings` whenever overlayedReqIds are updated
+        // initializeBindings(overlayedReqIds.map(String));
     },
     { immediate: true }
 );
 
-const computedYOptions = computed(() => useChartStore().getElevationDataOptions(computedReqIdStr.value));
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
-const debouncedUpdateScatterPlotFor = debounce((reqId: number) => {
-    updateScatterPlotFor(reqId);
+const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
+    updateScatterPlotFor(reqIds);
 }, 300);
 
 const reqIds = ref<SrMenuItem[]>([]);
@@ -140,24 +130,39 @@ onMounted(async () => {
   try {
     console.log('SrScatterPlot onMounted');
     reqIds.value =  await useRequestsStore().getMenuItems();
+    initializeBindings(reqIds.value.map(item => item.value));
     atlChartFilterStore.setPlotRef(plotRef.value);
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
-      const func = await indexedDb.getFunc(reqId);
-      atl03ColorMapStore.initializeAtl03ColorMapStore();
-      if (func === 'atl03sp') {
-        atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-      } else if (func.includes('atl06')) {
-        atl03ColorMapStore.setAtl03ColorKey('YAPC');
-      } else if (func.includes('atl08')) {
-        atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-      }
-      debouncedUpdateScatterPlotFor(reqId);
+        const func = await indexedDb.getFunc(reqId);
+        atl03ColorMapStore.initializeAtl03ColorMapStore();
+
+        if (func === 'atl03sp') {
+            atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+        } else if (func.includes('atl06')) {
+            atl03ColorMapStore.setAtl03ColorKey('YAPC');
+        } else if (func.includes('atl08')) {
+            atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+        }
+
+        const overlayedReqIds = await db.getOverlayedReqIdsOptions(reqId);
+        const duckDbClient = await createDuckDbClient();
+        const colNames = await duckDbClient.queryForColNames(await db.getFilename(reqId));
+        useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
+        for (const oreqId of overlayedReqIds) {
+            const filename = await db.getFilename(oreqId.value);
+            console.log('filename:', filename);
+            // Attach the Parquet file
+            await duckDbClient.insertOpfsParquet(filename);
+            const colNames = await duckDbClient.queryForColNames(filename);
+            useChartStore().setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
+        }
+        debouncedUpdateScatterPlotFor([reqId]);
     } else {
-      console.warn('reqId is undefined');
+        console.warn('reqId is undefined');
     }
   } catch (error) {
-    console.error('Error during onMounted initialization:', error);
+        console.error('Error during onMounted initialization:', error);
   }
 });
 
@@ -165,7 +170,7 @@ watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         clearPlot();
-        debouncedUpdateScatterPlotFor(newReqId);
+        debouncedUpdateScatterPlotFor([newReqId]);
     }
 });
 
@@ -173,18 +178,9 @@ watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
     console.log('updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
     const reqId = atlChartFilterStore.getReqId();
     if (reqId && reqId > 0) {
-        debouncedUpdateScatterPlotFor(reqId);
+        debouncedUpdateScatterPlotFor([reqId]);
     }
 });
-
-watch(yDataForChart, (newVal, oldVal) => {
-  console.log('yDataForChart changed:', oldVal, '->', newVal);
-  clearPlot();
-  const reqId = atlChartFilterStore.getReqId();
-  if (newVal.length > 0 && reqId > 0) {
-    debouncedUpdateScatterPlotFor(reqId);
-  }
-}, { deep: true });
 
 const messageClass = computed(() => {
   return {
@@ -204,7 +200,7 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
-        debouncedUpdateScatterPlotFor(reqId);
+        debouncedUpdateScatterPlotFor([reqId]);
     }
 }, { deep: true, immediate: true });
 
