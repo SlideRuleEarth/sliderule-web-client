@@ -319,6 +319,13 @@ export class DuckDBClient {
         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
         const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
         const file = await fileHandle.getFile();
+        console.log('insertOpfsParquet file.size:', file.size);
+        // Skip the file if it is empty and log a warning
+        if (file.size === 0) {
+          console.warn(`insertOpfsParquet skipped empty file: ${name}`);
+          return;
+        }
+  
         const url = URL.createObjectURL(file);
         let isRegistered = false;
         try {
@@ -328,8 +335,8 @@ export class DuckDBClient {
             DuckDBDataProtocol.HTTP,
             false,
           );
-        } catch (error:any) {
-          if ('File already registered' in error){
+        } catch (error: any) {
+          if ('File already registered' in error) {
             isRegistered = true;
             console.log('insertOpfsParquet File already registered');
           } else {
@@ -337,16 +344,17 @@ export class DuckDBClient {
             throw error;
           }
         }
-
+  
         const conn = await duckDB.connect();
         await conn.query(
           `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`,
         );
-        console.log('insertOpfsParquet view created for name:',name);
+        console.log('insertOpfsParquet view created for name:', name);
+  
         // Add the file to the set of registered files
-        if(isRegistered === false){
+        if (!isRegistered) {
           this._filesInDb.add(name);
-          console.log('insertOpfsParquet inserted name:',name);
+          console.log('insertOpfsParquet inserted name:', name);
         } else {
           console.log(`insertOpfsParquet File ${name} already registered`);
         }
@@ -358,6 +366,7 @@ export class DuckDBClient {
       throw error;
     }
   }
+
   // Method to dump detailed metadata from a Parquet file
   async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
     const conn = await this._db!.connect();

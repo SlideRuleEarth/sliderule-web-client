@@ -8,7 +8,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 //import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+//import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
@@ -168,10 +168,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
 
             // Step 3: Register the Parquet file with DuckDB
             await duckDbClient.insertOpfsParquet(filename);
-            //const server_req = await duckDbClient.getServerReqFromMetaData(filename);
-            //console.log('duckDbReadAndUpdateElevationData server_req:', server_req);
             // Step 4: Execute a SQL query to retrieve the elevation data
-            //console.log(`duckDbReadAndUpdateElevationData for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
 
             // Calculate the offset for the query
             let offset = 0;

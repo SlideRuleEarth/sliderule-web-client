@@ -251,7 +251,7 @@ export interface ElevationDataItem {
 }
 
 async function clicked(d:ElevationDataItem): Promise<void> {
-    //console.log('Clicked:',d);
+    //console.log('Clicked data:',d);
     hideTooltip();
     useAtlChartFilterStore().resetTheScatterPlot();
     useAtl03ColorMapStore().setDebugCnt(0);

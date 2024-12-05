@@ -15,7 +15,6 @@ import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import { type AtlxxReqParams } from '@/sliderule/icesat2';
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -131,7 +130,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     const serverReq = await duckDbLoadOpfsParquetFile(fileName);
                     await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReq });
                     await duckDbReadAndUpdateElevationData(workerMsg.req_id);
-            
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
                 }

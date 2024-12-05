@@ -144,12 +144,14 @@ onMounted(async () => {
         } else if (func.includes('atl08')) {
             atl03ColorMapStore.setAtl03ColorKey('atl08_class');
         }
-
+        // Create a Set of reqIds values for quick lookup
+        const successfulReqIdsSet = new Set(reqIds.value.map(item => Number(item.value)));
         const overlayedReqIds = await db.getOverlayedReqIdsOptions(reqId);
+        const filteredReqIds = overlayedReqIds.filter(item => successfulReqIdsSet.has(item.value));
         const duckDbClient = await createDuckDbClient();
         const colNames = await duckDbClient.queryForColNames(await db.getFilename(reqId));
         useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
-        for (const oreqId of overlayedReqIds) {
+        for (const oreqId of filteredReqIds) { // filter out failed reqIds
             const filename = await db.getFilename(oreqId.value);
             console.log('filename:', filename);
             // Attach the Parquet file

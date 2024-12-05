@@ -291,6 +291,16 @@ export const getScatterOptionsParms = (reqIdStr:string): SrScatterOptionsParms =
 
 }
 
+const formatTooltip = (params: any, func: string) => {
+    if (func === 'atl03sp') {
+        const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
+        return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
+    } else {
+        const [x, y, x_actual] = params.value;
+        return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
+    }
+};
+
 export async function getScatterOptions(req_id:number): Promise<any> {
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
@@ -330,27 +340,18 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: function (params:any) {
-                        //console.warn('getScatterOptions params:', params);
-                        if(sop.func === 'atl03sp'){
-                            const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
-                            return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
-                        } else {
-                            const [x, y, x_actual] = params.value;
-                            return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
-                        }
-                    }
+                    formatter: (params: any) => formatTooltip(params, sop.func),
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
                     left: 'left'
                 },
-                notMerge: true,
+                notMerge: false,
                 lazyUpdate: true,
                 xAxis: {
-                    min: useChartStore().getMinX(reqIdStr),
-                    max: useChartStore().getMaxX(reqIdStr),
-                    name: useChartStore().getXLegend(reqIdStr), // Add the label for the x-axis here
+                    min: chartStore.getMinX(reqIdStr),
+                    max: chartStore.getMaxX(reqIdStr),
+                    name: chartStore.getXLegend(reqIdStr), // Add the label for the x-axis here
                     nameLocation: 'middle', // Position the label in the middle of the axis
                     nameTextStyle: {
                         fontSize: 10,

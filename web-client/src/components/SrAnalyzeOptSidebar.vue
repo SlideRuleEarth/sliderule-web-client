@@ -74,25 +74,24 @@ const selectedOverlayedReqIds = ref<number[]>([]);
 const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
 const isMounted = ref(false);
 
-onMounted(async() => {
-    console.log(`onMounted SrAnalyzeOptSidebar startingReqId:${props.startingReqId}`);
+onMounted(async () => {
+    console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
     const startTime = performance.now(); // Start time
     let req_id = -1;
     try {
         mapStore.resetAllRowsData();
         useAtlChartFilterStore().setDebugCnt(0);
-        reqIds.value =  await requestsStore.getMenuItems();
-        if(reqIds.value.length === 0) {
+        reqIds.value = await requestsStore.getMenuItems();
+        if (reqIds.value.length === 0) {
             console.warn('No requests found');
             return;
         }
-        console.log('onMounted props.startingReqId:',props.startingReqId)
-        if (props.startingReqId){ // from the route parameter
-            const startId = props.startingReqId.toString()
+        console.log('onMounted props.startingReqId:', props.startingReqId);
+        if (props.startingReqId) { // from the route parameter
+            const startId = props.startingReqId.toString();
             console.log('onMounted startId:', startId);
             console.log('reqIds:', reqIds.value);
             defaultReqIdMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
-            //console.log('defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
             selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
         } else {
             defaultReqIdMenuItemIndex.value = 0;
@@ -100,23 +99,27 @@ onMounted(async() => {
         }
         req_id = Number(selectedReqId.value.value);
         console.log('onMounted selectedReqId:', req_id);
-        if(req_id > 0){
+        if (req_id > 0) {
             atlChartFilterStore.setReqId(req_id);
-            overlayedReqIdOptions.value = await db.getOverlayedReqIdsOptions(req_id);
+            const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
+
+            // Create a Set of reqIds values for quick lookup
+            const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
+            
+            // Filter overlayedOptions to include only items in reqIds
+            overlayedReqIdOptions.value = overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
         } else {
             console.warn('Invalid request ID:', req_id);
-            toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife()});
+            toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
         }
-        //console.log('reqIds:', reqIds.value, 'defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex.value);
-        // These update the dynamic options for the these components
     } catch (error) {
         console.error('onMounted Failed to load menu items:', error);
     } finally {
         loading.value = false;
-        console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:',defaultReqIdMenuItemIndex);
+        console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
         atlChartFilterStore.setFunc(await db.getFunc(req_id));
-        useChartStore().setFunc(selectedReqId.value.value,atlChartFilterStore.getFunc());
-        console.log('onMounted selectedReqId:',req_id, 'func:', atlChartFilterStore.getFunc());
+        useChartStore().setFunc(selectedReqId.value.value, atlChartFilterStore.getFunc());
+        console.log('onMounted selectedReqId:', req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
         isMounted.value = true;
         console.log(`onMounted took ${endTime - startTime} milliseconds.`);
