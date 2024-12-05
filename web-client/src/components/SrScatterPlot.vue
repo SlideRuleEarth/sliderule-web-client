@@ -89,24 +89,6 @@ function initializeBindings(reqIds: string[]) {
     });
 }
 
-watch(
-    () => atlChartFilterStore.getSelectedOverlayedReqIds(),
-    async (overlayedReqIds) => {
-        // const duckDbClient = await createDuckDbClient();
-        // for (const reqId of overlayedReqIds) {
-        //     const filename = await db.getFilename(reqId);
-        //     console.log('filename:', filename);
-        //     // Attach the Parquet file
-        //     await duckDbClient.insertOpfsParquet(filename);
-        //     const colNames = await duckDbClient.queryForColNames(filename);
-        //     useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
-        // }
-        // // Call `initializeBindings` whenever overlayedReqIds are updated
-        // initializeBindings(overlayedReqIds.map(String));
-    },
-    { immediate: true }
-);
-
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
@@ -117,7 +99,7 @@ const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
 }, 300);
 
 const reqIds = ref<SrMenuItem[]>([]);
-
+const filteredReqIds = ref<{label:string, value:number}[]>([]);
 const findLabel = (value:number) => {
     //console.log('findLabel reqIds:', reqIds.value);
     const match = reqIds.value.find(item => Number(item.value) === value);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted,ref,watch,computed } from 'vue';
+import { onMounted,ref,watch,computed, Ref } from 'vue';
 import SrAnalysisMap from './SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
 import SrRecReqDisplay from './SrRecIdReqDisplay.vue';
@@ -74,6 +74,21 @@ const selectedOverlayedReqIds = ref<number[]>([]);
 const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
 const isMounted = ref(false);
 
+async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
+    if (req_id <= 0) {
+        throw new Error('Invalid Request ID');
+    }
+
+    // Fetch overlayed options for the given request ID
+    const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
+
+    // Create a Set of reqIds values for quick lookup
+    const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
+
+    // Filter overlayedOptions to include only items in reqIds
+    return overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
+}
+
 onMounted(async () => {
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
     const startTime = performance.now(); // Start time
@@ -101,19 +116,17 @@ onMounted(async () => {
         console.log('onMounted selectedReqId:', req_id);
         if (req_id > 0) {
             atlChartFilterStore.setReqId(req_id);
-            const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
-
-            // Create a Set of reqIds values for quick lookup
-            const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
-            
-            // Filter overlayedOptions to include only items in reqIds
-            overlayedReqIdOptions.value = overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
+            overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
         } else {
             console.warn('Invalid request ID:', req_id);
             toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
         }
     } catch (error) {
-        console.error('onMounted Failed to load menu items:', error);
+        if (error instanceof Error) {
+            console.error('onMounted Failed to load menu items:', error.message);
+        } else {
+            console.error('onMounted Unknown error occurred:', error);
+        }
     } finally {
         loading.value = false;
         console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
@@ -342,7 +355,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     try{
         const req_id = Number(newSelection.value)
         atlChartFilterStore.setReqId(req_id);
-        overlayedReqIdOptions.value = await db.getOverlayedReqIdsOptions(req_id);
+        overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
         deckStore.deleteSelectedLayer();
         atlChartFilterStore.setSpots([]);
         atlChartFilterStore.setRgts([]);
