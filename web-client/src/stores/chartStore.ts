@@ -147,7 +147,7 @@ export const useChartStore = defineStore('chartStore', {
         const ndx = fieldNames.indexOf(heightFieldname);
         this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight = ndx;
         this.setYDataForChart(reqIdStr,[this.stateByReqId[reqIdStr].elevationDataOptions[ndx]]);
-        console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
+        //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
     },
     getYDataForChart(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);

@@ -24,7 +24,7 @@ export interface SrScatterSeriesData{
   max: number;
 };
 
-let debugCnt = 0;
+let debugCnt = 10;
 function getAtl03spColor(params: any):string {
     if(debugCnt++ < 10){
         console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());

@@ -29,7 +29,7 @@ const emit = defineEmits(['selectionChanged','defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
-    console.log(`Selection changed for ${label}: ${color}`);
+    //console.log(`Selection changed for ${label}: ${color}`);
     emit('selectionChanged', { label, color });
 };
 

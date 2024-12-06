@@ -356,10 +356,10 @@ export class DuckDBClient {
           this._filesInDb.add(name);
           console.log('insertOpfsParquet inserted name:', name);
         } else {
-          console.log(`insertOpfsParquet File ${name} already registered`);
+          //console.log(`insertOpfsParquet File ${name} already registered`);
         }
       } else {
-        console.log(`insertOpfsParquet File ${name} already registered`);
+        //console.log(`insertOpfsParquet File ${name} already registered`);
       }
     } catch (error) {
       console.error('insertOpfsParquet error:', error);

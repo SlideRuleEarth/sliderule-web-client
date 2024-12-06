@@ -78,7 +78,7 @@ const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 
 function initializeBindings(reqIds: string[]) {
-    console.log('initializeBindings:', reqIds);
+    //console.log('initializeBindings:', reqIds);
     reqIds.forEach((reqId) => {
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({

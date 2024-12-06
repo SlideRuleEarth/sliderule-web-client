@@ -425,7 +425,7 @@ export async function updateRgtOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getRgts() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getRgts() took ${endTime - startTime} milliseconds.`);
     }
     return rgts;
 }
@@ -455,7 +455,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
     }
     return pairs;
 }
@@ -469,7 +469,7 @@ export async function updatePairOptions(req_id: number): Promise<number[]> {
         console.error('getPairs Error:', error);
         throw error;
     }
-    console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
+    //console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
     return pairs;
 }
 
@@ -580,7 +580,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
     }
     return cycles;
 }

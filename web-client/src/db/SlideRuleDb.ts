@@ -201,7 +201,7 @@ export class SlideRuleDexie extends Dexie {
 
             //console.log('All colors restored:', colors);
         } catch (error) {
-            console.error('Failed to restore all colors:', error);
+            //console.error('Failed to restore all colors:', error);
             throw error;
         }
     }
@@ -964,11 +964,11 @@ export class SlideRuleDexie extends Dexie {
                 .filter(record => record.req_ids.includes(req_id))
                 .first();
     
-            if (overlay) {
-                console.log(`Overlay found for req_id ${req_id}:`, overlay);
-            } else {
-                console.warn(`No overlay found containing req_id ${req_id}.`);
-            }
+            // if (overlay) {
+            //     console.log(`Overlay found for req_id ${req_id}:`, overlay);
+            // } else {
+            //     console.warn(`No overlay found containing req_id ${req_id}.`);
+            // }
     
             return overlay;
         } catch (error) {
