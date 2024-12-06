@@ -34,7 +34,7 @@
     }); 
 
     onMounted(async () => {
-        console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
+        //console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
     });
 
 </script>

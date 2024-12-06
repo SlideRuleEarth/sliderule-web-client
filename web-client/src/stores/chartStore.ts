@@ -180,9 +180,13 @@ export const useChartStore = defineStore('chartStore', {
             console.error('setXDataForChartFromFunc() unknown function:', func);
         }
     },
-    getCurrentFile(reqIdStr: string) {
+    getFile(reqIdStr: string) {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].currentFile;
+    },
+    setFile(reqIdStr: string,fileName: string) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].currentFile = fileName;
     },
     getFunc(reqIdStr: string) {
         this.ensureState(reqIdStr);

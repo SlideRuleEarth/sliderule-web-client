@@ -369,9 +369,9 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
 });
 
 watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
-    console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    //console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
-        console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
+        //console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
         atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
         // Only do updates if there was a previous selection
         // This initial overly needs Y options that aren't available now

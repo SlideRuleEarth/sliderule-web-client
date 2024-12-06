@@ -51,56 +51,56 @@ function getAtl03spColor(params: any):string {
 
 
 async function getSeriesForAtl03sp(reqIdStr:string, fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
-  //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
-  const startTime = performance.now(); // Start time
-  let yItems = [] as SrScatterSeriesData[];
+    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
+    const startTime = performance.now(); // Start time
+    let yItems = [] as SrScatterSeriesData[];
 
-  try {
-      const name = 'atl03sp';
-      const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
-      //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
-      // Check if either chartData or minMaxValues is empty
-      if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
-          console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing.');
-          return yItems; // Return empty array if either is empty
-      }
+    try {
+        const name = 'atl03sp';
+        const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
+        //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
+        // Check if either chartData or minMaxValues is empty
+        if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
+            console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing.');
+            return yItems; // Return empty array if either is empty
+        }
 
-      yItems = y.map(yName => {
-          const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
-          const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
-          const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+        yItems = y.map(yName => {
+            const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+            const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+            const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
 
-          return {
-              series: {
-                  name: `${name} - ${yName}`,
-                  type: 'scatter',
-                  data: data,
-                  itemStyle: {
-                      color: getAtl03spColor,
-                  },
-                  large: useAtlChartFilterStore().getLargeData(),
-                  largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
-                  animation: false,
-                  yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                  symbolSize: useAtlChartFilterStore().getSymbolSize(name),
-              },
-              min: min,
-              max: max
-          };
-      });
-      // Log the total number of points across all series
-      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
-      useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
-      //console.log(`Total number of points across all series: ${totalPoints}`);
+            return {
+                series: {
+                    name: `${name} - ${yName}`,
+                    type: 'scatter',
+                    data: data,
+                    itemStyle: {
+                        color: getAtl03spColor,
+                    },
+                    large: useAtlChartFilterStore().getLargeData(),
+                    largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    animation: false,
+                    yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                    symbolSize: useAtlChartFilterStore().getSymbolSize(name),
+                },
+                min: min,
+                max: max
+            };
+        });
+        // Log the total number of points across all series
+        const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+        useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
+        //console.log(`Total number of points across all series: ${totalPoints}`);
 
-  } catch (error) {
-      console.error('getSeriesForAtl03sp Error:', error);
-  } finally {
-      const endTime = performance.now(); // End time
-      console.log(`getSeriesForAtl03sp took ${endTime - startTime} milliseconds.`);
-  }
-
-  return yItems;
+    } catch (error) {
+        console.error('getSeriesForAtl03sp Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesForAtl03sp took ${endTime - startTime} milliseconds.`);
+    }
+    console.log('getSeriesForAtl03sp yItems:', yItems);
+    return yItems;
 }
 
 
@@ -262,7 +262,6 @@ async function getSeriesForAtl08(
   return yItems;
 }
 
-
 export function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
@@ -275,21 +274,6 @@ export function clearPlot() {
       console.warn('plotRef is undefined');
     }
   }
-
-export const getScatterOptionsParms = (reqIdStr:string): SrScatterOptionsParms => {
-
-    //console.log('atlChartFilterStore.getScatterOptionsParms() this.rgts[0]?.value:',this.rgts[0]?.value);
-    const sop =  {
-        reqIdStr: reqIdStr,
-        fileName: chartStore.getCurrentFile(reqIdStr),
-        func: chartStore.getFunc(reqIdStr),
-        y: chartStore.getYDataForChart(reqIdStr),
-        x: chartStore.getXDataForChart(reqIdStr),
-    };
-    //console.log('atlChartFilterStore.getScatterOptionsParms():', sop);
-    return sop;
-
-}
 
 const formatTooltip = (params: any, func: string) => {
     if (func === 'atl03sp') {
@@ -304,26 +288,28 @@ const formatTooltip = (params: any, func: string) => {
 export async function getScatterOptions(req_id:number): Promise<any> {
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
-    const sop = getScatterOptionsParms(reqIdStr);
+    const fileName = chartStore.getFile(reqIdStr);
+    const func = chartStore.getFunc(reqIdStr);
+    const y = chartStore.getYDataForChart(reqIdStr);
+    const x = chartStore.getXDataForChart(reqIdStr);
     const rgts = atlChartFilterStore.rgts.map(rgt => rgt?.value).filter(value => value !== undefined);
     const cycles = atlChartFilterStore.cycles.map(cycle => cycle?.value).filter(value => value !== undefined);
     const spots = atlChartFilterStore.spots.map(spot => spot.value);
-    console.log('getScatterOptions sop:', sop);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
-        if(sop.fileName){
+        if(fileName){
             if(spots?.length && rgts && cycles){
-                if(sop.func==='atl03sp'){
-                    seriesData = await getSeriesForAtl03sp(sop.reqIdStr, sop.fileName, sop.x, sop.y);
-                } else if(sop.func==='atl03vp'){
-                    seriesData = await getSeriesForAtl03vp(sop.reqIdStr, sop.fileName, sop.x, sop.y);
-                } else if(sop.func.includes('atl06')){
-                    seriesData = await getSeriesForAtl06(sop.reqIdStr, sop.fileName, sop.x, sop.y);
-                } else if(sop.func.includes('atl08')){
-                    seriesData = await getSeriesForAtl08(sop.reqIdStr, sop.fileName, sop.x, sop.y);
+                if(func==='atl03sp'){
+                    seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
+                } else if(func==='atl03vp'){
+                    seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+                } else if(func.includes('atl06')){
+                    seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
+                } else if(func.includes('atl08')){
+                    seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
                 } else {
-                    console.error('getScatterOptions invalid func:', sop.func);
+                    console.error('getScatterOptions invalid func:', func);
                 }
                 console.log('getScatterOptions seriesData:', seriesData);
             } else {
@@ -335,18 +321,18 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         if(seriesData.length !== 0){
             options = {
                 title: {
-                    text: `${sop.func}`,
+                    text: `${func}`,
                     left: "center"
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: (params: any) => formatTooltip(params, sop.func),
+                    formatter: (params: any) => formatTooltip(params, func),
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
                     left: 'left'
                 },
-                notMerge: false,
+                notMerge: true,
                 lazyUpdate: true,
                 xAxis: {
                     min: chartStore.getMinX(reqIdStr),
@@ -361,7 +347,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',
-                    name: sop.y[index],
+                    name: y[index],
                     min: seriesData[index].min,
                     max: seriesData[index].max,
                     scale: true,  // Add this to ensure the axis scales correctly
@@ -404,7 +390,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         console.error('getScatterOptions Error:', error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`getScatterOptions fileName:${sop.fileName} took ${endTime - startTime} milliseconds.`);
+        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
     }
     console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
     return options;
@@ -501,10 +487,12 @@ export const updateScatterPlotFor = async (reqIds: number[]) => {
             const existingOptions = finalOptions; // Use the accumulated options so far.
             const cleanedExistingOptions = cleanOptions(existingOptions);
 
+            console.log(`updateScatterPlotFor ${reqId} merged newScatterOptions:`, newScatterOptions);
+            console.log(`updateScatterPlotFor ${reqId} merged existingOptions:`, cleanedExistingOptions);
+
             // Merge the new options into the accumulated options.
             finalOptions = mergeOptions(cleanedExistingOptions, newScatterOptions);
 
-            console.log(`updateScatterPlotFor ${reqId} merged finalOptions:`, finalOptions);
         } catch (error) {
             console.error(`updateScatterPlotFor ${reqId} Error fetching scatter options:`, error);
             chartStore.setShowMessage(reqIdStr, true);
