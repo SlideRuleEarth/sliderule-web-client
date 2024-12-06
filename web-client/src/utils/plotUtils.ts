@@ -474,7 +474,7 @@ export const updateScatterPlotFor = async (reqIds: number[]) => {
         const reqIdStr = reqId.toString();
         const y_options = chartStore.getYDataForChart(reqIdStr);
 
-        console.log(`updateScatterPlotFor ${reqId} y_options:`, y_options);
+        //console.log(`updateScatterPlotFor ${reqId} y_options:`, y_options);
 
         if (!y_options.length || y_options[0] === 'not_set') {
             console.warn(`updateScatterPlotFor ${reqId} No y options selected`);

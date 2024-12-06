@@ -302,7 +302,7 @@ export class SlideRuleDexie extends Dexie {
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
                 await this.atl03CnfColors.put({ color,number });
-                console.log(`Number updated in atl03CnfColors: ${color},${number}`);
+                //console.log(`Number updated in atl03CnfColors: ${color},${number}`);
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl03CnfColors.count();
