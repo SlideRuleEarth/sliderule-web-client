@@ -34,6 +34,7 @@ import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary } from "@/utils/SrParquetUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
+import { useChartStore } from '@/stores/chartStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -250,10 +251,11 @@ export interface ElevationDataItem {
 }
 
 async function clicked(d:ElevationDataItem): Promise<void> {
-    //console.log('Clicked:',d);
+    //console.log('Clicked data:',d);
     hideTooltip();
     useAtlChartFilterStore().resetTheScatterPlot();
     useAtl03ColorMapStore().setDebugCnt(0);
+    const reqIdStr = useAtlChartFilterStore().getReqId().toString();
     //useAtlChartFilterStore().setIsLoading();
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     if(d.track !== undefined){ // for atl03
@@ -308,33 +310,33 @@ async function clicked(d:ElevationDataItem): Promise<void> {
                 if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
                     atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
                 }
-            useAtlChartFilterStore().setAtl03spWhereClause(atl03spWhereClause);
+                useChartStore().setWhereClause(reqIdStr,atl03spWhereClause);
         }
-        console.log('Clicked: atl03spWhereClause',useAtlChartFilterStore().getAtl03spWhereClause())
+        console.log('Clicked: atl03spWhereClause',useChartStore().getWhereClause(reqIdStr))
     } else if(useAtlChartFilterStore().getFunc()==='atl03vp'){
         const atl03vpWhereClause = `
             WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
             AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
             AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
         `;
-        useAtlChartFilterStore().setAtl03vpWhereClause(atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',useAtlChartFilterStore().getAtl03vpWhereClause())
+        useChartStore().setWhereClause(reqIdStr,atl03vpWhereClause);
+        console.log('Clicked: atl06spWhereClause',useChartStore().getWhereClause(reqIdStr))
     } else if (useAtlChartFilterStore().getFunc().includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
             AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
             AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
         `;
-        useAtlChartFilterStore().setAtl06WhereClause(atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',useAtlChartFilterStore().getAtl06WhereClause())
+        useChartStore().setWhereClause(reqIdStr,atl06WhereClause);
+        console.log('Clicked: atl06WhereClause',useChartStore().getWhereClause(reqIdStr))
     } else if (useAtlChartFilterStore().getFunc()==='atl08p'){
         const atl08pWhereClause = `
             WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
             AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
             AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
         `;
-        useAtlChartFilterStore().setAtl08pWhereClause(atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',useAtlChartFilterStore().getAtl08pWhereClause())
+        useChartStore().setWhereClause(reqIdStr,atl08pWhereClause);
+        console.log('Clicked: atl08pWhereClause',useChartStore().getWhereClause(reqIdStr))
     } else {
         console.error('Clicked: Unknown func?:',useAtlChartFilterStore().getFunc());
     }
@@ -345,7 +347,7 @@ async function clicked(d:ElevationDataItem): Promise<void> {
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
-    console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
+    //console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
     return new PointCloudLayer({
         id: name,
         data: elevationData,
@@ -418,8 +420,8 @@ const onHoverHandler = isIPhone
           }
       };
 
-function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
-    //console.log('createElLayer elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
+function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
+    //console.log('createElLayer name:',name,' elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
     //let coordSys;
     //if(projName === 'EPSG:4326'){
     //    coordSys = COORDINATE_SYSTEM.LNGLAT; // Deck.gl’s internal system for EPSG:4326
@@ -427,7 +429,7 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
     //    coordSys = COORDINATE_SYSTEM.DEFAULT;
     //}
     return new PointCloudLayer({
-        id: EL_LAYER_NAME,
+        id: name,
         data: elevationData,
         //coordinateSystem: coordSys, 
         getPosition: (d) => {
@@ -484,14 +486,14 @@ function createElLayer(elevationData:ElevationDataItem[], extHMean: ExtHMean, he
     });
 }
 
-export function updateElLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
+export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
     //console.log('updateElLayerWithObject startTime:',startTime);
     try{
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-            const layer = createElLayer(elevationData,extHMean,heightFieldName,projName);
-            const replaced = useDeckStore().replaceOrAddLayer(layer,EL_LAYER_NAME);;
+            const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
+            const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
             console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});

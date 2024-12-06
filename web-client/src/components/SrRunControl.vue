@@ -13,7 +13,7 @@
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import router from '@/router/index.js';
-    import { defineEmits, computed } from 'vue';
+    import { computed } from 'vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
 
     const toast = useToast();

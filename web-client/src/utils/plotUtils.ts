@@ -1,9 +1,267 @@
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { getScatterOptions } from "@/utils/SrDuckDbUtils";
+import { useChartStore } from "@/stores/chartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
-
+import type { SrScatterOptionsParms } from '@/utils/parmUtils';
+import { useAtl03ColorMapStore }  from "@/stores/atl03ColorMapStore";
+import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData, fetchAtl08ScatterData } from "@/utils/SrDuckDbUtils";
+import type { EChartsOption, LegendComponentOption } from 'echarts';
 
 const atlChartFilterStore = useAtlChartFilterStore();
+const chartStore = useChartStore();
+
+export interface SrScatterSeriesData{
+  series: {
+      name: string;
+      type: string;
+      data: number[][];
+      large: boolean;
+      largeThreshold: number;
+      animation: boolean;
+      yAxisIndex: number;
+      symbolSize?: number;
+  };
+  min: number;
+  max: number;
+};
+
+let debugCnt = 10;
+function getAtl03spColor(params: any):string {
+    if(debugCnt++ < 10){
+        console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
+        console.log('getAtl03spColor params.data:', params.data);
+    }
+    let colorStr = 'red';
+    let value = -1;
+    if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl03_cnf'){ 
+        value = params.data[2];
+        colorStr = useAtl03ColorMapStore().getColorForAtl03CnfValue(value);
+    } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl08_class'){
+        value = params.data[3];
+        colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
+    } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'YAPC'){ 
+        value = params.data[4];
+        const color = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
+        colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
+    }
+    if(debugCnt++ < 10){
+        console.log(`getAtl03spColor cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
+    }
+    return colorStr;
+}
+
+
+async function getSeriesForAtl03sp(reqIdStr:string, fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
+    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
+    const startTime = performance.now(); // Start time
+    let yItems = [] as SrScatterSeriesData[];
+
+    try {
+        const name = 'atl03sp';
+        const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
+        //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
+        // Check if either chartData or minMaxValues is empty
+        if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
+            console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing.');
+            return yItems; // Return empty array if either is empty
+        }
+
+        yItems = y.map(yName => {
+            const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+            const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+            const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+
+            return {
+                series: {
+                    name: `${name} - ${yName}`,
+                    type: 'scatter',
+                    data: data,
+                    itemStyle: {
+                        color: getAtl03spColor,
+                    },
+                    large: useAtlChartFilterStore().getLargeData(),
+                    largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    animation: false,
+                    yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                    symbolSize: useAtlChartFilterStore().getSymbolSize(name),
+                },
+                min: min,
+                max: max
+            };
+        });
+        // Log the total number of points across all series
+        const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+        useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
+        //console.log(`Total number of points across all series: ${totalPoints}`);
+
+    } catch (error) {
+        console.error('getSeriesForAtl03sp Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesForAtl03sp took ${endTime - startTime} milliseconds.`);
+    }
+    console.log('getSeriesForAtl03sp yItems:', yItems);
+    return yItems;
+}
+
+
+async function getSeriesForAtl03vp(
+  reqIdStr:string, 
+  fileName: string, 
+  x: string, 
+  y: string[]
+): Promise<SrScatterSeriesData[]> {
+  //console.log('getSeriesForAtl03vp fileName:', fileName, ' x:', x, ' y:', y);
+  const startTime = performance.now(); // Start time
+  let yItems = [] as SrScatterSeriesData[];
+
+  try {
+      const name = 'atl03vp';
+      const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl03vpScatterData(reqIdStr,fileName, x, y);
+      //console.log('getSeriesForAtl03vp chartData:', chartData);
+      //console.log('getSeriesForAtl03vp minMaxValues:', normalizedMinMaxValues);
+
+      // Check if either chartData or normalizedMinMaxValues is empty
+      if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
+          console.warn('getSeriesForAtl03vp chartData or minMaxValues is empty, skipping processing.');
+          return yItems; // Return empty array if either is empty
+      }
+
+      yItems = y.map(yName => {
+          const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+          const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+          const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+          //console.log('getSeriesForAtl03vp data:', data);
+          //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
+          return {
+              series: {
+                  name: `${name} - ${yName}`,
+                  type: 'scatter',
+                  data: data,
+                  large: useAtlChartFilterStore().getLargeData(),
+                  largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                  animation: false,
+                  yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                  symbolSize: useAtlChartFilterStore().getSymbolSize(name),
+              },
+              min: min,
+              max: max
+          };
+      });
+      // Log the total number of points across all series
+      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+      useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
+      //console.log(`Total number of points across all series: ${totalPoints}`);
+
+  } catch (error) {
+      console.error('getSeriesForAtl03vp Error:', error);
+  } finally {
+      const endTime = performance.now(); // End time
+      console.log(`getSeriesForAtl03vp took ${endTime - startTime} milliseconds.`);
+  }
+
+  return yItems;
+}
+
+
+async function getSeriesForAtl06(
+  reqIdStr:string, 
+  fileName: string, 
+  x: string, 
+  y: string[]
+): Promise<SrScatterSeriesData[]> {
+  //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' spots:', spots, ' rgt:', rgt, ' cycle:', cycle);
+  const startTime = performance.now();
+  let yItems=[] as SrScatterSeriesData[];
+
+  try{
+      const name = 'atl06';
+      const { chartData = {} , normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(reqIdStr,fileName, x, y);
+      //console.log('getSeriesForAtl06 chartData:', chartData);
+      //console.log('getSeriesForAtl06 minMaxValues:', normalizedMinMaxValues);
+      // Check if either chartData or minMaxValues is empty
+      if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
+          console.warn('getSeriesForAtl06 chartData or minMaxValues is empty, skipping processing.');
+          return yItems; // Return empty array if either is empty
+      }
+      yItems = y.map(yName => {
+          const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+          const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+          const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+          //console.log('getSeriesForAtl06 data:', data);
+          //console.log('getSeriesForAtl06 min:', min, ' max:', max);
+          return {
+              series: {
+                  name: `${name} - ${yName}`,
+                  type: 'scatter',
+                  data: data,
+                  large: useAtlChartFilterStore().getLargeData(),
+                  largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                  animation: false,
+                  yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                  symbolSize: useAtlChartFilterStore().getSymbolSize(name),
+              },
+              min: min,
+              max: max
+          };
+      });
+      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+      useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
+      //console.log(`Total number of points across all series: ${totalPoints}`);
+  } catch (error) {
+      console.error('getSeriesForAtl06 Error:', error);
+  } finally {
+      const endTime = performance.now(); // End time
+      console.log(`getSeriesForAtl06 took ${endTime - startTime} milliseconds.`);
+  }
+  console.log('getSeriesForAtl06 yItems:', yItems);
+  return yItems;
+}
+
+async function getSeriesForAtl08(
+    reqIdStr:string, 
+    fileName: string, 
+    x: string, 
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    console.log('getSeriesForAtl08 fileName:', fileName, ' x:', x, ' y:', y);
+    const startTime = performance.now();
+    let yItems=[] as SrScatterSeriesData[];
+    try{
+      const name = 'atl08';
+      const { chartData={}, normalizedMinMaxValues={} } = await fetchAtl08ScatterData(reqIdStr,fileName, x, y);
+      console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
+      if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
+          console.warn('getSeriesForAtl08 chartData or minMaxValues is empty, skipping processing.');
+      } else {
+          yItems = y.map(yName => ({
+              name: `${name} - ${yName}`,
+              type: 'scatter',
+              data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+              large: useAtlChartFilterStore().getLargeData(),
+              largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+              animation: false,
+              yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+              symbolSize: useAtlChartFilterStore().getSymbolSize(name),
+          })).map((series, index) => ({
+              series,
+              min: normalizedMinMaxValues[y[index]].min,
+              max: normalizedMinMaxValues[y[index]].max
+          }));
+      }
+      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+      useAtlChartFilterStore().setNumOfPlottedPnts(totalPoints);
+      console.log(`getSeriesForAtl08 Total number of points across all series: ${totalPoints}`);
+      return yItems; // Return empty array if either is empty
+  } catch (error) {
+      console.error('getSeriesForAtl08 getSeriesForAtl08 Error:', error);
+  } finally {
+      const endTime = performance.now(); // End time
+      console.log(`getSeriesForAtl08 took ${endTime - startTime} milliseconds.`);
+  }
+
+  return yItems;
+}
+
 export function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
@@ -17,59 +275,242 @@ export function clearPlot() {
     }
   }
 
-export const fetchScatterOptions = async () => {
-    const reqId = atlChartFilterStore.getReqId();
-    if(reqId > 0){
-      const y_options = atlChartFilterStore.getYDataForChart();
-      if((y_options.length > 0) && (y_options[0] !== 'not_set')) {
-        atlChartFilterStore.setShowMessage(false);
-        const startTime = performance.now(); // Start time
-        console.log('fetchScatterOptions started... startTime:',startTime)
-        try {
-          atlChartFilterStore.setIsLoading();
-          const req_id = atlChartFilterStore.getReqId();
-          const func = await indexedDb.getFunc(req_id);
-          atlChartFilterStore.setFunc(func);
-          atlChartFilterStore.setXDataForChartUsingFunc(func);
-          const sop = atlChartFilterStore.getScatterOptionsParms();
-          //console.log('fetchScatterOptions sop:',sop);
-          const scatterOptions = await getScatterOptions(sop);
-          //console.log(`returned from getScatterOptions in:${performance.now() - startTime} milliseconds.` )
-          if (scatterOptions) {
-            const plotRef = atlChartFilterStore.getPlotRef();
-            if(plotRef){
-              if(plotRef.chart){
-                  console.log('fetchScatterOptions plotRef.chart.setOption:',scatterOptions);
-                  plotRef.chart.setOption(scatterOptions);
-                  const newOptions = plotRef.chart.getOption();
-                  //console.log('fetchScatterOptions plotRef.chart.getOption:',newOptions);
-                  //srObjectDetailsRef.value?.setObjectDetails(newOptions);
-              } else {
-                  console.warn('fetchScatterOptions plotRef.chart is undefined');
-              }
-            } else {
-              console.warn('fetchScatterOptions plotRef is undefined');
-            }
-          } else {
-            //console.log('fetchScatterOptions Failed to get scatter options');
-            atlChartFilterStore.setShowMessage(true);
-            atlChartFilterStore.setIsWarning(true);
-            atlChartFilterStore.setMessage('Failed to load data. Click on elevation in map to preset filters');
-          }
-        } catch (error) {
-          console.error('fetchScatterOptions Error fetching scatter options:', error);
-          atlChartFilterStore.setShowMessage(true);
-          atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
-        } finally {
-          atlChartFilterStore.resetIsLoading();
-          const now = performance.now();
-          //console.log(`fetchScatterOptions took ${now - startTime} milliseconds. endTime:`,now);
-        }
-      } else {
-        console.warn('fetchScatterOptions No y options selected');
-      }
+const formatTooltip = (params: any, func: string) => {
+    if (func === 'atl03sp') {
+        const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
+        return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
     } else {
-      console.error('fetchScatterOptions reqId is undefined');
+        const [x, y, x_actual] = params.value;
+        return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
     }
-  };
+};
+
+export async function getScatterOptions(req_id:number): Promise<any> {
+    const startTime = performance.now(); // Start time
+    const reqIdStr = req_id.toString();
+    const fileName = chartStore.getFile(reqIdStr);
+    const func = chartStore.getFunc(reqIdStr);
+    const y = chartStore.getYDataForChart(reqIdStr);
+    const x = chartStore.getXDataForChart(reqIdStr);
+    const rgts = atlChartFilterStore.rgts.map(rgt => rgt?.value).filter(value => value !== undefined);
+    const cycles = atlChartFilterStore.cycles.map(cycle => cycle?.value).filter(value => value !== undefined);
+    const spots = atlChartFilterStore.spots.map(spot => spot.value);
+    let options = null;
+    try{
+        let seriesData = [] as SrScatterSeriesData[];
+        if(fileName){
+            if(spots?.length && rgts && cycles){
+                if(func==='atl03sp'){
+                    seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
+                } else if(func==='atl03vp'){
+                    seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+                } else if(func.includes('atl06')){
+                    seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
+                } else if(func.includes('atl08')){
+                    seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
+                } else {
+                    console.error('getScatterOptions invalid func:', func);
+                }
+                console.log('getScatterOptions seriesData:', seriesData);
+            } else {
+                console.warn('getScatterOptions invalid? spots:', spots, ' rgt:', rgts, ' cycle:', cycles);
+            }
+        } else {
+            console.warn('getScatterOptions fileName is null');
+        }
+        if(seriesData.length !== 0){
+            options = {
+                title: {
+                    text: `${func}`,
+                    left: "center"
+                },
+                tooltip: {
+                    trigger: "item",
+                    formatter: (params: any) => formatTooltip(params, func),
+                },
+                legend: {
+                    data: seriesData.map(series => series.series.name),
+                    left: 'left'
+                },
+                notMerge: true,
+                lazyUpdate: true,
+                xAxis: {
+                    min: chartStore.getMinX(reqIdStr),
+                    max: chartStore.getMaxX(reqIdStr),
+                    name: chartStore.getXLegend(reqIdStr), // Add the label for the x-axis here
+                    nameLocation: 'middle', // Position the label in the middle of the axis
+                    nameTextStyle: {
+                        fontSize: 10,
+                        padding:[10,0,10,0],
+                        margin:10,
+                    }
+                },
+                yAxis: seriesData.map((series, index) => ({
+                    type: 'value',
+                    name: y[index],
+                    min: seriesData[index].min,
+                    max: seriesData[index].max,
+                    scale: true,  // Add this to ensure the axis scales correctly
+                    axisLabel: {
+                        formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
+                    }
+                })),
+                series: seriesData.map(series => series.series),
+                dataZoom: [
+                    {
+                        type: 'slider', // This creates a slider to zoom in the X-axis
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                        bottom: 1,
+                    },
+                    {
+                        type: 'slider', // This creates a slider to zoom in the Y-axis
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0, // Adjusting for multiple y-axes if necessary
+                        filterMode: 'none',
+                        left: '95%',
+                        width: 20,
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        xAxisIndex: 0,
+                        filterMode: 'none',
+                    },
+                    {
+                        type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
+                        yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
+                        filterMode: 'none',
+                    },
+                ],            
+            };
+        } else {
+            console.warn('getScatterOptions seriesData is empty');
+        }
+        //console.log('getScatterOptions options:', options);
+    } catch (error) {
+        console.error('getScatterOptions Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+    }
+    console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
+    return options;
+}
+
+function mergeOptions(existing: EChartsOption, incoming: EChartsOption): EChartsOption {
+    const ensureArray = (option: any) => (Array.isArray(option) ? option : option ? [option] : []);
+
+    const mergeArrays = (existing: any[], incoming: any[]) => [
+        ...existing.filter(e => !incoming.some(i => i.name === e.name)),
+        ...incoming,
+    ];
+
+    const extractLegendData = (legend: LegendComponentOption | LegendComponentOption[] | undefined) => {
+        if (!legend) return [];
+        if (Array.isArray(legend)) {
+            return legend.flatMap(l => l.data || []);
+        } else {
+            return legend.data || [];
+        }
+    };
+
+    return {
+        ...existing,
+        ...incoming,
+        series: mergeArrays(ensureArray(existing.series), ensureArray(incoming.series)),
+        xAxis: mergeArrays(ensureArray(existing.xAxis), ensureArray(incoming.xAxis)),
+        yAxis: mergeArrays(ensureArray(existing.yAxis), ensureArray(incoming.yAxis)),
+        dataZoom: mergeArrays(ensureArray(existing.dataZoom), ensureArray(incoming.dataZoom)),
+        legend: {
+            ...existing.legend,
+            data: mergeArrays(
+                extractLegendData(existing.legend),
+                extractLegendData(incoming.legend)
+            ),
+        },
+    };
+}
+
+// This removes the defaulted values of unused toolbox, visualMap, timeline, and calendar options from the options object
+function cleanOptions(options:any):any { 
+    delete options.toolbox;
+    delete options.visualMap;
+    delete options.timeline;
+    delete options.calendar;
+    return options;
+}
   
+export const updateScatterPlotFor = async (reqIds: number[]) => {
+    const startTime = performance.now();
+    console.log(`updateScatterPlotFor ${reqIds} startTime:`, startTime);
+
+    const plotRef = atlChartFilterStore.getPlotRef();
+    if (!plotRef || !plotRef.chart) {
+        console.warn(`updateScatterPlotFor ${reqIds} plotRef is undefined`);
+        return;
+    }
+
+    if (reqIds.length === 0) {
+        console.error(`updateScatterPlotFor ${reqIds} reqIds is empty`);
+        return;
+    }
+
+    let finalOptions: EChartsOption = {}; // Initialize a container for the merged options.
+
+    for (const reqId of reqIds) {
+        const reqIdStr = reqId.toString();
+        const y_options = chartStore.getYDataForChart(reqIdStr);
+
+        //console.log(`updateScatterPlotFor ${reqId} y_options:`, y_options);
+
+        if (!y_options.length || y_options[0] === 'not_set') {
+            console.warn(`updateScatterPlotFor ${reqId} No y options selected`);
+            continue;
+        }
+
+        chartStore.setShowMessage(reqIdStr, false);
+
+        try {
+            atlChartFilterStore.setIsLoading();
+
+            const func = await indexedDb.getFunc(reqId);
+            chartStore.setFunc(reqIdStr, func);
+            chartStore.setXDataForChartUsingFunc(reqIdStr, func);
+
+            const newScatterOptions = await getScatterOptions(reqId);
+            if (!newScatterOptions) {
+                chartStore.setShowMessage(reqIdStr, true);
+                chartStore.setIsWarning(reqIdStr, true);
+                chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
+                continue;
+            }
+
+            const existingOptions = finalOptions; // Use the accumulated options so far.
+            const cleanedExistingOptions = cleanOptions(existingOptions);
+
+            console.log(`updateScatterPlotFor ${reqId} merged newScatterOptions:`, newScatterOptions);
+            console.log(`updateScatterPlotFor ${reqId} merged existingOptions:`, cleanedExistingOptions);
+
+            // Merge the new options into the accumulated options.
+            finalOptions = mergeOptions(cleanedExistingOptions, newScatterOptions);
+
+        } catch (error) {
+            console.error(`updateScatterPlotFor ${reqId} Error fetching scatter options:`, error);
+            chartStore.setShowMessage(reqIdStr, true);
+            chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
+        } finally {
+            atlChartFilterStore.resetIsLoading();
+        }
+    }
+
+    // Set the final merged options to the chart.
+    if (Object.keys(finalOptions).length > 0) {
+        plotRef.chart.setOption(finalOptions);
+        console.log(`updateScatterPlotFor Final options applied to chart:`, finalOptions);
+    } else {
+        console.warn(`updateScatterPlotFor No valid options to apply to chart`);
+    }
+
+    const endTime = performance.now();
+    console.log(`updateScatterPlotFor ${reqIds} took ${endTime - startTime} milliseconds.`);
+};
+ 

@@ -1,64 +1,96 @@
 <script setup lang="ts">
-import SrSqlStmnt from "./SrSqlStmnt.vue";
-import SrSliderInput from "./SrSliderInput.vue";
+import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
+import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
-import SrMenuInput from "./SrMenuInput.vue";
-import SrMenu from "./SrMenu.vue";
-import SrSwitchedSliderInput from "./SrSwitchedSliderInput.vue";
-import { fetchScatterOptions,clearPlot } from "@/utils/plotUtils";
+import SrMenu from "@/components/SrMenu.vue";
+import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
+import { updateScatterPlotFor,clearPlot } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
-import { getColorMapOptions } from '@/utils/colorUtils';
+import { colorMapNames } from '@/utils/colorUtils';
 import { debounce } from "lodash";
-import SrAtl03CnfColors from "./SrAtl03CnfColors.vue";
-import SrAtl08ClassColors from "./SrAtl08ClassColors.vue";
+import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
+import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
+import { onMounted, watch, computed } from "vue";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const debouncedFetchScatterOptions = debounce(fetchScatterOptions, 300);
 interface AtColorChangeEvent {
   label: string;
   color?: string; // color can be undefined
 }
 
+// Define props with TypeScript types
+const props = defineProps<{
+  req_id: number;
+  label: string;
+}>();
+
+const computedLabel = computed(() => {
+  return props.label
+    ? `Plot Options (${props.label})`
+    : `Plot Options (${props.req_id})`;
+});
+const computedSelectedAtl03ColorMap = computed(() => {
+  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
+});
+
+const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
+    updateScatterPlotFor(reqIds);
+}, 300);
+
+
+onMounted(() => {
+    console.log('SrScatterPlotOptions onMounted props.req_id:', props.req_id);
+});
+
+
 const symbolSizeSelection = () => {
+    //console.log('symbolSizeSelection');
     clearPlot();
-    debouncedFetchScatterOptions();
+    debouncedUpdateScatterPlotFor([props.req_id]);
 };
 
 function changedColorKey() {
-    console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
+    //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    debouncedFetchScatterOptions();
+    debouncedUpdateScatterPlotFor([props.req_id]);
 }
 
 const atl03CnfColorChanged = (colorKey:string): void =>{
-  console.log(`atl03CnfColorChanged:`,colorKey);
+    //console.log(`atl03CnfColorChanged:`,colorKey);
     clearPlot();
-    debouncedFetchScatterOptions();
+    debouncedUpdateScatterPlotFor([props.req_id]);
 };
 
 const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
-    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+    //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
       clearPlot();
-      debouncedFetchScatterOptions();
+      debouncedUpdateScatterPlotFor([props.req_id]);
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }
 };
 
-const alt03YAPCColorMapChanged = (colorMap:string): void => {
-    console.log(`alt03YAPCColorMapChanged:`,colorMap);
-    clearPlot();
-    debouncedFetchScatterOptions();
-};
+watch(
+  () => props.label,
+  (newLabel, oldLabel) => {
+    console.log(`SrScatterPlotOptions: label changed from ${oldLabel} to ${newLabel}`);
+    console.log(`SrScatterPlotOptions: computedLabel changed to ${computedLabel}`);
+  }
+);
 
 </script>
 <template>
-<Fieldset class="sr-scatter-plot-options" legend="Plot Options" :toggleable="true" :collapsed="true">
+<Fieldset   
+    class="sr-scatter-plot-options" 
+    :legend="computedLabel" 
+    :toggleable="true" 
+    :collapsed="true"
+>
     <div class="sr-sql-stmnt">
     <SrSqlStmnt />
 </div>
@@ -108,19 +140,20 @@ const alt03YAPCColorMapChanged = (colorMap:string): void => {
         />
     </div>
     <div class="sr-select-yapc-color-map">
-        <SrMenuInput 
+        <SrMenu 
             v-if = "atlChartFilterStore.getFunc() === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
             label="YAPC Color Map" 
-            :menuOptions="getColorMapOptions()" 
-            @update:modelValue="alt03YAPCColorMapChanged"
-            v-model="atlChartFilterStore.selectedAtl03YapcColorMap"
+            v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
+            :menuOptions="colorMapNames" 
+            :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
+            :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
             tooltipText="YAPC Color Map for atl03 scatter plot"
         />
     </div>
 </div>
 <div class="sr-select-symbol-size">
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc() === 'atl03sp'"
+        v-if = "props.label.includes('atl03sp')"
         v-model="atlChartFilterStore.atl03spSymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl03sp Scatter Plot symbol size"
@@ -131,7 +164,7 @@ const alt03YAPCColorMapChanged = (colorMap:string): void => {
         tooltipText="Symbol size for Atl03 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc() === 'atl03vp'"
+        v-if = "props.label.includes('atl03vp')"
         v-model="atlChartFilterStore.atl03spSymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl03vp Scatter Plot symbol size"
@@ -142,7 +175,7 @@ const alt03YAPCColorMapChanged = (colorMap:string): void => {
         tooltipText="Symbol size for Atl03 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc().includes('atl06')"
+        v-if = "props.label.includes('atl06')"
         v-model="atlChartFilterStore.atl06SymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl06 Scatter Plot symbol size"
@@ -153,7 +186,7 @@ const alt03YAPCColorMapChanged = (colorMap:string): void => {
         tooltipText="Symbol size for Atl06 Scatter Plot"
     />
     <SrSliderInput
-        v-if = "atlChartFilterStore.getFunc().includes('atl08')"
+        v-if = "props.label.includes('atl08')"
         v-model="atlChartFilterStore.atl08SymbolSize"
         @update:model-value="symbolSizeSelection"
         label="Atl08 Scatter Plot symbol size"

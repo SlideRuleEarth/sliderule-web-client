@@ -107,7 +107,7 @@
     import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
-import SrCheckbox from './SrCheckbox.vue';
+    import SrCheckbox from './SrCheckbox.vue';
 
 
     const debugStore = useDebugStore();

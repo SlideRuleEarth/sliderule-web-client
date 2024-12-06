@@ -1,5 +1,4 @@
 import { type SrRequestRecord } from '@/db/SlideRuleDb';
-import { updateElevationForReqId } from '@/utils/SrParquetUtils';
 import { checkAreaOfConvexHullError } from './SrMapUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
@@ -11,9 +10,11 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
+import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
+import { type AtlxxReqParams } from '@/sliderule/icesat2';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -128,7 +129,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     fileName = await db.getFilename(workerMsg.req_id);
                     const serverReq = await duckDbLoadOpfsParquetFile(fileName);
                     await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReq });
-                    await updateElevationForReqId(workerMsg.req_id);
+                    await duckDbReadAndUpdateElevationData(workerMsg.req_id);
                 } else {
                     console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
                 }
@@ -242,6 +243,10 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization(), jwt:accessToken}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
             console.log('runFetchToFileWorker cmd:',cmd);
             worker.postMessage(JSON.stringify(cmd));
+            const arp = srReqRec.parameters as AtlxxReqParams;
+            if(arp.parms.poly){
+                db.addOrUpdateOverlayByPolyHash(arp.parms.poly, {req_ids:[srReqRec.req_id]});
+            }
         } else {
             console.error('runFetchToFileWorker req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });

@@ -89,7 +89,6 @@
 
     onMounted(() => {
         console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
-        mapStore.setIsLoading();
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
