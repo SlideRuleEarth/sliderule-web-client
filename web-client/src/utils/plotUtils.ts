@@ -4,7 +4,8 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import type { SrScatterOptionsParms } from '@/utils/parmUtils';
 import { useAtl03ColorMapStore }  from "@/stores/atl03ColorMapStore";
 import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData, fetchAtl08ScatterData } from "@/utils/SrDuckDbUtils";
-import type { EChartsOption, LegendComponentOption } from 'echarts';
+import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
+import type { ECharts } from 'echarts/core';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -273,7 +274,7 @@ export function clearPlot() {
     } else {
       console.warn('plotRef is undefined');
     }
-  }
+}
 
 const formatTooltip = (params: any, func: string) => {
     if (func === 'atl03sp') {
@@ -284,6 +285,39 @@ const formatTooltip = (params: any, func: string) => {
         return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
     }
 };
+
+async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
+    const startTime = performance.now(); // Start time
+    const fileName = chartStore.getFile(reqIdStr);
+    const func = chartStore.getFunc(reqIdStr);
+    const x = chartStore.getXDataForChart(reqIdStr);
+    const y = chartStore.getYDataForChart(reqIdStr);
+    let seriesData = [] as SrScatterSeriesData[];
+    try{
+        if(fileName){
+            if(func==='atl03sp'){
+                seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
+            } else if(func==='atl03vp'){
+                seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl06')){
+                seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl08')){
+                seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
+            } else {
+                console.error('getSeriesFor invalid func:', func);
+            }
+            console.log('getSeriesFor seriesData:', seriesData);
+        } else {
+            console.warn('getSeriesFor fileName is null');
+        }
+    } catch (error) {
+        console.error('getSeriesFor Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+    }
+    return seriesData;
+}
 
 export async function getScatterOptions(req_id:number): Promise<any> {
     const startTime = performance.now(); // Start time
@@ -300,23 +334,10 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         let seriesData = [] as SrScatterSeriesData[];
         if(fileName){
             if(spots?.length && rgts && cycles){
-                if(func==='atl03sp'){
-                    seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
-                } else if(func==='atl03vp'){
-                    seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
-                } else if(func.includes('atl06')){
-                    seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
-                } else if(func.includes('atl08')){
-                    seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
-                } else {
-                    console.error('getScatterOptions invalid func:', func);
-                }
-                console.log('getScatterOptions seriesData:', seriesData);
+                seriesData = await getSeriesFor(reqIdStr);
             } else {
-                console.warn('getScatterOptions invalid? spots:', spots, ' rgt:', rgts, ' cycle:', cycles);
+                console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
             }
-        } else {
-            console.warn('getScatterOptions fileName is null');
         }
         if(seriesData.length !== 0){
             options = {
@@ -389,128 +410,179 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     } catch (error) {
         console.error('getScatterOptions Error:', error);
     } finally {
-        const endTime = performance.now(); // End time
-        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+        console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
     }
-    console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
+    const endTime = performance.now(); // End time
+    console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
     return options;
 }
 
-function mergeOptions(existing: EChartsOption, incoming: EChartsOption): EChartsOption {
-    const ensureArray = (option: any) => (Array.isArray(option) ? option : option ? [option] : []);
+export const initScatterPlotWith = async (reqId: number) => {
+    const startTime = performance.now();
+    console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
-    const mergeArrays = (existing: any[], incoming: any[]) => [
-        ...existing.filter(e => !incoming.some(i => i.name === e.name)),
-        ...incoming,
-    ];
+    const plotRef = atlChartFilterStore.getPlotRef();
+    if (!plotRef || !plotRef.chart) {
+        console.warn(`initScatterPlotWith ${reqId} plotRef is undefined`);
+        return;
+    }
 
-    const extractLegendData = (legend: LegendComponentOption | LegendComponentOption[] | undefined) => {
-        if (!legend) return [];
-        if (Array.isArray(legend)) {
-            return legend.flatMap(l => l.data || []);
-        } else {
-            return legend.data || [];
+    if (reqId === undefined || reqId <= 0) {
+        console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
+        return;
+    }
+
+    let newScatterOptions: EChartsOption = {}; // Initialize a container for the merged options.
+
+    const reqIdStr = reqId.toString();
+    const y_options = chartStore.getYDataForChart(reqIdStr);
+
+    console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
+
+    if (!y_options.length || y_options[0] === 'not_set') {
+        console.warn(`initScatterPlotWith ${reqId} No y options selected`);
+    }
+
+    chartStore.setShowMessage(reqIdStr, false);
+
+    try {
+        atlChartFilterStore.setIsLoading();
+
+        const func = await indexedDb.getFunc(reqId);
+        chartStore.setFunc(reqIdStr, func);
+        chartStore.setXDataForChartUsingFunc(reqIdStr, func);
+
+        newScatterOptions = await getScatterOptions(reqId);
+        if (!newScatterOptions) {
+            chartStore.setShowMessage(reqIdStr, true);
+            chartStore.setIsWarning(reqIdStr, true);
+            chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
+            return;
         }
-    };
 
-    return {
-        ...existing,
-        ...incoming,
-        series: mergeArrays(ensureArray(existing.series), ensureArray(incoming.series)),
-        xAxis: mergeArrays(ensureArray(existing.xAxis), ensureArray(incoming.xAxis)),
-        yAxis: mergeArrays(ensureArray(existing.yAxis), ensureArray(incoming.yAxis)),
-        dataZoom: mergeArrays(ensureArray(existing.dataZoom), ensureArray(incoming.dataZoom)),
-        legend: {
-            ...existing.legend,
-            data: mergeArrays(
-                extractLegendData(existing.legend),
-                extractLegendData(incoming.legend)
-            ),
-        },
-    };
-}
+        if (Object.keys(newScatterOptions).length > 0) {
+            plotRef.chart.setOption(newScatterOptions);
+            console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
+        } else {
+            console.warn(`initScatterPlotWith No valid options to apply to chart`);
+        }
+
+    } catch (error) {
+        console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
+        chartStore.setShowMessage(reqIdStr, true);
+        chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
+    } finally {
+        atlChartFilterStore.resetIsLoading();
+    }
+
+    const endTime = performance.now();
+    console.log(`initScatterPlotWith ${reqId} took ${endTime - startTime} milliseconds.`);
+};
+
+
 
 // This removes the defaulted values of unused toolbox, visualMap, timeline, and calendar options from the options object
-function cleanOptions(options:any):any { 
+function removeUnusedOptions(options:any):any { 
+    if (!options) {
+        return {};
+    }
     delete options.toolbox;
     delete options.visualMap;
     delete options.timeline;
     delete options.calendar;
     return options;
 }
-  
+
+async function appendSeries(reqId: number): Promise<void> {
+    try {
+        const reqIdStr = reqId.toString();
+        const plotRef = useAtlChartFilterStore().getPlotRef();
+        if (!plotRef?.chart) {
+            console.warn(`appendSeries(${reqIdStr}): plotRef or chart is undefined.`);
+            return;
+        }
+        const chart: ECharts = plotRef.chart;
+
+        // Retrieve existing options from the chart
+        //const existingOptions = removeUnusedOptions(chart.getOption());
+        const existingOptions = chart.getOption() as EChartsOption;
+        console.log(`appendSeries(${reqIdStr}): Existing options:`, existingOptions);
+
+        // Fetch series data for the given reqIdStr
+        const seriesData = await getSeriesFor(reqIdStr);
+
+        if (!seriesData.length) {
+            console.warn(`appendSeries(${reqIdStr}): No series data found.`);
+            return;
+        }
+
+        // Update series: Merge existing series with the new scatter series
+        const updatedSeries = [
+            ...(Array.isArray(existingOptions.series) ? existingOptions.series : []),
+            ...seriesData.map(data => ({
+                ...data.series,
+                type: 'scatter', // Explicitly set to scatter
+            })),
+        ];
+
+        // Update yAxis if necessary
+        const updatedYAxis = [
+            ...(Array.isArray(existingOptions.yAxis) ? existingOptions.yAxis : []),
+            ...seriesData.map(data => ({
+                type: 'value',
+                name: data.series.name,
+                min: data.min,
+                max: data.max,
+                scale: true,
+                axisLabel: {
+                    formatter: (value: number) => value.toFixed(1), // Format axis labels
+                },
+            })),
+        ];
+        // Apply the updated options to the chart
+        chart.setOption({
+            series: updatedSeries,
+            yAxis: updatedYAxis,
+        });
+        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series ${updatedSeries} yAxis:${updatedYAxis} to chart.`);
+    } catch (error) {
+        console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
+    }
+}
+
 export const updateScatterPlotFor = async (reqIds: number[]) => {
     const startTime = performance.now();
-    console.log(`updateScatterPlotFor ${reqIds} startTime:`, startTime);
+    console.log(`updateScatterPlotFor startTime ${reqIds} :`, startTime);
+    // Retrieve existing options from the chart
+    const plotRef = useAtlChartFilterStore().getPlotRef();
+    if (plotRef && plotRef.chart) {
+        const chart: ECharts = plotRef.chart;
 
-    const plotRef = atlChartFilterStore.getPlotRef();
-    if (!plotRef || !plotRef.chart) {
-        console.warn(`updateScatterPlotFor ${reqIds} plotRef is undefined`);
-        return;
-    }
-
-    if (reqIds.length === 0) {
-        console.error(`updateScatterPlotFor ${reqIds} reqIds is empty`);
-        return;
-    }
-
-    let finalOptions: EChartsOption = {}; // Initialize a container for the merged options.
-
-    for (const reqId of reqIds) {
-        const reqIdStr = reqId.toString();
-        const y_options = chartStore.getYDataForChart(reqIdStr);
-
-        //console.log(`updateScatterPlotFor ${reqId} y_options:`, y_options);
-
-        if (!y_options.length || y_options[0] === 'not_set') {
-            console.warn(`updateScatterPlotFor ${reqId} No y options selected`);
-            continue;
-        }
-
-        chartStore.setShowMessage(reqIdStr, false);
-
-        try {
-            atlChartFilterStore.setIsLoading();
-
-            const func = await indexedDb.getFunc(reqId);
-            chartStore.setFunc(reqIdStr, func);
-            chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-
-            const newScatterOptions = await getScatterOptions(reqId);
-            if (!newScatterOptions) {
-                chartStore.setShowMessage(reqIdStr, true);
-                chartStore.setIsWarning(reqIdStr, true);
-                chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
-                continue;
+        // Retrieve existing options from the chart
+        const existingOptions = removeUnusedOptions(chart.getOption());
+        if(existingOptions.series){
+            console.log(`updateScatterPlotFor ${reqIds} Existing options:`, existingOptions);
+            for (const reqId of reqIds) {
+                const f = chartStore.getFile(reqId.toString());
+                if((f === undefined) || (f === null) || (f === '')){
+                    const request = await indexedDb.getRequest(reqId);
+                    console.log('Request:', request);
+                    if(request && request.file){
+                        chartStore.setFile(reqId.toString(),request.file);
+                    } else {
+                        console.error('No file found for req_id:', reqId);
+                    }
+                    if(request && request.func){
+                        chartStore.setFunc(reqId.toString(),request.func);
+                    } else {
+                        console.error('No func found for req_id:', reqId);
+                    }
+                }
+                appendSeries(reqId);
             }
-
-            const existingOptions = finalOptions; // Use the accumulated options so far.
-            const cleanedExistingOptions = cleanOptions(existingOptions);
-
-            console.log(`updateScatterPlotFor ${reqId} merged newScatterOptions:`, newScatterOptions);
-            console.log(`updateScatterPlotFor ${reqId} merged existingOptions:`, cleanedExistingOptions);
-
-            // Merge the new options into the accumulated options.
-            finalOptions = mergeOptions(cleanedExistingOptions, newScatterOptions);
-
-        } catch (error) {
-            console.error(`updateScatterPlotFor ${reqId} Error fetching scatter options:`, error);
-            chartStore.setShowMessage(reqIdStr, true);
-            chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
-        } finally {
-            atlChartFilterStore.resetIsLoading();
+        } else {
+            console.log(`updateScatterPlotFor ${reqIds} existingOptions.series is empty`);
+            initScatterPlotWith(reqIds[0]);
         }
     }
-
-    // Set the final merged options to the chart.
-    if (Object.keys(finalOptions).length > 0) {
-        plotRef.chart.setOption(finalOptions);
-        console.log(`updateScatterPlotFor Final options applied to chart:`, finalOptions);
-    } else {
-        console.warn(`updateScatterPlotFor No valid options to apply to chart`);
-    }
-
-    const endTime = performance.now();
-    console.log(`updateScatterPlotFor ${reqIds} took ${endTime - startTime} milliseconds.`);
-};
- 
+}

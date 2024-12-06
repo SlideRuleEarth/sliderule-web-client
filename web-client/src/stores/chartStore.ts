@@ -72,10 +72,6 @@ export const useChartStore = defineStore('chartStore', {
     getMaxX(reqIdStr: string) {
         return this.stateByReqId[reqIdStr].max_x;
     },
-    setFileName(reqIdStr: string, fileName: string) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].currentFile = fileName;
-    },
     setDescription(reqIdStr: string, description: string) { 
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].description = description;

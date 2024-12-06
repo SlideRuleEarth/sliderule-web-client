@@ -63,7 +63,7 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import { updateScatterPlotFor,clearPlot } from "@/utils/plotUtils";
+import { updateScatterPlotFor,clearPlot, initScatterPlotWith } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
@@ -141,7 +141,7 @@ onMounted(async () => {
             const colNames = await duckDbClient.queryForColNames(filename);
             useChartStore().setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
         }
-        debouncedUpdateScatterPlotFor([reqId]);
+        initScatterPlotWith(reqId);
     } else {
         console.warn('reqId is undefined');
     }
@@ -155,6 +155,13 @@ watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     if (newReqId && newReqId > 0) {
         clearPlot();
         debouncedUpdateScatterPlotFor([newReqId]);
+    }
+});
+
+watch(() => atlChartFilterStore.selectedOverlayedReqIds, async (newOverlayedReqIds) => {
+    console.log('selectedOverlayedReqIds changed:', newOverlayedReqIds);
+    if (newOverlayedReqIds && newOverlayedReqIds.length > 0) {
+        debouncedUpdateScatterPlotFor(newOverlayedReqIds);
     }
 });
 

@@ -150,7 +150,6 @@ const onSelection = async() => {
         useAtlChartFilterStore().getCycleValues(),
     );
     useChartStore().setWhereClause(reqIdStr,whereClause);
-    useAtlChartFilterStore().updateScatterPlot();
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
         (useAtlChartFilterStore().getSpotValues().length > 0)
@@ -158,6 +157,7 @@ const onSelection = async() => {
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+        useAtlChartFilterStore().updateScatterPlot();
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
         console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
@@ -238,7 +238,7 @@ const updateElevationMap = async (req_id: number) => {
         const request = await db.getRequest(req_id);
         console.log('Request:', request);
         if(request && request.file){
-            useChartStore().setFileName(reqIdStr,request.file);
+            useChartStore().setFile(reqIdStr,request.file);
         } else {
             console.error('No file found for req_id:', req_id);
         }
@@ -371,7 +371,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
 watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     //console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
-        //console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
+        console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
         atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
         // Only do updates if there was a previous selection
         // This initial overly needs Y options that aren't available now
