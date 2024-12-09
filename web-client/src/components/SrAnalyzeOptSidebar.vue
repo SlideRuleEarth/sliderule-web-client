@@ -16,7 +16,7 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
-import { getDetailsFromSpotNumber,getWhereClause } from '@/utils/spotUtils';
+import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { getColorMapOptions } from '@/utils/colorUtils';
@@ -28,10 +28,11 @@ import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
-import { updateScatterPlotFor } from '@/utils/plotUtils';
+import { updateScatterPlotFor,updateChartStore } from '@/utils/plotUtils';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
+const chartStore = useChartStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
 const colorMapStore = useElevationColorMapStore();
@@ -73,6 +74,28 @@ const overlayedReqIdOptions = ref<{label:string,value:number}[]>([]);
 const selectedOverlayedReqIds = ref<number[]>([]);
 const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
 const isMounted = ref(false);
+const computedReqIdStr = computed(() => {
+    return selectedReqId.value.value;
+});
+
+async function updatePlot(){
+    console.log('updatePlot');
+    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
+        (useAtlChartFilterStore().getCycleValues().length > 0) &&
+        (useAtlChartFilterStore().getSpotValues().length > 0)
+    ){
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+        useAtlChartFilterStore().updateScatterPlot();
+    } else {
+        console.warn('Need Rgt, Cycle, and Spot values selected');
+        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
+        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
+        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+    }
+}
+
 
 async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
     if (req_id <= 0) {
@@ -112,14 +135,17 @@ onMounted(async () => {
             defaultReqIdMenuItemIndex.value = 0;
             selectedReqId.value = reqIds.value[0];
         }
-        req_id = Number(selectedReqId.value.value);
+        req_id = Number(computedReqIdStr);
         console.log('onMounted selectedReqId:', req_id);
         if (req_id > 0) {
             atlChartFilterStore.setReqId(req_id);
             overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
+            console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
+            updateChartStore(req_id);
+            updatePlot();
         } else {
             console.warn('Invalid request ID:', req_id);
-            toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
+            //toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
         }
     } catch (error) {
         if (error instanceof Error) {
@@ -130,40 +156,16 @@ onMounted(async () => {
     } finally {
         loading.value = false;
         console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
-        atlChartFilterStore.setFunc(await db.getFunc(req_id));
-        useChartStore().setFunc(selectedReqId.value.value, atlChartFilterStore.getFunc());
-        console.log('onMounted selectedReqId:', req_id, 'func:', atlChartFilterStore.getFunc());
         const endTime = performance.now(); // End time
         isMounted.value = true;
         console.log(`onMounted took ${endTime - startTime} milliseconds.`);
     }
 });
 
-
 const onSelection = async() => {
     console.log('onSelection with req_id:', selectedReqId.value);
-    const reqIdStr = selectedReqId.value.value;
-    const whereClause = getWhereClause(
-        useAtlChartFilterStore().getFunc(),
-        useAtlChartFilterStore().getSpotValues(),
-        useAtlChartFilterStore().getRgtValues(),
-        useAtlChartFilterStore().getCycleValues(),
-    );
-    useChartStore().setWhereClause(reqIdStr,whereClause);
-    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
-        (useAtlChartFilterStore().getCycleValues().length > 0) &&
-        (useAtlChartFilterStore().getSpotValues().length > 0)
-    ){
-        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
-        useAtlChartFilterStore().updateScatterPlot();
-    } else {
-        console.warn('Need Rgt, Cycle, and Spot values selected');
-        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
-        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
-        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
-    }
+    updateChartStore(Number(selectedReqId.value.value));
+    updatePlot();
 }
 const debouncedOnSelection = debounce(onSelection, 500);
 
@@ -243,7 +245,7 @@ const updateElevationMap = async (req_id: number) => {
             console.error('No file found for req_id:', req_id);
         }
         if(request && request.func){
-            atlChartFilterStore.setFunc(request.func);
+            chartStore.setFunc(reqIdStr,request.func);
         } else {
             console.error('No func found for req_id:', req_id);
         }
@@ -266,14 +268,14 @@ const updateElevationMap = async (req_id: number) => {
         }
 
         deckStore.deleteSelectedLayer();
-        //console.log('Request ID:', req_id, 'func:', atlChartFilterStore.getFunc());
+        //console.log('Request ID:', req_id, 'func:', chartStore.getFunc(reqIdStr));
         useAtlChartFilterStore().setReqId(req_id);
         //console.log('watch req_id SrAnalyzeOptSidebar');
         const rgts = await updateRgtOptions(req_id);
         //console.log('watch req_id rgts:',rgts);
         const cycles = await updateCycleOptions(req_id);
         //console.log('watch req_id cycles:',cycles);
-        if(atlChartFilterStore.getFunc()==='atl03sp'){
+        if(chartStore.getFunc(reqIdStr)==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             //console.log('watch req_id pairs:',pairs);
             const scOrients = await updateScOrientOptions(req_id);
@@ -435,7 +437,7 @@ const tooltipTextStr = computed(() => {
             </div>
             <div class="sr-map-descr">
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-                    <div v-if="loading">Loading...{{ atlChartFilterStore.getFunc() }}</div>
+                    <div v-if="loading">Loading...{{ chartStore.getFunc(computedReqIdStr) }}</div>
                     <SrAnalysisMap v-else :reqId="Number(selectedReqId.value)"/>
                 </div>
                 <div class="sr-req-description">  
@@ -465,7 +467,7 @@ const tooltipTextStr = computed(() => {
             </div>
             <div class="sr-analyze-filters">
                 <SrListbox id="spots"
-                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
                     label="Spot(s)" 
                     v-model="atlChartFilterStore.spots"
                     :getSelectedMenuItem="atlChartFilterStore.getSpots"
@@ -480,7 +482,7 @@ const tooltipTextStr = computed(() => {
                     @update:modelValue="onSpotSelection"
                 />
                 <SrListbox id="rgts"
-                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
                     label="Rgt(s)" 
                     v-model="atlChartFilterStore.rgts" 
                     :getSelectedMenuItem="atlChartFilterStore.getRgts"
@@ -491,7 +493,7 @@ const tooltipTextStr = computed(() => {
                     @update:modelValue="RgtsSelection"
                 />
                 <SrListbox id="cycles" 
-                    v-if = "!atlChartFilterStore.getFunc().includes('gedi')" 
+                    v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
                     label="Cycle(s)" 
                     v-model="atlChartFilterStore.cycles"
                     :getSelectedMenuItem="atlChartFilterStore.getCycles"
@@ -517,7 +519,7 @@ const tooltipTextStr = computed(() => {
                         <div class="sr-pair-sc-orient">
                             <SrListbox id="scOrients"
                                 label="scOrient(s)" 
-                                v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
+                                v-if="chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
                                 v-model="atlChartFilterStore.scOrients" 
                                 :getSelectedMenuItem="atlChartFilterStore.getScOrients"
                                 :setSelectedMenuItem="atlChartFilterStore.setScOrients"
@@ -528,7 +530,7 @@ const tooltipTextStr = computed(() => {
                                 />
                             <SrListbox id="pairs"
                                 label="pair(s)" 
-                                v-if="atlChartFilterStore.getFunc() === 'atl03sp'"
+                                v-if="chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
                                 v-model="atlChartFilterStore.pairs" 
                                 :getSelectedMenuItem="atlChartFilterStore.getPairs"
                                 :setSelectedMenuItem="atlChartFilterStore.setPairs"
@@ -550,7 +552,7 @@ const tooltipTextStr = computed(() => {
                             @update:modelValue="tracksSelection"
                         />
                         <SrListbox id="beams" 
-                            v-if="useDebugStore().enableSpotPatternDetails && !atlChartFilterStore.getFunc().includes('gedi')"
+                            v-if="useDebugStore().enableSpotPatternDetails && !chartStore.getFunc(computedReqIdStr).includes('gedi')"
                             :insensitive="true"
                             label="Beam(s)" 
                             v-model="atlChartFilterStore.beams"

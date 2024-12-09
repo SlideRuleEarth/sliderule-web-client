@@ -26,7 +26,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     regionValue: 1 as number,
     currentReqId: 0 as number,
     updateScatterPlotCnt: 0 as number,
-    func: '' as string, 
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
@@ -34,15 +33,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isLoading: false as boolean,
     clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
-    atl03spSymbolSize: 1 as number,
-    atl03vpSymbolSize: 5 as number,
-    atl06SymbolSize: 5 as number,
-    atl08SymbolSize: 5 as number,
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
-    numOfPlottedPnts: 0 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
-    //selectedAtl03YapcColorMap: {name:'viridis', value:'viridis'} as {name:string, value:string},
     selectedOverlayedReqIds: [] as number[],
   }),
 
@@ -206,12 +199,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
     },
-    setFunc(func: string) {
-      this.func = func;
-    },
-    getFunc() {
-      return this.func;
-    },
     setPairs(pairs: SrListNumberItem[]) {
       this.pairs = pairs;
     },
@@ -291,44 +278,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getClearPlot() {
       return this.clearScatterPlotFlag;
     },
-    setAtl03spSymbolSize(size: number) {
-      this.atl03spSymbolSize = size;
-    },
-    getAtl03spSymbolSize() {
-      return this.atl03spSymbolSize;
-    },
-    setAtl03vpSymbolSize(size: number) {
-      this.atl03vpSymbolSize = size;
-    },
-    getAtl03vpSymbolSize() {
-      return this.atl03vpSymbolSize;
-    },
-    setAtl06SymbolSize(size: number) {
-      this.atl06SymbolSize = size;
-    },
-    getAtl06SymbolSize() {
-      return this.atl06SymbolSize;
-    },
-    setAtl08SymbolSize(size: number) {
-      this.atl08SymbolSize = size;
-    },
-    getAtl08SymbolSize() {
-      return this.atl08SymbolSize;
-    },
-    getSymbolSize(func:string) {
-      if(func.includes('atl03sp')){
-        return this.atl03spSymbolSize;
-      } else if(func.includes('atl03vp')){
-        return this.atl03vpSymbolSize;
-      } else if(func.includes('atl06')){
-        return this.atl06SymbolSize;
-      } else if(func.includes('atl08')){
-        return this.atl08SymbolSize;
-      } else {
-        console.warn('getSymbolSize() unknown function:',func);
-        return 5;
-      }        
-    },
     getLargeData() {
       return this.largeData;
     },
@@ -341,24 +290,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setLargeDataThreshold(largeDataThreshold: number) {
         this.largeDataThreshold = largeDataThreshold;
     },
-    getNumOfPlottedPnts() {
-      return this.numOfPlottedPnts;
-    },
-    setNumOfPlottedPnts(numOfPlottedPnts: number) {
-        this.numOfPlottedPnts = numOfPlottedPnts;
-    },
     setPlotRef(ref: InstanceType<typeof VChart> | null) {
       this.plotRef = ref;
     },
     getPlotRef() {
       return this.plotRef;
     },
-    // getSelectedAtl03ColorMap() {
-    //   return this.selectedAtl03YapcColorMap;
-    // },
-    // setSelectedAtl03ColorMap(selectedAtl03YapcColorMap: {name:string, value:string}) {
-    //   this.selectedAtl03YapcColorMap = selectedAtl03YapcColorMap;
-    // },
     getSelectedOverlayedReqIds() {
       return this.selectedOverlayedReqIds;
     },

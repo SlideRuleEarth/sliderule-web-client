@@ -17,18 +17,25 @@
 <script setup lang="ts">
     import { ref,onMounted,computed } from "vue";
     import SrCheckbox from "@/components/SrCheckbox.vue";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
-    const atlChartFilterStore = useAtlChartFilterStore();
+
+    // Define props with TypeScript types
+    const props = defineProps<{
+    req_id: number;
+
+    }>();
+    const computedReqIdStr = computed(() => {
+        return props.req_id.toString();
+    });
+
+    const chartStore = useChartStore();
 
     const showSqlStmnt = ref(false);
-    const computedCurFunc = computed(() => {
-        return atlChartFilterStore.getFunc();
-    });
+
     const computedSqlStmnt = computed(() => {
-        const sqlStmnt = useChartStore().getQuerySql();
+        const sqlStmnt = chartStore.getQuerySql(computedReqIdStr.value);
         if ((sqlStmnt === undefined) || (sqlStmnt === null) || (sqlStmnt === '')) {
-            return `No SQL statement available for this function: ${computedCurFunc.value}`;
+            return `No SQL statement available for this reqId: ${computedReqIdStr.value}`;
         }
         return sqlStmnt;
     }); 

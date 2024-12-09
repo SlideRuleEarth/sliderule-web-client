@@ -43,8 +43,8 @@
                 zlevel:100
               }" 
             />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
-            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (atlChartFilterStore.getFunc() === 'atl03sp'))" />
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
+            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
           </div> 
     </div>
 </template>
@@ -71,6 +71,7 @@ import { db } from "@/db/SlideRuleDb";
 import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
 
+const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());

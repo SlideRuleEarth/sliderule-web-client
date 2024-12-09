@@ -149,11 +149,11 @@ export function getSqlForSpots(spots:number[]){
 //     return '(' + sqls.join(' OR ') + ')';
 // }
 
-export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
-    //console.log('getWhereClause: func:', func);
-    //console.log('getWhereClause: spots:', spots);
-    //console.log('getWhereClause: rgts:', rgts);
-    //console.log('getWhereClause: cycles:', cycles);
+export function createWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
+    //console.log('createWhereClause: func:', func);
+    //console.log('createWhereClause: spots:', spots);
+    //console.log('createWhereClause: rgts:', rgts);
+    //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
         if ((rgts.length > 0) || (cycles.length > 0)) {
@@ -188,8 +188,8 @@ export function getWhereClause(func:string, spots:number[],rgts:number[],cycles:
             }
         }
     } else {
-        console.error('getWhereClause: INVALID func:', func);
+        console.error('createWhereClause: INVALID func:', func);
     }
-    console.log('getWhereClause: whereStr:', whereStr);
+    console.log('createWhereClause: whereStr:', whereStr);
     return whereStr;
 }

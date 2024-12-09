@@ -21,7 +21,10 @@ interface ChartState {
   size: number;
   recCnt: number;
   xLegend: string;
-  [key: string]: any;
+  numOfPlottedPnts: number,
+  selectedAtl03YapcColorMap: { name: string, value: string };
+  symbolSize: number;
+  //[key: string]: any;
 }
 
 export const useChartStore = defineStore('chartStore', {
@@ -52,8 +55,10 @@ export const useChartStore = defineStore('chartStore', {
             showMessage: false,
             size: 0,
             recCnt: 0,
-            selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
             xLegend: 'Meters',
+            numOfPlottedPnts: 0,
+            selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
+            symbolSize: 3,
         };
       }
     },
@@ -102,31 +107,29 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].whereClause;
     },
     // Set and get symbol size for a specific function
-    setSymbolSize(reqIdStr: string, func: string, size: number) {
-      this.ensureState(reqIdStr);
-      if (func.includes('atl03sp')) {
-        this.stateByReqId[reqIdStr].atl03spSymbolSize = size;
-      } else if (func.includes('atl03vp')) {
-        this.stateByReqId[reqIdStr].atl03vpSymbolSize = size;
-      } else if (func.includes('atl06')) {
-        this.stateByReqId[reqIdStr].atl06SymbolSize = size;
-      } else if (func.includes('atl08')) {
-        this.stateByReqId[reqIdStr].atl08SymbolSize = size;
-      }
+    initSymbolSize(reqIdStr: string) {
+        console.log('setSymbolSize reqIdStr:',reqIdStr);
+        this.ensureState(reqIdStr);
+        const func = this.stateByReqId[reqIdStr].func;
+        if (func.includes('atl03sp')) {
+            this.stateByReqId[reqIdStr].symbolSize = 1;
+        } else if (func.includes('atl03vp')) {
+            this.stateByReqId[reqIdStr].symbolSize = 3;
+        } else if (func.includes('atl06')) {
+            this.stateByReqId[reqIdStr].symbolSize = 3;
+        } else if (func.includes('atl08')) {
+            this.stateByReqId[reqIdStr].symbolSize = 3;
+        }       
     },
-
-    getSymbolSize(reqIdStr: string, func: string): number {
-      this.ensureState(reqIdStr);
-      if (func.includes('atl03sp')) {
-        return this.stateByReqId[reqIdStr].atl03spSymbolSize;
-      } else if (func.includes('atl03vp')) {
-        return this.stateByReqId[reqIdStr].atl03vpSymbolSize;
-      } else if (func.includes('atl06')) {
-        return this.stateByReqId[reqIdStr].atl06SymbolSize;
-      } else if (func.includes('atl08')) {
-        return this.stateByReqId[reqIdStr].atl08SymbolSize;
-      }
-      return 5; // Default value
+    setSymbolSize(reqIdStr: string, symbolSize: number) {
+        console.log('setSymbolSize reqIdStr:',reqIdStr);
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].symbolSize = symbolSize;
+    },
+    getSymbolSize(reqIdStr: string): number {
+        this.ensureState(reqIdStr);
+        console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
+        return this.stateByReqId[reqIdStr].symbolSize;
     },
     getNdxOfelevationDataOptionsForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);
@@ -261,18 +264,13 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].recCnt = recCnt;
     },
-
-
-    // Generic property getter
-    getProperty(reqIdStr: string, key: keyof ChartState) {
-      this.ensureState(reqIdStr);
-      return this.stateByReqId[reqIdStr][key];
+    getNumOfPlottedPnts(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr]?.numOfPlottedPnts;
     },
-
-    // Generic property setter
-    setProperty(reqIdStr: string, key: keyof ChartState, value: any) {
-      this.ensureState(reqIdStr);
-      this.stateByReqId[reqIdStr][key] = value;
+    setNumOfPlottedPnts(reqIdStr: string, numOfPlottedPnts: number,) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
     },
 
   },
