@@ -97,7 +97,7 @@
     // }
 
     onMounted(() => {
-        console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
+        //console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
     });
 </script>
 

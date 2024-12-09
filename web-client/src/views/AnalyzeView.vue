@@ -24,7 +24,7 @@ onMounted(async () => {
             <SrAnalyzeOptSidebar :startingReqId="reqId"/>
         </template>
         <template v-slot:main>
-            <SrScatterPlot v-if="!mapStore.getIsLoading() && !useAtlChartFilterStore().getFunc().includes('gedi')"/>
+            <SrScatterPlot v-if="!mapStore.getIsLoading() "/>
         </template>
     </TwoColumnLayout>
 </template>

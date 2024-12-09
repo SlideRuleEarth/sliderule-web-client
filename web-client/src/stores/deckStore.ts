@@ -21,6 +21,8 @@ export const useDeckStore = defineStore('deck', {
             const startTime = performance.now(); // Start time
             if (this.deckInstance) {
                 console.warn('clearDeckInstance()');
+                this.pointCloudLayers = [];
+                this.getDeckInstance().setProps({layers:this.getLayers()});
                 this.deckInstance.finalize(); // This ensures all resources are properly released.
                 this.deckInstance = null;
             } else {
