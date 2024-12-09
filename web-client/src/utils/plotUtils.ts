@@ -51,15 +51,15 @@ function getAtl03spColor(params: any):string {
 }
 
 
-async function getSeriesForAtl03sp(reqIdStr:string, fileName: string, x: string, y: string[]): Promise<SrScatterSeriesData[]> {
+async function getSeriesForAtl03sp(
+    reqIdStr:string, 
+    fileName: string, 
+    x: string, 
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now(); // Start time
     let yItems = [] as SrScatterSeriesData[];
-    let symbolSize = chartStore.getSymbolSize(reqIdStr);
-    if(!symbolSize || symbolSize < 1){
-        console.error(`getSeriesForAtl03sp reqid:${reqIdStr} invalid symbolSize:`, symbolSize);
-        symbolSize = 1;
-    }
     try {
         const name = 'atl03sp';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
@@ -91,7 +91,7 @@ async function getSeriesForAtl03sp(reqIdStr:string, fileName: string, x: string,
                     largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                    symbolSize: symbolSize,
+                    symbolSize: chartStore.getSymbolSize(reqIdStr),
                 },
                 min: min,
                 max: max

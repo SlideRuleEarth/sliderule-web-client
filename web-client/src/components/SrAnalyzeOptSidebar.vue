@@ -29,6 +29,7 @@ import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
 import { updateScatterPlotFor,updateChartStore } from '@/utils/plotUtils';
+import { updateWhereClause } from '@/utils/SrMapUtils';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -364,6 +365,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         atlChartFilterStore.setCycles([]);
         await updateFilter([req_id]);
         await debouncedUpdateElevationMap(req_id);
+        await updateChartStore(Number(selectedReqId.value.value));
 
     } catch (error) {
         console.error('Failed to update selected request:', error);
@@ -378,8 +380,12 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
         // Only do updates if there was a previous selection
         // This initial overly needs Y options that aren't available now
         // This is handled elsewhere
-        if(oldSelection.length > 0){ 
-            if(selectedOverlayedReqIds.value.length > 0){
+        if(selectedOverlayedReqIds.value.length > 0){
+            for (const overlayedReqId of selectedOverlayedReqIds.value) {
+                await updateChartStore(overlayedReqId);
+                updateWhereClause(overlayedReqId.toString());
+            }
+            if(oldSelection.length > 0){ 
                 await updateScatterPlotFor(selectedOverlayedReqIds.value);
             }
         }

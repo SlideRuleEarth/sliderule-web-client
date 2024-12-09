@@ -799,7 +799,7 @@ export async function fetchAtl03spScatterData(
                     }
                 }
             }
-            //console.log('fetchAtl03spScatterData minMaxValues:', minMaxValues);
+
             const yColumns = y.join(", ");
             console.log('fetchAtl03spScatterData yColumns:', yColumns);
             let query = `
