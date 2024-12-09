@@ -77,7 +77,7 @@ async function getSeriesForAtl03sp(
 
             return {
                 series: {
-                    name: `${name} - ${yName}`,
+                    name: yName,
                     type: 'scatter',
                     data: data,
                     encode: {
@@ -143,8 +143,8 @@ async function getSeriesForAtl03vp(
           //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
           return {
               series: {
-                  name: `${name} - ${yName}`,
-                  type: 'scatter',
+                name: yName,
+                type: 'scatter',
                   data: data,
                   encode: {
                     x: 0,
@@ -204,8 +204,8 @@ async function getSeriesForAtl06(
           //console.log('getSeriesForAtl06 min:', min, ' max:', max);
           return {
               series: {
-                  name: `${name} - ${yName}`,
-                  type: 'scatter',
+                name: yName,
+                type: 'scatter',
                   data: data,
                   encode: {
                     x: 0,
@@ -251,7 +251,7 @@ async function getSeriesForAtl08(
           console.warn('getSeriesForAtl08 chartData or minMaxValues is empty, skipping processing.');
       } else {
           yItems = y.map(yName => ({
-              name: `${name} - ${yName}`,
+              name: yName,
               type: 'scatter',
               data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
               encode: {
@@ -523,50 +523,145 @@ async function appendSeries(reqId: number): Promise<void> {
         const chart: ECharts = plotRef.chart;
 
         // Retrieve existing options from the chart
-        //const existingOptions = removeUnusedOptions(chart.getOption());
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
         console.log(`appendSeries(${reqIdStr}): Existing options:`, existingOptions);
 
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
-
+        console.log('seriesData:', seriesData);
         if (!seriesData.length) {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
         console.log(`appendSeries(${reqIdStr}): Series data:`, seriesData);
-        // Update series: Merge existing series with the new scatter series
-        const updatedSeries = [
+
+        // Define the fields that should share a single axis
+        const heightFields = ['height', 'h_mean', 'h_mean_canopy'];
+
+        // Separate series into "height" group and "non-height" group
+        const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));
+        const nonHeightSeriesData = seriesData.filter(d => !heightFields.includes(d.series.name));
+
+        let updatedSeries = [
             ...(Array.isArray(filteredOptions.series) ? filteredOptions.series : []),
-            ...seriesData.map(data => ({
-                ...data.series,
-                type: 'scatter', // Explicitly set to scatter
-            })),
         ];
-        console.log(`appendSeries(${reqIdStr}): Updated series:`, updatedSeries);
-        // Update yAxis if necessary
-        const updatedYAxis = [
-            ...(Array.isArray(filteredOptions.yAxis) ? filteredOptions.yAxis : []),
-            ...seriesData.map(data => ({
+
+        let updatedYAxis = Array.isArray(filteredOptions.yAxis) ? [...filteredOptions.yAxis] : [];
+
+        // Find if there's already a height axis
+        let heightYAxisIndex: number | null = null;
+        let existingHeightFields: string[] = [];
+        let existingHeightMin = Number.POSITIVE_INFINITY;
+        let existingHeightMax = Number.NEGATIVE_INFINITY;
+
+        // Identify an existing height axis by checking its name against known height fields
+        for (let i = 0; i < updatedYAxis.length; i++) {
+            const axis = updatedYAxis[i];
+            if (axis && axis.name) {
+                // The name could be a combination of fields. Split by comma if multiple
+                const axisNames = axis.name.split(',').map((n:string) => n.trim());
+                // Check if any of the known height fields appear in the axis name
+                if (axisNames.some((n:string) => heightFields.includes(n))) {
+                    heightYAxisIndex = i;
+                    existingHeightFields = axisNames;
+                    // Extract current min/max
+                    if (axis.min !== undefined && typeof axis.min === 'number') {
+                        existingHeightMin = axis.min;
+                    }
+                    if (axis.max !== undefined && typeof axis.max === 'number') {
+                        existingHeightMax = axis.max;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // If we have height series, we need to either update or create a height axis
+        if (heightSeriesData.length > 0) {
+            let heightMin = Number.POSITIVE_INFINITY;
+            let heightMax = Number.NEGATIVE_INFINITY;
+            let heightNames: string[] = [];
+
+            heightSeriesData.forEach(d => {
+                if (d.min < heightMin) heightMin = d.min;
+                if (d.max > heightMax) heightMax = d.max;
+                heightNames.push(d.series.name);
+            });
+
+            // Combine with existing if found
+            if (heightYAxisIndex !== null) {
+                // Update existing height axis
+                // Combine field names
+                const allHeightFieldsCombined = Array.from(new Set([...existingHeightFields, ...heightNames]));
+                // Update min/max if needed
+                const combinedMin = Math.min(existingHeightMin, heightMin);
+                const combinedMax = Math.max(existingHeightMax, heightMax);
+
+                updatedYAxis[heightYAxisIndex] = {
+                    ...updatedYAxis[heightYAxisIndex],
+                    name: allHeightFieldsCombined.join(', '),
+                    min: combinedMin,
+                    max: combinedMax
+                };
+
+            } else {
+                // No existing height axis - create a new one
+                heightYAxisIndex = updatedYAxis.length;
+                updatedYAxis.push({
+                    type: 'value',
+                    name: heightNames.join(', '), // Concatenate height-related field names
+                    min: heightMin,
+                    max: heightMax,
+                    scale: true,
+                    axisLabel: {
+                        formatter: (value: number) => value.toFixed(1),
+                    },
+                });
+            }
+
+            // Assign all height series to the identified (or newly created) height axis
+            const mappedHeightSeries = heightSeriesData.map(d => ({
+                ...d.series,
+                type: 'scatter',
+                yAxisIndex: heightYAxisIndex as number
+            }));
+            updatedSeries = updatedSeries.concat(mappedHeightSeries);
+        }
+
+        // For non-height data, each one gets its own axis as a new axis after the existing ones
+        const mappedNonHeightSeries = nonHeightSeriesData.map(d => {
+            // Add a new axis for this non-height series
+            const nonHeightAxisIndex = updatedYAxis.length;
+            updatedYAxis.push({
                 type: 'value',
-                name: data.series.name,
-                min: data.min,
-                max: data.max,
+                name: d.series.name,
+                min: d.min,
+                max: d.max,
                 scale: true,
                 axisLabel: {
-                    formatter: (value: number) => value.toFixed(1), // Format axis labels
+                    formatter: (value: number) => value.toFixed(1),
                 },
-            })),
-        ];
+            });
+
+            return {
+                ...d.series,
+                type: 'scatter',
+                yAxisIndex: nonHeightAxisIndex
+            };
+        });
+        updatedSeries = updatedSeries.concat(mappedNonHeightSeries);
+
+        console.log(`appendSeries(${reqIdStr}): Updated series:`, updatedSeries);
         console.log(`appendSeries(${reqIdStr}): Updated yAxis:`, updatedYAxis);
+
         // Apply the updated options to the chart
         chart.setOption({
             ...filteredOptions,
             series: updatedSeries,
             yAxis: updatedYAxis,
         });
-        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series ${updatedSeries} yAxis:${updatedYAxis} to chart.`);
+        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis.`);
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
