@@ -390,7 +390,7 @@
 
     // Define a function to handle the addresschosen event
     function onAddressChosen(evt: any) {
-        //console.log(evt);
+        //console.log('onAddressChosen:',evt);
         // Zoom to the selected location
         const map = mapStore.getMap();
         if(map){
@@ -436,11 +436,12 @@
                 });
                 }
                 const geocoder = geoCoderStore.getGeoCoder()
-                if(geocoder){       
+                if(geocoder){
+                    //console.log("SrMap onMounted adding geocoder");       
                     map.addControl(geocoder);
-                    geocoder.on('SrMap addresschosen', onAddressChosen); 
+                    geocoder.on('addresschosen', onAddressChosen); 
                 } else {
-                    console.log("SrMap Error:geocoder is null?");
+                    console.error("SrMap Error:geocoder is null?");
                 }
                 const projectionNames = useProjectionNames();
                 projectionNames.value.forEach(name => {
