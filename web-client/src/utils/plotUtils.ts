@@ -6,6 +6,7 @@ import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData
 import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
+import { debounce } from "lodash";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -283,11 +284,12 @@ async function getSeriesForAtl08(
   return yItems;
 }
 
-export function clearPlot() {
+function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
       if(plotRef.chart){
         plotRef.chart.clear();
+        console.log('plotRef.chart cleared');
       } else {
         console.warn('plotRef.chart is undefined');
       }
@@ -666,20 +668,26 @@ async function appendSeries(reqId: number): Promise<void> {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
 }
+export const debouncedUpdateScatterPlotFor = debounce(async (reqIds: number[], clearPlot:boolean = false) => {
+    await updateScatterPlotFor(reqIds,clearPlot);
+}, 300);
 
-export const updateScatterPlotFor = async (reqIds: number[]) => {
+export const updateScatterPlotFor = async (reqIds: number[], clearThePlot:boolean ) => {
     const startTime = performance.now();
-    console.log(`updateScatterPlotFor startTime ${reqIds} :`, startTime);
+    console.log(`updateScatterPlotFor ${reqIds} clearThePlot:${clearThePlot} startTime:`, startTime);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const chart: ECharts = plotRef.chart;
-
         // Retrieve existing options from the chart
         const existingOptions = removeUnusedOptions(chart.getOption());
-        if(existingOptions.series){
+        if(clearThePlot){
+            clearPlot();
+            initScatterPlotWith(reqIds[0]);
             console.log(`updateScatterPlotFor ${reqIds} Existing options:`, existingOptions);
-            for (const reqId of reqIds) {
+         } else {
+            console.log(`updateScatterPlotFor ${reqIds} existingOptions.series is empty`);
+           for (const reqId of reqIds) {
                 const f = chartStore.getFile(reqId.toString());
                 if((f === undefined) || (f === null) || (f === '')){
                     const request = await indexedDb.getRequest(reqId);
@@ -697,9 +705,6 @@ export const updateScatterPlotFor = async (reqIds: number[]) => {
                 }
                 appendSeries(reqId);
             }
-        } else {
-            console.log(`updateScatterPlotFor ${reqIds} existingOptions.series is empty`);
-            initScatterPlotWith(reqIds[0]);
         }
     }
 }

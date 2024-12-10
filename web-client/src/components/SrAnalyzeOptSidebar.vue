@@ -28,7 +28,7 @@ import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
-import { updateScatterPlotFor,updateChartStore } from '@/utils/plotUtils';
+import { debouncedUpdateScatterPlotFor,updateChartStore } from '@/utils/plotUtils';
 import { updateWhereClause } from '@/utils/SrMapUtils';
 
 const requestsStore = useRequestsStore();
@@ -88,7 +88,8 @@ async function updatePlot(){
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
-        useAtlChartFilterStore().updateScatterPlot();
+        //useAtlChartFilterStore().updateScatterPlot();
+        debouncedUpdateScatterPlotFor([useAtlChartFilterStore().getReqId()],true);
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
         console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
@@ -386,7 +387,7 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
                 updateWhereClause(overlayedReqId.toString());
             }
             if(oldSelection.length > 0){ 
-                await updateScatterPlotFor(selectedOverlayedReqIds.value);
+                debouncedUpdateScatterPlotFor(selectedOverlayedReqIds.value);
             }
         }
     } catch (error) {

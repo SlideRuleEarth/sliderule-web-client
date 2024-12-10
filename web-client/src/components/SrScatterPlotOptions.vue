@@ -4,13 +4,12 @@ import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
-import { updateScatterPlotFor,clearPlot } from "@/utils/plotUtils";
+import { debouncedUpdateScatterPlotFor } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { useChartStore } from '@/stores/chartStore';
 import { colorMapNames } from '@/utils/colorUtils';
-import { debounce } from "lodash";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
 import { onMounted, watch, computed } from "vue";
@@ -37,9 +36,6 @@ const computedLabel = computed(() => {
     : `Plot Options (${props.req_id})`;
 });
 
-const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
-    updateScatterPlotFor(reqIds);
-}, 300);
 
 const computedReqIdStr = computed(() => {
     return props.req_id.toString();
@@ -70,8 +66,7 @@ onMounted(() => {
 
 const symbolSizeSelection = () => {
     //console.log('symbolSizeSelection');
-    clearPlot();
-    debouncedUpdateScatterPlotFor([props.req_id]);
+    debouncedUpdateScatterPlotFor([props.req_id],true);
 };
 
 function changedColorKey() {
@@ -82,15 +77,13 @@ function changedColorKey() {
 
 const atl03CnfColorChanged = (colorKey:string): void =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
-    clearPlot();
-    debouncedUpdateScatterPlotFor([props.req_id]);
+    debouncedUpdateScatterPlotFor([props.req_id],true);
 };
 
 const atl08ClassColorChanged = ({ label, color }:AtColorChangeEvent): void => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
-      clearPlot();
-      debouncedUpdateScatterPlotFor([props.req_id]);
+      debouncedUpdateScatterPlotFor([props.req_id],true);
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }

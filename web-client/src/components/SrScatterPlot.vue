@@ -61,9 +61,8 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, reactive, WritableComputedRef } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
-import { debounce } from "lodash";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import { updateScatterPlotFor,clearPlot, initScatterPlotWith } from "@/utils/plotUtils";
+import { debouncedUpdateScatterPlotFor, initScatterPlotWith } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
@@ -94,11 +93,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-
-const debouncedUpdateScatterPlotFor = debounce((reqIds: number[]) => {
-    updateScatterPlotFor(reqIds);
-}, 300);
-
 const reqIds = ref<SrMenuItem[]>([]);
 const filteredReqIds = ref<{label:string, value:number}[]>([]);
 const findLabel = (value:number) => {
@@ -154,8 +148,7 @@ onMounted(async () => {
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        clearPlot();
-        debouncedUpdateScatterPlotFor([newReqId]);
+        debouncedUpdateScatterPlotFor([newReqId],true);
     }
 });
 
@@ -166,13 +159,13 @@ watch(() => atlChartFilterStore.selectedOverlayedReqIds, async (newOverlayedReqI
     }
 });
 
-watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
-    console.log('updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
-    const reqId = atlChartFilterStore.getReqId();
-    if (reqId && reqId > 0) {
-        debouncedUpdateScatterPlotFor([reqId]);
-    }
-});
+// watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
+//     console.log('updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
+//     const reqId = atlChartFilterStore.getReqId();
+//     if (reqId && reqId > 0) {
+//         debouncedUpdateScatterPlotFor([reqId]);
+//     }
+// });
 
 const messageClass = computed(() => {
   return {
