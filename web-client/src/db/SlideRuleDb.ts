@@ -47,6 +47,38 @@ export interface Atl03Color {
     number: number; // Primary key
     color: string;  // 
 }
+
+export interface OverlayRecord {
+    id?: number;            // Auto-incrementing primary key
+    description?: string;   // Optional description
+    req_ids: number[];      // List of req_ids belonging to this overlay
+    polyHash?: string;      // Unique hash for the poly field
+}
+
+export function hashPoly(poly: {lat: number, lon:number}[]): string {
+
+    // Serialize the poly array into a JSON string
+    const serializedPoly = JSON.stringify(
+      poly.map(coord => ({ lat: round(coord.lat, 8), lon: round(coord.lon, 8) })) // Normalize precision
+    );
+  
+    // Generate a simple hash code
+    let hash = 0;
+    for (let i = 0; i < serializedPoly.length; i++) {
+      const char = serializedPoly.charCodeAt(i);
+      hash = (hash * 31 + char) % 2 ** 32; // Keep hash in 32-bit range
+    }
+    console.log('hashPoly:',serializedPoly,'hash:',hash.toString(16));
+    return hash.toString(16); // Return hash as a hexadecimal string
+  }
+  
+  // Helper function to round numbers to a specific precision
+  function round(value: number, precision: number): number {
+    const factor = Math.pow(10, precision);
+    return Math.round(value * factor) / factor;
+  }
+  
+
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
     // We just tell the typing system this is the case
@@ -55,6 +87,7 @@ export class SlideRuleDexie extends Dexie {
     colors!: Table<SrColors>;
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
+    overlays!: Table<OverlayRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
@@ -63,7 +96,8 @@ export class SlideRuleDexie extends Dexie {
             summary: '++db_id, &req_id', 
             colors: '&color',
             atl03CnfColors: 'number',
-            atl08ClassColors: 'number' 
+            atl08ClassColors: 'number', 
+            overlays: '++id, &polyHash' // Make polyHash a unique index
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -167,7 +201,7 @@ export class SlideRuleDexie extends Dexie {
 
             //console.log('All colors restored:', colors);
         } catch (error) {
-            console.error('Failed to restore all colors:', error);
+            //console.error('Failed to restore all colors:', error);
             throw error;
         }
     }
@@ -268,7 +302,7 @@ export class SlideRuleDexie extends Dexie {
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
                 await this.atl03CnfColors.put({ color,number });
-                console.log(`Number updated in atl03CnfColors: ${color},${number}`);
+                //console.log(`Number updated in atl03CnfColors: ${color},${number}`);
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl03CnfColors.count();
@@ -870,5 +904,215 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+
+    async addOrUpdateOverlayByPolyHash(
+        poly: { lat: number; lon: number }[],
+        updates: Partial<OverlayRecord> = {}
+    ): Promise<void> {
+        console.log('addOrUpdateOverlayByPolyHash: poly:',poly,'updates:',updates);
+        try {
+            if (!poly || !poly.length || poly.some(p => typeof p.lat !== 'number' || typeof p.lon !== 'number')) {
+                throw new Error(`Invalid polygon data: ${JSON.stringify(poly)}`);
+            }
+    
+            if (!updates.req_ids || !Array.isArray(updates.req_ids)) {
+                throw new Error(`Invalid req_ids in updates: ${JSON.stringify(updates.req_ids)}`);
+            }
+    
+            const polyHash = hashPoly(poly);
+    
+            // Lookup the existing overlay
+            const existingOverlay = await this.overlays.where('polyHash').equals(polyHash).first();
+    
+            if (existingOverlay) {
+                console.log(`Overlay found for polyHash ${polyHash}:`, existingOverlay);
+                // Merge request IDs
+                const updatedReqIds = [...new Set([...(existingOverlay.req_ids || []), ...updates.req_ids])];
+                updates.req_ids = updatedReqIds;
+                // Update the existing overlay
+                const rowsModified = await this.overlays
+                    .where('polyHash')
+                    .equals(polyHash)
+                    .modify({ ...updates });
+    
+                console.log(
+                    rowsModified > 0
+                        ? `Updated overlay with polyHash ${polyHash} and merged req_ids ${JSON.stringify(updates.req_ids)}.`
+                        : `No overlays modified for polyHash ${polyHash}.`
+                );
+            } else {
+                // Add a new overlay if none exists
+                const newOverlay: OverlayRecord = {
+                    polyHash,
+                    req_ids: updates.req_ids,
+                    ...updates,
+                };
+    
+                const id = await this.overlays.add(newOverlay);
+                console.log(`Added new overlay with id ${id}, polyHash ${polyHash}, and req_ids ${JSON.stringify(updates.req_ids)}.`);
+            }
+        } catch (error) {
+            console.error(`Failed to process overlay for poly ${JSON.stringify(poly)} with req_ids ${JSON.stringify(updates.req_ids)}:`, error);
+            throw error;
+        }
+    }
+    
+    async getOverlayByReqId(req_id: number): Promise<OverlayRecord | undefined> {
+        try {
+            // Query the overlays table to find the first record where req_id exists in req_ids
+            const overlay = await this.overlays
+                .filter(record => record.req_ids.includes(req_id))
+                .first();
+    
+            // if (overlay) {
+            //     console.log(`Overlay found for req_id ${req_id}:`, overlay);
+            // } else {
+            //     console.warn(`No overlay found containing req_id ${req_id}.`);
+            // }
+    
+            return overlay;
+        } catch (error) {
+            console.error(`Failed to retrieve overlay for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+    
+    async getOverlayedReqIds(req_id:number): Promise<number[]> {
+        try {
+            const overlay = await this.getOverlayByReqId(req_id);
+            return overlay ? overlay.req_ids.filter(id => id !== req_id) : [];
+        } catch (error) {
+            console.error(`Failed to retrieve overlayed req_ids for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    async getOverlayedReqIdsOptions(req_id: number): Promise<{label:string, value:number}[]> {
+        try {
+            const overlay = await this.getOverlayByReqId(req_id);
+            if (!overlay) {
+                return [];
+            }
+    
+            // Fetch the req_ids excluding the current one
+            const reqIds = overlay.req_ids.filter(id => id !== req_id);
+    
+            // Map over the reqIds and fetch the associated function names
+            const reqIdOptions = await Promise.all(
+                reqIds.map(async id => {
+                    const func = await this.getFunc(id); // Fetch the function name
+                    return {label:`${id} - ${func || 'Unknown Function'}`, value: id}; // Format the string
+                })
+            );
+    
+            return reqIdOptions;
+        } catch (error) {
+            console.error(`Failed to retrieve overlayed req_ids as strings for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    // async addOverlayWithPolyHash(name: string, req_ids: number[], poly: {lat:number,lon:number}[], description = ''): Promise<number> {
+    //     try {
+    //         const polyHash = hashPoly(poly);
+    //         const id = await this.overlays.add({
+    //             name,
+    //             description,
+    //             req_ids,
+    //             polyHash,
+    //             created_at: new Date(),
+    //         });
+    //         console.log(`Overlay added with id ${id} and polyHash ${polyHash}`);
+    //         return id;
+    //     } catch (error) {
+    //         console.error('Failed to add overlay with polyHash:', error);
+    //         throw error;
+    //     }
+    // }
+
+    // async getOverlayByPolyHash(poly: {lat:number,lon:number}[]): Promise<OverlayRecord | undefined> {
+    //     try {
+    //         const polyHash = hashPoly(poly);
+    //         const overlay = await this.overlays.where('polyHash').equals(polyHash).first();
+    //         return overlay;
+    //     } catch (error) {
+    //         console.error(`Failed to retrieve overlay with poly ${poly}:`, error);
+    //         throw error;
+    //     }
+    // }
+    
+    // async updateOverlayByPolyHash(poly: { lat: number; lon: number }[], updates: Partial<OverlayRecord>): Promise<void> {
+    //     try {
+    //         const polyHash = hashPoly(poly);
+    //         const rowsModified = await this.overlays.where('polyHash').equals(polyHash).modify(updates);
+    
+    //         if (rowsModified > 0) {
+    //             console.log(`Successfully updated ${rowsModified} overlay(s) with polyHash ${polyHash}`);
+    //         } else {
+    //             console.warn(`No overlay found with polyHash ${polyHash} to update.`);
+    //         }
+    //     } catch (error) {
+    //         console.error(`Failed to update overlay with poly ${JSON.stringify(poly)}:`, error);
+    //         throw error;
+    //     }
+    // }
+    
+
+    // async updateOverlay(id: number, updates: Partial<OverlayRecord>): Promise<void> {
+    //     try {
+    //         const result = await this.overlays.update(id, updates);
+    //         if (result === 0) {
+    //             console.error(`No overlay found with id ${id}`);
+    //         }
+    //     } catch (error) {
+    //         console.error(`Failed to update overlay with id ${id}:`, error);
+    //         throw error;
+    //     }
+    // }
+
+    async deleteOverlay(id: number): Promise<void> {
+        try {
+            await this.overlays.delete(id);
+            console.log(`Overlay with id ${id} deleted.`);
+        } catch (error) {
+            console.error(`Failed to delete overlay with id ${id}:`, error);
+            throw error;
+        }
+    }
+
+    async getAllOverlays(): Promise<OverlayRecord[]> {
+        try {
+            const overlays = await this.overlays.toArray();
+            console.log('Retrieved overlays:', overlays);
+            return overlays;
+        } catch (error) {
+            console.error('Failed to retrieve overlays:', error);
+            throw error;
+        }
+    }
+
+    // async getOverlayByName(name: string): Promise<OverlayRecord | undefined> {
+    //     try {
+    //         const overlay = await this.overlays.where('name').equals(name).first();
+    //         return overlay;
+    //     } catch (error) {
+    //         console.error(`Failed to retrieve overlay with name ${name}:`, error);
+    //         throw error;
+    //     }
+    // }
+
+    // async getOverlaysByReqIds(req_ids: number[]): Promise<OverlayRecord[]> {
+    //     try {
+    //         const overlays = await this.overlays.filter(overlay => {
+    //             // Check if any of the req_ids in the overlay match the given req_ids
+    //             return overlay.req_ids.some(req_id => req_ids.includes(req_id));
+    //         }).toArray();
+    //         return overlays;
+    //     } catch (error) {
+    //         console.error('Failed to retrieve overlays by req_ids:', error);
+    //         throw error;
+    //     }
+    // }
+
 }
 export const db = new SlideRuleDexie();

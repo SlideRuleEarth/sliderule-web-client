@@ -152,12 +152,11 @@ const tooltipRef = ref();
     <div class="sr-records-container">
         <DataTable 
             :value="requestsStore.reqs" 
-            tableStyle="min-width: 50rem" 
+            tableStyle="min-width: 50rem width: 100%" 
             table-layout="auto"
             scrollable 
             scrollHeight="flex"
-            scrollWidth="200rem"
-            paginator="true"
+            :paginator="true"
             :rows="3"
             :rowsPerPageOptions="[3,5,10,20]"
             editMode="cell"

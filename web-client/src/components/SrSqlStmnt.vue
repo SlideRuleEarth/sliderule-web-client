@@ -16,24 +16,32 @@
   
 <script setup lang="ts">
     import { ref,onMounted,computed } from "vue";
-    import SrCheckbox from "./SrCheckbox.vue";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-    const atlChartFilterStore = useAtlChartFilterStore();
+    import SrCheckbox from "@/components/SrCheckbox.vue";
+    import { useChartStore } from "@/stores/chartStore";
+
+    // Define props with TypeScript types
+    const props = defineProps<{
+    req_id: number;
+
+    }>();
+    const computedReqIdStr = computed(() => {
+        return props.req_id.toString();
+    });
+
+    const chartStore = useChartStore();
 
     const showSqlStmnt = ref(false);
-    const computedCurFunc = computed(() => {
-        return atlChartFilterStore.getFunc();
-    });
+
     const computedSqlStmnt = computed(() => {
-        const sqlStmnt = atlChartFilterStore.getSqlStmnt(computedCurFunc.value);
-        if ((sqlStmnt === undefined) ||(sqlStmnt === null) || (sqlStmnt === '')) {
-            return `No SQL statement available for this function: ${computedCurFunc.value}`;
+        const sqlStmnt = chartStore.getQuerySql(computedReqIdStr.value);
+        if ((sqlStmnt === undefined) || (sqlStmnt === null) || (sqlStmnt === '')) {
+            return `No SQL statement available for this reqId: ${computedReqIdStr.value}`;
         }
         return sqlStmnt;
     }); 
 
     onMounted(async () => {
-        console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
+        //console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
     });
 
 </script>

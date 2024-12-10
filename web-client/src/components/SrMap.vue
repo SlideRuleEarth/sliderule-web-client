@@ -4,6 +4,7 @@
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
+    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
@@ -41,7 +42,6 @@
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
     import { zoomMapForReqIdUsingView } from "@/utils/SrMapUtils";
-    import { updateElevationForReqId } from '@/utils/SrParquetUtils';
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -390,7 +390,7 @@
 
     // Define a function to handle the addresschosen event
     function onAddressChosen(evt: any) {
-        //console.log(evt);
+        //console.log('onAddressChosen:',evt);
         // Zoom to the selected location
         const map = mapStore.getMap();
         if(map){
@@ -436,11 +436,12 @@
                 });
                 }
                 const geocoder = geoCoderStore.getGeoCoder()
-                if(geocoder){       
+                if(geocoder){
+                    //console.log("SrMap onMounted adding geocoder");       
                     map.addControl(geocoder);
-                    geocoder.on('SrMap addresschosen', onAddressChosen); 
+                    geocoder.on('addresschosen', onAddressChosen); 
                 } else {
-                    console.log("SrMap Error:geocoder is null?");
+                    console.error("SrMap Error:geocoder is null?");
                 }
                 const projectionNames = useProjectionNames();
                 projectionNames.value.forEach(name => {
@@ -569,7 +570,7 @@
                         if(reqId > 0){
                             await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewKey.value);
                             initDeck(map);
-                            await updateElevationForReqId(reqId); 
+                            await duckDbReadAndUpdateElevationData(reqId);
                         }
                     } else {
                         initDeck(map);

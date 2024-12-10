@@ -15,6 +15,7 @@
     import { dumpMapLayers, initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
@@ -36,6 +37,7 @@
     const mapContainer = ref<HTMLElement | null>(null);
     const mapRef = ref<{ map: OLMap }>();
     const mapStore = useMapStore();
+    const chartStore = useChartStore();
     const requestsStore = useRequestsStore();
     const controls = ref([]);
 
@@ -49,7 +51,7 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => atlChartFilterStore.getFunc());
+    const computedFunc = computed(() => chartStore.getFunc(chartStore.getFunc(atlChartFilterStore.getReqIdStr())));
 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
@@ -89,7 +91,6 @@
 
     onMounted(() => {
         console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
-        mapStore.setIsLoading();
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
