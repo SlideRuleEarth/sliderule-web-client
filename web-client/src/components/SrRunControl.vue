@@ -15,6 +15,7 @@
     import router from '@/router/index.js';
     import { computed } from 'vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
+    import { elIsLoaded } from '@/utils/SrParquetUtils';
 
     const toast = useToast();
     const srToastStore = useSrToastStore();
@@ -24,7 +25,7 @@
     const tooltipRef = ref();
 
     const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
-    const computedDataLoaded = computed(() =>(mapStore.getCurrentRows() == mapStore.getTotalRows()) && (mapStore.getTotalRows()>0) );
+    const computedDataLoaded = computed(() =>(elIsLoaded()));
     onMounted(async () => {
         console.log('SrRunControl onMounted');
         mapStore.isAborting = false;

@@ -106,29 +106,14 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].whereClause;
     },
-    // Set and get symbol size for a specific function
-    initSymbolSize(reqIdStr: string) {
-        console.log('setSymbolSize reqIdStr:',reqIdStr);
-        this.ensureState(reqIdStr);
-        const func = this.stateByReqId[reqIdStr].func;
-        if (func.includes('atl03sp')) {
-            this.stateByReqId[reqIdStr].symbolSize = 1;
-        } else if (func.includes('atl03vp')) {
-            this.stateByReqId[reqIdStr].symbolSize = 3;
-        } else if (func.includes('atl06')) {
-            this.stateByReqId[reqIdStr].symbolSize = 3;
-        } else if (func.includes('atl08')) {
-            this.stateByReqId[reqIdStr].symbolSize = 3;
-        }       
-    },
     setSymbolSize(reqIdStr: string, symbolSize: number) {
-        console.log('setSymbolSize reqIdStr:',reqIdStr);
+        //console.log('setSymbolSize reqIdStr:',reqIdStr);
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].symbolSize = symbolSize;
     },
     getSymbolSize(reqIdStr: string): number {
         this.ensureState(reqIdStr);
-        console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
+        //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
     },
     getNdxOfelevationDataOptionsForHeight(reqIdStr: string) {

@@ -48,8 +48,9 @@ export const useMapStore = defineStore('map', {
     isAborting: false as boolean,
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
-    totalRows: {} as Record<string, number>, // Keyed by req_id
-    currentRows: {} as Record<string, number>, // Keyed by req_id
+    totalRows: 0 as number, 
+    currentRows: 0 as number,
+    curRowsProcessed: 0 as number, 
     pointerMoveListenerKey: null as EventsKey | null,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
@@ -162,48 +163,29 @@ export const useMapStore = defineStore('map', {
     getIsLoading() {
       return this.isLoading;
     },
-    setIsLoading() {
-      this.isLoading = true;
+    setIsLoading(value:boolean=true) {
+      this.isLoading = value;
     },
     resetIsLoading() {
       this.isLoading = false;
     },
-    getTotalRows(reqId?: string): number | bigint {
-      if (reqId) {
-        return this.totalRows[reqId] || 0;
-      }
-    
-      // Check if there are any BigInt values
-      const values = Object.values(this.totalRows);
-      const isBigInt = values.some(value => typeof value === 'bigint');
-    
-      if (isBigInt) {
-        // Use BigInt for summation if any value is a BigInt
-        return values.reduce((sum, rows) => sum + BigInt(rows), 0n);
-      }
-    
-      // Use regular number summation otherwise
-      return values.reduce((sum, rows) => sum + rows, 0);
+    getTotalRows(): number | bigint {
+      return this.totalRows;
     },
-    setTotalRows(reqId: string, rows: number) {
-      this.totalRows[reqId] = rows;
+    setTotalRows(rows: number) {
+      this.totalRows = rows;
     },
-    getCurrentRows(reqId?: string): number {
-      if (reqId) {
-        return this.currentRows[reqId] || 0;
-      }
-      return Object.values(this.currentRows).reduce((sum, rows) => sum + rows, 0);
+    getCurrentRows(): number {
+        return this.currentRows;
     },
-    setCurrentRows(reqId: string, rows: number) {
-      this.currentRows[reqId] = rows;
+    setCurrentRows(rows: number) {
+      this.currentRows = rows;
     },
-    clearRowsData(reqId: string) {
-      delete this.totalRows[reqId];
-      delete this.currentRows[reqId];
+    getCurRowsProcessed(): number {
+        return this.curRowsProcessed;
     },
-    resetAllRowsData() {
-      this.totalRows = {};
-      this.currentRows = {};
+    setCurRowsProcessed(rows: number) {
+      this.curRowsProcessed = rows;
     },
     getPolySource() {
       return this.polygonSource;

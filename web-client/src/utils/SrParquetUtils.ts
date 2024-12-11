@@ -277,3 +277,12 @@ export function updateFilename(req_id: number, filename: string): { func: string
 
     return { func, newFilename };
 }
+
+export function elIsLoaded():boolean {
+   return (
+        (useMapStore().getTotalRows() > 0) &&
+        (   (useMapStore().getCurRowsProcessed() >= useMapStore().getTotalRows()) ||
+            (useMapStore().getCurrentRows() >= useSrParquetCfgStore().maxNumPntsToDisplay)
+        )
+    );
+}

@@ -27,38 +27,38 @@
         />
         <SrGraticuleSelect/>
         <SrSliderInput
-            v-model="atlChartFilterStore.atl03spSymbolSize"
+            v-model="atlChartFilterStore.atl03spDefaultSymbolSize"
             label="Atl03sp Scatter Plot symbol size"
             :min="1"
             :max="20"
-            :defaultValue="atlChartFilterStore.atl03spSymbolSize"
+            :defaultValue="atlChartFilterStore.atl03spDefaultSymbolSize"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl03 Scatter Plot"
         />
         <SrSliderInput
-            v-model="atlChartFilterStore.atl03vpSymbolSize"
+            v-model="atlChartFilterStore.atl03vpDefaultSymbolSize"
             label="Atl03vp Scatter Plot symbol size"
             :min="1"
             :max="20"
-            :defaultValue="atlChartFilterStore.atl03vpSymbolSize"
+            :defaultValue="atlChartFilterStore.atl03vpDefaultSymbolSize"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl03 Scatter Plot"
         />
         <SrSliderInput
-            v-model="atlChartFilterStore.atl06SymbolSize"
+            v-model="atlChartFilterStore.atl06DefaultSymbolSize"
             label="Atl06 Scatter Plot symbol size"
             :min="1"
             :max="20"
-            :defaultValue="atlChartFilterStore.atl06SymbolSize"
+            :defaultValue="atlChartFilterStore.atl06DefaultSymbolSize"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl06 Scatter Plot"
         />
         <SrSliderInput
-            v-model="atlChartFilterStore.atl08SymbolSize"
+            v-model="atlChartFilterStore.atl08DefaultSymbolSize"
             label="Atl08 Scatter Plot symbol size"
             :min="1"
             :max="20"
-            :defaultValue="atlChartFilterStore.atl08SymbolSize"
+            :defaultValue="atlChartFilterStore.atl08DefaultSymbolSize"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl08 Scatter Plot"
         />

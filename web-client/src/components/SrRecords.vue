@@ -74,16 +74,17 @@ const deleteReq = async (id:number) => {
     try {
         const userConfirmed = window.confirm('Are you sure you want to delete this record?');
         if (userConfirmed) {
-            console.log('Delete ', id);
+            console.log('deleteReq:', id);
+            await db.removeOverlayedReqId(id);
             const fn = await db.getFilename(id);
             await deleteOpfsFile(fn);
             requestsStore.deleteReq(id);
-            console.log('Record deleted successfully for id:', id);
+            console.log('deleteReq Record deleted successfully for id:', id);
         } else {
-            console.log('Deletion cancelled');
+            console.log('deleteReq Deletion cancelled');
         }
     } catch (error) {
-        console.error(`Failed to delete record for id:${id}`, error);
+        console.error(`deleteReq Failed to delete record for id:${id}`, error);
         throw error;
     }
 };

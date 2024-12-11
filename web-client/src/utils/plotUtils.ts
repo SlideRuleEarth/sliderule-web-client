@@ -326,11 +326,11 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
             } else if(func.includes('atl08')){
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else {
-                console.error('getSeriesFor invalid func:', func);
+                console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
-            console.log('getSeriesFor seriesData:', seriesData);
+            console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
         } else {
-            console.warn('getSeriesFor fileName is null');
+            console.warn(`getSeriesFor ${reqIdStr} fileName is null`);
         }
     } catch (error) {
         console.error('getSeriesFor Error:', error);
@@ -668,47 +668,54 @@ async function appendSeries(reqId: number): Promise<void> {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
 }
-export const debouncedUpdateScatterPlotFor = debounce(async (reqIds: number[], clearPlot:boolean = false) => {
-    await updateScatterPlotFor(reqIds,clearPlot);
-}, 300);
 
-export const updateScatterPlotFor = async (reqIds: number[], clearThePlot:boolean ) => {
+export const refreshScatterPlot = async (msg:string) => {
+    console.log(`refreshScatterPlot ${msg}`);
+    const plotRef = useAtlChartFilterStore().getPlotRef();
+    if (plotRef && plotRef.chart) {
+        clearPlot();
+        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
+    }
+    await debouncedUpdateScatterPlot();
+};
+
+const debouncedUpdateScatterPlot = debounce(async () => {
+    await updateScatterPlot();
+}, 1000);
+
+const updateScatterPlot = async () => {
     const startTime = performance.now();
-    console.log(`updateScatterPlotFor ${reqIds} clearThePlot:${clearThePlot} startTime:`, startTime);
+    console.log(`updateScatterPlot startTime:`, startTime);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
-        const chart: ECharts = plotRef.chart;
-        // Retrieve existing options from the chart
-        const existingOptions = removeUnusedOptions(chart.getOption());
-        if(clearThePlot){
-            clearPlot();
-            initScatterPlotWith(reqIds[0]);
-            console.log(`updateScatterPlotFor ${reqIds} Existing options:`, existingOptions);
-         } else {
-            console.log(`updateScatterPlotFor ${reqIds} existingOptions.series is empty`);
-           for (const reqId of reqIds) {
-                const f = chartStore.getFile(reqId.toString());
-                if((f === undefined) || (f === null) || (f === '')){
-                    const request = await indexedDb.getRequest(reqId);
-                    console.log('Request:', request);
-                    if(request && request.file){
-                        chartStore.setFile(reqId.toString(),request.file);
-                    } else {
-                        console.error('No file found for req_id:', reqId);
-                    }
-                    if(request && request.func){
-                        chartStore.setFunc(reqId.toString(),request.func);
-                    } else {
-                        console.error('No func found for req_id:', reqId);
-                    }
-                }
+        const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
+        reqIds.forEach(reqId => { 
+            if(reqId > 0){
                 appendSeries(reqId);
+            } else {
+                console.error(`updateScatterPlot Invalid request ID:${reqId}`);
             }
-        }
+        });
+        console.log(`updateScatterPlot ${reqIds} Cleared Plot `);
+    } else {
+        console.warn(`Ignoring updateScatterPlot with no plot to update, plotRef is undefined.`);
     }
 }
 
+export function initSymbolSize(reqIdStr: string) {
+    //console.log('setSymbolSize reqIdStr:',reqIdStr);
+    const func = chartStore.stateByReqId[reqIdStr].func;
+    if (func.includes('atl03sp')) {
+        chartStore.stateByReqId[reqIdStr].symbolSize = 1;
+    } else if (func.includes('atl03vp')) {
+        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+    } else if (func.includes('atl06')) {
+        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+    } else if (func.includes('atl08')) {
+        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+    }       
+}
 
 export async function updateChartStore(req_id: number) {
     console.log('updateChartStore req_id:', req_id);
@@ -722,7 +729,7 @@ export async function updateChartStore(req_id: number) {
         console.log('updateChartStore req_id:', req_id, 'func:', func);
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
         chartStore.setFunc(reqIdStr,func);
-        chartStore.initSymbolSize(reqIdStr);
+        initSymbolSize(reqIdStr);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),
             useAtlChartFilterStore().getSpotValues(),

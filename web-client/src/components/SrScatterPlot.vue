@@ -64,7 +64,7 @@ import { provide, watch, onMounted, ref, computed, reactive, WritableComputedRef
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import { debouncedUpdateScatterPlotFor, initScatterPlotWith } from "@/utils/plotUtils";
+import { refreshScatterPlot } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
@@ -90,7 +90,6 @@ function initializeBindings(reqIds: string[]) {
         }
     });
 }
-
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
@@ -104,20 +103,14 @@ const findLabel = (value:number) => {
     return match ? match.name : '';
 };
 
-function onMainYDataSelectionChange(newValue: string[]) {
+async function onMainYDataSelectionChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    // Perform any logic here:
-    // - Possibly trigger a chart update
-    // - Save preferences
-    // For example:
-    debouncedUpdateScatterPlotFor([atlChartFilterStore.getReqId()], true);
+    await refreshScatterPlot('from onMainYDataSelectionChange');
 }
 
-function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
+async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
     console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
-    // Perform overlay-specific logic here:
-    // For example, re-draw only overlay plots:
-    debouncedUpdateScatterPlotFor([Number(overlayedReqId)]);
+    await refreshScatterPlot('from onOverlayYDataSelectionChange');
 }
 
 onMounted(async () => {
@@ -154,7 +147,7 @@ onMounted(async () => {
             const colNames = await duckDbClient.queryForColNames(filename);
             useChartStore().setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
         }
-        initScatterPlotWith(reqId);
+        //initScatterPlotWith(reqId);
     } else {
         console.warn('reqId is undefined');
     }
@@ -166,24 +159,19 @@ onMounted(async () => {
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        debouncedUpdateScatterPlotFor([newReqId],true);
+        await refreshScatterPlot('from watch atlChartFilterStore.getReqId()');
     }
 });
 
-watch(() => atlChartFilterStore.selectedOverlayedReqIds, async (newOverlayedReqIds) => {
-    console.log('selectedOverlayedReqIds changed:', newOverlayedReqIds);
-    if (newOverlayedReqIds && newOverlayedReqIds.length > 0) {
-        debouncedUpdateScatterPlotFor(newOverlayedReqIds);
-    }
-});
+watch(
+  () => atlChartFilterStore.selectedOverlayedReqIds,
+  async (newOverlayedReqIds, oldOverlayedReqIds) => {
+    console.log('selectedOverlayedReqIds changed from:', oldOverlayedReqIds, 'to:', newOverlayedReqIds);
+    await refreshScatterPlot('from watch atlChartFilterStore.selectedOverlayedReqIds');
+  }
+);
 
-// watch(() => atlChartFilterStore.updateScatterPlotCnt, async () => {
-//     console.log('updateScatterPlotCnt:', atlChartFilterStore.updateScatterPlotCnt);
-//     const reqId = atlChartFilterStore.getReqId();
-//     if (reqId && reqId > 0) {
-//         debouncedUpdateScatterPlotFor([reqId]);
-//     }
-// });
+
 
 const messageClass = computed(() => {
   return {
@@ -203,7 +191,7 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
-        debouncedUpdateScatterPlotFor([reqId]);
+        await refreshScatterPlot('from watch computedSelectedAtl03ColorMap');
     }
 }, { deep: true, immediate: true });
 

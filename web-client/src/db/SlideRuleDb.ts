@@ -1012,64 +1012,6 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    // async addOverlayWithPolyHash(name: string, req_ids: number[], poly: {lat:number,lon:number}[], description = ''): Promise<number> {
-    //     try {
-    //         const polyHash = hashPoly(poly);
-    //         const id = await this.overlays.add({
-    //             name,
-    //             description,
-    //             req_ids,
-    //             polyHash,
-    //             created_at: new Date(),
-    //         });
-    //         console.log(`Overlay added with id ${id} and polyHash ${polyHash}`);
-    //         return id;
-    //     } catch (error) {
-    //         console.error('Failed to add overlay with polyHash:', error);
-    //         throw error;
-    //     }
-    // }
-
-    // async getOverlayByPolyHash(poly: {lat:number,lon:number}[]): Promise<OverlayRecord | undefined> {
-    //     try {
-    //         const polyHash = hashPoly(poly);
-    //         const overlay = await this.overlays.where('polyHash').equals(polyHash).first();
-    //         return overlay;
-    //     } catch (error) {
-    //         console.error(`Failed to retrieve overlay with poly ${poly}:`, error);
-    //         throw error;
-    //     }
-    // }
-    
-    // async updateOverlayByPolyHash(poly: { lat: number; lon: number }[], updates: Partial<OverlayRecord>): Promise<void> {
-    //     try {
-    //         const polyHash = hashPoly(poly);
-    //         const rowsModified = await this.overlays.where('polyHash').equals(polyHash).modify(updates);
-    
-    //         if (rowsModified > 0) {
-    //             console.log(`Successfully updated ${rowsModified} overlay(s) with polyHash ${polyHash}`);
-    //         } else {
-    //             console.warn(`No overlay found with polyHash ${polyHash} to update.`);
-    //         }
-    //     } catch (error) {
-    //         console.error(`Failed to update overlay with poly ${JSON.stringify(poly)}:`, error);
-    //         throw error;
-    //     }
-    // }
-    
-
-    // async updateOverlay(id: number, updates: Partial<OverlayRecord>): Promise<void> {
-    //     try {
-    //         const result = await this.overlays.update(id, updates);
-    //         if (result === 0) {
-    //             console.error(`No overlay found with id ${id}`);
-    //         }
-    //     } catch (error) {
-    //         console.error(`Failed to update overlay with id ${id}:`, error);
-    //         throw error;
-    //     }
-    // }
-
     async deleteOverlay(id: number): Promise<void> {
         try {
             await this.overlays.delete(id);
@@ -1091,28 +1033,40 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    // async getOverlayByName(name: string): Promise<OverlayRecord | undefined> {
-    //     try {
-    //         const overlay = await this.overlays.where('name').equals(name).first();
-    //         return overlay;
-    //     } catch (error) {
-    //         console.error(`Failed to retrieve overlay with name ${name}:`, error);
-    //         throw error;
-    //     }
-    // }
+    async removeOverlayedReqId(req_id: number): Promise<void> {
+        try {
+            // Find the overlay that contains this req_id
+            const overlay = await this.getOverlayByReqId(req_id);
+            if (!overlay) {
+                // No overlay found containing this req_id
+                return;
+            }
+            
+            // Remove the req_id from the overlay's req_ids
+            const updatedReqIds = overlay.req_ids.filter(id => id !== req_id);
+    
+            // If the overlay would have only one (or zero) request left after removal, remove the entire overlay
+            if (updatedReqIds.length <= 1) {
+                // Log a warning
+                console.warn(`Overlay (id=${overlay.id}) now has only one req_id after removing req_id=${req_id}. Removing the entire overlay.`);
+                // Remove the overlay
+                if (overlay.id !== undefined) {
+                    await this.deleteOverlay(overlay.id);
+                }
+            } else {
+                // Otherwise, just update the overlay with the new req_ids
+                if (overlay.id !== undefined) {
+                    await this.overlays.update(overlay.id, { req_ids: updatedReqIds });
+                    console.log(`Removed req_id=${req_id} from overlay (id=${overlay.id}). Updated req_ids:`, updatedReqIds);
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to remove req_id=${req_id} from its overlay:`, error);
+            throw error;
+        }
+    }
+    
 
-    // async getOverlaysByReqIds(req_ids: number[]): Promise<OverlayRecord[]> {
-    //     try {
-    //         const overlays = await this.overlays.filter(overlay => {
-    //             // Check if any of the req_ids in the overlay match the given req_ids
-    //             return overlay.req_ids.some(req_id => req_ids.includes(req_id));
-    //         }).toArray();
-    //         return overlays;
-    //     } catch (error) {
-    //         console.error('Failed to retrieve overlays by req_ids:', error);
-    //         throw error;
-    //     }
-    // }
 
 }
 export const db = new SlideRuleDexie();
