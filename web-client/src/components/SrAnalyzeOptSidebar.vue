@@ -79,6 +79,7 @@ const isMounted = ref(false);
 const computedReqIdStr = computed(() => {
     return selectedReqId.value.value;
 });
+import { type AtlxxReqParams } from '@/sliderule/icesat2';
 
 async function updatePlot(){
     console.log('updatePlot');
@@ -150,8 +151,9 @@ onMounted(async () => {
         }
         console.log('onMounted reqIds:', reqIds.value);
         for (const reqId of reqIds.value) {
+            const thisReqId = Number(reqId.value);
             if(Number(reqId.value) > 0) {
-                const request = await db.getRequest(Number(reqId.value));
+                const request = await db.getRequest(thisReqId);
                 if(request &&request.file){
                         chartStore.setFile(reqId.value,request.file);
                 } else {
@@ -177,6 +179,18 @@ onMounted(async () => {
                     useChartStore().setRecCnt(reqId.value,parseInt(String(request.cnt)));
                 } else {
                     console.error('No num_points found for reqId:',reqId.value);
+                }
+                console.log('request:', request);
+                if(request && request.parameters){
+                    const arp = request.parameters as AtlxxReqParams;
+                    console.log('onMounted arp:', arp);
+                    if(arp.parms){ 
+                        if(arp.parms.poly){
+                            await indexedDb.addOrUpdateOverlayByPolyHash(arp.parms.poly, {req_ids:[thisReqId]});
+                        }
+                    } else {
+                        console.warn('No parameters found for reqId:',reqId.value, ' is it imported?');
+                    }
                 }
                 const f = chartStore.getFile(reqId.toString());
                 if((f === undefined) || (f === null) || (f === '')){
