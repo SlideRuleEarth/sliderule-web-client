@@ -11,7 +11,7 @@ export const useDeckStore = defineStore('deck', {
     }),
     actions: {
         setDeckInstance(instance:Deck) {
-            //console.log('setDeckInstance to:',instance,' from this.deckInstance:',this.deckInstance);
+            //console.log('setDeckInstance to:',instance,'from this.deckInstance:',this.deckInstance);
             this.deckInstance = instance;
         },
         getDeckInstance() {

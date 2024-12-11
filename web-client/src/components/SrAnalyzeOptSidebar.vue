@@ -28,8 +28,9 @@ import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
 import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
-import { debouncedUpdateScatterPlotFor,updateChartStore } from '@/utils/plotUtils';
+import { refreshScatterPlot,updateChartStore } from '@/utils/plotUtils';
 import { updateWhereClause } from '@/utils/SrMapUtils';
+import { db as indexedDb } from "@/db/SlideRuleDb";
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -88,8 +89,7 @@ async function updatePlot(){
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
-        //useAtlChartFilterStore().updateScatterPlot();
-        debouncedUpdateScatterPlotFor([useAtlChartFilterStore().getReqId()],true);
+        await refreshScatterPlot('from updatePlot');
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
         console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
@@ -143,12 +143,64 @@ onMounted(async () => {
             atlChartFilterStore.setReqId(req_id);
             overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
             console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
-            updateChartStore(req_id);
-            updatePlot();
+            await updateChartStore(req_id);
         } else {
             console.warn('Invalid request ID:', req_id);
             //toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
         }
+        console.log('onMounted reqIds:', reqIds.value);
+        for (const reqId of reqIds.value) {
+            if(Number(reqId.value) > 0) {
+                const request = await db.getRequest(Number(reqId.value));
+                if(request &&request.file){
+                        chartStore.setFile(reqId.value,request.file);
+                } else {
+                    console.error('No file found for reqId:',reqId.value);
+                }
+                if(request && request.func){
+                    chartStore.setFunc(reqId.value,request.func);
+                } else {
+                    console.error('No func found for reqId:',reqId.value);
+                }
+                if(request && request.description){
+                    chartStore.setDescription(reqId.value,request.description);
+                } else {
+                    // this is not an error, just a warning
+                    console.warn('No description found for reqId:',reqId.value);
+                }
+                if(request && request.num_bytes){
+                    useChartStore().setSize(reqId.value,request.num_bytes);
+                } else {
+                    console.error('No num_bytes found for reqId:',reqId.value);
+                }
+                if(request && request.cnt){
+                    useChartStore().setRecCnt(reqId.value,parseInt(String(request.cnt)));
+                } else {
+                    console.error('No num_points found for reqId:',reqId.value);
+                }
+                const f = chartStore.getFile(reqId.toString());
+                if((f === undefined) || (f === null) || (f === '')){
+                    const request = await indexedDb.getRequest(Number(reqId.value));
+                    console.log('Request:', request);
+                    if(request && request.file){
+                        chartStore.setFile(reqId.toString(),request.file);
+                        console.log('onMounted chartStore.setFile reqIds:',reqIds.value ,' reqID:',reqId, ' file:', chartStore.getFile(reqId.toString()));
+                    } else {
+                        console.error('No file found for req_id:', reqId);
+                    }
+                    if(request && request.func){
+                        chartStore.setFunc(reqId.toString(),request.func);
+                    } else {
+                        console.error('No func found for req_id:', reqId);
+                    }
+                } else {
+                    console.log('onMounted chartStore.getFile reqID:',reqId, ' file:', f);
+                }
+            } else {
+                console.warn('Invalid request ID:', reqId);
+            }
+        }
+
     } catch (error) {
         if (error instanceof Error) {
             console.error('onMounted Failed to load menu items:', error.message);
@@ -166,10 +218,14 @@ onMounted(async () => {
 
 const onSelection = async() => {
     console.log('onSelection with req_id:', selectedReqId.value);
-    updateChartStore(Number(selectedReqId.value.value));
+    await updateChartStore(Number(selectedReqId.value.value));
     updatePlot();
 }
-const debouncedOnSelection = debounce(onSelection, 500);
+
+const debouncedOnSelection = debounce(() => {
+  console.log("debouncedOnSelection called");
+  onSelection();
+}, 500);
 
 const onSpotSelection = async() => {
     const spots = atlChartFilterStore.getSpots();
@@ -241,33 +297,33 @@ const updateElevationMap = async (req_id: number) => {
         atlChartFilterStore.setReqId(req_id);
         const request = await db.getRequest(req_id);
         console.log('Request:', request);
-        if(request && request.file){
-            useChartStore().setFile(reqIdStr,request.file);
-        } else {
-            console.error('No file found for req_id:', req_id);
-        }
-        if(request && request.func){
-            chartStore.setFunc(reqIdStr,request.func);
-        } else {
-            console.error('No func found for req_id:', req_id);
-        }
-        if(request && request.description){
-            useChartStore().setDescription(reqIdStr,request.description);
-        } else {
-            // this is not an error, just a warning
-            console.warn('No description found for req_id:', req_id);
-            useChartStore().setDescription(reqIdStr,'description');
-        }
-        if(request && request.num_bytes){
-            useChartStore().setSize(reqIdStr,request.num_bytes);
-        } else {
-            console.error('No num_bytes found for req_id:', req_id);
-        }
-        if(request && request.cnt){
-            useChartStore().setRecCnt(reqIdStr,parseInt(String(request.cnt)));
-        } else {
-            console.error('No num_points found for req_id:', req_id);
-        }
+        // if(request && request.file){
+        //     useChartStore().setFile(reqIdStr,request.file);
+        // } else {
+        //     console.error('No file found for reqId:',reqId.value);
+        // }
+        // if(request && request.func){
+        //     chartStore.setFunc(reqIdStr,request.func);
+        // } else {
+        //     console.error('No func found for reqId:',reqId.value);
+        // }
+        // if(request && request.description){
+        //     useChartStore().setDescription(reqIdStr,request.description);
+        // } else {
+        //     // this is not an error, just a warning
+        //     console.warn('No description found for reqId:',reqId.value);
+        //     useChartStore().setDescription(reqIdStr,'description');
+        // }
+        // if(request && request.num_bytes){
+        //     useChartStore().setSize(reqIdStr,request.num_bytes);
+        // } else {
+        //     console.error('No num_bytes found for reqId:',reqId.value);
+        // }
+        // if(request && request.cnt){
+        //     useChartStore().setRecCnt(reqIdStr,parseInt(String(request.cnt)));
+        // } else {
+        //     console.error('No num_points found for reqId:',reqId.value);
+        // }
 
         deckStore.deleteSelectedLayer();
         //console.log('Request ID:', req_id, 'func:', chartStore.getFunc(reqIdStr));
@@ -303,8 +359,11 @@ const updateElevationMap = async (req_id: number) => {
     
 };
 
-//const debouncedUpdateElevationMap = debounce(() => console.log('stubbedUpdateElevationMap'), 500);
-const debouncedUpdateElevationMap = debounce(updateElevationMap, 500);
+const debouncedUpdateElevationMap = debounce((req_id: number) => {
+  console.log("debouncedUpdateElevationMap called with req_id:", req_id);
+  return updateElevationMap(req_id);
+}, 500);
+
 
 const updateFilter = async (req_ids: number[]) => {
     try {
@@ -359,6 +418,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     try{
         const req_id = Number(newSelection.value)
         atlChartFilterStore.setReqId(req_id);
+        atlChartFilterStore.setSelectedOverlayedReqIds([]);
         overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
         deckStore.deleteSelectedLayer();
         atlChartFilterStore.setSpots([]);
@@ -367,7 +427,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         await updateFilter([req_id]);
         await debouncedUpdateElevationMap(req_id);
         await updateChartStore(Number(selectedReqId.value.value));
-
     } catch (error) {
         console.error('Failed to update selected request:', error);
     }
@@ -378,16 +437,16 @@ watch(selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     try{
         console.log('selectedOverlayedReqIds:', selectedOverlayedReqIds.value);
         atlChartFilterStore.setSelectedOverlayedReqIds(selectedOverlayedReqIds.value);
-        // Only do updates if there was a previous selection
-        // This initial overly needs Y options that aren't available now
-        // This is handled elsewhere
-        if(selectedOverlayedReqIds.value.length > 0){
-            for (const overlayedReqId of selectedOverlayedReqIds.value) {
+        if(newSelection.length > 0){
+            for (const overlayedReqId of newSelection) {
                 await updateChartStore(overlayedReqId);
                 updateWhereClause(overlayedReqId.toString());
             }
+            // Only do updates if there was a previous selection
+            // This initial overly needs Y options that aren't available now
+            // This is handled elsewhere
             if(oldSelection.length > 0){ 
-                debouncedUpdateScatterPlotFor(selectedOverlayedReqIds.value);
+                await refreshScatterPlot('from watch selectedOverlayedReqIds');                
             }
         }
     } catch (error) {
