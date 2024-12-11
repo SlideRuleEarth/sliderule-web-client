@@ -120,7 +120,8 @@ onMounted(async () => {
     const startTime = performance.now(); // Start time
     let req_id = -1;
     try {
-        mapStore.resetAllRowsData();
+        mapStore.setTotalRows(0);
+        mapStore.setCurrentRows(0);
         useAtlChartFilterStore().setDebugCnt(0);
         reqIds.value = await requestsStore.getMenuItems();
         if (reqIds.value.length === 0) {

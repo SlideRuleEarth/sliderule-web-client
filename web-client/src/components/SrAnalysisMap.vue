@@ -57,7 +57,7 @@
     const computedLoadMsg = computed(() => {
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
-        if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
+        if (mapStore.getCurRowsProcessed() != mapStore.getTotalRows()) {
             return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
         } else {
             return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;

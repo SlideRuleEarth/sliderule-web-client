@@ -186,8 +186,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
         let numDataItemsUsed = 0;
         let numDataItemsProcessed = 0;
         const rowChunks: ElevationDataItem[] = [];
-        useMapStore().setCurrentRows(reqIdStr,0);
-        useMapStore().setTotalRows(reqIdStr,0);
+        useMapStore().setCurrentRows(0);
+        useMapStore().setCurRowsProcessed(0);
+        useMapStore().setTotalRows(0);
     
         while (hasMoreData) {
             try{
@@ -199,7 +200,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
                                                                     sample_fraction);
                 if(result.totalRows){
                     //console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
-                    useMapStore().setTotalRows(reqIdStr,result.totalRows);
+                    useMapStore().setTotalRows(result.totalRows);
                 } else {
                     if(result.schema === undefined){
                         console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
@@ -221,8 +222,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
                 
                         // Update the count of processed data items
                         numDataItemsUsed += rowChunk.length;
-                        useMapStore().setCurrentRows(reqIdStr,numDataItemsUsed);
+                        useMapStore().setCurrentRows(numDataItemsUsed);
                         numDataItemsProcessed += chunkSize;
+                        useMapStore().setCurRowsProcessed(numDataItemsProcessed);
                         //console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
                     }
                 }

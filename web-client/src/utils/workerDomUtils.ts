@@ -171,7 +171,7 @@ export function processAbortClicked() {
         console.error('abortClicked worker was undefined');
         useRequestsStore().setConsoleMsg('Abort Clicked');
     }
-    mapStore.isLoading = false; // controls spinning progress
+    mapStore.setIsLoading(false); // controls spinning progress
 }
 
 function handleWorkerError(error:ErrorEvent, errorMsg:string) {
@@ -195,7 +195,7 @@ function cleanUpWorker(){
     }
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
-    mapStore.isLoading = false; // controls spinning progress
+    mapStore.setIsLoading(false); // controls spinning progress
     mapStore.isAborting = false;
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
@@ -223,7 +223,10 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
             mapStore.setCurrentReqId(srReqRec.req_id);
-            mapStore.isLoading = true; // controls spinning progress
+            mapStore.setIsLoading(true); // controls spinning progress
+            mapStore.setTotalRows(0);
+            mapStore.setCurrentRows(0);
+            mapStore.setCurRowsProcessed(0);
             worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {
@@ -270,7 +273,8 @@ export async function processRunSlideRuleClicked() {
         return;
     }
 
-    mapStore.isLoading = true;
+    mapStore.setIsLoading(true);
+    mapStore.isAborting = false;
     console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
@@ -287,7 +291,7 @@ export async function processRunSlideRuleClicked() {
         //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
         useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
         requestsStore.setConsoleMsg('You need to supply geographic region ...');
-        mapStore.isLoading = false;
+        mapStore.setIsLoading(false);
         return;
     }
     requestsStore.setConsoleMsg('Running...');
@@ -307,7 +311,7 @@ export async function processRunSlideRuleClicked() {
             console.error('runSlideRuleClicked srViewKey was undefined');
             useSrToastStore().error('Error','There was an error. srViewKey was undefined');
             requestsStore.setConsoleMsg('stopped...');
-            mapStore.isLoading = false;
+            mapStore.setIsLoading(false);
             return;
         }
         if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
@@ -324,13 +328,13 @@ export async function processRunSlideRuleClicked() {
                     console.error('runSlideRuleClicked srviewName was undefined');
                     useSrToastStore().error('Error','There was an error. srviewName was undefined');
                     requestsStore.setConsoleMsg('stopped...');
-                    mapStore.isLoading = false;
+                    mapStore.setIsLoading(false);
                 }
         } else {
                 console.error('runSlideRuleClicked IceSat2API was undefined');
                 useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
                 requestsStore.setConsoleMsg('stopped...');
-                mapStore.isLoading = false;
+                mapStore.setIsLoading(false);
             }
         } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
             if(useReqParamsStore().getGediAPI() || (useReqParamsStore().getGediAPI() !== undefined) || (useReqParamsStore().getGediAPI() !== null) || (useReqParamsStore().getGediAPI() !== '')){
@@ -344,13 +348,13 @@ export async function processRunSlideRuleClicked() {
                 console.error('runSlideRuleClicked GediAPI was undefined');
                 useSrToastStore().error('Error','There was an error. GediAPI was undefined');
                 requestsStore.setConsoleMsg('stopped...');
-                mapStore.isLoading = false;
+                mapStore.setIsLoading(false);
             }
         }
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');
         useSrToastStore().error('Error','There was an error');
         requestsStore.setConsoleMsg('stopped...');
-        mapStore.isLoading = false;
+        mapStore.setIsLoading(false);
     }
 };
