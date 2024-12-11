@@ -105,17 +105,11 @@ const findLabel = (value:number) => {
 
 async function onMainYDataSelectionChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    // Perform any logic here:
-    // - Possibly trigger a chart update
-    // - Save preferences
-    // For example:
     await refreshScatterPlot('from onMainYDataSelectionChange');
 }
 
 async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
     console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
-    // Perform overlay-specific logic here:
-    // For example, re-draw only overlay plots:
     await refreshScatterPlot('from onOverlayYDataSelectionChange');
 }
 
