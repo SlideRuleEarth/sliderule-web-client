@@ -170,7 +170,6 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
-
 function formatElObject(obj: { [key: string]: any }): string {
     const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
     const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
@@ -179,7 +178,7 @@ function formatElObject(obj: { [key: string]: any }): string {
       .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
       .map(([key, value]) => {
         let formattedValue;
-  
+        //console.log('key:',key,'type of value:',typeof value,'value:',value);
         if (key === 'time' && typeof value === 'number') {
           // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
           let adjustedTime = value - gpsToATLASOffset;
@@ -190,9 +189,12 @@ function formatElObject(obj: { [key: string]: any }): string {
   
           const date = new Date(adjustedTime); // Convert seconds to milliseconds
           formattedValue = date.toISOString(); // Format as ISO string in UTC
-          //console.log('value:',value,'adjustedTime:',adjustedTime,'date:',date,'formattedValue:',formattedValue);
+        } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
+            const arr = (value as any).toArray(); // Safely call toArray if available
+            formattedValue = arr.map((num: number) => num.toPrecision(5)).join('<br>');
+            //console.log('canopy_h_metrics formattedValue:',formattedValue);
         } else if (typeof value === 'number') {
-          // Format other numbers to 3 significant figures
+          // Format other numbers to 5 significant figures
           formattedValue = value.toPrecision(5);
         } else {
           formattedValue = value;
@@ -202,6 +204,7 @@ function formatElObject(obj: { [key: string]: any }): string {
       })
       .join('<br>'); // Use <br> for line breaks in HTML
   }
+  
   
 interface TooltipParams {
     x: number;
