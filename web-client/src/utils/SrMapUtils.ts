@@ -191,8 +191,22 @@ function formatElObject(obj: { [key: string]: any }): string {
           formattedValue = date.toISOString(); // Format as ISO string in UTC
         } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
             const arr = (value as any).toArray(); // Safely call toArray if available
-            formattedValue = arr.map((num: number) => num.toPrecision(5)).join('<br>');
-            //console.log('canopy_h_metrics formattedValue:',formattedValue);
+            const formattedPairs = [...arr]
+                .reduce((pairs: number[][], num: number, index: number) => {
+                    if (index % 3 === 0) {
+                        // Start a new pair
+                        pairs.push([num]);
+                    } else {
+                        // Add to the last pair
+                        pairs[pairs.length - 1].push(num);
+                    }
+                    return pairs;
+                }, []) // Initialize as an array of arrays
+                .map((pair: number[]) => pair.map((num: number) => num.toFixed(5)).join(', ')) // Format each pair
+                .join('<br>'); // Join pairs with line breaks
+        
+            formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
+            // console.log('canopy_h_metrics formattedValue:', formattedValue);
         } else if (typeof value === 'number') {
           // Format other numbers to 5 significant figures
           formattedValue = value.toPrecision(5);
