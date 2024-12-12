@@ -14,6 +14,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useChartStore } from '@/stores/chartStore';
+import { use } from 'echarts';
 
 interface SummaryRowData {
     minLat: number;
@@ -35,9 +36,11 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
         const summary = await indexedDb.getWorkerSummary(req_id);
         //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
 
-        if (summary) {
+        if (summary && summary.extLatLon && summary.extHMean) {
+            //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' existing summary:', summary);
             return summary;
         } else {
+            //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' Reading new summary');
             const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
             const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
             const duckDbClient = await createDuckDbClient();
@@ -96,7 +99,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                     numPoints = row.numPoints;
                     await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
                     await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints});
-
+                    useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
                     if(numPoints <= 0){
                         console.warn('No points returned: numPoints is zero');
                     }
@@ -252,6 +255,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
         const height_fieldname = await getHeightFieldname(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         if(summary?.extHMean){
+            useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
             updateElLayerWithObject(name,rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
         }
 
