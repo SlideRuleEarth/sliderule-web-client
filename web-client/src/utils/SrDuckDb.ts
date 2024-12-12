@@ -411,6 +411,56 @@ export class DuckDBClient {
     }
   }
 
+  async insertClientReqJson(parquetFilePath: string, clientReqJson: string): Promise<void> {
+    const duckDB = await this.duckDB();
+    const conn = await duckDB.connect();
+    try {
+      // 1. Retrieve existing metadata from the Parquet file
+      const metadataResult = await conn.query(`SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`);
+      const metadataRows = metadataResult.toArray();
+      // metadataRows is an array of objects like { key: Uint8Array, value: Uint8Array }
+  
+      const existingMetadata: Array<[string, string]> = [];
+      const decoder = new TextDecoder();
+      for (const row of metadataRows) {
+        const k = decoder.decode(row.key);
+        const v = decoder.decode(row.value);
+        existingMetadata.push([k, v]);
+      }
+  
+      // 2. Append the new metadata pair. If 'client_req' exists, decide how to handle it.
+      // Here, we just add a new entry or overwrite the existing one if you want to ensure uniqueness.
+      // For simplicity, we just append. If a key is duplicated, Parquet readers will see multiple entries.
+      existingMetadata.push(['client_req', clientReqJson]);
+  
+      // 3. Build the KEY_VALUE_METADATA array for the COPY command
+      const kvPairs = existingMetadata.map(([k, v]) => {
+        const escapedKey = k.replace(/'/g, "''");
+        const escapedValue = v.replace(/'/g, "''");
+        return `('${escapedKey}', '${escapedValue}')`;
+      }).join(', ');
+  
+      // 4. Load the data into a temporary table from the existing Parquet file (in OPFS).
+      //    This preserves all the original data.
+      await conn.query(`CREATE TEMPORARY TABLE tmp AS SELECT * FROM parquet_scan('${parquetFilePath}')`);
+  
+      // 5. Copy the temporary table back into the same file with updated metadata.
+      //    We rely on FORCE_OVERWRITE=TRUE to overwrite the existing file.
+      await conn.query(`
+        COPY tmp TO '${parquetFilePath}'
+        (FORMAT 'parquet', KEY_VALUE_METADATA=[${kvPairs}], FORCE_OVERWRITE=TRUE)
+      `);
+  
+      console.log(`Successfully appended 'client_req' metadata to ${parquetFilePath} in OPFS.`);
+    } catch (error) {
+      console.error("Error inserting client_req metadata into OPFS file:", error);
+      throw error;
+    } finally {
+      await conn.close();
+    }
+  }
+  
+
 }
 
 // Factory function to create a DuckDB client

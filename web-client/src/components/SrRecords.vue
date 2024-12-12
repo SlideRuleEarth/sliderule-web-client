@@ -14,6 +14,8 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrImportParquetFile  from '@/components/SrImportParquetFile.vue';
 import { cleanupAllRequests } from '@/utils/storageUtils';
 import SrCustomTooltip from './SrCustomTooltip.vue';
+import { createDuckDbClient } from '@/utils//SrDuckDb';
+import { AtlxxReqParams } from '@/sliderule/icesat2';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
@@ -99,6 +101,14 @@ const exportFile = async (req_id:number) => {
         const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
+
+        //const path = folderName + '/' + fileName;
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const clientReqJson = await db.getReqParams(req_id) as AtlxxReqParams;
+        await duckDbClient.insertClientReqJson(fileName, JSON.stringify(clientReqJson));
+
+
         // Create a download link and click it programmatically
         const a = document.createElement('a');
         a.href = url;
