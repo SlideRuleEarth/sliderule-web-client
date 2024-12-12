@@ -3,8 +3,6 @@ import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
-import { get, set } from 'lodash';
-import { number } from 'echarts';
 
 export interface SrListNumberItem {
   label: string;
