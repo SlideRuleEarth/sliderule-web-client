@@ -258,6 +258,10 @@ export const formatBytes = (bytes:number) => {
 };
 
 export function updateFilename(req_id: number, filename: string): { func: string, newFilename: string } {
+    // This function replaces external rec_id in the filename with the newly created req_id that matches this applications db
+    // i.e.
+    // <atl0n>_<external_rec_id>_<date>.parquet with <atl0n>_<newly_created_req_id>_<date>.parquet in the filename
+
     // Regular expression to match the required pattern
     const regex = /^(\w+)_(\d+)_(.+\.parquet)$/;
 
@@ -274,7 +278,7 @@ export function updateFilename(req_id: number, filename: string): { func: string
 
     // Construct the new filename
     const newFilename = `${func}_${req_id}_${suffix}`;
-
+    console.warn('updateFilename req_id:',req_id,'filename:',filename,'newFilename:',newFilename);
     return { func, newFilename };
 }
 
