@@ -584,7 +584,7 @@ const tooltipTextStr = computed(() => {
                     @update:modelValue="CyclesSelection"
                 />
             </div>
-            <div class="sr-debug-fieldset-panel" v-if="useDebugStore().enableSpotPatternDetails">
+            <!-- <div class="sr-debug-fieldset-panel" v-if="useDebugStore().enableSpotPatternDetails">
                 <Fieldset v-if="useDebugStore().enableSpotPatternDetails" class = "sr-fieldset" legend="Spot Pattern Details" :toggleable="true" :collapsed="false" >
                     <div class="sr-user-guide-link">
                         <a class="sr-link-small-text" href="https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf" target="_blank">Photon Data User Guide</a>
@@ -645,7 +645,7 @@ const tooltipTextStr = computed(() => {
                         />
                     </div>
                 </Fieldset>
-            </div>
+            </div> -->
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(selectedReqId.value)"/>
             </div>
@@ -815,8 +815,7 @@ const tooltipTextStr = computed(() => {
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
-        height: 100%;
-        min-height: 8rem;
+        min-height: fit-content;
     }
     .sr-sc-orient-panel {
         display: flex;

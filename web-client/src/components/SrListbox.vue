@@ -108,11 +108,14 @@ onMounted(() => {
 .sr-listbox-wrapper {
     margin-left: 0.5rem;
     width: 100%;
+    height: fit-content;
 }
 
 .sr-select-menu-default,
 .sr-select-menu-default-insensitive {
     width: auto;
+    height: auto;
+    min-height: 10rem;
     padding: 0.25rem;
     background-color: transparent;
     border-radius: var(--p-border-radius);
@@ -134,7 +137,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    height: 100%;
+    height: fit-content;
     overflow-y: auto;
 }
 
