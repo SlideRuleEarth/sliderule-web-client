@@ -153,7 +153,7 @@ const tooltipRef = ref();
     <div class="sr-records-container">
         <DataTable 
             :value="requestsStore.reqs" 
-            tableStyle="min-width: 50rem width: 100%" 
+            tableStyle=" width:100%;" 
             table-layout="auto"
             scrollable 
             scrollHeight="flex"
@@ -182,7 +182,7 @@ const tooltipRef = ref();
                </template>
             </Column>
             <Column field="func" header="Function"></Column>
-            <Column field="description" header="Description" :editable="true">
+            <Column field="description" header="Description" :editable="true" style="max-width: 10rem;">
                 <template #header>
                     <i 
                       class="pi pi-pencil"
@@ -191,12 +191,19 @@ const tooltipRef = ref();
                     ></i>
                 </template>
                 <template #editor="{ data }">
+                    <div class = "sr-descr-style">
                     <InputText
                         v-model="data.description"
                         class="p-inputtext p-component"
                         @keydown.enter="(event) => onEditComplete(data, 'description', event)"
                         @blur="(event) => onEditComplete(data, 'description', event)"
                     />
+                    </div>
+                </template>
+                <template #body="slotProps">
+                    <div class="sr-descr-style">
+                        {{ slotProps.data.description }}
+                    </div>
                 </template>
             </Column>
             <Column field="srViewName" header="View"></Column>
@@ -315,12 +322,10 @@ const tooltipRef = ref();
 <style scoped>
 .sr-records-container {
     display: block;
-    width: 100%;
+    width: fit-content;
     overflow-x: auto;
     padding: 0.5rem;
-    border-color: transparent;
-    border-width: 0.5rem;
-    border-style: solid;
+    margin: 0.5rem;
 }
 
 .sr-analyze {
@@ -356,6 +361,15 @@ const tooltipRef = ref();
     max-height: 10rem;
     overflow: auto;
     overflow-x: auto;
+}
+:deep(.sr-descr-style) {
+    min-width: 5rem;
+    max-width: 10rem;
+    max-height: 15rem;
+    overflow: auto;
+    word-wrap: break-word; /* Ensure long words break properly */
+    white-space: normal; /* Allow text to wrap */
+    display: block;
 }
 :deep(.p-inputtext.p-component) {
     width: 100%;

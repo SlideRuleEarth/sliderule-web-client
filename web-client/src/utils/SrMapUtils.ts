@@ -209,7 +209,7 @@ function formatElObject(obj: { [key: string]: any }): string {
             // console.log('canopy_h_metrics formattedValue:', formattedValue);
         } else if (typeof value === 'number') {
           // Format other numbers to 5 significant figures
-          formattedValue = value.toPrecision(5);
+          formattedValue = parseFloat(value.toPrecision(10));
         } else {
           formattedValue = value;
         }

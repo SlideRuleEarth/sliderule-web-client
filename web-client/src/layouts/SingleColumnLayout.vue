@@ -3,9 +3,9 @@
 
 <template>
   <div class="single-column-layout">
-    <header>
+    <main>
       <slot name = "sr-single-col"></slot>
-    </header>
+    </main>
 
   </div>
 </template>
@@ -20,14 +20,9 @@
     flex-direction: column;
   }
 }
-header {
-  flex-basis: 20%;
-  margin-top: 30px;
-}
 
 main {
-  flex-basis: 80%;
-  margin-top: 10px;
-  padding: 20px;
+  width: fit-content;
+  overflow-x: auto;
 }
 </style>
