@@ -10,11 +10,10 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
-import { type AtlxxReqParams } from '@/sliderule/icesat2';
+import router from '@/router/index.js';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -139,7 +138,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         useSrToastStore().error('Error',emsg);
                     }
                     try {
-                        await duckDbReadAndUpdateElevationData(workerMsg.req_id);
+                        router.push(`/analyze/${workerMsg.req_id}`);
                     } catch (error) {
                         console.error('handleWorkerMsg opfs_ready error:',error);
                         useSrToastStore().error('Error','Error loading file');
@@ -236,7 +235,6 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             mapStore.setIsLoading(true); // controls spinning progress
             mapStore.setTotalRows(0);
             mapStore.setCurrentRows(0);
-            mapStore.setCurRowsProcessed(0);
             worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {

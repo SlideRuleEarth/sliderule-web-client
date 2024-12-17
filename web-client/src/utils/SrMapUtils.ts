@@ -315,7 +315,7 @@ export function updateWhereClause(reqIdStr:string){
 
 }
 
-async function clicked(d:ElevationDataItem): Promise<void> {
+export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
     hideTooltip();
     useAtlChartFilterStore().resetTheScatterPlot();

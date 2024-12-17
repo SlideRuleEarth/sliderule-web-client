@@ -6,15 +6,13 @@ import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,ty
 import { getHeightFieldname } from "./SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-//import type { SrScatterOptionsParms } from './parmUtils';
 import { useMapStore } from '@/stores/mapStore';
-//import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useChartStore } from '@/stores/chartStore';
-import { use } from 'echarts';
+import { clicked } from '@/utils/SrMapUtils'
 
 interface SummaryRowData {
     minLat: number;
@@ -124,21 +122,20 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     
     let sample_fraction = 1.0;
     try{
-        const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const height_fieldname = await getHeightFieldname(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         if(summary){
             const numPointsStr = summary.numPoints;
             const numPoints = parseInt(String(numPointsStr));
-            // console.log ('duckDbReadAndUpdateElevationData typeof numPoints:', typeof(numPoints));
             // console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
 
             try{
                 sample_fraction = maxNumPnts /numPoints; 
             } catch (error) {
-                console.error('duckDbReadAndUpdateElevationData sample_fraction error:', error);
+                console.error('computeSamplingRate sample_fraction error:', error);
             }
-            console.warn('duckDbReadAndUpdateElevationData maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
+            console.warn('computeSamplingRate maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
         } else {
             console.error('computeSamplingRate summary is undefined using 1.0');
         }
@@ -183,80 +180,52 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
         await duckDbClient.insertOpfsParquet(filename);
         // Step 4: Execute a SQL query to retrieve the elevation data
 
-        // Calculate the offset for the query
-        let offset = 0;
-        let hasMoreData = true;
         let numDataItemsUsed = 0;
-        let numDataItemsProcessed = 0;
-        const rowChunks: ElevationDataItem[] = [];
+        let rows: ElevationDataItem[] = [];
         useMapStore().setCurrentRows(0);
-        useMapStore().setCurRowsProcessed(0);
         useMapStore().setTotalRows(0);
     
-        while (hasMoreData) {
-            try{
-                const sample_fraction = await computeSamplingRate(req_id);
-                // Execute the query
-                const result = await duckDbClient.queryChunkSampled(`SELECT * FROM '${filename}'`, 
-                                                                    chunkSize, 
-                                                                    offset,
-                                                                    sample_fraction);
-                if(result.totalRows){
-                    //console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
-                    useMapStore().setTotalRows(result.totalRows);
-                } else {
-                    if(result.schema === undefined){
-                        console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
-                    }
+        try{
+            const sample_fraction = await computeSamplingRate(req_id);
+            // Execute the query
+            const result = await duckDbClient.queryChunkSampled(`SELECT * FROM '${filename}'`,  sample_fraction);
+            if(result.totalRows){
+                //console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
+                useMapStore().setTotalRows(result.totalRows);
+            } else {
+                if(result.schema === undefined){
+                    console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
                 }
-                //console.log(`duckDbReadAndUpdateElevationData for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
-                for await (const rowChunk of result.readRows()) {
-                    if (rowChunk.length > 0) {
-                        // if (numDataItemsUsed === 0) {
-                        //     // Assuming we only need to set field names once, during the first chunk processing
-                        //     const fieldNames = Object.keys(rowChunk[0]);
-                        //     await useChartStore().setElevationDataOptionsFromFieldNames(reqIdStr,fieldNames);
-                        // }
-                
-                        // Use the sample rate to push every nth element
-                        for (let i = 0; i < rowChunk.length; i++) {
-                            rowChunks.push(rowChunk[i]);
-                        }
-                
-                        // Update the count of processed data items
-                        numDataItemsUsed += rowChunk.length;
-                        useMapStore().setCurrentRows(numDataItemsUsed);
-                        numDataItemsProcessed += chunkSize;
-                        useMapStore().setCurRowsProcessed(numDataItemsProcessed);
-                        //console.log('duckDbReadAndUpdateElevationData numDataItemsUsed:', numDataItemsUsed, ' numDataItemsProcessed:', numDataItemsProcessed);
-                    }
-                }
-                
+            }
+            const iterator = result.readRows();
+            const { value, done } = await iterator.next();
+            
+            if (!done && value) {
+                rows = value as ElevationDataItem[];
+                clicked(rows[0]); // preset filters using the first row               
+                numDataItemsUsed += rows.length;
+                useMapStore().setCurrentRows(numDataItemsUsed);
+                     
                 if (numDataItemsUsed === 0) {
                     console.warn('duckDbReadAndUpdateElevationData no data items processed');
                     useSrToastStore().warn('No Data Processed','No data items processed. Not Data returned for this region and request parameters.');
                 } else {
                     //console.log('duckDbReadAndUpdateElevationData numDataItems:', numDataItems);
                 }
-                hasMoreData = result.hasMoreData;
-                const maxNumPnts = useSrParquetCfgStore().maxNumPntsToDisplay;
-                if(numDataItemsUsed >= maxNumPnts){
-                    console.warn('duckDbReadAndUpdateElevationData EXCEEDED maxNumPnts:', maxNumPnts,' numDataItemsUsed:',numDataItemsUsed, 'numDataItemsProcessed:',numDataItemsProcessed, ' SKIPPING rest of file!');
-                    hasMoreData = false;
-                }
-                offset += chunkSize;
-            } catch (error) {
-                console.error('duckDbReadAndUpdateElevationData error processing chunk:', error);
-                hasMoreData = false;
-                throw error;
+            } else {
+                console.warn('duckDbReadAndUpdateElevationData no data items processed');
+                useSrToastStore().warn('No Data Processed','No data items processed. Not Data returned for this region and request parameters.');
             }
+        } catch (error) {
+            console.error('duckDbReadAndUpdateElevationData error processing chunk:', error);
+            throw error;
         }
         const name = EL_LAYER_NAME+'_'+req_id.toString();
         const height_fieldname = await getHeightFieldname(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
-            updateElLayerWithObject(name,rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
+            updateElLayerWithObject(name,rows as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
         }
 
     } catch (error) {
@@ -270,7 +239,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number) => {
 };
 
 export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=10000, maxNumPnts=10000) => {
-    //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     if(req_id === undefined || req_id === null || req_id === 0){
         console.error('duckDbReadAndUpdateSelectedLayer Bad req_id:', req_id);
         return;
@@ -334,45 +302,35 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         //console.log(`duckDbReadAndUpdateSelectedLayer for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
         console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
         // Calculate the offset for the query
-        let offset = 0;
-        let hasMoreData = true;
         let numDataItems = 0;
         const rowChunks: ElevationDataItem[] = [];
 
-        while (hasMoreData) {
-            try{
-                // Execute the query
-                //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
-                const sample_fraction = await computeSamplingRate(req_id);
-                const result = await duckDbClient.queryChunkSampled(queryStr, chunkSize, offset,sample_fraction);
-                //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
-                for await (const rowChunk of result.readRows()) {
-                    //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
-                    if (rowChunk.length > 0) {
-                        numDataItems += rowChunk.length;
-                        rowChunks.push(...rowChunk);
-                        // Read and process each chunk from the QueryResult
-                        //console.log('duckDbReadAndUpdateSelectedLayer rowChunks:', rowChunks);
-                    }
+        try{
+            // Execute the query
+            //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
+            const sample_fraction = await computeSamplingRate(req_id);
+            const result = await duckDbClient.queryChunkSampled(queryStr,sample_fraction);
+            //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
+            for await (const rowChunk of result.readRows()) {
+                //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
+                if (rowChunk.length > 0) {
+                    numDataItems += rowChunk.length;
+                    rowChunks.push(...rowChunk);
+                    // Read and process each chunk from the QueryResult
+                    //console.log('duckDbReadAndUpdateSelectedLayer rowChunks:', rowChunks);
                 }
-
-                if (numDataItems === 0) {
-                    console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
-                } else {
-                    //console.log('duckDbReadAndUpdateSelectedLayer numDataItems:', numDataItems);
-                }
-                hasMoreData = result.hasMoreData;
-                if(numDataItems >= maxNumPnts){
-                    console.warn('duckDbReadAndUpdateSelectedLayer EXCEEDED maxNumPnts:', maxNumPnts, ' SKIPPING rest of file!');
-                    hasMoreData = false;
-                }
-                offset += chunkSize;
-            } catch (error) {
-                console.error('duckDbReadAndUpdateSelectedLayer error processing chunk:', error);
-                hasMoreData = false;
-                throw error;
             }
+
+            if (numDataItems === 0) {
+                console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
+            } else {
+                //console.log('duckDbReadAndUpdateSelectedLayer numDataItems:', numDataItems);
+            }
+        } catch (error) {
+            console.error('duckDbReadAndUpdateSelectedLayer error processing chunk:', error);
+            throw error;
         }
+        
         const srViewName = await indexedDb.getSrViewName(req_id);
         const projName = srViews.value[srViewName].projectionName;
         updateSelectedLayerWithObject(rowChunks as ElevationDataItem[], projName);

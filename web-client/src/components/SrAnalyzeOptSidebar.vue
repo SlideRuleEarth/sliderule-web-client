@@ -14,7 +14,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useDeckStore } from '@/stores/deckStore';
-import { useDebugStore } from '@/stores/debugStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";
@@ -25,12 +24,13 @@ import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from './SrEditDesc.vue';
 import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
-import Fieldset from 'primevue/fieldset';
 import MultiSelect from 'primevue/multiselect';
 import { useChartStore } from '@/stores/chartStore';
 import { refreshScatterPlot,updateChartStore } from '@/utils/plotUtils';
 import { updateWhereClause } from '@/utils/SrMapUtils';
 import { db as indexedDb } from "@/db/SlideRuleDb";
+import SrCustomTooltip from './SrCustomTooltip.vue';
+import Button from 'primevue/button';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -62,7 +62,7 @@ const spotPatternBriefStr = "fields related to spots and beams patterns";
 const props = defineProps({
     startingReqId: Number,
 });
-
+const tooltipRef = ref();
 const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref({name:'0', value:'0'});
 const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
@@ -487,6 +487,40 @@ const getCnt = computed(() => {
 const tooltipTextStr = computed(() => {
     return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
+
+const exportButtonClick = async () => {
+    let req_id = 0;
+    try {
+        req_id = Number(selectedReqId.value.value);
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+        const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        // Create a download link and click it programmatically
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke the object URL
+        URL.revokeObjectURL(url);
+        const msg = `File ${fileName} exported successfully!`;
+        console.log(msg);
+        alert(msg);
+
+    } catch (error) {
+        console.error(`Failed to expport req_id:${req_id}`, error);
+        alert(`Failed to export file for req_id:${req_id}`);
+        throw error;
+    }
+};
+
+
 </script>
 
 <template>
@@ -504,6 +538,19 @@ const tooltipTextStr = computed(() => {
                         :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                         :tooltipText=tooltipTextStr
                     />
+                    <SrCustomTooltip ref="tooltipRef"/>
+                    <Button
+                        icon="pi pi-file-export"
+                        @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
+                        @mouseleave="tooltipRef.hideTooltip()"
+                        @click="exportButtonClick"
+                        rounded 
+                        aria-label="Export"
+                        size="small"
+                        severity="text" 
+                        variant="text"
+                    >
+                    </Button>
                     <MultiSelect 
                         v-if=hasOverlayedReqs
                         v-model="selectedOverlayedReqIds" 

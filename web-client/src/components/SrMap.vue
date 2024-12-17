@@ -4,7 +4,6 @@
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
-    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
@@ -25,7 +24,7 @@
     import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { initDeck,checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
+    import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -484,11 +483,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                if(mapStore.getCurrentReqId() > 0){
-                    await updateThisMapView("SrMap onMounted",true);
-                } else {
-                    await updateThisMapView("SrMap onMounted",false);
-                }
+                await updateThisMapView("SrMap onMounted");
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -549,7 +544,7 @@
         }
     };
 
-    const updateThisMapView = async (reason:string,restoreCurrReq:boolean) => {
+    const updateThisMapView = async (reason:string) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
@@ -565,16 +560,7 @@
                     // });
                     map.addLayer(drawVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
-                    if(restoreCurrReq){
-                        const reqId = mapStore.getCurrentReqId();
-                        if(reqId > 0){
-                            await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewKey.value);
-                            initDeck(map);
-                            await duckDbReadAndUpdateElevationData(reqId);
-                        }
-                    } else {
-                        initDeck(map);
-                    }
+                            
 
                     // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
                     // Permalink
@@ -619,7 +605,7 @@
             const map = mapRef.value?.map;
             try{
                 if(map){
-                    await updateThisMapView("handleUpdateSrView",true);
+                    await updateThisMapView("handleUpdateSrView");
                 } else {
                     console.error("SrMap Error:map is null");
                 }
@@ -637,7 +623,7 @@
         const map = mapRef.value?.map;
         try{
             if(map){
-                await updateThisMapView("handleUpdateBaseLayer",true);
+                await updateThisMapView("handleUpdateBaseLayer");
             } else {
                 console.error("SrMap Error:map is null");
             }

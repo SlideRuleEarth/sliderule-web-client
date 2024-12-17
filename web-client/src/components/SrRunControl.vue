@@ -4,7 +4,6 @@
     import { onMounted,onBeforeUnmount,ref } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
-    import { db } from '@/db/SlideRuleDb';
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
@@ -65,45 +64,45 @@
             toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
         }
     };
-    const analysisButtonClick = async () => {
-        if (atlChartFilterStore.getReqId()) {
-            router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
-        } else {
-            goToAnalysisForCurrent();
-        }
-    };
+    // const analysisButtonClick = async () => {
+    //     if (atlChartFilterStore.getReqId()) {
+    //         router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
+    //     } else {
+    //         goToAnalysisForCurrent();
+    //     }
+    // };
 
-    const exportButtonClick = async () => {
-        let req_id = 0;
-        try {
-            req_id = await getActiveReqId();
-            const fileName = await db.getFilename(req_id);
-            const opfsRoot = await navigator.storage.getDirectory();
-            const folderName = 'SlideRule'; 
-            const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-            const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
-            const file = await fileHandle.getFile();
-            const url = URL.createObjectURL(file);
-            // Create a download link and click it programmatically
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+    // const exportButtonClick = async () => {
+    //     let req_id = 0;
+    //     try {
+    //         req_id = await getActiveReqId();
+    //         const fileName = await db.getFilename(req_id);
+    //         const opfsRoot = await navigator.storage.getDirectory();
+    //         const folderName = 'SlideRule'; 
+    //         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+    //         const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
+    //         const file = await fileHandle.getFile();
+    //         const url = URL.createObjectURL(file);
+    //         // Create a download link and click it programmatically
+    //         const a = document.createElement('a');
+    //         a.href = url;
+    //         a.download = fileName;
+    //         document.body.appendChild(a);
+    //         a.click();
+    //         document.body.removeChild(a);
 
-            // Revoke the object URL
-            URL.revokeObjectURL(url);
-            const msg = `File ${fileName} exported successfully!`;
-            console.log(msg);
-            alert(msg);
+    //         // Revoke the object URL
+    //         URL.revokeObjectURL(url);
+    //         const msg = `File ${fileName} exported successfully!`;
+    //         console.log(msg);
+    //         alert(msg);
 
-        } catch (error) {
-            console.error(`Failed to expport req_id:${req_id}`, error);
-            alert(`Failed to export file for req_id:${req_id}`);
-            throw error;
-        }
-    };
+    //     } catch (error) {
+    //         console.error(`Failed to expport req_id:${req_id}`, error);
+    //         alert(`Failed to export file for req_id:${req_id}`);
+    //         throw error;
+    //     }
+    // };
 </script>
 <template>
     <div class="sr-run-abort-panel">
@@ -114,32 +113,6 @@
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
-                <Button
-                    v-if=computedDataLoaded
-                    icon="pi pi-chart-line"
-                    @mouseover="tooltipRef.showTooltip($event, 'Analyze the current request')"
-                    @mouseleave="tooltipRef.hideTooltip()"
-                    @click="analysisButtonClick"
-                    rounded 
-                    aria-label="Analyze"
-                    size="small"
-                    severity="text" 
-                    variant="text"
-                >
-                </Button>
-                <Button
-                    v-if=computedDataLoaded
-                    icon="pi pi-file-export"
-                    @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
-                    @mouseleave="tooltipRef.hideTooltip()"
-                    @click="exportButtonClick"
-                    rounded 
-                    aria-label="Export"
-                    size="small"
-                    severity="text" 
-                    variant="text"
-                >
-                </Button>
                 <SrCustomTooltip ref="tooltipRef"/>
 
                 <Button 
