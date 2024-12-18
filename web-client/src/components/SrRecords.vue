@@ -155,6 +155,8 @@ const tooltipRef = ref();
             :value="requestsStore.reqs" 
             tableStyle=" width:100%;" 
             table-layout="auto"
+            size="small" 
+            resizableColumns="true"
             scrollable 
             scrollHeight="flex"
             :paginator="true"
@@ -323,9 +325,8 @@ const tooltipRef = ref();
 .sr-records-container {
     display: block;
     width: fit-content;
-    overflow-x: auto;
-    padding: 0.5rem;
-    margin: 0.5rem;
+    padding: 1.5rem;
+    margin: 1.5rem;
 }
 
 .sr-analyze {

@@ -690,6 +690,7 @@ const updateScatterPlot = async () => {
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
+        console.log(`updateScatterPlot reqIds:`, reqIds);
         reqIds.forEach(reqId => { 
             if(reqId > 0){
                 appendSeries(reqId);
@@ -697,7 +698,6 @@ const updateScatterPlot = async () => {
                 console.error(`updateScatterPlot Invalid request ID:${reqId}`);
             }
         });
-        console.log(`updateScatterPlot ${reqIds} Cleared Plot `);
     } else {
         console.warn(`Ignoring updateScatterPlot with no plot to update, plotRef is undefined.`);
     }

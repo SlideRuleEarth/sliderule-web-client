@@ -94,8 +94,10 @@
         //console.log("SrMap disableDragBox");
         // Check if the DragBox interaction is added to the map.
         if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
-        // If it is, remove it.
-        mapRef.value?.map.removeInteraction(dragBox);
+            // If it is, remove it.
+            mapRef.value?.map.removeInteraction(dragBox);
+        } else {
+            console.warn("SrMap disableDragBox DragBox not found");
         }
     }
 
@@ -103,7 +105,11 @@
         //console.log("SrMap enableDragBox");
         disableDragBox(); // reset then add
         disableDrawPolygon();
-        mapRef.value?.map.addInteraction(dragBox);
+        if(mapRef.value?.map.addInteraction(dragBox)){
+            //console.log("SrMap enableDragBox dragBox added");
+        } else {
+            console.error("SrMap enableDragBox dragBox not added");
+        }
     }
 
     var boxStyle = new Style({
@@ -207,8 +213,8 @@
         //console.log("disableDrawPolygon");
         // Check if the Draw interaction is added to the map.
         if (mapRef.value?.map.getInteractions().getArray().includes(drawPolygon)) {
-        // If it is, remove it.
-        mapRef.value?.map.removeInteraction(drawPolygon);
+            // If it is, remove it.
+            mapRef.value?.map.removeInteraction(drawPolygon);
         }
     }
 
@@ -636,36 +642,36 @@
 
 <template>
 <div class="sr-main-map">
-  <Map.OlMap ref="mapRef" @error="handleEvent"
-    :loadTilesWhileAnimating="true"
-    :loadTilesWhileInteracting="true"
-    style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
-    :controls="controls"
-  >
-    <MapControls.OlLayerswitcherControl
-      :selection="true"
-      :displayInLayerSwitcher="() => true"
-      :show_progress="true"
-      :mouseover="false"
-      :reordering="true"
-      :trash="false"
-      :extent="true"
-    />
+    <Map.OlMap ref="mapRef" @error="handleEvent"
+        :loadTilesWhileAnimating="true"
+        :loadTilesWhileInteracting="true"
+        style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
+        :controls="controls"
+    >
+        <MapControls.OlLayerswitcherControl
+            :selection="true"
+            :displayInLayerSwitcher="() => true"
+            :show_progress="true"
+            :mouseover="false"
+            :reordering="true"
+            :trash="false"
+            :extent="true"
+        />
 
-    <MapControls.OlZoomControl  />
-    
-    <MapControls.OlMousepositionControl 
-        :projection="computedProjName"
-        :coordinateFormat="stringifyFunc as any"
-    ></MapControls.OlMousepositionControl>  
-    <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+        <MapControls.OlZoomControl  />
+        
+        <MapControls.OlMousepositionControl 
+            :projection="computedProjName"
+            :coordinateFormat="stringifyFunc as any"
+        ></MapControls.OlMousepositionControl>  
+        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
-    <MapControls.OlScalelineControl />
-    <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
-    <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-    <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
-    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
-  </Map.OlMap>
+        <MapControls.OlScalelineControl />
+        <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+        <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
+        <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
+    </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
 </div>
 </template>

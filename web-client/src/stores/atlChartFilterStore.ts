@@ -24,7 +24,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
     currentReqId: 0 as number,
-    //updateScatterPlotCnt: 0 as number,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
@@ -40,6 +39,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03vpDefaultSymbolSize: 3 as number,
     atl06DefaultSymbolSize: 3 as number,
     atl08DefaultSymbolSize: 3 as number,
+    addPhotonCloud: false as boolean,
   }),
 
   actions: {
@@ -256,10 +256,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         this.scOrients.push({ label: scOrient.toString(), value: scOrient });
       }
     },
-    // updateScatterPlot() {
-    //   this.updateScatterPlotCnt += 1;
-    //   console.log('atlChartFilterStore.updateScatterPlot() currentCnt:', this.updateScatterPlotCnt);
-    // },
     setIsLoading() {
       //console.log('atlChartFilterStore.setIsLoading()');
       this.isLoading = true;
@@ -328,6 +324,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setAtl08DefaultSymbolSize(size: number) {
       this.atl08DefaultSymbolSize = size;
+    },
+    getAddPhotonCloud() {
+      return this.addPhotonCloud;
+    },
+    setAddPhotonCloud(addPhotonCloud: boolean) {
+      this.addPhotonCloud = addPhotonCloud;
     },
   }
 });

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted,ref,watch,computed, Ref } from 'vue';
-import SrAnalysisMap from './SrAnalysisMap.vue';
-import SrMenuInput, { type SrMenuItem } from './SrMenuInput.vue';
-import SrRecReqDisplay from './SrRecIdReqDisplay.vue';
-import SrListbox from './SrListbox.vue';
-import SrSliderInput from './SrSliderInput.vue';
+import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
+import SrMenuInput, { type SrMenuItem } from '@/components/SrMenuInput.vue';
+import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
+import SrListbox from '@/components/SrListbox.vue';
+import SrSliderInput from '@/components/SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
 import { duckDbReadAndUpdateElevationData,duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
@@ -22,15 +22,16 @@ import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
-import SrEditDesc from './SrEditDesc.vue';
-import SrScatterPlotOptions from "./SrScatterPlotOptions.vue";
-import MultiSelect from 'primevue/multiselect';
+import SrEditDesc from '@/components/SrEditDesc.vue';
+import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
 import { refreshScatterPlot,updateChartStore } from '@/utils/plotUtils';
 import { updateWhereClause } from '@/utils/SrMapUtils';
 import { db as indexedDb } from "@/db/SlideRuleDb";
-import SrCustomTooltip from './SrCustomTooltip.vue';
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
+import SrToggleButton  from '@/components/SrToggleButton.vue';
+import { type AtlxxReqParams } from '@/sliderule/icesat2';
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -79,7 +80,10 @@ const isMounted = ref(false);
 const computedReqIdStr = computed(() => {
     return selectedReqId.value.value;
 });
-import { type AtlxxReqParams } from '@/sliderule/icesat2';
+const computedFunc = computed(() => {
+    return chartStore.getFunc(computedReqIdStr.value);
+});
+const addPhotonCloud = ref(false);
 
 async function updatePlot(){
     console.log('updatePlot');
@@ -539,28 +543,6 @@ const exportButtonClick = async () => {
                         :tooltipText=tooltipTextStr
                     />
                     <SrCustomTooltip ref="tooltipRef"/>
-                    <Button
-                        icon="pi pi-file-export"
-                        @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
-                        @mouseleave="tooltipRef.hideTooltip()"
-                        @click="exportButtonClick"
-                        rounded 
-                        aria-label="Export"
-                        size="small"
-                        severity="text" 
-                        variant="text"
-                    >
-                    </Button>
-                    <MultiSelect 
-                        v-if=hasOverlayedReqs
-                        v-model="selectedOverlayedReqIds" 
-                        size="small"
-                        :options="overlayedReqIdOptions"
-                        optionValue="value"
-                        optionLabel="label"  
-                        placeholder="Overlay" 
-                        display="chip" 
-                    />
                 </div>
             </div>
             <div class="sr-map-descr">
@@ -570,13 +552,27 @@ const exportButtonClick = async () => {
                 </div>
                 <div class="sr-req-description">  
                     <SrEditDesc :reqId="Number(selectedReqId.value)"/>
+                    <Button
+                        icon="pi pi-file-export"
+                        class="sr-export-button"
+                        label="Export"
+                        @mouseover="tooltipRef.showTooltip($event, 'Export')"
+                        @mouseleave="tooltipRef.hideTooltip()"
+                        @click="exportButtonClick"
+                        rounded 
+                        aria-label="Export"
+                        size="small"
+                        severity="text" 
+                        variant="text"
+                    >
+                    </Button>
                 </div>
             </div>
             <div class="sr-pnts-colormap">
                 <div class="sr-analysis-max-pnts">
                     <SrSliderInput
                         v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                        label="Max Num Pnts"
+                        label="Max Num Elevation Pnts"
                         :min="10000"
                         :max="5000000"
                         :defaultValue="100000"
@@ -777,7 +773,7 @@ const exportButtonClick = async () => {
     
     .sr-req-description {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         justify-content: space-between;
         margin: 0.75rem;
@@ -785,8 +781,16 @@ const exportButtonClick = async () => {
         font-size: smaller;
         border: 1px solid;
         padding: 0.25rem;
-        color:transparent
- 
+        color:transparent;
+    }
+    .sr-export-button {
+        margin: 1.25rem;
+    }
+    .sr-photon-cloud {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: left;
     }
     .sr-pnts-colormap {
         display: flex;

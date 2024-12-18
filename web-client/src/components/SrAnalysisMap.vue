@@ -12,7 +12,7 @@
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import SrLegendControl from './SrLegendControl.vue';
-    import { dumpMapLayers, initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
+    import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
@@ -23,7 +23,7 @@
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView } from "@/utils/SrMapUtils";
-    
+
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
         const projName = computedProjName.value;
@@ -36,6 +36,7 @@
     };
     const mapContainer = ref<HTMLElement | null>(null);
     const mapRef = ref<{ map: OLMap }>();
+    const legendRef = ref<any>();
     const mapStore = useMapStore();
     const chartStore = useChartStore();
     const requestsStore = useRequestsStore();
@@ -112,12 +113,13 @@
 
     const handleLegendControlCreated = (legendControl: any) => {
         //console.log(legendControl);
-        const map = mapRef.value?.map;
-        if(map){
+        legendRef.value = legendControl;
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
             console.log("adding legendControl");
-            map.addControl(legendControl);
+            analysisMap.addControl(legendControl);
         } else {
-            console.error("Error:map is null");
+            console.warn("analysisMap is null will be set in onMounted");
         }
     };
 

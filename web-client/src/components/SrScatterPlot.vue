@@ -47,14 +47,26 @@
             />
             <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
             <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
-          </div> 
+        </div> 
+        <div class="sr-scatter-plot-footer">
+            <div class="sr-photon-cloud">
+                <SrToggleButton
+                    v-if="!computedFunc.includes('atl03')"
+                    v-model="atlChartFilterStore.addPhotonCloud"
+                    :getValue="atlChartFilterStore.getAddPhotonCloud"
+                    :setValue="atlChartFilterStore.setAddPhotonCloud"
+                    label="Add Photon Cloud"
+                    tooltipText="Add photon cloud to map"
+                />
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import MultiSelect from "primevue/multiselect";
-import { type SrMenuItem } from './SrMenuInput.vue';
+import { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
@@ -65,17 +77,19 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import { refreshScatterPlot } from "@/utils/plotUtils";
-import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
-import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
+import SrAtl03ColorLegend from "@/components/SrAtl03ColorLegend.vue";
+import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { db } from "@/db/SlideRuleDb";
 import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
+import SrToggleButton from "@/components/SrToggleButton.vue";
 
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
+const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 
@@ -263,7 +277,7 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 }
 
 .sr-multiselect {
-    width: 100%;
+    width: fit-content;
     margin: 0rem;
     border: 0rem;
 }

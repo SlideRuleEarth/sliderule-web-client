@@ -50,7 +50,7 @@ export const useChartStore = defineStore('chartStore', {
             description: 'description here',
             querySql: '',
             whereClause: '',
-            message: 'Failed to load data. Please try again later.',
+            message: '',
             isWarning: false,
             showMessage: false,
             size: 0,
