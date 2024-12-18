@@ -303,7 +303,7 @@ export async function processRunSlideRuleClicked() {
     if(srReqRec) {
         console.log('runSlideRuleClicked srReqRec:',srReqRec);
         if(!srReqRec.req_id) {
-            console.error('runAtl06 req_id is undefined');
+            console.error('runSlideRuleClicked req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             useSrToastStore().error('Error','There was an error');
             return;

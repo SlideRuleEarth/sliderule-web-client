@@ -17,7 +17,7 @@
                   <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
                 </FloatLabel>
             </div>
-            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+            <!-- <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
                 <FloatLabel variant="on">
                   <MultiSelect
                       class="sr-multiselect" 
@@ -30,7 +30,7 @@
                   />
                     <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
                 </FloatLabel>
-            </div>
+            </div> -->
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
@@ -49,15 +49,15 @@
             <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
         </div> 
         <div class="sr-scatter-plot-footer">
-            <div class="sr-photon-cloud">
-                <SrToggleButton
-                    v-if="!computedFunc.includes('atl03')"
+            <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03')">
+                <!-- <SrToggleButton
                     v-model="atlChartFilterStore.addPhotonCloud"
                     :getValue="atlChartFilterStore.getAddPhotonCloud"
                     :setValue="atlChartFilterStore.setAddPhotonCloud"
                     label="Add Photon Cloud"
                     tooltipText="Add photon cloud to map"
-                />
+                /> -->
+                <SrFetchPhotonCloud />
             </div>
         </div>
     </div>
@@ -83,8 +83,13 @@ import { useChartStore } from "@/stores/chartStore";
 import { db } from "@/db/SlideRuleDb";
 import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
-import SrToggleButton from "@/components/SrToggleButton.vue";
+import SrFetchPhotonCloud from "@/components/SrFetchPhotonCloud.vue";
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
+import { debounce } from "lodash";
+import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
+const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -109,7 +114,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const reqIds = ref<SrMenuItem[]>([]);
-const filteredReqIds = ref<{label:string, value:number}[]>([]);
 const findLabel = (value:number) => {
     //console.log('findLabel reqIds:', reqIds.value);
     const match = reqIds.value.find(item => Number(item.value) === value);
@@ -118,27 +122,38 @@ const findLabel = (value:number) => {
 };
 
 async function onMainYDataSelectionChange(newValue: string[]) {
-    console.log("Main Y Data changed:", newValue);
+    //console.log("Main Y Data changed:", newValue);
     await refreshScatterPlot('from onMainYDataSelectionChange');
 }
 
-async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
-    console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
-    await refreshScatterPlot('from onOverlayYDataSelectionChange');
-}
+// async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
+//     console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
+//     await refreshScatterPlot('from onOverlayYDataSelectionChange');
+// }
+
+async function setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
+        chartStore.setElevationDataOptions(reqIdStr,fieldNames);
+        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
+        const ndx = fieldNames.indexOf(heightFieldname);
+        chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr,ndx);
+        chartStore.setYDataForChart(reqIdStr,[chartStore.getElevationDataOptionForHeight(reqIdStr)]);
+        //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
+};
 
 onMounted(async () => {
-
   try {
-    console.log('SrScatterPlot onMounted');
-    reqIds.value =  await useRequestsStore().getMenuItems();
-    initializeBindings(reqIds.value.map(item => item.value));
+    //console.log('SrScatterPlot onMounted');
     atlChartFilterStore.setPlotRef(plotRef.value);
     const reqId = atlChartFilterStore.getReqId();
+    const duckDbClient = await createDuckDbClient();
+    reqIds.value =  await requestsStore.getMenuItems();
+    initializeBindings(reqIds.value.map(item => item.value));
     if (reqId > 0) {
         const func = await indexedDb.getFunc(reqId);
         atl03ColorMapStore.initializeAtl03ColorMapStore();
-
+        const colNames = await duckDbClient.queryForColNames(await db.getFilename(reqId));
+        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
+ 
         if (func === 'atl03sp') {
             atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
         } else if (func.includes('atl06')) {
@@ -150,40 +165,38 @@ onMounted(async () => {
         const successfulReqIdsSet = new Set(reqIds.value.map(item => Number(item.value)));
         const overlayedReqIds = await db.getOverlayedReqIdsOptions(reqId);
         const filteredReqIds = overlayedReqIds.filter(item => successfulReqIdsSet.has(item.value));
-        const duckDbClient = await createDuckDbClient();
-        const colNames = await duckDbClient.queryForColNames(await db.getFilename(reqId));
-        useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
         for (const oreqId of filteredReqIds) { // filter out failed reqIds
             const filename = await db.getFilename(oreqId.value);
-            console.log('filename:', filename);
+            //console.log('filename:', filename);
             // Attach the Parquet file
             await duckDbClient.insertOpfsParquet(filename);
             const colNames = await duckDbClient.queryForColNames(filename);
-            useChartStore().setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
+            await setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
         }
-        //initScatterPlotWith(reqId);
     } else {
         console.warn('reqId is undefined');
     }
+    updatePlot();
+    //console.log('SrScatterPlot onMounted completed');
   } catch (error) {
         console.error('Error during onMounted initialization:', error);
   }
 });
 
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
-    console.log('reqId changed:', newReqId);
+    //console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         await refreshScatterPlot('from watch atlChartFilterStore.getReqId()');
     }
 });
 
-watch(
-  () => atlChartFilterStore.selectedOverlayedReqIds,
-  async (newOverlayedReqIds, oldOverlayedReqIds) => {
-    console.log('selectedOverlayedReqIds changed from:', oldOverlayedReqIds, 'to:', newOverlayedReqIds);
-    await refreshScatterPlot('from watch atlChartFilterStore.selectedOverlayedReqIds');
-  }
-);
+// watch(
+//   () => atlChartFilterStore.selectedOverlayedReqIds,
+//   async (newOverlayedReqIds, oldOverlayedReqIds) => {
+//     console.log('selectedOverlayedReqIds changed from:', oldOverlayedReqIds, 'to:', newOverlayedReqIds);
+//     await refreshScatterPlot('from watch atlChartFilterStore.selectedOverlayedReqIds');
+//   }
+// );
 
 
 
@@ -200,7 +213,7 @@ const computedSelectedAtl03ColorMap = computed(() => {
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
+    //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
@@ -208,6 +221,83 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
         await refreshScatterPlot('from watch computedSelectedAtl03ColorMap');
     }
 }, { deep: true, immediate: true });
+
+async function updatePlot(){
+    //console.log('updatePlot');
+    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
+        (useAtlChartFilterStore().getCycleValues().length > 0) &&
+        (useAtlChartFilterStore().getSpotValues().length > 0)
+    ){
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+        await refreshScatterPlot('from updatePlot');
+    } else {
+        console.warn('Need Rgt, Cycle, and Spot values selected');
+        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
+        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
+        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+    }
+}
+
+const onSelection = async() => {
+    //console.log('onSelection with req_id:', computedReqIdStr);
+    await updatePlot();
+}
+
+const debouncedOnSelection = debounce((msg:string) => {
+  //console.log("debouncedOnSelection called for:",msg);
+  onSelection();
+}, 500);
+
+watch(() => atlChartFilterStore.scOrients,
+  async (newValues, oldValues) => {
+    //console.log('watch - scOrients changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.scOrients");
+  }
+);
+
+watch(() => atlChartFilterStore.rgts,
+  async (newValues, oldValues) => {
+    //console.log('watch - rgts changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.rgts");
+  }
+);
+
+watch(() => atlChartFilterStore.cycles,
+  async (newValues, oldValues) => {
+    //console.log('watch - cycles changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.cycles");
+  }
+);
+
+watch(() => atlChartFilterStore.spots,
+  async (newValues, oldValues) => {
+    //console.log('watch - spots changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.spots");
+  }
+);
+
+watch(() => atlChartFilterStore.beams,
+  async (newValues, oldValues) => {
+    //console.log('watch - beams changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.beams");
+  }
+);
+
+watch(() => atlChartFilterStore.tracks,
+  async (newValues, oldValues) => {
+    //console.log('watch - tracks changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.tracks");
+  }
+);
+
+watch(() => atlChartFilterStore.pairs,
+  async (newValues, oldValues) => {
+    //console.log('watch - pairs changed from:', oldValues, 'to:', newValues);
+    debouncedOnSelection("watch atlChartFilterStore.pairs");
+  }
+);
 
 </script>
 
@@ -250,15 +340,6 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
   overflow-x: auto;
   height: 100%;
   width: auto;
-}
-
-.sr-scatter-plot-options {
-  display: flex; 
-  flex-direction: column;
-  align-items: self-start;
-  margin: 0.5rem;
-  width: auto; /* Add this line to ensure it only takes as much width as needed */
-  overflow-y: auto;
 }
 
 .sr-multiselect-container {

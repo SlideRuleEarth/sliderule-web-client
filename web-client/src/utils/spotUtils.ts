@@ -121,7 +121,7 @@ export function getDetailsFromSpotNumber(spot:number) {
             details[1].pair = 0;
             break;
         default:
-            console.log('getSpotGtFromSpotNumber: INVALID spot:', spot);
+            console.warn('getSpotGtFromSpotNumber: INVALID spot:', spot);
             break;
     }
     return details;
@@ -190,6 +190,6 @@ export function createWhereClause(func:string, spots:number[],rgts:number[],cycl
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    console.log('createWhereClause: whereStr:', whereStr);
+    //console.log('createWhereClause: whereStr:', whereStr);
     return whereStr;
 }

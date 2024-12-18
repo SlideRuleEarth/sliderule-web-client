@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { getHeightFieldname } from '@/utils/SrParquetUtils';
 
 interface ChartState {
   currentFile: string;
@@ -10,7 +9,7 @@ interface ChartState {
   elevationDataOptions: string[];
   yDataForChart: string[];
   xDataForChart: string;
-  ndxOfelevationDataOptionsForHeight: number;
+  ndxOfElevationDataOptionsForHeight: number;
   func: string;
   description: string;
   querySql: string;
@@ -45,7 +44,7 @@ export const useChartStore = defineStore('chartStore', {
             elevationDataOptions: [ 'not_set' ],
             yDataForChart: [],
             xDataForChart: 'x_atc',
-            ndxOfelevationDataOptionsForHeight: 0,
+            ndxOfElevationDataOptionsForHeight: 0,
             func: '',
             description: 'description here',
             querySql: '',
@@ -116,22 +115,25 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
     },
-    getNdxOfelevationDataOptionsForHeight(reqIdStr: string) {
+    getNdxOfElevationDataOptionsForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight;
+        return this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight;
+    },
+    getElevationDataOptionForHeight(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].elevationDataOptions[this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight];
+    },
+    setNdxOfElevationDataOptionsForHeight(reqIdStr: string,ndx: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight = ndx;
     },
     getElevationDataOptions(reqIdStr: string) : string[] {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].elevationDataOptions;
     },
-    async setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
+    setElevationDataOptions(reqIdStr: string, elevationDataOptions: string[]) {
         this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].elevationDataOptions = fieldNames;
-        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
-        const ndx = fieldNames.indexOf(heightFieldname);
-        this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight = ndx;
-        this.setYDataForChart(reqIdStr,[this.stateByReqId[reqIdStr].elevationDataOptions[ndx]]);
-        //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
+        this.stateByReqId[reqIdStr].elevationDataOptions = elevationDataOptions;
     },
     getYDataForChart(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);
