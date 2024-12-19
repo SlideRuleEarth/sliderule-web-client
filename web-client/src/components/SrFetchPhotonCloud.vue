@@ -13,12 +13,13 @@
     const tooltipRef = ref();
     const analysisMapStore = useAnalysisMapStore();
     const requestsStore = useRequestsStore();
-
+    const reqParamsStore = useReqParamsStore();
     onMounted(async () => {
         console.log('SrFetchPhotonCloud onMounted');
         analysisMapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
-        requestsStore.setConsoleMsg(`Click <Overlay Photon Cloud> to fetch and plot Photon Cloud Data`);
+        requestsStore.setConsoleMsg(`Click <Overlay Photon Cloud> to fetch and overlay Photon Cloud Data on plot`);
+        reqParamsStore.presetForScatterPlotOverlay();
     });
     onBeforeUnmount(() => {
         console.log('SrFetchPhotonCloud unmounted');
@@ -29,11 +30,6 @@
             processAbortClicked();
         } else {
             console.log('runClicked for Photon Cloud');
-            useReqParamsStore().setMissionValue("ICESat-2");
-            useReqParamsStore().setIceSat2API("atl03sp");
-            useReqParamsStore().setEnableGranuleSelection(true);
-            useReqParamsStore().setUseRgt(true);
-            useReqParamsStore().setUseCycle(true);
             processRunSlideRuleClicked();
         }
     }

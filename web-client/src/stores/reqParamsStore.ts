@@ -202,6 +202,20 @@ export const useReqParamsStore = defineStore('reqParams', {
         enableSurfaceElevation: false,
     }),
     actions: {
+        presetForScatterPlotOverlay() {
+          useReqParamsStore().setMissionValue("ICESat-2");
+          useReqParamsStore().setIceSat2API("atl03sp");
+          useReqParamsStore().setEnableGranuleSelection(true);
+          useReqParamsStore().setUseRgt(true);
+          useReqParamsStore().setUseCycle(true);
+        },
+        presetForMainRequest() {
+          useReqParamsStore().setMissionValue("ICESat-2");
+          useReqParamsStore().setIceSat2API("atl06p");
+          useReqParamsStore().setEnableGranuleSelection(false);
+          useReqParamsStore().setUseRgt(false);
+          useReqParamsStore().setUseCycle(false);
+        },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
         },

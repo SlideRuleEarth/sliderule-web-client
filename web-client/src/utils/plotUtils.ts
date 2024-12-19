@@ -6,7 +6,9 @@ import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData
 import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
-import { debounce } from "lodash";
+//import { debounce } from "lodash";
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -462,37 +464,41 @@ const initScatterPlotWith = async (reqId: number) => {
 
     //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
     const msg = '';
-    chartStore.setShowMessage(reqIdStr, false);
+    atlChartFilterStore.setShowMessage(false);
     if (!y_options.length || y_options[0] === 'not_set') {
         console.warn(`initScatterPlotWith ${reqId} No y options selected`);
-        chartStore.setShowMessage(reqIdStr, true);
-        chartStore.setIsWarning(reqIdStr, true);
-        chartStore.setMessage(reqIdStr, 'No Y options selected');
+        atlChartFilterStore.setShowMessage(true);
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage('No Y options selected');
     } else {
         try {
             atlChartFilterStore.setIsLoading();
 
             newScatterOptions = await getScatterOptions(reqId);
             if (!newScatterOptions) {
-                chartStore.setShowMessage(reqIdStr, true);
-                chartStore.setIsWarning(reqIdStr, true);
-                chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
+                atlChartFilterStore.setShowMessage(true);
+                atlChartFilterStore.setIsWarning(true);
+                atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
                 return;
             }
 
             if (Object.keys(newScatterOptions).length > 0) {
-                plotRef.chart.setOption(newScatterOptions);
-                //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
-                const options = plotRef.chart.getOption();
-                //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
+                if(plotRef.chart){
+                    plotRef.chart.setOption(newScatterOptions);
+                    //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
+                    //const options = plotRef.chart.getOption();
+                    //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
+                } else {
+                    console.error(`initScatterPlotWith ${reqId} plotRef.chart is undefined`);
+                }
             } else {
                 console.warn(`initScatterPlotWith No valid options to apply to chart`);
             }
 
         } catch (error) {
             console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
-            chartStore.setShowMessage(reqIdStr, true);
-            chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
+            atlChartFilterStore.setShowMessage(true);
+            atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
         } finally {
             atlChartFilterStore.resetIsLoading();
         }
@@ -670,22 +676,6 @@ async function appendSeries(reqId: number): Promise<void> {
     }
 }
 
-export const refreshScatterPlot = async (msg:string) => {
-    //console.log(`refreshScatterPlot ${msg}`);
-    const plotRef = useAtlChartFilterStore().getPlotRef();
-    if (plotRef && plotRef.chart) {
-        clearPlot();
-        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
-        await debouncedUpdateScatterPlot();
-    } else {
-        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
-    }
-};
-
-const debouncedUpdateScatterPlot = debounce(async () => {
-    await updateScatterPlot();
-}, 500);
-
 const updateScatterPlot = async () => {
     const startTime = performance.now();
     //console.log(`updateScatterPlot startTime:`, startTime);
@@ -704,6 +694,63 @@ const updateScatterPlot = async () => {
     } else {
         console.warn(`Ignoring updateScatterPlot with no plot to update, plotRef is undefined.`);
     }
+}
+
+const refreshScatterPlot = async (msg:string) => {
+    //console.log(`refreshScatterPlot ${msg}`);
+    const plotRef = useAtlChartFilterStore().getPlotRef();
+    if (plotRef && plotRef.chart) {
+        clearPlot();
+        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
+        await updateScatterPlot();
+    } else {
+        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+    }
+};
+
+async function updatePlot(msg:string){
+    console.log('updatePlot called for:',msg);
+    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
+        (useAtlChartFilterStore().getCycleValues().length > 0) &&
+        (useAtlChartFilterStore().getSpotValues().length > 0)
+    ){
+        await refreshScatterPlot('from updatePlot');
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+    } else {
+        console.warn('Need Rgt, Cycle, and Spot values selected');
+        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
+        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
+        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+    }
+}
+let updatePlotTimeoutId: number | undefined;
+let pendingResolves: Array<() => void> = [];
+
+
+export function callPlotUpdateDebounced(msg: string): Promise<void> {
+    console.log("callPlotUpdateDebounced called for:", msg);
+    atlChartFilterStore.setIsWarning(true);
+    atlChartFilterStore.setMessage('Filter was updated...');
+  
+    // Clear any existing timeout to debounce the calls
+    if (updatePlotTimeoutId) {
+      clearTimeout(updatePlotTimeoutId);
+    }
+  
+    return new Promise((resolve) => {
+      // Store the resolver
+      pendingResolves.push(resolve);
+  
+      updatePlotTimeoutId = window.setTimeout(async () => {
+        await updatePlot(msg);
+        
+        // Resolve all pending promises, since updatePlot is now complete
+        pendingResolves.forEach(res => res());
+        pendingResolves = [];
+      }, 500);
+    });
 }
 
 export function initSymbolSize(reqIdStr: string) {

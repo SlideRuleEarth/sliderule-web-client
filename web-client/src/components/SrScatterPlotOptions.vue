@@ -4,7 +4,7 @@ import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
-import { refreshScatterPlot } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
@@ -66,24 +66,24 @@ onMounted(() => {
 
 const symbolSizeSelection = async () => {
     //console.log('symbolSizeSelection');
-    await refreshScatterPlot('from symbolSizeSelection');
+    await callPlotUpdateDebounced('from symbolSizeSelection');
 };
 
 async function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    await refreshScatterPlot('from changedColorKey');
+    await callPlotUpdateDebounced('from changedColorKey');
 }
 
 const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
-    await refreshScatterPlot('from atl03CnfColorChanged');
+    await callPlotUpdateDebounced('from atl03CnfColorChanged');
 };
 
 const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
-      await refreshScatterPlot('from atl08ClassColorChanged');
+      await callPlotUpdateDebounced('from atl08ClassColorChanged');
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }

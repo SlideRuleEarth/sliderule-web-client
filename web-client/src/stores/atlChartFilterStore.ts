@@ -40,6 +40,9 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl06DefaultSymbolSize: 3 as number,
     atl08DefaultSymbolSize: 3 as number,
     addPhotonCloud: false as boolean,
+    message: '' as string,
+    isWarning: true as boolean,
+    showMessage: false as boolean,  
   }),
 
   actions: {
@@ -331,5 +334,23 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setAddPhotonCloud(addPhotonCloud: boolean) {
       this.addPhotonCloud = addPhotonCloud;
     },
-  }
+    setShowMessage(showMessage: boolean) { 
+      this.showMessage = showMessage;
+  },
+  getShowMessage(): boolean {
+      return this.showMessage;
+  },
+  setMessage(message: string) {
+      this.message = message;
+  },
+  getMessage() {
+      return this.message;
+  },
+  setIsWarning(isWarning: boolean) {
+      this.isWarning = isWarning;
+  },
+  getIsWarning() {
+      return this.isWarning;
+  },
+}
 });

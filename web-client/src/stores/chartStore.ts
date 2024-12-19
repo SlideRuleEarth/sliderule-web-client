@@ -14,9 +14,6 @@ interface ChartState {
   description: string;
   querySql: string;
   whereClause: string;
-  message: string;
-  isWarning: boolean;
-  showMessage: boolean;
   size: number;
   recCnt: number;
   xLegend: string;
@@ -49,9 +46,6 @@ export const useChartStore = defineStore('chartStore', {
             description: 'description here',
             querySql: '',
             whereClause: '',
-            message: '',
-            isWarning: false,
-            showMessage: false,
             size: 0,
             recCnt: 0,
             xLegend: 'Meters',
@@ -181,35 +175,6 @@ export const useChartStore = defineStore('chartStore', {
     setFunc(reqIdStr: string,func: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
-    },
-    setShowMessage(reqIdStr: string,showMessage: boolean) { 
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].showMessage = showMessage;
-    },
-    getShowMessage(reqIdStr?: string): boolean {
-        if (reqIdStr) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr]?.showMessage ?? false;
-        } else {
-            // Use Object.values to get all state objects and check the logical OR of their `showMessage` property
-            return Object.values(this.stateByReqId).some(state => state.showMessage);
-        }
-    },
-    setMessage(reqIdStr: string,message: string) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].message = message;
-    },
-    getMessage(reqIdStr: string) {
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].message;
-    },
-    setIsWarning(reqIdStr: string,isWarning: boolean) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].isWarning = isWarning;
-    },
-    getIsWarning(reqIdStr: string) {
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].isWarning;
     },
     setXLegend(reqIdStr: string,xLegend: string) {
         this.ensureState(reqIdStr);

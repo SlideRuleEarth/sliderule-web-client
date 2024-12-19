@@ -338,6 +338,9 @@ onmessage = async (event) => {
                                 target_numArrowMetaRecs = 'arrowrec.meta'   in read_result ? Number(read_result['arrowrec.meta']) : 0;
                                 target_numEOFRecs       = 'arrowrec.eof'    in read_result ? Number(read_result['arrowrec.eof']) : 0;
                                 console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
+                            } else {
+                                console.error('Failed to get result from:', cmd.func, ' for reqID:', reqID);
+                                postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Failed to get result from SlideRule.' }));
                             }
                             console.log(cmd.func,'  Done Reading: result:', result);
                             const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
