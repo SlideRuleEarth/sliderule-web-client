@@ -3,36 +3,37 @@
     import Button from 'primevue/button';
     import { onMounted,onBeforeUnmount,ref } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
-    import { useMapStore } from '@/stores/mapStore';
-    import { useRequestsStore } from "@/stores/requestsStore";
-    import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
-    import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
+    import { useAnalysisMapStore } from '@/stores/analysisMapStore';
+    import { useCurReqSumStore } from '@/stores/curReqSumStore';
+    import { useReqParamsStore } from '@/stores/reqParamsStore';
+    import { useRequestsStore } from "@/stores/requestsStore";
 
-    const requestsStore = useRequestsStore();
-    const mapStore = useMapStore();
     const tooltipRef = ref();
+    const analysisMapStore = useAnalysisMapStore();
+    const requestsStore = useRequestsStore();
 
-    const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
     onMounted(async () => {
-        console.log('SrRunControl onMounted');
-        mapStore.isAborting = false;
-        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
+        console.log('SrFetchPhotonCloud onMounted');
+        analysisMapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
-        requestsStore.setSvrMsgCnt(0);
-        requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
+        requestsStore.setConsoleMsg(`Click <Overlay Photon Cloud> to fetch and plot Photon Cloud Data`);
     });
     onBeforeUnmount(() => {
-        console.log('SrRunControl unmounted');
+        console.log('SrFetchPhotonCloud unmounted');
     });
     function toggleRunAbort() {
-        if (mapStore.isLoading) {
+        if (analysisMapStore.isLoading) {
             console.log('abortClicked');
             processAbortClicked();
         } else {
-            console.log('runSlideRuleClicked');
-            emit('run-sliderule-clicked');
+            console.log('runClicked for Photon Cloud');
+            useReqParamsStore().setMissionValue("ICESat-2");
+            useReqParamsStore().setIceSat2API("atl03sp");
+            useReqParamsStore().setEnableGranuleSelection(true);
+            useReqParamsStore().setUseRgt(true);
+            useReqParamsStore().setUseCycle(true);
             processRunSlideRuleClicked();
         }
     }
@@ -40,9 +41,8 @@
 <template>
     <div class="sr-run-abort-panel">
         <div class="control-container">
-            <SrModeSelect class="sr-mode-select" />
             <div class="button-spinner-container">
-                <div v-if="mapStore.isLoading" class="loading-indicator">
+                <div v-if="analysisMapStore.isLoading" class="loading-indicator">
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
@@ -50,13 +50,13 @@
 
                 <Button 
                     class="sr-run-abort-button" 
-                    :class="{ 'abort-mode': mapStore.isLoading }"
-                    :label="mapStore.isLoading ? 'Abort' : 'Run SlideRule'" 
+                    :class="{ 'abort-mode': analysisMapStore.isLoading }"
+                    :label="analysisMapStore.isLoading ? 'Abort' : 'Overlay Photon Cloud'" 
                     @click="toggleRunAbort" 
-                    :disabled="mapStore.isAborting"
+                    :disabled="analysisMapStore.isAborting"
                 >
                     <template #icon>
-                        <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
+                        <i :class="analysisMapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
                     </template>
                 </Button>
             </div>

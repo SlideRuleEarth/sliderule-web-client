@@ -158,7 +158,8 @@ const designTokenForToggleSwitch = ref({
 .sr-toggle-row {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: center;
   padding: 0.125rem;
   font-size: small;
 }

@@ -3,7 +3,7 @@
             <div class="sr-req-display-panel-header"> 
                 <SrCheckbox
                     v-model="showReqParms"
-                    label="Show Request Parameters"
+                    :label="checkboxLabel"
                 />
             </div>
             <div 
@@ -21,37 +21,44 @@
     </div>
   </template>
   
-  <script setup lang="ts">
-    import { computed, ref } from "vue";
-    import { useReqParamsStore } from "@/stores/reqParamsStore";
-    import SrCheckbox from "./SrCheckbox.vue";
-    import { useSrToastStore } from "@/stores/srToastStore";
-
-    const reqParamsStore = useReqParamsStore();
-    const showReqParms = ref(false);
-    const isHovered = ref(false);
-
-    const reqParms = computed(() => {
-      // NOTE: we use request ID of zero as a placeholder for the current request
-      return  JSON.stringify(reqParamsStore.getAtlxxReqParams(0),null,2);
-    });
-    const curAPI = computed(() => reqParamsStore.getCurAPI());
-
-    const copyToClipboard = () => {
-      navigator.clipboard.writeText(reqParms.value)
-        .then(() => {
-          const msg = 'Request parameters copied to clipboard';
-          console.log(msg);
-          useSrToastStore().info('Copied to clipboard', msg);
-          // You can add a notification here if desired
-        })
-        .catch(err => {
-          console.error('Failed to copy content: ', err);
-        });
-    };
-  </script>
+<script setup lang="ts">
+  import { computed, ref } from "vue";
+  import { useReqParamsStore } from "@/stores/reqParamsStore";
+  import SrCheckbox from "./SrCheckbox.vue";
+  import { useSrToastStore } from "@/stores/srToastStore";
   
-  <style scoped>
+  // Props
+  const props = defineProps({
+      checkboxLabel: {
+          type: String,
+          default: "Show Request Parameters",
+      },
+  });
+  
+  const reqParamsStore = useReqParamsStore();
+  const showReqParms = ref(false);
+  const isHovered = ref(false);
+  
+  const reqParms = computed(() => {
+    return JSON.stringify(reqParamsStore.getAtlxxReqParams(0), null, 2);
+  });
+  const curAPI = computed(() => reqParamsStore.getCurAPI());
+  
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(reqParms.value)
+      .then(() => {
+        const msg = 'Request parameters copied to clipboard';
+        console.log(msg);
+        useSrToastStore().info('Copied to clipboard', msg);
+      })
+      .catch(err => {
+        console.error('Failed to copy content: ', err);
+      });
+  };
+</script>
+  
+  
+<style scoped>
 .sr-req-display-panel {
   display: flex;
   flex-direction: column;

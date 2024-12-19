@@ -68,9 +68,9 @@ onMounted(() => {
     checkUnsupported();
 });
 
-const mapButtonClick = () => {
-  console.log('Map button clicked');
-  router.push('/map'); 
+const requestButtonClick = () => {
+  console.log('Request button clicked');
+  router.push('/request'); 
 };
 
 const recordButtonClick = () => {
@@ -115,7 +115,7 @@ const handleVersionButtonClick = () => {
     </div>  
     <header class="app-header">
       <SrAppBar 
-        @map-button-click="mapButtonClick"
+        @request-button-click="requestButtonClick"
         @record-button-click="recordButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"

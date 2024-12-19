@@ -62,7 +62,7 @@ export const useDeckStore = defineStore('deck', {
             for (let i = 0; i < layers.length; i++) {
                 newLayers.push(layers[i]);
             }
-            console.log('getLayers:',layers);
+            //console.log('getLayers:',layers);
             return newLayers;
         },
         setPointSize(size:number) {

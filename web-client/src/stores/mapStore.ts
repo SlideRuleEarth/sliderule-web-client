@@ -50,7 +50,6 @@ export const useMapStore = defineStore('map', {
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
     totalRows: 0 as number, 
     currentRows: 0 as number,
-    curRowsProcessed: 0 as number, 
     pointerMoveListenerKey: null as EventsKey | null,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
@@ -180,12 +179,6 @@ export const useMapStore = defineStore('map', {
     },
     setCurrentRows(rows: number) {
       this.currentRows = rows;
-    },
-    getCurRowsProcessed(): number {
-        return this.curRowsProcessed;
-    },
-    setCurRowsProcessed(rows: number) {
-      this.curRowsProcessed = rows;
     },
     getPolySource() {
       return this.polygonSource;
