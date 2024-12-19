@@ -17,20 +17,6 @@
                   <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
                 </FloatLabel>
             </div>
-            <!-- <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
-                <FloatLabel variant="on">
-                  <MultiSelect
-                      class="sr-multiselect" 
-                      :id="`srMultiId-${overlayedReqId}`"
-                      v-model="yDataBindingsReactive[overlayedReqId]"
-                      size="small"
-                      :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
-                      display="chip"
-                      @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
-                  />
-                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
-                </FloatLabel>
-            </div> -->
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
@@ -50,14 +36,8 @@
         </div> 
         <div class="sr-scatter-plot-footer">
             <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03')">
-                <!-- <SrToggleButton
-                    v-model="atlChartFilterStore.addPhotonCloud"
-                    :getValue="atlChartFilterStore.getAddPhotonCloud"
-                    :setValue="atlChartFilterStore.setAddPhotonCloud"
-                    label="Add Photon Cloud"
-                    tooltipText="Add photon cloud to map"
-                /> -->
                 <SrFetchPhotonCloud />
+                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
             </div>
         </div>
     </div>
@@ -88,6 +68,7 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import { debounce } from "lodash";
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
+import SrReqDisplay from "./SrReqDisplay.vue";
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
@@ -189,16 +170,6 @@ watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
         await refreshScatterPlot('from watch atlChartFilterStore.getReqId()');
     }
 });
-
-// watch(
-//   () => atlChartFilterStore.selectedOverlayedReqIds,
-//   async (newOverlayedReqIds, oldOverlayedReqIds) => {
-//     console.log('selectedOverlayedReqIds changed from:', oldOverlayedReqIds, 'to:', newOverlayedReqIds);
-//     await refreshScatterPlot('from watch atlChartFilterStore.selectedOverlayedReqIds');
-//   }
-// );
-
-
 
 const messageClass = computed(() => {
   return {
