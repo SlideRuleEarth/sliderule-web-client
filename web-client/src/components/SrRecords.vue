@@ -153,10 +153,11 @@ const tooltipRef = ref();
     <div class="sr-records-container">
         <DataTable 
             :value="requestsStore.reqs" 
-            tableStyle=" width:100%;" 
+            tableStyle="min-width:100% width:100%;" 
             table-layout="auto"
             size="small" 
-            resizableColumns="true"
+            :resizableColumns="true"
+            columnResizeMode="expand"
             scrollable 
             scrollHeight="flex"
             :paginator="true"
@@ -184,7 +185,7 @@ const tooltipRef = ref();
                </template>
             </Column>
             <Column field="func" header="Function"></Column>
-            <Column field="description" header="Description" :editable="true" style="max-width: 10rem;">
+            <Column field="description" header="Description" :editable="true" style="width: 5rem; max-width: 10rem;">
                 <template #header>
                     <i 
                       class="pi pi-pencil"
@@ -323,10 +324,12 @@ const tooltipRef = ref();
 
 <style scoped>
 .sr-records-container {
-    display: block;
     width: fit-content;
+    display: block;
     padding: 1.5rem;
     margin: 1.5rem;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Prevent vertical overflow unless needed */
 }
 
 .sr-analyze {
@@ -357,11 +360,11 @@ const tooltipRef = ref();
     margin-top: 1rem;
 }
 :deep(.sr-col-par-style) {
+    width: 10rem;
     min-width: 7rem;
     max-width: 25rem;
     max-height: 10rem;
     overflow: auto;
-    overflow-x: auto;
 }
 :deep(.sr-descr-style) {
     min-width: 5rem;
@@ -375,5 +378,21 @@ const tooltipRef = ref();
 :deep(.p-inputtext.p-component) {
     width: 100%;
     border: 1px solid var(--p-border-color);
+}
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+    min-width: 10px; /* Allow a minimum width for resizing */
+    max-width: none;  /* Remove restrictions on maximum width */
+    white-space: nowrap; /* Prevent headers from wrapping */
+}
+
+
+@media (max-width: 768px) {
+    .sr-records-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    .sr-descr-style {
+        max-width: 8rem;
+    }
 }
 </style>
