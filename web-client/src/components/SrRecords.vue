@@ -324,7 +324,7 @@ const tooltipRef = ref();
 
 <style scoped>
 .sr-records-container {
-    width: fit-content;
+    width: 100%;
     display: block;
     padding: 1.5rem;
     margin: 1.5rem;
