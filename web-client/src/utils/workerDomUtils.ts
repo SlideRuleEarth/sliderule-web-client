@@ -10,11 +10,10 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
-import { type AtlxxReqParams } from '@/sliderule/icesat2';
+import router from '@/router/index.js';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -139,7 +138,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         useSrToastStore().error('Error',emsg);
                     }
                     try {
-                        await duckDbReadAndUpdateElevationData(workerMsg.req_id);
+                        router.push(`/analyze/${workerMsg.req_id}`);
                     } catch (error) {
                         console.error('handleWorkerMsg opfs_ready error:',error);
                         useSrToastStore().error('Error','Error loading file');
@@ -169,7 +168,7 @@ const handleWorkerMsgEvent = async (event: MessageEvent) => {
 
 export function processAbortClicked() {
     if(worker){
-        mapStore.isAborting = true; 
+       mapStore.setIsAborting(true); 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
         console.log('abortClicked isLoading:',mapStore.isLoading);
@@ -206,7 +205,7 @@ function cleanUpWorker(){
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.setIsLoading(false); // controls spinning progress
-    mapStore.isAborting = false;
+   mapStore.setIsAborting(false);
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
 }
@@ -236,7 +235,6 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             mapStore.setIsLoading(true); // controls spinning progress
             mapStore.setTotalRows(0);
             mapStore.setCurrentRows(0);
-            mapStore.setCurRowsProcessed(0);
             worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {
@@ -280,7 +278,7 @@ export async function processRunSlideRuleClicked() {
     }
 
     mapStore.setIsLoading(true);
-    mapStore.isAborting = false;
+    mapStore.setIsAborting(false);
     console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
@@ -305,7 +303,7 @@ export async function processRunSlideRuleClicked() {
     if(srReqRec) {
         console.log('runSlideRuleClicked srReqRec:',srReqRec);
         if(!srReqRec.req_id) {
-            console.error('runAtl06 req_id is undefined');
+            console.error('runSlideRuleClicked req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             useSrToastStore().error('Error','There was an error');
             return;

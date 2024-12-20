@@ -1,5 +1,6 @@
 import type { Table } from 'apache-arrow';
 import type { DuckDBBundles,AsyncDuckDB } from "@duckdb/duckdb-wasm";
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 //import * as duckdb from "@duckdb/duckdb-wasm";
 //import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 //import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
@@ -17,7 +18,6 @@ export interface QueryResult {
 export interface QueryChunkResult {
   totalRows: number | null;
   length: number;
-  hasMoreData: boolean;
   schema: { name: string; type: string; databaseType: string }[];
   readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
@@ -223,20 +223,16 @@ export class DuckDBClient {
   // Method to execute paginated queries with in-query random sampling
   async queryChunkSampled(
     query: string,
-    chunkSize: number = 50000,
-    offset: number = 0,
     random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
     params?: any
   ): Promise<QueryChunkResult> {
     const conn = await this._db!.connect();
     let tbl: Table<any>;
-
+    const chunkSize = useSrParquetCfgStore().getMaxNumPntsToDisplay(); // Default chunk size set to 100
     try {
       // Get the total number of rows for the query if this is the first chunk
       let totalRows = null;
-      if (offset === 0) {
-        totalRows = await this.getTotalRowCount(query);
-      }
+      totalRows = await this.getTotalRowCount(query);
 
       // Construct the query with random sampling and pagination
       let sampledQuery = query;
@@ -246,7 +242,7 @@ export class DuckDBClient {
       }
 
       // Apply pagination to the potentially sampled query
-      const paginatedQuery = `${sampledQuery} LIMIT ${chunkSize} OFFSET ${offset}`;
+      const paginatedQuery = `${sampledQuery} LIMIT ${chunkSize}`;
       //console.log('queryChunkSampled paginatedQuery:', paginatedQuery);
       if (params) {
         const stmt = await conn.prepare(paginatedQuery);
@@ -261,17 +257,13 @@ export class DuckDBClient {
         type: getType(String(type)),
         databaseType: String(type),
       }));
-      const hasMoreData = rows.length === chunkSize && (totalRows === null || offset + rows.length < totalRows);
 
       return {
         totalRows: totalRows,
         length: rows.length,
-        hasMoreData,
         schema,
         async *readRows() {
-          for (let i = 0; i < rows.length; i += chunkSize) {
-            yield rows.slice(i, i + chunkSize);
-          }
+            yield rows;
         },
       };
     } catch (error) {

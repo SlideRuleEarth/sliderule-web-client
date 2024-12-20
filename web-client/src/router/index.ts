@@ -16,7 +16,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/MapView.vue')
+      component: () => import('@/views/RequestView.vue')
     },
     {
       path: '/about',
@@ -34,9 +34,9 @@ const router = createRouter({
       component: () => import('@/views/RecordView.vue')
     },
     {
-      path: '/map',
-      name: 'map',
-      component: () => import('@/views/MapView.vue') 
+      path: '/request',
+      name: 'request',
+      component: () => import('@/views/RequestView.vue') 
     },
     {
       path: '/analyze/:id',

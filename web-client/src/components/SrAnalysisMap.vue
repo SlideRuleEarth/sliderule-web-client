@@ -12,7 +12,7 @@
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import SrLegendControl from './SrLegendControl.vue';
-    import { dumpMapLayers, initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
+    import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
@@ -23,7 +23,7 @@
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView } from "@/utils/SrMapUtils";
-    
+
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
         const projName = computedProjName.value;
@@ -36,6 +36,7 @@
     };
     const mapContainer = ref<HTMLElement | null>(null);
     const mapRef = ref<{ map: OLMap }>();
+    const legendRef = ref<any>();
     const mapStore = useMapStore();
     const chartStore = useChartStore();
     const requestsStore = useRequestsStore();
@@ -51,13 +52,13 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => chartStore.getFunc(chartStore.getFunc(atlChartFilterStore.getReqIdStr())));
+    const computedFunc = computed(() => chartStore.getFunc(atlChartFilterStore.getReqIdStr()));
 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
-        if (mapStore.getCurRowsProcessed() != mapStore.getTotalRows()) {
+        if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
             return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
         } else {
             return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
@@ -112,12 +113,13 @@
 
     const handleLegendControlCreated = (legendControl: any) => {
         //console.log(legendControl);
-        const map = mapRef.value?.map;
-        if(map){
+        legendRef.value = legendControl;
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
             console.log("adding legendControl");
-            map.addControl(legendControl);
+            analysisMap.addControl(legendControl);
         } else {
-            console.error("Error:map is null");
+            console.warn("analysisMap is null will be set in onMounted");
         }
     };
 

@@ -37,11 +37,11 @@ const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['version-button-click','map-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
+const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
 
 
-const handleMapButtonClick = () => {
-    emit('map-button-click');
+const handleRequestButtonClick = () => {
+    emit('request-button-click');
 };
 const handleRecordButtonClick = () => {
     emit('record-button-click');
@@ -105,7 +105,7 @@ const mobileMenuItems = [
     {
         label: 'Map',
         icon: 'pi pi-sliders-h',
-        command: handleMapButtonClick
+        command: handleRequestButtonClick
     },
     {
         label: 'Record',
@@ -163,9 +163,9 @@ onMounted(() => {
             </Button>
         </div>
         <div class="right-content">
-            <Button icon="pi pi-sliders-h" label="Map" 
+            <Button icon="pi pi-sliders-h" label="Request" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleMapButtonClick"></Button>
+                    @click="handleRequestButtonClick"></Button>
             <Button icon="pi pi-list" label="Record" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRecordButtonClick"></Button>

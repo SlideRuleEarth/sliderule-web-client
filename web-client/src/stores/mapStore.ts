@@ -43,14 +43,12 @@ export const useMapStore = defineStore('map', {
     polygonSource:'Draw on Map' as string,
     polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
-    //dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
     isLoading: false as boolean,
     isAborting: false as boolean,
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
     totalRows: 0 as number, 
     currentRows: 0 as number,
-    curRowsProcessed: 0 as number, 
     pointerMoveListenerKey: null as EventsKey | null,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
@@ -166,6 +164,12 @@ export const useMapStore = defineStore('map', {
     setIsLoading(value:boolean=true) {
       this.isLoading = value;
     },
+    getIsAborting() {
+      return this.isAborting;
+    },
+    setIsAborting(value:boolean=true) {
+      this.isAborting = value;
+    },
     resetIsLoading() {
       this.isLoading = false;
     },
@@ -180,12 +184,6 @@ export const useMapStore = defineStore('map', {
     },
     setCurrentRows(rows: number) {
       this.currentRows = rows;
-    },
-    getCurRowsProcessed(): number {
-        return this.curRowsProcessed;
-    },
-    setCurRowsProcessed(rows: number) {
-      this.curRowsProcessed = rows;
     },
     getPolySource() {
       return this.polygonSource;
