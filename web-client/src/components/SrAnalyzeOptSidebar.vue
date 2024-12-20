@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted,ref,watch,computed } from 'vue';
+import { onMounted,ref,watch,computed,Ref } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
@@ -23,6 +23,7 @@ import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
+import MultiSelect from 'primevue/multiselect';
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
@@ -86,12 +87,26 @@ const computedReqIdStr = computed(() => {
     }
     return selectedReqId.value.value;
 });
+
 const computedReqIdNum = computed(() => {
     if(selectedReqId.value === undefined){
         return 0;
     }
     return Number(selectedReqId.value.value);
 });
+
+async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
+    if (req_id <= 0) {
+        throw new Error('Invalid Request ID');
+    }
+    // Fetch overlayed options for the given request ID
+    const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
+    // Create a Set of reqIds values for quick lookup
+    const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
+    // Filter overlayedOptions to include only items in reqIds
+    return overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
+}
+
 const computedInitializing = computed(() => {
     return !isMounted.value || loading.value || reqIds.value.length === 0;
 });
@@ -122,7 +137,7 @@ onMounted(async () => {
             //console.log('onMounted selectedReqId:', req_id);
             if (req_id > 0) {
                 atlChartFilterStore.setReqId(req_id);
-                //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
+                overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
                 initSymbolSize(computedReqIdStr.value);
                 await updateChartStore(req_id);
@@ -390,7 +405,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             const req_id = Number(newSelection.value)
             atlChartFilterStore.setReqId(req_id);
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
+            overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
             deckStore.deleteSelectedLayer();
             atlChartFilterStore.setSpots([]);
             atlChartFilterStore.setRgts([]);
@@ -477,6 +492,16 @@ const exportButtonClick = async () => {
                         @update:modelValue="handleUpdateReqId"
                         :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                         :tooltipText=tooltipTextStr
+                    />
+                    <MultiSelect 
+                        v-if=hasOverlayedReqs
+                        v-model="selectedOverlayedReqIds" 
+                        size="small"
+                        :options="overlayedReqIdOptions"
+                        optionValue="value"
+                        optionLabel="label"  
+                        placeholder="Overlay" 
+                        display="chip" 
                     />
                     <SrCustomTooltip ref="tooltipRef"/>
                 </div>
