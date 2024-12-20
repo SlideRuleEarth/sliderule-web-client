@@ -76,9 +76,9 @@ const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
 const srToastStore = useSrToastStore();
-//const overlayedReqIdOptions = ref<{label:string,value:number}[]>([]);
+const overlayedReqIdOptions = ref<{label:string,value:number}[]>([]);
 const selectedOverlayedReqIds = ref<number[]>([]);
-//const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
+const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
 const isMounted = ref(false);
 const computedReqIdStr = computed(() => {
     if(selectedReqId.value === undefined){
@@ -95,12 +95,6 @@ const computedReqIdNum = computed(() => {
 const computedInitializing = computed(() => {
     return !isMounted.value || loading.value || reqIds.value.length === 0;
 });
-
-const computedFunc = computed(() => {
-    return chartStore.getFunc(computedReqIdStr.value);
-});
-const addPhotonCloud = ref(false);
-
 
 
 onMounted(async () => {
@@ -215,7 +209,7 @@ onMounted(async () => {
         //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
         const endTime = performance.now(); // End time
         isMounted.value = true;
-        //console.log(`onMounted took ${endTime - startTime} milliseconds.`);
+        console.log(`onMounted took ${endTime - startTime} milliseconds.`);
     }
 });
 

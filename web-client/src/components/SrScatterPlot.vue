@@ -6,16 +6,30 @@
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-multiselect-container">
                 <FloatLabel variant="on">
-                    <MultiSelect
-                        class="sr-multiselect" 
-                        :id="computedElID"
-                        v-model="yDataBindingsReactive[computedReqIdStr]"
-                        size="small" 
-                        :options="chartStore.getElevationDataOptions(computedReqIdStr)"
-                        display="chip"
-                        @update:modelValue="onMainYDataSelectionChange"
-                    />
-                    <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
+                  <MultiSelect
+                      class="sr-multiselect" 
+                      :id="computedElID"
+                      v-model="yDataBindingsReactive[computedReqIdStr]"
+                      size="small" 
+                      :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
+                      display="chip"
+                      @update:modelValue="onMainYDataSelectionChange"
+                  />
+                  <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
+                </FloatLabel>
+            </div>
+            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+                <FloatLabel variant="on">
+                  <MultiSelect
+                      class="sr-multiselect" 
+                      :id="`srMultiId-${overlayedReqId}`"
+                      v-model="yDataBindingsReactive[overlayedReqId]"
+                      size="small"
+                      :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                      display="chip"
+                      @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                  />
+                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
                 </FloatLabel>
             </div>
         </div>
@@ -105,10 +119,10 @@ async function onMainYDataSelectionChange(newValue: string[]) {
     await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
-// async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
-//     console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
-//     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
-// }
+async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
+    console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
+    await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
+}
 
 
 
