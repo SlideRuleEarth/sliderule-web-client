@@ -49,11 +49,18 @@
             <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
             <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
         </div> 
-        <div class="sr-scatter-plot-footer">
-            <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03')">
-                <SrFetchPhotonCloud />
-                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
+        <div>       func:{{ computedFunc }}  </div>
+        <div>  isLoading:{{ atlChartFilterStore.isLoading }}</div> 
+        <div>currentRows:{{ mapStore.getCurrentRows() }}</div>
+        <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
+            <div sr-run-control>
+                <SrRunControl 
+                    :includeAdvToggle="false"
+                    buttonLabel="Photon Cloud"  
+                />
+
             </div>
+            <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
         </div>
     </div>
 </template>
@@ -76,13 +83,15 @@ import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
-import SrFetchPhotonCloud from "@/components/SrFetchPhotonCloud.vue";
+import { useMapStore } from "@/stores/mapStore";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
+import SrRunControl from "./SrRunControl.vue";
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
+const mapStore = useMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
@@ -307,6 +316,18 @@ watch(() => atlChartFilterStore.pairs,
   overflow-y: auto;
   overflow-x: auto;
   height: 100%;
+  width: auto;
+}
+
+.sr-photon-cloud {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: left;
+  margin: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  overflow-x: auto;
   width: auto;
 }
 

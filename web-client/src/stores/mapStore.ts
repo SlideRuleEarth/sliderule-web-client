@@ -43,7 +43,6 @@ export const useMapStore = defineStore('map', {
     polygonSource:'Draw on Map' as string,
     polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
-    //dLayers: [] as OL_Layer_Type<Source, LayerRenderer<any>>[],
     isLoading: false as boolean,
     isAborting: false as boolean,
     currentReqId: 0 as number,
@@ -164,6 +163,12 @@ export const useMapStore = defineStore('map', {
     },
     setIsLoading(value:boolean=true) {
       this.isLoading = value;
+    },
+    getIsAborting() {
+      return this.isAborting;
+    },
+    setIsAborting(value:boolean=true) {
+      this.isAborting = value;
     },
     resetIsLoading() {
       this.isLoading = false;

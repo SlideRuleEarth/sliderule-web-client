@@ -168,7 +168,7 @@ const handleWorkerMsgEvent = async (event: MessageEvent) => {
 
 export function processAbortClicked() {
     if(worker){
-        mapStore.isAborting = true; 
+       mapStore.setIsAborting(true); 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
         console.log('abortClicked isLoading:',mapStore.isLoading);
@@ -205,7 +205,7 @@ function cleanUpWorker(){
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.setIsLoading(false); // controls spinning progress
-    mapStore.isAborting = false;
+   mapStore.setIsAborting(false);
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
 }
@@ -278,7 +278,7 @@ export async function processRunSlideRuleClicked() {
     }
 
     mapStore.setIsLoading(true);
-    mapStore.isAborting = false;
+    mapStore.setIsAborting(false);
     console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);

@@ -11,8 +11,7 @@
     
     onMounted(async () => {
         //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
-        mapStore.isAborting = false;
-        useReqParamsStore().presetForMainRequest();
+       mapStore.setIsAborting(false);
     });
 
 </script>

@@ -31,7 +31,6 @@ import { updateChartStore,initSymbolSize } from '@/utils/plotUtils';
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
-import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { clicked } from '@/utils/SrMapUtils'
 import { useDebugStore } from '@/stores/debugStore';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
@@ -40,7 +39,6 @@ const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 const mapStore = useMapStore();
-const analysisMapStore = useAnalysisMapStore();
 const deckStore = useDeckStore();
 const colorMapStore = useElevationColorMapStore();
 
@@ -311,12 +309,12 @@ const updateElevationMap = async (req_id: number) => {
         }
 
         updateFilter([req_id]);
-        analysisMapStore.setIsLoading(true);
+        mapStore.setIsLoading(true);
         const firstRec = await duckDbReadAndUpdateElevationData(req_id);
         if(firstRec){
             clicked(firstRec); // preset filters using the first row
         }
-        analysisMapStore.setIsLoading(false);
+        mapStore.setIsLoading(false);
 
     } catch (error) {
         console.warn('Failed to update selected request:', error);
