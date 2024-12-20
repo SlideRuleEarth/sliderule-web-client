@@ -93,23 +93,15 @@
     function disableDragBox() {
         //console.log("SrMap disableDragBox");
         // Check if the DragBox interaction is added to the map.
-        if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
-            // If it is, remove it.
-            mapRef.value?.map.removeInteraction(dragBox);
-        } else {
-            console.warn("SrMap disableDragBox DragBox not found");
-        }
+        //console.log("mapRef.value?.map.getInteractions():",mapRef.value?.map.getInteractions());
+        mapRef.value?.map.removeInteraction(dragBox);
     }
 
     function enableDragBox() {
         //console.log("SrMap enableDragBox");
         disableDragBox(); // reset then add
         disableDrawPolygon();
-        if(mapRef.value?.map.addInteraction(dragBox)){
-            //console.log("SrMap enableDragBox dragBox added");
-        } else {
-            console.error("SrMap enableDragBox dragBox not added");
-        }
+        mapRef.value?.map.addInteraction(dragBox);
     }
 
     var boxStyle = new Style({

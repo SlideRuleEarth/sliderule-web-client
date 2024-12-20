@@ -164,7 +164,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
     if (newPlotRef) {
         console.warn('plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
-        //await callPlotUpdateDebounced('from watch plotRef.value');
+        await callPlotUpdateDebounced('from watch plotRef.value');
     }
 });
 
