@@ -26,11 +26,10 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
-import { updateChartStore } from '@/utils/plotUtils';
+import { updateChartStore,initSymbolSize } from '@/utils/plotUtils';
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
-import { type AtlxxReqParams } from '@/sliderule/icesat2';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { clicked } from '@/utils/SrMapUtils'
 import { useDebugStore } from '@/stores/debugStore';
@@ -131,6 +130,7 @@ onMounted(async () => {
                 atlChartFilterStore.setReqId(req_id);
                 //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
+                initSymbolSize(computedReqIdStr.value);
                 await updateChartStore(req_id);
             } else {
                 console.warn('Invalid request ID:', req_id);
@@ -139,7 +139,7 @@ onMounted(async () => {
             //console.log('onMounted reqIds:', reqIds.value);
             for (const reqId of reqIds.value) {
                 const thisReqId = Number(reqId.value);
-                if(Number(reqId.value) > 0) {
+                if(thisReqId > 0) {
                     const request = await db.getRequest(thisReqId);
                     if(request &&request.file){
                         chartStore.setFile(reqId.value,request.file);
@@ -179,7 +179,7 @@ onMounted(async () => {
                     //         console.warn('No parameters found for reqId:',reqId.value, ' is it imported?');
                     //     }
                     // }
-                    const f = chartStore.getFile(reqId.toString());
+                    const f = chartStore.getFile(reqId.value);
                     if((f === undefined) || (f === null) || (f === '')){
                         const request = await indexedDb.getRequest(Number(reqId.value));
                         //console.log('Request:', request);

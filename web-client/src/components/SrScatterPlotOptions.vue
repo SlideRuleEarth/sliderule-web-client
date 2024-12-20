@@ -66,24 +66,25 @@ onMounted(() => {
 
 const symbolSizeSelection = async () => {
     //console.log('symbolSizeSelection');
-    await callPlotUpdateDebounced('from symbolSizeSelection');
+    //console.log('New symbol size selected:', computedSymbolSize.value);
+    await callPlotUpdateDebounced('symbolSizeSelection');
 };
 
 async function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
     atlChartFilterStore.resetTheScatterPlot();
-    await callPlotUpdateDebounced('from changedColorKey');
+    await callPlotUpdateDebounced('changedColorKey');
 }
 
 const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
-    await callPlotUpdateDebounced('from atl03CnfColorChanged');
+    await callPlotUpdateDebounced('atl03CnfColorChanged');
 };
 
 const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
-      await callPlotUpdateDebounced('from atl08ClassColorChanged');
+      await callPlotUpdateDebounced('atl08ClassColorChanged');
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }

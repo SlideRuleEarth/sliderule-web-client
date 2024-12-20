@@ -156,7 +156,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
             } catch (error) {
                 console.error('computeSamplingRate sample_fraction error:', error);
             }
-            console.warn('computeSamplingRate maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
+            //console.warn('computeSamplingRate maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
         } else {
             console.error('computeSamplingRate summary is undefined using 1.0');
         }

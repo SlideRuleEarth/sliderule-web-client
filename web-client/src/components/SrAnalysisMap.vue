@@ -52,7 +52,7 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => chartStore.getFunc(chartStore.getFunc(atlChartFilterStore.getReqIdStr())));
+    const computedFunc = computed(() => chartStore.getFunc(atlChartFilterStore.getReqIdStr()));
 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {

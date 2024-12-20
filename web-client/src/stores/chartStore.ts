@@ -31,7 +31,13 @@ export const useChartStore = defineStore('chartStore', {
   actions: {
     // Initialize a state for a reqIdStr if it doesn't exist
     ensureState(reqIdStr: string) {
-      if (!this.stateByReqId[reqIdStr]) {
+    if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
+        console.error('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
+        console.trace('Call stack for ensureState with invalid reqIdStr');
+        return; // Exit early to prevent further execution
+    }     
+    if (!this.stateByReqId[reqIdStr]) {
+        //console.log('ensureState() initializing state for reqIdStr:', reqIdStr);
         this.stateByReqId[reqIdStr] = {
             currentFile: '',
             min_x: 0,
@@ -68,6 +74,7 @@ export const useChartStore = defineStore('chartStore', {
         this.stateByReqId[reqIdStr].max_x = max_x;
     },
     getMaxX(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].max_x;
     },
     setDescription(reqIdStr: string, description: string) { 
@@ -100,7 +107,7 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].whereClause;
     },
     setSymbolSize(reqIdStr: string, symbolSize: number) {
-        //console.log('setSymbolSize reqIdStr:',reqIdStr);
+        //console.log('setSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',symbolSize);
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].symbolSize = symbolSize;
     },
