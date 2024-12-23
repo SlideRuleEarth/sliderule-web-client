@@ -1,6 +1,6 @@
 import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
-import { type ReqParams, type NullReqParams } from '@/sliderule/icesat2';
+import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
 export const DEFAULT_DESCRIPTION = 'Click here to edit description';
@@ -53,6 +53,18 @@ export interface OverlayRecord {
     description?: string;   // Optional description
     req_ids: number[];      // List of req_ids belonging to this overlay
     polyHash?: string;      // Unique hash for the poly field
+}
+export interface SrTrkFilter {
+    rgt: number;
+    cycle: number;
+    track: number;
+    beam: number;
+}
+
+export interface SrRunContext {
+    reqId: number;
+    parentReqId : number;
+    trackFilter : SrTrkFilter;
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -850,16 +862,16 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async updateSummary(summary: SrRequestSummary): Promise<void> {
-        try {
-            //console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
-            await this.summary.put( summary );
-            //console.log(`Summary updated for req_id ${summary.req_id}.`);
-        } catch (error) {
-            console.error(`Failed to update summary for req_id ${summary.req_id}:`, error);
-            throw error; // Rethrowing the error for further handling if needed
-        }
-    }
+    // async updateSummary(summary: SrRequestSummary): Promise<void> {
+    //     try {
+    //         //console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
+    //         await this.summary.put( summary );
+    //         //console.log(`Summary updated for req_id ${summary.req_id}.`);
+    //     } catch (error) {
+    //         console.error(`Failed to update summary for req_id ${summary.req_id}:`, error);
+    //         throw error; // Rethrowing the error for further handling if needed
+    //     }
+    // }
 
     async addNewSummary(summary: SrRequestSummary): Promise<void> {
         try {
@@ -925,7 +937,7 @@ export class SlideRuleDexie extends Dexie {
             const existingOverlay = await this.overlays.where('polyHash').equals(polyHash).first();
     
             if (existingOverlay) {
-                console.log(`Overlay found for polyHash ${polyHash}:`, existingOverlay);
+                console.log(`addOrUpdateOverlayByPolyHash: Overlay found for polyHash ${polyHash}:`, existingOverlay, ' poly:',poly);
                 // Merge request IDs
                 const updatedReqIds = [...new Set([...(existingOverlay.req_ids || []), ...updates.req_ids])];
                 updates.req_ids = updatedReqIds;
@@ -937,8 +949,8 @@ export class SlideRuleDexie extends Dexie {
     
                 console.log(
                     rowsModified > 0
-                        ? `Updated overlay with polyHash ${polyHash} and merged req_ids ${JSON.stringify(updates.req_ids)}.`
-                        : `No overlays modified for polyHash ${polyHash}.`
+                        ? `addOrUpdateOverlayByPolyHash: Updated overlay with polyHash ${polyHash} and merged req_ids ${JSON.stringify(updates.req_ids)}.`
+                        : `addOrUpdateOverlayByPolyHash: No overlays modified for polyHash ${polyHash}.`
                 );
             } else {
                 // Add a new overlay if none exists
@@ -949,10 +961,10 @@ export class SlideRuleDexie extends Dexie {
                 };
     
                 const id = await this.overlays.add(newOverlay);
-                console.log(`Added new overlay with id ${id}, polyHash ${polyHash}, and req_ids ${JSON.stringify(updates.req_ids)}.`);
+                console.log(`addOrUpdateOverlayByPolyHash: Added new overlay with id ${id}, polyHash ${polyHash}, poly:${poly} and req_ids ${JSON.stringify(updates.req_ids)}.`);
             }
         } catch (error) {
-            console.error(`Failed to process overlay for poly ${JSON.stringify(poly)} with req_ids ${JSON.stringify(updates.req_ids)}:`, error);
+            console.error(`addOrUpdateOverlayByPolyHash: Failed to process overlay for poly ${JSON.stringify(poly)} with req_ids ${JSON.stringify(updates.req_ids)}:`, error);
             throw error;
         }
     }
@@ -964,11 +976,11 @@ export class SlideRuleDexie extends Dexie {
                 .filter(record => record.req_ids.includes(req_id))
                 .first();
     
-            // if (overlay) {
-            //     console.log(`Overlay found for req_id ${req_id}:`, overlay);
-            // } else {
-            //     console.warn(`No overlay found containing req_id ${req_id}.`);
-            // }
+            if (overlay) {
+                console.log(`Overlay found for req_id ${req_id}:`, overlay);
+            } else {
+                console.warn(`No overlay found containing req_id ${req_id}.`);
+            }
     
             return overlay;
         } catch (error) {
@@ -1066,6 +1078,35 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
+    async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
+        try {
+            // Find the overlays that contain the parent req_id
+            const req_ids = await this.getOverlayedReqIds(runContext.parentReqId);
+            console.log('findCachedRec: req_ids:',req_ids,' for runContext.parentReqId:',runContext.parentReqId);
+            if (!req_ids || !req_ids.length) {
+                // No overlay found containing this req_id
+                return undefined;
+            }
+            // Search the overlayed req_ids for a match of the trackFilter
+            for (const req_id of req_ids) {
+                const params = await this.getReqParams(req_id) as AtlReqParams;
+                console.log('findCachedRec: req_id:',req_id,'params:',params);
+                if (
+                    (params.rgts[0] === runContext.trackFilter.rgt) &&
+                    (params.cycles[0] === runContext.trackFilter.cycle) &&
+                    (params.beams[0] === runContext.trackFilter.beam)
+                ) 
+                {
+                    console.log(`findCachedRec: Matching record found for run context:`, runContext, 'req_id:',req_id);
+                    return req_id;
+                }
+            }
+
+        } catch (error) {
+            console.error(`Failed to find matching record for run context:`, error);
+            throw error;
+        }
+    }
 
 
 }

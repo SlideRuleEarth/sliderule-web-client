@@ -7,7 +7,7 @@ import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrListbox from './SrListbox.vue';
 import { tracksOptions,beamsOptions,getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { SrListNumberItem } from '@/stores/atlChartFilterStore';
+import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
 
 const reqParamsStore = useReqParamsStore();
 

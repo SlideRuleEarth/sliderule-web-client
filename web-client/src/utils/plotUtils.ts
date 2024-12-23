@@ -676,7 +676,7 @@ async function appendSeries(reqId: number): Promise<void> {
     }
 }
 
-const updateScatterPlot = async (msg:string) => {
+export const updateScatterPlot = async (msg:string) => {
     const startTime = performance.now();
     console.log(`updateScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
@@ -716,7 +716,7 @@ async function updatePlot(msg:string){
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
         (useAtlChartFilterStore().getSpotValues().length > 0)
     ){
-        await refreshScatterPlot('from updatePlot');
+        await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);

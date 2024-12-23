@@ -11,26 +11,36 @@
     import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+    import { useChartStore } from '@/stores/chartStore';
     import Card from 'primevue/card';
 
     const props = defineProps({
         includeAdvToggle: {
             type: Boolean,
-            default: true
+            default: false
         },
         buttonLabel: {
             type: String,
             default: 'Run SlideRule'
+        },
+        inSensitive: {
+            type: Boolean,
+            default: false
         }
     });
 
     const requestsStore = useRequestsStore();
     const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const chartStore = useChartStore();
     const tooltipRef = ref();
-
     const highlightedTrackDetails = computed(() => {
-        return `rgt:${useAtlChartFilterStore().getRgts()[0].value} cycle:${useAtlChartFilterStore().getCycles()[0].value} track:${useAtlChartFilterStore().getTracks()[0].value} beam:${useAtlChartFilterStore().getBeams()[0].label}`;
+        if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
+            return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
+        } else {
+            return '';
+        }
     });
 
     onMounted(async () => {
@@ -49,16 +59,22 @@
             reqParamsStore.presetForScatterPlotOverlay();
         }
     });
+
     onBeforeUnmount(() => {
         console.log(`SrRunControl for ${props.buttonLabel} unmounted`);
     });
-    function toggleRunAbort() {
+
+    async function toggleRunAbort() {
         if (mapStore.isLoading) {
             console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
             processAbortClicked();
         } else {
             console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
-            processRunSlideRuleClicked();
+            if(props.includeAdvToggle){
+                processRunSlideRuleClicked();
+            } else {
+                console.error('SrRunControl clicked for Overlay Photon Cloud?');
+            }
         }
     }
 </script>
@@ -78,23 +94,24 @@
                     :class="{ 'abort-mode': mapStore.isLoading }"
                     :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
                     @click="toggleRunAbort" 
-                    :disabled="mapStore.isAborting"
+                    :disabled="!mapStore.isAborting && props.inSensitive"
                 >
                     <template #icon>
                         <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
                     </template>
                 </Button>
-                <Card>
-                    <template #title>
-                        <div class="sr-card-title-center">Highlighted Track</div>
-                    </template>
-                    <template #content>
-                        <p class="m-0">
-                            {{ highlightedTrackDetails }}
-                        </p>
-                    </template>                    
-                </Card>
-                
+                <div v-if="!props.includeAdvToggle">
+                    <Card>
+                        <template #title>
+                            <div class="sr-card-title-center">Highlighted Track</div>
+                        </template>
+                        <template #content>
+                            <p class="m-0">
+                                {{ highlightedTrackDetails }}
+                            </p>
+                        </template>                    
+                    </Card>
+                </div>  
             </div>
         </div>
         <div class="sr-msg-panel">

@@ -18,7 +18,7 @@
                   <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
                 </FloatLabel>
             </div>
-            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+            <!-- <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
                 <FloatLabel variant="on">
                   <MultiSelect
                       class="sr-multiselect" 
@@ -31,7 +31,7 @@
                   />
                     <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
                 </FloatLabel>
-            </div>
+            </div> -->
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
@@ -49,14 +49,20 @@
             <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
             <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
         </div> 
-        <div>       func:{{ computedFunc }}  </div>
+        <!-- <div>       func:{{ computedFunc }}  </div>
         <div>  isLoading:{{ atlChartFilterStore.isLoading }}</div> 
-        <div>currentRows:{{ mapStore.getCurrentRows() }}</div>
+        <div>currentRows:{{ mapStore.getCurrentRows() }}</div> -->
         <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
-            <div sr-run-control>
+          <SrCheckbox 
+              label="Show Photon Cloud Overlay" 
+              v-model="atlChartFilterStore.showPhotonCloud" 
+              @change="handlePhotonCloudChange"
+          />
+          <div sr-run-control>
                 <SrRunControl 
                     :includeAdvToggle="false"
-                    buttonLabel="Photon Cloud"  
+                    buttonLabel="Photon Cloud"
+                    :inSensitive="!atlChartFilterStore.showPhotonCloud"  
                 />
 
             </div>
@@ -74,7 +80,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, ref, computed, reactive, WritableComputedRef } from "vue";
+import type { WritableComputedRef } from "vue";
+import { provide, watch, onMounted, ref, computed, reactive } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
@@ -85,9 +92,15 @@ import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useMapStore } from "@/stores/mapStore";
 import SrReqDisplay from "./SrReqDisplay.vue";
+import SrCheckbox from "./SrCheckbox.vue";
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
+import { db } from '@/db/SlideRuleDb';
+import {type  SrRunContext } from '@/db/SlideRuleDb';
+import { updateScatterPlot } from '@/utils/plotUtils';
+import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
+
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
@@ -133,8 +146,6 @@ async function onOverlayYDataSelectionChange(overlayedReqId: string | number, ne
     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
 }
 
-
-
 onMounted(async () => {
     try {
         //console.log('SrScatterPlot onMounted');
@@ -175,7 +186,7 @@ onMounted(async () => {
 });
 
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
-    //console.log('reqId changed:', newReqId);
+    console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
         await prepareDbForReqId(newReqId);
@@ -222,6 +233,33 @@ function updateThePlot(msg:string) {
     }
 }
 
+async function handlePhotonCloudChange() {
+    if(atlChartFilterStore.getShowPhotonCloud()){
+        console.log('Show Photon Cloud Overlay checked');
+        const runContext: SrRunContext = {
+            reqId: -1, // this will be set in the worker
+            parentReqId: atlChartFilterStore.getReqId(),
+            trackFilter: {
+                rgt: atlChartFilterStore.getRgts()[0].value,
+                cycle: atlChartFilterStore.getCycles()[0].value,
+                track: atlChartFilterStore.getTracks()[0].value,
+                beam: atlChartFilterStore.getBeams()[0].value
+            }
+        };
+        const reqId = await db.findCachedRec(runContext);
+        if(reqId && (reqId > 0)){
+            atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
+            console.log('findCachedRec reqId found:', reqId);
+            // append series to chart
+            updateScatterPlot(`Run Clicked for Photon Cloud Overlay with rc:${runContext}`);
+        } else {
+            console.warn('findCachedRec reqId not found, fetching for:', runContext);
+            processRunSlideRuleClicked(runContext);
+        }
+    } else {
+        console.log('Show Photon Cloud Overlay unchecked');
+    }
+}
 
 watch(() => atlChartFilterStore.scOrients,
   async (newValues, oldValues) => {

@@ -10,7 +10,7 @@ import { duckDbLoadOpfsParquetFile,duckDbReadOrCacheSummary } from '@/utils/SrDu
 import { getHeightFieldname } from '@/utils/SrParquetUtils';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import { db } from '@/db/SlideRuleDb';
-import { SrRegion } from '@/sliderule/icesat2'
+import type { SrRegion } from '@/sliderule/icesat2'
 
 
 export interface SvrParms { // fill this out as neccessary
@@ -84,7 +84,7 @@ const customUploader = async (event:any) => {
                 // console.log('Updated srReqRec:', srReqRec);
                 // console.log('svr_parms:', svr_parms);
                 if(svr_parms.server.rqst.parms.poly){
-                    db.addOrUpdateOverlayByPolyHash(svr_parms.server.rqst.parms.poly, {req_ids:[srReqRec.req_id]});
+                    await db.addOrUpdateOverlayByPolyHash(svr_parms.server.rqst.parms.poly, {req_ids:[srReqRec.req_id]});
                 }
                 const msg = `File imported and copied to OPFS successfully!`;
                 console.log(msg);

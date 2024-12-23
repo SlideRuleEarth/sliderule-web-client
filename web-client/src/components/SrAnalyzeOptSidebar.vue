@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted,ref,watch,computed,Ref } from 'vue';
+import { onMounted,ref,watch,computed } from 'vue';
+import type {Ref} from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
@@ -8,7 +9,7 @@ import SrSliderInput from '@/components/SrSliderInput.vue';
 import Fieldset from 'primevue/fieldset';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
@@ -32,8 +33,11 @@ import { db as indexedDb } from "@/db/SlideRuleDb";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import { clicked } from '@/utils/SrMapUtils'
+import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
+import { getHeightFieldname } from "@/utils/SrParquetUtils";
+
 
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -93,17 +97,17 @@ const computedReqIdNum = computed(() => {
     return Number(selectedReqId.value.value);
 });
 
-async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
-    if (req_id <= 0) {
-        throw new Error('Invalid Request ID');
-    }
-    // Fetch overlayed options for the given request ID
-    const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
-    // Create a Set of reqIds values for quick lookup
-    const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
-    // Filter overlayedOptions to include only items in reqIds
-    return overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
-}
+// async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
+//     if (req_id <= 0) {
+//         throw new Error('Invalid Request ID');
+//     }
+//     // Fetch overlayed options for the given request ID
+//     const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
+//     // Create a Set of reqIds values for quick lookup
+//     const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
+//     // Filter overlayedOptions to include only items in reqIds
+//     return overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
+// }
 
 const computedInitializing = computed(() => {
     return !isMounted.value || loading.value || reqIds.value.length === 0;
@@ -119,7 +123,7 @@ onMounted(async () => {
         mapStore.setCurrentRows(0);
         useAtlChartFilterStore().setDebugCnt(0);
         reqIds.value = await requestsStore.getMenuItems();
-        if (reqIds.value.length> 0) {
+        if (reqIds.value.length > 0) {
             defaultReqIdMenuItemIndex.value = 0;
             //console.log('onMounted props.startingReqId:', props.startingReqId);
             if (props.startingReqId) { // from the route parameter
@@ -135,77 +139,73 @@ onMounted(async () => {
             //console.log('onMounted selectedReqId:', req_id);
             if (req_id > 0) {
                 atlChartFilterStore.setReqId(req_id);
-                overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
+                //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
                 initSymbolSize(computedReqIdStr.value);
+                const height_fieldname = await getHeightFieldname(req_id);
+                const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+                console.log('onMounted summary:', summary);
                 await updateChartStore(req_id);
             } else {
                 console.warn('Invalid request ID:', req_id);
                 //toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
             }
             //console.log('onMounted reqIds:', reqIds.value);
-            for (const reqId of reqIds.value) {
-                const thisReqId = Number(reqId.value);
+            for (const reqIdItem of reqIds.value) {
+                const reqIdStr = reqIdItem.value;
+                const thisReqId = Number(reqIdItem.value);
                 if(thisReqId > 0) {
-                    const request = await db.getRequest(thisReqId);
-                    if(request &&request.file){
-                        chartStore.setFile(reqId.value,request.file);
-                    } else {
-                        console.error('No file found for reqId:',reqId.value);
-                    }
-                    if(request && request.func){
-                        chartStore.setFunc(reqId.value,request.func);
-                    } else {
-                        console.error('No func found for reqId:',reqId.value);
-                    }
-                    if(request && request.description){
-                        chartStore.setDescription(reqId.value,request.description);
-                    } else {
-                        // this is not an error, just a warning
-                        console.warn('No description found for reqId:',reqId.value);
-                    }
-                    if(request && request.num_bytes){
-                        useChartStore().setSize(reqId.value,request.num_bytes);
-                    } else {
-                        console.error('No num_bytes found for reqId:',reqId.value);
-                    }
-                    if(request && request.cnt){
-                        useChartStore().setRecCnt(reqId.value,parseInt(String(request.cnt)));
-                    } else {
-                        console.error('No num_points found for reqId:',reqId.value);
-                    }
-                    //console.log('request:', request);
-                    // if(request && request.parameters){
-                    //     const arp = request.parameters as AtlxxReqParams;
-                    //     //console.log('onMounted arp:', arp);
-                    //     if(arp.parms){ 
-                    //         if(arp.parms.poly){
-                    //             await indexedDb.addOrUpdateOverlayByPolyHash(arp.parms.poly, {req_ids:[thisReqId]});
-                    //         }
-                    //     } else {
-                    //         console.warn('No parameters found for reqId:',reqId.value, ' is it imported?');
-                    //     }
-                    // }
-                    const f = chartStore.getFile(reqId.value);
-                    if((f === undefined) || (f === null) || (f === '')){
-                        const request = await indexedDb.getRequest(Number(reqId.value));
-                        //console.log('Request:', request);
-                        if(request && request.file){
-                            chartStore.setFile(reqId.toString(),request.file);
-                            //console.log('onMounted chartStore.setFile reqIds:',reqIds.value ,' reqID:',reqId, ' file:', chartStore.getFile(reqId.toString()));
+                    try{
+                        const request = await db.getRequest(thisReqId);
+                        if(request &&request.file){
+                            chartStore.setFile(reqIdStr,request.file);
                         } else {
-                            console.error('No file found for req_id:', reqId);
+                            console.error('No file found for reqId:',reqIdStr);
                         }
                         if(request && request.func){
-                            chartStore.setFunc(reqId.toString(),request.func);
+                            chartStore.setFunc(reqIdStr,request.func);
                         } else {
-                            console.error('No func found for req_id:', reqId);
+                            console.error('No func found for reqId:',reqIdStr);
                         }
-                    } else {
-                        //console.log('onMounted chartStore.getFile reqID:',reqId, ' file:', f);
+                        if(request && request.description){
+                            chartStore.setDescription(reqIdStr,request.description);
+                        } else {
+                            // this is not an error, just a warning
+                            console.warn('No description found for reqId:',reqIdStr);
+                        }
+                        if(request && request.num_bytes){
+                            useChartStore().setSize(reqIdStr,request.num_bytes);
+                        } else {
+                            console.error('No num_bytes found for reqId:',reqIdStr);
+                        }
+                        if(request && request.cnt){
+                            useChartStore().setRecCnt(reqIdStr,request.cnt);
+                        } else {
+                            console.error('No num_points found for reqId:',reqIdStr, ' request:', request);
+                        }
+                        const f = chartStore.getFile(reqIdStr);
+                        if((f === undefined) || (f === null) || (f === '')){
+                            const request = await indexedDb.getRequest(thisReqId);
+                            //console.log('Request:', request);
+                            if(request && request.file){
+                                chartStore.setFile(reqIdStr,request.file);
+                                //console.log('onMounted chartStore.setFile reqIds:',reqIds.value ,' reqID:',reqId, ' file:', chartStore.getFile(reqId.toString()));
+                            } else {
+                                console.error('No file found for req_id:', reqIdStr);
+                            }
+                            if(request && request.func){
+                                chartStore.setFunc(reqIdStr,request.func);
+                            } else {
+                                console.error('No func found for req_id:', reqIdStr);
+                            }
+                        } else {
+                            //console.log('onMounted chartStore.getFile reqID:',reqId, ' file:', f);
+                        }
+                    } catch (error) {
+                        console.error(`Error in load menu items with reqId: ${reqIdStr}`, error);
                     }
                 } else {
-                    console.warn('Invalid request ID:', reqId);
+                    console.warn('Invalid request ID:', thisReqId);
                 }
             }
         } else {
@@ -281,6 +281,7 @@ const tracksSelection = () => {
 
 const updateElevationMap = async (req_id: number) => {
     //console.log('updateElevationMap req_id:', req_id);
+    let firstRec = null as ElevationDataItem | null;
     const reqIdStr = req_id.toString();
     if(req_id <= 0){
         console.warn(`updateElevationMap Invalid request ID:${req_id}`);
@@ -310,10 +311,7 @@ const updateElevationMap = async (req_id: number) => {
 
         updateFilter([req_id]);
         mapStore.setIsLoading(true);
-        const firstRec = await duckDbReadAndUpdateElevationData(req_id);
-        if(firstRec){
-            clicked(firstRec); // preset filters using the first row
-        }
+        firstRec = await duckDbReadAndUpdateElevationData(req_id);
         mapStore.setIsLoading(false);
 
     } catch (error) {
@@ -324,6 +322,9 @@ const updateElevationMap = async (req_id: number) => {
         //console.log('pushing selectedReqId:', req_id);
         router.push(`/analyze/${useAtlChartFilterStore().getReqId()}`);
         console.log('Successfully navigated to analyze:', useAtlChartFilterStore().getReqId());
+        if(firstRec){
+            clicked(firstRec); // preset filters using the first row
+        }
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
     }
@@ -339,7 +340,7 @@ const handleUpdateReqId = async ()=>{
     if(selectedReqId){
         if(selectedReqId.value && computedReqIdNum.value > 0){
             //console.log('handleUpdateReqId selectedReqId:', selectedReqId.value);
-            debouncedUpdateElevationMap(computedReqIdNum.value);
+            await debouncedUpdateElevationMap(computedReqIdNum.value);
         } else {
             console.warn("selectedReqId.value is undefined");
         }
@@ -403,7 +404,7 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             const req_id = Number(newSelection.value)
             atlChartFilterStore.setReqId(req_id);
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
+            //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
             deckStore.deleteSelectedLayer();
             atlChartFilterStore.setSpots([]);
             atlChartFilterStore.setRgts([]);
@@ -491,7 +492,7 @@ const exportButtonClick = async () => {
                         :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                         :tooltipText=tooltipTextStr
                     />
-                    <MultiSelect 
+                    <!-- <MultiSelect 
                         v-if=hasOverlayedReqs
                         v-model="selectedOverlayedReqIds" 
                         size="small"
@@ -500,7 +501,7 @@ const exportButtonClick = async () => {
                         optionLabel="label"  
                         placeholder="Overlay" 
                         display="chip" 
-                    />
+                    /> -->
                     <SrCustomTooltip ref="tooltipRef"/>
                 </div>
             </div>

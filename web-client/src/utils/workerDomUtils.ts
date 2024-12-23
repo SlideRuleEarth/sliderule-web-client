@@ -1,4 +1,4 @@
-import { type SrRequestRecord } from '@/db/SlideRuleDb';
+import type { SrRequestRecord, SrRunContext } from '@/db/SlideRuleDb';
 import { checkAreaOfConvexHullError } from './SrMapUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
@@ -14,6 +14,10 @@ import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useChartStore } from '@/stores/chartStore';
+import { callPlotUpdateDebounced,updateChartStore } from '@/utils/plotUtils';
+import { readOrCacheSummary } from '@/utils/SrParquetUtils';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -21,6 +25,8 @@ const curReqSumStore = useCurReqSumStore();
 const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
 const reqParamsStore = useReqParamsStore();
+const atlChartFilterStore = useAtlChartFilterStore();
+const chartStore = useChartStore();
 
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
@@ -43,6 +49,19 @@ function startFetchToFileWorker(){
     reqParamsStore.using_worker = true;
     return worker;
 } 
+
+export function updateRunContext(reqIdStr: string) {
+    const rc = chartStore.getRunContext(reqIdStr);
+    if(rc){
+        rc.parentReqId = atlChartFilterStore.currentReqId;
+        rc.trackFilter = {
+            rgt: atlChartFilterStore.getRgtValues()[0],
+            cycle: atlChartFilterStore.getCycleValues()[0],
+            track: atlChartFilterStore.getTrackValues()[0],
+            beam: atlChartFilterStore.getBeamValues()[0],
+        };
+    }
+}
 
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
@@ -123,14 +142,20 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
         case 'opfs_ready':
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
-                if(workerMsg?.req_id > 0){
+                if(workerMsg && workerMsg.req_id > 0){
+                    const reqIdStr = workerMsg.req_id.toString();
                     try{
                         fileName = await db.getFilename(workerMsg.req_id);
+                        chartStore.setFile(reqIdStr,fileName);
                         const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
                         await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
                         const svr_parms = JSON.parse(serverReqStr);
+                        console.log('handleWorkerMsg opfs_ready svr_parms:',svr_parms);
+                        console.log('handleWorkerMsg opfs_ready svr_parms.server.rqst.parms.poly:',svr_parms.server.rqst.parms.poly);
                         if(svr_parms.server.rqst.parms.poly){
-                            db.addOrUpdateOverlayByPolyHash(svr_parms.server.rqst.parms.poly, {req_ids:[workerMsg.req_id]});
+                            await db.addOrUpdateOverlayByPolyHash(svr_parms.server.rqst.parms.poly, {req_ids:[workerMsg.req_id]});
+                        } else {
+                            console.error('handleWorkerMsg opfs_ready poly was undefined');
                         }
                     } catch (error) {
                         const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
@@ -138,7 +163,15 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         useSrToastStore().error('Error',emsg);
                     }
                     try {
-                        router.push(`/analyze/${workerMsg.req_id}`);
+                        const rc = chartStore.getRunContext(reqIdStr);
+                        if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
+                            await updateChartStore(workerMsg.req_id);
+                            await readOrCacheSummary(workerMsg.req_id);
+                            atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                            callPlotUpdateDebounced('Overlayed Photon Cloud');
+                        } else {
+                            router.push(`/analyze/${workerMsg.req_id}`);
+                        }
                     } catch (error) {
                         console.error('handleWorkerMsg opfs_ready error:',error);
                         useSrToastStore().error('Error','Error loading file');
@@ -231,10 +264,12 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
-            mapStore.setCurrentReqId(srReqRec.req_id);
-            mapStore.setIsLoading(true); // controls spinning progress
-            mapStore.setTotalRows(0);
-            mapStore.setCurrentRows(0);
+            if(chartStore.getRunContext(srReqRec.req_id.toString())){
+                mapStore.setCurrentReqId(srReqRec.req_id);
+                mapStore.setIsLoading(true); // controls spinning progress
+                mapStore.setTotalRows(0);
+                mapStore.setCurrentRows(0);
+            }
             worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {
@@ -271,8 +306,8 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 }
 
 // Function that is called when the "Run SlideRule" button is clicked
-export async function processRunSlideRuleClicked() {
-
+export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
+    let runContext = rc as SrRunContext;
     if(!checkAreaOfConvexHullError()){
         return;
     }
@@ -302,58 +337,63 @@ export async function processRunSlideRuleClicked() {
     const srReqRec = await requestsStore.createNewSrRequestRecord();
     if(srReqRec) {
         console.log('runSlideRuleClicked srReqRec:',srReqRec);
-        if(!srReqRec.req_id) {
-            console.error('runSlideRuleClicked req_id is undefined');
-            //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-            useSrToastStore().error('Error','There was an error');
-            return;
-        }
-        const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
-        if(srViewKey.value){
-            srReqRec.srViewName = srViewKey.value;
-        } else {
-            console.error('runSlideRuleClicked srViewKey was undefined');
-            useSrToastStore().error('Error','There was an error. srViewKey was undefined');
-            requestsStore.setConsoleMsg('stopped...');
-            mapStore.setIsLoading(false);
-            return;
-        }
-        if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
-            if((useReqParamsStore().getIceSat2API() !== undefined) || (useReqParamsStore().getIceSat2API() !== null) || (useReqParamsStore().getIceSat2API() !== '')){
-                console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
-                srReqRec.func = useReqParamsStore().getIceSat2API();
-                srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-
-                if(srViewKey.value){
+        if(srReqRec.req_id) {
+            if(runContext){
+                runContext.reqId = srReqRec.req_id;
+                chartStore.setRunContext(srReqRec.req_id.toString(),runContext); // 
+            }
+            const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
+            if(srViewKey.value){
+                srReqRec.srViewName = srViewKey.value;
+            } else {
+                console.error('runSlideRuleClicked srViewKey was undefined');
+                useSrToastStore().error('Error','There was an error. srViewKey was undefined');
+                requestsStore.setConsoleMsg('stopped...');
+                mapStore.setIsLoading(false);
+                return;
+            }
+            if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
+                if((useReqParamsStore().getIceSat2API() !== undefined) || (useReqParamsStore().getIceSat2API() !== null) || (useReqParamsStore().getIceSat2API() !== '')){
+                    console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
+                    srReqRec.func = useReqParamsStore().getIceSat2API();
+                    srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+                    if(srViewKey.value){
+                        srReqRec.start_time = new Date();
+                        srReqRec.end_time = new Date();
+                        runFetchToFileWorker(srReqRec);
+                    } else {
+                        console.error('runSlideRuleClicked srviewName was undefined');
+                        useSrToastStore().error('Error','There was an error. srviewName was undefined');
+                        requestsStore.setConsoleMsg('stopped...');
+                        mapStore.setIsLoading(false);
+                    }
+            } else {
+                    console.error('runSlideRuleClicked IceSat2API was undefined');
+                    useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
+                    requestsStore.setConsoleMsg('stopped...');
+                    mapStore.setIsLoading(false);
+                }
+            } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
+                if(useReqParamsStore().getGediAPI() || (useReqParamsStore().getGediAPI() !== undefined) || (useReqParamsStore().getGediAPI() !== null) || (useReqParamsStore().getGediAPI() !== '')){
+                    console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
+                    srReqRec.func = useReqParamsStore().getGediAPI();
+                    srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
                     runFetchToFileWorker(srReqRec);
                 } else {
-                    console.error('runSlideRuleClicked srviewName was undefined');
-                    useSrToastStore().error('Error','There was an error. srviewName was undefined');
+                    console.error('runSlideRuleClicked GediAPI was undefined');
+                    useSrToastStore().error('Error','There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                     mapStore.setIsLoading(false);
                 }
+            }        
         } else {
-                console.error('runSlideRuleClicked IceSat2API was undefined');
-                useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
-                requestsStore.setConsoleMsg('stopped...');
-                mapStore.setIsLoading(false);
-            }
-        } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
-            if(useReqParamsStore().getGediAPI() || (useReqParamsStore().getGediAPI() !== undefined) || (useReqParamsStore().getGediAPI() !== null) || (useReqParamsStore().getGediAPI() !== '')){
-                console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
-                srReqRec.func = useReqParamsStore().getGediAPI();
-                srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                srReqRec.start_time = new Date();
-                srReqRec.end_time = new Date();
-                runFetchToFileWorker(srReqRec);
-            } else {
-                console.error('runSlideRuleClicked GediAPI was undefined');
-                useSrToastStore().error('Error','There was an error. GediAPI was undefined');
-                requestsStore.setConsoleMsg('stopped...');
-                mapStore.setIsLoading(false);
-            }
+            console.error('runSlideRuleClicked req_id is undefined');
+            //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
+            useSrToastStore().error('Error','There was an error');
+            return;
+
         }
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');

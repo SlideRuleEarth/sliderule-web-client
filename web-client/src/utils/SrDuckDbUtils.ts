@@ -3,7 +3,7 @@ import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from './SrMapUtils';
-import { getHeightFieldname } from "./SrParquetUtils";
+import { getHeightFieldname } from "@/utils/SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -37,15 +37,21 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames
 };
 
 export async function prepareDbForReqId(reqId: number): Promise<void> {
-    console.log(`prepareDbForReqID for ${reqId}`);
+    console.log(`prepareDbForReqId for ${reqId}`);
     const startTime = performance.now(); // Start time
-    const fileName = await indexedDb.getFilename(reqId);
-    const duckDbClient = await createDuckDbClient();
-    await duckDbClient.insertOpfsParquet(fileName);
-    const colNames = await duckDbClient.queryForColNames(fileName);
-    await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
-    const endTime = performance.now(); // End time
-    console.log(`prepareDbForReqID for ${reqId} took ${endTime - startTime} milliseconds.`);
+    try{
+        const fileName = await indexedDb.getFilename(reqId);
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const colNames = await duckDbClient.queryForColNames(fileName);
+        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
+    } catch (error) {
+        console.error('prepareDbForReqId error:', error);
+        throw error;
+    } finally {                                                                    
+        const endTime = performance.now(); // End time
+        console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
+    }
 }
 
 export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {

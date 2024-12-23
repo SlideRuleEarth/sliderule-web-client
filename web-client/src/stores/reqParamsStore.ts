@@ -219,12 +219,6 @@ export const useReqParamsStore = defineStore('reqParams', {
             } else {
               console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
             }
-            if(reqParmsUsed.parms.cmr){
-              useReqParamsStore().setCmr(reqParmsUsed.parms.cmr);
-            } else {
-              console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
-            }
-            // console.log('tracks:', useAtlChartFilterStore().getTracks());
             // console.log('beams:', useAtlChartFilterStore().getBeams());
             // console.log('rgts:', useAtlChartFilterStore().getRgts());
             // console.log('cycles:', useAtlChartFilterStore().getCycles());
@@ -388,7 +382,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         
           if (this.getEnableGranuleSelection()) {
             if (this.tracks.length > 0) {
-              req.tracks = this.tracks.map(track => track.value);
+              req.track = this.tracks.map(track => track.value)[0];
+              if(this.tracks.length > 1){
+                console.error('getAtlReqParams: tracks.length > 1:', this.tracks);
+              }
             }
             if (this.beams.length > 0) {
               req.beams = this.beams.map(beam => beam.value);
