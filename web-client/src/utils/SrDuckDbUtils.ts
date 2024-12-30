@@ -802,7 +802,7 @@ export async function fetchAtl03spScatterData(
             }
 
             const yColumns = y.join(", ");
-            //console.log('fetchAtl03spScatterData yColumns:', yColumns);
+            console.log('fetchAtl03spScatterData yColumns:', yColumns);
             let query = `
                 SELECT 
                     ${x},
@@ -814,7 +814,7 @@ export async function fetchAtl03spScatterData(
                 FROM '${fileName}'
                 `;
             query += whereClause;
-            //console.log('fetchAtl03spScatterData query:', query);
+            console.log('fetchAtl03spScatterData query:', query);
             useChartStore().setQuerySql(reqIdStr,query);
             const queryResult: QueryResult = await duckDbClient.query(useChartStore().getQuerySql(reqIdStr));
             for await (const rowChunk of queryResult.readRows()) {

@@ -18,7 +18,7 @@
                   <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
                 </FloatLabel>
             </div>
-            <!-- <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
                 <FloatLabel variant="on">
                   <MultiSelect
                       class="sr-multiselect" 
@@ -31,7 +31,7 @@
                   />
                     <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
                 </FloatLabel>
-            </div> -->
+            </div>
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
@@ -254,7 +254,9 @@ async function handlePhotonCloudChange() {
             updateScatterPlot(`Run Clicked for Photon Cloud Overlay with rc:${runContext}`);
         } else {
             console.warn('findCachedRec reqId not found, fetching for:', runContext);
-            processRunSlideRuleClicked(runContext);
+            await processRunSlideRuleClicked(runContext);
+            console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+            initializeBindings([runContext.reqId.toString()]);
         }
     } else {
         console.log('Show Photon Cloud Overlay unchecked');

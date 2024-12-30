@@ -670,7 +670,7 @@ async function appendSeries(reqId: number): Promise<void> {
             series: updatedSeries,
             yAxis: updatedYAxis,
         });
-        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis.`);
+        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis:`,chart.getOption());
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
@@ -683,7 +683,7 @@ export const updateScatterPlot = async (msg:string) => {
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
-        //console.log(`updateScatterPlot reqIds:`, reqIds);
+        console.log(`updateScatterPlot reqIds:`, reqIds);
         reqIds.forEach(reqId => { 
             if(reqId > 0){
                 appendSeries(reqId);

@@ -1089,16 +1089,20 @@ export class SlideRuleDexie extends Dexie {
             }
             // Search the overlayed req_ids for a match of the trackFilter
             for (const req_id of req_ids) {
-                const params = await this.getReqParams(req_id) as AtlReqParams;
-                console.log('findCachedRec: req_id:',req_id,'params:',params);
-                if (
-                    (params.rgts[0] === runContext.trackFilter.rgt) &&
-                    (params.cycles[0] === runContext.trackFilter.cycle) &&
-                    (params.beams[0] === runContext.trackFilter.beam)
-                ) 
-                {
-                    console.log(`findCachedRec: Matching record found for run context:`, runContext, 'req_id:',req_id);
-                    return req_id;
+                if(req_id > 0){
+                    const params = await this.getReqParams(req_id) as AtlReqParams;
+                    console.log('findCachedRec: req_id:',req_id,'params:',params);
+                    if (
+                        (params.rgt === runContext.trackFilter.rgt) &&
+                        (params.cycle === runContext.trackFilter.cycle) &&
+                        (params.beams[0] === runContext.trackFilter.beam)
+                    ) 
+                    {
+                        console.log(`findCachedRec: Matching record found for run context:`, runContext, 'req_id:',req_id);
+                        return req_id;
+                    }
+                } else {
+                    console.warn(`findCachedRec: req_id must be a positive integer. Ignoring req_id: ${req_id}`);
                 }
             }
 

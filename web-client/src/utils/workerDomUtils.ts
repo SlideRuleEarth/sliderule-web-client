@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
@@ -168,6 +168,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                             await updateChartStore(workerMsg.req_id);
                             await readOrCacheSummary(workerMsg.req_id);
                             atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                            await prepareDbForReqId(workerMsg.req_id);
                             callPlotUpdateDebounced('Overlayed Photon Cloud');
                         } else {
                             router.push(`/analyze/${workerMsg.req_id}`);
@@ -340,7 +341,8 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         if(srReqRec.req_id) {
             if(runContext){
                 runContext.reqId = srReqRec.req_id;
-                chartStore.setRunContext(srReqRec.req_id.toString(),runContext); // 
+                chartStore.setRunContext(srReqRec.req_id.toString(),runContext);
+                atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
             if(srViewKey.value){
