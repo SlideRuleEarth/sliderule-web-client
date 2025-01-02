@@ -11,7 +11,6 @@
     import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
     import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-    import { useChartStore } from '@/stores/chartStore';
     import Card from 'primevue/card';
 
     const props = defineProps({
@@ -33,7 +32,6 @@
     const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
     const atlChartFilterStore = useAtlChartFilterStore();
-    const chartStore = useChartStore();
     const tooltipRef = ref();
     const highlightedTrackDetails = computed(() => {
         if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {

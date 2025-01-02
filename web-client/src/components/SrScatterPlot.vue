@@ -46,8 +46,8 @@
                 zlevel:100
                 }" 
             />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
-            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
         </div> 
         <!-- <div>       func:{{ computedFunc }}  </div>
         <div>  isLoading:{{ atlChartFilterStore.isLoading }}</div> 
@@ -62,7 +62,7 @@
                 <SrRunControl 
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
-                    :inSensitive="!atlChartFilterStore.showPhotonCloud"  
+                    :inSensitive="(!atlChartFilterStore.showPhotonCloud || !mapStore.isLoading)"  
                 />
 
             </div>
@@ -88,9 +88,7 @@ import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
 import SrAtl03ColorLegend from "@/components/SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
-import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
-import { useMapStore } from "@/stores/mapStore";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import SrCheckbox from "./SrCheckbox.vue";
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
@@ -98,15 +96,14 @@ import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { db } from '@/db/SlideRuleDb';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
-import { updateScatterPlot } from '@/utils/plotUtils';
-import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
-
+import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
+import { useMapStore } from '@/stores/mapStore';  
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
-const mapStore = useMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
+const mapStore = useMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
@@ -153,7 +150,6 @@ onMounted(async () => {
         atlChartFilterStore.setMessage('Loading...');
 
         const reqId = atlChartFilterStore.getReqId();
-        const duckDbClient = await createDuckDbClient();
         reqIds.value =  await requestsStore.getMenuItems();
         initializeBindings(reqIds.value.map(item => item.value));
         if (reqId > 0) {
@@ -225,9 +221,9 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 }, { deep: true, immediate: true });
 
 
-function updateThePlot(msg:string) {
+async function updateThePlot(msg:string) {
     if(!loadingComponent.value){
-        callPlotUpdateDebounced(msg);
+        await callPlotUpdateDebounced(msg);
     } else {
         console.warn('Skipped updateThePlot - Loading component is still active');
     }
@@ -248,10 +244,14 @@ async function handlePhotonCloudChange() {
         };
         const reqId = await db.findCachedRec(runContext);
         if(reqId && (reqId > 0)){
+            runContext.reqId = reqId;
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
             console.log('findCachedRec reqId found:', reqId);
             // append series to chart
-            updateScatterPlot(`Run Clicked for Photon Cloud Overlay with rc:${runContext}`);
+            const msg = 'Run Clicked for Photon Cloud Overlay with rc:'+ JSON.stringify(runContext); 
+            await prepareDbForReqId(reqId);            
+            atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+            await callPlotUpdateDebounced(msg);
         } else {
             console.warn('findCachedRec reqId not found, fetching for:', runContext);
             await processRunSlideRuleClicked(runContext);
@@ -259,7 +259,8 @@ async function handlePhotonCloudChange() {
             initializeBindings([runContext.reqId.toString()]);
         }
     } else {
-        console.log('Show Photon Cloud Overlay unchecked');
+        atlChartFilterStore.setSelectedOverlayedReqIds([]);
+        await callPlotUpdateDebounced('Show Photon Cloud Overlay unchecked');
     }
 }
 

@@ -72,22 +72,36 @@ async function calculateCS(req_id:number) {
 
 const deleteReq = async (id:number) => {
     try {
-        const userConfirmed = window.confirm('Are you sure you want to delete this record?');
-        if (userConfirmed) {
-            console.log('deleteReq:', id);
-            await db.removeOverlayedReqId(id);
-            const fn = await db.getFilename(id);
-            await deleteOpfsFile(fn);
-            requestsStore.deleteReq(id);
-            console.log('deleteReq Record deleted successfully for id:', id);
-        } else {
-            console.log('deleteReq Deletion cancelled');
-        }
+        console.log('deleteReq:', id);
+        await db.removeRunContext(id);
+        const fn = await db.getFilename(id);
+        await deleteOpfsFile(fn);
+        requestsStore.deleteReq(id);
+        console.log('deleteReq Record deleted successfully for id:', id);
     } catch (error) {
         console.error(`deleteReq Failed to delete record for id:${id}`, error);
         throw error;
     }
 };
+
+const deleteReqAndChildren = async (id:number) => {
+    const userConfirmed = window.confirm('Are you sure you want to delete this record and all its overlayed children?');
+    if (userConfirmed) {
+        const children = await db.runContexts
+            .where('parentReqId')
+            .equals(id)
+            .toArray();
+        if (children.length > 0) {
+            for (const child of children) {
+                console.log('Deleting child:', child, ' of parent:', id);
+                await deleteReq(child.reqId);
+            }
+        }
+        deleteReq(id);
+    } else {
+        console.log('deleteReq Deletion cancelled');
+    }
+}
 
 const exportFile = async (req_id:number) => {
     console.log('Exporting file for req_id', req_id);
@@ -287,7 +301,7 @@ const tooltipRef = ref();
                 <template #body="slotProps">
                     <i 
                       class="pi pi-trash"
-                      @click="deleteReq(slotProps.data.req_id)"
+                      @click="deleteReqAndChildren(slotProps.data.req_id)"
                       @mouseover="tooltipRef.showTooltip($event, 'Delete Requests')"
                       @mouseleave="tooltipRef.hideTooltip"
                     ></i>

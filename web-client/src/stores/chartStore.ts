@@ -21,7 +21,6 @@ interface ChartState {
   numOfPlottedPnts: number;
   selectedAtl03YapcColorMap: { name: string, value: string };
   symbolSize: number;
-  runContext: SrRunContext;  
   //[key: string]: any;
 }
 
@@ -60,7 +59,6 @@ export const useChartStore = defineStore('chartStore', {
             numOfPlottedPnts: 0,
             selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
             symbolSize: 3,
-            runContext: {reqId:-1, parentReqId: -1, trackFilter: { rgt: -1, cycle: -1, track: -1, beam: -1 } },
         };
       }
     },
@@ -233,18 +231,6 @@ export const useChartStore = defineStore('chartStore', {
     setNumOfPlottedPnts(reqIdStr: string, numOfPlottedPnts: number,) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
-    },
-    setRunContext(reqIdStr:string,context:SrRunContext){
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].runContext = context;
-    },
-    getRunContext(reqIdStr:string) : SrRunContext{
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].runContext;
-    },
-    getRcTrackFilter(reqIdStr:string) : SrTrkFilter{
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].runContext.trackFilter;
     },
   },
 });

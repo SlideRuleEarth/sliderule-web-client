@@ -48,12 +48,6 @@ export interface Atl03Color {
     color: string;  // 
 }
 
-export interface OverlayRecord {
-    id?: number;            // Auto-incrementing primary key
-    description?: string;   // Optional description
-    req_ids: number[];      // List of req_ids belonging to this overlay
-    polyHash?: string;      // Unique hash for the poly field
-}
 export interface SrTrkFilter {
     rgt: number;
     cycle: number;
@@ -65,6 +59,16 @@ export interface SrRunContext {
     reqId: number;
     parentReqId : number;
     trackFilter : SrTrkFilter;
+}
+
+// Extends SrRunContext and also has a numeric ID for Dexie
+export interface SrRunContextRecord extends SrRunContext {
+    id?: number; // Dexie will auto-increment this
+    // ...but also flatten out the fields we want to index:
+    rgt: number;           
+    cycle: number;        
+    track: number;        
+    beam: number;         
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -99,17 +103,18 @@ export class SlideRuleDexie extends Dexie {
     colors!: Table<SrColors>;
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
-    overlays!: Table<OverlayRecord>;
+    runContexts!: Table<SrRunContextRecord>;
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(3).stores({
+        this.version(4).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
             atl03CnfColors: 'number',
             atl08ClassColors: 'number', 
-            overlays: '++id, &polyHash' // Make polyHash a unique index
+            //find runContexts by (parentReqId + rgt + cycle + beam) in one go, define a compound index:
+            runContexts: '++id, &reqId, parentReqId, rgt, cycle, beam, track, [parentReqId+rgt+cycle+beam]'
         });
         this._initializeDefaultColors();
         this._useMiddleware();
@@ -429,7 +434,7 @@ export class SlideRuleDexie extends Dexie {
     // Method to delete a color-number pair by color from atl03CnfColors
     async deleteAtl03CnfColor(color: string): Promise<void> {
         try {
-            await this.atl03CnfColors.delete(color);
+            await this.atl03CnfColors.where('color').equals(color).delete();
             console.log(`Color deleted from atl03CnfColors: ${color}`);
         } catch (error) {
             console.error(`Failed to delete color from atl03CnfColors: ${color}`, error);
@@ -440,7 +445,7 @@ export class SlideRuleDexie extends Dexie {
     // Method to delete a color-number pair by color from atl08ClassColors
     async deleteAtl08ClassColor(color: string): Promise<void> {
         try {
-            await this.atl08ClassColors.delete(color);
+            await this.atl08ClassColors.where('color').equals(color).delete();
             console.log(`Color deleted from atl08ClassColors: ${color}`);
         } catch (error) {
             console.error(`Failed to delete color from atl08ClassColors: ${color}`, error);
@@ -890,7 +895,7 @@ export class SlideRuleDexie extends Dexie {
             //console.log(`getWorkerSummary for req_id ${reqId}...`);
             const count = await this.summary.where('req_id').equals(reqId).count();
             if (count > 1) {
-                throw new Error(`getWorkerSummary Multiple summaries found for req_id ${reqId}??`);
+                console.error(`Multiple summaries found for req_id ${reqId}.`);
             }
             const summaryRecord = await this.summary.where('req_id').equals(reqId).first();
             if (!summaryRecord) {
@@ -917,201 +922,68 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async addOrUpdateOverlayByPolyHash(
-        poly: { lat: number; lon: number }[],
-        updates: Partial<OverlayRecord> = {}
-    ): Promise<void> {
-        console.log('addOrUpdateOverlayByPolyHash: poly:',poly,'updates:',updates);
-        try {
-            if (!poly || !poly.length || poly.some(p => typeof p.lat !== 'number' || typeof p.lon !== 'number')) {
-                throw new Error(`Invalid polygon data: ${JSON.stringify(poly)}`);
-            }
-    
-            if (!updates.req_ids || !Array.isArray(updates.req_ids)) {
-                throw new Error(`Invalid req_ids in updates: ${JSON.stringify(updates.req_ids)}`);
-            }
-    
-            const polyHash = hashPoly(poly);
-    
-            // Lookup the existing overlay
-            const existingOverlay = await this.overlays.where('polyHash').equals(polyHash).first();
-    
-            if (existingOverlay) {
-                console.log(`addOrUpdateOverlayByPolyHash: Overlay found for polyHash ${polyHash}:`, existingOverlay, ' poly:',poly);
-                // Merge request IDs
-                const updatedReqIds = [...new Set([...(existingOverlay.req_ids || []), ...updates.req_ids])];
-                updates.req_ids = updatedReqIds;
-                // Update the existing overlay
-                const rowsModified = await this.overlays
-                    .where('polyHash')
-                    .equals(polyHash)
-                    .modify({ ...updates });
-    
-                console.log(
-                    rowsModified > 0
-                        ? `addOrUpdateOverlayByPolyHash: Updated overlay with polyHash ${polyHash} and merged req_ids ${JSON.stringify(updates.req_ids)}.`
-                        : `addOrUpdateOverlayByPolyHash: No overlays modified for polyHash ${polyHash}.`
-                );
-            } else {
-                // Add a new overlay if none exists
-                const newOverlay: OverlayRecord = {
-                    polyHash,
-                    req_ids: updates.req_ids,
-                    ...updates,
-                };
-    
-                const id = await this.overlays.add(newOverlay);
-                console.log(`addOrUpdateOverlayByPolyHash: Added new overlay with id ${id}, polyHash ${polyHash}, poly:${poly} and req_ids ${JSON.stringify(updates.req_ids)}.`);
-            }
-        } catch (error) {
-            console.error(`addOrUpdateOverlayByPolyHash: Failed to process overlay for poly ${JSON.stringify(poly)} with req_ids ${JSON.stringify(updates.req_ids)}:`, error);
-            throw error;
-        }
-    }
-    
-    async getOverlayByReqId(req_id: number): Promise<OverlayRecord | undefined> {
-        try {
-            // Query the overlays table to find the first record where req_id exists in req_ids
-            const overlay = await this.overlays
-                .filter(record => record.req_ids.includes(req_id))
-                .first();
-    
-            if (overlay) {
-                console.log(`Overlay found for req_id ${req_id}:`, overlay);
-            } else {
-                console.warn(`No overlay found containing req_id ${req_id}.`);
-            }
-    
-            return overlay;
-        } catch (error) {
-            console.error(`Failed to retrieve overlay for req_id ${req_id}:`, error);
-            throw error;
-        }
-    }
-    
-    async getOverlayedReqIds(req_id:number): Promise<number[]> {
-        try {
-            const overlay = await this.getOverlayByReqId(req_id);
-            return overlay ? overlay.req_ids.filter(id => id !== req_id) : [];
-        } catch (error) {
-            console.error(`Failed to retrieve overlayed req_ids for req_id ${req_id}:`, error);
-            throw error;
-        }
-    }
 
-    async getOverlayedReqIdsOptions(req_id: number): Promise<{label:string, value:number}[]> {
-        try {
-            const overlay = await this.getOverlayByReqId(req_id);
-            if (!overlay) {
-                return [];
-            }
-    
-            // Fetch the req_ids excluding the current one
-            const reqIds = overlay.req_ids.filter(id => id !== req_id);
-    
-            // Map over the reqIds and fetch the associated function names
-            const reqIdOptions = await Promise.all(
-                reqIds.map(async id => {
-                    const func = await this.getFunc(id); // Fetch the function name
-                    return {label:`${id} - ${func || 'Unknown Function'}`, value: id}; // Format the string
-                })
-            );
-    
-            return reqIdOptions;
-        } catch (error) {
-            console.error(`Failed to retrieve overlayed req_ids as strings for req_id ${req_id}:`, error);
-            throw error;
-        }
-    }
-
-    async deleteOverlay(id: number): Promise<void> {
-        try {
-            await this.overlays.delete(id);
-            console.log(`Overlay with id ${id} deleted.`);
-        } catch (error) {
-            console.error(`Failed to delete overlay with id ${id}:`, error);
-            throw error;
-        }
-    }
-
-    async getAllOverlays(): Promise<OverlayRecord[]> {
-        try {
-            const overlays = await this.overlays.toArray();
-            console.log('Retrieved overlays:', overlays);
-            return overlays;
-        } catch (error) {
-            console.error('Failed to retrieve overlays:', error);
-            throw error;
-        }
-    }
-
-    async removeOverlayedReqId(req_id: number): Promise<void> {
-        try {
-            // Find the overlay that contains this req_id
-            const overlay = await this.getOverlayByReqId(req_id);
-            if (!overlay) {
-                // No overlay found containing this req_id
-                return;
-            }
-            
-            // Remove the req_id from the overlay's req_ids
-            const updatedReqIds = overlay.req_ids.filter(id => id !== req_id);
-    
-            // If the overlay would have only one (or zero) request left after removal, remove the entire overlay
-            if (updatedReqIds.length <= 1) {
-                // Log a warning
-                console.warn(`Overlay (id=${overlay.id}) now has only one req_id after removing req_id=${req_id}. Removing the entire overlay.`);
-                // Remove the overlay
-                if (overlay.id !== undefined) {
-                    await this.deleteOverlay(overlay.id);
-                }
-            } else {
-                // Otherwise, just update the overlay with the new req_ids
-                if (overlay.id !== undefined) {
-                    await this.overlays.update(overlay.id, { req_ids: updatedReqIds });
-                    console.log(`Removed req_id=${req_id} from overlay (id=${overlay.id}). Updated req_ids:`, updatedReqIds);
-                }
-            }
-        } catch (error) {
-            console.error(`Failed to remove req_id=${req_id} from its overlay:`, error);
-            throw error;
-        }
-    }
-    
     async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
-            // Find the overlays that contain the parent req_id
-            const req_ids = await this.getOverlayedReqIds(runContext.parentReqId);
-            console.log('findCachedRec: req_ids:',req_ids,' for runContext.parentReqId:',runContext.parentReqId);
-            if (!req_ids || !req_ids.length) {
-                // No overlay found containing this req_id
-                return undefined;
-            }
-            // Search the overlayed req_ids for a match of the trackFilter
-            for (const req_id of req_ids) {
-                if(req_id > 0){
-                    const params = await this.getReqParams(req_id) as AtlReqParams;
-                    console.log('findCachedRec: req_id:',req_id,'params:',params);
-                    if (
-                        (params.rgt === runContext.trackFilter.rgt) &&
-                        (params.cycle === runContext.trackFilter.cycle) &&
-                        (params.beams[0] === runContext.trackFilter.beam)
-                    ) 
-                    {
-                        console.log(`findCachedRec: Matching record found for run context:`, runContext, 'req_id:',req_id);
-                        return req_id;
-                    }
-                } else {
-                    console.warn(`findCachedRec: req_id must be a positive integer. Ignoring req_id: ${req_id}`);
-                }
-            }
-
+            const found = await this.runContexts
+                .where('[parentReqId+rgt+cycle+beam]')
+                .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
+                .toArray();
+          
+          console.log(found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+          if (found.length > 1) {
+              console.warn(`Multiple matching records found for run context:`, runContext);
+          }
+          if (found.length === 0) {
+              console.warn(`No matching record found for run context:`, runContext);
+              return undefined;
+          }
+          return found[0].reqId;
         } catch (error) {
             console.error(`Failed to find matching record for run context:`, error);
             throw error;
         }
     }
 
+    async addSrRunContext(runContext: SrRunContext): Promise<void> {
+        try {
+            const thisRunContextRecord: SrRunContextRecord = {
+                reqId: runContext.reqId,
+                parentReqId: runContext.parentReqId,
+                trackFilter: runContext.trackFilter,
+                rgt: runContext.trackFilter.rgt,
+                cycle: runContext.trackFilter.cycle,
+                beam: runContext.trackFilter.beam,
+                track: runContext.trackFilter.track,
+            };
+            await this.runContexts.put(thisRunContextRecord);
+        } catch (error) {
+            console.error('Failed to add SrRunContext:', error);
+            throw error;
+        }
+    }
+
+    async removeRunContext(reqId: number): Promise<void> {
+        try {
+            await this.runContexts.where('reqId').equals(reqId).delete();
+        } catch (error) {
+            console.error(`Failed to remove run context for req_id ${reqId}:`, error);
+            throw error;
+        }
+    }
+
+    async getRunContext(reqId: number): Promise<SrRunContextRecord | undefined> {
+        try {
+            const runContext = await this.runContexts.where('reqId').equals(reqId).first();
+            if (!runContext) {
+                console.error(`No run context found for req_id ${reqId}`);
+            }
+            return runContext;
+        } catch (error) {
+            console.error(`Failed to get run context for req_id ${reqId}:`, error);
+            throw error;
+        }
+    }
 
 }
 export const db = new SlideRuleDexie();

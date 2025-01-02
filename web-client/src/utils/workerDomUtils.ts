@@ -50,19 +50,6 @@ function startFetchToFileWorker(){
     return worker;
 } 
 
-export function updateRunContext(reqIdStr: string) {
-    const rc = chartStore.getRunContext(reqIdStr);
-    if(rc){
-        rc.parentReqId = atlChartFilterStore.currentReqId;
-        rc.trackFilter = {
-            rgt: atlChartFilterStore.getRgtValues()[0],
-            cycle: atlChartFilterStore.getCycleValues()[0],
-            track: atlChartFilterStore.getTrackValues()[0],
-            beam: atlChartFilterStore.getBeamValues()[0],
-        };
-    }
-}
-
 const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     //console.log('handleWorkerMsg workerMsg:',workerMsg);
     let fileName:string;
@@ -142,44 +129,38 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
 
         case 'opfs_ready':
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
-                if(workerMsg && workerMsg.req_id > 0){
-                    const reqIdStr = workerMsg.req_id.toString();
-                    try{
-                        fileName = await db.getFilename(workerMsg.req_id);
-                        chartStore.setFile(reqIdStr,fileName);
-                        const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
-                        await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
-                        const svr_parms = JSON.parse(serverReqStr);
-                        console.log('handleWorkerMsg opfs_ready svr_parms:',svr_parms);
-                        console.log('handleWorkerMsg opfs_ready svr_parms.server.rqst.parms.poly:',svr_parms.server.rqst.parms.poly);
-                        if(svr_parms.server.rqst.parms.poly){
-                            await db.addOrUpdateOverlayByPolyHash(svr_parms.server.rqst.parms.poly, {req_ids:[workerMsg.req_id]});
-                        } else {
-                            console.error('handleWorkerMsg opfs_ready poly was undefined');
-                        }
-                    } catch (error) {
-                        const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
-                        console.error('handleWorkerMsg opfs_ready error:',error,emsg);
-                        useSrToastStore().error('Error',emsg);
-                    }
-                    try {
-                        const rc = chartStore.getRunContext(reqIdStr);
-                        if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
-                            await updateChartStore(workerMsg.req_id);
-                            await readOrCacheSummary(workerMsg.req_id);
-                            atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
-                            await prepareDbForReqId(workerMsg.req_id);
-                            callPlotUpdateDebounced('Overlayed Photon Cloud');
-                        } else {
-                            router.push(`/analyze/${workerMsg.req_id}`);
-                        }
-                    } catch (error) {
-                        console.error('handleWorkerMsg opfs_ready error:',error);
-                        useSrToastStore().error('Error','Error loading file');
-                    }
-                } else {
-                    console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
+            if(workerMsg && workerMsg.req_id > 0){
+                const reqIdStr = workerMsg.req_id.toString();
+                try{
+                    fileName = await db.getFilename(workerMsg.req_id);
+                    chartStore.setFile(reqIdStr,fileName);
+                    const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
+                    await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
+                } catch (error) {
+                    const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
+                    console.error('handleWorkerMsg opfs_ready error:',error,emsg);
+                    useSrToastStore().error('Error',emsg);
                 }
+                try {
+                    const rc = await db.getRunContext(workerMsg.req_id);
+                    console.log('handleWorkerMsg opfs_ready rc:',rc);
+                    if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
+                        await updateChartStore(workerMsg.req_id);
+                        await readOrCacheSummary(workerMsg.req_id);
+                        atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                        await prepareDbForReqId(workerMsg.req_id);
+                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
+                    } else {
+                        console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
+                        router.push(`/analyze/${workerMsg.req_id}`);
+                    }
+                } catch (error) {
+                    console.error('handleWorkerMsg opfs_ready error:',error);
+                    useSrToastStore().error('Error','Error loading file');
+                }
+            } else {
+                console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
+            }
             if(worker){
                 cleanUpWorker();
             }
@@ -265,12 +246,10 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
-            if(chartStore.getRunContext(srReqRec.req_id.toString())){
-                mapStore.setCurrentReqId(srReqRec.req_id);
-                mapStore.setIsLoading(true); // controls spinning progress
-                mapStore.setTotalRows(0);
-                mapStore.setCurrentRows(0);
-            }
+            mapStore.setCurrentReqId(srReqRec.req_id);
+            mapStore.setIsLoading(true); // controls spinning progress
+            mapStore.setTotalRows(0);
+            mapStore.setCurrentRows(0);
             worker = startFetchToFileWorker();
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = (error) => {
@@ -341,7 +320,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         if(srReqRec.req_id) {
             if(runContext){
                 runContext.reqId = srReqRec.req_id;
-                chartStore.setRunContext(srReqRec.req_id.toString(),runContext);
+                db.addSrRunContext(runContext);
                 atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);

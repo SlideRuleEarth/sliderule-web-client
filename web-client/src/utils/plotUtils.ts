@@ -377,7 +377,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     data: seriesData.map(series => series.series.name),
                     left: 'left'
                 },
-                notMerge: true,
+                notMerge: false,
                 lazyUpdate: true,
                 xAxis: [{
                     min: chartStore.getMinX(reqIdStr),
@@ -534,16 +534,13 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-        //console.log(`appendSeries(${reqIdStr}): Existing options:`, existingOptions);
 
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
-        //console.log('seriesData:', seriesData);
         if (!seriesData.length) {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
-        //console.log(`appendSeries(${reqIdStr}): Series data:`, seriesData);
 
         // Define the fields that should share a single axis
         const heightFields = ['height', 'h_mean', 'h_mean_canopy'];
@@ -556,9 +553,13 @@ async function appendSeries(reqId: number): Promise<void> {
             ...(Array.isArray(filteredOptions.series) ? filteredOptions.series : []),
         ];
 
-        let updatedYAxis = Array.isArray(filteredOptions.yAxis) ? [...filteredOptions.yAxis] : [];
+        let updatedYAxis = Array.isArray(filteredOptions.yAxis)
+            ? [...filteredOptions.yAxis]
+            : [];
 
-        // Find if there's already a height axis
+        // -----------------------------
+        //     HANDLE Y-AXES MERGING
+        // -----------------------------
         let heightYAxisIndex: number | null = null;
         let existingHeightFields: string[] = [];
         let existingHeightMin = Number.POSITIVE_INFINITY;
@@ -568,13 +569,11 @@ async function appendSeries(reqId: number): Promise<void> {
         for (let i = 0; i < updatedYAxis.length; i++) {
             const axis = updatedYAxis[i];
             if (axis && axis.name) {
-                // The name could be a combination of fields. Split by comma if multiple
-                const axisNames = axis.name.split(',').map((n:string) => n.trim());
-                // Check if any of the known height fields appear in the axis name
-                if (axisNames.some((n:string) => heightFields.includes(n))) {
+                const axisNames = axis.name.split(',').map((n: string) => n.trim());
+                if (axisNames.some((n: string) => heightFields.includes(n))) {
                     heightYAxisIndex = i;
                     existingHeightFields = axisNames;
-                    // Extract current min/max
+                    // Extract current min/max if numeric
                     if (axis.min !== undefined && typeof axis.min === 'number') {
                         existingHeightMin = axis.min;
                     }
@@ -598,12 +597,11 @@ async function appendSeries(reqId: number): Promise<void> {
                 heightNames.push(d.series.name);
             });
 
-            // Combine with existing if found
             if (heightYAxisIndex !== null) {
                 // Update existing height axis
-                // Combine field names
-                const allHeightFieldsCombined = Array.from(new Set([...existingHeightFields, ...heightNames]));
-                // Update min/max if needed
+                const allHeightFieldsCombined = Array.from(
+                    new Set([...existingHeightFields, ...heightNames])
+                );
                 const combinedMin = Math.min(existingHeightMin, heightMin);
                 const combinedMax = Math.max(existingHeightMax, heightMax);
 
@@ -611,9 +609,8 @@ async function appendSeries(reqId: number): Promise<void> {
                     ...updatedYAxis[heightYAxisIndex],
                     name: allHeightFieldsCombined.join(', '),
                     min: combinedMin,
-                    max: combinedMax
+                    max: combinedMax,
                 };
-
             } else {
                 // No existing height axis - create a new one
                 heightYAxisIndex = updatedYAxis.length;
@@ -633,50 +630,107 @@ async function appendSeries(reqId: number): Promise<void> {
             const mappedHeightSeries = heightSeriesData.map(d => ({
                 ...d.series,
                 type: 'scatter',
-                yAxisIndex: heightYAxisIndex as number
+                yAxisIndex: heightYAxisIndex as number,
             }));
             updatedSeries = updatedSeries.concat(mappedHeightSeries);
         }
 
-        // For non-height data, each one gets its own axis as a new axis after the existing ones
+        // For non-height data, each one gets its own axis as a new axis
         const mappedNonHeightSeries = nonHeightSeriesData.map(d => {
-            // Add a new axis for this non-height series
-            const nonHeightAxisIndex = updatedYAxis.length;
-            updatedYAxis.push({
-                type: 'value',
-                name: d.series.name,
-                min: d.min,
-                max: d.max,
-                scale: true,
-                axisLabel: {
-                    formatter: (value: number) => value.toFixed(1),
-                },
-            });
-
-            return {
-                ...d.series,
-                type: 'scatter',
-                yAxisIndex: nonHeightAxisIndex
-            };
+        const nonHeightAxisIndex = updatedYAxis.length;
+        updatedYAxis.push({
+            type: 'value',
+            name: d.series.name,
+            min: d.min,
+            max: d.max,
+            scale: true,
+            axisLabel: {
+            formatter: (value: number) => value.toFixed(1),
+            },
+        });
+        return {
+            ...d.series,
+            type: 'scatter',
+            yAxisIndex: nonHeightAxisIndex,
+        };
         });
         updatedSeries = updatedSeries.concat(mappedNonHeightSeries);
 
-        //console.log(`appendSeries(${reqIdStr}): Updated series:`, updatedSeries);
-        //console.log(`appendSeries(${reqIdStr}): Updated yAxis:`, updatedYAxis);
+        // -----------------------------
+        //     UPDATE LEGEND
+        // -----------------------------
+        // 1) Grab existing legend from filteredOptions (could be array or object).
+        const existingLegend = filteredOptions.legend;
+        let updatedLegend: LegendComponentOption[] = [];
 
-        // Apply the updated options to the chart
-        chart.setOption({
-            ...filteredOptions,
-            series: updatedSeries,
-            yAxis: updatedYAxis,
+        if (Array.isArray(existingLegend) && existingLegend.length > 0) {
+        // If the chart uses an array of legend configs, clone them:
+        updatedLegend = existingLegend.map(legendObj => {
+            // Convert legendObj.data to an array or fallback to empty array
+            const legendData = Array.isArray(legendObj.data) ? [...legendObj.data] : [];
+
+            // Gather all new series names
+            const newSeriesNames = updatedSeries
+            .map(s => s.name)
+            .filter(name => !!name && !legendData.includes(name as string));
+
+            const mergedLegendData = legendData.concat(newSeriesNames);
+            return {
+            ...legendObj,
+            data: mergedLegendData,
+            };
         });
-        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis:`,chart.getOption());
+        } else if (existingLegend && !Array.isArray(existingLegend)) {
+        // If it's a single legend object
+        const legendData = Array.isArray(existingLegend.data)
+            ? [...existingLegend.data]
+            : [];
+
+        // Gather all new series names
+        const newSeriesNames = updatedSeries
+            .map(s => s.name)
+            .filter(name => !!name && !legendData.includes(name as string));
+
+        const mergedLegendData = legendData.concat(newSeriesNames);
+        updatedLegend = [
+            {
+            ...existingLegend,
+            data: mergedLegendData,
+            },
+        ];
+        } else {
+        // If no legend config exists, create one
+        const newSeriesNames = updatedSeries.map(s => s.name).filter(Boolean) as string[];
+        updatedLegend = [
+            {
+            data: newSeriesNames,
+            left: 'left',
+            },
+        ];
+        }
+
+        // -----------------------------
+        //     APPLY UPDATED OPTIONS
+        // -----------------------------
+        chart.setOption({
+        ...filteredOptions,
+        legend: updatedLegend,
+        series: updatedSeries,
+        yAxis: updatedYAxis,
+        // If you want to ensure a merge, you can pass a second param:
+        // }, { notMerge: false }
+        });
+
+        console.log(
+        `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,
+        chart.getOption()
+        );
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
-}
-
-export const updateScatterPlot = async (msg:string) => {
+    }
+  
+const updateScatterPlot = async (msg:string) => {
     const startTime = performance.now();
     console.log(`updateScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
@@ -731,7 +785,7 @@ let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
 
 
-export function callPlotUpdateDebounced(msg: string): Promise<void> {
+export async function callPlotUpdateDebounced(msg: string): Promise<void> {
     console.log("callPlotUpdateDebounced called for:", msg);
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Filter was updated...');
