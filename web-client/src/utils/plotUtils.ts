@@ -9,6 +9,8 @@ import type { ECharts } from 'echarts/core';
 //import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
+import {type  SrRunContext } from '@/db/SlideRuleDb';
+import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -764,12 +766,43 @@ const refreshScatterPlot = async (msg:string) => {
     }
 };
 
+
+export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
+    const runContext: SrRunContext = {
+        reqId: -1, // this will be set in the worker
+        parentReqId: atlChartFilterStore.getReqId(),
+        trackFilter: {
+            rgt: atlChartFilterStore.getRgts()[0].value,
+            cycle: atlChartFilterStore.getCycles()[0].value,
+            track: atlChartFilterStore.getTracks()[0].value,
+            beam: atlChartFilterStore.getBeams()[0].value
+        }
+    };
+    if(atlChartFilterStore.getShowPhotonCloud()){
+        console.log('Show Photon Cloud Overlay checked');
+        const reqId = await indexedDb.findCachedRec(runContext);
+        if(reqId && (reqId > 0)){
+            runContext.reqId = reqId;
+            atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
+            console.log('findCachedRec reqId found:', reqId);
+        } else {
+            console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+        }
+    }
+    return runContext;
+}
+
 async function updatePlot(msg:string){
     console.log('updatePlot called for:',msg);
     if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
         (useAtlChartFilterStore().getCycleValues().length > 0) &&
         (useAtlChartFilterStore().getSpotValues().length > 0)
     ){
+        const runContext = await getPhotonOverlayRunContext();
+        if(runContext.reqId > 0){
+            await prepareDbForReqId(runContext.reqId);            
+            useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
+        }
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
@@ -788,7 +821,7 @@ let pendingResolves: Array<() => void> = [];
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
     console.log("callPlotUpdateDebounced called for:", msg);
     atlChartFilterStore.setIsWarning(true);
-    atlChartFilterStore.setMessage('Filter was updated...');
+    atlChartFilterStore.setMessage('Updating...');
   
     // Clear any existing timeout to debounce the calls
     if (updatePlotTimeoutId) {

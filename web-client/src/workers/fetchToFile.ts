@@ -5,6 +5,7 @@ import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '@/workers/workerUtils';
+import { read } from "fs";
 
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
@@ -43,6 +44,7 @@ export async function checkDoneProcessing(  thisReqID:number,
             } else {
                 msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID} read_state:${read_state}`;
                 if(read_state === 'done_reading'){
+                    read_state = 'done';// prevent multiple calls to postMessage
                     console.log('Success:', status_details, 'req_id:', thisReqID, 'num_checks:', num_checks);
                     postMessage(await successMsg(thisReqID, msg));
                 }
@@ -55,6 +57,8 @@ export async function checkDoneProcessing(  thisReqID:number,
         } else {
             console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
+    } else {
+        console.warn('ignoring read_state:',read_state);
     }
 }
 

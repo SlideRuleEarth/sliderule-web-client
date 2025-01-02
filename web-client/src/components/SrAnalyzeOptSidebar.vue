@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted,ref,watch,computed } from 'vue';
-import type {Ref} from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrMenuInput, { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
