@@ -87,17 +87,6 @@
                 </div>
                 <SrCustomTooltip ref="tooltipRef"/>
 
-                <Button 
-                    class="sr-run-abort-button" 
-                    :class="{ 'abort-mode': mapStore.isLoading }"
-                    :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
-                    @click="toggleRunAbort" 
-                    :disabled="!mapStore.isAborting && props.inSensitive"
-                >
-                    <template #icon>
-                        <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
-                    </template>
-                </Button>
                 <div v-if="!props.includeAdvToggle">
                     <Card>
                         <template #title>
@@ -110,6 +99,18 @@
                         </template>                    
                     </Card>
                 </div>  
+                <Button
+                v-if=mapStore.isLoading
+                    class="sr-run-abort-button" 
+                    :class="{ 'abort-mode': mapStore.isLoading }"
+                    :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
+                    @click="toggleRunAbort" 
+                    :disabled="!mapStore.isAborting && props.inSensitive"
+                >
+                    <template #icon>
+                        <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
+                    </template>
+                </Button>
             </div>
         </div>
         <div class="sr-msg-panel">

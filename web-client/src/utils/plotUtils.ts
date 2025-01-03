@@ -856,6 +856,13 @@ export function initSymbolSize(reqIdStr: string) {
     }       
 }
 
+export const findReqMenuLabel = (reqId:number) => {
+    const item = atlChartFilterStore.reqIdMenuItems.find(
+        (i) => Number(i.value) === reqId
+    )
+    return item ? item.name : 'unknown'
+}
+
 export async function updateChartStore(req_id: number) {
     //console.log('updateChartStore req_id:', req_id);
     if (req_id <= 0) {

@@ -8,6 +8,10 @@ export interface SrListNumberItem {
   label: string;
   value: number;
 }
+export interface SrMenuItem {
+  name:   string;
+  value:  string; 
+}
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
@@ -42,6 +46,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: true as boolean,
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
+    reqIdMenuItems: [] as SrMenuItem[],
   }),
 
   actions: {
