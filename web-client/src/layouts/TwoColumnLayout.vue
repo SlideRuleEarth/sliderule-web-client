@@ -14,7 +14,7 @@ function stopDrag() {
 
 function onDrag(event: MouseEvent) {
   if (!isDragging.value) return;
-  // For example, we can set a lower limit of 200px and an upper limit of 600px
+  // For example, clamp between 200px and 1200px
   const newWidth = Math.min(Math.max(event.clientX, 200), 1200);
   sidebarWidth.value = newWidth;
 }
@@ -39,11 +39,21 @@ onBeforeUnmount(() => {
     >
       <slot name="sidebar-col"></slot>
     </div>
+
+    <!-- 
+      The "hot zone" wrapper (wider area) 
+      that displays the actual resizer only on hover or drag 
+    -->
     <div
-      class="resizer"
-      :class="{ dragging: isDragging }"
+      class="resizer-hotzone"
       @mousedown="startDrag"
-    ></div>
+    >
+      <div
+        class="resizer"
+        :class="{ dragging: isDragging }"
+      ></div>
+    </div>
+
     <main>
       <slot name="main"></slot>
     </main>
@@ -55,36 +65,49 @@ onBeforeUnmount(() => {
   display: flex;
   position: relative;
   min-height: 60vh;
-  /* 
-    When hovering over the layout-container, 
-    show the .resizer if not dragging.
-  */
-  &:hover .resizer:not(.dragging) {
-    opacity: 1;
-  }
 }
 
-/* Sidebar takes an explicit width from the ref. */
+/* The sidebar width is driven by sidebarWidth. */
 .sidebar-col {
   overflow-x: auto;
-  /* Optional: add min or max width if desired: */
   min-width: 25rem; 
   max-width: 500rem;
 }
 
-/* Resizer handle */
+/* 
+  The "hot zone" is a transparent strip that's wider than 
+  the actual resizer. This makes it easier for the user 
+  to hover near the boundary without pixel-perfect aiming.
+*/
+.resizer-hotzone {
+  width: 15px; /* or however wide you want the 'hover area' to be */
+  cursor: col-resize;
+  /* place it visually on top so it captures mouse events */
+  z-index: 10;
+  position: relative;
+}
+
+/*
+  The actual resizer bar is narrower (e.g. 5px) 
+  and is placed within the hotzone.
+*/
 .resizer {
   width: 5px;
-  cursor: col-resize;
-  background-color: var(--p-button-text-primary-color);;
-  /* place it “on top” visually */
-  z-index: 10;
-  /* Initially hidden */
-  opacity: 0;
+  height: 100%;
+  margin-left: 5px; /* center the resizer inside the 15px hotzone */
+  background-color: var(--p-button-text-primary-color);
   transition: opacity 0.3s ease;
+  
+  /* Start hidden */
+  opacity: 0;
 }
- 
-/* If the resizer is actively being dragged, keep it visible */
+
+/* When hovering over the hotzone (unless dragging), show the resizer. */
+.resizer-hotzone:hover .resizer:not(.dragging) {
+  opacity: 1;
+}
+
+/* If the user is actively dragging, keep the resizer visible. */
 .resizer.dragging {
   opacity: 1 !important;
 }
