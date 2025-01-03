@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getHeightFieldname } from '@/utils/SrParquetUtils';
+import type { SrRunContext, SrTrkFilter } from '@/db/SlideRuleDb';
 
 interface ChartState {
   currentFile: string;
@@ -10,18 +10,15 @@ interface ChartState {
   elevationDataOptions: string[];
   yDataForChart: string[];
   xDataForChart: string;
-  ndxOfelevationDataOptionsForHeight: number;
+  ndxOfElevationDataOptionsForHeight: number;
   func: string;
   description: string;
   querySql: string;
   whereClause: string;
-  message: string;
-  isWarning: boolean;
-  showMessage: boolean;
   size: number;
   recCnt: number;
   xLegend: string;
-  numOfPlottedPnts: number,
+  numOfPlottedPnts: number;
   selectedAtl03YapcColorMap: { name: string, value: string };
   symbolSize: number;
   //[key: string]: any;
@@ -35,7 +32,13 @@ export const useChartStore = defineStore('chartStore', {
   actions: {
     // Initialize a state for a reqIdStr if it doesn't exist
     ensureState(reqIdStr: string) {
-      if (!this.stateByReqId[reqIdStr]) {
+    if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
+        console.error('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
+        console.trace('Call stack for ensureState with invalid reqIdStr');
+        return; // Exit early to prevent further execution
+    }     
+    if (!this.stateByReqId[reqIdStr]) {
+        //console.log('ensureState() initializing state for reqIdStr:', reqIdStr);
         this.stateByReqId[reqIdStr] = {
             currentFile: '',
             min_x: 0,
@@ -45,14 +48,11 @@ export const useChartStore = defineStore('chartStore', {
             elevationDataOptions: [ 'not_set' ],
             yDataForChart: [],
             xDataForChart: 'x_atc',
-            ndxOfelevationDataOptionsForHeight: 0,
+            ndxOfElevationDataOptionsForHeight: 0,
             func: '',
             description: 'description here',
             querySql: '',
             whereClause: '',
-            message: 'Failed to load data. Please try again later.',
-            isWarning: false,
-            showMessage: false,
             size: 0,
             recCnt: 0,
             xLegend: 'Meters',
@@ -75,6 +75,7 @@ export const useChartStore = defineStore('chartStore', {
         this.stateByReqId[reqIdStr].max_x = max_x;
     },
     getMaxX(reqIdStr: string) {
+        this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].max_x;
     },
     setDescription(reqIdStr: string, description: string) { 
@@ -107,7 +108,7 @@ export const useChartStore = defineStore('chartStore', {
         return this.stateByReqId[reqIdStr].whereClause;
     },
     setSymbolSize(reqIdStr: string, symbolSize: number) {
-        //console.log('setSymbolSize reqIdStr:',reqIdStr);
+        //console.log('setSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',symbolSize);
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].symbolSize = symbolSize;
     },
@@ -116,22 +117,25 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
     },
-    getNdxOfelevationDataOptionsForHeight(reqIdStr: string) {
+    getNdxOfElevationDataOptionsForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight;
+        return this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight;
+    },
+    getElevationDataOptionForHeight(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].elevationDataOptions[this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight];
+    },
+    setNdxOfElevationDataOptionsForHeight(reqIdStr: string,ndx: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight = ndx;
     },
     getElevationDataOptions(reqIdStr: string) : string[] {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].elevationDataOptions;
     },
-    async setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
+    setElevationDataOptions(reqIdStr: string, elevationDataOptions: string[]) {
         this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].elevationDataOptions = fieldNames;
-        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
-        const ndx = fieldNames.indexOf(heightFieldname);
-        this.stateByReqId[reqIdStr].ndxOfelevationDataOptionsForHeight = ndx;
-        this.setYDataForChart(reqIdStr,[this.stateByReqId[reqIdStr].elevationDataOptions[ndx]]);
-        //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
+        this.stateByReqId[reqIdStr].elevationDataOptions = elevationDataOptions;
     },
     getYDataForChart(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);
@@ -179,35 +183,6 @@ export const useChartStore = defineStore('chartStore', {
     setFunc(reqIdStr: string,func: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
-    },
-    setShowMessage(reqIdStr: string,showMessage: boolean) { 
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].showMessage = showMessage;
-    },
-    getShowMessage(reqIdStr?: string): boolean {
-        if (reqIdStr) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr]?.showMessage ?? false;
-        } else {
-            // Use Object.values to get all state objects and check the logical OR of their `showMessage` property
-            return Object.values(this.stateByReqId).some(state => state.showMessage);
-        }
-    },
-    setMessage(reqIdStr: string,message: string) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].message = message;
-    },
-    getMessage(reqIdStr: string) {
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].message;
-    },
-    setIsWarning(reqIdStr: string,isWarning: boolean) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].isWarning = isWarning;
-    },
-    getIsWarning(reqIdStr: string) {
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].isWarning;
     },
     setXLegend(reqIdStr: string,xLegend: string) {
         this.ensureState(reqIdStr);
@@ -257,6 +232,5 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
     },
-
   },
 });

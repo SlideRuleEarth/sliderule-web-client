@@ -1,159 +1,116 @@
 <script setup lang="ts">
 
     import Button from 'primevue/button';
-    import { onMounted,onBeforeUnmount,ref } from 'vue';
+    import { onMounted,onBeforeUnmount,ref,computed } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
-    import { db } from '@/db/SlideRuleDb';
     import { useRequestsStore } from "@/stores/requestsStore";
+    import { useReqParamsStore } from '@/stores/reqParamsStore';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
     import SrModeSelect from './SrModeSelect.vue';
-    import { useToast } from "primevue/usetoast";
-    import { useSrToastStore } from "@/stores/srToastStore";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-    import router from '@/router/index.js';
-    import { computed } from 'vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
-    import { elIsLoaded } from '@/utils/SrParquetUtils';
+    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+    import Card from 'primevue/card';
 
-    const toast = useToast();
-    const srToastStore = useSrToastStore();
-    const atlChartFilterStore = useAtlChartFilterStore();
+    const props = defineProps({
+        includeAdvToggle: {
+            type: Boolean,
+            default: false
+        },
+        buttonLabel: {
+            type: String,
+            default: 'Run SlideRule'
+        },
+        inSensitive: {
+            type: Boolean,
+            default: false
+        }
+    });
+
     const requestsStore = useRequestsStore();
+    const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const tooltipRef = ref();
+    const highlightedTrackDetails = computed(() => {
+        if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
+            return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
+        } else {
+            return '';
+        }
+    });
 
-    const emit = defineEmits(['run-sliderule-clicked', 'abort-clicked']);
-    const computedDataLoaded = computed(() =>(elIsLoaded()));
     onMounted(async () => {
         console.log('SrRunControl onMounted');
-        mapStore.isAborting = false;
-        requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
+        mapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
-        requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
+        if(props.includeAdvToggle) { // this means it is the Request Run button
+            requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
+            requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
+            reqParamsStore.presetForMainRequest();
+        } else { // this means it is the Overlay Photon Cloud button
+            const msg = `Click 'Show Photon Cloud Overlay' to fetch highlighted track Photon Cloud data and overlay on plot`;
+            requestsStore.displayHelpfulMapAdvice(msg);
+            requestsStore.setConsoleMsg(msg);
+            reqParamsStore.presetForScatterPlotOverlay();
+        }
     });
+
     onBeforeUnmount(() => {
-        console.log('SrRunControl unmounted');
+        console.log(`SrRunControl for ${props.buttonLabel} unmounted`);
     });
-    function toggleRunAbort() {
+
+    async function toggleRunAbort() {
         if (mapStore.isLoading) {
-            console.log('abortClicked');
+            console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
             processAbortClicked();
         } else {
-            console.log('runSlideRuleClicked');
-            emit('run-sliderule-clicked');
-            processRunSlideRuleClicked();
+            console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
+            if(props.includeAdvToggle){
+                processRunSlideRuleClicked();
+            } else {
+                console.error('SrRunControl clicked for Overlay Photon Cloud?');
+            }
         }
     }
-    const getActiveReqId = async () => {
-        const items = await requestsStore.getMenuItems();
-        if (items.length === 0) {
-            return 0;
-        }
-        const reqIdStr = items[0].value;
-        return Number(reqIdStr);
-    };
-
-    const goToAnalysisForCurrent = async () => {
-        const reqId = await getActiveReqId();
-        if (reqId > 0) {
-            atlChartFilterStore.setReqId(reqId);
-            router.push(`/analyze/${reqId}`);
-        } else {
-            toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
-        }
-    };
-    const analysisButtonClick = async () => {
-        if (atlChartFilterStore.getReqId()) {
-            router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
-        } else {
-            goToAnalysisForCurrent();
-        }
-    };
-
-    const exportButtonClick = async () => {
-        let req_id = 0;
-        try {
-            req_id = await getActiveReqId();
-            const fileName = await db.getFilename(req_id);
-            const opfsRoot = await navigator.storage.getDirectory();
-            const folderName = 'SlideRule'; 
-            const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-            const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
-            const file = await fileHandle.getFile();
-            const url = URL.createObjectURL(file);
-            // Create a download link and click it programmatically
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            // Revoke the object URL
-            URL.revokeObjectURL(url);
-            const msg = `File ${fileName} exported successfully!`;
-            console.log(msg);
-            alert(msg);
-
-        } catch (error) {
-            console.error(`Failed to expport req_id:${req_id}`, error);
-            alert(`Failed to export file for req_id:${req_id}`);
-            throw error;
-        }
-    };
 </script>
 <template>
     <div class="sr-run-abort-panel">
         <div class="control-container">
-            <SrModeSelect class="sr-mode-select" />
+            <SrModeSelect class="sr-mode-select" v-if="props.includeAdvToggle"/>
             <div class="button-spinner-container">
                 <div v-if="mapStore.isLoading" class="loading-indicator">
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
-                <Button
-                    v-if=computedDataLoaded
-                    icon="pi pi-chart-line"
-                    @mouseover="tooltipRef.showTooltip($event, 'Analyze the current request')"
-                    @mouseleave="tooltipRef.hideTooltip()"
-                    @click="analysisButtonClick"
-                    rounded 
-                    aria-label="Analyze"
-                    size="small"
-                    severity="text" 
-                    variant="text"
-                >
-                </Button>
-                <Button
-                    v-if=computedDataLoaded
-                    icon="pi pi-file-export"
-                    @mouseover="tooltipRef.showTooltip($event, 'Export the current request')"
-                    @mouseleave="tooltipRef.hideTooltip()"
-                    @click="exportButtonClick"
-                    rounded 
-                    aria-label="Export"
-                    size="small"
-                    severity="text" 
-                    variant="text"
-                >
-                </Button>
                 <SrCustomTooltip ref="tooltipRef"/>
 
                 <Button 
                     class="sr-run-abort-button" 
                     :class="{ 'abort-mode': mapStore.isLoading }"
-                    :label="mapStore.isLoading ? 'Abort' : 'Run SlideRule'" 
+                    :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
                     @click="toggleRunAbort" 
-                    :disabled="mapStore.isAborting"
+                    :disabled="!mapStore.isAborting && props.inSensitive"
                 >
                     <template #icon>
                         <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
                     </template>
                 </Button>
-                </div>
+                <div v-if="!props.includeAdvToggle">
+                    <Card>
+                        <template #title>
+                            <div class="sr-card-title-center">Highlighted Track</div>
+                        </template>
+                        <template #content>
+                            <p class="m-0">
+                                {{ highlightedTrackDetails }}
+                            </p>
+                        </template>                    
+                    </Card>
+                </div>  
+            </div>
         </div>
         <div class="sr-msg-panel">
                 <span class="sr-console-msg">{{requestsStore.getConsoleMsg()}}</span>
@@ -205,6 +162,9 @@
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
+    }
+    .sr-card-title-center {
+        text-align: center;
     }
 
     button.p-button.p-component.sr-run-abort-button.abort-mode {

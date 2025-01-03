@@ -11,7 +11,7 @@
     
     onMounted(async () => {
         //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
-        mapStore.isAborting = false;
+       mapStore.setIsAborting(false);
     });
 
 </script>
@@ -70,7 +70,6 @@
     display: flex;
     flex-direction: column;
     height: 100vh; /* Ensure the sidebar takes up the full viewport height */
-    margin-top: auto;
 }
 .sr-adv-option-sidebar-container {
     display: flex;

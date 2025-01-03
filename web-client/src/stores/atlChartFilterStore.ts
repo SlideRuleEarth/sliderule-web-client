@@ -24,13 +24,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
     currentReqId: 0 as number,
-    //updateScatterPlotCnt: 0 as number,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     isLoading: false as boolean,
-    clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
@@ -40,6 +38,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     atl03vpDefaultSymbolSize: 3 as number,
     atl06DefaultSymbolSize: 3 as number,
     atl08DefaultSymbolSize: 3 as number,
+    message: '' as string,
+    isWarning: true as boolean,
+    showMessage: false as boolean,
+    showPhotonCloud: false as boolean,
   }),
 
   actions: {
@@ -256,10 +258,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         this.scOrients.push({ label: scOrient.toString(), value: scOrient });
       }
     },
-    // updateScatterPlot() {
-    //   this.updateScatterPlotCnt += 1;
-    //   console.log('atlChartFilterStore.updateScatterPlot() currentCnt:', this.updateScatterPlotCnt);
-    // },
     setIsLoading() {
       //console.log('atlChartFilterStore.setIsLoading()');
       this.isLoading = true;
@@ -271,15 +269,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getIsLoading() {
       //console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
       return this.isLoading;
-    },
-    resetTheScatterPlot() {
-      this.clearScatterPlotFlag = true;
-    },
-    resetClearScatterPlotFlag() {
-      this.clearScatterPlotFlag = false;
-    },
-    getClearPlot() {
-      return this.clearScatterPlotFlag;
     },
     getLargeData() {
       return this.largeData;
@@ -329,5 +318,30 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setAtl08DefaultSymbolSize(size: number) {
       this.atl08DefaultSymbolSize = size;
     },
-  }
+    setShowMessage(showMessage: boolean) { 
+      this.showMessage = showMessage;
+  },
+  getShowMessage(): boolean {
+      return this.showMessage;
+  },
+  setMessage(message: string) {
+      this.message = message;
+  },
+  getMessage() {
+      return this.message;
+  },
+  setIsWarning(isWarning: boolean) {
+      this.isWarning = isWarning;
+  },
+  getIsWarning() {
+      return this.isWarning;
+  },
+  setShowPhotonCloud(showPhotonCloud: boolean) {
+      this.showPhotonCloud = showPhotonCloud;
+  },
+  getShowPhotonCloud() {
+      return this.showPhotonCloud;
+  },
+
+}
 });

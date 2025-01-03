@@ -6,7 +6,11 @@ import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData
 import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
-import { debounce } from "lodash";
+//import { debounce } from "lodash";
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
+import {type  SrRunContext } from '@/db/SlideRuleDb';
+import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -29,8 +33,8 @@ export interface SrScatterSeriesData{
 let debugCnt = 10;
 function getAtl03spColor(params: any):string {
     if(debugCnt++ < 10){
-        console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
-        console.log('getAtl03spColor params.data:', params.data);
+        //console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
+        //console.log('getAtl03spColor params.data:', params.data);
     }
     let colorStr = 'red';
     let value = -1;
@@ -46,7 +50,7 @@ function getAtl03spColor(params: any):string {
         colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     }
     if(debugCnt++ < 10){
-        console.log(`getAtl03spColor cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
+        //console.log(`getAtl03spColor cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
     }
     return colorStr;
 }
@@ -58,7 +62,7 @@ async function getSeriesForAtl03sp(
     x: string, 
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y);
+    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y,' symbolSize:',chartStore.getSymbolSize(reqIdStr));
     const startTime = performance.now(); // Start time
     let yItems = [] as SrScatterSeriesData[];
     try {
@@ -109,7 +113,7 @@ async function getSeriesForAtl03sp(
         const endTime = performance.now(); // End time
         console.log(`getSeriesForAtl03sp took ${endTime - startTime} milliseconds.`);
     }
-    console.log('getSeriesForAtl03sp yItems:', yItems);
+    //console.log('getSeriesForAtl03sp yItems:', yItems);
     return yItems;
 }
 
@@ -231,7 +235,7 @@ async function getSeriesForAtl06(
       const endTime = performance.now(); // End time
       console.log(`getSeriesForAtl06 took ${endTime - startTime} milliseconds.`);
   }
-  console.log('getSeriesForAtl06 yItems:', yItems);
+  //console.log('getSeriesForAtl06 yItems:', yItems);
   return yItems;
 }
 
@@ -241,13 +245,13 @@ async function getSeriesForAtl08(
     x: string, 
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    console.log('getSeriesForAtl08 fileName:', fileName, ' x:', x, ' y:', y);
+    //console.log('getSeriesForAtl08 fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now();
     let yItems=[] as SrScatterSeriesData[];
     try{
       const name = 'atl08';
       const { chartData={}, normalizedMinMaxValues={} } = await fetchAtl08ScatterData(reqIdStr,fileName, x, y);
-      console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
+      //console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
       if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
           console.warn('getSeriesForAtl08 chartData or minMaxValues is empty, skipping processing.');
       } else {
@@ -272,7 +276,7 @@ async function getSeriesForAtl08(
       }
       const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
       chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
-      console.log(`getSeriesForAtl08 Total number of points across all series: ${totalPoints}`);
+      //console.log(`getSeriesForAtl08 Total number of points across all series: ${totalPoints}`);
       return yItems; // Return empty array if either is empty
   } catch (error) {
       console.error('getSeriesForAtl08 getSeriesForAtl08 Error:', error);
@@ -284,12 +288,12 @@ async function getSeriesForAtl08(
   return yItems;
 }
 
-function clearPlot() {
+export function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
       if(plotRef.chart){
         plotRef.chart.clear();
-        console.log('plotRef.chart cleared');
+        //console.log('plotRef.chart cleared');
       } else {
         console.warn('plotRef.chart is undefined');
       }
@@ -328,7 +332,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
-            console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
+            //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
         } else {
             console.warn(`getSeriesFor ${reqIdStr} fileName is null`);
         }
@@ -432,16 +436,16 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     } catch (error) {
         console.error('getScatterOptions Error:', error);
     } finally {
-        console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
+        //console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
+        const endTime = performance.now(); // End time
+        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+        return options;
     }
-    const endTime = performance.now(); // End time
-    console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
-    return options;
 }
 
-export const initScatterPlotWith = async (reqId: number) => {
+const initScatterPlotWith = async (reqId: number) => {
     const startTime = performance.now();
-    console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
+    //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
     const plotRef = atlChartFilterStore.getPlotRef();
     if (!plotRef || !plotRef.chart) {
@@ -460,42 +464,47 @@ export const initScatterPlotWith = async (reqId: number) => {
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataForChart(reqIdStr);
 
-    console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
-
+    //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
+    const msg = '';
+    atlChartFilterStore.setShowMessage(false);
     if (!y_options.length || y_options[0] === 'not_set') {
         console.warn(`initScatterPlotWith ${reqId} No y options selected`);
-    }
+        atlChartFilterStore.setShowMessage(true);
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage('No Y options selected');
+    } else {
+        try {
+            atlChartFilterStore.setIsLoading();
 
-    chartStore.setShowMessage(reqIdStr, false);
+            newScatterOptions = await getScatterOptions(reqId);
+            if (!newScatterOptions) {
+                atlChartFilterStore.setShowMessage(true);
+                atlChartFilterStore.setIsWarning(true);
+                atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
+                return;
+            }
 
-    try {
-        atlChartFilterStore.setIsLoading();
+            if (Object.keys(newScatterOptions).length > 0) {
+                if(plotRef.chart){
+                    plotRef.chart.setOption(newScatterOptions);
+                    //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
+                    //const options = plotRef.chart.getOption();
+                    //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
+                } else {
+                    console.error(`initScatterPlotWith ${reqId} plotRef.chart is undefined`);
+                }
+            } else {
+                console.warn(`initScatterPlotWith No valid options to apply to chart`);
+            }
 
-        newScatterOptions = await getScatterOptions(reqId);
-        if (!newScatterOptions) {
-            chartStore.setShowMessage(reqIdStr, true);
-            chartStore.setIsWarning(reqIdStr, true);
-            chartStore.setMessage(reqIdStr, `Failed to load data. Click on elevation in map to preset filters`);
-            return;
+        } catch (error) {
+            console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
+            atlChartFilterStore.setShowMessage(true);
+            atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
+        } finally {
+            atlChartFilterStore.resetIsLoading();
         }
-
-        if (Object.keys(newScatterOptions).length > 0) {
-            plotRef.chart.setOption(newScatterOptions);
-            console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
-            const options = plotRef.chart.getOption();
-            console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
-        } else {
-            console.warn(`initScatterPlotWith No valid options to apply to chart`);
-        }
-
-    } catch (error) {
-        console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
-        chartStore.setShowMessage(reqIdStr, true);
-        chartStore.setMessage(reqIdStr, 'Failed to load data. Please try again later.');
-    } finally {
-        atlChartFilterStore.resetIsLoading();
     }
-
     const endTime = performance.now();
     console.log(`initScatterPlotWith ${reqId} took ${endTime - startTime} milliseconds.`);
 };
@@ -527,16 +536,13 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-        console.log(`appendSeries(${reqIdStr}): Existing options:`, existingOptions);
 
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
-        console.log('seriesData:', seriesData);
         if (!seriesData.length) {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
-        console.log(`appendSeries(${reqIdStr}): Series data:`, seriesData);
 
         // Define the fields that should share a single axis
         const heightFields = ['height', 'h_mean', 'h_mean_canopy'];
@@ -549,9 +555,13 @@ async function appendSeries(reqId: number): Promise<void> {
             ...(Array.isArray(filteredOptions.series) ? filteredOptions.series : []),
         ];
 
-        let updatedYAxis = Array.isArray(filteredOptions.yAxis) ? [...filteredOptions.yAxis] : [];
+        let updatedYAxis = Array.isArray(filteredOptions.yAxis)
+            ? [...filteredOptions.yAxis]
+            : [];
 
-        // Find if there's already a height axis
+        // -----------------------------
+        //     HANDLE Y-AXES MERGING
+        // -----------------------------
         let heightYAxisIndex: number | null = null;
         let existingHeightFields: string[] = [];
         let existingHeightMin = Number.POSITIVE_INFINITY;
@@ -561,13 +571,11 @@ async function appendSeries(reqId: number): Promise<void> {
         for (let i = 0; i < updatedYAxis.length; i++) {
             const axis = updatedYAxis[i];
             if (axis && axis.name) {
-                // The name could be a combination of fields. Split by comma if multiple
-                const axisNames = axis.name.split(',').map((n:string) => n.trim());
-                // Check if any of the known height fields appear in the axis name
-                if (axisNames.some((n:string) => heightFields.includes(n))) {
+                const axisNames = axis.name.split(',').map((n: string) => n.trim());
+                if (axisNames.some((n: string) => heightFields.includes(n))) {
                     heightYAxisIndex = i;
                     existingHeightFields = axisNames;
-                    // Extract current min/max
+                    // Extract current min/max if numeric
                     if (axis.min !== undefined && typeof axis.min === 'number') {
                         existingHeightMin = axis.min;
                     }
@@ -591,12 +599,11 @@ async function appendSeries(reqId: number): Promise<void> {
                 heightNames.push(d.series.name);
             });
 
-            // Combine with existing if found
             if (heightYAxisIndex !== null) {
                 // Update existing height axis
-                // Combine field names
-                const allHeightFieldsCombined = Array.from(new Set([...existingHeightFields, ...heightNames]));
-                // Update min/max if needed
+                const allHeightFieldsCombined = Array.from(
+                    new Set([...existingHeightFields, ...heightNames])
+                );
                 const combinedMin = Math.min(existingHeightMin, heightMin);
                 const combinedMax = Math.max(existingHeightMax, heightMax);
 
@@ -604,9 +611,8 @@ async function appendSeries(reqId: number): Promise<void> {
                     ...updatedYAxis[heightYAxisIndex],
                     name: allHeightFieldsCombined.join(', '),
                     min: combinedMin,
-                    max: combinedMax
+                    max: combinedMax,
                 };
-
             } else {
                 // No existing height axis - create a new one
                 heightYAxisIndex = updatedYAxis.length;
@@ -626,70 +632,114 @@ async function appendSeries(reqId: number): Promise<void> {
             const mappedHeightSeries = heightSeriesData.map(d => ({
                 ...d.series,
                 type: 'scatter',
-                yAxisIndex: heightYAxisIndex as number
+                yAxisIndex: heightYAxisIndex as number,
             }));
             updatedSeries = updatedSeries.concat(mappedHeightSeries);
         }
 
-        // For non-height data, each one gets its own axis as a new axis after the existing ones
+        // For non-height data, each one gets its own axis as a new axis
         const mappedNonHeightSeries = nonHeightSeriesData.map(d => {
-            // Add a new axis for this non-height series
-            const nonHeightAxisIndex = updatedYAxis.length;
-            updatedYAxis.push({
-                type: 'value',
-                name: d.series.name,
-                min: d.min,
-                max: d.max,
-                scale: true,
-                axisLabel: {
-                    formatter: (value: number) => value.toFixed(1),
-                },
-            });
-
-            return {
-                ...d.series,
-                type: 'scatter',
-                yAxisIndex: nonHeightAxisIndex
-            };
+        const nonHeightAxisIndex = updatedYAxis.length;
+        updatedYAxis.push({
+            type: 'value',
+            name: d.series.name,
+            min: d.min,
+            max: d.max,
+            scale: true,
+            axisLabel: {
+            formatter: (value: number) => value.toFixed(1),
+            },
+        });
+        return {
+            ...d.series,
+            type: 'scatter',
+            yAxisIndex: nonHeightAxisIndex,
+        };
         });
         updatedSeries = updatedSeries.concat(mappedNonHeightSeries);
 
-        console.log(`appendSeries(${reqIdStr}): Updated series:`, updatedSeries);
-        console.log(`appendSeries(${reqIdStr}): Updated yAxis:`, updatedYAxis);
+        // -----------------------------
+        //     UPDATE LEGEND
+        // -----------------------------
+        // 1) Grab existing legend from filteredOptions (could be array or object).
+        const existingLegend = filteredOptions.legend;
+        let updatedLegend: LegendComponentOption[] = [];
 
-        // Apply the updated options to the chart
-        chart.setOption({
-            ...filteredOptions,
-            series: updatedSeries,
-            yAxis: updatedYAxis,
+        if (Array.isArray(existingLegend) && existingLegend.length > 0) {
+        // If the chart uses an array of legend configs, clone them:
+        updatedLegend = existingLegend.map(legendObj => {
+            // Convert legendObj.data to an array or fallback to empty array
+            const legendData = Array.isArray(legendObj.data) ? [...legendObj.data] : [];
+
+            // Gather all new series names
+            const newSeriesNames = updatedSeries
+            .map(s => s.name)
+            .filter(name => !!name && !legendData.includes(name as string));
+
+            const mergedLegendData = legendData.concat(newSeriesNames);
+            return {
+            ...legendObj,
+            data: mergedLegendData,
+            };
         });
-        console.log(`appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis.`);
+        } else if (existingLegend && !Array.isArray(existingLegend)) {
+        // If it's a single legend object
+        const legendData = Array.isArray(existingLegend.data)
+            ? [...existingLegend.data]
+            : [];
+
+        // Gather all new series names
+        const newSeriesNames = updatedSeries
+            .map(s => s.name)
+            .filter(name => !!name && !legendData.includes(name as string));
+
+        const mergedLegendData = legendData.concat(newSeriesNames);
+        updatedLegend = [
+            {
+            ...existingLegend,
+            data: mergedLegendData,
+            },
+        ];
+        } else {
+        // If no legend config exists, create one
+        const newSeriesNames = updatedSeries.map(s => s.name).filter(Boolean) as string[];
+        updatedLegend = [
+            {
+            data: newSeriesNames,
+            left: 'left',
+            },
+        ];
+        }
+
+        // -----------------------------
+        //     APPLY UPDATED OPTIONS
+        // -----------------------------
+        chart.setOption({
+        ...filteredOptions,
+        legend: updatedLegend,
+        series: updatedSeries,
+        yAxis: updatedYAxis,
+        // If you want to ensure a merge, you can pass a second param:
+        // }, { notMerge: false }
+        });
+
+        console.log(
+        `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,
+        chart.getOption()
+        );
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
-}
-
-export const refreshScatterPlot = async (msg:string) => {
-    console.log(`refreshScatterPlot ${msg}`);
-    const plotRef = useAtlChartFilterStore().getPlotRef();
-    if (plotRef && plotRef.chart) {
-        clearPlot();
-        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
     }
-    await debouncedUpdateScatterPlot();
-};
-
-const debouncedUpdateScatterPlot = debounce(async () => {
-    await updateScatterPlot();
-}, 1000);
-
-const updateScatterPlot = async () => {
+  
+const updateScatterPlot = async (msg:string) => {
     const startTime = performance.now();
-    console.log(`updateScatterPlot startTime:`, startTime);
+    console.log(`updateScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
+        console.log(`updateScatterPlot reqIds:`, reqIds);
         reqIds.forEach(reqId => { 
             if(reqId > 0){
                 appendSeries(reqId);
@@ -697,28 +747,117 @@ const updateScatterPlot = async () => {
                 console.error(`updateScatterPlot Invalid request ID:${reqId}`);
             }
         });
-        console.log(`updateScatterPlot ${reqIds} Cleared Plot `);
     } else {
         console.warn(`Ignoring updateScatterPlot with no plot to update, plotRef is undefined.`);
     }
+    const endTime = performance.now();
+    console.log(`updateScatterPlot took ${endTime - startTime} milliseconds.`);
+}
+
+const refreshScatterPlot = async (msg:string) => {
+    console.log(`refreshScatterPlot ${msg}`);
+    const plotRef = useAtlChartFilterStore().getPlotRef();
+    if (plotRef && plotRef.chart) {
+        clearPlot();
+        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
+        await updateScatterPlot(msg);
+    } else {
+        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+    }
+};
+
+
+export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
+    const runContext: SrRunContext = {
+        reqId: -1, // this will be set in the worker
+        parentReqId: atlChartFilterStore.getReqId(),
+        trackFilter: {
+            rgt: atlChartFilterStore.getRgts()[0].value,
+            cycle: atlChartFilterStore.getCycles()[0].value,
+            track: atlChartFilterStore.getTracks()[0].value,
+            beam: atlChartFilterStore.getBeams()[0].value
+        }
+    };
+    if(atlChartFilterStore.getShowPhotonCloud()){
+        console.log('Show Photon Cloud Overlay checked');
+        const reqId = await indexedDb.findCachedRec(runContext);
+        if(reqId && (reqId > 0)){
+            runContext.reqId = reqId;
+            atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
+            console.log('findCachedRec reqId found:', reqId);
+        } else {
+            console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+        }
+    }
+    return runContext;
+}
+
+async function updatePlot(msg:string){
+    console.log('updatePlot called for:',msg);
+    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
+        (useAtlChartFilterStore().getCycleValues().length > 0) &&
+        (useAtlChartFilterStore().getSpotValues().length > 0)
+    ){
+        const runContext = await getPhotonOverlayRunContext();
+        if(runContext.reqId > 0){
+            await prepareDbForReqId(runContext.reqId);            
+            useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
+        }
+        await refreshScatterPlot(msg);
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+    } else {
+        console.warn('Need Rgt, Cycle, and Spot values selected');
+        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
+        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
+        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+    }
+}
+let updatePlotTimeoutId: number | undefined;
+let pendingResolves: Array<() => void> = [];
+
+
+export async function callPlotUpdateDebounced(msg: string): Promise<void> {
+    console.log("callPlotUpdateDebounced called for:", msg);
+    atlChartFilterStore.setIsWarning(true);
+    atlChartFilterStore.setMessage('Updating...');
+  
+    // Clear any existing timeout to debounce the calls
+    if (updatePlotTimeoutId) {
+      clearTimeout(updatePlotTimeoutId);
+    }
+  
+    return new Promise((resolve) => {
+      // Store the resolver
+      pendingResolves.push(resolve);
+  
+      updatePlotTimeoutId = window.setTimeout(async () => {
+        await updatePlot(msg);
+        
+        // Resolve all pending promises, since updatePlot is now complete
+        pendingResolves.forEach(res => res());
+        pendingResolves = [];
+      }, 500);
+    });
 }
 
 export function initSymbolSize(reqIdStr: string) {
-    //console.log('setSymbolSize reqIdStr:',reqIdStr);
+    console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
     const func = chartStore.stateByReqId[reqIdStr].func;
     if (func.includes('atl03sp')) {
-        chartStore.stateByReqId[reqIdStr].symbolSize = 1;
+        chartStore.setSymbolSize(reqIdStr,1);
     } else if (func.includes('atl03vp')) {
-        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+        chartStore.setSymbolSize(reqIdStr,3);
     } else if (func.includes('atl06')) {
-        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+        chartStore.setSymbolSize(reqIdStr,3);
     } else if (func.includes('atl08')) {
-        chartStore.stateByReqId[reqIdStr].symbolSize = 3;
+        chartStore.setSymbolSize(reqIdStr,3);
     }       
 }
 
 export async function updateChartStore(req_id: number) {
-    console.log('updateChartStore req_id:', req_id);
+    //console.log('updateChartStore req_id:', req_id);
     if (req_id <= 0) {
         console.warn(`updateChartStore Invalid request ID:${req_id}`);
         return;
@@ -726,10 +865,9 @@ export async function updateChartStore(req_id: number) {
     try {
         const reqIdStr = req_id.toString();
         const func = await indexedDb.getFunc(req_id);
-        console.log('updateChartStore req_id:', req_id, 'func:', func);
+        //console.log('updateChartStore req_id:', req_id, 'func:', func);
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
         chartStore.setFunc(reqIdStr,func);
-        initSymbolSize(reqIdStr);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),
             useAtlChartFilterStore().getSpotValues(),

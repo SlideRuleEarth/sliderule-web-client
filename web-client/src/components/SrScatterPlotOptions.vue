@@ -4,7 +4,7 @@ import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
-import { refreshScatterPlot } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
@@ -13,6 +13,7 @@ import { colorMapNames } from '@/utils/colorUtils';
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
 import { onMounted, watch, computed } from "vue";
+import { clearPlot } from "@/utils/plotUtils";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -66,24 +67,25 @@ onMounted(() => {
 
 const symbolSizeSelection = async () => {
     //console.log('symbolSizeSelection');
-    await refreshScatterPlot('from symbolSizeSelection');
+    //console.log('New symbol size selected:', computedSymbolSize.value);
+    await callPlotUpdateDebounced('symbolSizeSelection');
 };
 
 async function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
-    atlChartFilterStore.resetTheScatterPlot();
-    await refreshScatterPlot('from changedColorKey');
+    clearPlot();
+    await callPlotUpdateDebounced('changedColorKey');
 }
 
 const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
     //console.log(`atl03CnfColorChanged:`,colorKey);
-    await refreshScatterPlot('from atl03CnfColorChanged');
+    await callPlotUpdateDebounced('atl03CnfColorChanged');
 };
 
 const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
     //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
     if (color) {
-      await refreshScatterPlot('from atl08ClassColorChanged');
+      await callPlotUpdateDebounced('atl08ClassColorChanged');
     } else {
       console.warn('atl08ClassColorChanged color is undefined');
     }

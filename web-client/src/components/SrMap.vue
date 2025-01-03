@@ -4,7 +4,6 @@
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
-    import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
@@ -25,7 +24,7 @@
     import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { initDeck,checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
+    import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -94,10 +93,8 @@
     function disableDragBox() {
         //console.log("SrMap disableDragBox");
         // Check if the DragBox interaction is added to the map.
-        if (mapRef.value?.map.getInteractions().getArray().includes(dragBox)) {
-        // If it is, remove it.
+        //console.log("mapRef.value?.map.getInteractions():",mapRef.value?.map.getInteractions());
         mapRef.value?.map.removeInteraction(dragBox);
-        }
     }
 
     function enableDragBox() {
@@ -208,8 +205,8 @@
         //console.log("disableDrawPolygon");
         // Check if the Draw interaction is added to the map.
         if (mapRef.value?.map.getInteractions().getArray().includes(drawPolygon)) {
-        // If it is, remove it.
-        mapRef.value?.map.removeInteraction(drawPolygon);
+            // If it is, remove it.
+            mapRef.value?.map.removeInteraction(drawPolygon);
         }
     }
 
@@ -484,11 +481,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                if(mapStore.getCurrentReqId() > 0){
-                    await updateThisMapView("SrMap onMounted",true);
-                } else {
-                    await updateThisMapView("SrMap onMounted",false);
-                }
+                await updateThisMapView("SrMap onMounted");
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -549,7 +542,7 @@
         }
     };
 
-    const updateThisMapView = async (reason:string,restoreCurrReq:boolean) => {
+    const updateThisMapView = async (reason:string) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
@@ -565,16 +558,7 @@
                     // });
                     map.addLayer(drawVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
-                    if(restoreCurrReq){
-                        const reqId = mapStore.getCurrentReqId();
-                        if(reqId > 0){
-                            await zoomMapForReqIdUsingView(map, mapStore.getCurrentReqId(),srViewKey.value);
-                            initDeck(map);
-                            await duckDbReadAndUpdateElevationData(reqId);
-                        }
-                    } else {
-                        initDeck(map);
-                    }
+                            
 
                     // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
                     // Permalink
@@ -619,7 +603,7 @@
             const map = mapRef.value?.map;
             try{
                 if(map){
-                    await updateThisMapView("handleUpdateSrView",true);
+                    await updateThisMapView("handleUpdateSrView");
                 } else {
                     console.error("SrMap Error:map is null");
                 }
@@ -637,7 +621,7 @@
         const map = mapRef.value?.map;
         try{
             if(map){
-                await updateThisMapView("handleUpdateBaseLayer",true);
+                await updateThisMapView("handleUpdateBaseLayer");
             } else {
                 console.error("SrMap Error:map is null");
             }
@@ -650,36 +634,36 @@
 
 <template>
 <div class="sr-main-map">
-  <Map.OlMap ref="mapRef" @error="handleEvent"
-    :loadTilesWhileAnimating="true"
-    :loadTilesWhileInteracting="true"
-    style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
-    :controls="controls"
-  >
-    <MapControls.OlLayerswitcherControl
-      :selection="true"
-      :displayInLayerSwitcher="() => true"
-      :show_progress="true"
-      :mouseover="false"
-      :reordering="true"
-      :trash="false"
-      :extent="true"
-    />
+    <Map.OlMap ref="mapRef" @error="handleEvent"
+        :loadTilesWhileAnimating="true"
+        :loadTilesWhileInteracting="true"
+        style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
+        :controls="controls"
+    >
+        <MapControls.OlLayerswitcherControl
+            :selection="true"
+            :displayInLayerSwitcher="() => true"
+            :show_progress="true"
+            :mouseover="false"
+            :reordering="true"
+            :trash="false"
+            :extent="true"
+        />
 
-    <MapControls.OlZoomControl  />
-    
-    <MapControls.OlMousepositionControl 
-        :projection="computedProjName"
-        :coordinateFormat="stringifyFunc as any"
-    ></MapControls.OlMousepositionControl>  
-    <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+        <MapControls.OlZoomControl  />
+        
+        <MapControls.OlMousepositionControl 
+            :projection="computedProjName"
+            :coordinateFormat="stringifyFunc as any"
+        ></MapControls.OlMousepositionControl>  
+        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
-    <MapControls.OlScalelineControl />
-    <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
-    <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-    <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
-    <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
-  </Map.OlMap>
+        <MapControls.OlScalelineControl />
+        <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+        <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
+        <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
+    </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
 </div>
 </template>

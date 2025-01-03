@@ -9,7 +9,7 @@ import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 <template>
     <div class="sr-sidebar">
       <div class="sr-sidebar-header">
-        <SrRunControl />
+        <SrRunControl :includeAdvToggle="true"/>
       </div>
       <div class="sr-sidebar-body">
         <SrAdvOptSidebar v-if="useAdvancedModeStore().getAdvanced()"/>

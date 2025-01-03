@@ -5,7 +5,6 @@ import { onMounted, ref } from 'vue';
 import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
 import SrScatterPlot from "@/components/SrScatterPlot.vue";
 import { useMapStore } from '@/stores/mapStore';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 
 const mapStore = useMapStore();
 const route = useRoute();
@@ -24,7 +23,7 @@ onMounted(async () => {
             <SrAnalyzeOptSidebar :startingReqId="reqId"/>
         </template>
         <template v-slot:main>
-            <SrScatterPlot v-if="!mapStore.getIsLoading() "/>
+            <SrScatterPlot/>
         </template>
     </TwoColumnLayout>
 </template>

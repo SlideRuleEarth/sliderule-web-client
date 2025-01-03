@@ -35,6 +35,7 @@ import { readOrCacheSummary } from "@/utils/SrParquetUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
+import { clearPlot } from '@/utils/plotUtils';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -315,10 +316,12 @@ export function updateWhereClause(reqIdStr:string){
 
 }
 
-async function clicked(d:ElevationDataItem): Promise<void> {
+export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
     hideTooltip();
-    useAtlChartFilterStore().resetTheScatterPlot();
+    useAtlChartFilterStore().setShowPhotonCloud(false);
+    clearPlot();
+    
     useAtl03ColorMapStore().setDebugCnt(0);
     const reqIdStr = useAtlChartFilterStore().getReqIdStr();
     //useAtlChartFilterStore().setIsLoading();

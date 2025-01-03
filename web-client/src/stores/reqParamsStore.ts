@@ -4,11 +4,13 @@ import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.v
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
+import { useAtlChartFilterStore, type SrListNumberItem } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
-
+import { db } from '@/db/SlideRuleDb';
+import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
+import { use } from 'echarts';
 
 interface YapcConfig {
   version: number;
@@ -202,6 +204,43 @@ export const useReqParamsStore = defineStore('reqParams', {
         enableSurfaceElevation: false,
     }),
     actions: {
+        async presetForScatterPlotOverlay() {
+          useReqParamsStore().setMissionValue("ICESat-2");
+          useReqParamsStore().setIceSat2API("atl03sp");
+          useReqParamsStore().setEnableGranuleSelection(true);
+          useReqParamsStore().setUseRgt(true);
+          useReqParamsStore().setUseCycle(true);
+          const reqParmsUsed = await db.getReqParams(useAtlChartFilterStore().getReqId()) as AtlReqParams;
+          //console.log('presetForScatterPlotOverlay reqParmsUsed:', reqParmsUsed);
+          if(reqParmsUsed.parms){
+            if(reqParmsUsed.parms.poly){
+              useReqParamsStore().setPoly(reqParmsUsed.parms.poly);
+              useReqParamsStore().setConvexHull(convexHull(reqParmsUsed.parms.poly));
+            } else {
+              console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
+            }
+            // console.log('beams:', useAtlChartFilterStore().getBeams());
+            // console.log('rgts:', useAtlChartFilterStore().getRgts());
+            // console.log('cycles:', useAtlChartFilterStore().getCycles());
+            // console.log('pairs:', useAtlChartFilterStore().getPairs());
+            // console.log('spots:', useAtlChartFilterStore().getSpots());
+            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
+            useReqParamsStore().setTracks(useAtlChartFilterStore().getTracks());
+            useReqParamsStore().setBeams(useAtlChartFilterStore().getBeams());
+            useReqParamsStore().setRgt(useAtlChartFilterStore().getRgtValues()[0]);
+            useReqParamsStore().setCycle(useAtlChartFilterStore().getCycleValues()[0]);
+          } else {
+            console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
+          }
+
+        },
+        presetForMainRequest() {
+          useReqParamsStore().setMissionValue("ICESat-2");
+          useReqParamsStore().setIceSat2API("atl06p");
+          useReqParamsStore().setEnableGranuleSelection(false);
+          useReqParamsStore().setUseRgt(false);
+          useReqParamsStore().setUseCycle(false);
+        },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
         },
@@ -343,7 +382,10 @@ export const useReqParamsStore = defineStore('reqParams', {
         
           if (this.getEnableGranuleSelection()) {
             if (this.tracks.length > 0) {
-              req.tracks = this.tracks.map(track => track.value);
+              req.track = this.tracks.map(track => track.value)[0];
+              if(this.tracks.length > 1){
+                console.error('getAtlReqParams: tracks.length > 1:', this.tracks);
+              }
             }
             if (this.beams.length > 0) {
               req.beams = this.beams.map(beam => beam.value);
@@ -791,6 +833,13 @@ export const useReqParamsStore = defineStore('reqParams', {
         setEnableExtents(enableExtents:boolean) {
           this.enableExtents = enableExtents;
         },
+        setPoly(poly: SrRegion) {
+          this.poly = poly;
+        },
+        setCmr(cmr: { polygon: SrRegion }) {
+          this.poly = cmr.polygon;
+        }
+        
     },
 })
 

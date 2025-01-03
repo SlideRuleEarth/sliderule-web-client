@@ -102,26 +102,43 @@ export function get_num_defs_rd_from_cache() {
 //
 // populateDefinition
 //
-function populateDefinition(rec_type:any):any {
+// function populateDefinition(rec_type:any):any {
+//   if (rec_type in recordDefinitions) {
+//     num_defs_rd_from_cache++;
+//     return recordDefinitions[rec_type];
+//   }
+//   else {
+//     //console.log(`populateDefinition: ${rec_type} (type: ${typeof rec_type}) not found in recordDefinitions`);
+//     return new Promise((resolve, reject) => {
+//       num_defs_fetched++;
+//       //console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
+//       source("definition", {"rectype" : rec_type}).then(
+//         result => {
+//           recordDefinitions[rec_type] = result;
+//           resolve(recordDefinitions[rec_type]);
+//         },
+//         error => {
+//           console.error(`failed to retrieve definition for ${rec_type}: ${error}`);
+//           reject(new Error(`failed to retrieve definition for ${rec_type}: ${error}`));
+//         }
+//       );
+//     });
+//   }
+// }
+async function populateDefinition(rec_type: any): Promise<any> {
   if (rec_type in recordDefinitions) {
     num_defs_rd_from_cache++;
     return recordDefinitions[rec_type];
-  }
-  else {
-    //console.log(`populateDefinition: ${rec_type} (type: ${typeof rec_type}) not found in recordDefinitions`);
-    return new Promise((resolve, reject) => {
-      num_defs_fetched++;
-      //console.log('populateDefinition rec_type:', rec_type,' num_defs_fetched:', num_defs_fetched);
-      source("definition", {"rectype" : rec_type}).then(
-        result => {
-          recordDefinitions[rec_type] = result;
-          resolve(recordDefinitions[rec_type]);
-        },
-        error => {
-          reject(new Error(`failed to retrieve definition for ${rec_type}: ${error}`));
-        }
-      );
-    });
+  } else {
+    num_defs_fetched++;
+    try {
+      const result = await source("definition", { "rectype": rec_type });
+      recordDefinitions[rec_type] = result;
+      return recordDefinitions[rec_type];
+    } catch (error) {
+      console.error(`failed to retrieve definition for ${rec_type}: ${error}`);
+      throw new Error(`failed to retrieve definition for ${rec_type}: ${error}`);
+    }
   }
 }
 
@@ -529,20 +546,30 @@ const sysCredentials: SysCredentials = {
 };
 
 // Define type for the get_version function
-export function get_version(): Promise<{
+// export function get_version(): Promise<{
+//   client: { version: string };
+//   organization: string;
+//   [key: string]: any; // Additional dynamic properties
+// }>{
+//   //const client_version = import.meta.env.VITE_APP_VERSION
+//     return source('version').then(
+//       result => {
+//         //result['client'] = {version: client_version};
+//         result['organization'] = globalSysConfig.organization;
+//         return result;
+//       }
+//     );
+//   };
+export async function get_version(): Promise<{
   client: { version: string };
   organization: string;
   [key: string]: any; // Additional dynamic properties
-}>{
-  //const client_version = import.meta.env.VITE_APP_VERSION
-    return source('version').then(
-      result => {
-        //result['client'] = {version: client_version};
-        result['organization'] = globalSysConfig.organization;
-        return result;
-      }
-    );
-  };
+}> {
+  const result = await source('version');
+  // result['client'] = { version: client_version };
+  result['organization'] = globalSysConfig.organization;
+  return result;
+}
 
 // Define type for the get_values function
 export function get_values(bytearray: Uint8Array, fieldtype: number):  Array<number | string | BigInt>  // Replace 'any' with a more specific type if possible
@@ -575,17 +602,36 @@ export function get_values(bytearray: Uint8Array, fieldtype: number):  Array<num
 
 
 // Function to populate all definitions
-export async function populateAllDefinitions(): Promise<any>{
-  const allRecordTypes = ['atl06rec','atl06rec.elevation','exceptrec','eventrec','arrowrec.meta','arrowrec.data'];
+// export async function populateAllDefinitions(): Promise<any>{
+//   const allRecordTypes = ['atl06rec','atl06rec.elevation','exceptrec','eventrec','arrowrec.meta','arrowrec.data'];
+//   try {
+//     // Create an array of promises for each record type
+//     const definitionPromises = allRecordTypes.map(type => populateDefinition(type));
+//     // Wait for all promises to resolve
+//     await Promise.all(definitionPromises);
+//     //console.log("All record definitions have been populated successfully:",recordDefinitions);
+//     return recordDefinitions;
+//   } catch (error) {
+//     // Handle errors that occur during the population process
+//     console.error("Error populating record definitions:", error);
+//   }
+// }
+export async function populateAllDefinitions(): Promise<any> {
+  const allRecordTypes = [
+    'atl06rec',
+    'atl06rec.elevation',
+    'exceptrec',
+    'eventrec',
+    'arrowrec.meta',
+    'arrowrec.data'
+  ];
+
   try {
-    // Create an array of promises for each record type
     const definitionPromises = allRecordTypes.map(type => populateDefinition(type));
-    // Wait for all promises to resolve
     await Promise.all(definitionPromises);
-    //console.log("All record definitions have been populated successfully:",recordDefinitions);
     return recordDefinitions;
   } catch (error) {
-    // Handle errors that occur during the population process
     console.error("Error populating record definitions:", error);
+    throw error; // re-throw the error if you want the caller to handle it
   }
 }

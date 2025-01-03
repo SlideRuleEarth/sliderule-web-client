@@ -5,6 +5,7 @@ import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '@/workers/workerUtils';
+import { read } from "fs";
 
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
@@ -43,6 +44,7 @@ export async function checkDoneProcessing(  thisReqID:number,
             } else {
                 msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID} read_state:${read_state}`;
                 if(read_state === 'done_reading'){
+                    read_state = 'done';// prevent multiple calls to postMessage
                     console.log('Success:', status_details, 'req_id:', thisReqID, 'num_checks:', num_checks);
                     postMessage(await successMsg(thisReqID, msg));
                 }
@@ -55,6 +57,8 @@ export async function checkDoneProcessing(  thisReqID:number,
         } else {
             console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
+    } else {
+        console.warn('ignoring read_state:',read_state);
     }
 }
 
@@ -338,6 +342,9 @@ onmessage = async (event) => {
                                 target_numArrowMetaRecs = 'arrowrec.meta'   in read_result ? Number(read_result['arrowrec.meta']) : 0;
                                 target_numEOFRecs       = 'arrowrec.eof'    in read_result ? Number(read_result['arrowrec.eof']) : 0;
                                 console.log(cmd.func,'  Done Reading result:', read_result, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs);
+                            } else {
+                                console.error('Failed to get result from:', cmd.func, ' for reqID:', reqID);
+                                postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Failed to get result from SlideRule.' }));
                             }
                             console.log(cmd.func,'  Done Reading: result:', result);
                             const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;

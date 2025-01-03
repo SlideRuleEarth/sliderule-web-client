@@ -72,22 +72,36 @@ async function calculateCS(req_id:number) {
 
 const deleteReq = async (id:number) => {
     try {
-        const userConfirmed = window.confirm('Are you sure you want to delete this record?');
-        if (userConfirmed) {
-            console.log('deleteReq:', id);
-            await db.removeOverlayedReqId(id);
-            const fn = await db.getFilename(id);
-            await deleteOpfsFile(fn);
-            requestsStore.deleteReq(id);
-            console.log('deleteReq Record deleted successfully for id:', id);
-        } else {
-            console.log('deleteReq Deletion cancelled');
-        }
+        console.log('deleteReq:', id);
+        await db.removeRunContext(id);
+        const fn = await db.getFilename(id);
+        await deleteOpfsFile(fn);
+        requestsStore.deleteReq(id);
+        console.log('deleteReq Record deleted successfully for id:', id);
     } catch (error) {
         console.error(`deleteReq Failed to delete record for id:${id}`, error);
         throw error;
     }
 };
+
+const deleteReqAndChildren = async (id:number) => {
+    const userConfirmed = window.confirm('Are you sure you want to delete this record and all its overlayed children?');
+    if (userConfirmed) {
+        const children = await db.runContexts
+            .where('parentReqId')
+            .equals(id)
+            .toArray();
+        if (children.length > 0) {
+            for (const child of children) {
+                console.log('Deleting child:', child, ' of parent:', id);
+                await deleteReq(child.reqId);
+            }
+        }
+        deleteReq(id);
+    } else {
+        console.log('deleteReq Deletion cancelled');
+    }
+}
 
 const exportFile = async (req_id:number) => {
     console.log('Exporting file for req_id', req_id);
@@ -153,8 +167,11 @@ const tooltipRef = ref();
     <div class="sr-records-container">
         <DataTable 
             :value="requestsStore.reqs" 
-            tableStyle=" width:100%;" 
+            tableStyle="min-width:100% width:100%;" 
             table-layout="auto"
+            size="small" 
+            :resizableColumns="true"
+            columnResizeMode="expand"
             scrollable 
             scrollHeight="flex"
             :paginator="true"
@@ -182,7 +199,7 @@ const tooltipRef = ref();
                </template>
             </Column>
             <Column field="func" header="Function"></Column>
-            <Column field="description" header="Description" :editable="true" style="max-width: 10rem;">
+            <Column field="description" header="Description" :editable="true" style="width: 5rem; max-width: 10rem;">
                 <template #header>
                     <i 
                       class="pi pi-pencil"
@@ -284,7 +301,7 @@ const tooltipRef = ref();
                 <template #body="slotProps">
                     <i 
                       class="pi pi-trash"
-                      @click="deleteReq(slotProps.data.req_id)"
+                      @click="deleteReqAndChildren(slotProps.data.req_id)"
                       @mouseover="tooltipRef.showTooltip($event, 'Delete Requests')"
                       @mouseleave="tooltipRef.hideTooltip"
                     ></i>
@@ -321,11 +338,12 @@ const tooltipRef = ref();
 
 <style scoped>
 .sr-records-container {
+    width: 100%;
     display: block;
-    width: fit-content;
-    overflow-x: auto;
-    padding: 0.5rem;
-    margin: 0.5rem;
+    padding: 1.5rem;
+    margin: 1.5rem;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Prevent vertical overflow unless needed */
 }
 
 .sr-analyze {
@@ -356,11 +374,11 @@ const tooltipRef = ref();
     margin-top: 1rem;
 }
 :deep(.sr-col-par-style) {
+    width: 10rem;
     min-width: 7rem;
     max-width: 25rem;
     max-height: 10rem;
     overflow: auto;
-    overflow-x: auto;
 }
 :deep(.sr-descr-style) {
     min-width: 5rem;
@@ -374,5 +392,21 @@ const tooltipRef = ref();
 :deep(.p-inputtext.p-component) {
     width: 100%;
     border: 1px solid var(--p-border-color);
+}
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+    min-width: 10px; /* Allow a minimum width for resizing */
+    max-width: none;  /* Remove restrictions on maximum width */
+    white-space: nowrap; /* Prevent headers from wrapping */
+}
+
+
+@media (max-width: 768px) {
+    .sr-records-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    .sr-descr-style {
+        max-width: 8rem;
+    }
 }
 </style>

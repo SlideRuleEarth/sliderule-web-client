@@ -1,8 +1,9 @@
 <template>
-    <div class="sr-scatter-plot-container">
+    <div class="sr-scatter-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
+    <div class="sr-scatter-plot-container" v-else>
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-            <div v-if="useChartStore().getShowMessage()" :class="messageClass">{{useChartStore().getMessage(computedReqIdStr)}}</div>
+            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-multiselect-container">
                 <FloatLabel variant="on">
                   <MultiSelect
@@ -34,58 +35,85 @@
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
-              class="scatter-chart" 
-              :manual-update="true"
-              :autoresize="{throttle:500}" 
-              :loading="atlChartFilterStore.isLoading" 
-              :loadingOptions="{
+                class="scatter-chart" 
+                :manual-update="true"
+                :autoresize="{throttle:500}" 
+                :loading="atlChartFilterStore.isLoading" 
+                :loadingOptions="{
                 text:'Data Loading', 
                 fontSize:20, 
                 showSpinner: true, 
                 zlevel:100
-              }" 
+                }" 
             />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
-            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && (chartStore.getFunc(computedReqIdStr) === 'atl03sp'))" />
-          </div> 
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+        </div> 
+        <!-- <div>       func:{{ computedFunc }}  </div>
+        <div>  isLoading:{{ atlChartFilterStore.isLoading }}</div> 
+        <div>currentRows:{{ mapStore.getCurrentRows() }}</div> -->
+        <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
+          <SrCheckbox 
+              label="Show Photon Cloud Overlay" 
+              v-model="atlChartFilterStore.showPhotonCloud" 
+          />
+          <div sr-run-control>
+                <SrRunControl 
+                    :includeAdvToggle="false"
+                    buttonLabel="Photon Cloud"
+                    :inSensitive="(!atlChartFilterStore.showPhotonCloud || !mapStore.isLoading)"  
+                />
+
+            </div>
+            <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import MultiSelect from "primevue/multiselect";
-import { type SrMenuItem } from './SrMenuInput.vue';
+import { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, ref, computed, reactive, WritableComputedRef } from "vue";
+import type { WritableComputedRef } from "vue";
+import { provide, watch, onMounted, ref, computed, reactive } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import { refreshScatterPlot } from "@/utils/plotUtils";
-import SrAtl03ColorLegend from "./SrAtl03ColorLegend.vue";
-import SrAtl08ColorLegend from "./SrAtl08ColorLegend.vue";
+import SrAtl03ColorLegend from "@/components/SrAtl03ColorLegend.vue";
+import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
-import { db } from "@/db/SlideRuleDb";
-import { createDuckDbClient } from '@/utils//SrDuckDb';
 import { useRequestsStore } from '@/stores/requestsStore';
+import SrReqDisplay from "./SrReqDisplay.vue";
+import SrCheckbox from "./SrCheckbox.vue";
+import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
+import SrRunControl from "./SrRunControl.vue";
+import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
+import { useMapStore } from '@/stores/mapStore';  
 
+const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
+const mapStore = useMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
+const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
+const loadingComponent = ref(true);
 
 function initializeBindings(reqIds: string[]) {
     //console.log('initializeBindings:', reqIds);
     reqIds.forEach((reqId) => {
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({
-                get: () => useChartStore().getYDataForChart(reqId),
-                set: (value: string[]) => useChartStore().setYDataForChart(reqId, value),
+                get: () => chartStore.getYDataForChart(reqId),
+                set: (value: string[]) => chartStore.setYDataForChart(reqId, value),
             });
         }
     });
@@ -95,7 +123,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const reqIds = ref<SrMenuItem[]>([]);
-const filteredReqIds = ref<{label:string, value:number}[]>([]);
 const findLabel = (value:number) => {
     //console.log('findLabel reqIds:', reqIds.value);
     const match = reqIds.value.find(item => Number(item.value) === value);
@@ -104,80 +131,75 @@ const findLabel = (value:number) => {
 };
 
 async function onMainYDataSelectionChange(newValue: string[]) {
-    console.log("Main Y Data changed:", newValue);
-    await refreshScatterPlot('from onMainYDataSelectionChange');
+    //console.log("Main Y Data changed:", newValue);
+    await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
 async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
     console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
-    await refreshScatterPlot('from onOverlayYDataSelectionChange');
+    await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
 }
 
 onMounted(async () => {
+    try {
+        //console.log('SrScatterPlot onMounted');
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage('Loading...');
 
-  try {
-    console.log('SrScatterPlot onMounted');
-    reqIds.value =  await useRequestsStore().getMenuItems();
-    initializeBindings(reqIds.value.map(item => item.value));
-    atlChartFilterStore.setPlotRef(plotRef.value);
-    const reqId = atlChartFilterStore.getReqId();
-    if (reqId > 0) {
-        const func = await indexedDb.getFunc(reqId);
-        atl03ColorMapStore.initializeAtl03ColorMapStore();
-
-        if (func === 'atl03sp') {
-            atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-        } else if (func.includes('atl06')) {
-            atl03ColorMapStore.setAtl03ColorKey('YAPC');
-        } else if (func.includes('atl08')) {
-            atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+        const reqId = atlChartFilterStore.getReqId();
+        reqIds.value =  await requestsStore.getMenuItems();
+        initializeBindings(reqIds.value.map(item => item.value));
+        if (reqId > 0) {
+            const func = await indexedDb.getFunc(reqId);
+            atl03ColorMapStore.initializeAtl03ColorMapStore();
+            await prepareDbForReqId(reqId);                                                                      
+    
+            if (func === 'atl03sp') {
+                atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+            } else if (func.includes('atl06')) {
+                atl03ColorMapStore.setAtl03ColorKey('YAPC');
+            } else if (func.includes('atl08')) {
+                atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+            }
+            // Create a Set of reqIds values for quick lookup
+            // const successfulReqIdsSet = new Set(reqIds.value.map(item => Number(item.value)));
+            // for (const oreqId of successfulReqIdsSet) { 
+            //     prepareDbForReqId(oreqId);
+            // }
+        } else {
+            console.warn('reqId is undefined');
         }
-        // Create a Set of reqIds values for quick lookup
-        const successfulReqIdsSet = new Set(reqIds.value.map(item => Number(item.value)));
-        const overlayedReqIds = await db.getOverlayedReqIdsOptions(reqId);
-        const filteredReqIds = overlayedReqIds.filter(item => successfulReqIdsSet.has(item.value));
-        const duckDbClient = await createDuckDbClient();
-        const colNames = await duckDbClient.queryForColNames(await db.getFilename(reqId));
-        useChartStore().setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);                                                                      
-        for (const oreqId of filteredReqIds) { // filter out failed reqIds
-            const filename = await db.getFilename(oreqId.value);
-            console.log('filename:', filename);
-            // Attach the Parquet file
-            await duckDbClient.insertOpfsParquet(filename);
-            const colNames = await duckDbClient.queryForColNames(filename);
-            useChartStore().setElevationDataOptionsFromFieldNames(oreqId.value.toString(), colNames);                                                                      
-        }
-        //initScatterPlotWith(reqId);
-    } else {
-        console.warn('reqId is undefined');
+        
+        //console.log('SrScatterPlot onMounted completed');
+    } catch (error) {
+            console.error('Error during onMounted initialization:', error);
+    } finally {
+        loadingComponent.value = false;
     }
-  } catch (error) {
-        console.error('Error during onMounted initialization:', error);
-  }
 });
 
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        await refreshScatterPlot('from watch atlChartFilterStore.getReqId()');
+        await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
+        await prepareDbForReqId(newReqId);
     }
 });
 
-watch(
-  () => atlChartFilterStore.selectedOverlayedReqIds,
-  async (newOverlayedReqIds, oldOverlayedReqIds) => {
-    console.log('selectedOverlayedReqIds changed from:', oldOverlayedReqIds, 'to:', newOverlayedReqIds);
-    await refreshScatterPlot('from watch atlChartFilterStore.selectedOverlayedReqIds');
-  }
-);
-
-
+watch(() => plotRef.value, async (newPlotRef) => {
+    //console.log('plotRef changed:', newPlotRef);
+    if (newPlotRef) {
+        console.warn('plotRef changed:', newPlotRef);
+        atlChartFilterStore.setPlotRef(plotRef.value);
+        await callPlotUpdateDebounced('from watch plotRef.value');
+    }
+});
 
 const messageClass = computed(() => {
   return {
     'message': true,
-    'message-red': !useChartStore().getIsWarning(computedReqIdStr.value),
-    'message-yellow': useChartStore().getIsWarning(computedReqIdStr.value)
+    'message-red': !atlChartFilterStore.getIsWarning(),
+    'message-yellow': atlChartFilterStore.getIsWarning()
   };
 });
 
@@ -186,18 +208,98 @@ const computedSelectedAtl03ColorMap = computed(() => {
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
+    //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
     atl03ColorMapStore.updateAtl03YapcColorMapValues();
     //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
-        await refreshScatterPlot('from watch computedSelectedAtl03ColorMap');
+        await callPlotUpdateDebounced('from watch computedSelectedAtl03ColorMap');
     }
 }, { deep: true, immediate: true });
+
+
+watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
+    //console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
+    if(newShowPhotonCloud){
+        const runContext = await getPhotonOverlayRunContext();
+        if(runContext.reqId <= 0){
+            await processRunSlideRuleClicked(runContext);
+            console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+            initializeBindings([runContext.reqId.toString()]);//after run gives us a reqId
+        } else {
+            await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+        }
+    } else {
+        atlChartFilterStore.setSelectedOverlayedReqIds([]);
+        await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
+    }
+}, { deep: true, immediate: true });
+
+async function updateThePlot(msg:string) {
+    if(!loadingComponent.value){
+        await callPlotUpdateDebounced(msg);
+    } else {
+        console.warn('Skipped updateThePlot - Loading component is still active');
+    }
+}
+
+
+watch(() => atlChartFilterStore.scOrients,
+  async (newValues, oldValues) => {
+    //console.log('watch - scOrients changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.scOrients");
+  }
+);
+
+watch(() => atlChartFilterStore.rgts,
+  async (newValues, oldValues) => {
+    //console.log('watch - rgts changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.rgts");
+  }
+);
+
+watch(() => atlChartFilterStore.cycles,
+  async (newValues, oldValues) => {
+    //console.log('watch - cycles changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.cycles");
+  }
+);
+
+watch(() => atlChartFilterStore.spots,
+  async (newValues, oldValues) => {
+    //console.log('watch - spots changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.spots");
+  }
+);
+
+watch(() => atlChartFilterStore.beams,
+  async (newValues, oldValues) => {
+    //console.log('watch - beams changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.beams");
+  }
+);
+
+watch(() => atlChartFilterStore.tracks,
+  async (newValues, oldValues) => {
+    //console.log('watch - tracks changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.tracks");
+  }
+);
+
+watch(() => atlChartFilterStore.pairs,
+  async (newValues, oldValues) => {
+    //console.log('watch - pairs changed from:', oldValues, 'to:', newValues);
+    updateThePlot("watch atlChartFilterStore.pairs");
+  }
+);
 
 </script>
 
 <style scoped>
+
+.sr-scatter-plot-container {
+  display: block;
+}
 
 .scatter-chart{
   height: 60vh;
@@ -238,13 +340,16 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
   width: auto;
 }
 
-.sr-scatter-plot-options {
-  display: flex; 
+.sr-photon-cloud {
+  display: flex;
   flex-direction: column;
-  align-items: self-start;
+  justify-content: center;
+  align-items: left;
   margin: 0.5rem;
-  width: auto; /* Add this line to ensure it only takes as much width as needed */
+  padding: 1rem;
   overflow-y: auto;
+  overflow-x: auto;
+  width: auto;
 }
 
 .sr-multiselect-container {
@@ -263,7 +368,7 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 }
 
 .sr-multiselect {
-    width: 100%;
+    width: fit-content;
     margin: 0rem;
     border: 0rem;
 }

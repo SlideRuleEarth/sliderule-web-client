@@ -1,13 +1,17 @@
 import type { SysConfig } from "@/sliderule/core"
+import type { SrRunContext } from "@/db/SlideRuleDb";
+import type { ReqParams } from "@/sliderule/icesat2";
 import { db } from "@/db/SlideRuleDb";
-import { type ReqParams } from "@/sliderule/icesat2";
 // No Pinia store can be used in this file because it is called from a web worker   
+
+
 export interface WebWorkerCmd {
     type: string; // 'run', 'abort' 
     req_id: number;
     sysConfig?: SysConfig;
     func?: string;
     parameters?: ReqParams;
+    context?: SrRunContext;
 }
 
 export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'opfs_ready' | 'server_msg' | 'aborted';
@@ -121,16 +125,16 @@ export async function successMsg(req_id:number, msg:string): Promise<WorkerMessa
     return workerSuccessMsg;
 }
 
-export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): Promise<WorkerMessage> {
-    try{
-        console.log('summaryMsg workerSummaryMsg:',workerSummaryMsg);
-        await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, cnt:workerSummaryMsg.numPoints, status: 'summary',status_details: msg});
-        await db.updateSummary(workerSummaryMsg);
-    } catch (error) {
-        console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);
-    }
-    return workerSummaryMsg;
-}
+// export async function summaryMsg(workerSummaryMsg:WorkerSummary, msg: string): Promise<WorkerMessage> {
+//     try{
+//         console.log('summaryMsg workerSummaryMsg:',workerSummaryMsg);
+//         await db.updateRequestRecord( {req_id:workerSummaryMsg.req_id, cnt:workerSummaryMsg.numPoints, status: 'summary',status_details: msg});
+//         await db.updateSummary(workerSummaryMsg);
+//     } catch (error) {
+//         console.error('Failed to update request status to summary:', error, ' for req_id:', workerSummaryMsg.req_id);
+//     }
+//     return workerSummaryMsg;
+// }
 
 export function geoParquetMsg(req_id:number,filename:string, blob:Blob): WorkerMessage{
     const workerDataMsg: WorkerMessage = { req_id:req_id, status: 'geoParquet_rcvd', blob: blob, metadata: filename};

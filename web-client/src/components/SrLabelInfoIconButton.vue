@@ -70,7 +70,7 @@
 <style scoped>
 
 .sr-label-info-icon-button-label {
-    margin-right: 0rem;
+    margin-right: 0.25rem;
     white-space: nowrap;
     font-size: small;
     background-color: transparent;
