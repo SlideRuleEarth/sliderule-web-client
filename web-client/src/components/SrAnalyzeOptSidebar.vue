@@ -23,7 +23,6 @@ import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
-import MultiSelect from 'primevue/multiselect';
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
@@ -78,9 +77,6 @@ const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
 const srToastStore = useSrToastStore();
-const overlayedReqIdOptions = ref<{label:string,value:number}[]>([]);
-const selectedOverlayedReqIds = ref<number[]>([]);
-const hasOverlayedReqs = computed(() => overlayedReqIdOptions.value.length > 0);
 const isMounted = ref(false);
 const computedReqIdStr = computed(() => {
     if(selectedReqId.value === undefined){
@@ -95,18 +91,6 @@ const computedReqIdNum = computed(() => {
     }
     return Number(selectedReqId.value.value);
 });
-
-// async function createOverlayedReqIdOptions(req_id: number, reqIds: Ref<any[]>) {
-//     if (req_id <= 0) {
-//         throw new Error('Invalid Request ID');
-//     }
-//     // Fetch overlayed options for the given request ID
-//     const overlayedOptions = await db.getOverlayedReqIdsOptions(req_id);
-//     // Create a Set of reqIds values for quick lookup
-//     const reqIdValuesSet = new Set(reqIds.value.map(item => Number(item.value)));
-//     // Filter overlayedOptions to include only items in reqIds
-//     return overlayedOptions.filter(option => reqIdValuesSet.has(option.value));
-// }
 
 const computedInitializing = computed(() => {
     return !isMounted.value || loading.value || reqIds.value.length === 0;
@@ -163,6 +147,9 @@ onMounted(async () => {
                         }
                         if(request && request.func){
                             chartStore.setFunc(reqIdStr,request.func);
+                            if(request.func === 'atl03sp'){
+                                chartStore.setSymbolSize(reqIdStr, 1);
+                            }
                         } else {
                             console.error('No func found for reqId:',reqIdStr);
                         }
@@ -491,16 +478,6 @@ const exportButtonClick = async () => {
                         :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
                         :tooltipText=tooltipTextStr
                     />
-                    <!-- <MultiSelect 
-                        v-if=hasOverlayedReqs
-                        v-model="selectedOverlayedReqIds" 
-                        size="small"
-                        :options="overlayedReqIdOptions"
-                        optionValue="value"
-                        optionLabel="label"  
-                        placeholder="Overlay" 
-                        display="chip" 
-                    /> -->
                     <SrCustomTooltip ref="tooltipRef"/>
                 </div>
             </div>
@@ -660,7 +637,7 @@ const exportButtonClick = async () => {
                 />
 
                 <!-- SrScatterPlotOptions for each overlayed req_id -->
-                <div v-for="overlayedReqId in selectedOverlayedReqIds" :key="overlayedReqId">
+                <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                     <SrScatterPlotOptions 
                         :req_id="overlayedReqId" 
                         :label="findLabel(overlayedReqId)"

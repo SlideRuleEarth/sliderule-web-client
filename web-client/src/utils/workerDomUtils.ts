@@ -60,7 +60,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg success:',workerMsg.msg);
             numBytes = await db.getNumBytes(workerMsg.req_id);
             if(numBytes > 0){
-                successMsg = `File created with ${numBytes} bytes.\n\nClick on Analysis button to plot elevation of individual tracks.`;
+                successMsg = `Record ${workerMsg.req_id} created with ${numBytes} bytes.\n\nClick on another track to plot elevation of that track.`;
                 useSrToastStore().success('Success',successMsg,15000); // 15 seconds
             } else {
                 successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';

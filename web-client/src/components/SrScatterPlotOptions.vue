@@ -13,6 +13,7 @@ import { colorMapNames } from '@/utils/colorUtils';
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
 import { onMounted, watch, computed } from "vue";
+import { clearPlot } from "@/utils/plotUtils";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -72,7 +73,7 @@ const symbolSizeSelection = async () => {
 
 async function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
-    atlChartFilterStore.resetTheScatterPlot();
+    clearPlot();
     await callPlotUpdateDebounced('changedColorKey');
 }
 

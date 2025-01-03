@@ -254,7 +254,7 @@ export class SlideRuleDexie extends Dexie {
             const defaultAtl03CnfColors: Atl03Color[] = [
                 { number: -2, color: 'gray' },
                 { number: -1, color: 'slategray' },
-                { number: 0, color: 'yellow' },
+                { number: 0, color: 'indigo' },
                 { number: 1, color: 'green' },
                 { number: 2, color: 'blue' },
                 { number: 3, color: 'violet' },

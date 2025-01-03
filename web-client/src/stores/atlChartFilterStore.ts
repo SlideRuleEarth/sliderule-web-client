@@ -29,7 +29,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     isLoading: false as boolean,
-    clearScatterPlotFlag: false as boolean,
     chartDataRef: ref<number[][]>([]),
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
@@ -270,15 +269,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getIsLoading() {
       //console.log('atlChartFilterStore.getIsLoading():', this.isLoading);
       return this.isLoading;
-    },
-    resetTheScatterPlot() {
-      this.clearScatterPlotFlag = true;
-    },
-    resetClearScatterPlotFlag() {
-      this.clearScatterPlotFlag = false;
-    },
-    getClearPlot() {
-      return this.clearScatterPlotFlag;
     },
     getLargeData() {
       return this.largeData;

@@ -288,7 +288,7 @@ async function getSeriesForAtl08(
   return yItems;
 }
 
-function clearPlot() {
+export function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
       if(plotRef.chart){
@@ -379,7 +379,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     data: seriesData.map(series => series.series.name),
                     left: 'left'
                 },
-                notMerge: false,
+                notMerge: true,
                 lazyUpdate: true,
                 xAxis: [{
                     min: chartStore.getMinX(reqIdStr),

@@ -51,7 +51,7 @@
             requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
             reqParamsStore.presetForMainRequest();
         } else { // this means it is the Overlay Photon Cloud button
-            const msg = `Click Show Photon Cloud to fetch and overlay Photon Cloud Data on plot using highlighted track`;
+            const msg = `Click 'Show Photon Cloud Overlay' to fetch highlighted track Photon Cloud data and overlay on plot`;
             requestsStore.displayHelpfulMapAdvice(msg);
             requestsStore.setConsoleMsg(msg);
             reqParamsStore.presetForScatterPlotOverlay();
