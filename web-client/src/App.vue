@@ -214,7 +214,7 @@ const handleVersionButtonClick = () => {
 .content {
   margin-top: 4rem;
   overflow-y: auto;
-  height: calc(100vh - 4rem);
+  height: calc(100vh - 5rem);
 }
 
 .sr-unsupported-panel {

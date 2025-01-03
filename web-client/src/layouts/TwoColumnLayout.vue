@@ -30,6 +30,7 @@
     margin-right: 1rem;
     margin-left: 1rem;
     overflow-x: auto;
+    height: 100%;
   }
 
   @media (max-width: 1200px) {

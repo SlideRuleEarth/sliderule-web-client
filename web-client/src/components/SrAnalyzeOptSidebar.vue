@@ -666,7 +666,6 @@ const exportButtonClick = async () => {
         display: flex;
         flex-direction: column;
         height: 100vh;
-        margin-top: auto;
         overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
     }
     .sr-analysis-opt-sidebar-container {
