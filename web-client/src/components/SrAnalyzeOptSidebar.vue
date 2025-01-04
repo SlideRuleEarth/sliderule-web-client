@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
-import SrMenuInput, { type SrMenuItem } from '@/components/SrMenuInput.vue';
+import SrMenuInput from '@/components/SrMenuInput.vue';
 import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
 import SrListbox from '@/components/SrListbox.vue';
 import SrSliderInput from '@/components/SrSliderInput.vue';
@@ -72,7 +72,6 @@ const defaultReqIdMenuItemIndex = ref(0);
 const selectedReqId = ref<{name: string; value: string} | undefined>({name:'0', value:'0'});
 const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
-const reqIds = ref<SrMenuItem[]>([]);
 const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
 const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
@@ -93,7 +92,7 @@ const computedReqIdNum = computed(() => {
 });
 
 const computedInitializing = computed(() => {
-    return !isMounted.value || loading.value || reqIds.value.length === 0;
+    return !isMounted.value || loading.value || atlChartFilterStore.reqIdMenuItems.length === 0;
 });
 
 
@@ -105,24 +104,23 @@ onMounted(async () => {
         mapStore.setTotalRows(0);
         mapStore.setCurrentRows(0);
         useAtlChartFilterStore().setDebugCnt(0);
-        reqIds.value = await requestsStore.getMenuItems();
-        if (reqIds.value.length > 0) {
+        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+        if (atlChartFilterStore.reqIdMenuItems.length > 0) {
             defaultReqIdMenuItemIndex.value = 0;
             //console.log('onMounted props.startingReqId:', props.startingReqId);
             if (props.startingReqId) { // from the route parameter
                 const startId = props.startingReqId.toString();
                 //console.log('onMounted startId:', startId);
-                //console.log('reqIds:', reqIds.value);
-                defaultReqIdMenuItemIndex.value = reqIds.value.findIndex(item => item.value === startId);
-                selectedReqId.value = reqIds.value[defaultReqIdMenuItemIndex.value];
+                //console.log('atlChartFilterStore.reqIdMenuItems:', atlChartFilterStore.reqIdMenuItems);
+                defaultReqIdMenuItemIndex.value = atlChartFilterStore.reqIdMenuItems.findIndex(item => item.value === startId);
+                selectedReqId.value = atlChartFilterStore.reqIdMenuItems[defaultReqIdMenuItemIndex.value];
             } else {
-                selectedReqId.value = reqIds.value[0];
+                selectedReqId.value = atlChartFilterStore.reqIdMenuItems[0];
             }
             req_id = Number(computedReqIdStr);
             //console.log('onMounted selectedReqId:', req_id);
             if (req_id > 0) {
                 atlChartFilterStore.setReqId(req_id);
-                //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
                 initSymbolSize(computedReqIdStr.value);
                 const height_fieldname = await getHeightFieldname(req_id);
@@ -133,8 +131,8 @@ onMounted(async () => {
                 console.warn('Invalid request ID:', req_id);
                 //toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
             }
-            //console.log('onMounted reqIds:', reqIds.value);
-            for (const reqIdItem of reqIds.value) {
+            //console.log('onMounted atlChartFilterStore.reqIdMenuItems:', atlChartFilterStore.reqIdMenuItems);
+            for (const reqIdItem of atlChartFilterStore.reqIdMenuItems) {
                 const reqIdStr = reqIdItem.value;
                 const thisReqId = Number(reqIdItem.value);
                 if(thisReqId > 0) {
@@ -147,9 +145,7 @@ onMounted(async () => {
                         }
                         if(request && request.func){
                             chartStore.setFunc(reqIdStr,request.func);
-                            if(request.func === 'atl03sp'){
-                                chartStore.setSymbolSize(reqIdStr, 1);
-                            }
+                            initSymbolSize(reqIdStr);
                         } else {
                             console.error('No func found for reqId:',reqIdStr);
                         }
@@ -175,7 +171,6 @@ onMounted(async () => {
                             //console.log('Request:', request);
                             if(request && request.file){
                                 chartStore.setFile(reqIdStr,request.file);
-                                //console.log('onMounted chartStore.setFile reqIds:',reqIds.value ,' reqID:',reqId, ' file:', chartStore.getFile(reqId.toString()));
                             } else {
                                 console.error('No file found for req_id:', reqIdStr);
                             }
@@ -390,7 +385,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
             const req_id = Number(newSelection.value)
             atlChartFilterStore.setReqId(req_id);
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            //overlayedReqIdOptions.value = await createOverlayedReqIdOptions(req_id, reqIds);
             deckStore.deleteSelectedLayer();
             atlChartFilterStore.setSpots([]);
             atlChartFilterStore.setRgts([]);
@@ -405,14 +399,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
         console.error('Failed to update selected request:', error);
     }
 });
-
-const findLabel = (value:number) => {
-    //console.log('findLabel reqIds:', reqIds.value);
-    const match = reqIds.value.find(item => Number(item.value) === value);
-    //console.log('findLabel:', value, 'match:', match);
-    return match ? match.name : '';
-};
-
 
 const getSize = computed(() => {
     return formatBytes(useChartStore().getSize());
@@ -472,7 +458,7 @@ const exportButtonClick = async () => {
                     <SrMenuInput
                         label="Record" 
                         labelFontSize="medium"
-                        :menuOptions="reqIds" 
+                        :menuOptions="atlChartFilterStore.reqIdMenuItems" 
                         v-model="selectedReqId"
                         @update:modelValue="handleUpdateReqId"
                         :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
@@ -633,14 +619,12 @@ const exportButtonClick = async () => {
                 <SrScatterPlotOptions
                     v-if="isMounted" 
                     :req_id="Number(computedReqIdStr)"
-                    :label="findLabel(Number(computedReqIdStr))"
                 />
 
                 <!-- SrScatterPlotOptions for each overlayed req_id -->
                 <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                     <SrScatterPlotOptions 
                         :req_id="overlayedReqId" 
-                        :label="findLabel(overlayedReqId)"
                     />
                 </div>
             </div>        
@@ -665,14 +649,15 @@ const exportButtonClick = async () => {
     .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
+        width:auto;
+        overflow: auto; 
     }
     .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         min-width: 20vw;
+        min-height: 20vh;
         width: 100%;
     }
     .sr-analysis-reqid{
@@ -693,11 +678,13 @@ const exportButtonClick = async () => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between; 
-        min-height: 30%;
-        min-width: 20vw;
+        min-height: 200px; /* or any suitable value */
+        min-width: 200px; /* or any suitable value */;
         width: 100%;
         height: 100%;
+        overflow: auto;
     }
+
     .sr-analysis-opt-sidebar-req-menu {
         display: flex;
         flex-direction: column;

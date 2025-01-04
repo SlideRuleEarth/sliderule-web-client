@@ -789,10 +789,10 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                     center = srProjObj.center;
                 }
 
-                console.log("newProj:",newProj);          
-                console.log("newProj final extent:",extent);          
-                console.log("newProj final WorldExtent:",worldExtent);          
-                console.log("newProj final Center:",center);          
+                //console.log("newProj:",newProj);          
+                //console.log("newProj final extent:",extent);          
+                //console.log("newProj final WorldExtent:",worldExtent);          
+                //console.log("newProj final Center:",center);          
                 const newView = new OlView({
                     projection: newProj,
                     extent: extent,

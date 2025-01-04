@@ -1,58 +1,119 @@
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+
+const sidebarWidth = ref(320); // default sidebar width in px
+const isDragging = ref(false);
+
+function startDrag() {
+  isDragging.value = true;
+}
+
+function stopDrag() {
+  isDragging.value = false;
+}
+
+function onDrag(event: MouseEvent) {
+  if (!isDragging.value) return;
+  // For example, clamp between 200px and 1200px
+  const newWidth = Math.min(Math.max(event.clientX, 200), 1200);
+  sidebarWidth.value = newWidth;
+}
+
+// Listen for mouse movements globally once dragging starts
+onMounted(() => {
+  window.addEventListener('mousemove', onDrag);
+  window.addEventListener('mouseup', stopDrag);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onDrag);
+  window.removeEventListener('mouseup', stopDrag);
+});
 </script>
 
 <template>
-  <div class="two-column-layout">
-    <div class="sidebar-col">
-      <slot name = "sidebar-col"></slot>
+  <div class="layout-container">
+    <div
+      class="sidebar-col"
+      :style="{ width: sidebarWidth + 'px' }"
+    >
+      <slot name="sidebar-col"></slot>
     </div>
+
+    <!-- 
+      The "hot zone" wrapper (wider area) 
+      that displays the actual resizer only on hover or drag 
+    -->
+    <div
+      class="resizer-hotzone"
+      @mousedown="startDrag"
+    >
+      <div
+        class="resizer"
+        :class="{ dragging: isDragging }"
+      ></div>
+    </div>
+
     <main>
-      <slot name = "main"></slot>
+      <slot name="main"></slot>
     </main>
   </div>
 </template>
 
 <style scoped>
-  .two-column-layout {
-    display: flex;
-    min-height: 60vh;
-    @media (max-width: 768px) {
-      flex-direction: column;
-    }
-  }
+.layout-container {
+  display: flex;
+  position: relative;
+  min-height: 60vh;
+}
 
-  .sidebar-col {
-    flex-grow: 1;
-    flex-basis: 20%;
-    flex-direction: column;
-    align-items: center;
-    min-width: 26rem; /* Default for larger screens */
-    margin-right: 1rem;
-    margin-left: 1rem;
-    overflow-x: auto;
-    height: 100%;
-  }
+/* The sidebar width is driven by sidebarWidth. */
+.sidebar-col {
+  overflow-x: auto;
+  min-width: 25rem; 
+  max-width: 500rem;
+}
 
-  @media (max-width: 1200px) {
-    .sidebar-col {
-      min-width: 20rem; /* Adjust min-width for medium-sized screens */
-    }
-  }
+/* 
+  The "hot zone" is a transparent strip that's wider than 
+  the actual resizer. This makes it easier for the user 
+  to hover near the boundary without pixel-perfect aiming.
+*/
+.resizer-hotzone {
+  width: 15px; /* or however wide you want the 'hover area' to be */
+  cursor: col-resize;
+  /* place it visually on top so it captures mouse events */
+  z-index: 10;
+  position: relative;
+}
 
-  @media (max-width: 768px) {
-    .sidebar-col {
-      min-width: 16rem; /* Adjust for smaller screens */
-    }
-  }
+/*
+  The actual resizer bar is narrower (e.g. 5px) 
+  and is placed within the hotzone.
+*/
+.resizer {
+  width: 5px;
+  height: 100%;
+  margin-left: 5px; /* center the resizer inside the 15px hotzone */
+  background-color: var(--p-button-text-primary-color);
+  transition: opacity 0.3s ease;
+  
+  /* Start hidden */
+  opacity: 0;
+}
 
-  @media (max-width: 480px) {
-    .sidebar-col {
-      min-width: 12rem; /* Further adjust for very small screens */
-    }
-  }
+/* When hovering over the hotzone (unless dragging), show the resizer. */
+.resizer-hotzone:hover .resizer:not(.dragging) {
+  opacity: 1;
+}
 
-  main {
-    flex-grow: 8;
-    overflow-y: auto; /* Add scrolling if content overflows */
-  }
+/* If the user is actively dragging, keep the resizer visible. */
+.resizer.dragging {
+  opacity: 1 !important;
+}
+
+main {
+  flex: 1; /* take remaining space */
+  overflow-y: auto;
+}
 </style>

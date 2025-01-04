@@ -15,10 +15,10 @@
                       display="chip"
                       @update:modelValue="onMainYDataSelectionChange"
                   />
-                  <label :for="computedElID"> {{ `Y Data for ${findLabel(atlChartFilterStore.getReqId())}` }}</label>
+                  <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
                 </FloatLabel>
             </div>
-            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.getSelectedOverlayedReqIds()">
+            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
                 <FloatLabel variant="on">
                   <MultiSelect
                       class="sr-multiselect" 
@@ -29,7 +29,7 @@
                       display="chip"
                       @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
                   />
-                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${findLabel(Number(overlayedReqId))}` }}</label>
+                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
                 </FloatLabel>
             </div>
         </div>
@@ -73,7 +73,6 @@
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import MultiSelect from "primevue/multiselect";
-import { type SrMenuItem } from '@/components/SrMenuInput.vue';
 import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
@@ -94,7 +93,9 @@ import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { useMapStore } from '@/stores/mapStore';  
+import { useMapStore } from '@/stores/mapStore';
+import { initSymbolSize,findReqMenuLabel } from '@/utils/plotUtils';
+
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
@@ -122,13 +123,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-const reqIds = ref<SrMenuItem[]>([]);
-const findLabel = (value:number) => {
-    //console.log('findLabel reqIds:', reqIds.value);
-    const match = reqIds.value.find(item => Number(item.value) === value);
-    //console.log('findLabel:', value, 'match:', match);
-    return match ? match.name : '';
-};
 
 async function onMainYDataSelectionChange(newValue: string[]) {
     //console.log("Main Y Data changed:", newValue);
@@ -147,8 +141,8 @@ onMounted(async () => {
         atlChartFilterStore.setMessage('Loading...');
 
         const reqId = atlChartFilterStore.getReqId();
-        reqIds.value =  await requestsStore.getMenuItems();
-        initializeBindings(reqIds.value.map(item => item.value));
+        atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+        initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value));
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
             atl03ColorMapStore.initializeAtl03ColorMapStore();
@@ -162,7 +156,7 @@ onMounted(async () => {
                 atl03ColorMapStore.setAtl03ColorKey('atl08_class');
             }
             // Create a Set of reqIds values for quick lookup
-            // const successfulReqIdsSet = new Set(reqIds.value.map(item => Number(item.value)));
+            // const successfulReqIdsSet = new Set(atlChartFilterStore.reqIdMenuItems.map(item => Number(item.value)));
             // for (const oreqId of successfulReqIdsSet) { 
             //     prepareDbForReqId(oreqId);
             // }
@@ -225,7 +219,10 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         if(runContext.reqId <= 0){
             await processRunSlideRuleClicked(runContext);
             console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
-            initializeBindings([runContext.reqId.toString()]);//after run gives us a reqId
+            const thisReqIdStr = runContext.reqId.toString();
+            initializeBindings([thisReqIdStr]);//after run gives us a reqId
+            initSymbolSize(thisReqIdStr);
+            atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
         } else {
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
         }
@@ -234,6 +231,17 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
     }
 }, { deep: true, immediate: true });
+
+
+watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelection) => {
+    console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    try{
+        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+   } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+});
+
 
 async function updateThePlot(msg:string) {
     if(!loadingComponent.value){

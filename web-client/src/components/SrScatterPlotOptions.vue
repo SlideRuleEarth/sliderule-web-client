@@ -28,15 +28,7 @@ interface AtColorChangeEvent {
 // Define props with TypeScript types
 const props = defineProps<{
   req_id: number;
-  label: string;
 }>();
-
-const computedLabel = computed(() => {
-  return props.label
-    ? `Plot Options (${props.label})`
-    : `Plot Options (${props.req_id})`;
-});
-
 
 const computedReqIdStr = computed(() => {
     return props.req_id.toString();
@@ -44,6 +36,14 @@ const computedReqIdStr = computed(() => {
 
 const computedSlideLabel = computed(() => {
     return `${chartStore.getFunc(computedReqIdStr.value)} Scatter Plot symbol size`
+});
+
+const computedFunc = computed(() => {
+    return chartStore.getFunc(computedReqIdStr.value);
+});
+
+const computedLabel = computed(() => {
+  return `${computedReqIdStr.value} - ${computedFunc.value}`;
 });
 
 // Create a computed property that updates and retrieves the symbol size 
@@ -90,14 +90,6 @@ const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Prom
       console.warn('atl08ClassColorChanged color is undefined');
     }
 };
-
-watch(
-  () => props.label,
-  (newLabel, oldLabel) => {
-    console.log(`SrScatterPlotOptions: label changed from ${oldLabel} to ${newLabel}`);
-    console.log(`SrScatterPlotOptions: computedLabel changed to ${computedLabel}`);
-  }
-);
 
 </script>
 <template>

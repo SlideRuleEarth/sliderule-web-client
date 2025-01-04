@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/sliderule/icesat2';
 import { liveQuery } from 'dexie';
-import type { SrMenuItem } from '@/components/SrMenuInput.vue';
+import type { SrMenuItem } from '@/stores/atlChartFilterStore';
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 

@@ -843,7 +843,7 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 }
 
 export function initSymbolSize(reqIdStr: string) {
-    console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
+    //console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
     const func = chartStore.stateByReqId[reqIdStr].func;
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,1);
@@ -854,6 +854,13 @@ export function initSymbolSize(reqIdStr: string) {
     } else if (func.includes('atl08')) {
         chartStore.setSymbolSize(reqIdStr,3);
     }       
+}
+
+export const findReqMenuLabel = (reqId:number) => {
+    const item = atlChartFilterStore.reqIdMenuItems.find(
+        (i) => Number(i.value) === reqId
+    )
+    return item ? item.name : 'unknown'
 }
 
 export async function updateChartStore(req_id: number) {

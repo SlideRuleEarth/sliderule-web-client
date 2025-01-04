@@ -16,10 +16,8 @@
 <script setup lang="ts">
     import { onMounted,ref,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    export interface SrMenuItem {
-        name:   string;
-        value:  string; 
-    }
+    import { type SrMenuItem } from '@/stores/atlChartFilterStore';
+
     const props = defineProps({
         label: String,
         menuOptions: Array as () => SrMenuItem[],
