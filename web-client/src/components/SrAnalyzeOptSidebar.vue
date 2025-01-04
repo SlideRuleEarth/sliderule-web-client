@@ -400,16 +400,6 @@ watch(selectedReqId, async (newSelection, oldSelection) => {
     }
 });
 
-// watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelection) => {
-//     //console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
-//     try{
-//         atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-//    } catch (error) {
-//         console.error('Failed to update selected request:', error);
-//     }
-// });
-
-
 const getSize = computed(() => {
     return formatBytes(useChartStore().getSize());
 });
@@ -659,14 +649,15 @@ const exportButtonClick = async () => {
     .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
+        width:auto;
+        overflow: auto; 
     }
     .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         min-width: 20vw;
+        min-height: 20vh;
         width: 100%;
     }
     .sr-analysis-reqid{
@@ -687,11 +678,13 @@ const exportButtonClick = async () => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between; 
-        min-height: 30%;
-        min-width: 20vw;
+        min-height: 200px; /* or any suitable value */
+        min-width: 200px; /* or any suitable value */;
         width: 100%;
         height: 100%;
+        overflow: auto;
     }
+
     .sr-analysis-opt-sidebar-req-menu {
         display: flex;
         flex-direction: column;

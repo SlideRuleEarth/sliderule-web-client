@@ -9,8 +9,6 @@
     import 'ol/ol.css'; 
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
-    import { onActivated } from "vue";
-    import { onDeactivated } from "vue";
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
@@ -101,18 +99,10 @@
 
         updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
+        console.log("SrAnalysisMap onMounted done");
     });
 
-    onActivated(() => {
-        console.log("SrAnalysisMap onActivated");
-    })
-
-    onDeactivated(() => {
-        console.log("SrAnalysisMap onDeactivated");
-    })
-
     const handleLegendControlCreated = (legendControl: any) => {
-        //console.log(legendControl);
         legendRef.value = legendControl;
         const analysisMap = mapRef.value?.map;
         if(analysisMap){
@@ -160,11 +150,13 @@
     {{ computedLoadMsg }}
   </div>
   <div ref="mapContainer" class="sr-map-container" >
-    <Map.OlMap ref="mapRef" @error="handleEvent"
+    <Map.OlMap 
+      ref="mapRef" 
+      @error="handleEvent"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
-      style="height: 30vh; border-radius: 15px; overflow: hidden;"
       :controls="controls"
+      class="sr-ol-map"
     >
 
       <MapControls.OlZoomControl  />
@@ -202,14 +194,25 @@
 <style scoped>
 
 .sr-map-container {
-  min-height: 15rem;
-  min-width: 15rem; 
-  width: 100%; 
-  border-radius: var(--p-border-radius); 
-  overflow: hidden;
-  margin: 0.5rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
   margin-top: 0;
   padding: 0.5rem;
+  display: flex;
+  flex: 1 1 auto;      /* let it stretch in a flex layout */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;    /* if you still want curved corners to clip the child */
+}
+:deep(.sr-ol-map) {
+    min-width: 15rem; 
+    min-height: 15rem; 
+    border-radius: var(--p-border-radius); 
+    width: 30rem; 
+    height: 20rem; 
+    overflow: hidden; 
+    resize:both;
 }
 .sr-tooltip-style {
     position: absolute;
