@@ -290,3 +290,39 @@ export function elIsLoaded():boolean {
         )
     );
 }
+
+export const nukeSlideRuleFolder = async () => {
+    const folderName = 'SlideRule';
+    let opfsRoot: FileSystemDirectoryHandle;
+
+    try {
+        // Get the root directory handle
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch (error) {
+        console.error('nukeSlideRuleFolder: Error retrieving root directory', error);
+        throw error;
+    }
+
+    try {
+        // Attempt to remove the SlideRule folder; if it doesn't exist, we'll catch that
+        await opfsRoot.removeEntry(folderName, { recursive: true });
+        console.log(`nukeSlideRuleFolder: "${folderName}" folder removed`);
+    } catch (error: any) {
+        // If the folder doesn't exist, it's typically a "NotFoundError" or similar
+        if (error.name === 'NotFoundError') {
+            console.warn(`nukeSlideRuleFolder: "${folderName}" folder not found, ignoring...`);
+        } else {
+            console.error('nukeSlideRuleFolder: Error removing folder', error);
+            throw new Error(`Failed to remove folder: ${error}`);
+        }
+    }
+
+    try {
+        // Recreate the SlideRule folder
+        await opfsRoot.getDirectoryHandle(folderName, { create: true });
+        console.log(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
+    } catch (error) {
+        console.error(`nukeSlideRuleFolder: Error re-creating "${folderName}" folder`, error);
+        throw new Error(`Failed to re-create the folder: ${folderName}, error: ${error}`);
+    }
+};

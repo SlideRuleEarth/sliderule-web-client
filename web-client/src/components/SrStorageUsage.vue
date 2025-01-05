@@ -25,6 +25,7 @@ import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 import { db } from '@/db/SlideRuleDb';
 import { cleanupAllRequests } from '@/utils/storageUtils';
+import { nukeSlideRuleFolder } from '@/utils/SrParquetUtils';
 
 const confirm = useConfirm();
 const toast = useToast();
@@ -51,6 +52,7 @@ const deleteAllData = async () => {
     accept: () => {
       console.log('accept: Deleting all data');
       cleanupAllRequests();
+      nukeSlideRuleFolder();
       db.deleteDatabase();
       toast.add({ severity: 'warn', summary: 'Confirmed', detail: 'You have delete all the data in the indexedDB', life: 3000 });
     },

@@ -122,7 +122,7 @@ onMounted(async () => {
             if (req_id > 0) {
                 atlChartFilterStore.setReqId(req_id);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
-                initSymbolSize(computedReqIdStr.value);
+                await initSymbolSize(computedReqIdStr.value);
                 const height_fieldname = await getHeightFieldname(req_id);
                 const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
                 console.log('onMounted summary:', summary);
@@ -145,7 +145,7 @@ onMounted(async () => {
                         }
                         if(request && request.func){
                             chartStore.setFunc(reqIdStr,request.func);
-                            initSymbolSize(reqIdStr);
+                            await initSymbolSize(reqIdStr);
                         } else {
                             console.error('No func found for reqId:',reqIdStr);
                         }

@@ -117,7 +117,7 @@ const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Prom
         :min="1"
         :max="1000000" 
         :decimalPlaces="0"
-        tooltipText="Threshold for large data optimization using single color"
+        tooltipText="Threshold for large data optimization (progressive rendering)"
         tooltipUrl="https://echarts.apache.org/en/option.html#series-scatter.large"
     />
 </div>
