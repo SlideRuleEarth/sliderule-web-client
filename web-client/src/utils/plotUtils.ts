@@ -65,6 +65,10 @@ async function getSeriesForAtl03sp(
     //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y,' symbolSize:',chartStore.getSymbolSize(reqIdStr));
     const startTime = performance.now(); // Start time
     let yItems = [] as SrScatterSeriesData[];
+    const plotConfig = await indexedDb.getPlotConfig();
+    const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
+    const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
+    const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
     try {
         const name = 'atl03sp';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
@@ -94,6 +98,9 @@ async function getSeriesForAtl03sp(
                     },
                     large: useAtlChartFilterStore().getLargeData(),
                     largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                    progressive: progressiveChunkSize,
+                    progressiveThreshold: progressiveThreshold,
+                    progressiveChunkMode: progressiveChunkMode,
                     animation: false,
                     yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
                     symbolSize: chartStore.getSymbolSize(reqIdStr),
@@ -119,65 +126,71 @@ async function getSeriesForAtl03sp(
 
 
 async function getSeriesForAtl03vp(
-  reqIdStr:string, 
-  fileName: string, 
-  x: string, 
-  y: string[]
+    reqIdStr:string, 
+    fileName: string, 
+    x: string, 
+    y: string[]
 ): Promise<SrScatterSeriesData[]> {
-  //console.log('getSeriesForAtl03vp fileName:', fileName, ' x:', x, ' y:', y);
-  const startTime = performance.now(); // Start time
-  let yItems = [] as SrScatterSeriesData[];
+//console.log('getSeriesForAtl03vp fileName:', fileName, ' x:', x, ' y:', y);
+const startTime = performance.now(); // Start time
+let yItems = [] as SrScatterSeriesData[];
+const plotConfig = await indexedDb.getPlotConfig();
+const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
+const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
+const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
+try {
+    const name = 'atl03vp';
+    const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl03vpScatterData(reqIdStr,fileName, x, y);
+    //console.log('getSeriesForAtl03vp chartData:', chartData);
+    //console.log('getSeriesForAtl03vp minMaxValues:', normalizedMinMaxValues);
 
-  try {
-      const name = 'atl03vp';
-      const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl03vpScatterData(reqIdStr,fileName, x, y);
-      //console.log('getSeriesForAtl03vp chartData:', chartData);
-      //console.log('getSeriesForAtl03vp minMaxValues:', normalizedMinMaxValues);
+    // Check if either chartData or normalizedMinMaxValues is empty
+    if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
+        console.warn('getSeriesForAtl03vp chartData or minMaxValues is empty, skipping processing.');
+        return yItems; // Return empty array if either is empty
+    }
 
-      // Check if either chartData or normalizedMinMaxValues is empty
-      if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
-          console.warn('getSeriesForAtl03vp chartData or minMaxValues is empty, skipping processing.');
-          return yItems; // Return empty array if either is empty
-      }
-
-      yItems = y.map(yName => {
-          const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
-          const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
-          const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-          //console.log('getSeriesForAtl03vp data:', data);
-          //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
-          return {
-              series: {
+    yItems = y.map(yName => {
+        const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
+        const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
+        const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+        //console.log('getSeriesForAtl03vp data:', data);
+        //console.log('getSeriesForAtl03vp min:', min, ' max:', max);
+        return {
+            series: {
                 name: yName,
                 type: 'scatter',
-                  data: data,
-                  encode: {
+                data: data,
+                encode: {
                     x: 0,
                     y: 1
-                  },
-                  large: useAtlChartFilterStore().getLargeData(),
-                  largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
-                  animation: false,
-                  yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                  symbolSize: chartStore.getSymbolSize(reqIdStr),
-              },
-              min: min,
-              max: max
-          };
-      });
-      // Log the total number of points across all series
-      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
-      chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
-      //console.log(`Total number of points across all series: ${totalPoints}`);
+                },
+                large: useAtlChartFilterStore().getLargeData(),
+                largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                progressive: progressiveChunkSize,
+                progressiveThreshold: progressiveThreshold,
+                progressiveChunkMode: progressiveChunkMode,
+                animation: false,
+                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                symbolSize: chartStore.getSymbolSize(reqIdStr),
+            },
+            min: min,
+            max: max
+        };
+    });
+    // Log the total number of points across all series
+    const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+    chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
+    //console.log(`Total number of points across all series: ${totalPoints}`);
 
-  } catch (error) {
-      console.error('getSeriesForAtl03vp Error:', error);
-  } finally {
-      const endTime = performance.now(); // End time
-      console.log(`getSeriesForAtl03vp took ${endTime - startTime} milliseconds.`);
-  }
+} catch (error) {
+    console.error('getSeriesForAtl03vp Error:', error);
+} finally {
+    const endTime = performance.now(); // End time
+    console.log(`getSeriesForAtl03vp took ${endTime - startTime} milliseconds.`);
+}
 
-  return yItems;
+return yItems;
 }
 
 
@@ -190,7 +203,10 @@ async function getSeriesForAtl06(
   //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' spots:', spots, ' rgt:', rgt, ' cycle:', cycle);
   const startTime = performance.now();
   let yItems=[] as SrScatterSeriesData[];
-
+  const plotConfig = await indexedDb.getPlotConfig();
+  const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
+  const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
+  const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
   try{
       const name = 'atl06';
       const { chartData = {} , normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(reqIdStr,fileName, x, y);
@@ -216,8 +232,14 @@ async function getSeriesForAtl06(
                     x: 0,
                     y: 1
                   },
+                  itemStyle: {
+                    color: 'red' 
+                  },
                   large: useAtlChartFilterStore().getLargeData(),
                   largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                  progressive: progressiveChunkSize,
+                  progressiveThreshold: progressiveThreshold,
+                  progressiveChunkMode: progressiveChunkMode,
                   animation: false,
                   yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
                   symbolSize: chartStore.getSymbolSize(reqIdStr),
@@ -248,44 +270,51 @@ async function getSeriesForAtl08(
     //console.log('getSeriesForAtl08 fileName:', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now();
     let yItems=[] as SrScatterSeriesData[];
+    const plotConfig = await indexedDb.getPlotConfig();
+    const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
+    const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
+    const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
     try{
-      const name = 'atl08';
-      const { chartData={}, normalizedMinMaxValues={} } = await fetchAtl08ScatterData(reqIdStr,fileName, x, y);
-      //console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
-      if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
-          console.warn('getSeriesForAtl08 chartData or minMaxValues is empty, skipping processing.');
-      } else {
-          yItems = y.map(yName => ({
-              name: yName,
-              type: 'scatter',
-              data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
-              encode: {
-                x: 0,
-                y: 1
-              },
-          large: useAtlChartFilterStore().getLargeData(),
-              largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
-              animation: false,
-              yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-              symbolSize: chartStore.getSymbolSize(reqIdStr),
-          })).map((series, index) => ({
-              series,
-              min: normalizedMinMaxValues[y[index]].min,
-              max: normalizedMinMaxValues[y[index]].max
-          }));
-      }
-      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
-      chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
-      //console.log(`getSeriesForAtl08 Total number of points across all series: ${totalPoints}`);
-      return yItems; // Return empty array if either is empty
-  } catch (error) {
-      console.error('getSeriesForAtl08 getSeriesForAtl08 Error:', error);
-  } finally {
-      const endTime = performance.now(); // End time
-      console.log(`getSeriesForAtl08 took ${endTime - startTime} milliseconds.`);
-  }
+        const name = 'atl08';
+        const { chartData={}, normalizedMinMaxValues={} } = await fetchAtl08ScatterData(reqIdStr,fileName, x, y);
+        //console.log('getSeriesForAtl08 chartData:', chartData, ' minMaxValues:', normalizedMinMaxValues);
+        if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
+            console.warn('getSeriesForAtl08 chartData or minMaxValues is empty, skipping processing.');
+        } else {
+            yItems = y.map(yName => ({
+                name: yName,
+                type: 'scatter',
+                data: chartData[yName] ? chartData[yName].map(item => item.value) : [],
+                encode: {
+                    x: 0,
+                    y: 1
+                },
+                large: useAtlChartFilterStore().getLargeData(),
+                largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                progressive: progressiveChunkSize,
+                progressiveThreshold: progressiveThreshold,
+                progressiveChunkMode: progressiveChunkMode,
+                animation: false,
+                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                symbolSize: chartStore.getSymbolSize(reqIdStr),
+            })).map((series, index) => ({
+                series,
+                min: normalizedMinMaxValues[y[index]].min,
+                max: normalizedMinMaxValues[y[index]].max
+            }));
+        }
+        const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
+        chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
+        //console.log(`getSeriesForAtl08 Total number of points across all series: ${totalPoints}`);
+        return yItems; // Return empty array if either is empty
+    } catch (error) {
+        console.error('getSeriesForAtl08 getSeriesForAtl08 Error:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`getSeriesForAtl08 took ${endTime - startTime} milliseconds.`);
+    }
 
-  return yItems;
+    return yItems;
 }
 
 export function clearPlot() {
@@ -842,17 +871,19 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
     });
 }
 
-export function initSymbolSize(reqIdStr: string) {
+export async function initSymbolSize(reqIdStr: string) {
     //console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
     const func = chartStore.stateByReqId[reqIdStr].func;
+    const plotConfig = await indexedDb.getPlotConfig();
+
     if (func.includes('atl03sp')) {
-        chartStore.setSymbolSize(reqIdStr,1);
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
-        chartStore.setSymbolSize(reqIdStr,3);
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
     } else if (func.includes('atl06')) {
-        chartStore.setSymbolSize(reqIdStr,3);
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
     } else if (func.includes('atl08')) {
-        chartStore.setSymbolSize(reqIdStr,3);
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
     }       
 }
 

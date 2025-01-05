@@ -71,6 +71,20 @@ export interface SrRunContextRecord extends SrRunContext {
     beam: number;         
 }
 
+
+export interface SrPlotConfig {
+    id?: number; // let Dexie store the record at id=1
+    isLarge: boolean;
+    largeThreshold: number;
+    progressiveChunkSize: number;
+    progressiveChunkThreshold: number;
+    progressiveChunkMode: string;
+    defaultAtl06Color: string;
+    defaultAtl06SymbolSize: number;
+    defaultAtl08SymbolSize: number;
+    defaultAtl03SymbolSize: number;
+}
+
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
 
     // Serialize the poly array into a JSON string
@@ -104,19 +118,22 @@ export class SlideRuleDexie extends Dexie {
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
     runContexts!: Table<SrRunContextRecord>;
+    plotConfig!: Table<SrPlotConfig>;
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(4).stores({
+        this.version(5).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
             atl03CnfColors: 'number',
             atl08ClassColors: 'number', 
             //find runContexts by (parentReqId + rgt + cycle + beam) in one go, define a compound index:
-            runContexts: '++id, &reqId, parentReqId, rgt, cycle, beam, track, [parentReqId+rgt+cycle+beam]'
+            runContexts: '++id, &reqId, parentReqId, rgt, cycle, beam, track, [parentReqId+rgt+cycle+beam]',
+            plotConfig: 'id',  // single record table
         });
         this._initializeDefaultColors();
+        this._initializePlotConfig(); // <-- Add initialization call
         this._useMiddleware();
         //console.log("Database initialized.");
     }
@@ -145,7 +162,32 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-
+    private async _initializePlotConfig(): Promise<void> {
+        try {
+          // Check if plotConfig record is already there:
+          const count = await this.plotConfig.count();
+          if (count === 0) {
+            // Insert a single record with known id=1
+            await this.plotConfig.put({
+              id: 1,
+              isLarge: false,
+              largeThreshold: 50000,
+              progressiveChunkSize: 12000,
+              progressiveChunkThreshold: 10000,
+              progressiveChunkMode: 'auto',
+                defaultAtl06Color: 'red',
+                defaultAtl06SymbolSize: 3,
+                defaultAtl08SymbolSize: 1,
+                defaultAtl03SymbolSize: 1,
+            });
+            console.warn('plotConfig table was initialized with default values.');
+          }
+        } catch (error) {
+          console.error('Failed to initialize plotConfig record:', error);
+          throw error;
+        }
+      }
+      
 
     // Method to restore default colors for the colors table
     async restoreDefaultColors(): Promise<void> {
@@ -252,13 +294,13 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Define default color-number pairs
             const defaultAtl03CnfColors: Atl03Color[] = [
-                { number: -2, color: 'gray' },
+                { number: -2, color: 'white' },
                 { number: -1, color: 'slategray' },
-                { number: 0, color: 'indigo' },
-                { number: 1, color: 'green' },
-                { number: 2, color: 'blue' },
-                { number: 3, color: 'violet' },
-                { number: 4, color: 'red' }
+                { number: 0, color: 'blue' },
+                { number: 1, color: 'blue' },
+                { number: 2, color: 'green' },
+                { number: 3, color: 'yellow' },
+                { number: 4, color: 'violet' }
             ];
 
             // Clear existing entries in the table
@@ -282,11 +324,11 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Define default color-number pairs
             const defaultAtl08ClassColors: Atl03Color[] = [
-                { number: 0, color: 'gray' }, // atl08_noise
-                { number: 1, color: 'brown' }, // atl08_ground
-                { number: 2, color: 'green' },   // atl08_canopy
-                { number: 3, color: 'greenyellow' }, // atl08_top_of_canopy
-                { number: 4, color: 'blue' } // atl08_unclassified
+                { number: 0, color: 'blue' }, // atl08_noise
+                { number: 1, color: 'violet' }, // atl08_ground
+                { number: 2, color: 'lightgreen' },   // atl08_canopy
+                { number: 3, color: 'green' }, // atl08_top_of_canopy
+                { number: 4, color: 'slategrey' } // atl08_unclassified
             ];
 
             // Clear existing entries in the table
@@ -984,6 +1026,32 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-
+    // Get the single record
+    async getPlotConfig(): Promise<SrPlotConfig | undefined> {
+        try {
+        // We assume that there is only ever one record (id = 1).
+        const config = await this.plotConfig.get(1);
+        if (!config) {
+            console.warn('No plotConfig record found. Did initialization fail?');
+        }
+        return config;
+        } catch (error) {
+        console.error('Error retrieving plotConfig:', error);
+        throw error;
+        }
+    }
+    
+    // Update fields of the single record
+    async updatePlotConfig(updates: Partial<SrPlotConfig>): Promise<void> {
+        try {
+        // Keep the same id, forcibly set to 1
+        await this.plotConfig.update(1, updates);
+        // If update returns 0, it means there was no record to update
+        } catch (error) {
+        console.error('Error updating plotConfig:', error);
+        throw error;
+        }
+    }
+  
 }
 export const db = new SlideRuleDexie();

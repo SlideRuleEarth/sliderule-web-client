@@ -61,7 +61,6 @@
                 <SrRunControl 
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
-                    :inSensitive="(!atlChartFilterStore.showPhotonCloud || !mapStore.isLoading)"  
                 />
 
             </div>
@@ -94,14 +93,13 @@ import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plot
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { useMapStore } from '@/stores/mapStore';
-import { initSymbolSize,findReqMenuLabel } from '@/utils/plotUtils';
+import { findReqMenuLabel } from '@/utils/plotUtils';
 
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
-const mapStore = useMapStore();
 const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
@@ -221,7 +219,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
             const thisReqIdStr = runContext.reqId.toString();
             initializeBindings([thisReqIdStr]);//after run gives us a reqId
-            initSymbolSize(thisReqIdStr);
             atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
         } else {
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');

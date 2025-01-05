@@ -22,10 +22,6 @@
             type: String,
             default: 'Run SlideRule'
         },
-        inSensitive: {
-            type: Boolean,
-            default: false
-        }
     });
 
     const requestsStore = useRequestsStore();
@@ -33,6 +29,9 @@
     const mapStore = useMapStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const tooltipRef = ref();
+    const computedShowRunButton = computed(() => {
+        return ((mapStore.isAborting && !props.includeAdvToggle) || props.includeAdvToggle);
+    });
     const highlightedTrackDetails = computed(() => {
         if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
             return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
@@ -42,7 +41,7 @@
     });
 
     onMounted(async () => {
-        console.log('SrRunControl onMounted');
+        console.log('SrRunControl onMounted props.includeAdvToggle:',props.includeAdvToggle);
         mapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
@@ -56,6 +55,7 @@
             requestsStore.setConsoleMsg(msg);
             reqParamsStore.presetForScatterPlotOverlay();
         }
+        //console.log(`SrRunControl for ${props.buttonLabel} mounted show button:`,computedShowRunButton.value);
     });
 
     onBeforeUnmount(() => {
@@ -100,12 +100,12 @@
                     </Card>
                 </div>  
                 <Button
-                v-if=mapStore.isLoading
+                v-if=computedShowRunButton
                     class="sr-run-abort-button" 
                     :class="{ 'abort-mode': mapStore.isLoading }"
                     :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
                     @click="toggleRunAbort" 
-                    :disabled="!mapStore.isAborting && props.inSensitive"
+                    :disabled="!computedShowRunButton"
                 >
                     <template #icon>
                         <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
