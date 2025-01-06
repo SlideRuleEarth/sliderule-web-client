@@ -399,7 +399,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         if(seriesData.length !== 0){
             options = {
                 title: {
-                    text: `${func}`,
+                    text: `Highlighted Track`,
                     left: "center"
                 },
                 tooltip: {

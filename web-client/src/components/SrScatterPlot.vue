@@ -296,7 +296,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
 
 watch(() => setSymbolCounter.value, async (newCounter) => {
     console.log('setSymbolCounter changed:', newCounter);
-    updateScatterOptionsOnly('from watch setSymbolCounter.value');
+    await updateScatterOptionsOnly('from watch setSymbolCounter.value');
 });
 
 const messageClass = computed(() => {
@@ -369,49 +369,49 @@ async function updateThePlot(msg:string) {
 watch(() => atlChartFilterStore.scOrients,
   async (newValues, oldValues) => {
     //console.log('watch - scOrients changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.scOrients");
+    await updateThePlot("watch atlChartFilterStore.scOrients");
   }
 );
 
 watch(() => atlChartFilterStore.rgts,
   async (newValues, oldValues) => {
     //console.log('watch - rgts changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.rgts");
+    await updateThePlot("watch atlChartFilterStore.rgts");
   }
 );
 
 watch(() => atlChartFilterStore.cycles,
   async (newValues, oldValues) => {
     //console.log('watch - cycles changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.cycles");
+    await updateThePlot("watch atlChartFilterStore.cycles");
   }
 );
 
 watch(() => atlChartFilterStore.spots,
   async (newValues, oldValues) => {
     //console.log('watch - spots changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.spots");
+    await updateThePlot("watch atlChartFilterStore.spots");
   }
 );
 
 watch(() => atlChartFilterStore.beams,
   async (newValues, oldValues) => {
     //console.log('watch - beams changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.beams");
+    await updateThePlot("watch atlChartFilterStore.beams");
   }
 );
 
 watch(() => atlChartFilterStore.tracks,
   async (newValues, oldValues) => {
     //console.log('watch - tracks changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.tracks");
+    await updateThePlot("watch atlChartFilterStore.tracks");
   }
 );
 
 watch(() => atlChartFilterStore.pairs,
   async (newValues, oldValues) => {
     //console.log('watch - pairs changed from:', oldValues, 'to:', newValues);
-    updateThePlot("watch atlChartFilterStore.pairs");
+    await updateThePlot("watch atlChartFilterStore.pairs");
   }
 );
 
