@@ -525,7 +525,7 @@ watch(() => atlChartFilterStore.pairs,
   display: flex;
   flex-direction: row;
   justify-content: left;
-  align-items: left;
+  align-items:center;
   margin: 1rem;
   border: 0.5rem;
 }
