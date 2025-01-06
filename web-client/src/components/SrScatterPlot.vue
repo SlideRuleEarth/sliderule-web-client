@@ -59,8 +59,9 @@
                 <div class="sr-select-symbol-size">
                     <SrSliderStored
                         v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
-                        @update:model-value="symbolSizeSelection"
+                        @update:modelValue="symbolSizeSelection"
                         :label="computedSlideLabel"
+                        inputWidth="2em"
                         :min="1"
                         :max="10"
                         :defaultValue="computedSymbolSize"
@@ -71,16 +72,17 @@
                     />
                 </div>
 
-                <div class="sr-overlayed-reqs-ss" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                <div v-for="thisReqID in atlChartFilterStore.selectedOverlayedReqIds">
                     <SrSliderStored
-                        v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
-                        @update:model-value="symbolSizeSelection"
-                        :label="findReqMenuLabel(overlayedReqId)"
+                        v-model="createComputedSymbolSizeFor(thisReqID.toString()).value"
+                        @update:modelValue="symbolSizeSelection"
+                        :label="createComputedLabelFor(thisReqID)"
+                        inputWidth="2em"
                         :min="1"
                         :max="10"
                         :defaultValue="computedSymbolSize"
-                        :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
-                        :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
+                        :getValue="createGetSymbolSizeFor(thisReqID.toString())"
+                        :setValue="createSetSymbolSizeFor(thisReqID.toString())"
                         :decimalPlaces=0
                         tooltipText="Symbol size for Scatter Plot"
                     />
@@ -100,6 +102,7 @@
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
+import { debounce } from 'lodash-es';
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
 import { CanvasRenderer } from "echarts/renderers";
@@ -122,7 +125,7 @@ import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plot
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import SrSliderStored from "@/components/SrSliderStored.vue";
-import { findReqMenuLabel } from '@/utils/plotUtils';
+import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
 
 
 const requestsStore = useRequestsStore();
@@ -134,6 +137,7 @@ const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 const loadingComponent = ref(true);
+const setSymbolCounter = ref(0);
 // Create a computed property that updates and retrieves the symbol size 
 const computedSymbolSize = computed<number>({
   get() {
@@ -157,20 +161,51 @@ function createComputedSymbolSizeFor(reqIdStr: string) {
   });
 }
 
+function createComputedLabelFor(reqId: number) :string {
+    return `${findReqMenuLabel(reqId)} symbol size`;
+}
 
 function createGetSymbolSizeFor(reqIdStr: string) {
   return () => {
+    console.log(`computedSymbolSize get value: ${chartStore.getSymbolSize(reqIdStr)}`);
     return chartStore.getSymbolSize(reqIdStr);
   };
 }
 
+/**
+ * Cache all debounced setSymbolSize() functions,
+ * keyed by reqIdStr.
+ */
+ const debouncedSetSymbolSizeCache = new Map<string, (value: number) => void>();
+
+/**
+ * Creates OR retrieves a debounced function for setting symbol size.
+ * - If the function already exists in the cache for a given reqIdStr,
+ *   it returns the **same** function.
+ * - Otherwise, it creates a new one, stores it, and returns it.
+ */
 function createSetSymbolSizeFor(reqIdStr: string) {
-  return (value: number) => {
+  // Return the existing debounced function if we've created it before
+  if (debouncedSetSymbolSizeCache.has(reqIdStr)) {
+    return debouncedSetSymbolSizeCache.get(reqIdStr)!;
+  }
+
+  // The "real" function
+  function doSetSymbolSize(value: number) {
     console.log(`computedSymbolSize set value: ${value}`);
     chartStore.setSymbolSize(reqIdStr, value);
-  };
-}
+    setSymbolCounter.value++;
+  }
 
+  // The debounced version
+  const debounced = debounce(doSetSymbolSize, 300);
+
+  // Store in our cache
+  debouncedSetSymbolSizeCache.set(reqIdStr, debounced);
+
+  // Return it so `SrSliderStored` can call it
+  return debounced;
+}
 
 const computedSlideLabel = computed(() => {
     return  `${findReqMenuLabel(atlChartFilterStore.currentReqId)} symbol size`;
@@ -197,8 +232,8 @@ async function onMainYDataSelectionChange(newValue: string[]) {
     await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
-async function onOverlayYDataSelectionChange(overlayedReqId: string | number, newValue: string[]) {
-    console.log(`Overlay Y Data for ${overlayedReqId} changed:`, newValue);
+async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number, newValue: string[]) {
+    console.log(`Overlay Y Data for ${thisoverlayedReqId} changed:`, newValue);
     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
 }
 
@@ -259,6 +294,11 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
+watch(() => setSymbolCounter.value, async (newCounter) => {
+    console.log('setSymbolCounter changed:', newCounter);
+    updateScatterOptionsOnly('from watch setSymbolCounter.value');
+});
+
 const messageClass = computed(() => {
   return {
     'message': true,
@@ -313,8 +353,7 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
 
 
 const symbolSizeSelection = async () => {
-    //console.log('symbolSizeSelection');
-    //console.log('New symbol size selected:', computedSymbolSize.value);
+    console.log('symbolSizeSelection');
     await callPlotUpdateDebounced('symbolSizeSelection');
 };
 
