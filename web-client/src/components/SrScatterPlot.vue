@@ -4,9 +4,22 @@
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+            <div class="sr-run-control" v-if="!computedFunc.includes('atl03')">
+                <ToggleButton 
+                    class="sr-show-hide-button"
+                    onLabel="Hide Photon Cloud"
+                    offLabel="Show Photon Cloud"
+                    v-model="atlChartFilterStore.showPhotonCloud"
+                    :disabled="useMapStore().isLoading" 
+                />
+                <SrRunControl 
+                    :includeAdvToggle="false"
+                    buttonLabel="Photon Cloud"
+                />
+            </div>
             <div class="sr-multiselect-container">
                 <FloatLabel variant="on">
-                  <MultiSelect
+                <MultiSelect
                         class="sr-multiselect" 
                         :id="computedElID"
                         v-model="yDataBindingsReactive[computedReqIdStr]"
@@ -14,8 +27,8 @@
                         :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
                         display="chip"
                         @update:modelValue="onMainYDataSelectionChange"
-                  />
-                  <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
+                />
+                <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
                 </FloatLabel>
                 <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
                     <FloatLabel variant="on">
@@ -52,10 +65,6 @@
         </div> 
         <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
             <div class="sr-scatter-checkbox-slider">
-                <SrCheckbox 
-                    label="Show Photon Cloud Overlay" 
-                    v-model="atlChartFilterStore.showPhotonCloud" 
-                />
                 <div class="sr-select-symbol-size">
                     <SrSliderStored
                         v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
@@ -89,13 +98,18 @@
                 </div>
 
             </div>  
-            <div sr-run-control>
-                <SrRunControl 
-                    :includeAdvToggle="false"
-                    buttonLabel="Photon Cloud"
-                />
-            </div>
             <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
+            <Card>
+                <template #title>
+                    <div class="sr-card-title-center">Highlighted Track</div>
+                </template>
+                <template #content>
+                    <p class="m-0">
+                        {{ highlightedTrackDetails }}
+                    </p>
+                </template>                    
+            </Card>
+
         </div>
     </div>
 </template>
@@ -105,6 +119,7 @@ import { use } from "echarts/core";
 import { debounce } from 'lodash-es';
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
+import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
@@ -119,14 +134,14 @@ import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrReqDisplay from "./SrReqDisplay.vue";
-import SrCheckbox from "./SrCheckbox.vue";
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import SrSliderStored from "@/components/SrSliderStored.vue";
 import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
-
+import Card from 'primevue/card';
+import { useMapStore } from "@/stores/mapStore";
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
@@ -138,6 +153,15 @@ const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 const loadingComponent = ref(true);
 const setSymbolCounter = ref(0);
+
+const highlightedTrackDetails = computed(() => {
+    if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
+        return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
+    } else {
+        return '';
+    }
+});
+
 // Create a computed property that updates and retrieves the symbol size 
 const computedSymbolSize = computed<number>({
   get() {
@@ -461,6 +485,25 @@ watch(() => atlChartFilterStore.pairs,
   height: 100%;
   width: auto;
 }
+.sr-run-control{
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: left;
+    overflow-y: auto;
+    overflow-x: auto;
+    width: auto;
+}
+
+.sr-show-hide-button {
+    height: 3rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: var(--primary-color);
+}
 
 .sr-photon-cloud {
   display: flex;
@@ -481,6 +524,7 @@ watch(() => atlChartFilterStore.pairs,
     width: 100%;
     margin: 0.25rem;
     border: 0.25rem;
+    margin-top: 2.0rem;
 }
 
 .sr-multiselect {
