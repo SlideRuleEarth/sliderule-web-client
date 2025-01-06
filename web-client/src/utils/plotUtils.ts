@@ -474,23 +474,40 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     }
 }
 
+export async function getScatterOptionsFor(reqId:number) {
+    //let newScatterOptions: EChartsOption = {}; // Initialize a container for the merged options.
+    const newScatterOptions = await getScatterOptions(reqId);
+    if (!newScatterOptions) {
+        atlChartFilterStore.setShowMessage(true);
+        atlChartFilterStore.setIsWarning(true);
+        atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
+        return;
+    }
+    const plotRef = atlChartFilterStore.getPlotRef();
+
+    if (Object.keys(newScatterOptions).length > 0) {
+        if(plotRef?.chart){
+            plotRef.chart.setOption(newScatterOptions);
+            //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
+            //const options = plotRef.chart.getOption();
+            //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
+        } else {
+            console.error(`initScatterPlotWith ${reqId} plotRef.chart is undefined`);
+        }
+    } else {
+        console.warn(`initScatterPlotWith No valid options to apply to chart`);
+    }
+}
+
 const initScatterPlotWith = async (reqId: number) => {
     const startTime = performance.now();
     //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
-
-    const plotRef = atlChartFilterStore.getPlotRef();
-    if (!plotRef || !plotRef.chart) {
-        console.warn(`initScatterPlotWith ${reqId} plotRef is undefined`);
-        return;
-    }
 
     if (reqId === undefined || reqId <= 0) {
         console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
         return;
     }
     updateChartStore(reqId);
-
-    let newScatterOptions: EChartsOption = {}; // Initialize a container for the merged options.
 
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataForChart(reqIdStr);
@@ -506,28 +523,7 @@ const initScatterPlotWith = async (reqId: number) => {
     } else {
         try {
             atlChartFilterStore.setIsLoading();
-
-            newScatterOptions = await getScatterOptions(reqId);
-            if (!newScatterOptions) {
-                atlChartFilterStore.setShowMessage(true);
-                atlChartFilterStore.setIsWarning(true);
-                atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
-                return;
-            }
-
-            if (Object.keys(newScatterOptions).length > 0) {
-                if(plotRef.chart){
-                    plotRef.chart.setOption(newScatterOptions);
-                    //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
-                    //const options = plotRef.chart.getOption();
-                    //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
-                } else {
-                    console.error(`initScatterPlotWith ${reqId} plotRef.chart is undefined`);
-                }
-            } else {
-                console.warn(`initScatterPlotWith No valid options to apply to chart`);
-            }
-
+            getScatterOptionsFor(reqId)
         } catch (error) {
             console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
             atlChartFilterStore.setShowMessage(true);
@@ -746,12 +742,12 @@ async function appendSeries(reqId: number): Promise<void> {
         //     APPLY UPDATED OPTIONS
         // -----------------------------
         chart.setOption({
-        ...filteredOptions,
-        legend: updatedLegend,
-        series: updatedSeries,
-        yAxis: updatedYAxis,
-        // If you want to ensure a merge, you can pass a second param:
-        // }, { notMerge: false }
+            ...filteredOptions,
+            legend: updatedLegend,
+            series: updatedSeries,
+            yAxis: updatedYAxis,
+            // If you want to ensure a merge, you can pass a second param:
+            // }, { notMerge: false }
         });
 
         console.log(
@@ -797,6 +793,16 @@ const refreshScatterPlot = async (msg:string) => {
     }
 };
 
+export const updateScatterOptionsOnly = async (msg:string) => {
+    const plotRef = useAtlChartFilterStore().getPlotRef();
+    if (plotRef && plotRef.chart) {
+        clearPlot();
+        await getScatterOptionsFor(useAtlChartFilterStore().getReqId());
+        await updateScatterPlot(msg);
+    } else {
+        console.warn(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
+    }
+}
 
 export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     const runContext: SrRunContext = {
@@ -874,10 +880,9 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 }
 
 export async function initSymbolSize(reqIdStr: string) {
-    //console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
     const func = chartStore.stateByReqId[reqIdStr].func;
     const plotConfig = await indexedDb.getPlotConfig();
-
+    console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
-import SrSliderInput from "@/components/SrSliderInput.vue";
 import Fieldset from "primevue/fieldset";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
@@ -34,10 +33,6 @@ const computedReqIdStr = computed(() => {
     return props.req_id.toString();
 });
 
-const computedSlideLabel = computed(() => {
-    return `${chartStore.getFunc(computedReqIdStr.value)} Scatter Plot symbol size`
-});
-
 const computedFunc = computed(() => {
     return chartStore.getFunc(computedReqIdStr.value);
 });
@@ -46,30 +41,12 @@ const computedLabel = computed(() => {
   return `${computedReqIdStr.value} - ${computedFunc.value}`;
 });
 
-// Create a computed property that updates and retrieves the symbol size 
-const computedSymbolSize = computed<number>({
-  get() {
-        return chartStore.getSymbolSize(computedReqIdStr.value);
-  },
-  set(value: number) {
-        console.log(`computedSymbolSize set value: ${value}`);
-        chartStore.setSymbolSize(computedReqIdStr.value, value);
-  }
-});
 
 onMounted(() => {
     console.log('SrScatterPlotOptions onMounted props.req_id:', props.req_id);
     console.log('SrScatterPlotOptions onMounted computedReqIdStr:', computedReqIdStr.value);
-    computedSymbolSize.value = chartStore.getSymbolSize(computedReqIdStr.value);
-    console.log('SrScatterPlotOptions onMounted computedSymbolSize:', computedSymbolSize.value);
 });
 
-
-const symbolSizeSelection = async () => {
-    //console.log('symbolSizeSelection');
-    //console.log('New symbol size selected:', computedSymbolSize.value);
-    await callPlotUpdateDebounced('symbolSizeSelection');
-};
 
 async function changedColorKey() {
     //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
@@ -100,79 +77,68 @@ const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Prom
     :collapsed="true"
 >
     <div class="sr-sql-stmnt">
-    <SrSqlStmnt 
-        :req_id="props.req_id"
-    />
-</div>
-<div class="sr-data-set-options">
-    <label>Num points in plot</label>
-    {{ numberFormatter.format(chartStore.getNumOfPlottedPnts(computedReqIdStr)) }}
-    <SrSwitchedSliderInput 
-        v-model="atlChartFilterStore.largeDataThreshold"
-        :getCheckboxValue="atlChartFilterStore.getLargeData"
-        :setCheckboxValue="atlChartFilterStore.setLargeData"
-        :getValue="atlChartFilterStore.getLargeDataThreshold"
-        :setValue="atlChartFilterStore.setLargeDataThreshold"
-        label="Large Data Threshold (optimization-single color)"
-        :min="1"
-        :max="1000000" 
-        :decimalPlaces="0"
-        tooltipText="Threshold for large data optimization (progressive rendering)"
-        tooltipUrl="https://echarts.apache.org/en/option.html#series-scatter.large"
-    />
-</div>
+        <SrSqlStmnt 
+            :req_id="props.req_id"
+        />
+    </div>
+    <div class="sr-data-set-options">
+        <label>Num points in plot:</label>
+        {{ numberFormatter.format(chartStore.getNumOfPlottedPnts(computedReqIdStr)) }}
+        <SrSwitchedSliderInput 
+            v-model="atlChartFilterStore.largeDataThreshold"
+            :getCheckboxValue="atlChartFilterStore.getLargeData"
+            :setCheckboxValue="atlChartFilterStore.setLargeData"
+            :getValue="atlChartFilterStore.getLargeDataThreshold"
+            :setValue="atlChartFilterStore.setLargeDataThreshold"
+            label="Large Data Threshold (optimization-single color)"
+            :min="1"
+            :max="1000000" 
+            :decimalPlaces="0"
+            tooltipText="Threshold for large data optimization (progressive rendering)"
+            tooltipUrl="https://echarts.apache.org/en/option.html#series-scatter.large"
+        />
+    </div>
 
-<div class="sr-select-color-key">
-    <SrMenu 
-        v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
-        label="Alt03 Color Map" 
-        v-model="atl03ColorMapStore.atl03ColorKey"
-        @update:modelValue="changedColorKey"
-        :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
-        :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
-        :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
-        tooltipText="Data key for Color of atl03 scatter plot"
-    /> 
-</div>
-<div class="sr-select-color-map-panel">
-    <div class="sr-select-atl03-colors">
-        <SrAtl03CnfColors 
-            v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
-            @selectionChanged="atl03CnfColorChanged"
-            @defaultsChanged="atl03CnfColorChanged"
-        />
-    </div>  
-    <div class="sr-select-atl08-colors">
-        <SrAtl08ClassColors 
-            v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
-            @selectionChanged="atl08ClassColorChanged"
-            @defaultsChanged="atl08ClassColorChanged"
-        />
-    </div>
-    <div class="sr-select-yapc-color-map">
+    <div class="sr-select-color-key">
         <SrMenu 
-            v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
-            label="YAPC Color Map" 
-            v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
-            :menuOptions="colorMapNames" 
-            :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
-            :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
-            tooltipText="YAPC Color Map for atl03 scatter plot"
-        />
+            v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
+            label="Alt03 Color Map" 
+            v-model="atl03ColorMapStore.atl03ColorKey"
+            @update:modelValue="changedColorKey"
+            :getSelectedMenuItem="atl03ColorMapStore.getAtl03ColorKey"
+            :setSelectedMenuItem="atl03ColorMapStore.setAtl03ColorKey"
+            :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
+            tooltipText="Data key for Color of atl03 scatter plot"
+        /> 
     </div>
-</div>
-<div class="sr-select-symbol-size">
-    <SrSliderInput
-        v-model="computedSymbolSize"
-        @update:model-value="symbolSizeSelection"
-        :label="computedSlideLabel"
-        :min="1"
-        :max="20"
-        :defaultValue="computedSymbolSize"
-        :decimalPlaces=0
-        tooltipText="Symbol size for Atl03 Scatter Plot"
-    />
-</div>  
+    <div class="sr-select-color-map-panel">
+        <div class="sr-select-atl03-colors">
+            <SrAtl03CnfColors 
+                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
+                @selectionChanged="atl03CnfColorChanged"
+                @defaultsChanged="atl03CnfColorChanged"
+            />
+        </div>  
+        <div class="sr-select-atl08-colors">
+            <SrAtl08ClassColors 
+                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
+                @selectionChanged="atl08ClassColorChanged"
+                @defaultsChanged="atl08ClassColorChanged"
+            />
+        </div>
+        <div class="sr-select-yapc-color-map">
+            <SrMenu 
+                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
+                label="YAPC Color Map" 
+                v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
+                :menuOptions="colorMapNames" 
+                :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
+                :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
+                tooltipText="YAPC Color Map for atl03 scatter plot"
+            />
+        </div>
+    </div>
+
 
 </Fieldset>
 </template>

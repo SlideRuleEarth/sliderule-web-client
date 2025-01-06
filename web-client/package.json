@@ -35,7 +35,7 @@
     "duckdb": "^1.1.0",
     "echarts": "^5.5.1",
     "events": "^3.3.0",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "mitt": "^3.0.1",
     "ol": "^10.1.0",
     "ol-contextmenu": "^5.5.0",
