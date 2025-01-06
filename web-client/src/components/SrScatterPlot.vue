@@ -7,31 +7,32 @@
             <div class="sr-multiselect-container">
                 <FloatLabel variant="on">
                   <MultiSelect
-                      class="sr-multiselect" 
-                      :id="computedElID"
-                      v-model="yDataBindingsReactive[computedReqIdStr]"
-                      size="small" 
-                      :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
-                      display="chip"
-                      @update:modelValue="onMainYDataSelectionChange"
+                        class="sr-multiselect" 
+                        :id="computedElID"
+                        v-model="yDataBindingsReactive[computedReqIdStr]"
+                        size="small" 
+                        :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
+                        display="chip"
+                        @update:modelValue="onMainYDataSelectionChange"
                   />
                   <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
                 </FloatLabel>
+                <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                    <FloatLabel variant="on">
+                    <MultiSelect
+                            class="sr-multiselect" 
+                            :id="`srMultiId-${overlayedReqId}`"
+                            v-model="yDataBindingsReactive[overlayedReqId]"
+                            size="small"
+                            :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                            display="chip"
+                            @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                    />
+                        <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
+                    </FloatLabel>
+                </div>
             </div>
-            <div class="sr-overlayed-reqs" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
-                <FloatLabel variant="on">
-                  <MultiSelect
-                      class="sr-multiselect" 
-                      :id="`srMultiId-${overlayedReqId}`"
-                      v-model="yDataBindingsReactive[overlayedReqId]"
-                      size="small"
-                      :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
-                      display="chip"
-                      @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
-                  />
-                    <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
-                </FloatLabel>
-            </div>
+
         </div>
         <div class="sr-scatter-plot-content">
             <v-chart  ref="plotRef" 
@@ -40,29 +41,57 @@
                 :autoresize="{throttle:500}" 
                 :loading="atlChartFilterStore.isLoading" 
                 :loadingOptions="{
-                text:'Data Loading', 
-                fontSize:20, 
-                showSpinner: true, 
-                zlevel:100
+                    text:'Data Loading', 
+                    fontSize:20, 
+                    showSpinner: true, 
+                    zlevel:100
                 }" 
             />
             <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
             <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
         </div> 
-        <!-- <div>       func:{{ computedFunc }}  </div>
-        <div>  isLoading:{{ atlChartFilterStore.isLoading }}</div> 
-        <div>currentRows:{{ mapStore.getCurrentRows() }}</div> -->
         <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
-          <SrCheckbox 
-              label="Show Photon Cloud Overlay" 
-              v-model="atlChartFilterStore.showPhotonCloud" 
-          />
-          <div sr-run-control>
+            <div class="sr-scatter-checkbox-slider">
+                <SrCheckbox 
+                    label="Show Photon Cloud Overlay" 
+                    v-model="atlChartFilterStore.showPhotonCloud" 
+                />
+                <div class="sr-select-symbol-size">
+                    <SrSliderStored
+                        v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
+                        @update:model-value="symbolSizeSelection"
+                        :label="computedSlideLabel"
+                        :min="1"
+                        :max="10"
+                        :defaultValue="computedSymbolSize"
+                        :getValue="createGetSymbolSizeFor(computedReqIdStr)"
+                        :setValue="createSetSymbolSizeFor(computedReqIdStr)"
+                        :decimalPlaces=0
+                        tooltipText="Symbol size for Scatter Plot"
+                    />
+                </div>
+
+                <div class="sr-overlayed-reqs-ss" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                    <SrSliderStored
+                        v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
+                        @update:model-value="symbolSizeSelection"
+                        :label="findReqMenuLabel(overlayedReqId)"
+                        :min="1"
+                        :max="10"
+                        :defaultValue="computedSymbolSize"
+                        :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
+                        :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
+                        :decimalPlaces=0
+                        tooltipText="Symbol size for Scatter Plot"
+                    />
+                </div>
+
+            </div>  
+            <div sr-run-control>
                 <SrRunControl 
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
                 />
-
             </div>
             <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
         </div>
@@ -92,7 +121,7 @@ import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { useMapStore } from '@/stores/mapStore';
+import SrSliderStored from "@/components/SrSliderStored.vue";
 import { findReqMenuLabel } from '@/utils/plotUtils';
 
 
@@ -105,6 +134,47 @@ const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 const loadingComponent = ref(true);
+// Create a computed property that updates and retrieves the symbol size 
+const computedSymbolSize = computed<number>({
+  get() {
+        return chartStore.getSymbolSize(computedReqIdStr.value);
+  },
+  set(value: number) {
+        console.log(`computedSymbolSize set value: ${value}`);
+        chartStore.setSymbolSize(computedReqIdStr.value, value);
+  }
+});
+// Function that returns a computed property for a given reqIdStr
+function createComputedSymbolSizeFor(reqIdStr: string) {
+  return computed<number>({
+    get() {
+      return chartStore.getSymbolSize(reqIdStr);
+    },
+    set(value: number) {
+      console.log(`computedSymbolSize set value: ${value}`);
+      chartStore.setSymbolSize(reqIdStr, value);
+    }
+  });
+}
+
+
+function createGetSymbolSizeFor(reqIdStr: string) {
+  return () => {
+    return chartStore.getSymbolSize(reqIdStr);
+  };
+}
+
+function createSetSymbolSizeFor(reqIdStr: string) {
+  return (value: number) => {
+    console.log(`computedSymbolSize set value: ${value}`);
+    chartStore.setSymbolSize(reqIdStr, value);
+  };
+}
+
+
+const computedSlideLabel = computed(() => {
+    return  `${findReqMenuLabel(atlChartFilterStore.currentReqId)} symbol size`;
+});
 
 function initializeBindings(reqIds: string[]) {
     //console.log('initializeBindings:', reqIds);
@@ -153,6 +223,8 @@ onMounted(async () => {
             } else if (func.includes('atl08')) {
                 atl03ColorMapStore.setAtl03ColorKey('atl08_class');
             }
+            computedSymbolSize.value = chartStore.getSymbolSize(computedReqIdStr.value);
+            console.log('SrScatterPlot onMounted computedSymbolSize:', computedSymbolSize.value);
             // Create a Set of reqIds values for quick lookup
             // const successfulReqIdsSet = new Set(atlChartFilterStore.reqIdMenuItems.map(item => Number(item.value)));
             // for (const oreqId of successfulReqIdsSet) { 
@@ -239,6 +311,12 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
     }
 });
 
+
+const symbolSizeSelection = async () => {
+    //console.log('symbolSizeSelection');
+    //console.log('New symbol size selected:', computedSymbolSize.value);
+    await callPlotUpdateDebounced('symbolSizeSelection');
+};
 
 async function updateThePlot(msg:string) {
     if(!loadingComponent.value){
@@ -358,18 +436,12 @@ watch(() => atlChartFilterStore.pairs,
 }
 
 .sr-multiselect-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
     width: 100%;
-    margin: 1.5rem;
-    margin-bottom: 2.0rem;
-    border: 0.5rem;
-}
-
-.sr-overlayed-reqs {
-    width: 100%;
-    margin-left: 1.5rem;
-    margin-bottom: 1.5rem;
-    border-left: 0.5rem;
-    border-bottom: 0.5rem;
+    margin: 0.25rem;
+    border: 0.25rem;
 }
 
 .sr-multiselect {
@@ -397,6 +469,23 @@ watch(() => atlChartFilterStore.pairs,
 .sr-select-symbol-size {
   display: flex;
   flex-direction: column;
+  align-items: left;
+  margin: 1rem;
+  border: 0.5rem;
+}
+
+.sr-overlayed-reqs-ss {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  margin: 1rem;
+  border: 0.5rem;
+}
+
+.sr-scatter-checkbox-slider {
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
   align-items: left;
   margin: 1rem;
   border: 0.5rem;

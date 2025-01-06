@@ -874,10 +874,9 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 }
 
 export async function initSymbolSize(reqIdStr: string) {
-    //console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr);
     const func = chartStore.stateByReqId[reqIdStr].func;
     const plotConfig = await indexedDb.getPlotConfig();
-
+    console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
