@@ -40,7 +40,6 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { zoomMapForReqIdUsingView } from "@/utils/SrMapUtils";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -621,6 +620,20 @@
         const map = mapRef.value?.map;
         try{
             if(map){
+                const view = map.getView();
+                mapStore.setExtentToRestore(view.calculateExtent(map.getSize()));
+                const center = view.getCenter();
+                if(center){
+                    mapStore.setCenterToRestore(center);
+                } else {
+                    console.error("SrMap Error: center is null");
+                }
+                const zoom = view.getZoom();
+                if(zoom){
+                    mapStore.setZoomToRestore(zoom);
+                } else {
+                    console.error("SrMap Error: zoom is null");
+                }
                 await updateThisMapView("handleUpdateBaseLayer");
             } else {
                 console.error("SrMap Error:map is null");
