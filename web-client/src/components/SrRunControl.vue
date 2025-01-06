@@ -10,8 +10,6 @@
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
     import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
-    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-    import Card from 'primevue/card';
 
     const props = defineProps({
         includeAdvToggle: {
@@ -27,17 +25,9 @@
     const requestsStore = useRequestsStore();
     const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
-    const atlChartFilterStore = useAtlChartFilterStore();
     const tooltipRef = ref();
     const computedShowRunButton = computed(() => {
-        return ((mapStore.isAborting && !props.includeAdvToggle) || props.includeAdvToggle);
-    });
-    const highlightedTrackDetails = computed(() => {
-        if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
-            return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
-        } else {
-            return '';
-        }
+        return (((mapStore.isAborting || mapStore.isLoading) && !props.includeAdvToggle) || props.includeAdvToggle);
     });
 
     onMounted(async () => {
@@ -63,7 +53,7 @@
     });
 
     async function toggleRunAbort() {
-        if (mapStore.isLoading) {
+        if (mapStore.getIsLoading()) {
             console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
             processAbortClicked();
         } else {
@@ -87,20 +77,8 @@
                 </div>
                 <SrCustomTooltip ref="tooltipRef"/>
 
-                <div v-if="!props.includeAdvToggle">
-                    <Card>
-                        <template #title>
-                            <div class="sr-card-title-center">Highlighted Track</div>
-                        </template>
-                        <template #content>
-                            <p class="m-0">
-                                {{ highlightedTrackDetails }}
-                            </p>
-                        </template>                    
-                    </Card>
-                </div>  
-                <Button
-                v-if=computedShowRunButton
+               <Button
+                    v-if=computedShowRunButton
                     class="sr-run-abort-button" 
                     :class="{ 'abort-mode': mapStore.isLoading }"
                     :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
