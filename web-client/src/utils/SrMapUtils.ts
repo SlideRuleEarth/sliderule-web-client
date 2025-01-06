@@ -792,15 +792,54 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 //console.log("newProj:",newProj);          
                 //console.log("newProj final extent:",extent);          
                 //console.log("newProj final WorldExtent:",worldExtent);          
-                //console.log("newProj final Center:",center);          
-                const newView = new OlView({
+                //console.log("newProj final Center:",center); 
+                let newView = new OlView({
                     projection: newProj,
                     extent: extent,
-                    center:center,
+                    center: center,
                     zoom: srProjObj.default_zoom,
                 });
+                console.log('Initial newView extent:', extent);
+                console.log('Initial newView center:', center);
+                console.log('Initial newView zoom:', srProjObj.default_zoom);
+                console.log('Initial newView:', newView);
+                
+                if (reason === 'handleUpdateBaseLayer') {
+                    console.log('Restoring view for handleUpdateBaseLayer');
+                
+                    const mapStore = useMapStore();
+                    const extentToRestore = mapStore.getExtentToRestore();
+                    const centerToRestore = mapStore.getCenterToRestore();
+                    const zoomToRestore = mapStore.getZoomToRestore();
+                
+                    // Validate the restore parameters
+                    if (
+                        extentToRestore === null ||
+                        centerToRestore === null ||
+                        zoomToRestore === null
+                    ) {
+                        console.warn('One or more restore parameters are null');
+                    } else if (
+                        !extentToRestore.every(value => Number.isFinite(value))
+                    ) {
+                        console.warn('Invalid extentToRestore:', extentToRestore);
+                    } else {
+                        // All restore parameters are valid, create a new view
+                        newView = new OlView({
+                            projection: newProj,
+                            extent: extentToRestore,
+                            center: centerToRestore,
+                            zoom: zoomToRestore,
+                        });
+                        console.log('Restored view with extent:', extentToRestore);
+                        console.log('Restored view with center:', centerToRestore);
+                        console.log('Restored view with zoom:', zoomToRestore);
+                    }
+                }
+                
+                console.log('Setting new view:', newView);
                 map.setView(newView);
-
+                
             } else {
                 if(!baseLayer){
                     console.error("Error:baseLayer is null");

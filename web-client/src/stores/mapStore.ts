@@ -55,6 +55,9 @@ export const useMapStore = defineStore('map', {
     drawType: '' as string,
     layerCache: {} as LayerCache, // A dictionary of projection names to maps of layers
     layerGroupCache: new Map<string, Map<string, SrLayer>>(), // If you need a similar structure for groups
+    extentToRestore: null as number[] | null,
+    centerToRestore: null as number[] | null,
+    zoomToRestore: null as number | null,
 }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -262,6 +265,24 @@ export const useMapStore = defineStore('map', {
             .map((srView) => srView.baseLayerName)
         );
         return Array.from(baseLayerSet);
-      }
+    },
+    getExtentToRestore(): number[] | null {
+        return this.extentToRestore;
+    },
+    setExtentToRestore(extent: number[]) {
+        this.extentToRestore = extent;
+    },
+    getCenterToRestore() {
+        return this.centerToRestore;
+    },
+    setCenterToRestore(center: number[]) {
+        this.centerToRestore = center;
+    },
+    getZoomToRestore() {
+        return this.zoomToRestore;
+    },
+    setZoomToRestore(zoom: number) {
+        this.zoomToRestore = zoom;
+    },
   },
 });
