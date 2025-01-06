@@ -92,7 +92,8 @@ async function getSeriesForAtl03sp(
                     encode: {
                         x: 0,
                         y: 1
-                      },
+                    },
+                    z: 0,
                     itemStyle: {
                         color: getAtl03spColor,
                     },
@@ -227,22 +228,23 @@ async function getSeriesForAtl06(
               series: {
                 name: yName,
                 type: 'scatter',
-                  data: data,
-                  encode: {
+                data: data,
+                encode: {
                     x: 0,
                     y: 1
-                  },
-                  itemStyle: {
+                },
+                itemStyle: {
                     color: 'red' 
-                  },
-                  large: useAtlChartFilterStore().getLargeData(),
-                  largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
-                  progressive: progressiveChunkSize,
-                  progressiveThreshold: progressiveThreshold,
-                  progressiveChunkMode: progressiveChunkMode,
-                  animation: false,
-                  yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                  symbolSize: chartStore.getSymbolSize(reqIdStr),
+                },
+                z:10,
+                large: useAtlChartFilterStore().getLargeData(),
+                largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+                progressive: progressiveChunkSize,
+                progressiveThreshold: progressiveThreshold,
+                progressiveChunkMode: progressiveChunkMode,
+                animation: false,
+                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                symbolSize: chartStore.getSymbolSize(reqIdStr),
               },
               min: min,
               max: max
