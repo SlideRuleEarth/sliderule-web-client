@@ -74,7 +74,6 @@
     flex-direction: column;
     border-color: transparent;
     margin-left: 0.5rem;
-    width: 100%;
 }
 
 .sr-select-menu-item {

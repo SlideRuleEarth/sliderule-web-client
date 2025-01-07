@@ -183,17 +183,6 @@ export const useChartStore = defineStore('chartStore', {
     async setFunc(reqIdStr: string,func: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
-        const plotConfig = await indexedDb.getPlotConfig();
-        //console.log('setFunc calling setSymbolSize for reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
-        if (func.includes('atl03sp')) {
-            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-        } else if (func.includes('atl03vp')) {
-            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-        } else if (func.includes('atl06')) {
-            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
-        } else if (func.includes('atl08')) {
-            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
-        }       
     },
     setXLegend(reqIdStr: string,xLegend: string) {
         this.ensureState(reqIdStr);
