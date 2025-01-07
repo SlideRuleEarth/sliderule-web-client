@@ -1,7 +1,6 @@
 <template>
     <div class="sr-advanced-config">
     <Fieldset legend="Advanced Config" class="sr-advanced-config-content" :toggleable="true" :collapsed="false">
-        <SrSelectParquetReader />
         <SrSliderInput
                 v-model="srParquetCfgStore.chunkSizeToRead"
                 label="SQL Query Chunk Size"
@@ -26,42 +25,6 @@
             label="Enable Spot Pattern Details" 
         />
         <SrGraticuleSelect/>
-        <SrSliderInput
-            v-model="atlChartFilterStore.atl03spDefaultSymbolSize"
-            label="Atl03sp Scatter Plot symbol size"
-            :min="1"
-            :max="20"
-            :defaultValue="atlChartFilterStore.atl03spDefaultSymbolSize"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl03 Scatter Plot"
-        />
-        <SrSliderInput
-            v-model="atlChartFilterStore.atl03vpDefaultSymbolSize"
-            label="Atl03vp Scatter Plot symbol size"
-            :min="1"
-            :max="20"
-            :defaultValue="atlChartFilterStore.atl03vpDefaultSymbolSize"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl03 Scatter Plot"
-        />
-        <SrSliderInput
-            v-model="atlChartFilterStore.atl06DefaultSymbolSize"
-            label="Atl06 Scatter Plot symbol size"
-            :min="1"
-            :max="20"
-            :defaultValue="atlChartFilterStore.atl06DefaultSymbolSize"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl06 Scatter Plot"
-        />
-        <SrSliderInput
-            v-model="atlChartFilterStore.atl08DefaultSymbolSize"
-            label="Atl08 Scatter Plot symbol size"
-            :min="1"
-            :max="20"
-            :defaultValue="atlChartFilterStore.atl08DefaultSymbolSize"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl08 Scatter Plot"
-        />
         <SrSliderInput
             v-model="deckStore.pointSize"
             label="Elevation Plot point size"

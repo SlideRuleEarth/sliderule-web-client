@@ -328,7 +328,7 @@ export class SlideRuleDexie extends Dexie {
                 { number: 1, color: 'violet' }, // atl08_ground
                 { number: 2, color: 'lightgreen' },   // atl08_canopy
                 { number: 3, color: 'green' }, // atl08_top_of_canopy
-                { number: 4, color: 'slategrey' } // atl08_unclassified
+                { number: 4, color: 'slategray' } // atl08_unclassified
             ];
 
             // Clear existing entries in the table

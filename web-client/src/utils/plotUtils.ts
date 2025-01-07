@@ -757,7 +757,7 @@ async function appendSeries(reqId: number): Promise<void> {
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
-    }
+}
   
 const updateScatterPlot = async (msg:string) => {
     const startTime = performance.now();

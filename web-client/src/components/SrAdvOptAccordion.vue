@@ -5,6 +5,7 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
+import SrColorPalette from './SrColorPalette.vue';
 
 const SrYAPC = defineAsyncComponent(() => import('./SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('./SrAtl03Cnf.vue'));
@@ -131,6 +132,12 @@ const isExpanded = (panelIndex: number) => {
                     <AccordionHeader>Advanced</AccordionHeader>
                     <AccordionContent v-if="isExpanded(12)">
                         <SrAdvOptPanel />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="13">
+                    <AccordionHeader>Color Defaults</AccordionHeader>
+                    <AccordionContent v-if="isExpanded(13)">
+                        <SrColorPalette />
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>

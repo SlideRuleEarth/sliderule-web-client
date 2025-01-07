@@ -8,10 +8,7 @@ import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { useChartStore } from '@/stores/chartStore';
-import { colorMapNames } from '@/utils/colorUtils';
-import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
-import SrAtl08ClassColors from "@/components/SrAtl08ClassColors.vue";
-import { onMounted, watch, computed } from "vue";
+import { onMounted, computed } from "vue";
 import { clearPlot } from "@/utils/plotUtils";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -19,10 +16,6 @@ const atl03ColorMapStore = useAtl03ColorMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 
-interface AtColorChangeEvent {
-  label: string;
-  color?: string; // color can be undefined
-}
 
 // Define props with TypeScript types
 const props = defineProps<{
@@ -53,20 +46,6 @@ async function changedColorKey() {
     clearPlot();
     await callPlotUpdateDebounced('changedColorKey');
 }
-
-const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
-    //console.log(`atl03CnfColorChanged:`,colorKey);
-    await callPlotUpdateDebounced('atl03CnfColorChanged');
-};
-
-const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
-    //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
-    if (color) {
-      await callPlotUpdateDebounced('atl08ClassColorChanged');
-    } else {
-      console.warn('atl08ClassColorChanged color is undefined');
-    }
-};
 
 </script>
 <template>
@@ -111,34 +90,6 @@ const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Prom
             tooltipText="Data key for Color of atl03 scatter plot"
         /> 
     </div>
-    <div class="sr-select-color-map-panel">
-        <div class="sr-select-atl03-colors">
-            <SrAtl03CnfColors 
-                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl03_cnf')"
-                @selectionChanged="atl03CnfColorChanged"
-                @defaultsChanged="atl03CnfColorChanged"
-            />
-        </div>  
-        <div class="sr-select-atl08-colors">
-            <SrAtl08ClassColors 
-                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp' && (atl03ColorMapStore.getAtl03ColorKey() == 'atl08_class')"
-                @selectionChanged="atl08ClassColorChanged"
-                @defaultsChanged="atl08ClassColorChanged"
-            />
-        </div>
-        <div class="sr-select-yapc-color-map">
-            <SrMenu 
-                v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'&& (atl03ColorMapStore.getAtl03ColorKey() == 'YAPC')"
-                label="YAPC Color Map" 
-                v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
-                :menuOptions="colorMapNames" 
-                :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
-                :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
-                tooltipText="YAPC Color Map for atl03 scatter plot"
-            />
-        </div>
-    </div>
-
 
 </Fieldset>
 </template>

@@ -10,7 +10,9 @@
                     onLabel="Hide Photon Cloud"
                     offLabel="Show Photon Cloud"
                     v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="useMapStore().isLoading" 
+                    :disabled="useMapStore().isLoading"
+                    size="small" 
+                    rounded
                 />
                 <SrRunControl 
                     :includeAdvToggle="false"
@@ -179,7 +181,7 @@ function createComputedSymbolSizeFor(reqIdStr: string) {
       return chartStore.getSymbolSize(reqIdStr);
     },
     set(value: number) {
-      console.log(`computedSymbolSize set value: ${value}`);
+      //console.log(`computedSymbolSize set value: ${value}`);
       chartStore.setSymbolSize(reqIdStr, value);
     }
   });
@@ -191,7 +193,7 @@ function createComputedLabelFor(reqId: number) :string {
 
 function createGetSymbolSizeFor(reqIdStr: string) {
   return () => {
-    console.log(`computedSymbolSize get value: ${chartStore.getSymbolSize(reqIdStr)}`);
+    //console.log(`computedSymbolSize get value: ${chartStore.getSymbolSize(reqIdStr)}`);
     return chartStore.getSymbolSize(reqIdStr);
   };
 }
@@ -216,7 +218,7 @@ function createSetSymbolSizeFor(reqIdStr: string) {
 
   // The "real" function
   function doSetSymbolSize(value: number) {
-    console.log(`computedSymbolSize set value: ${value}`);
+    //console.log(`computedSymbolSize set value: ${value}`);
     chartStore.setSymbolSize(reqIdStr, value);
     setSymbolCounter.value++;
   }
@@ -347,7 +349,7 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
-    //console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
+    console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(newShowPhotonCloud){
         const runContext = await getPhotonOverlayRunContext();
         if(runContext.reqId <= 0){
@@ -359,7 +361,10 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         } else {
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
         }
+        const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
+        requestsStore.setConsoleMsg(msg);
     } else {
+        console.log('handlePhotonCloudChange - showPhotonCloud FALSE');
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
     }
@@ -502,7 +507,6 @@ watch(() => atlChartFilterStore.pairs,
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background-color: var(--primary-color);
 }
 
 .sr-photon-cloud {
