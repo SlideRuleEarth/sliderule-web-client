@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, computed } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
@@ -101,6 +101,7 @@ const colors = ref([
 ]);
 
 onMounted(() => {
+    atl03ColorMapStore.initializeAtl03ColorMapStore();
     colors.value[1] = atl03ColorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
     console.log('Mounted SrColorPalette colors:', colors.value);
 
