@@ -7,7 +7,7 @@
             v-for="(cnfValue, index) in atl03ColorMapStore.atl03CnfOptions"
             :key="index"
             :label="`${cnfValue.label} (${cnfValue.value})`"
-            :menuOptions="atl03ColorMapStore.getNamedColorPalette()"
+            :menuOptions="atl03ColorMapStore.namedColorPalette"
             :setSelectedMenuItem="(color:string) =>  atl03ColorMapStore.setColorForAtl03CnfValue(cnfValue.value, color)"
             :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl03CnfValue(cnfValue.value)"
             @update:modelValue="handleSelectionChanged(cnfValue.label, $event)"
@@ -17,6 +17,8 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
+
 import SrMenu from './SrMenu.vue';
 import Fieldset  from 'primevue/fieldset';
 import Button from 'primevue/button';
@@ -26,6 +28,11 @@ const atl03ColorMapStore = useAtl03ColorMapStore();
 
 
 const emit = defineEmits(['selectionChanged','defaultsChanged']);
+
+// Make sure to initialize the store
+onMounted(async () => {
+  await atl03ColorMapStore.initializeAtl03ColorMapStore();
+});
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {

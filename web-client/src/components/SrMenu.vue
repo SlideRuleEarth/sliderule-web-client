@@ -87,7 +87,6 @@
 
     watch(selectedMenuItem, (newValue) => {
         //console.log('Menu:', props.label, 'selected:', newValue);
-        props.setSelectedMenuItem(newValue);
         //console.log('Menu:', props.label, 'readback:', props.getSelectedMenuItem());
         emit('update:modelValue', newValue); 
     });

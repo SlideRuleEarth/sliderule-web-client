@@ -20,14 +20,42 @@
             </div>
         </Fieldset>
     </div>
+    <div class="sr-select-color-map-panel">
+        <div class="sr-select-atl03-colors">
+            <SrAtl03CnfColors 
+                @selectionChanged="atl03CnfColorChanged"
+                @defaultsChanged="atl03CnfColorChanged"
+            />
+        </div>  
+        <div class="sr-select-atl08-colors">
+            <SrAtl08ClassColors 
+                @selectionChanged="atl08ClassColorChanged"
+                @defaultsChanged="atl08ClassColorChanged"
+            />
+        </div>
+        <div class="sr-select-yapc-color-map">
+            <SrMenu 
+                label="YAPC Color Map" 
+                v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
+                :menuOptions="colorMapNames" 
+                :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
+                :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
+                tooltipText="YAPC Color Map for atl03 scatter plot"
+            />
+        </div>
+    </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, watch, computed } from 'vue';
 import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import Fieldset from 'primevue/fieldset';
+import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
+import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
+import SrMenu from './SrMenu.vue';
+import { colorMapNames } from '@/utils/colorUtils';
 
 const atl03ColorMapStore = useAtl03ColorMapStore();
 // Predefined list of CSS color names
@@ -55,6 +83,11 @@ const cssColorNames = [
     "Yellow", "YellowGreen"
 ];
 
+interface AtColorChangeEvent {
+  label: string;
+  color?: string; // color can be undefined
+}
+
 const selectedColors = computed({
     get: () => atl03ColorMapStore.getNamedColorPalette(),
     set: (value) => atl03ColorMapStore.setNamedColorPalette(value)
@@ -77,6 +110,19 @@ const restoreDefaultColors = async () => {
     await atl03ColorMapStore.restoreDefaultColors();
     colors.value[1] = atl03ColorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
     console.log('SrColorPalette colors:', atl03ColorMapStore.getNamedColorPalette());
+};
+
+const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
+    console.log(`atl03CnfColorChanged:`,colorKey);
+};
+
+const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
+    //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+    if (color) {
+      console.log('atl08ClassColorChanged');
+    } else {
+      console.warn('atl08ClassColorChanged color is undefined');
+    }
 };
 
 </script>

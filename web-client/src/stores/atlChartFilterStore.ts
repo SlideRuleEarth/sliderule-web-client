@@ -38,10 +38,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     largeDataThreshold: 1000000 as number,
     plotRef: null as InstanceType<typeof VChart> | null, 
     selectedOverlayedReqIds: [] as number[],
-    atl03spDefaultSymbolSize: 1 as number,
-    atl03vpDefaultSymbolSize: 3 as number,
-    atl06DefaultSymbolSize: 3 as number,
-    atl08DefaultSymbolSize: 3 as number,
     message: '' as string,
     isWarning: true as boolean,
     showMessage: false as boolean,
@@ -299,54 +295,30 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setSelectedOverlayedReqIds(selectedOverlayedReqIds: number[]) {
       this.selectedOverlayedReqIds = selectedOverlayedReqIds;
     },
-    getAtl03spDefaultSymbolSize() {
-      return this.atl03spDefaultSymbolSize;
-    },
-    setAtl03spDefaultSymbolSize(size: number) {
-      this.atl03spDefaultSymbolSize = size;
-    },
-    getAtl03vpDefaultSymbolSize() {
-      return this.atl03vpDefaultSymbolSize;
-    },
-    setAtl03vpDefaultSymbolSize(size: number) {
-      this.atl03vpDefaultSymbolSize = size;
-    },
-    getAtl06DefaultSymbolSize() {
-      return this.atl06DefaultSymbolSize;
-    },
-    setAtl06DefaultSymbolSize(size: number) {
-      this.atl06DefaultSymbolSize = size;
-    },
-    getAtl08DefaultSymbolSize() {
-      return this.atl08DefaultSymbolSize;
-    },
-    setAtl08DefaultSymbolSize(size: number) {
-      this.atl08DefaultSymbolSize = size;
-    },
     setShowMessage(showMessage: boolean) { 
-      this.showMessage = showMessage;
-  },
-  getShowMessage(): boolean {
-      return this.showMessage;
-  },
-  setMessage(message: string) {
-      this.message = message;
-  },
-  getMessage() {
-      return this.message;
-  },
-  setIsWarning(isWarning: boolean) {
-      this.isWarning = isWarning;
-  },
-  getIsWarning() {
-      return this.isWarning;
-  },
-  setShowPhotonCloud(showPhotonCloud: boolean) {
-      this.showPhotonCloud = showPhotonCloud;
-  },
-  getShowPhotonCloud() {
-      return this.showPhotonCloud;
-  },
+        this.showMessage = showMessage;
+    },
+    getShowMessage(): boolean {
+        return this.showMessage;
+    },
+    setMessage(message: string) {
+        this.message = message;
+    },
+    getMessage() {
+        return this.message;
+    },
+    setIsWarning(isWarning: boolean) {
+        this.isWarning = isWarning;
+    },
+    getIsWarning() {
+        return this.isWarning;
+    },
+    setShowPhotonCloud(showPhotonCloud: boolean) {
+        this.showPhotonCloud = showPhotonCloud;
+    },
+    getShowPhotonCloud() {
+        return this.showPhotonCloud;
+    },
 
 }
 });
