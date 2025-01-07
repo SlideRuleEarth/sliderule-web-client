@@ -879,21 +879,6 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
     });
 }
 
-export async function initSymbolSize(reqIdStr: string) {
-    const func = chartStore.stateByReqId[reqIdStr].func;
-    const plotConfig = await indexedDb.getPlotConfig();
-    console.log('initSymbolSize setSymbolSize reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
-    if (func.includes('atl03sp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-    } else if (func.includes('atl03vp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-    } else if (func.includes('atl06')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
-    } else if (func.includes('atl08')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
-    }       
-}
-
 export const findReqMenuLabel = (reqId:number) => {
     const item = atlChartFilterStore.reqIdMenuItems.find(
         (i) => Number(i.value) === reqId
@@ -912,7 +897,7 @@ export async function updateChartStore(req_id: number) {
         const func = await indexedDb.getFunc(req_id);
         //console.log('updateChartStore req_id:', req_id, 'func:', func);
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        chartStore.setFunc(reqIdStr,func);
+        await chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),
             useAtlChartFilterStore().getSpotValues(),

@@ -390,7 +390,7 @@ async function updateThePlot(msg:string) {
     if(!loadingComponent.value){
         await callPlotUpdateDebounced(msg);
     } else {
-        console.warn('Skipped updateThePlot - Loading component is still active');
+        console.warn(`Skipped updateThePlot for ${msg} - Loading component is still active`);
     }
 }
 

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
-import type { SrRunContext, SrTrkFilter } from '@/db/SlideRuleDb';
-
+import { db as indexedDb } from '@/db/SlideRuleDb';
 interface ChartState {
   currentFile: string;
   min_x: number;
@@ -32,35 +31,36 @@ export const useChartStore = defineStore('chartStore', {
   actions: {
     // Initialize a state for a reqIdStr if it doesn't exist
     ensureState(reqIdStr: string) {
-    if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
-        console.error('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
-        console.trace('Call stack for ensureState with invalid reqIdStr');
-        return; // Exit early to prevent further execution
-    }     
-    if (!this.stateByReqId[reqIdStr]) {
-        //console.log('ensureState() initializing state for reqIdStr:', reqIdStr);
-        this.stateByReqId[reqIdStr] = {
-            currentFile: '',
-            min_x: 0,
-            max_x: 0,
-            min_y: 0,
-            max_y: 0,
-            elevationDataOptions: [ 'not_set' ],
-            yDataForChart: [],
-            xDataForChart: 'x_atc',
-            ndxOfElevationDataOptionsForHeight: 0,
-            func: '',
-            description: 'description here',
-            querySql: '',
-            whereClause: '',
-            size: 0,
-            recCnt: 0,
-            xLegend: 'Meters',
-            numOfPlottedPnts: 0,
-            selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
-            symbolSize: 3,
-        };
-      }
+        if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
+            console.error('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
+            console.trace('Call stack for ensureState with invalid reqIdStr');
+            return; // Exit early to prevent further execution
+        }     
+        if (!this.stateByReqId[reqIdStr]) {
+            //console.log('ensureState() initializing state for reqIdStr:', reqIdStr);
+            this.stateByReqId[reqIdStr] = {
+                currentFile: '',
+                min_x: 0,
+                max_x: 0,
+                min_y: 0,
+                max_y: 0,
+                elevationDataOptions: [ 'not_set' ],
+                yDataForChart: [],
+                xDataForChart: 'x_atc',
+                ndxOfElevationDataOptionsForHeight: 0,
+                func: '',
+                description: 'description here',
+                querySql: '',
+                whereClause: '',
+                size: 0,
+                recCnt: 0,
+                xLegend: 'Meters',
+                numOfPlottedPnts: 0,
+                selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
+                symbolSize: 3,
+            };
+        }
+
     },
     setMinX(reqIdStr: string, min_x: number) {
         this.ensureState(reqIdStr);
@@ -180,9 +180,20 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].func;
     },
-    setFunc(reqIdStr: string,func: string) {
+    async setFunc(reqIdStr: string,func: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
+        const plotConfig = await indexedDb.getPlotConfig();
+        //console.log('setFunc calling setSymbolSize for reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
+        if (func.includes('atl03sp')) {
+            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        } else if (func.includes('atl03vp')) {
+            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        } else if (func.includes('atl06')) {
+            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
+        } else if (func.includes('atl08')) {
+            this.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
+        }       
     },
     setXLegend(reqIdStr: string,xLegend: string) {
         this.ensureState(reqIdStr);

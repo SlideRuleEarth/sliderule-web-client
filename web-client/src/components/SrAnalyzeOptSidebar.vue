@@ -26,7 +26,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
-import { updateChartStore,initSymbolSize } from '@/utils/plotUtils';
+import { updateChartStore } from '@/utils/plotUtils';
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
@@ -122,7 +122,6 @@ onMounted(async () => {
             if (req_id > 0) {
                 atlChartFilterStore.setReqId(req_id);
                 //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
-                await initSymbolSize(computedReqIdStr.value);
                 const height_fieldname = await getHeightFieldname(req_id);
                 const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
                 console.log('onMounted summary:', summary);
@@ -144,8 +143,7 @@ onMounted(async () => {
                             console.error('No file found for reqId:',reqIdStr);
                         }
                         if(request && request.func){
-                            chartStore.setFunc(reqIdStr,request.func);
-                            await initSymbolSize(reqIdStr);
+                            await chartStore.setFunc(reqIdStr,request.func);
                         } else {
                             console.error('No func found for reqId:',reqIdStr);
                         }
@@ -175,7 +173,7 @@ onMounted(async () => {
                                 console.error('No file found for req_id:', reqIdStr);
                             }
                             if(request && request.func){
-                                chartStore.setFunc(reqIdStr,request.func);
+                                await chartStore.setFunc(reqIdStr,request.func);
                             } else {
                                 console.error('No func found for req_id:', reqIdStr);
                             }
