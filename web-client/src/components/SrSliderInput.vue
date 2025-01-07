@@ -3,8 +3,23 @@
         <div class="sr-slider-col">
             <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="props.insensitive"/>
             <div class="sr-slider-input-row">
-                <Slider v-model="innerValue" :name="sliderName" :min="min" :max="max" :step="sliderStepSize" class="sr-slider" :disabled="props.insensitive" />
-                <InputText v-model="formattedValue" class="sr-slider-input-text" :inputId="inputId" :disabled="props.insensitive"/>
+                <Slider 
+                    v-model="innerValue" 
+                    :name="sliderName" 
+                    :min="min" 
+                    :max="max" 
+                    :step="sliderStepSize" 
+                    class="sr-slider" 
+                    :disabled="props.insensitive" 
+                    :style="{ width: props.sliderWidth }"
+                />
+                <InputText 
+                    v-model="formattedValue" 
+                    class="sr-slider-input-text" 
+                    :inputId="inputId" 
+                    :disabled="props.insensitive"
+                    :style="{ width: props.inputWidth }" 
+                />
                 <span class="sr-units-label">{{ props.unitsLabel }}</span>
             </div>
         </div>
@@ -68,7 +83,16 @@
         tooltipUrl: {
             type: String,
             default: ''
+        },
+        inputWidth: {
+            type: [String, Number],
+            default: '6rem'
+        },
+        sliderWidth: {
+            type: [String, Number],
+            default: '12rem'
         }
+
     });
     const modelValueComputed = computed(() => props.modelValue);
 

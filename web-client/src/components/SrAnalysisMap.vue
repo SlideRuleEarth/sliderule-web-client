@@ -193,7 +193,7 @@
 
 <style scoped>
 
-.sr-map-container {
+:deep(.sr-map-container) {
   margin-bottom: 0.5rem;
   margin-left: 0.5rem;
   margin-right: 0.5rem;
@@ -209,8 +209,8 @@
     min-width: 15rem; 
     min-height: 15rem; 
     border-radius: var(--p-border-radius); 
-    width: 30rem; 
-    height: 20rem; 
+    width: 45vw; 
+    height: 45vh; 
     overflow: hidden; 
     resize:both;
 }

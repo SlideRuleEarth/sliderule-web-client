@@ -481,6 +481,7 @@ export async function getScatterOptionsFor(reqId:number) {
         atlChartFilterStore.setShowMessage(true);
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
+        console.error(`getScatterOptionsFor ${reqId} Failed to load data. Click on elevation in map to preset filters`);
         return;
     }
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -501,7 +502,7 @@ export async function getScatterOptionsFor(reqId:number) {
 
 const initScatterPlotWith = async (reqId: number) => {
     const startTime = performance.now();
-    //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
+    console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
     if (reqId === undefined || reqId <= 0) {
         console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
@@ -563,7 +564,7 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-
+        console.log(`appendSeries(${reqIdStr}): existing filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
         if (!seriesData.length) {
@@ -767,9 +768,10 @@ const updateScatterPlot = async (msg:string) => {
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
         console.log(`updateScatterPlot reqIds:`, reqIds);
-        reqIds.forEach(reqId => { 
+        reqIds.forEach(async reqId => { 
             if(reqId > 0){
-                appendSeries(reqId);
+                await updateChartStore(reqId);
+                await appendSeries(reqId);
             } else {
                 console.error(`updateScatterPlot Invalid request ID:${reqId}`);
             }
@@ -906,6 +908,19 @@ export async function updateChartStore(req_id: number) {
         );
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
+        }
+        const plotConfig = await indexedDb.getPlotConfig();
+        //console.log('setFunc calling setSymbolSize for reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
+        if (func.includes('atl03sp')) {
+            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        } else if (func.includes('atl03vp')) {
+            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        } else if (func.includes('atl06')) {
+            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
+        } else if (func.includes('atl08')) {
+            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
+        } else {
+            console.error('updateChartStore unknown function:', func);
         }
 
 

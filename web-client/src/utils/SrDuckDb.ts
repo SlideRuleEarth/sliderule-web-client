@@ -375,11 +375,11 @@ export class DuckDBClient {
                     if (keyString === 'sliderule') {
                         const valueArray = kv.get(i) as Uint8Array;
                         const valueString = new TextDecoder().decode(valueArray);
-                        console.log("Raw Sliderule Metadata:", valueString);
+                        //console.log("Raw Sliderule Metadata:", valueString);
                         try {
                           const parsedMetadata = JSON.parse(valueString);
                           const formattedMetadata = JSON.stringify(parsedMetadata, null, 2);  // Format with 2 spaces for readability
-                          console.log("Formatted Sliderule Metadata:", formattedMetadata);
+                          //console.log("Formatted Sliderule Metadata:", formattedMetadata);
                           return formattedMetadata;
                         } catch (parseError) {
                           console.error("Error parsing JSON metadata:", parseError);

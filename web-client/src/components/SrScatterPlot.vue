@@ -1,6 +1,22 @@
 <template>
     <div class="sr-scatter-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
     <div class="sr-scatter-plot-container" v-else>
+        <div class="sr-scatter-plot-content">
+            <v-chart  ref="plotRef" 
+                class="scatter-chart" 
+                :manual-update="true"
+                :autoresize="{throttle:500}" 
+                :loading="atlChartFilterStore.isLoading" 
+                :loadingOptions="{
+                    text:'Data Loading', 
+                    fontSize:20, 
+                    showSpinner: true, 
+                    zlevel:100
+                }" 
+            />
+            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+        </div> 
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
@@ -49,22 +65,6 @@
             </div>
 
         </div>
-        <div class="sr-scatter-plot-content">
-            <v-chart  ref="plotRef" 
-                class="scatter-chart" 
-                :manual-update="true"
-                :autoresize="{throttle:500}" 
-                :loading="atlChartFilterStore.isLoading" 
-                :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
-                }" 
-            />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
-            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
-        </div> 
         <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
             <div class="sr-scatter-checkbox-slider">
                 <div class="sr-select-symbol-size">
@@ -73,6 +73,7 @@
                         @update:modelValue="symbolSizeSelection"
                         :label="computedSlideLabel"
                         inputWidth="2em"
+                        sliderWidth="5rem"
                         :min="1"
                         :max="10"
                         :defaultValue="computedSymbolSize"
@@ -144,6 +145,7 @@ import SrSliderStored from "@/components/SrSliderStored.vue";
 import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
 import Card from 'primevue/card';
 import { useMapStore } from "@/stores/mapStore";
+import SrSliderInput from "./SrSliderInput.vue";
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
@@ -286,15 +288,9 @@ onMounted(async () => {
             }
             computedSymbolSize.value = chartStore.getSymbolSize(computedReqIdStr.value);
             console.log('SrScatterPlot onMounted computedSymbolSize:', computedSymbolSize.value);
-            // Create a Set of reqIds values for quick lookup
-            // const successfulReqIdsSet = new Set(atlChartFilterStore.reqIdMenuItems.map(item => Number(item.value)));
-            // for (const oreqId of successfulReqIdsSet) { 
-            //     prepareDbForReqId(oreqId);
-            // }
         } else {
             console.warn('reqId is undefined');
-        }
-        
+        }        
         //console.log('SrScatterPlot onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
@@ -306,8 +302,8 @@ onMounted(async () => {
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
         await prepareDbForReqId(newReqId);
+        await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
     }
 });
 
@@ -322,7 +318,9 @@ watch(() => plotRef.value, async (newPlotRef) => {
 
 watch(() => setSymbolCounter.value, async (newCounter) => {
     console.log('setSymbolCounter changed:', newCounter);
-    await updateScatterOptionsOnly('from watch setSymbolCounter.value');
+    if(newCounter>1){ // ignore first one; it's initializing
+        await updateScatterOptionsOnly('from watch setSymbolCounter.value');
+    }
 });
 
 const messageClass = computed(() => {

@@ -94,6 +94,16 @@ async function changedColorKey() {
 </Fieldset>
 </template>
 <style scoped>
+.sr-scatter-plot-options {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: fit-content;
+}
 
 .sr-select-color-map {
     display: flex;
