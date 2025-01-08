@@ -27,14 +27,45 @@ interface SummaryRowData {
 const srMutex = new SrMutex();
 const chartStore = useChartStore();
 
-async function setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
-    chartStore.setElevationDataOptions(reqIdStr,fieldNames);
-    const heightFieldname = await getHeightFieldname(Number(reqIdStr));
-    const ndx = fieldNames.indexOf(heightFieldname);
-    chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr,ndx);
-    chartStore.setYDataForChart(reqIdStr,[chartStore.getElevationDataOptionForHeight(reqIdStr)]);
-    //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
-};
+async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
+    try {
+        // Update elevation data options in the chart store
+        chartStore.setElevationDataOptions(reqIdStr, fieldNames);
+
+        // Get the height field name
+        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
+
+        // Find the index of the height field name
+        const ndx = fieldNames.indexOf(heightFieldname);
+
+        // Update the index of the elevation data options for height
+        chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
+
+        // Retrieve the existing Y data for the chart
+        const existingYdata = chartStore.getYDataForChart(reqIdStr);
+
+        // Get the elevation data option for height
+        const elevationOption = chartStore.getElevationDataOptionForHeight(reqIdStr);
+
+        // Check if the elevation option is already in the Y data
+        if (!existingYdata.includes(elevationOption)) {
+            // Clone the existing Y data and add the elevation option
+            const newYdata = [...existingYdata, elevationOption];
+
+            // Update the Y data for the chart
+            chartStore.setYDataForChart(reqIdStr, newYdata);
+        }
+
+        // Optional: Debugging log
+        console.log(
+            'setElevationDataOptionsFromFieldNames',
+            { reqIdStr, fieldNames, heightFieldname, ndx, elevationOption, existingYdata }
+        );
+    } catch (error) {
+        console.error('Error in setElevationDataOptionsFromFieldNames:', error);
+    }
+}
+
 
 export async function prepareDbForReqId(reqId: number): Promise<void> {
     console.log(`prepareDbForReqId for ${reqId}`);

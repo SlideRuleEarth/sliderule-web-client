@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { db as indexedDb } from '@/db/SlideRuleDb';
 interface ChartState {
   currentFile: string;
   min_x: number;
@@ -139,11 +138,14 @@ export const useChartStore = defineStore('chartStore', {
     },
     getYDataForChart(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].yDataForChart;
+        const yData =  this.stateByReqId[reqIdStr].yDataForChart;
+        //console.log('getYDataForChart reqIdStr:',reqIdStr, ' yData:',yData);
+        return yData;
     },
     setYDataForChart(reqIdStr: string,yDataForChart: string[]): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
+        //console.log('setYDataForChart reqIdStr:',reqIdStr, ' yData:',yDataForChart, ' state yData:',this.stateByReqId[reqIdStr].yDataForChart);
     },    
     getXDataForChart(reqIdStr: string) {
         this.ensureState(reqIdStr);

@@ -12,7 +12,7 @@ import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/ut
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { SrMenuItem, useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
@@ -298,6 +298,10 @@ const debouncedUpdateElevationMap = debounce((req_id: number) => {
   return updateElevationMap(req_id);
 }, 500);
 
+const updateRecordSelection = async (item: SrMenuItem) => {
+    console.log('updateRecordSelection item:', item);
+};
+
 const handleUpdateReqId = async ()=>{
     if(selectedReqId){
         if(selectedReqId.value && computedReqIdNum.value > 0){
@@ -438,7 +442,10 @@ const exportButtonClick = async () => {
             <div class="sr-map-descr">
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
                     <div v-if="loading">Loading...{{ chartStore.getFunc(computedReqIdStr) }}</div>
-                    <SrAnalysisMap v-else :reqId="computedReqIdNum"/>
+                    <SrAnalysisMap 
+                        v-else :reqId="computedReqIdNum"
+                        @update-record-selection="updateRecordSelection"
+                    />
                 </div>
                 <div class="sr-req-description">
                     <SrMenuInput

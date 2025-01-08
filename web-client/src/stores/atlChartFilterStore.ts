@@ -43,6 +43,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
     reqIdMenuItems: [] as SrMenuItem[],
+    selectedReqIdMenuItem:{} as SrMenuItem,
   }),
 
   actions: {
@@ -319,6 +320,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getShowPhotonCloud() {
         return this.showPhotonCloud;
     },
-
+    getSelectedReqIdMenuItem() : SrMenuItem {
+      return this.selectedReqIdMenuItem;
+    },
+    setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuItem) {
+      this.selectedReqIdMenuItem = selectedReqIdMenuItem;
+    },
 }
 });

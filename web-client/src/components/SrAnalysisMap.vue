@@ -12,7 +12,7 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { SrMenuItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
@@ -21,6 +21,7 @@
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView } from "@/utils/SrMapUtils";
+    import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -62,6 +63,9 @@
             return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
         }
     });
+    const emit = defineEmits<{
+        (e: 'update-record-selection', menuItem: SrMenuItem): void;
+    }>();
 
     const props = defineProps({
         reqId: {
@@ -111,6 +115,24 @@
         } else {
             console.warn("analysisMap is null will be set in onMounted");
         }
+    };
+
+    function handleRecordSelectorControlCreated(recordSelectorControl: any) {
+        //console.log("handleRecordSelectorControlCreated");
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
+            //console.log("adding baseLayerControl");
+            analysisMap.addControl(recordSelectorControl);
+        } else {
+            console.error("Error:analysisMap is null");
+        }
+    };
+
+    function handleUpdateRecordSelector(recordItem: SrMenuItem) {
+        //console.log("handleUpdateRecordSelector",recordItem);
+        //const reqId = parseInt(recordItem.value);
+        //console.log("handleUpdateRecordSelector reqId:",reqId);
+        emit('update-record-selection', recordItem);
     };
 
     const updateAnalysisMapView = async (reason:string) => {
@@ -169,20 +191,21 @@
 
         <MapControls.OlScalelineControl />
         <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+        <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
         <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
-            <Sources.OlSourceVector :projection="computedProjName">
+        <Sources.OlSourceVector :projection="computedProjName">
             <Styles.OlStyle>
                 <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
                 <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
             </Styles.OlStyle>
-            </Sources.OlSourceVector>
-            <Styles.OlStyle>
+        </Sources.OlSourceVector>
+        <Styles.OlStyle>
             <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
             <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
             <Styles.OlStyleCircle :radius="7">
-                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+            <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
             </Styles.OlStyleCircle>
-            </Styles.OlStyle>
+        </Styles.OlStyle>
         </Layers.OlVectorLayer>
         <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>

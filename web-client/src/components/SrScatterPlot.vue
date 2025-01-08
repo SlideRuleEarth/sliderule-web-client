@@ -36,62 +36,63 @@
                 />
             </div>
             <div class="sr-multiselect-container">
+
                 <div class= "sr-multiselect-col">
-                    <FloatLabel variant="on">
-                    <MultiSelect
-                            class="sr-multiselect" 
-                            :id="computedElID"
-                            v-model="yDataBindingsReactive[computedReqIdStr]"
-                            size="small" 
-                            :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
-                            display="chip"
-                            @update:modelValue="onMainYDataSelectionChange"
-                    />
-                    <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
-                    </FloatLabel>
-                    <SrSliderStored
-                        v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
-                        @update:modelValue="symbolSizeSelection"
-                        :label="computedSlideLabel"
-                        inputWidth="2em"
-                        sliderWidth="5rem"
-                        :min="1"
-                        :max="10"
-                        :defaultValue="computedSymbolSize"
-                        :getValue="createGetSymbolSizeFor(computedReqIdStr)"
-                        :setValue="createSetSymbolSizeFor(computedReqIdStr)"
-                        :decimalPlaces=0
-                        tooltipText="Symbol size for Scatter Plot"
-                    />
+                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.currentReqId)">
+                        <MultiSelect
+                                class="sr-multiselect"
+                                :placeholder="`Y data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}`"
+                                :id="computedElID"
+                                v-model="yDataBindingsReactive[computedReqIdStr]"
+                                size="small" 
+                                :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
+                                display="chip"
+                                @update:modelValue="onMainYDataSelectionChange"
+                        />
+                        <SrSliderStored
+                            v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
+                            @update:modelValue="symbolSizeSelection"
+                            label="symbol size"
+                            inputWidth="2em"
+                            sliderWidth="5rem"
+                            :min="1"
+                            :max="10"
+                            :defaultValue="computedSymbolSize"
+                            :getValue="createGetSymbolSizeFor(computedReqIdStr)"
+                            :setValue="createSetSymbolSizeFor(computedReqIdStr)"
+                            :decimalPlaces=0
+                            tooltipText="Symbol size for Scatter Plot"
+                        />
+                    </Fieldset>
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
                         <div class= "sr-multiselect-col">
-                            <FloatLabel variant="on">
-                            <MultiSelect
-                                    class="sr-multiselect" 
-                                    :id="`srMultiId-${overlayedReqId}`"
-                                    v-model="yDataBindingsReactive[overlayedReqId.toString()]"
-                                    size="small"
-                                    :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
-                                    display="chip"
-                                    @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
-                            />
-                            <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
-                            </FloatLabel>
-                            <SrSliderStored
-                                v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
-                                @update:modelValue="symbolSizeSelection"
-                                :label="createComputedLabelFor(overlayedReqId)"
-                                inputWidth="2em"
-                                :min="1"
-                                :max="10"
-                                :defaultValue="computedSymbolSize"
-                                :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
-                                :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
-                                :decimalPlaces=0
-                                tooltipText="Symbol size for Scatter Plot"
-                            />
+                            <Fieldset :legend="`${findReqMenuLabel(overlayedReqId)}`">
+                                <MultiSelect
+                                        class="sr-multiselect" 
+                                        :placeholder="`Y data for ${findReqMenuLabel(overlayedReqId)}`"
+                                        :id="`srMultiId-${overlayedReqId}`"
+                                        v-model="yDataBindingsReactive[overlayedReqId.toString()]"
+                                        size="small"
+                                        :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                                        display="chip"
+                                        @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                                />
+                                <SrSliderStored
+                                    v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
+                                    @update:modelValue="symbolSizeSelection"
+                                    label="symbol size"
+                                    inputWidth="2em"
+                                    :min="1"
+                                    :max="10"
+                                    :defaultValue="computedSymbolSize"
+                                    :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
+                                    :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
+                                    :decimalPlaces=0
+                                    tooltipText="Symbol size for Scatter Plot"
+                                />
+                        </Fieldset>
                         </div>
                     </div>
                 </div>
@@ -142,7 +143,7 @@ import SrSliderStored from "@/components/SrSliderStored.vue";
 import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
 import Card from 'primevue/card';
 import { useMapStore } from "@/stores/mapStore";
-import SrSliderInput from "./SrSliderInput.vue";
+import Fieldset from "primevue/fieldset";
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
