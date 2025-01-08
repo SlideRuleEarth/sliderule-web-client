@@ -36,38 +36,19 @@
                 />
             </div>
             <div class="sr-multiselect-container">
-                <FloatLabel variant="on">
-                <MultiSelect
-                        class="sr-multiselect" 
-                        :id="computedElID"
-                        v-model="yDataBindingsReactive[computedReqIdStr]"
-                        size="small" 
-                        :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
-                        display="chip"
-                        @update:modelValue="onMainYDataSelectionChange"
-                />
-                <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
-                </FloatLabel>
-                <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                <div class= "sr-multiselect-col">
                     <FloatLabel variant="on">
                     <MultiSelect
                             class="sr-multiselect" 
-                            :id="`srMultiId-${overlayedReqId}`"
-                            v-model="yDataBindingsReactive[overlayedReqId]"
-                            size="small"
-                            :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                            :id="computedElID"
+                            v-model="yDataBindingsReactive[computedReqIdStr]"
+                            size="small" 
+                            :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
                             display="chip"
-                            @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                            @update:modelValue="onMainYDataSelectionChange"
                     />
-                        <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
+                    <label :for="computedElID"> {{ `Y Data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}` }}</label>
                     </FloatLabel>
-                </div>
-            </div>
-
-        </div>
-        <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
-            <div class="sr-scatter-checkbox-slider">
-                <div class="sr-select-symbol-size">
                     <SrSliderStored
                         v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
                         @update:modelValue="symbolSizeSelection"
@@ -83,24 +64,40 @@
                         tooltipText="Symbol size for Scatter Plot"
                     />
                 </div>
-
-                <div v-for="thisReqID in atlChartFilterStore.selectedOverlayedReqIds">
-                    <SrSliderStored
-                        v-model="createComputedSymbolSizeFor(thisReqID.toString()).value"
-                        @update:modelValue="symbolSizeSelection"
-                        :label="createComputedLabelFor(thisReqID)"
-                        inputWidth="2em"
-                        :min="1"
-                        :max="10"
-                        :defaultValue="computedSymbolSize"
-                        :getValue="createGetSymbolSizeFor(thisReqID.toString())"
-                        :setValue="createSetSymbolSizeFor(thisReqID.toString())"
-                        :decimalPlaces=0
-                        tooltipText="Symbol size for Scatter Plot"
-                    />
+                <div class="sr-multiselect-col">
+                    <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                        <div class= "sr-multiselect-col">
+                            <FloatLabel variant="on">
+                            <MultiSelect
+                                    class="sr-multiselect" 
+                                    :id="`srMultiId-${overlayedReqId}`"
+                                    v-model="yDataBindingsReactive[overlayedReqId.toString()]"
+                                    size="small"
+                                    :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                                    display="chip"
+                                    @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                            />
+                            <label :for="`srMultiId-${overlayedReqId}`"> {{ `Y Data for ${overlayedReqId} -  ${chartStore.getFunc(overlayedReqId.toString())}`}}</label>
+                            </FloatLabel>
+                            <SrSliderStored
+                                v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
+                                @update:modelValue="symbolSizeSelection"
+                                :label="createComputedLabelFor(overlayedReqId)"
+                                inputWidth="2em"
+                                :min="1"
+                                :max="10"
+                                :defaultValue="computedSymbolSize"
+                                :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
+                                :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
+                                :decimalPlaces=0
+                                tooltipText="Symbol size for Scatter Plot"
+                            />
+                        </div>
+                    </div>
                 </div>
-
-            </div>  
+            </div>
+        </div>
+        <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
             <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
             <Card>
                 <template #title>
@@ -190,7 +187,7 @@ function createComputedSymbolSizeFor(reqIdStr: string) {
 }
 
 function createComputedLabelFor(reqId: number) :string {
-    return `${findReqMenuLabel(reqId)} symbol size`;
+    return `symbol size for ${findReqMenuLabel(reqId)}`;
 }
 
 function createGetSymbolSizeFor(reqIdStr: string) {
@@ -236,7 +233,7 @@ function createSetSymbolSizeFor(reqIdStr: string) {
 }
 
 const computedSlideLabel = computed(() => {
-    return  `${findReqMenuLabel(atlChartFilterStore.currentReqId)} symbol size`;
+    return  `symbol size for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}`;
 });
 
 function initializeBindings(reqIds: string[]) {
@@ -256,7 +253,7 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 async function onMainYDataSelectionChange(newValue: string[]) {
-    //console.log("Main Y Data changed:", newValue);
+    console.log("Main Y Data changed:", newValue);
     await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
@@ -523,12 +520,24 @@ watch(() => atlChartFilterStore.pairs,
     display: flex;
     flex-direction: row;
     justify-content: left;
+    align-items: center;
     width: 100%;
     margin: 0.25rem;
     border: 0.25rem;
     margin-top: 2.0rem;
 }
 
+.sr-multiselect-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    align-items: left;
+    width: 100%;
+    margin: 0.25rem;
+    margin-top: 0rem;
+    margin-left: 1rem;
+    border: 0.25rem;
+}
 .sr-multiselect {
     width: fit-content;
     margin: 0rem;
