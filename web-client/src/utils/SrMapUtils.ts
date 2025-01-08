@@ -279,9 +279,13 @@ export function updateWhereClause(reqIdStr:string){
         `;
         if (useAtlChartFilterStore().getPairValues() !== undefined) {
             atl03spWhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+        } else {
+            console.error('Clicked: pair is undefined');
         }
         if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
             atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+        } else {
+            console.error('Clicked: sc_orient is undefined');
         }
         useChartStore().setWhereClause(reqIdStr,atl03spWhereClause);
         

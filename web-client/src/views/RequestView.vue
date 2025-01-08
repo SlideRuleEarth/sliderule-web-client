@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import TwoColumnLayout from "../layouts/TwoColumnLayout.vue";
+    import MainTwoColumnLayout from "../layouts/MainTwoColumnLayout.vue";
     import SrMap from "@/components/SrMap.vue";
     import { onMounted } from 'vue';
     import SrSideBar from "@/components/SrSideBar.vue";
@@ -10,14 +10,14 @@
 </script>
 
 <template>
-    <TwoColumnLayout>
+    <MainTwoColumnLayout>
         <template v-slot:sidebar-col>
             <SrSideBar />
         </template>
         <template v-slot:main>
             <SrMap />
         </template>
-    </TwoColumnLayout>
+    </MainTwoColumnLayout>
 </template>
 <style scoped>
 

@@ -103,6 +103,7 @@ async function changedColorKey() {
     padding: 0.5rem;
     margin: 0.5rem;
     width: fit-content;
+    min-width: 30rem;
 }
 
 .sr-select-color-map {

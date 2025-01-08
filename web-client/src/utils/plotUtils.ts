@@ -72,7 +72,7 @@ async function getSeriesForAtl03sp(
     try {
         const name = 'atl03sp';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
-        //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
+        console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
         // Check if either chartData or minMaxValues is empty
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing.');

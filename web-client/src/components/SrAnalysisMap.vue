@@ -142,56 +142,69 @@
 </script>
 
 <template>
-  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
-    <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
-    {{computedLoadMsg}}
-  </div>
-  <div class="sr-notLoadingEl" v-else >
-    {{ computedLoadMsg }}
-  </div>
-  <div ref="mapContainer" class="sr-map-container" >
-    <Map.OlMap 
-      ref="mapRef" 
-      @error="handleEvent"
-      :loadTilesWhileAnimating="true"
-      :loadTilesWhileInteracting="true"
-      :controls="controls"
-      class="sr-ol-map"
-    >
+<div class="sr-analysis-map-panel">
+    <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
+        <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+        {{computedLoadMsg}}
+    </div>
+    <div class="sr-notLoadingEl" v-else >
+        {{ computedLoadMsg }}
+    </div>
+    <div ref="mapContainer" class="sr-map-container" >
+        <Map.OlMap 
+        ref="mapRef" 
+        @error="handleEvent"
+        :loadTilesWhileAnimating="true"
+        :loadTilesWhileInteracting="true"
+        :controls="controls"
+        class="sr-ol-map"
+        >
 
-      <MapControls.OlZoomControl  />
-      
-      <MapControls.OlMousepositionControl 
-        :projection="computedProjName"
-        :coordinateFormat="stringifyFunc as any"
-      />
+        <MapControls.OlZoomControl  />
+        
+        <MapControls.OlMousepositionControl 
+            :projection="computedProjName"
+            :coordinateFormat="stringifyFunc as any"
+        />
 
-      <MapControls.OlScalelineControl />
-      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-      <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
-        <Sources.OlSourceVector :projection="computedProjName">
-          <Styles.OlStyle>
-            <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-            <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
-          </Styles.OlStyle>
-        </Sources.OlSourceVector>
-        <Styles.OlStyle>
-          <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-          <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-          <Styles.OlStyleCircle :radius="7">
-            <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-          </Styles.OlStyleCircle>
-        </Styles.OlStyle>
-      </Layers.OlVectorLayer>
-      <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
-    </Map.OlMap>
-    <div class="sr-tooltip-style" id="tooltip"></div>
-  </div>
-
+        <MapControls.OlScalelineControl />
+        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+        <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
+            <Sources.OlSourceVector :projection="computedProjName">
+            <Styles.OlStyle>
+                <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+                <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+            </Styles.OlStyle>
+            </Sources.OlSourceVector>
+            <Styles.OlStyle>
+            <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+            <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+            <Styles.OlStyleCircle :radius="7">
+                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+            </Styles.OlStyleCircle>
+            </Styles.OlStyle>
+        </Layers.OlVectorLayer>
+        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+        </Map.OlMap>
+        <div class="sr-tooltip-style" id="tooltip"></div>
+    </div>
+</div>
 
 </template>
 
 <style scoped>
+:deep(.sr-analysis-map-panel) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  margin: 1rem;
+  flex:1 1 auto; /* grow, shrink, basis - let it stretch*/
+}
 
 :deep(.sr-map-container) {
   margin-bottom: 0.5rem;
@@ -212,7 +225,7 @@
     width: 45vw; 
     height: 45vh; 
     overflow: hidden; 
-    resize:both;
+    /* resize:both; */
 }
 .sr-tooltip-style {
     position: absolute;
@@ -254,18 +267,28 @@
   right: 2.5rem;
 }
 .sr-isLoadingEl {
-  color: #e9df1c;
-  padding-top: 0.5rem;
-  margin-bottom: 0rem;
-  padding-bottom: 0;
-  font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #e9df1c;
+    padding-top: 0.5rem;
+    margin-bottom: 0rem;
+    padding-bottom: 0;
+    font-size: 1rem;
+    align-items: center;
 }
 .sr-notLoadingEl {
-  color: #4CAF50;
-  padding-top: 0.5rem;
-  margin-bottom: 0rem;
-  padding-bottom: 0;
-  font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #4CAF50;
+    padding-top: 0.5rem;
+    margin-bottom: 0rem;
+    padding-bottom: 0;
+    font-size: 1rem;
+    align-items: center;
 }
 .hidden-control {
     display: none;

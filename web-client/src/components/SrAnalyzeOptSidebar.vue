@@ -604,7 +604,7 @@ const exportButtonClick = async () => {
                 />
 
                 <!-- SrScatterPlotOptions for each overlayed req_id -->
-                <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
+                <div class="sr-scatterplot-options" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                     <SrScatterPlotOptions 
                         :req_id="overlayedReqId" 
                     />
@@ -631,16 +631,17 @@ const exportButtonClick = async () => {
     :deep(.sr-analysis-opt-sidebar) {
         display: flex;
         flex-direction: column;
-        width:auto;
+        width: auto;
         overflow: auto; 
     }
     :deep(.sr-analysis-opt-sidebar-container) {
         display: flex;
         flex-direction: column;
-        align-items: left;
+        align-items: center;
+        justify-content: space-between;
         min-width: 20vw;
         min-height: 20vh;
-        width: 45vw;
+        max-width: 75vw;
     }
     .sr-map-descr {
         display: flex;
@@ -810,7 +811,13 @@ const exportButtonClick = async () => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        margin: 0.5rem;
+        width: fit-content;
+        max-width: 100%; 
+        margin: 0.25rem;
     }
+    .sr-scatterplot-options {
+        margin: 0 auto;    /*  center it */
+    }
+
 
 </style>
