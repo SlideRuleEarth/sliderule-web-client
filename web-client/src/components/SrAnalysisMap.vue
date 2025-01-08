@@ -225,7 +225,7 @@
     width: 45vw; 
     height: 45vh; 
     overflow: hidden; 
-    /* resize:both; */
+    resize:both;
 }
 .sr-tooltip-style {
     position: absolute;
