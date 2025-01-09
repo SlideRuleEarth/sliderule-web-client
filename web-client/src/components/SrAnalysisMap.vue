@@ -12,7 +12,7 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { SrMenuItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
@@ -64,7 +64,7 @@
         }
     });
     const emit = defineEmits<{
-        (e: 'update-record-selection', menuItem: SrMenuItem): void;
+        (e: 'update-record-selection', menuItem: SrMenuNumberItem): void;
     }>();
 
     const props = defineProps({
@@ -128,7 +128,7 @@
         }
     };
 
-    function handleUpdateRecordSelector(recordItem: SrMenuItem) {
+    function handleUpdateRecordSelector(recordItem: SrMenuNumberItem) {
         //console.log("handleUpdateRecordSelector",recordItem);
         //const reqId = parseInt(recordItem.value);
         //console.log("handleUpdateRecordSelector reqId:",reqId);
