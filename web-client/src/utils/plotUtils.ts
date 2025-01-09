@@ -883,9 +883,9 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 
 export const findReqMenuLabel = (reqId:number) => {
     const item = atlChartFilterStore.reqIdMenuItems.find(
-        (i) => Number(i.value) === reqId
+        (i) => i.value === reqId
     )
-    return item ? item.name : 'unknown'
+    return item ? item.label : 'unknown'
 }
 
 export async function updateChartStore(req_id: number) {

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { Control } from 'ol/control';
-import SrMenuInput from './SrMenuInput.vue';
-import { SrMenuItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+import SrMenuNumberInput from './SrMenuNumberInput.vue';
+import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { computed } from "vue";
 import { formatBytes } from '@/utils/SrParquetUtils';
@@ -10,7 +10,7 @@ import { formatBytes } from '@/utils/SrParquetUtils';
 const recordSelectorControlElement = ref<HTMLElement | null>(null);
 const emit = defineEmits<{
   (e: 'record-selector-control-created', control: Control): void;
-  (e: 'update-record-selector', recordItem: SrMenuItem): void;
+  (e: 'update-record-selector', recordItem: SrMenuNumberItem): void;
 }>();
 
 let customControl: Control | null = null;
@@ -45,7 +45,7 @@ function updateRecordSelector(event: Event) {
 
 <template>
   <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
-    <SrMenuInput
+    <SrMenuNumberInput
         v-model="useAtlChartFilterStore().selectedReqIdMenuItem"
         :menuOptions="useAtlChartFilterStore().reqIdMenuItems" 
         @change="updateRecordSelector"

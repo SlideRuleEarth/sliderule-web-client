@@ -9,9 +9,14 @@ export interface SrListNumberItem {
   value: number;
 }
 export interface SrMenuItem {
-  name:   string;
-  value:  string; 
+    name: string;
+    value: string;
 }
+export interface SrMenuNumberItem {
+  label: string;
+  value: number;
+}
+
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
@@ -27,7 +32,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     cycles: [] as SrListNumberItem[],
     cycleOptions: [] as SrListNumberItem[],
     regionValue: 1 as number,
-    currentReqId: 0 as number,
     pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     scOrients: [] as SrListNumberItem[],
@@ -42,8 +46,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: true as boolean,
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
-    reqIdMenuItems: [] as SrMenuItem[],
-    selectedReqIdMenuItem:{} as SrMenuItem,
+    reqIdMenuItems: [] as SrMenuNumberItem[],
+    selectedReqIdMenuItem:{label:'select a record',value:0} as SrMenuNumberItem,
   }),
 
   actions: {
@@ -188,16 +192,32 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setBeamWithNumber(beam: number) {
       this.setBeams([{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
     },
-    setReqId(req_id: number) {
-      this.currentReqId = req_id;
+    setReqId(req_id: number):boolean {
+
+        // Find the corresponding menu item in reqIdMenuItems
+        const menuItem = this.reqIdMenuItems.find(item => item.value === req_id);
+        let found = false;
+        // If the menu item exists, set it as the selected item
+        if (menuItem) {
+            this.selectedReqIdMenuItem = menuItem;
+            found = true;
+        } else {
+            console.warn(`setReqId: No matching menu item found for req_id ${req_id}`);
+            // Optionally reset to a default value or handle the absence of a match
+            this.selectedReqIdMenuItem = { label: 'select a record', value: 0 };
+        }
+        return found;
     },
     getReqId(): number {
-      return this.currentReqId;
+      // Return the value of the selected menu item
+      return this.selectedReqIdMenuItem.value;
     },
-    getReqIdStr():string {
-      return this.currentReqId.toString();
+    
+    getReqIdStr(): string {
+      // Return the label of the selected menu item
+      return this.selectedReqIdMenuItem.label;
     },
-    incrementDebugCnt() {
+      incrementDebugCnt() {
       return ++this.debugCnt;
     },
     getDebugCnt() {
@@ -320,10 +340,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getShowPhotonCloud() {
         return this.showPhotonCloud;
     },
-    getSelectedReqIdMenuItem() : SrMenuItem {
+    getSelectedReqIdMenuItem() : SrMenuNumberItem {
       return this.selectedReqIdMenuItem;
     },
-    setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuItem) {
+    setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuNumberItem) {
       this.selectedReqIdMenuItem = selectedReqIdMenuItem;
     },
 }
