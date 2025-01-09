@@ -14,11 +14,15 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrImportParquetFile  from '@/components/SrImportParquetFile.vue';
 import { cleanupAllRequests } from '@/utils/storageUtils';
 import SrCustomTooltip from './SrCustomTooltip.vue';
+import { useToast } from "primevue/usetoast";
+import { useSrToastStore } from "@/stores/srToastStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const isReqParmCodeFmt = ref(true);
 const isSvrParmCodeFmt = ref(true);
+const toast = useToast();
+const srToastStore = useSrToastStore();
 
 
 const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
@@ -31,13 +35,13 @@ const onEditComplete = (data: Record<string, any>, field: string, event: Event) 
 const analyze = (id:number) => {
     try {
         console.log('Analyze ', id);
-        if (!id) {
-            console.error('Request id is missing for analyze request');
-            return;
+        if(atlChartFilterStore.setReqId(id)){
+            router.push(`/analyze/${id.toString()}`);
+            console.log('Router Push for Analyze request for id:', id, ' is successful');
+        } else {
+            console.error('Failed to set request id for analyze request id:', id);
+            toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
         }
-        atlChartFilterStore.setReqId(id);
-        router.push(`/analyze/${id}`);
-        console.log('Router Push for Analyze request for id:', id, ' is successful');
     } catch (error) {
         console.error(`Failed to analyze request for id:${id}`, error);
         throw error;

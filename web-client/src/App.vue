@@ -78,24 +78,31 @@ const recordButtonClick = () => {
 };
 
 const analysisButtonClick = async () => {
-  if (atlChartFilterStore.getReqId()) {
-    router.push(`/analyze/${atlChartFilterStore.getReqId()}`);
-  } else {
-    const items = await requestsStore.getMenuItems();
-    if (items.length === 0) {
-      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
-      return;
-    }  
-    const reqIdStr = items[0].value;
-    const reqId = Number(reqIdStr);
-    if (reqId > 0) {
-      atlChartFilterStore.setReqId(reqId);
-      router.push(`/analyze/${reqId}`);
-    } else {
-      toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+    try{
+        if (atlChartFilterStore.getReqId()>0) {
+            router.push(`/analyze/${atlChartFilterStore.getReqIdStr()}`);
+        } else {
+            atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+            if (atlChartFilterStore.reqIdMenuItems.length === 0) {
+                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+                return;
+            }  
+            const reqId = atlChartFilterStore.reqIdMenuItems[0].value;
+            if (reqId > 0) {
+                if(atlChartFilterStore.setReqId(reqId)){
+                    router.push(`/analyze/${reqId.toString()}`);
+                } else {
+                    toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
+                }
+            } else {
+                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+            }
+        }
+    } catch (error) {
+        console.error(`Failed analysisButtonClick`, error);
+        throw error;
     }
-  }
-};
+  };
 
 const aboutButtonClick = () => {
   //router.push('/about');

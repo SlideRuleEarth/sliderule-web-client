@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Control } from 'ol/control';
 import SrMenuNumberInput from './SrMenuNumberInput.vue';
 import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: 'record-selector-control-created', control: Control): void;
   (e: 'update-record-selector', recordItem: SrMenuNumberItem): void;
 }>();
+const atlChartFilterStore = useAtlChartFilterStore();
 
 let customControl: Control | null = null;
 const getSize = computed(() => {
@@ -24,6 +25,9 @@ const getCnt = computed(() => {
 const tooltipTextStr = computed(() => {
     return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
+
+const selectedReqIdValue = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value);
+
 onMounted(() => {
   if (recordSelectorControlElement.value) {
     customControl = new Control({ element: recordSelectorControlElement.value });
@@ -41,13 +45,22 @@ function updateRecordSelector(event: Event) {
   emit('update-record-selector', useAtlChartFilterStore().selectedReqIdMenuItem);
   console.log("updateRecord:", event);
 }
+
+watch(selectedReqIdValue, async (newSelection, oldSelection) => {
+    //console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    try{
+        console.log('watch atlChartFilterStore.selectedReqIdMenuItem.value --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+});
 </script>
 
 <template>
   <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
     <SrMenuNumberInput
-        v-model="useAtlChartFilterStore().selectedReqIdMenuItem"
-        :menuOptions="useAtlChartFilterStore().reqIdMenuItems" 
+        v-model="atlChartFilterStore.selectedReqIdMenuItem"
+        :menuOptions="atlChartFilterStore.reqIdMenuItems" 
         @change="updateRecordSelector"
         :tooltipText=tooltipTextStr
     />

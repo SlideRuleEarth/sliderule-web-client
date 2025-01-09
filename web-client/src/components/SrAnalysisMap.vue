@@ -68,14 +68,14 @@
     }>();
 
     const props = defineProps({
-        reqId: {
-            type: Number,
+        selectedReqIdItem: {
+            type: Object as () => SrMenuNumberItem,
             required: true
         }
     });
 
     // Watch for changes on reqId
-    watch( () => props.reqId, async (newReqId, oldReqId) => {
+    watch( () => props.selectedReqIdItem, async (newReqId, oldReqId) => {
         console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
         await updateAnalysisMapView("New reqId");  
     });
@@ -93,7 +93,7 @@
     });
 
     onMounted(() => {
-        console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
+        console.log("SrAnalysisMap onMounted using selectedReqIdItem:",props.selectedReqIdItem);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -137,13 +137,13 @@
 
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
-        let srViewName = await db.getSrViewName(props.reqId);
-        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with reqId:${props.reqId} ------`);
+        let srViewName = await db.getSrViewName(props.selectedReqIdItem.value);
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqIdItem:${props.selectedReqIdItem} ------`);
 
         try {
             if(map){
                 await updateMapView(map, srViewName, reason);
-                zoomMapForReqIdUsingView(map, props.reqId,srViewName);
+                zoomMapForReqIdUsingView(map, props.selectedReqIdItem.value,srViewName);
                 initDeck(map);
             } else {
                 console.error("SrMap Error:map is null");
@@ -159,7 +159,7 @@
             console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
             console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
         }
-        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with reqId:${props.reqId} ------`);
+        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqIdItem:${props.selectedReqIdItem} ------`);
     };
 </script>
 
@@ -174,12 +174,12 @@
     </div>
     <div ref="mapContainer" class="sr-map-container" >
         <Map.OlMap 
-        ref="mapRef" 
-        @error="handleEvent"
-        :loadTilesWhileAnimating="true"
-        :loadTilesWhileInteracting="true"
-        :controls="controls"
-        class="sr-ol-map"
+            ref="mapRef" 
+            @error="handleEvent"
+            :loadTilesWhileAnimating="true"
+            :loadTilesWhileInteracting="true"
+            :controls="controls"
+            class="sr-ol-map"
         >
 
         <MapControls.OlZoomControl  />

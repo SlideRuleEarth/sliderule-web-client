@@ -193,7 +193,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       this.setBeams([{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
     },
     setReqId(req_id: number):boolean {
-
         // Find the corresponding menu item in reqIdMenuItems
         const menuItem = this.reqIdMenuItems.find(item => item.value === req_id);
         let found = false;
@@ -204,7 +203,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
         } else {
             console.warn(`setReqId: No matching menu item found for req_id ${req_id}`);
             // Optionally reset to a default value or handle the absence of a match
-            this.selectedReqIdMenuItem = { label: 'select a record', value: 0 };
+            //this.selectedReqIdMenuItem = { label: 'select a record', value: 0 };
         }
         return found;
     },
@@ -215,7 +214,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     
     getReqIdStr(): string {
       // Return the label of the selected menu item
-      return this.selectedReqIdMenuItem.label;
+      return this.selectedReqIdMenuItem.value.toString();
     },
       incrementDebugCnt() {
       return ++this.debugCnt;

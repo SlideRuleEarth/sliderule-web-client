@@ -33,6 +33,8 @@ import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from "@/utils/SrParquetUtils";
+import { initChartStore } from '@/utils/plotUtils';
+import { useRequestsStore } from '@/stores/requestsStore';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -40,6 +42,7 @@ const chartStore = useChartStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
 const colorMapStore = useElevationColorMapStore();
+const requestsStore = useRequestsStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -81,8 +84,48 @@ const computedInitializing = computed(() => {
 });
 
 const computedReqIdStr = computed(() => {
-    return atlChartFilterStore.selectedReqIdMenuItem.toString();
+    return atlChartFilterStore.selectedReqIdMenuItem.value.toString();
 });
+const selectedReqIdValue = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value);
+
+async function syncRouteToChartStore(newReqId: number) : Promise<number> {
+    let finalReqId = newReqId;
+    try{
+        if (isNaN(newReqId)) {
+            console.error("Invalid (NaN) route parameter for 'id':", newReqId);
+            toast.add({ severity: 'error', summary: 'Invalid route', detail: `Invalid (NaN) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+            return 0;
+        }
+        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+        if(atlChartFilterStore.reqIdMenuItems.length === 0){
+            console.warn("Invalid (no records) route parameter for 'id':", newReqId);
+            toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+            return 0;
+        }
+        const newMenuItem = atlChartFilterStore.reqIdMenuItems.find(item => item.value === newReqId);
+        if(newMenuItem){
+            if(atlChartFilterStore.setReqId(newReqId)){
+                console.log('Route ID changed to:', newReqId);
+                initChartStore();
+            } else {
+                console.error("Invalid 1 (not in records) route parameter for 'id':", newReqId);
+                toast.add({ severity: 'error', summary: 'Invalid route', detail: `Invalid (not in records) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+                return 0;
+            }
+        } else {
+            finalReqId = atlChartFilterStore.reqIdMenuItems[0].value;
+            console.warn("Invalid (not in records) route parameter for 'id':", newReqId, "Setting to first record:", newReqId);
+            toast.add({ severity: 'error', summary: 'Invalid route', detail: `Invalid (not in records) route parameter for record:${newReqId} setting to first record${newReqId}`, life: srToastStore.getLife()});
+        }
+        console.log('Route ID changed to:', newReqId);
+    } catch (error) {
+        console.error('Error processing route ID change:', error);
+        console.error("exception setting route parameter for 'id':", newReqId);
+        toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+    }
+    return finalReqId;
+}
+
 
 onMounted(async () => {
     // the router sets the startingReqId and the atlChartFilterStore.reqIdMenuItems
@@ -92,22 +135,12 @@ onMounted(async () => {
     mapStore.setCurrentRows(0);
     atlChartFilterStore.setDebugCnt(0);
     try {
-        let req_id = atlChartFilterStore.getReqId();
-        if(req_id != props.startingReqId){
-            // we expect the startingReqId to be the same as the req_id set by the view
-            console.error(`ROUTE ERROR ? req_id:${req_id} != startingReqId:${props.startingReqId}`);
-        }
-        //console.log('onMounted selectedReqId:', req_id);
-        if (req_id > 0) {
-            //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
-            const height_fieldname = await getHeightFieldname(req_id);
-            const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
-            console.log('onMounted summary:', summary);
-            await updateChartStore(req_id);
-        } else {
-            console.warn('Invalid request ID:', req_id);
-            //toast.add({ severity: 'warn', summary: 'Invalid Request ID', detail: 'Invalid Request ID', life: srToastStore.getLife() });
-        }
+        //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(computedReqIdStr.value));
+        let req_id = await syncRouteToChartStore(props.startingReqId);
+        const height_fieldname = await getHeightFieldname(req_id);
+        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+        console.log('onMounted summary:', summary, 'req_id:', req_id);
+        await updateChartStore(req_id);
         //console.log('onMounted atlChartFilterStore.reqIdMenuItems:', atlChartFilterStore.reqIdMenuItems);
     } catch (error) {
         if (error instanceof Error) {
@@ -186,32 +219,34 @@ const updateElevationMap = async (req_id: number) => {
         return;
     }
     try {
-        atlChartFilterStore.setReqId(req_id);
-        const request = await db.getRequest(req_id);
-        //console.log('Request:', request);
+        if(atlChartFilterStore.setReqId(req_id)){
+            const request = await db.getRequest(req_id);
+            //console.log('Request:', request);
 
-        deckStore.deleteSelectedLayer();
-        //console.log('Request ID:', req_id, 'func:', chartStore.getFunc(reqIdStr));
-        useAtlChartFilterStore().setReqId(req_id);
-        //console.log('watch req_id SrAnalyzeOptSidebar');
-        const rgts = await updateRgtOptions(req_id);
-        //console.log('watch req_id rgts:',rgts);
-        const cycles = await updateCycleOptions(req_id);
-        //console.log('watch req_id cycles:',cycles);
-        if(chartStore.getFunc(reqIdStr)==='atl03sp'){
-            const pairs = await updatePairOptions(req_id);
-            //console.log('watch req_id pairs:',pairs);
-            const scOrients = await updateScOrientOptions(req_id);
-            //console.log('watch req_id scOrients:',scOrients);
-            const tracks = await updateTrackOptions(req_id);
-            //console.log('watch req_id tracks:',tracks);
+            deckStore.deleteSelectedLayer();
+            //console.log('Request ID:', req_id, 'func:', chartStore.getFunc(reqIdStr));
+            useAtlChartFilterStore().setReqId(req_id);
+            //console.log('watch req_id SrAnalyzeOptSidebar');
+            const rgts = await updateRgtOptions(req_id);
+            //console.log('watch req_id rgts:',rgts);
+            const cycles = await updateCycleOptions(req_id);
+            //console.log('watch req_id cycles:',cycles);
+            if(chartStore.getFunc(reqIdStr)==='atl03sp'){
+                const pairs = await updatePairOptions(req_id);
+                //console.log('watch req_id pairs:',pairs);
+                const scOrients = await updateScOrientOptions(req_id);
+                //console.log('watch req_id scOrients:',scOrients);
+                const tracks = await updateTrackOptions(req_id);
+                //console.log('watch req_id tracks:',tracks);
+            }
+
+            updateFilter([req_id]);
+            mapStore.setIsLoading(true);
+            firstRec = await duckDbReadAndUpdateElevationData(req_id);
+            mapStore.setIsLoading(false);
+        } else {
+            console.warn(`updateElevationMap Invalid request ID:${req_id}`);
         }
-
-        updateFilter([req_id]);
-        mapStore.setIsLoading(true);
-        firstRec = await duckDbReadAndUpdateElevationData(req_id);
-        mapStore.setIsLoading(false);
-
     } catch (error) {
         console.warn('Failed to update selected request:', error);
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
@@ -237,7 +272,7 @@ const debouncedUpdateElevationMap = debounce((req_id: number) => {
 const updateRecordSelection = async (item: SrMenuNumberItem) => {
     console.log('updateRecordSelection item:', item);
     if(atlChartFilterStore.selectedReqIdMenuItem.value > 0){
-        //console.log('handleUpdateReqId selectedReqId:', useAtlChartFilterStore().selectedReqIdMenuItem);
+        console.log('handleUpdateReqId selectedReqId:', useAtlChartFilterStore().selectedReqIdMenuItem);
         await debouncedUpdateElevationMap(atlChartFilterStore.selectedReqIdMenuItem.value);
     } else {
         console.warn("useAtlChartFilterStore().selectedReqIdMenuItem is undefined");
@@ -290,29 +325,33 @@ watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {
         console.warn('ElevationColorMap Failed debouncedUpdateElevationMap:', error);
         toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
     }
-}, { deep: true, immediate: true });
+}, { deep: true });
 
-watch(useAtlChartFilterStore().selectedReqIdMenuItem, async (newSelection, oldSelection) => {
-    //console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
+watch(selectedReqIdValue, async (newSelection, oldSelection) => {
+    console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection, ' selectedReqIdMenuItem:',atlChartFilterStore.selectedReqIdMenuItem);
+    const req_id = newSelection;
     try{
-        if(useAtlChartFilterStore().selectedReqIdMenuItem && newSelection){
-            const req_id = Number(newSelection.value)
-            atlChartFilterStore.setReqId(req_id);
-            atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            deckStore.deleteSelectedLayer();
-            atlChartFilterStore.setSpots([]);
-            atlChartFilterStore.setRgts([]);
-            atlChartFilterStore.setCycles([]);
-            await updateFilter([req_id]);
-            await debouncedUpdateElevationMap(req_id);
-            await updateChartStore(Number(useAtlChartFilterStore().selectedReqIdMenuItem));
+        if(req_id > 0){
+            if(atlChartFilterStore.setReqId(req_id)){
+                atlChartFilterStore.setSelectedOverlayedReqIds([]);
+                deckStore.deleteSelectedLayer();
+                atlChartFilterStore.setSpots([]);
+                atlChartFilterStore.setRgts([]);
+                atlChartFilterStore.setCycles([]);
+                await updateFilter([req_id]);
+                await debouncedUpdateElevationMap(req_id);
+                await updateChartStore(req_id);
+            } else {
+                console.error(`watch useAtlChartFilterStore().selectedReqIdMenuItem --> Invalid request ID:${req_id}`);
+                toast.add({ severity: 'warn', summary: 'Invalid request ID', detail: `Invalid request ID:${req_id}`, life: srToastStore.getLife()});
+            }
         } else {
-            console.warn('watch useAtlChartFilterStore().selectedReqIdMenuItem/newSelection --> Request ID is undefined');
+            console.warn('watch useAtlChartFilterStore().selectedReqIdMenuItem/newSelection --> Request Id is <= 0',req_id);
         }
     } catch (error) {
-        console.error('Failed to update selected request:', error);
+        console.error(`Failed to update with selected record ${req_id}:`, error);
     }
-});
+}, );
 
 const getSize = computed(() => {
     return formatBytes(useChartStore().getSize());
@@ -372,7 +411,7 @@ const exportButtonClick = async () => {
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
                     <div v-if="loading">Loading...{{ chartStore.getFunc(computedReqIdStr) }}</div>
                     <SrAnalysisMap 
-                        v-else :reqId="atlChartFilterStore.selectedReqIdMenuItem.value"
+                        v-else :selectedReqIdItem="atlChartFilterStore.selectedReqIdMenuItem"
                         @update-record-selection="updateRecordSelection"
                     />
                 </div>

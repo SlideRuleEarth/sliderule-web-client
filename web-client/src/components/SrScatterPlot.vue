@@ -38,10 +38,10 @@
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
-                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.currentReqId)">
+                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
                         <MultiSelect
                                 class="sr-multiselect"
-                                :placeholder="`Y data for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}`"
+                                :placeholder="`Y data for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`"
                                 :id="computedElID"
                                 v-model="yDataBindingsReactive[computedReqIdStr]"
                                 size="small" 
@@ -145,11 +145,18 @@ import Card from 'primevue/card';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
 
+const props = defineProps({
+    startingReqId: {
+        type:Number, 
+        default:0
+    }
+});
+
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
-const computedReqIdStr = computed(() => atlChartFilterStore.currentReqId.toString());
+const computedReqIdStr = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
@@ -218,7 +225,7 @@ function createSetSymbolSizeFor(reqIdStr: string) {
 
   // The "real" function
   function doSetSymbolSize(value: number) {
-    //console.log(`computedSymbolSize set value: ${value}`);
+    console.log(`computedSymbolSize set value: ${value}`);
     chartStore.setSymbolSize(reqIdStr, value);
     setSymbolCounter.value++;
   }
@@ -234,7 +241,7 @@ function createSetSymbolSizeFor(reqIdStr: string) {
 }
 
 const computedSlideLabel = computed(() => {
-    return  `symbol size for ${findReqMenuLabel(atlChartFilterStore.currentReqId)}`;
+    return  `symbol size for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
 });
 
 function initializeBindings(reqIds: string[]) {
@@ -269,9 +276,9 @@ onMounted(async () => {
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
 
-        const reqId = atlChartFilterStore.getReqId();
+        const reqId = props.startingReqId;
         atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-        initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value));
+        initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
             atl03ColorMapStore.initializeAtl03ColorMapStore();
@@ -314,12 +321,12 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
-watch(() => setSymbolCounter.value, async (newCounter) => {
-    console.log('setSymbolCounter changed:', newCounter);
-    if(newCounter>1){ // ignore first one; it's initializing
-        await updateScatterOptionsOnly('from watch setSymbolCounter.value');
-    }
-});
+// watch(() => setSymbolCounter.value, async (newCounter) => {
+//     console.log('setSymbolCounter changed:', newCounter);
+//     if(newCounter>1){ // ignore first one; it's initializing
+//         await updateScatterOptionsOnly('from watch setSymbolCounter.value');
+//     }
+// });
 
 const messageClass = computed(() => {
   return {
@@ -340,6 +347,8 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
         await callPlotUpdateDebounced('from watch computedSelectedAtl03ColorMap');
+    } else {
+        console.warn('watch computedSelectedAtl03ColorMap reqId is undefined');
     }
 }, { deep: true, immediate: true });
 
@@ -372,6 +381,15 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
     try{
         atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
    } catch (error) {
+        console.error('Failed to update selected request:', error);
+    }
+});
+
+watch(atlChartFilterStore.selectedReqIdMenuItem, async (newSelection, oldSelection) => {
+    //console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    try{
+        console.log('watch selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
+    } catch (error) {
         console.error('Failed to update selected request:', error);
     }
 });

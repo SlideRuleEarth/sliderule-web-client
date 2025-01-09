@@ -376,6 +376,49 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     return seriesData;
 }
 
+export async function initChartStore(){
+    for (const reqIdItem of atlChartFilterStore.reqIdMenuItems) {
+        const reqIdStr = reqIdItem.value.toString();
+        const thisReqId = Number(reqIdItem.value);
+        if(thisReqId > 0) {
+            try{
+                const request = await indexedDb.getRequest(thisReqId);
+                if(request &&request.file){
+                    chartStore.setFile(reqIdStr,request.file);
+                } else {
+                    console.error('No file found for reqId:',reqIdStr);
+                }
+                if(request && request.func){
+                    await chartStore.setFunc(reqIdStr,request.func);
+                } else {
+                    console.error('No func found for reqId:',reqIdStr);
+                }
+                if(request && request.description){
+                    chartStore.setDescription(reqIdStr,request.description);
+                } else {
+                    // this is not an error, just a warning
+                    console.warn('No description found for reqId:',reqIdStr);
+                }
+                if(request && request.num_bytes){
+                    useChartStore().setSize(reqIdStr,request.num_bytes);
+                } else {
+                    console.error('No num_bytes found for reqId:',reqIdStr);
+                }
+                if(request && request.cnt){
+                    useChartStore().setRecCnt(reqIdStr,request.cnt);
+                } else {
+                    console.error('No num_points found for reqId:',reqIdStr, ' request:', request);
+                }
+            } catch (error) {
+                console.error(`Error in load menu items with reqId: ${reqIdStr}`, error);
+            }
+        } else {
+            console.warn('Invalid request ID:', thisReqId);
+        }
+    }
+}
+
+
 export async function getScatterOptions(req_id:number): Promise<any> {
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
