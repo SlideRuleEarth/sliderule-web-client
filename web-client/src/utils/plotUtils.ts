@@ -940,6 +940,24 @@ export const findReqMenuLabel = (reqId:number) => {
     return item ? item.label : 'unknown'
 }
 
+export async function initSymbolSize(req_id: number){
+    const reqIdStr = req_id.toString();
+    const func = await indexedDb.getFunc(req_id);
+    const plotConfig = await indexedDb.getPlotConfig();
+    if (func.includes('atl03sp')) {
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+    } else if (func.includes('atl03vp')) {
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+    } else if (func.includes('atl06')) {
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
+    } else if (func.includes('atl08')) {
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
+    } else {
+        console.error('initSymbolSize unknown function:', func);
+    }
+    console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
+}
+
 export async function updateChartStore(req_id: number) {
     console.log('updateChartStore req_id:', req_id);
     const reqIdStr = req_id.toString();
@@ -962,19 +980,7 @@ export async function updateChartStore(req_id: number) {
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
         }
-        const plotConfig = await indexedDb.getPlotConfig();
         //console.log('setFunc calling setSymbolSize for reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
-        if (func.includes('atl03sp')) {
-            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-        } else if (func.includes('atl03vp')) {
-            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
-        } else if (func.includes('atl06')) {
-            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
-        } else if (func.includes('atl08')) {
-            chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
-        } else {
-            console.error('updateChartStore unknown function:', func);
-        }
 
 
     } catch (error) {

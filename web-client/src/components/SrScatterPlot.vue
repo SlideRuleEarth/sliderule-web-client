@@ -124,7 +124,7 @@ import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import SrSliderStored from "@/components/SrSliderStored.vue";
@@ -172,15 +172,16 @@ const computedSymbolSize = computed<number>({
 });
 // Function that returns a computed property for a given reqIdStr
 function createComputedSymbolSizeFor(reqIdStr: string) {
-  return computed<number>({
-    get() {
-      return chartStore.getSymbolSize(reqIdStr);
-    },
-    set(value: number) {
-      //console.log(`computedSymbolSize set value: ${value}`);
-      chartStore.setSymbolSize(reqIdStr, value);
-    }
-  });
+    initSymbolSize(Number(reqIdStr));
+    return computed<number>({
+        get() {
+            return chartStore.getSymbolSize(reqIdStr);
+        },
+        set(value: number) {
+        //console.log(`computedSymbolSize set value: ${value}`);
+        chartStore.setSymbolSize(reqIdStr, value);
+        }
+    });
 }
 
 function createComputedLabelFor(reqId: number) :string {
@@ -189,7 +190,7 @@ function createComputedLabelFor(reqId: number) :string {
 
 function createGetSymbolSizeFor(reqIdStr: string) {
   return () => {
-    //console.log(`computedSymbolSize get value: ${chartStore.getSymbolSize(reqIdStr)}`);
+    //console.log(`createGetSymbolSizeFor get value: ${chartStore.getSymbolSize(reqIdStr)}`);
     return chartStore.getSymbolSize(reqIdStr);
   };
 }
@@ -271,6 +272,7 @@ onMounted(async () => {
         initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
+            await initSymbolSize(reqId);
             atl03ColorMapStore.initializeAtl03ColorMapStore();
             await prepareDbForReqId(reqId);                                                                      
     
@@ -311,12 +313,13 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
-// watch(() => setSymbolCounter.value, async (newCounter) => {
-//     console.log('setSymbolCounter changed:', newCounter);
-//     if(newCounter>1){ // ignore first one; it's initializing
-//         await updateScatterOptionsOnly('from watch setSymbolCounter.value');
-//     }
-// });
+watch(() => setSymbolCounter.value, async (newCounter) => {
+    console.log('setSymbolCounter changed:', newCounter);
+    if(newCounter>1){ // ignore first one; it's initializing
+        //await updateScatterOptionsOnly('from watch setSymbolCounter.value');
+        await callPlotUpdateDebounced('from watch setSymbolCounter.value');
+    }
+});
 
 const messageClass = computed(() => {
   return {
@@ -353,18 +356,20 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 await processRunSlideRuleClicked(runContext);
                 console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
-                const thisReqIdStr = runContext.reqId.toString();
-                const parentReqIdStr = runContext.parentReqId.toString();
-                initializeBindings([thisReqIdStr]);//after run gives us a reqId
-                atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-                chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
-                chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
-                chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
-                chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
-                } else {
+                    const thisReqIdStr = runContext.reqId.toString();
+                    const parentReqIdStr = runContext.parentReqId.toString();
+                    initializeBindings([thisReqIdStr]);//after run gives us a reqId
+                    await initSymbolSize(runContext.reqId);
+                    atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+                    chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
+                    chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
+                    chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
+                    chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
+                    } else {
                 console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else {
+                await initSymbolSize(runContext.reqId);
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
@@ -385,7 +390,7 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
     try{
         atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
     } catch (error) {
-        console.error('Failed to update selected request:', error);
+        console.error('watch selectedOverlayedReqIds Failed to update selected request:', error);
     }
 });
 
