@@ -30,7 +30,7 @@ export const RasterParamsCols = [
 ];
 
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
-import type { SrMenuItem } from '@/stores/atlChartFilterStore';
+import type { SrMenuItem } from '@/stores/chartStore';
 // Define the store
 import { defineStore } from 'pinia';
 

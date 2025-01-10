@@ -144,6 +144,8 @@ import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
 import Card from 'primevue/card';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
+import { useReqParamsStore } from "@/stores/reqParamsStore";
+import { run } from "node:test";
 
 const props = defineProps({
     startingReqId: {
@@ -156,6 +158,8 @@ const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
+const reqParamsStore = useReqParamsStore();
+
 const computedReqIdStr = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
@@ -164,8 +168,8 @@ const loadingComponent = ref(true);
 const setSymbolCounter = ref(0);
 
 const highlightedTrackDetails = computed(() => {
-    if(atlChartFilterStore.getRgts() && atlChartFilterStore.getRgts().length > 0 && atlChartFilterStore.getCycles() && atlChartFilterStore.getCycles().length > 0 && atlChartFilterStore.getTracks() && atlChartFilterStore.getTracks().length > 0 && atlChartFilterStore.getBeams() && atlChartFilterStore.getBeams().length > 0) {
-        return `rgt:${atlChartFilterStore.getRgts()[0].value} cycle:${atlChartFilterStore.getCycles()[0].value} track:${atlChartFilterStore.getTracks()[0].value} beam:${atlChartFilterStore.getBeams()[0].label}`;
+    if(chartStore.getRgts(computedReqIdStr.value) && chartStore.getRgts(computedReqIdStr.value).length > 0 && chartStore.getCycles(computedReqIdStr.value) && chartStore.getCycles(computedReqIdStr.value).length > 0 && chartStore.getTracks(computedReqIdStr.value) && chartStore.getTracks(computedReqIdStr.value).length > 0 && chartStore.getBeams(computedReqIdStr.value) && chartStore.getBeams(computedReqIdStr.value).length > 0) {
+        return `rgt:${chartStore.getRgts(computedReqIdStr.value)[0].value} cycle:${chartStore.getCycles(computedReqIdStr.value)[0].value} track:${chartStore.getTracks(computedReqIdStr.value)[0].value} beam:${chartStore.getBeams(computedReqIdStr.value)[0].label}`;
     } else {
         return '';
     }
@@ -275,7 +279,8 @@ onMounted(async () => {
         //console.log('SrScatterPlot onMounted');
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
-
+        atlChartFilterStore.showPhotonCloud = false;
+        atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
         initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
@@ -355,23 +360,37 @@ watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => 
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
     console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
-    if(newShowPhotonCloud){
-        const runContext = await getPhotonOverlayRunContext();
-        if(runContext.reqId <= 0){
-            await processRunSlideRuleClicked(runContext);
-            console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
-            const thisReqIdStr = runContext.reqId.toString();
-            initializeBindings([thisReqIdStr]);//after run gives us a reqId
-            atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+    if(!loadingComponent.value){
+        if(newShowPhotonCloud){
+            const runContext = await getPhotonOverlayRunContext();
+            if(runContext.reqId <= 0){
+                await reqParamsStore.presetForScatterPlotOverlay(atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+                await processRunSlideRuleClicked(runContext);
+                console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+                if(runContext.reqId > 0){
+                const thisReqIdStr = runContext.reqId.toString();
+                const parentReqIdStr = runContext.parentReqId.toString();
+                initializeBindings([thisReqIdStr]);//after run gives us a reqId
+                atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+                chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
+                chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
+                chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
+                chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
+                } else {
+                console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                }
+            } else {
+                await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+            }
+            const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
+            requestsStore.setConsoleMsg(msg);
         } else {
-            await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+            console.log('handlePhotonCloudChange - showPhotonCloud FALSE');
+            atlChartFilterStore.setSelectedOverlayedReqIds([]);
+            await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
         }
-        const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
-        requestsStore.setConsoleMsg(msg);
     } else {
-        console.log('handlePhotonCloudChange - showPhotonCloud FALSE');
-        atlChartFilterStore.setSelectedOverlayedReqIds([]);
-        await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
+        console.warn(`Skipped handlePhotonCloudChange - Loading component is still active`);
     }
 }, { deep: true, immediate: true });
 
@@ -380,7 +399,7 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
     console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
         atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-   } catch (error) {
+    } catch (error) {
         console.error('Failed to update selected request:', error);
     }
 });
@@ -408,54 +427,23 @@ async function updateThePlot(msg:string) {
     }
 }
 
-
-watch(() => atlChartFilterStore.scOrients,
+watch(
+  () => ({
+    scOrients: chartStore.getScOrients(computedReqIdStr.value),
+    rgts: chartStore.getRgts(computedReqIdStr.value),
+    cycles: chartStore.getCycles(computedReqIdStr.value),
+    spots: chartStore.getSpots(computedReqIdStr.value),
+    tracks: chartStore.getTracks(computedReqIdStr.value),
+    pairs: chartStore.getPairs(computedReqIdStr.value),
+  }),
   async (newValues, oldValues) => {
-    //console.log('watch - scOrients changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.scOrients");
-  }
-);
-
-watch(() => atlChartFilterStore.rgts,
-  async (newValues, oldValues) => {
-    //console.log('watch - rgts changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.rgts");
-  }
-);
-
-watch(() => atlChartFilterStore.cycles,
-  async (newValues, oldValues) => {
-    //console.log('watch - cycles changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.cycles");
-  }
-);
-
-watch(() => atlChartFilterStore.spots,
-  async (newValues, oldValues) => {
-    //console.log('watch - spots changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.spots");
-  }
-);
-
-watch(() => atlChartFilterStore.beams,
-  async (newValues, oldValues) => {
-    //console.log('watch - beams changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.beams");
-  }
-);
-
-watch(() => atlChartFilterStore.tracks,
-  async (newValues, oldValues) => {
-    //console.log('watch - tracks changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.tracks");
-  }
-);
-
-watch(() => atlChartFilterStore.pairs,
-  async (newValues, oldValues) => {
-    //console.log('watch - pairs changed from:', oldValues, 'to:', newValues);
-    await updateThePlot("watch atlChartFilterStore.pairs");
-  }
+    if(!loadingComponent.value){
+        await callPlotUpdateDebounced('watch multiple properties changed');
+    } else {
+        console.warn(`Skipped updateThePlot for watch multiple properties - Loading component is still active`);
+    }  
+  },
+  { deep: true }
 );
 
 </script>

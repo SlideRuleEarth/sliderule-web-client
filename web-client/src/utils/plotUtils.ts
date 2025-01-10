@@ -6,7 +6,6 @@ import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData
 import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
-//import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
@@ -72,10 +71,10 @@ async function getSeriesForAtl03sp(
     try {
         const name = 'atl03sp';
         const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
-        console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
+        //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
         // Check if either chartData or minMaxValues is empty
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
-            console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing.');
+            console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing. chartData len:', Object.keys(chartData).length , ' minMaxValues len:', Object.keys(minMaxValues).length);
             return yItems; // Return empty array if either is empty
         }
 
@@ -363,6 +362,9 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
+            if(seriesData.length === 0){
+                console.warn(`getSeriesFor ${reqIdStr} seriesData is empty`);
+            }
             //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
         } else {
             console.warn(`getSeriesFor ${reqIdStr} fileName is null`);
@@ -371,7 +373,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
         console.error('getSeriesFor Error:', error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+        console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds. seriesData.length:`, seriesData.length);
     }
     return seriesData;
 }
@@ -426,9 +428,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const func = chartStore.getFunc(reqIdStr);
     const y = chartStore.getYDataForChart(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const rgts = atlChartFilterStore.rgts.map(rgt => rgt?.value).filter(value => value !== undefined);
-    const cycles = atlChartFilterStore.cycles.map(cycle => cycle?.value).filter(value => value !== undefined);
-    const spots = atlChartFilterStore.spots.map(spot => spot.value);
+    const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
+    const cycles = chartStore.getCycles(reqIdStr).map(cycle => cycle?.value).filter(value => value !== undefined);
+    const spots = chartStore.getSpots(reqIdStr).map(spot => spot.value);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
@@ -551,7 +553,7 @@ const initScatterPlotWith = async (reqId: number) => {
         console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
         return;
     }
-    updateChartStore(reqId);
+    await updateChartStore(reqId);
 
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataForChart(reqIdStr);
@@ -567,7 +569,7 @@ const initScatterPlotWith = async (reqId: number) => {
     } else {
         try {
             atlChartFilterStore.setIsLoading();
-            getScatterOptionsFor(reqId)
+            await getScatterOptionsFor(reqId)
         } catch (error) {
             console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
             atlChartFilterStore.setShowMessage(true);
@@ -850,14 +852,15 @@ export const updateScatterOptionsOnly = async (msg:string) => {
 }
 
 export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
+    const reqIdStr = atlChartFilterStore.getReqId().toString();
     const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: atlChartFilterStore.getReqId(),
         trackFilter: {
-            rgt: atlChartFilterStore.getRgts()[0].value,
-            cycle: atlChartFilterStore.getCycles()[0].value,
-            track: atlChartFilterStore.getTracks()[0].value,
-            beam: atlChartFilterStore.getBeams()[0].value
+            rgt: chartStore.getRgts(reqIdStr)[0].value,
+            cycle: chartStore.getCycles(reqIdStr)[0].value,
+            track: chartStore.getTracks(reqIdStr)[0].value,
+            beam: chartStore.getBeams(reqIdStr)[0].value
         }
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
@@ -865,6 +868,11 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){
             runContext.reqId = reqId;
+            const childReqIdStr = reqId.toString();
+            chartStore.setRgts(childReqIdStr,chartStore.getRgts(reqIdStr));
+            chartStore.setCycles(childReqIdStr,chartStore.getCycles(reqIdStr));
+            chartStore.setTracks(childReqIdStr,chartStore.getTracks(reqIdStr));
+            chartStore.setBeams(childReqIdStr,chartStore.getBeams(reqIdStr));
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
             console.log('findCachedRec reqId found:', reqId);
         } else {
@@ -876,9 +884,10 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 
 async function updatePlot(msg:string){
     console.log('updatePlot called for:',msg);
-    if( (useAtlChartFilterStore().getRgtValues().length > 0) &&
-        (useAtlChartFilterStore().getCycleValues().length > 0) &&
-        (useAtlChartFilterStore().getSpotValues().length > 0)
+    const reqIdStr = useAtlChartFilterStore().getReqId().toString();
+    if( (chartStore.getRgtValues(reqIdStr).length > 0) &&
+        (chartStore.getCycleValues(reqIdStr).length > 0) &&
+        (chartStore.getSpotValues(reqIdStr).length > 0)
     ){
         const runContext = await getPhotonOverlayRunContext();
         if(runContext.reqId > 0){
@@ -891,9 +900,9 @@ async function updatePlot(msg:string){
         await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
-        console.warn('Rgt:', useAtlChartFilterStore().getRgtValues());
-        console.warn('Cycle:', useAtlChartFilterStore().getCycleValues());
-        console.warn('Spot:', useAtlChartFilterStore().getSpotValues());
+        console.warn('Rgt:', chartStore.getRgtValues(reqIdStr));
+        console.warn('Cycle:', chartStore.getCycleValues(reqIdStr));
+        console.warn('Spot:', chartStore.getSpotValues(reqIdStr));
     }
 }
 let updatePlotTimeoutId: number | undefined;
@@ -932,7 +941,8 @@ export const findReqMenuLabel = (reqId:number) => {
 }
 
 export async function updateChartStore(req_id: number) {
-    //console.log('updateChartStore req_id:', req_id);
+    console.log('updateChartStore req_id:', req_id);
+    const reqIdStr = req_id.toString();
     if (req_id <= 0) {
         console.warn(`updateChartStore Invalid request ID:${req_id}`);
         return;
@@ -945,9 +955,9 @@ export async function updateChartStore(req_id: number) {
         await chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),
-            useAtlChartFilterStore().getSpotValues(),
-            useAtlChartFilterStore().getRgtValues(),
-            useAtlChartFilterStore().getCycleValues(),
+            chartStore.getSpotValues(reqIdStr),
+            chartStore.getRgtValues(reqIdStr),
+            chartStore.getCycleValues(reqIdStr),
         );
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);

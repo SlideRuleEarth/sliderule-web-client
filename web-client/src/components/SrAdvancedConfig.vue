@@ -61,12 +61,10 @@
     import SrSliderInput from './SrSliderInput.vue';
     import SrGraticuleSelect from './SrGraticuleSelect.vue';
     import SrMenuInput from './SrMenuInput.vue';
-    import SrSelectParquetReader from './SrSelectParquetReader.vue';
     import { useReqParamsStore } from '@/stores/reqParamsStore';
     import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
     import { useDebugStore } from '@/stores/debugStore';
     import { useDeckStore } from '@/stores/deckStore';
-    import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
     import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
@@ -76,7 +74,6 @@
     const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const reqParamsStore = useReqParamsStore();
-    const atlChartFilterStore = useAtlChartFilterStore();
     const deckStore = useDeckStore();
     const colorMapStore = useElevationColorMapStore();
     const requestsStore = useRequestsStore();

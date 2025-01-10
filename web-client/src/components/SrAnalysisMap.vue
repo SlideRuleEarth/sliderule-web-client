@@ -20,7 +20,7 @@
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
-    import { updateMapView } from "@/utils/SrMapUtils";
+    import { updateMapView,dumpMapLayers } from "@/utils/SrMapUtils";
     import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
@@ -51,7 +51,8 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => chartStore.getFunc(atlChartFilterStore.getReqIdStr()));
+    const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
+    const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
@@ -76,8 +77,11 @@
 
     // Watch for changes on reqId
     watch( () => props.selectedReqIdItem, async (newReqId, oldReqId) => {
-        console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
-        await updateAnalysisMapView("New reqId");  
+        const msg = `reqId changed from: ${oldReqId.label} ${oldReqId.value} to ${newReqId.label} ${newReqId.value}`;
+        console.log(msg);
+        if(newReqId.value !== oldReqId.value){
+            await updateAnalysisMapView(msg);
+        }
     });
 
 
@@ -92,7 +96,7 @@
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
-    onMounted(() => {
+    onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqIdItem:",props.selectedReqIdItem);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
@@ -101,7 +105,7 @@
         });
         register(proj4);
 
-        updateAnalysisMapView("onMounted");
+        await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
     });
@@ -138,7 +142,7 @@
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
         let srViewName = await db.getSrViewName(props.selectedReqIdItem.value);
-        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqIdItem:${props.selectedReqIdItem} ------`);
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqIdItem:`,props.selectedReqIdItem);
 
         try {
             if(map){
@@ -152,7 +156,7 @@
             console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
         } finally {
             if(map){
-                //dumpMapLayers(map,'SrAnalysisMap');
+                dumpMapLayers(map,'SrAnalysisMap');
             } else {
                 console.error("SrAnalysisMap Error:map is null");
             }

@@ -64,10 +64,10 @@
 
     const emit = defineEmits(['update:modelValue']);
 
-    watch(selectedMenuItem, (newValue) => {
-        //console.log('Menu:', props.label, 'selected:', newValue);
-        emit('update:modelValue', newValue); 
-    });
+    // watch(selectedMenuItem, (newValue) => {
+    //     //console.log('Menu:', props.label, 'selected:', newValue);
+    //     emit('update:modelValue', newValue); 
+    // });
 
     onMounted(() => {
         //console.log('Mounted Menu:', props.label , 'selected:', selectedMenuItem.value, 'default:', props.defaultOptionIndex);

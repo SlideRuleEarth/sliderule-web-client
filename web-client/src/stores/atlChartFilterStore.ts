@@ -1,17 +1,10 @@
 import { defineStore } from 'pinia';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
+import { type SrListNumberItem } from '@/stores/chartStore';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
 
-export interface SrListNumberItem {
-  label: string;
-  value: number;
-}
-export interface SrMenuItem {
-    name: string;
-    value: string;
-}
 export interface SrMenuNumberItem {
   label: string;
   value: number;
@@ -21,20 +14,11 @@ export interface SrMenuNumberItem {
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
     debugCnt: 0 as number,
-    tracks: [] as SrListNumberItem[],
     tracksOptions: tracksOptions as SrListNumberItem[],
-    selectAllTracks: true as boolean,
-    beams: [] as SrListNumberItem[],
     spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
-    spots: [] as SrListNumberItem[],
-    rgts: [] as SrListNumberItem[],
     rgtOptions: [] as SrListNumberItem[], // Ensure rgtOptions is an array
-    cycles: [] as SrListNumberItem[],
     cycleOptions: [] as SrListNumberItem[],
-    regionValue: 1 as number,
-    pairs: [] as SrListNumberItem[],
     pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
-    scOrients: [] as SrListNumberItem[],
     scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     isLoading: false as boolean,
     chartDataRef: ref<number[][]>([]),
@@ -51,49 +35,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   }),
 
   actions: {
-    setRegion(regionValue: number) {
-      this.regionValue = regionValue;
-    },
-    getRegion() {
-      return this.regionValue;
-    },
-    setBeams(beams: SrListNumberItem[]) {
-      this.beams = beams;
-    },
-    getBeams() {
-      return this.beams;
-    },
-    getBeamValues() { 
-      return this.beams.map(beam => beam.value);
-    },
-    setSpots(spots: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore setSpots:', spots);
-      this.spots = spots;
-    },
-    getSpots(): SrListNumberItem[] {
-      return this.spots;
-    },
-    getSpotValues() {
-      return this.spots.map(spot => spot.value);
-    },
-    setSpotWithNumber(spot: number) {
-      //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
-      this.setSpots([{ label: spot.toString(), value: spot }]);
-    },
-    setRgts(rgts: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore setRgts:', rgts);
-      this.rgts = rgts;
-    },
-    getRgts() {
-      //console.log('atlChartFilterStore getRgts:', this.rgts);
-      return this.rgts;
-    },
-    getRgtValues() {
-      return this.rgts.map(rgt => rgt.value);
-    },
-    getCycleValues() {
-      return this.cycles.map(cycle => cycle.value);
-    },
     setRgtOptionsWithNumbers(rgtOptions: number[]) {
       if (!Array.isArray(rgtOptions)) {
         console.error('rgtOptions is not an array:', rgtOptions);
@@ -105,10 +46,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getRgtOptions() {
       //console.log('atlChartFilterStore.getRgtOptions():', this.rgtOptions);
       return this.rgtOptions;
-    },
-    setRgtWithNumber(rgt: number) {
-      //console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
-      this.setRgts([{ label: rgt.toString(), value: rgt }]);
     },
     setCycleOptionsWithNumbers(cycleOptions: number[]) {
       if (!Array.isArray(cycleOptions)) {
@@ -122,75 +59,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       //console.log('atlChartFilterStore.getCycleOptions():', this.cycleOptions);
       return this.cycleOptions;
     },
-    setCycleWithNumber(cycle: number) {
-      //console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
-      this.setCycles([{ label: cycle.toString(), value: cycle }]);
-    },
-    setCycles(cycles: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore.setCycles():', cycles);
-      this.cycles = cycles;
-    },
-    getCycles() {
-      //console.log('atlChartFilterStore.getCycles():', this.cycles);
-      return this.cycles;
-    },
-    setTracks(tracks: SrListNumberItem[]) {
-      this.tracks = tracks;
-    },
-    getTracks() {
-      return this.tracks;
-    },
     setTrackOptions(trackOptions: SrListNumberItem[]) {
       this.tracksOptions = trackOptions;
     },
     getTrackOptions() {
       return this.tracksOptions;
     },
-    setTrackWithNumber(track: number) {
-      this.setTracks([{ label: track.toString(), value: track }]);
-      //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
-    },
     setTrackOptionsWithNumbers(tracks: number[]) {
       this.setTrackOptions(tracks.map(track => ({ label: track.toString(), value: track })));
-    },
-    getTrackValues() {
-      return this.tracks.map(track => track.value);
-    },
-    setSelectAllTracks(selectAllTracks: boolean) {
-      this.selectAllTracks = selectAllTracks;
-    },
-    getSelectAllTracks() {
-      return this.selectAllTracks;
-    },
-    appendTrackWithNumber(track: number) {
-      // Check if the track already exists in the list
-      const trackExists = this.tracks.some(t => t.value === track);
-      // If it doesn't exist, append it
-      if (!trackExists) {
-        this.tracks.push({ label: track.toString(), value: track });
-      }
-    },    
-    setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
-      //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
-      const parms = getBeamsAndTracksWithGts(gts);
-      this.setBeams(parms.beams);
-      this.setTracks(parms.tracks);
-    },
-    setTracksForBeams(input_beams: SrListNumberItem[]) {    
-      const tracks = input_beams
-        .map(beam => tracksOptions.find(track => Number(beam.label.charAt(2)) === track.value))
-        .filter((track): track is SrListNumberItem => track !== undefined);
-        this.setTracks(tracks);
-    },
-    setBeamsForTracks(input_tracks: SrListNumberItem[]) {
-      const beams = input_tracks
-        .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
-        .filter((beam): beam is SrListNumberItem => beam !== undefined);
-      this.setBeams(beams);
-      //console.log('atlChartFilterStore.setBeamsForTracks(',input_tracks,') beams:', beams);
-    },
-    setBeamWithNumber(beam: number) {
-      this.setBeams([{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
     },
     setReqId(req_id: number):boolean {
         // Find the corresponding menu item in reqIdMenuItems
@@ -202,8 +78,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
             found = true;
         } else {
             console.warn(`setReqId: No matching menu item found for req_id ${req_id}`);
-            // Optionally reset to a default value or handle the absence of a match
-            //this.selectedReqIdMenuItem = { label: 'select a record', value: 0 };
         }
         return found;
     },
@@ -225,38 +99,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
     },
-    setPairs(pairs: SrListNumberItem[]) {
-      this.pairs = pairs;
-    },
-    getPairs() {
-      return this.pairs;
-    },
     setPairOptions(pairs: SrListNumberItem[]) {
       this.pairOptions = pairs;
     },
-    getPairOptions() {
-      return this.pairOptions;
-    },
     setPairOptionsWithNumbers(pairs: number[]) {
       this.pairOptions = pairs.map(pair => ({ label: pair.toString(), value: pair }));
-    },
-    setPairWithNumber(pair: number) {
-      this.pairs = [{ label: pair.toString(), value: pair }];
-    },
-    appendPairWithNumber(pair: number) {
-      const pairExists = this.pairs.some(p => p.value === pair);
-      if(!pairExists){
-        this.pairs.push({ label: pair.toString(), value: pair });
-      }
-    },
-    getPairValues() {
-      return this.pairs.map(pair => pair.value);
-    },
-    setScOrients(scOrients: SrListNumberItem[]) {
-      this.scOrients = scOrients;
-    },
-    getScOrients() {
-      return this.scOrients;
     },
     setScOrientOptions(scOrientOptions: SrListNumberItem[]) {
       this.scOrientOptions = scOrientOptions;
@@ -266,18 +113,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setScOrientOptionsWithNumbers(scOrientOptions: number[]) {
       this.scOrientOptions = scOrientOptions.map(option => ({ label: option.toString(), value: option }));
-    },
-    setScOrientWithNumber(scOrient: number) {
-      this.scOrients = [{ label: scOrient.toString(), value: scOrient }];
-    },
-    getScOrientValues() {
-      return this.scOrients.map(scOrient => scOrient.value);
-    },
-    appendScOrientWithNumber(scOrient: number) {
-      const scoExists = this.scOrients.some(sco => sco.value === scOrient);
-      if(!scoExists && (scOrient >= 0)){
-        this.scOrients.push({ label: scOrient.toString(), value: scOrient });
-      }
     },
     setIsLoading() {
       //console.log('atlChartFilterStore.setIsLoading()');
