@@ -35,6 +35,9 @@
                     buttonLabel="Photon Cloud"
                 />
             </div>
+            <div>
+                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
+            </div>
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
@@ -68,7 +71,7 @@
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
                         <div class= "sr-multiselect-col">
-                            <Fieldset :legend="`${findReqMenuLabel(overlayedReqId)}`">
+                            <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
                                 <MultiSelect
                                         class="sr-multiselect" 
                                         :placeholder="`Y data for ${findReqMenuLabel(overlayedReqId)}`"
@@ -98,20 +101,6 @@
                 </div>
             </div>
         </div>
-        <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
-            <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
-            <Card>
-                <template #title>
-                    <div class="sr-card-title-center">Highlighted Track</div>
-                </template>
-                <template #content>
-                    <p class="m-0">
-                        {{ highlightedTrackDetails }}
-                    </p>
-                </template>                    
-            </Card>
-
-        </div>
     </div>
 </template>
 
@@ -134,18 +123,16 @@ import SrAtl03ColorLegend from "@/components/SrAtl03ColorLegend.vue";
 import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import SrSliderStored from "@/components/SrSliderStored.vue";
-import { findReqMenuLabel,updateScatterOptionsOnly } from '@/utils/plotUtils';
-import Card from 'primevue/card';
+import { findReqMenuLabel } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
-import { run } from "node:test";
+import SrReqDisplay from '@/components/SrReqDisplay.vue';
 
 const props = defineProps({
     startingReqId: {
@@ -167,13 +154,11 @@ const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<stri
 const loadingComponent = ref(true);
 const setSymbolCounter = ref(0);
 
-const highlightedTrackDetails = computed(() => {
-    if(chartStore.getRgts(computedReqIdStr.value) && chartStore.getRgts(computedReqIdStr.value).length > 0 && chartStore.getCycles(computedReqIdStr.value) && chartStore.getCycles(computedReqIdStr.value).length > 0 && chartStore.getTracks(computedReqIdStr.value) && chartStore.getTracks(computedReqIdStr.value).length > 0 && chartStore.getBeams(computedReqIdStr.value) && chartStore.getBeams(computedReqIdStr.value).length > 0) {
-        return `rgt:${chartStore.getRgts(computedReqIdStr.value)[0].value} cycle:${chartStore.getCycles(computedReqIdStr.value)[0].value} track:${chartStore.getTracks(computedReqIdStr.value)[0].value} beam:${chartStore.getBeams(computedReqIdStr.value)[0].label}`;
-    } else {
-        return '';
-    }
-});
+function getOverlayedReqLegend(overlayedReqId: number): string {
+    const label = findReqMenuLabel(overlayedReqId);
+    return `${label} - Photon Cloud`;
+}
+
 
 // Create a computed property that updates and retrieves the symbol size 
 const computedSymbolSize = computed<number>({
@@ -244,8 +229,8 @@ function createSetSymbolSizeFor(reqIdStr: string) {
   return debounced;
 }
 
-const computedSlideLabel = computed(() => {
-    return  `symbol size for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
+const computedMainOptionLabel = computed(() => {
+    return  `${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
 });
 
 function initializeBindings(reqIds: string[]) {

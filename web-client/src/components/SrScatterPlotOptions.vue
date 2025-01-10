@@ -31,7 +31,7 @@ const computedFunc = computed(() => {
 });
 
 const computedLabel = computed(() => {
-  return `${computedReqIdStr.value} - ${computedFunc.value}`;
+  return `Plot Details for ${computedReqIdStr.value} - ${computedFunc.value}`;
 });
 
 

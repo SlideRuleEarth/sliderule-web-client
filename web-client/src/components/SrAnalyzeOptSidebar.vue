@@ -35,6 +35,7 @@ import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { getHeightFieldname } from "@/utils/SrParquetUtils";
 import { initChartStore } from '@/utils/plotUtils';
 import { useRequestsStore } from '@/stores/requestsStore';
+import Card from 'primevue/card';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -87,6 +88,15 @@ const computedReqIdStr = computed(() => {
     return atlChartFilterStore.selectedReqIdMenuItem.value.toString();
 });
 const selectedReqIdValue = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value);
+
+const highlightedTrackDetails = computed(() => {
+    if(chartStore.getRgts(computedReqIdStr.value) && chartStore.getRgts(computedReqIdStr.value).length > 0 && chartStore.getCycles(computedReqIdStr.value) && chartStore.getCycles(computedReqIdStr.value).length > 0 && chartStore.getTracks(computedReqIdStr.value) && chartStore.getTracks(computedReqIdStr.value).length > 0 && chartStore.getBeams(computedReqIdStr.value) && chartStore.getBeams(computedReqIdStr.value).length > 0) {
+        return `rgt:${chartStore.getRgts(computedReqIdStr.value)[0].value} cycle:${chartStore.getCycles(computedReqIdStr.value)[0].value} track:${chartStore.getTracks(computedReqIdStr.value)[0].value} beam:${chartStore.getBeams(computedReqIdStr.value)[0].label}`;
+    } else {
+        return '';
+    }
+});
+const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
 async function syncRouteToChartStore(newReqId: number) : Promise<number> {
     let finalReqId = newReqId;
@@ -573,6 +583,19 @@ const exportButtonClick = async () => {
             <div class="sr-analysis-rec-parms">
                 <SrRecReqDisplay :reqId="Number(computedReqIdStr)"/>
             </div>
+            <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
+                <Card>
+                    <template #title>
+                        <div class="sr-card-title-center">Highlighted Track</div>
+                    </template>
+                    <template #content>
+                        <p class="m-0">
+                            {{ highlightedTrackDetails }}
+                        </p>
+                    </template>                    
+                </Card>
+
+            </div>
             <div class="sr-scatterplot-options-container">
                 <!-- SrScatterPlotOptions for the main req_id -->
                 <div class="sr-scatterplot-options">
@@ -658,9 +681,9 @@ const exportButtonClick = async () => {
     }
     .sr-photon-cloud {
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         align-items: center;
-        justify-content: left;
+        justify-content: center;
     }
     .sr-pnts-colormap {
         display: flex;
