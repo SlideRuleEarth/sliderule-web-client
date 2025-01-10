@@ -1,4 +1,4 @@
-import { type SrListNumberItem } from '@/stores/atlChartFilterStore';
+import { type SrListNumberItem } from '@/stores/chartStore';
 export interface SrScatterOptionsParms {
   reqIdStr: string;
   fileName: string;
@@ -30,6 +30,16 @@ export const spotsOptions = [
     {label:'5',value:5}, 
     {label:'6',value:6}
   ] as SrListNumberItem[];
+
+export const scOrientOptions = [
+    {label:'0',value:0}, 
+    {label:'1',value:1}
+  ] as SrListNumberItem[];
+
+  export const pairOptions = [
+    {label:'0',value:0}, 
+    {label:'0',value:1}
+  ]
 
   export function getBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
     const beams = [] as SrListNumberItem[];

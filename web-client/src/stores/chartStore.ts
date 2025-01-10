@@ -1,5 +1,16 @@
 import { defineStore } from 'pinia';
-import { db as indexedDb } from '@/db/SlideRuleDb';
+import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { beamsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
+import {  useAtlChartFilterStore } from './atlChartFilterStore';
+
+export interface SrMenuItem {
+    name: string;
+    value: string;
+}
+export interface SrListNumberItem {
+    label: string;
+    value: number;
+}
 interface ChartState {
   currentFile: string;
   min_x: number;
@@ -18,10 +29,19 @@ interface ChartState {
   recCnt: number;
   xLegend: string;
   numOfPlottedPnts: number;
-  selectedAtl03YapcColorMap: { name: string, value: string };
+  selectedAtl03YapcColorMap: SrMenuItem;
   symbolSize: number;
-  //[key: string]: any;
+  tracks: Array<SrListNumberItem>;
+  selectAllTracks: boolean;
+  beams: Array<SrListNumberItem>;
+  spots: Array<SrListNumberItem>;
+  rgts: Array<SrListNumberItem>;
+  cycles: Array<SrListNumberItem>;
+  pairs: Array<SrListNumberItem>;
+  scOrients: Array<SrListNumberItem>;
 }
+
+const atlChartFilterStore = useAtlChartFilterStore();
 
 export const useChartStore = defineStore('chartStore', {
   state: () => ({
@@ -58,6 +78,14 @@ export const useChartStore = defineStore('chartStore', {
                 numOfPlottedPnts: 0,
                 selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
                 symbolSize: 3,
+                tracks: [],
+                selectAllTracks: true,
+                beams:[],
+                spots: [],
+                rgts: [], 
+                cycles: [],
+                pairs: [],
+                scOrients: [],
             };
         }
 
@@ -139,11 +167,14 @@ export const useChartStore = defineStore('chartStore', {
     },
     getYDataForChart(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].yDataForChart;
+        const yData =  this.stateByReqId[reqIdStr].yDataForChart;
+        //console.log('getYDataForChart reqIdStr:',reqIdStr, ' yData:',yData);
+        return yData;
     },
     setYDataForChart(reqIdStr: string,yDataForChart: string[]): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
+        //console.log('setYDataForChart reqIdStr:',reqIdStr, ' yData:',yDataForChart, ' state yData:',this.stateByReqId[reqIdStr].yDataForChart);
     },    
     getXDataForChart(reqIdStr: string) {
         this.ensureState(reqIdStr);
@@ -180,7 +211,7 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].func;
     },
-    async setFunc(reqIdStr: string,func: string) {
+    setFunc(reqIdStr: string,func: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].func = func;
     },
@@ -232,5 +263,180 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
     },
-  },
+
+    setBeams(reqIdStr: string, beams: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].beams = beams;
+    },
+    getBeams(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].beams;
+    },
+    getBeamValues(reqIdStr: string) { 
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].beams.map(beam => beam.value);
+    },
+    setSpots(reqIdStr: string, spots: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore setSpots:', spots);
+        this.stateByReqId[reqIdStr].spots = spots;
+    },
+    getSpots(reqIdStr: string): SrListNumberItem[] {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].spots;
+    },
+    getSpotValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].spots.map(spot => spot.value);
+    },
+    setSpotWithNumber(reqIdStr: string, spot: number) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
+        this.setSpots(reqIdStr,[{ label: spot.toString(), value: spot }]);
+    },
+    setRgts(reqIdStr: string, rgts: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore setRgts:', rgts);
+        this.stateByReqId[reqIdStr].rgts = rgts;
+    },
+    getRgts(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore getRgts:', this.rgts);
+        return this.stateByReqId[reqIdStr].rgts;
+    },
+    getRgtValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].rgts.map(rgt => rgt.value);
+    },
+    getCycleValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].cycles.map(cycle => cycle.value);
+    },
+    setRgtWithNumber(reqIdStr: string, rgt: number) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
+        this.setRgts(reqIdStr,[{ label: rgt.toString(), value: rgt }]);
+    },
+    setCycleWithNumber(reqIdStr: string, cycle: number) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
+        this.setCycles(reqIdStr,[{ label: cycle.toString(), value: cycle }]);
+    },
+    setCycles(reqIdStr: string, cycles: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.setCycles():', cycles);
+        this.stateByReqId[reqIdStr].cycles = cycles;
+    },
+    getCycles(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.getCycles():', this.cycles);
+        return this.stateByReqId[reqIdStr].cycles;
+    },
+    setTracks(reqIdStr: string, tracks: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].tracks = tracks;
+    },
+    getTracks(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].tracks;
+    },
+    setTrackWithNumber(reqIdStr: string, track: number) {
+        this.ensureState(reqIdStr);
+        this.setTracks(reqIdStr,[{ label: track.toString(), value: track }]);
+        //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
+    },
+    getTrackValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].tracks.map(track => track.value);
+    },
+    setSelectAllTracks(reqIdStr: string, selectAllTracks: boolean) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].selectAllTracks = selectAllTracks;
+    },
+    getSelectAllTracks(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].selectAllTracks;
+    },
+    appendTrackWithNumber(reqIdStr: string, track: number) {
+        this.ensureState(reqIdStr);
+        // Check if the track already exists in the list
+        const trackExists = this.stateByReqId[reqIdStr].tracks.some(t => t.value === track);
+        // If it doesn't exist, append it
+        if (!trackExists) {
+            this.stateByReqId[reqIdStr].tracks.push({ label: track.toString(), value: track });
+        }
+    },    
+    setBeamsAndTracksWithGts(reqIdStr: string, gts: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
+        const parms = getBeamsAndTracksWithGts(gts);
+        this.setBeams(reqIdStr,parms.beams);
+        this.setTracks(reqIdStr,parms.tracks);
+    },
+    setTracksForBeams(reqIdStr: string, input_beams: SrListNumberItem[]) {    
+        this.ensureState(reqIdStr);
+        const tracks = input_beams
+            .map(beam => tracksOptions.find(track => Number(beam.label.charAt(2)) === track.value))
+            .filter((track): track is SrListNumberItem => track !== undefined);
+        this.setTracks(reqIdStr,tracks);
+    },
+    setBeamsForTracks(reqIdStr: string, input_tracks: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        const beams = input_tracks
+            .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
+            .filter((beam): beam is SrListNumberItem => beam !== undefined);
+        this.setBeams(reqIdStr,beams);
+        //console.log('atlChartFilterStore.setBeamsForTracks(',input_tracks,') beams:', beams);
+    },
+    setBeamWithNumber(reqIdStr: string, beam: number) {
+        this.ensureState(reqIdStr);
+        this.setBeams(reqIdStr,[{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
+    },
+    setPairs(reqIdStr: string, pairs: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].pairs = pairs;
+    },
+    getPairs(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].pairs;
+    },
+    setPairWithNumber(reqIdStr: string, pair: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].pairs = [{ label: pair.toString(), value: pair }];
+    },
+    appendPairWithNumber(reqIdStr: string,pair: number) {
+        this.ensureState(reqIdStr);
+        const pairExists = this.stateByReqId[reqIdStr].pairs.some(p => p.value === pair);
+        if(!pairExists){
+            this.stateByReqId[reqIdStr].pairs.push({ label: pair.toString(), value: pair });
+        }
+    },
+    getPairValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].pairs.map(pair => pair.value);
+    },
+    setScOrients(reqIdStr: string, scOrients: SrListNumberItem[]) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].scOrients = scOrients;
+    },
+    getScOrients(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].scOrients;
+    },
+    setScOrientWithNumber(reqIdStr: string, scOrient: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].scOrients = [{ label: scOrient.toString(), value: scOrient }];
+    },
+    getScOrientValues(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].scOrients.map(scOrient => scOrient.value);
+    },
+    appendScOrientWithNumber(reqIdStr: string, scOrient: number) {
+        this.ensureState(reqIdStr);
+        const scoExists = this.stateByReqId[reqIdStr].scOrients.some(sco => sco.value === scOrient);
+        if(!scoExists && (scOrient >= 0)){
+            this.stateByReqId[reqIdStr].scOrients.push({ label: scOrient.toString(), value: scOrient });
+        }
+    },
+},
 });

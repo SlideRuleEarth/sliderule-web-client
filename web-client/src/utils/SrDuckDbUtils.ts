@@ -27,14 +27,45 @@ interface SummaryRowData {
 const srMutex = new SrMutex();
 const chartStore = useChartStore();
 
-async function setElevationDataOptionsFromFieldNames(reqIdStr: string,fieldNames: string[]) {
-    chartStore.setElevationDataOptions(reqIdStr,fieldNames);
-    const heightFieldname = await getHeightFieldname(Number(reqIdStr));
-    const ndx = fieldNames.indexOf(heightFieldname);
-    chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr,ndx);
-    chartStore.setYDataForChart(reqIdStr,[chartStore.getElevationDataOptionForHeight(reqIdStr)]);
-    //console.log('setElevationDataOptionsFromFieldNames reqIdStr:',reqIdStr, ' fieldNames:',fieldNames, ' heightFieldname:',heightFieldname, ' ndx:',ndx);
-};
+async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
+    try {
+        // Update elevation data options in the chart store
+        chartStore.setElevationDataOptions(reqIdStr, fieldNames);
+
+        // Get the height field name
+        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
+
+        // Find the index of the height field name
+        const ndx = fieldNames.indexOf(heightFieldname);
+
+        // Update the index of the elevation data options for height
+        chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
+
+        // Retrieve the existing Y data for the chart
+        const existingYdata = chartStore.getYDataForChart(reqIdStr);
+
+        // Get the elevation data option for height
+        const elevationOption = chartStore.getElevationDataOptionForHeight(reqIdStr);
+
+        // Check if the elevation option is already in the Y data
+        if (!existingYdata.includes(elevationOption)) {
+            // Clone the existing Y data and add the elevation option
+            const newYdata = [...existingYdata, elevationOption];
+
+            // Update the Y data for the chart
+            chartStore.setYDataForChart(reqIdStr, newYdata);
+        }
+
+        // Optional: Debugging log
+        console.log(
+            'setElevationDataOptionsFromFieldNames',
+            { reqIdStr, fieldNames, heightFieldname, ndx, elevationOption, existingYdata }
+        );
+    } catch (error) {
+        console.error('Error in setElevationDataOptionsFromFieldNames:', error);
+    }
+}
+
 
 export async function prepareDbForReqId(reqId: number): Promise<void> {
     console.log(`prepareDbForReqId for ${reqId}`);
@@ -289,10 +320,10 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
-        const rgts = useAtlChartFilterStore().getRgtValues();
-        const cycles = useAtlChartFilterStore().getCycleValues(); 
+        const rgts = chartStore.getRgtValues(reqIdStr);
+        const cycles = chartStore.getCycleValues(reqIdStr); 
         if(func.includes('atl06')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = chartStore.getSpotValues(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -305,7 +336,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
         } else if(func.includes('atl03vp')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = chartStore.getSpotValues(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -314,7 +345,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND spot IN (${spots.join(', ')})
                         `
         } else if(func.includes('atl08')){
-            const spots = useAtlChartFilterStore().getSpotValues();
+            const spots = chartStore.getSpotValues(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -576,13 +607,12 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
                 }
             }
         } 
-        //console.log('updateCycleOptions cycles:', useAtlChartFilterStore().getCycleOptions());
     } catch (error) {
         console.error('updateCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
     }
     return cycles;
 }
@@ -594,6 +624,7 @@ export async function fetchAtl06ScatterData(
         y: string[]
 ) : Promise<{ chartData: { [key: string]: SrScatterChartData[] }, normalizedMinMaxValues: { [key: string]: { min: number, max: number } }}> {
     const startTime = performance.now(); // Start time
+    console.log('fetchAtl06ScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y);
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -680,6 +711,7 @@ export async function fetchAtl08ScatterData(
     y: string[]
 ): Promise<{ chartData: { [key: string]: SrScatterChartData[] }, normalizedMinMaxValues: { [key: string]: { min: number, max: number } }}>  {
     const startTime = performance.now(); // Start time
+    console.log('fetchAtl08ScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y);
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
     const minMaxValues: { [key: string]: { min: number, max: number } } = {};
@@ -765,7 +797,7 @@ export async function fetchAtl03spScatterData(
     x: string, 
     y: string[], 
   ) {
-    //console.log('fetchAtl03spScatterData fileName:', fileName, ' x:', x, ' y:', y);
+    console.log('fetchAtl03spScatterData reqIdStr:',reqIdStr,' fileName:,', fileName, ' x:', x, ' y:', y);
     const startTime = performance.now(); // Start time
     const duckDbClient = await createDuckDbClient();
     const chartData: { [key: string]: SrScatterChartData[] } = {};
@@ -855,8 +887,7 @@ export async function fetchAtl03spScatterData(
         return { chartData: {}, minMaxValues: {} };
     }
 }
-  
-  
+
 export async function fetchAtl03vpScatterData(
     reqIdStr: string,
     fileName: string, 

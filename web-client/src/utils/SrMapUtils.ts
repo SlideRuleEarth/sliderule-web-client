@@ -269,47 +269,52 @@ export interface ElevationDataItem {
 }
 
 export function updateWhereClause(reqIdStr:string){
-    const func = useChartStore().getFunc(reqIdStr);
+    const cs = useChartStore();
+    const func = cs.getFunc(reqIdStr);
     console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
     if(func==='atl03sp'){
         let atl03spWhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND track IN (${useAtlChartFilterStore().getTrackValues().join(", ")}) 
+            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
+            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
+            AND track IN (${cs.getTrackValues(reqIdStr).join(", ")}) 
         `;
-        if (useAtlChartFilterStore().getPairValues() !== undefined) {
-            atl03spWhereClause += ` AND pair IN (${useAtlChartFilterStore().getPairValues().join(", ")})`;
+        if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
+            atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
+        } else {
+            console.warn('Clicked: pairs is undefined or empty');
         }
-        if (useAtlChartFilterStore().getScOrientValues() !== undefined) {
-            atl03spWhereClause += ` AND sc_orient IN (${useAtlChartFilterStore().getScOrientValues().join(", ")})`;
+        if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
+            atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
+        } else {
+            console.warn('Clicked: sc_orient is undefined or empty');
         }
-        useChartStore().setWhereClause(reqIdStr,atl03spWhereClause);
+        cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        console.log('Clicked: atl03spWhereClause',useChartStore().getWhereClause(reqIdStr))
+        console.log('Clicked: atl03spWhereClause',cs.getWhereClause(reqIdStr))
     } else if(func === 'atl03vp'){
         const atl03vpWhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
+            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
+            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
-        useChartStore().setWhereClause(reqIdStr,atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',useChartStore().getWhereClause(reqIdStr))
+        cs.setWhereClause(reqIdStr,atl03vpWhereClause);
+        console.log('Clicked: atl06spWhereClause',cs.getWhereClause(reqIdStr))
     } else if (func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
+            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
+            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
-        useChartStore().setWhereClause(reqIdStr,atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',useChartStore().getWhereClause(reqIdStr))
+        cs.setWhereClause(reqIdStr,atl06WhereClause);
+        console.log('Clicked: atl06WhereClause',cs.getWhereClause(reqIdStr))
     } else if (func === 'atl08p'){
         const atl08pWhereClause = `
-            WHERE rgt IN (${useAtlChartFilterStore().getRgtValues().join(', ')}) 
-            AND cycle IN (${useAtlChartFilterStore().getCycleValues().join(', ')})
-            AND spot IN (${useAtlChartFilterStore().getSpotValues().join(", ")}) 
+            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
+            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
+            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
-        useChartStore().setWhereClause(reqIdStr,atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',useChartStore().getWhereClause(reqIdStr))
+        cs.setWhereClause(reqIdStr,atl08pWhereClause);
+        console.log('Clicked: atl08pWhereClause',cs.getWhereClause(reqIdStr))
     } else {
         console.error('Clicked: Unknown func?:',func);
     }
@@ -325,53 +330,55 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     useAtl03ColorMapStore().setDebugCnt(0);
     const reqIdStr = useAtlChartFilterStore().getReqIdStr();
     //useAtlChartFilterStore().setIsLoading();
+
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+    const cs = useChartStore();
     if(d.track !== undefined){ // for atl03
-        useAtlChartFilterStore().setTrackWithNumber(d.track);
-        useAtlChartFilterStore().setBeamsForTracks(useAtlChartFilterStore().getTracks());
+        cs.setTrackWithNumber(reqIdStr, d.track);
+        cs.setBeamsForTracks(reqIdStr, cs.getTracks(reqIdStr));
     }
     if(d.gt !== undefined){ // for atl06
-        useAtlChartFilterStore().setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
+        cs.setBeamsAndTracksWithGts(reqIdStr, [{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
-        useAtlChartFilterStore().setScOrientWithNumber(d.sc_orient);
+        cs.setScOrientWithNumber(reqIdStr, d.sc_orient);
     }
     if(d.pair !== undefined){
-        useAtlChartFilterStore().setPairWithNumber(d.pair);
+        cs.setPairWithNumber(reqIdStr, d.pair);
     }
     if(d.spot !== undefined){
-        useAtlChartFilterStore().setSpotWithNumber(d.spot);
+        cs.setSpotWithNumber(reqIdStr, d.spot);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
-        useAtlChartFilterStore().setScOrientWithNumber(getScOrientFromSpotGt(d.spot,d.gt));
+        cs.setScOrientWithNumber(reqIdStr, getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        useAtlChartFilterStore().setRgtWithNumber(d.rgt);
+        cs.setRgtWithNumber(reqIdStr, d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useAtlChartFilterStore().setCycleWithNumber(d.cycle);
+        cs.setCycleWithNumber(reqIdStr, d.cycle);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
     const func = useChartStore().getFunc(reqIdStr);
     console.log('Clicked: func',func);
-    console.log('Clicked: rgts',useAtlChartFilterStore().getRgtValues())
-    console.log('Clicked: cycles',useAtlChartFilterStore().getCycleValues())
-    console.log('Clicked: tracks',useAtlChartFilterStore().getTrackValues())
-    console.log('Clicked: sc_orient',useAtlChartFilterStore().getScOrientValues())
-    console.log('Clicked: pair',useAtlChartFilterStore().getPairValues());
+    console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
+    console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
+    console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
+    console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
+    console.log('Clicked: pair',cs.getPairValues(reqIdStr));
     if(func==='atl03sp'){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            useAtlChartFilterStore().setSpotWithNumber(getSpotNumber(d.sc_orient,d.track,d.pair));
-            useAtlChartFilterStore().setBeamWithNumber(getGroundTrack(d.sc_orient,d.track,d.pair));
+            cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
+            cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
         }
     }
     updateWhereClause(reqIdStr);
-    console.log('Clicked: spot',useAtlChartFilterStore().getSpotValues())
-    console.log('Clicked: beam',useAtlChartFilterStore().getBeamValues())
+    console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
+    console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
 
 }
 
@@ -717,7 +724,7 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
 export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
     try {
         if(map){
-            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------`);
+            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ altChartFilterStore.selectedReqIdStr:`,useAtlChartFilterStore().getReqIdStr());
             const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);

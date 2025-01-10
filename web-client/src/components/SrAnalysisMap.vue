@@ -12,7 +12,7 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
@@ -20,7 +20,8 @@
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
-    import { updateMapView } from "@/utils/SrMapUtils";
+    import { updateMapView,dumpMapLayers } from "@/utils/SrMapUtils";
+    import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -50,7 +51,8 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => chartStore.getFunc(atlChartFilterStore.getReqIdStr()));
+    const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
+    const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
@@ -62,18 +64,24 @@
             return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
         }
     });
+    const emit = defineEmits<{
+        (e: 'update-record-selection', menuItem: SrMenuNumberItem): void;
+    }>();
 
     const props = defineProps({
-        reqId: {
-            type: Number,
+        selectedReqIdItem: {
+            type: Object as () => SrMenuNumberItem,
             required: true
         }
     });
 
     // Watch for changes on reqId
-    watch( () => props.reqId, async (newReqId, oldReqId) => {
-        console.log(`reqId changed from ${oldReqId} to ${newReqId}`);
-        await updateAnalysisMapView("New reqId");  
+    watch( () => props.selectedReqIdItem, async (newReqId, oldReqId) => {
+        const msg = `reqId changed from: ${oldReqId.label} ${oldReqId.value} to ${newReqId.label} ${newReqId.value}`;
+        console.log(msg);
+        if(newReqId.value !== oldReqId.value){
+            await updateAnalysisMapView(msg);
+        }
     });
 
 
@@ -88,8 +96,8 @@
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
-    onMounted(() => {
-        console.log("SrAnalysisMap onMounted using reqId:",props.reqId);
+    onMounted(async () => {
+        console.log("SrAnalysisMap onMounted using selectedReqIdItem:",props.selectedReqIdItem);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -97,7 +105,7 @@
         });
         register(proj4);
 
-        updateAnalysisMapView("onMounted");
+        await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
     });
@@ -113,15 +121,33 @@
         }
     };
 
+    function handleRecordSelectorControlCreated(recordSelectorControl: any) {
+        //console.log("handleRecordSelectorControlCreated");
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
+            //console.log("adding baseLayerControl");
+            analysisMap.addControl(recordSelectorControl);
+        } else {
+            console.error("Error:analysisMap is null");
+        }
+    };
+
+    function handleUpdateRecordSelector(recordItem: SrMenuNumberItem) {
+        //console.log("handleUpdateRecordSelector",recordItem);
+        //const reqId = parseInt(recordItem.value);
+        //console.log("handleUpdateRecordSelector reqId:",reqId);
+        emit('update-record-selection', recordItem);
+    };
+
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
-        let srViewName = await db.getSrViewName(props.reqId);
-        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with reqId:${props.reqId} ------`);
+        let srViewName = await db.getSrViewName(props.selectedReqIdItem.value);
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqIdItem:`,props.selectedReqIdItem);
 
         try {
             if(map){
                 await updateMapView(map, srViewName, reason);
-                zoomMapForReqIdUsingView(map, props.reqId,srViewName);
+                zoomMapForReqIdUsingView(map, props.selectedReqIdItem.value,srViewName);
                 initDeck(map);
             } else {
                 console.error("SrMap Error:map is null");
@@ -130,68 +156,82 @@
             console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
         } finally {
             if(map){
-                //dumpMapLayers(map,'SrAnalysisMap');
+                dumpMapLayers(map,'SrAnalysisMap');
             } else {
                 console.error("SrAnalysisMap Error:map is null");
             }
             console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
             console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
         }
-        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with reqId:${props.reqId} ------`);
+        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqIdItem:${props.selectedReqIdItem} ------`);
     };
 </script>
 
 <template>
-  <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
-    <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
-    {{computedLoadMsg}}
-  </div>
-  <div class="sr-notLoadingEl" v-else >
-    {{ computedLoadMsg }}
-  </div>
-  <div ref="mapContainer" class="sr-map-container" >
-    <Map.OlMap 
-      ref="mapRef" 
-      @error="handleEvent"
-      :loadTilesWhileAnimating="true"
-      :loadTilesWhileInteracting="true"
-      :controls="controls"
-      class="sr-ol-map"
-    >
+<div class="sr-analysis-map-panel">
+    <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
+        <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+        {{computedLoadMsg}}
+    </div>
+    <div class="sr-notLoadingEl" v-else >
+        {{ computedLoadMsg }}
+    </div>
+    <div ref="mapContainer" class="sr-map-container" >
+        <Map.OlMap 
+            ref="mapRef" 
+            @error="handleEvent"
+            :loadTilesWhileAnimating="true"
+            :loadTilesWhileInteracting="true"
+            :controls="controls"
+            class="sr-ol-map"
+        >
 
-      <MapControls.OlZoomControl  />
-      
-      <MapControls.OlMousepositionControl 
-        :projection="computedProjName"
-        :coordinateFormat="stringifyFunc as any"
-      />
+        <MapControls.OlZoomControl  />
+        
+        <MapControls.OlMousepositionControl 
+            :projection="computedProjName"
+            :coordinateFormat="stringifyFunc as any"
+        />
 
-      <MapControls.OlScalelineControl />
-      <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-      <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
+        <MapControls.OlScalelineControl />
+        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+        <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
+        <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
         <Sources.OlSourceVector :projection="computedProjName">
-          <Styles.OlStyle>
-            <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-            <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
-          </Styles.OlStyle>
+            <Styles.OlStyle>
+                <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+                <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+            </Styles.OlStyle>
         </Sources.OlSourceVector>
         <Styles.OlStyle>
-          <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-          <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-          <Styles.OlStyleCircle :radius="7">
+            <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+            <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+            <Styles.OlStyleCircle :radius="7">
             <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-          </Styles.OlStyleCircle>
+            </Styles.OlStyleCircle>
         </Styles.OlStyle>
-      </Layers.OlVectorLayer>
-      <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
-    </Map.OlMap>
-    <div class="sr-tooltip-style" id="tooltip"></div>
-  </div>
-
+        </Layers.OlVectorLayer>
+        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+        </Map.OlMap>
+        <div class="sr-tooltip-style" id="tooltip"></div>
+    </div>
+</div>
 
 </template>
 
 <style scoped>
+:deep(.sr-analysis-map-panel) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  margin: 1rem;
+  flex:1 1 auto; /* grow, shrink, basis - let it stretch*/
+}
 
 :deep(.sr-map-container) {
   margin-bottom: 0.5rem;
@@ -254,18 +294,28 @@
   right: 2.5rem;
 }
 .sr-isLoadingEl {
-  color: #e9df1c;
-  padding-top: 0.5rem;
-  margin-bottom: 0rem;
-  padding-bottom: 0;
-  font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #e9df1c;
+    padding-top: 0.5rem;
+    margin-bottom: 0rem;
+    padding-bottom: 0;
+    font-size: 1rem;
+    align-items: center;
 }
 .sr-notLoadingEl {
-  color: #4CAF50;
-  padding-top: 0.5rem;
-  margin-bottom: 0rem;
-  padding-bottom: 0;
-  font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #4CAF50;
+    padding-top: 0.5rem;
+    margin-bottom: 0rem;
+    padding-bottom: 0;
+    font-size: 1rem;
+    align-items: center;
 }
 .hidden-control {
     display: none;

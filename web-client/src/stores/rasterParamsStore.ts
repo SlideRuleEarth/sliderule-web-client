@@ -29,9 +29,8 @@ export const RasterParamsCols = [
   { field: 'bands', header: 'bands' }
 ];
 
-import type { SrMenuItem } from '@/components/SrMenuInput.vue';
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
-import { get } from 'lodash';
+import type { SrMenuItem } from '@/stores/chartStore';
 // Define the store
 import { defineStore } from 'pinia';
 

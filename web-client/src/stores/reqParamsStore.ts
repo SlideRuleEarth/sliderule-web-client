@@ -4,13 +4,15 @@ import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.v
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { useAtlChartFilterStore, type SrListNumberItem } from '@/stores/atlChartFilterStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { type SrListNumberItem } from '@/stores/chartStore';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
-import { use } from 'echarts';
+import { useChartStore } from '@/stores/chartStore';
+
 
 interface YapcConfig {
   version: number;
@@ -204,35 +206,35 @@ export const useReqParamsStore = defineStore('reqParams', {
         enableSurfaceElevation: false,
     }),
     actions: {
-        async presetForScatterPlotOverlay() {
-          useReqParamsStore().setMissionValue("ICESat-2");
-          useReqParamsStore().setIceSat2API("atl03sp");
-          useReqParamsStore().setEnableGranuleSelection(true);
-          useReqParamsStore().setUseRgt(true);
-          useReqParamsStore().setUseCycle(true);
-          const reqParmsUsed = await db.getReqParams(useAtlChartFilterStore().getReqId()) as AtlReqParams;
-          //console.log('presetForScatterPlotOverlay reqParmsUsed:', reqParmsUsed);
-          if(reqParmsUsed.parms){
-            if(reqParmsUsed.parms.poly){
-              useReqParamsStore().setPoly(reqParmsUsed.parms.poly);
-              useReqParamsStore().setConvexHull(convexHull(reqParmsUsed.parms.poly));
-            } else {
-              console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
-            }
-            // console.log('beams:', useAtlChartFilterStore().getBeams());
-            // console.log('rgts:', useAtlChartFilterStore().getRgts());
-            // console.log('cycles:', useAtlChartFilterStore().getCycles());
-            // console.log('pairs:', useAtlChartFilterStore().getPairs());
-            // console.log('spots:', useAtlChartFilterStore().getSpots());
-            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
-            useReqParamsStore().setTracks(useAtlChartFilterStore().getTracks());
-            useReqParamsStore().setBeams(useAtlChartFilterStore().getBeams());
-            useReqParamsStore().setRgt(useAtlChartFilterStore().getRgtValues()[0]);
-            useReqParamsStore().setCycle(useAtlChartFilterStore().getCycleValues()[0]);
-          } else {
-            console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
-          }
+        async presetForScatterPlotOverlay(reqIdStr: string) {
+            useReqParamsStore().setMissionValue("ICESat-2");
+            useReqParamsStore().setIceSat2API("atl03sp");
+            useReqParamsStore().setEnableGranuleSelection(true);
+            useReqParamsStore().setUseRgt(true);
+            useReqParamsStore().setUseCycle(true);
+            const reqParmsUsed = await db.getReqParams(useAtlChartFilterStore().getReqId()) as AtlReqParams;
+            console.log('presetForScatterPlotOverlay reqParmsUsed:', reqParmsUsed);
+            if(reqParmsUsed.parms){
+                if(reqParmsUsed.parms.poly){
+                    useReqParamsStore().setPoly(reqParmsUsed.parms.poly);
+                    useReqParamsStore().setConvexHull(convexHull(reqParmsUsed.parms.poly));
+                } else {
+                    console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
+                }
+                // console.log('beams:', useAtlChartFilterStore().getBeams());
+                // console.log('rgts:', useAtlChartFilterStore().getRgts());
+                // console.log('cycles:', useAtlChartFilterStore().getCycles());
+                // console.log('pairs:', useAtlChartFilterStore().getPairs());
+                // console.log('spots:', useAtlChartFilterStore().getSpots());
+                // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
 
+                useReqParamsStore().setTracks(useChartStore().getTracks(reqIdStr));
+                useReqParamsStore().setBeams(useChartStore().getBeams(reqIdStr));
+                useReqParamsStore().setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
+                useReqParamsStore().setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
+            } else {
+                console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
+            }
         },
         presetForMainRequest() {
           useReqParamsStore().setMissionValue("ICESat-2");

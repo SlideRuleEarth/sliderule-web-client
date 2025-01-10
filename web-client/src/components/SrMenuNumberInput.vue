@@ -3,9 +3,15 @@
             <div ref="menuElement" :class="{ 'sr-menu-control-center': justify_center, 'sr-menu-control':!justify_center}">
                 <SrLabelInfoIconButton :label="label" :labelFontSize="labelFontSize" labelFor="srSelectMenu-{{ label }}" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive" />
                 <form :class="{ 'sr-select-menu-item': !insensitive, 'sr-select-menu-item-insensitive': insensitive }" name="sr-select-item-form" :title="tooltipText">
-                    <select v-model="selectedMenuItem" :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" name="sr-select-menu" id="srSelectMenu-{{ label }}" aria-label="aria-label" :disabled="insensitive">
-                        <option v-for="item in menuOptions" :label="item.name" :value="item" :key=item.value>
-                            {{ item.name }}
+                    <select 
+                        v-model="selectedMenuItem" 
+                        :class="{'sr-select-menu-default':!insensitive,'sr-select-menu-default-insensitive':insensitive }" 
+                        name="sr-select-menu" 
+                        id="srSelectMenu-{{ label }}" 
+                        aria-label="aria-label" 
+                        :disabled="insensitive" >
+                        <option v-for="item in menuOptions" :label="item.label" :value="item" :key=item.value>
+                            {{ item.label }}
                         </option>
                     </select>
                 </form>
@@ -14,13 +20,15 @@
 </template>
   
 <script setup lang="ts">
-    import { onMounted,ref,watch } from 'vue';
+    import { onMounted,computed,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    import { type SrMenuItem } from '@/stores/chartStore';
+    import { SrMenuNumberItem } from '@/stores/atlChartFilterStore';
+
 
     const props = defineProps({
+        modelValue: Object as () => SrMenuNumberItem,
         label: String,
-        menuOptions: Array as () => SrMenuItem[],
+        menuOptions: Array as () => SrMenuNumberItem[],
         insensitive: {
             type: Boolean,
             default: false
@@ -46,18 +54,20 @@
             default: 'small' // default font size if not passed
         },
     });
-    const selectedMenuItem = ref<SrMenuItem>(
-        props.menuOptions && props.menuOptions.length > 0
-            ? props.menuOptions[Number(props.defaultOptionIndex)]
-            : { name: 'default', value: 'default' }
-    );
+    // Use a computed property to bind the `modelValue` prop to `selectedMenuItem`
+    const selectedMenuItem = computed({
+        get: () => props.modelValue,
+        set: (newValue) => {
+            emit('update:modelValue', newValue);
+        }
+    });
 
     const emit = defineEmits(['update:modelValue']);
 
-    watch(selectedMenuItem, (newValue) => {
-        //console.log('Menu:', props.label, 'selected:', newValue);
-        emit('update:modelValue', newValue); 
-    });
+    // watch(selectedMenuItem, (newValue) => {
+    //     //console.log('Menu:', props.label, 'selected:', newValue);
+    //     emit('update:modelValue', newValue); 
+    // });
 
     onMounted(() => {
         //console.log('Mounted Menu:', props.label , 'selected:', selectedMenuItem.value, 'default:', props.defaultOptionIndex);

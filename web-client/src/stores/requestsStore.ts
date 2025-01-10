@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/sliderule/icesat2';
 import { liveQuery } from 'dexie';
-import type { SrMenuItem } from '@/stores/atlChartFilterStore';
+import type { SrMenuNumberItem } from '@/stores/atlChartFilterStore';
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 
@@ -128,7 +128,7 @@ export const useRequestsStore = defineStore('requests', {
       const reqIDs = await this.fetchReqIds();
       return reqIDs.length;
     },
-    async getMenuItems(): Promise<SrMenuItem[]> {
+    async getMenuItems(): Promise<SrMenuNumberItem[]> {
       const fetchedReqIds = await this.fetchReqIds();
       
       const promises = fetchedReqIds.map(async (id: number) => {
@@ -141,14 +141,14 @@ export const useRequestsStore = defineStore('requests', {
         //   truncatedDescr = ' - ' + truncatedDescr;
         // }
         if ((status == 'success') || (status == 'imported')) {
-          return { name: `${id.toString()} - ${funcStr}`, value: id.toString() };
+          return { label: `${id.toString()} - ${funcStr}`, value: id };
         }
       });
     
       const results = await Promise.all(promises);
     
       // Filter out undefined values
-      return results.filter((item): item is SrMenuItem => item !== undefined);
+      return results.filter((item): item is SrMenuNumberItem => item !== undefined);
     },
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').orderBy('req_id').reverse().toArray())

@@ -306,10 +306,14 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
     curReqSumStore.setPercentComplete(0);
 
     if(!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)){
-        console.warn('no geographic reqion defined');
+        console.warn('No geographic reqion defined reqParamsStore.poly:',reqParamsStore.poly, ' reqParamsStore.ignorePolygon:',reqParamsStore.ignorePolygon);
         //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-        useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
-        requestsStore.setConsoleMsg('You need to supply geographic region ...');
+        if(rc===null){
+            useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
+            requestsStore.setConsoleMsg('You need to supply geographic region ...');
+        } else {
+            console.error('runSlideRuleClicked INVALID reqParamsStore.poly:',reqParamsStore.poly, ' reqParamsStore.ignorePolygon:',reqParamsStore.ignorePolygon);
+        }
         mapStore.setIsLoading(false);
         return;
     }

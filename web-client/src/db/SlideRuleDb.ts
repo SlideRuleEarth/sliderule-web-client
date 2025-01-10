@@ -3,7 +3,7 @@ import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateRespo
 import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-export const DEFAULT_DESCRIPTION = 'Click here to edit description';
+export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{
     days : number,
     hours : number,

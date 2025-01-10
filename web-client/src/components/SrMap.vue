@@ -646,12 +646,12 @@
 </script>
 
 <template>
-<div class="sr-main-map">
+<div class="sr-main-map-container">
     <Map.OlMap ref="mapRef" @error="handleEvent"
         :loadTilesWhileAnimating="true"
         :loadTilesWhileInteracting="true"
-        style="height: calc(100vh - 5rem); border-radius: 1rem; overflow: hidden;"
         :controls="controls"
+        class="sr-ol-map"
     >
         <MapControls.OlLayerswitcherControl
             :selection="true"
@@ -682,13 +682,24 @@
 </template>
 
 <style scoped>
-.sr-main-map {
+:deep(.sr-main-map-container) {
   position: relative;
   height: 100%;
-  width: 95%;
+  width: 100%;
   border-radius: 1rem;
   margin: 1rem;
+  flex:1 1 auto; /* grow, shrink, basis - let it stretch*/
 }
+
+:deep(.sr-ol-map) {
+    min-width: 15rem; 
+    min-height: 15rem; 
+    border-radius: var(--p-border-radius); 
+    width: 70vw; 
+    height: 90vh; 
+    overflow: hidden; 
+}
+
 .sr-tooltip-style {
   position: absolute;
     z-index: 10;
