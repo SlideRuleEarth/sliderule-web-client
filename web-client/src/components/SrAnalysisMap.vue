@@ -22,6 +22,8 @@
     import { format } from 'ol/coordinate';
     import { updateMapView,dumpMapLayers } from "@/utils/SrMapUtils";
     import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
+    import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
+    import SrCheckbox from "@/components/SrCheckbox.vue";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -169,12 +171,14 @@
 
 <template>
 <div class="sr-analysis-map-panel">
-    <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
-        <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
-        {{computedLoadMsg}}
-    </div>
-    <div class="sr-notLoadingEl" v-else >
-        {{ computedLoadMsg }}
+    <div class="sr-analysis-map-header">
+        <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
+            <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+            {{computedLoadMsg}}
+        </div>
+        <div class="sr-notLoadingEl" v-else >
+            {{ computedLoadMsg }}
+        </div>
     </div>
     <div ref="mapContainer" class="sr-map-container" >
         <Map.OlMap 
@@ -186,34 +190,49 @@
             class="sr-ol-map"
         >
 
-        <MapControls.OlZoomControl  />
-        
-        <MapControls.OlMousepositionControl 
-            :projection="computedProjName"
-            :coordinateFormat="stringifyFunc as any"
-        />
+            <MapControls.OlZoomControl  />
+            
+            <MapControls.OlMousepositionControl 
+                :projection="computedProjName"
+                :coordinateFormat="stringifyFunc as any"
+            />
 
-        <MapControls.OlScalelineControl />
-        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
-        <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
-        <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
-        <Sources.OlSourceVector :projection="computedProjName">
+            <MapControls.OlScalelineControl />
+            <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+            <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
+            <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
+            <Sources.OlSourceVector :projection="computedProjName">
+                <Styles.OlStyle>
+                    <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+                    <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+                </Styles.OlStyle>
+            </Sources.OlSourceVector>
             <Styles.OlStyle>
-                <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-                <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+                <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+                <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+                <Styles.OlStyleCircle :radius="7">
+                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+                </Styles.OlStyleCircle>
             </Styles.OlStyle>
-        </Sources.OlSourceVector>
-        <Styles.OlStyle>
-            <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-            <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-            <Styles.OlStyleCircle :radius="7">
-            <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-            </Styles.OlStyleCircle>
-        </Styles.OlStyle>
-        </Layers.OlVectorLayer>
-        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+            </Layers.OlVectorLayer>
+            <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
-        <div class="sr-tooltip-style" id="tooltip"></div>
+        <div class="sr-tooltip-style" id="tooltip">
+            <SrCustomTooltip 
+                ref="tooltipRef"
+            />
+        </div>
+    </div>
+    <div>
+        <SrCheckbox 
+            class="sr-show-hide-tooltip"
+            label="Elevation data on hover"
+            labelFontSize="small"
+            tooltipText="Show or hide the elevation when hovering mouse over a track"
+            v-model="mapStore.showTheTooltip"
+            :disabled="useMapStore().isLoading"
+            size="small" 
+        />            
     </div>
 </div>
 
@@ -232,6 +251,29 @@
   margin: 1rem;
   flex:1 1 auto; /* grow, shrink, basis - let it stretch*/
 }
+.sr-analysis-map-header {
+    display: flex;
+    flex-direction: row;
+    justify-content:space-around;
+    align-items:center;
+    width: 100%;
+    height: 2rem;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--p-primary-color);
+    border-radius: var(--p-border-radius);
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.sr-show-hide-tooltip {
+    height: 0.5rem;
+    margin: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 :deep(.sr-map-container) {
   margin-bottom: 0.5rem;
@@ -245,6 +287,21 @@
   height: 100%;
   overflow: hidden;    /* if you still want curved corners to clip the child */
 }
+
+:deep(.sr-select-menu-item) {
+    margin-top:0rem;
+    padding: 0rem; 
+    font-size: small;
+    width: 8rem;
+}
+
+:deep(.sr-select-menu-default) {
+    padding: 0rem; 
+    font-size: small;
+    width: 8rem; 
+    height: 2.25rem; 
+}
+
 :deep(.sr-ol-map) {
     min-width: 15rem; 
     min-height: 15rem; 
@@ -254,6 +311,7 @@
     overflow: hidden; 
     resize:both;
 }
+
 .sr-tooltip-style {
     position: absolute;
     z-index: 10;
@@ -265,6 +323,7 @@
     font-size: 1rem;
     max-width: 20rem;
 }
+
 .sr-analysis-max-pnts {
     display: flex;
     flex-direction: column;
@@ -288,11 +347,13 @@
   border-radius: var(--p-border-radius);
   font-size:smaller;
 }
+
 :deep(.sr-legend-control){
   background: rgba(255, 255, 255, 0.25);
   bottom: 0.5rem;
   right: 2.5rem;
 }
+
 .sr-isLoadingEl {
     display: flex;
     flex-direction: column;

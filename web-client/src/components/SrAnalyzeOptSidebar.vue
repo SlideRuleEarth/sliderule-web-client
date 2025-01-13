@@ -442,7 +442,7 @@ const exportButtonClick = async () => {
                         icon="pi pi-file-export"
                         class="sr-export-button"
                         label="Export"
-                        @mouseover="tooltipRef.showTooltip($event, 'Export')"
+                        @mouseover="tooltipRef.showTooltip($event, 'Export the parquet file of this record')"
                         @mouseleave="tooltipRef.hideTooltip()"
                         @click="exportButtonClick"
                         rounded 
@@ -617,18 +617,7 @@ const exportButtonClick = async () => {
 </template>
 <style scoped>
     
-    :deep(.sr-select-menu-item) {
-        padding: 1rem; 
-        font-size: small;
-        width: 8rem;
-    }
 
-    :deep(.sr-select-menu-default) {
-        padding: 0.25rem; 
-        font-size: small;
-        width: 8rem; 
-        height: 2.25rem; 
-    }
 
     :deep(.sr-analysis-opt-sidebar) {
         display: flex;

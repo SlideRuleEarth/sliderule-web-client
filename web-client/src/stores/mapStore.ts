@@ -58,6 +58,7 @@ export const useMapStore = defineStore('map', {
     extentToRestore: null as number[] | null,
     centerToRestore: null as number[] | null,
     zoomToRestore: null as number | null,
+    showTheTooltip: false as boolean,
 }),
   actions: {
     setMap(mapInstance: OLMap) {

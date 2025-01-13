@@ -68,7 +68,13 @@ watch(selectedReqIdValue, async (newSelection, oldSelection) => {
 </template>
 
 <style scoped>
-.ol-control.sr-record-selector-control .select-baseLayer select {
+:deep(.sr-menu-input-wrapper) {
+  margin-top: 0.5rem;
+  margin-left: 0rem;
+}
+
+.ol-control .sr-select-menu-item {
+  margin:0rem;
   color: white;
   background-color: black;
   border-radius: var(--p-border-radius);
@@ -79,6 +85,7 @@ watch(selectedReqIdValue, async (newSelection, oldSelection) => {
   flex-direction: row; /* Stack children horizontally */
   align-items: center; /* Centers children vertically */
   justify-content: center; /* Centers children horizontally */
-  margin: 0px;
+  margin: 0rem;
+  padding: 0rem;
 }
 </style>
