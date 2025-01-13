@@ -25,7 +25,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
 import { useChartStore } from '@/stores/chartStore';
-import { initSymbolSize, updateChartStore } from '@/utils/plotUtils';
+import { updateChartStore } from '@/utils/plotUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import { clicked } from '@/utils/SrMapUtils'
