@@ -10,9 +10,11 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { useRequestsStore } from "@/stores/requestsStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
+const requestsStore = useRequestsStore();
 
 export interface SrScatterSeriesData{
   series: {
@@ -877,6 +879,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             console.log('findCachedRec reqId found:', reqId);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+            requestsStore.setSvrMsg('');
         }
     }
     return runContext;

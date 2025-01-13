@@ -153,10 +153,11 @@ const confirmDeleteAllReqs = () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
     requestsStore.fetchReqs();
+    atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
 });
 
 onUnmounted(() => {

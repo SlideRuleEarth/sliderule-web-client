@@ -352,7 +352,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
             if(runContext.reqId <= 0){
-                await reqParamsStore.presetForScatterPlotOverlay(atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+                //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
+                await reqParamsStore.presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext);
                 console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
@@ -365,8 +366,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
-                    } else {
-                console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                } else {
+                    console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else {
                 await initSymbolSize(runContext.reqId);
