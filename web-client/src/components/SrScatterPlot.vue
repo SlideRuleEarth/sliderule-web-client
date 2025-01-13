@@ -23,8 +23,8 @@
             <div class="sr-run-control" v-if="!computedFunc.includes('atl03')">
                 <ToggleButton 
                     class="sr-show-hide-button"
-                    onLabel="Hide Photon Cloud"
-                    offLabel="Show Photon Cloud"
+                    onLabel="Hide Atl03 Photons"
+                    offLabel="Show Atl03 Photons"
                     v-model="atlChartFilterStore.showPhotonCloud"
                     :disabled="useMapStore().isLoading"
                     size="small" 
