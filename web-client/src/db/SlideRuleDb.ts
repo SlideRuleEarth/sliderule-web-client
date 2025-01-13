@@ -713,7 +713,7 @@ export class SlideRuleDexie extends Dexie {
                 let srViewName = request.srViewName || '';
                 if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
                     srViewName = 'Global Mercator Esri';
-                    console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+                    console.warn(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
                 }
                 return srViewName
             } else {

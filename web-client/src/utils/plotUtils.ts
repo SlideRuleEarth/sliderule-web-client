@@ -401,7 +401,7 @@ export async function initChartStore(){
                     chartStore.setDescription(reqIdStr,request.description);
                 } else {
                     // this is not an error, just a warning
-                    console.warn('No description found for reqId:',reqIdStr);
+                    //console.warn('No description found for reqId:',reqIdStr);
                 }
                 if(request && request.num_bytes){
                     useChartStore().setSize(reqIdStr,request.num_bytes);
@@ -943,7 +943,7 @@ export const findReqMenuLabel = (reqId:number) => {
     return item ? item.label : 'unknown'
 }
 
-export async function initSymbolSize(req_id: number){
+export async function initSymbolSize(req_id: number):number{
     const reqIdStr = req_id.toString();
     const func = await indexedDb.getFunc(req_id);
     const plotConfig = await indexedDb.getPlotConfig();
@@ -958,6 +958,7 @@ export async function initSymbolSize(req_id: number){
     } else {
         console.error('initSymbolSize unknown function:', func);
     }
+    return chartStore.getSymbolSize(reqIdStr);
     console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
 }
 
