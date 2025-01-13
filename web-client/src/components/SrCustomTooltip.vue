@@ -1,6 +1,6 @@
 <template>
     <div class="tooltip" v-if="visible" :style="tooltipStyle">{{ text }}</div>
-  </template>
+</template>
   
   <script setup lang="ts">
   import { ref } from 'vue';

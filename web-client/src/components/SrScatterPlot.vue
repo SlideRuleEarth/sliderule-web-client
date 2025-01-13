@@ -52,19 +52,9 @@
                                 display="chip"
                                 @update:modelValue="onMainYDataSelectionChange"
                         />
-                        <SrSliderStored
-                            v-model="createComputedSymbolSizeFor(computedReqIdStr).value"
-                            @update:modelValue="symbolSizeSelection"
-                            label="symbol size"
-                            inputWidth="2em"
-                            sliderWidth="5rem"
-                            :min="1"
-                            :max="10"
-                            :defaultValue="computedSymbolSize"
-                            :getValue="createGetSymbolSizeFor(computedReqIdStr)"
-                            :setValue="createSetSymbolSizeFor(computedReqIdStr)"
-                            :decimalPlaces=0
-                            tooltipText="Symbol size for Scatter Plot"
+                        <SrSymbolSize
+                            :reqIdStr="computedReqIdStr"
+                            @update:symbolSize="handleSymbolSizeUpdate"
                         />
                     </Fieldset>
                 </div>
@@ -82,18 +72,9 @@
                                         display="chip"
                                         @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
                                 />
-                                <SrSliderStored
-                                    v-model="createComputedSymbolSizeFor(overlayedReqId.toString()).value"
-                                    @update:modelValue="symbolSizeSelection"
-                                    label="symbol size"
-                                    inputWidth="2em"
-                                    :min="1"
-                                    :max="10"
-                                    :defaultValue="computedSymbolSize"
-                                    :getValue="createGetSymbolSizeFor(overlayedReqId.toString())"
-                                    :setValue="createSetSymbolSizeFor(overlayedReqId.toString())"
-                                    :decimalPlaces=0
-                                    tooltipText="Symbol size for Scatter Plot"
+                                <SrSymbolSize
+                                    :reqIdStr="overlayedReqId.toString()"
+                                    @update:symbolSize="handleSymbolSizeUpdate"
                                 />
                         </Fieldset>
                         </div>
@@ -127,12 +108,12 @@ import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import SrSliderStored from "@/components/SrSliderStored.vue";
 import { findReqMenuLabel } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrReqDisplay from '@/components/SrReqDisplay.vue';
+import SrSymbolSize from '@/components/SrSymbolSize.vue';
 
 const props = defineProps({
     startingReqId: {
@@ -159,80 +140,10 @@ function getOverlayedReqLegend(overlayedReqId: number): string {
     return `${label} - Photon Cloud`;
 }
 
-
-// Create a computed property that updates and retrieves the symbol size 
-const computedSymbolSize = computed<number>({
-  get() {
-        return chartStore.getSymbolSize(computedReqIdStr.value);
-  },
-  set(value: number) {
-        console.log(`computedSymbolSize set value: ${value}`);
-        chartStore.setSymbolSize(computedReqIdStr.value, value);
-  }
-});
-// Function that returns a computed property for a given reqIdStr
-function createComputedSymbolSizeFor(reqIdStr: string) {
-    initSymbolSize(Number(reqIdStr));
-    return computed<number>({
-        get() {
-            return chartStore.getSymbolSize(reqIdStr);
-        },
-        set(value: number) {
-        //console.log(`computedSymbolSize set value: ${value}`);
-        chartStore.setSymbolSize(reqIdStr, value);
-        }
-    });
+async function handleSymbolSizeUpdate(newValue: number) {
+    console.log('Symbol size updated to:', newValue);
+    await callPlotUpdateDebounced('from handleSymbolSizeUpdate');
 }
-
-function createComputedLabelFor(reqId: number) :string {
-    return `symbol size for ${findReqMenuLabel(reqId)}`;
-}
-
-function createGetSymbolSizeFor(reqIdStr: string) {
-  return () => {
-    //console.log(`createGetSymbolSizeFor get value: ${chartStore.getSymbolSize(reqIdStr)}`);
-    return chartStore.getSymbolSize(reqIdStr);
-  };
-}
-
-/**
- * Cache all debounced setSymbolSize() functions,
- * keyed by reqIdStr.
- */
- const debouncedSetSymbolSizeCache = new Map<string, (value: number) => void>();
-
-/**
- * Creates OR retrieves a debounced function for setting symbol size.
- * - If the function already exists in the cache for a given reqIdStr,
- *   it returns the **same** function.
- * - Otherwise, it creates a new one, stores it, and returns it.
- */
-function createSetSymbolSizeFor(reqIdStr: string) {
-  // Return the existing debounced function if we've created it before
-  if (debouncedSetSymbolSizeCache.has(reqIdStr)) {
-    return debouncedSetSymbolSizeCache.get(reqIdStr)!;
-  }
-
-  // The "real" function
-  function doSetSymbolSize(value: number) {
-    console.log(`computedSymbolSize set value: ${value}`);
-    chartStore.setSymbolSize(reqIdStr, value);
-    setSymbolCounter.value++;
-  }
-
-  // The debounced version
-  const debounced = debounce(doSetSymbolSize, 300);
-
-  // Store in our cache
-  debouncedSetSymbolSizeCache.set(reqIdStr, debounced);
-
-  // Return it so `SrSliderStored` can call it
-  return debounced;
-}
-
-const computedMainOptionLabel = computed(() => {
-    return  `${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
-});
 
 function initializeBindings(reqIds: string[]) {
     //console.log('initializeBindings:', reqIds);
@@ -283,8 +194,6 @@ onMounted(async () => {
             } else if (func.includes('atl08')) {
                 atl03ColorMapStore.setAtl03ColorKey('atl08_class');
             }
-            computedSymbolSize.value = chartStore.getSymbolSize(computedReqIdStr.value);
-            console.log('SrScatterPlot onMounted computedSymbolSize:', computedSymbolSize.value);
         } else {
             console.warn('reqId is undefined');
         }        
@@ -310,14 +219,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
         console.warn('plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
         await callPlotUpdateDebounced('from watch plotRef.value');
-    }
-});
-
-watch(() => setSymbolCounter.value, async (newCounter) => {
-    console.log('setSymbolCounter changed:', newCounter);
-    if(newCounter>1){ // ignore first one; it's initializing
-        //await updateScatterOptionsOnly('from watch setSymbolCounter.value');
-        await callPlotUpdateDebounced('from watch setSymbolCounter.value');
     }
 });
 
@@ -352,7 +253,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
             if(runContext.reqId <= 0){
-                await reqParamsStore.presetForScatterPlotOverlay(atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+                //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
+                await reqParamsStore.presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext);
                 console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
@@ -365,8 +267,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
-                    } else {
-                console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                } else {
+                    console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else {
                 await initSymbolSize(runContext.reqId);

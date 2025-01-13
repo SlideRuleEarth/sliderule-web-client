@@ -10,9 +10,11 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { useRequestsStore } from "@/stores/requestsStore";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
+const requestsStore = useRequestsStore();
 
 export interface SrScatterSeriesData{
   series: {
@@ -399,7 +401,7 @@ export async function initChartStore(){
                     chartStore.setDescription(reqIdStr,request.description);
                 } else {
                     // this is not an error, just a warning
-                    console.warn('No description found for reqId:',reqIdStr);
+                    //console.warn('No description found for reqId:',reqIdStr);
                 }
                 if(request && request.num_bytes){
                     useChartStore().setSize(reqIdStr,request.num_bytes);
@@ -877,6 +879,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             console.log('findCachedRec reqId found:', reqId);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+            requestsStore.setSvrMsg('');
         }
     }
     return runContext;
@@ -940,7 +943,7 @@ export const findReqMenuLabel = (reqId:number) => {
     return item ? item.label : 'unknown'
 }
 
-export async function initSymbolSize(req_id: number){
+export async function initSymbolSize(req_id: number):number{
     const reqIdStr = req_id.toString();
     const func = await indexedDb.getFunc(req_id);
     const plotConfig = await indexedDb.getPlotConfig();
@@ -955,6 +958,7 @@ export async function initSymbolSize(req_id: number){
     } else {
         console.error('initSymbolSize unknown function:', func);
     }
+    return chartStore.getSymbolSize(reqIdStr);
     console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
 }
 

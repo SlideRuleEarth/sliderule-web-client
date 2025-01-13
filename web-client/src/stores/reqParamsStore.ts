@@ -4,7 +4,6 @@ import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.v
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { type SrListNumberItem } from '@/stores/chartStore';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
@@ -12,7 +11,7 @@ import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useChartStore } from '@/stores/chartStore';
-
+import type { SrSvrParmsUsed } from '@/types/SrTypes';
 
 interface YapcConfig {
   version: number;
@@ -206,18 +205,24 @@ export const useReqParamsStore = defineStore('reqParams', {
         enableSurfaceElevation: false,
     }),
     actions: {
-        async presetForScatterPlotOverlay(reqIdStr: string) {
+        async presetForScatterPlotOverlay(req_id: number) {
+            console.log('presetForScatterPlotOverlay req_id:', req_id);
             useReqParamsStore().setMissionValue("ICESat-2");
             useReqParamsStore().setIceSat2API("atl03sp");
             useReqParamsStore().setEnableGranuleSelection(true);
             useReqParamsStore().setUseRgt(true);
             useReqParamsStore().setUseCycle(true);
-            const reqParmsUsed = await db.getReqParams(useAtlChartFilterStore().getReqId()) as AtlReqParams;
-            console.log('presetForScatterPlotOverlay reqParmsUsed:', reqParmsUsed);
-            if(reqParmsUsed.parms){
-                if(reqParmsUsed.parms.poly){
-                    useReqParamsStore().setPoly(reqParmsUsed.parms.poly);
-                    useReqParamsStore().setConvexHull(convexHull(reqParmsUsed.parms.poly));
+            const svrParmsUsedStr: string = await db.getSvrParams(req_id) as SvrParmsUsed;
+            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr);
+
+            console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
+            console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
+            console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
+            console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
+            if(svrParmsUsed.server.rqst.parms){
+                if(svrParmsUsed.server.rqst.parms.poly){
+                    useReqParamsStore().setPoly(svrParmsUsed.server.rqst.parms.poly);
+                    useReqParamsStore().setConvexHull(convexHull(svrParmsUsed.server.rqst.parms.poly));
                 } else {
                     console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
                 }
@@ -228,6 +233,7 @@ export const useReqParamsStore = defineStore('reqParams', {
                 // console.log('spots:', useAtlChartFilterStore().getSpots());
                 // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
 
+                const reqIdStr = req_id.toString();
                 useReqParamsStore().setTracks(useChartStore().getTracks(reqIdStr));
                 useReqParamsStore().setBeams(useChartStore().getBeams(reqIdStr));
                 useReqParamsStore().setRgt(useChartStore().getRgtValues(reqIdStr)[0]);

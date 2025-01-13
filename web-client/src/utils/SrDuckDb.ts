@@ -304,18 +304,19 @@ export class DuckDBClient {
   async insertOpfsParquet(name: string) {
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
     try {
-      if (!this._filesInDb.has(name)) {
+      //if (!this._filesInDb.has(name)) {
         const duckDB = await this.duckDB();
         const opfsRoot = await navigator.storage.getDirectory();
         const folderName = 'SlideRule'; 
         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
         const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
         const file = await fileHandle.getFile();
+        //console.log('insertOpfsParquet fileHandle:', fileHandle);
+        //console.log('insertOpfsParquet file:', file);
         console.log('insertOpfsParquet file.size:', file.size);
-        // Skip the file if it is empty and log a warning
+        // if it is empty and log a warning
         if (file.size === 0) {
-          console.warn(`insertOpfsParquet skipped empty file: ${name}`);
-          return;
+          console.warn(`insertOpfsParquet empty file?: ${name} file:`, file);
         }
   
         const url = URL.createObjectURL(file);
@@ -325,7 +326,7 @@ export class DuckDBClient {
             name,
             url,
             DuckDBDataProtocol.HTTP,
-            false,
+            true,
           );
         } catch (error: any) {
           if ('File already registered' in error) {
@@ -348,11 +349,11 @@ export class DuckDBClient {
           this._filesInDb.add(name);
           console.log('insertOpfsParquet inserted name:', name);
         } else {
-          //console.log(`insertOpfsParquet File ${name} already registered`);
+          console.log(`insertOpfsParquet File ${name} already registered`);
         }
-      } else {
-        //console.log(`insertOpfsParquet File ${name} already registered`);
-      }
+      // } else {
+      //   console.log(`insertOpfsParquet File ${name} already registered`);
+      // }
     } catch (error) {
       console.error('insertOpfsParquet error:', error);
       throw error;

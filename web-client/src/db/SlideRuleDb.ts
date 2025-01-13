@@ -2,7 +2,7 @@ import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-
+import type { SrSvrParmsUsed } from '@/types/SrTypes';
 export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{
     days : number,
@@ -687,6 +687,20 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`No request found with req_id ${req_id}`);
+                return {} as NullReqParams;
+            }
+            return request.svr_parms || {} as NullReqParams;
+        } catch (error) {
+            console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
     async getSrViewName(req_id:number): Promise<string> {
         try {
             if(req_id && req_id > 0){
@@ -699,7 +713,7 @@ export class SlideRuleDexie extends Dexie {
                 let srViewName = request.srViewName || '';
                 if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
                     srViewName = 'Global Mercator Esri';
-                    console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+                    console.warn(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
                 }
                 return srViewName
             } else {
@@ -972,15 +986,15 @@ export class SlideRuleDexie extends Dexie {
                 .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
                 .toArray();
           
-          console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
-          if (found.length > 1) {
-              console.warn(`Multiple matching records found for run context:`, runContext);
-          }
-          if (found.length === 0) {
-              console.warn(`No matching record found for run context:`, runContext);
-              return undefined;
-          }
-          return found[0].reqId;
+            console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+            if (found.length <= 0) {
+                console.log(`No matching record found for run context:`, runContext);
+                return undefined;
+            }
+            if (found.length > 1) {
+                console.warn(`Multiple matching records found for run context:`, runContext);
+            }
+            return found[0].reqId;
         } catch (error) {
             console.error(`Failed to find matching record for run context:`, error);
             throw error;
