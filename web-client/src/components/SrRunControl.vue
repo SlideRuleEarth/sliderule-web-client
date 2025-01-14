@@ -38,6 +38,7 @@
         if(props.includeAdvToggle) { // this means it is the Request Run button
             requestsStore.displayHelpfulMapAdvice("1) Select a geographic region of about several square Km.    Then:\n 2) Click 'Run SlideRule' to start the process");
             requestsStore.setConsoleMsg(`Select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
+            reqParamsStore.presetForMainRequest();
         } else { // this means it is the Overlay Photon Cloud button
             const msg = `Click 'Show Photon Cloud Overlay' to fetch highlighted track Photon Cloud data and overlay on plot`;
             requestsStore.displayHelpfulMapAdvice(msg);
@@ -57,7 +58,6 @@
         } else {
             console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
             if(props.includeAdvToggle){
-                reqParamsStore.presetForMainRequest();
                 processRunSlideRuleClicked();
             } else {
                 console.error('SrRunControl clicked for Overlay Photon Cloud?');

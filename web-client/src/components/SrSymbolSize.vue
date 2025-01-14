@@ -19,7 +19,7 @@
 </template>
   
 <script setup lang="ts">
-    import { computed, defineProps } from 'vue';
+    import { computed } from 'vue';
     import InputNumber from 'primevue/inputnumber';
     import { useChartStore } from '@/stores/chartStore';
     

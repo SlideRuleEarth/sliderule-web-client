@@ -27,7 +27,8 @@ export const useReqParamsStore = defineStore('reqParams', {
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
         iceSat2SelectedAPI: 'atl06p' as string,
-        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
+        //iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
+        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p'] as string[],
         gediSelectedAPI: 'gedi01bp' as string,
         gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
         using_worker: false,
@@ -212,13 +213,13 @@ export const useReqParamsStore = defineStore('reqParams', {
             useReqParamsStore().setEnableGranuleSelection(true);
             useReqParamsStore().setUseRgt(true);
             useReqParamsStore().setUseCycle(true);
-            const svrParmsUsedStr: string = await db.getSvrParams(req_id) as SvrParmsUsed;
-            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr);
-
-            console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
-            console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
-            console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
-            console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
+            const svrParmsUsedStr = await db.getSvrParams(req_id) as unknown as string;
+            //console.log(' presetForScatterPlotOverlay typeof svrParmsUsed:', typeof svrParmsUsedStr);
+            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
+            // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
+            // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
+            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
+            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
             if(svrParmsUsed.server.rqst.parms){
                 if(svrParmsUsed.server.rqst.parms.poly){
                     useReqParamsStore().setPoly(svrParmsUsed.server.rqst.parms.poly);
@@ -243,6 +244,7 @@ export const useReqParamsStore = defineStore('reqParams', {
             }
         },
         presetForMainRequest() {
+          console.log('presetForMainRequest');
           useReqParamsStore().setMissionValue("ICESat-2");
           useReqParamsStore().setIceSat2API("atl06p");
           useReqParamsStore().setEnableGranuleSelection(false);

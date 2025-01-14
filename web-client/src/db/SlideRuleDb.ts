@@ -690,11 +690,12 @@ export class SlideRuleDexie extends Dexie {
     async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams> {
         try {
             const request = await this.requests.get(req_id);
-            if (!request) {
+            if (request) {
+                return request.svr_parms as SrSvrParmsUsed;
+            } else {
                 console.error(`No request found with req_id ${req_id}`);
                 return {} as NullReqParams;
             }
-            return request.svr_parms || {} as NullReqParams;
         } catch (error) {
             console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
             throw error;
