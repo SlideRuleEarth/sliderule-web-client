@@ -1,4 +1,4 @@
-interface Region {
+export interface Region {
     rows: number;
     cols: number;
     cellsize: number;
@@ -9,14 +9,14 @@ interface Region {
     geojson: string;
   }
   
-  interface Raster extends Region {}
+  export interface Raster extends Region {}
   
-  interface Poly {
+  export interface Poly {
     lon: number;
     lat: number;
   }
   
-  interface Output {
+  export interface Output {
     open_on_complete: boolean;
     with_validation: boolean;
     format: string;
@@ -29,7 +29,7 @@ interface Region {
     ancillary: any[];
   }
   
-  interface Parms {
+  export interface Parms {
     region_mask: Region;
     read_timeout: number;
     environment_version: string;
@@ -48,12 +48,12 @@ interface Region {
     points_in_polygon: number;
   }
   
-  interface Rqst {
+  export interface Rqst {
     endpoint: string;
     parms: Parms;
   }
   
-  interface Server {
+  export interface Server {
     rqst: Rqst;
     environment: string;
     version: string;
@@ -63,14 +63,14 @@ interface Region {
     launch: string;
   }
   
-  interface RecordInfo {
+  export interface RecordInfo {
     time: string;
     as_geo: boolean;
     x: string;
     y: string;
   }
   
-  interface SrSvrParmsUsed {
+  export interface SrSvrParmsUsed {
     server: Server;
     recordinfo: RecordInfo;
   }

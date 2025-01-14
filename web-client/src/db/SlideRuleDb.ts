@@ -18,7 +18,7 @@ export interface SrRequestRecord {
     status?: string; // status: 'pending', 'processing', 'success', 'error'
     func?: string; // function name
     parameters?: ReqParams; //  parameters
-    svr_parms?: ReqParams; //  parameters used/returned from server
+    svr_parms?: SrSvrParmsUsed; //  parameters used/returned from server
     start_time?: Date; // start time of request
     end_time?: Date; //end time of request
     elapsed_time?: string; //  elapsed time
@@ -687,7 +687,7 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed> {
+    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams> {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
