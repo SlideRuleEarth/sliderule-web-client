@@ -14,8 +14,13 @@
                     zlevel:100
                 }" 
             />
-            <SrAtl03ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf')   && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
-            <SrAtl08ColorLegend v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" />
+            <SrAtl03ColorLegend 
+                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+            />
+            <SrAtl08ColorLegend 
+                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+            />
         </div> 
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -52,10 +57,12 @@
                                 display="chip"
                                 @update:modelValue="onMainYDataSelectionChange"
                         />
-                        <SrSymbolSize
-                            :reqIdStr="computedReqIdStr"
-                            @update:symbolSize="handleSymbolSizeUpdate"
-                        />
+                        <div>
+                            <SrSymbolSize
+                                :reqIdStr="computedReqIdStr"
+                                @update:symbolSize="handleSymbolSizeUpdate"
+                            />
+                        </div>
                     </Fieldset>
                 </div>
                 <div class="sr-multiselect-col">
@@ -72,10 +79,12 @@
                                         display="chip"
                                         @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
                                 />
-                                <SrSymbolSize
-                                    :reqIdStr="overlayedReqId.toString()"
-                                    @update:symbolSize="handleSymbolSizeUpdate"
-                                />
+                                <div>
+                                    <SrSymbolSize
+                                        :reqIdStr="overlayedReqId.toString()"
+                                        @update:symbolSize="handleSymbolSizeUpdate"
+                                    />
+                                </div>
                         </Fieldset>
                         </div>
                     </div>
@@ -87,9 +96,7 @@
 
 <script setup lang="ts">
 import { use } from "echarts/core"; 
-import { debounce } from 'lodash-es';
 import MultiSelect from "primevue/multiselect";
-import FloatLabel from "primevue/floatlabel";
 import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
@@ -114,6 +121,7 @@ import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrReqDisplay from '@/components/SrReqDisplay.vue';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
+import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
 
 const props = defineProps({
     startingReqId: {
@@ -125,7 +133,7 @@ const props = defineProps({
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const theAtl03ColorMapStore = useAtl03ColorMapStore();
 const reqParamsStore = useReqParamsStore();
 
 const computedReqIdStr = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
@@ -133,7 +141,6 @@ const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
 const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 const loadingComponent = ref(true);
-const setSymbolCounter = ref(0);
 
 function getOverlayedReqLegend(overlayedReqId: number): string {
     const label = findReqMenuLabel(overlayedReqId);
@@ -171,9 +178,16 @@ async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number
     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
 }
 
+async function restoreAtl03DefaultColorsAndUpdatePlot() {
+    console.log('restoreAtl03DefaultColorsAndUpdatePlot');
+    restoreAtl03DefaultColors();
+    await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
+}
+
 onMounted(async () => {
     try {
         //console.log('SrScatterPlot onMounted');
+        theAtl03ColorMapStore.initializeAtl03ColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
@@ -184,15 +198,15 @@ onMounted(async () => {
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
-            atl03ColorMapStore.initializeAtl03ColorMapStore();
+            theAtl03ColorMapStore.initializeAtl03ColorMapStore();
             await prepareDbForReqId(reqId);                                                                      
     
             if (func === 'atl03sp') {
-                atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+                theAtl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
             } else if (func.includes('atl06')) {
-                atl03ColorMapStore.setAtl03ColorKey('YAPC');
+                theAtl03ColorMapStore.setAtl03ColorKey('YAPC');
             } else if (func.includes('atl08')) {
-                atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+                theAtl03ColorMapStore.setAtl03ColorKey('atl08_class');
             }
         } else {
             console.warn('reqId is undefined');
@@ -231,13 +245,13 @@ const messageClass = computed(() => {
 });
 
 const computedSelectedAtl03ColorMap = computed(() => {
-  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
+  return theAtl03ColorMapStore.getSelectedAtl03YapcColorMapName();
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
     //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    atl03ColorMapStore.updateAtl03YapcColorMapValues();
-    //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
+    theAtl03ColorMapStore.updateAtl03YapcColorMapValues();
+    //console.log('Color Map:', theAtl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
         await callPlotUpdateDebounced('from watch computedSelectedAtl03ColorMap');
@@ -392,6 +406,7 @@ watch(
     overflow-y: auto;
     overflow-x: auto;
     width: auto;
+    min-width: 10rem;
 }
 
 .sr-show-hide-button {
@@ -414,33 +429,42 @@ watch(
   overflow-x: auto;
   width: auto;
 }
-
 .sr-multiselect-container {
     display: flex;
-    flex-direction: row;
-    justify-content: left;
-    align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
+    justify-content: space-between; /* Distribute items with equal spacing */
+    align-items: flex-start; /* Align items at the start */
     width: 100%;
-    margin: 0.25rem;
-    border: 0.25rem;
-    margin-top: 2.0rem;
+    margin: 0.25rem 0;
+    gap: 1rem; /* Consistent spacing between items */
 }
 
 .sr-multiselect-col {
+    flex: 1 1 45%; /* Allow columns to take up 45% of the container width */
+    min-width: 18rem; /* 300px equivalent */
+    max-width: 32rem; /* 500px equivalent */
     display: flex;
     flex-direction: column;
-    justify-content: left;
-    align-items: left;
-    width: 100%;
+    justify-content: flex-start;
+    align-items: stretch; /* Stretch items to match the width */
     margin: 0.25rem;
-    margin-top: 0rem;
-    margin-left: 1rem;
-    border: 0.25rem;
 }
+
+fieldset {
+    word-wrap: break-word; /* Break long words */
+    white-space: normal; /* Allow wrapping */
+}
+
+@media (max-width: 48rem) { /* 768px equivalent */
+    .sr-multiselect-col {
+        flex: 1 1 100%; /* Take up full width on small screens */
+        margin: 0.5rem 0;
+    }
+}
+
 .sr-multiselect {
-    width: fit-content;
-    margin: 0rem;
-    border: 0rem;
+    max-width: 100%; /* Prevent overflowing parent */
+    box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .sr-select-color-key {

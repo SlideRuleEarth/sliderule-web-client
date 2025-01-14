@@ -10,11 +10,11 @@ const boxes = [
   { id: 1, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Surface Elevations", description: "For all surface types", image: "/SrGround.webp" },
   { id: 2, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Land Ice Sheet", description: "For ice sheets and glaciers", image: "/SrSeaIce.webp" },
   { id: 3, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 4, hide: (false && !useAdvancedModeStore().getAdvanced()),  name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
-  { id: 5, hide: (false && !useAdvancedModeStore().getAdvanced()),  name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
-  { id: 6, hide: (true && !useAdvancedModeStore().getAdvanced()),  name: "GEDI Aboveground Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 7, hide: (true && !useAdvancedModeStore().getAdvanced()),  name: "GEDI Canopy Heights", description: "For geolocated elevation and height metrics", image: "/SrInlandWater.webp" },
-  { id: 8, hide: (true && !useAdvancedModeStore().getAdvanced()),  name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
+  //{ id: 4, hide: (true  && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
+  { id: 5, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
+  { id: 6, hide: (true  && !useAdvancedModeStore().getAdvanced()), name: "GEDI Aboveground Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+  { id: 7, hide: (true  && !useAdvancedModeStore().getAdvanced()), name: "GEDI Canopy Heights", description: "For geolocated elevation and height metrics", image: "/SrInlandWater.webp" },
+  { id: 8, hide: (true  && !useAdvancedModeStore().getAdvanced()), name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
 ];
 
 const selectBox = (boxId: number) => {
@@ -43,11 +43,11 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setIceSat2API('atl08p');
         reqParameterStore.setAsset('icesat2');
         break;
-      case 'ICESat-2 Coastal Bathymetry':
-        reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl24s');
-        reqParameterStore.setAsset('icesat2');
-        break;
+      // case 'ICESat-2 Coastal Bathymetry':
+      //   reqParameterStore.setMissionValue('ICESat-2');
+      //   reqParameterStore.setIceSat2API('atl24s');
+      //   reqParameterStore.setAsset('icesat2');
+      //   break;
       case 'ICESat-2 Geolocated Photons':
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03sp');

@@ -103,7 +103,7 @@ const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);
 
 const mobileMenuItems = [
     {
-        label: 'Map',
+        label: 'Request',
         icon: 'pi pi-sliders-h',
         command: handleRequestButtonClick
     },
