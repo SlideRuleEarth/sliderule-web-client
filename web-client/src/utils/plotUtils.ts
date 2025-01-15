@@ -11,10 +11,15 @@ import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from "@/stores/requestsStore";
+import type { WritableComputedRef } from "vue";
+import { reactive, computed } from 'vue';
+
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 const requestsStore = useRequestsStore();
+export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
+export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 
 export interface SrScatterSeriesData{
   series: {
@@ -30,6 +35,24 @@ export interface SrScatterSeriesData{
   min: number;
   max: number;
 };
+
+export function initDataBindingsToChartStore(reqIds: string[]) {
+    //console.log('initDataBindingsToChartStore:', reqIds);
+    reqIds.forEach((reqId) => {
+        if (!(reqId in yDataBindingsReactive)) {
+            yDataBindingsReactive[reqId] = computed({
+                get: () => chartStore.getYDataOptions(reqId),
+                set: (value: string[]) => chartStore.setYDataOptions(reqId, value),
+            });
+        }
+        if(!(reqId in yDataSelectedReactive)){
+            yDataSelectedReactive[reqId] = computed({
+                get: () => chartStore.getSelectedYData(reqId),
+                set: (value: string) => chartStore.setSelectedYData(reqId, value),
+            });
+        }
+    });
+}
 
 let debugCnt = 10;
 function getAtl03spColor(params: any):string {
@@ -349,7 +372,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const fileName = chartStore.getFile(reqIdStr);
     const func = chartStore.getFunc(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const y = chartStore.getYDataForChart(reqIdStr);
+    const y = [chartStore.getSelectedYData(reqIdStr)];
     let seriesData = [] as SrScatterSeriesData[];
     try{
         if(fileName){
@@ -428,7 +451,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
     const func = chartStore.getFunc(reqIdStr);
-    const y = chartStore.getYDataForChart(reqIdStr);
+    const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
     const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
     const cycles = chartStore.getCycles(reqIdStr).map(cycle => cycle?.value).filter(value => value !== undefined);
@@ -558,7 +581,7 @@ const initScatterPlotWith = async (reqId: number) => {
     await updateChartStore(reqId);
 
     const reqIdStr = reqId.toString();
-    const y_options = chartStore.getYDataForChart(reqIdStr);
+    const y_options = chartStore.getYDataOptions(reqIdStr);
 
     //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
     const msg = '';

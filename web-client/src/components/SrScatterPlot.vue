@@ -1,109 +1,12 @@
-<template>
-    <div class="sr-scatter-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
-    <div class="sr-scatter-plot-container" v-else>
-        <div class="sr-scatter-plot-content">
-            <v-chart  ref="plotRef" 
-                class="scatter-chart" 
-                :manual-update="true"
-                :autoresize="{throttle:500}" 
-                :loading="atlChartFilterStore.isLoading" 
-                :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
-                }" 
-            />
-            <SrAtl03ColorLegend 
-                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-                @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
-            />
-            <SrAtl08ColorLegend 
-                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-            />
-        </div> 
-        <div class="sr-scatter-plot-header">
-            <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!computedFunc.includes('atl03')">
-                <ToggleButton 
-                    class="sr-show-hide-button"
-                    onLabel="Hide Atl03 Photons"
-                    offLabel="Show Atl03 Photons"
-                    v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="useMapStore().isLoading"
-                    size="small" 
-                    rounded
-                />
-                <SrRunControl 
-                    :includeAdvToggle="false"
-                    buttonLabel="Photon Cloud"
-                />
-            </div>
-            <div>
-                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
-            </div>
-            <div class="sr-multiselect-container">
-
-                <div class= "sr-multiselect-col">
-                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
-                        <MultiSelect
-                                class="sr-multiselect"
-                                :placeholder="`Y data for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`"
-                                :id="computedElID"
-                                v-model="yDataBindingsReactive[computedReqIdStr]"
-                                size="small" 
-                                :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
-                                display="chip"
-                                @update:modelValue="onMainYDataSelectionChange"
-                        />
-                        <div>
-                            <SrSymbolSize
-                                :reqIdStr="computedReqIdStr"
-                                @update:symbolSize="handleSymbolSizeUpdate"
-                            />
-                        </div>
-                    </Fieldset>
-                </div>
-                <div class="sr-multiselect-col">
-                    <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
-                        <div class= "sr-multiselect-col">
-                            <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
-                                <MultiSelect
-                                        class="sr-multiselect" 
-                                        :placeholder="`Y data for ${findReqMenuLabel(overlayedReqId)}`"
-                                        :id="`srMultiId-${overlayedReqId}`"
-                                        v-model="yDataBindingsReactive[overlayedReqId.toString()]"
-                                        size="small"
-                                        :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
-                                        display="chip"
-                                        @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
-                                />
-                                <div>
-                                    <SrSymbolSize
-                                        :reqIdStr="overlayedReqId.toString()"
-                                        @update:symbolSize="handleSymbolSizeUpdate"
-                                    />
-                                </div>
-                        </Fieldset>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
-
 <script setup lang="ts">
 import { use } from "echarts/core"; 
-import MultiSelect from "primevue/multiselect";
 import ToggleButton from "primevue/togglebutton";
+import Select from "primevue/select";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import type { WritableComputedRef } from "vue";
-import { provide, watch, onMounted, ref, computed, reactive } from "vue";
+import { provide, watch, onMounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
@@ -115,7 +18,7 @@ import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { findReqMenuLabel } from '@/utils/plotUtils';
+import { findReqMenuLabel, initDataBindingsToChartStore,yDataSelectedReactive } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
@@ -135,11 +38,9 @@ const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const theAtl03ColorMapStore = useAtl03ColorMapStore();
 const reqParamsStore = useReqParamsStore();
-
 const computedReqIdStr = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+const computedSelectedYId = computed(() => `srYdataItems-${computedReqIdStr.value}`);
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
-const computedElID = computed(() => `srMultiId-${computedReqIdStr.value}`);
-const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 const loadingComponent = ref(true);
 
 function getOverlayedReqLegend(overlayedReqId: number): string {
@@ -152,26 +53,13 @@ async function handleSymbolSizeUpdate(newValue: number) {
     await callPlotUpdateDebounced('from handleSymbolSizeUpdate');
 }
 
-function initializeBindings(reqIds: string[]) {
-    //console.log('initializeBindings:', reqIds);
-    reqIds.forEach((reqId) => {
-        if (!(reqId in yDataBindingsReactive)) {
-            yDataBindingsReactive[reqId] = computed({
-                get: () => chartStore.getYDataForChart(reqId),
-                set: (value: string[]) => chartStore.setYDataForChart(reqId, value),
-            });
-        }
-    });
-}
+
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
-async function onMainYDataSelectionChange(newValue: string[]) {
-    console.log("Main Y Data changed:", newValue);
-    await callPlotUpdateDebounced('from onMainYDataSelectionChange');
-}
+
 
 async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number, newValue: string[]) {
     console.log(`Overlay Y Data for ${thisoverlayedReqId} changed:`, newValue);
@@ -194,7 +82,7 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-        initializeBindings(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
+        initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
@@ -222,7 +110,6 @@ onMounted(async () => {
 watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
     console.log('reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        await prepareDbForReqId(newReqId);
         await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
     }
 });
@@ -274,7 +161,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     const parentReqIdStr = runContext.parentReqId.toString();
-                    initializeBindings([thisReqIdStr]);//after run gives us a reqId
+                    initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
                     atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
@@ -341,6 +228,7 @@ watch(
     spots: chartStore.getSpots(computedReqIdStr.value),
     tracks: chartStore.getTracks(computedReqIdStr.value),
     pairs: chartStore.getPairs(computedReqIdStr.value),
+    ydata: chartStore.getSelectedYData(computedReqIdStr.value),
   }),
   async (newValues, oldValues) => {
     if(!loadingComponent.value){
@@ -353,6 +241,104 @@ watch(
 );
 
 </script>
+<template>
+    <div class="sr-scatter-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
+    <div class="sr-scatter-plot-container" v-else>
+        <div class="sr-scatter-plot-content">
+            <v-chart  ref="plotRef" 
+                class="scatter-chart" 
+                :manual-update="true"
+                :autoresize="{throttle:500}" 
+                :loading="atlChartFilterStore.isLoading" 
+                :loadingOptions="{
+                    text:'Data Loading', 
+                    fontSize:20, 
+                    showSpinner: true, 
+                    zlevel:100
+                }" 
+            />
+            <SrAtl03ColorLegend 
+                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+            />
+            <SrAtl08ColorLegend 
+                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+            />
+        </div> 
+        <div class="sr-scatter-plot-header">
+            <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
+            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+            <div class="sr-run-control" v-if="!computedFunc.includes('atl03')">
+                <ToggleButton 
+                    class="sr-show-hide-button"
+                    onLabel="Hide Atl03 Photons"
+                    offLabel="Show Atl03 Photons"
+                    v-model="atlChartFilterStore.showPhotonCloud"
+                    :disabled="useMapStore().isLoading"
+                    size="small" 
+                    rounded
+                />
+                <SrRunControl 
+                    :includeAdvToggle="false"
+                    buttonLabel="Photon Cloud"
+                />
+            </div>
+            <div>
+                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
+            </div>
+            <div class="sr-multiselect-container">
+
+                <div class= "sr-multiselect-col">
+                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
+                        <div>
+                            <div class="sr-ydata-menu">
+                                <label class="sr-y-data-label":for="computedSelectedYId">Y Data </label> 
+                                <Select class="sr-select-ydata"
+                                    v-model="yDataSelectedReactive[computedReqIdStr]"
+                                    :options="chartStore.getYDataOptions(computedReqIdStr)"
+                                    placeholder="Select Y data"
+                                    :id="computedSelectedYId"
+                                    size="small"
+                                >
+                                </Select>
+                            </div>
+                        </div>
+                        <div>
+                            <SrSymbolSize
+                                :reqIdStr="computedReqIdStr"
+                                @update:symbolSize="handleSymbolSizeUpdate"
+                            />
+                        </div>
+                    </Fieldset>
+                </div>
+                <div class="sr-multiselect-col">
+                    <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                        <div class= "sr-multiselect-col">
+                            <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
+                                <!-- <MultiSelect
+                                        class="sr-multiselect" 
+                                        :placeholder="`Y data for ${findReqMenuLabel(overlayedReqId)}`"
+                                        :id="`srMultiId-${overlayedReqId}`"
+                                        v-model="yDataBindingsReactive[overlayedReqId.toString()]"
+                                        size="small"
+                                        :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
+                                        display="chip"
+                                        @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
+                                /> -->
+                                <div>
+                                    <SrSymbolSize
+                                        :reqIdStr="overlayedReqId.toString()"
+                                        @update:symbolSize="handleSymbolSizeUpdate"
+                                    />
+                                </div>
+                        </Fieldset>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 
 <style scoped>
 
@@ -416,6 +402,9 @@ watch(
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-width: 8rem;
+    background-color:var(--p-button-text-primary-color);
+    color:black;
 }
 
 .sr-photon-cloud {
@@ -429,6 +418,11 @@ watch(
   overflow-x: auto;
   width: auto;
 }
+.sr-select-y-data {
+    width: 100%;
+    margin: 0.25rem;
+}
+
 .sr-multiselect-container {
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
@@ -462,11 +456,19 @@ fieldset {
     }
 }
 
-.sr-multiselect {
-    max-width: 100%; /* Prevent overflowing parent */
-    box-sizing: border-box; /* Include padding in width calculation */
+.sr-ydata-menu {
+    display: inline-flex; /* Allow the container to shrink-wrap its content */
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* Align content to the left */
+    gap: 0.5rem; /* Add spacing between elements */
+    width: auto; /* Let the container size itself based on the content */
+    padding: 0.5rem; /* Optional: Add some padding for spacing */
 }
-
+.sr-y-data-label {
+    margin: 0;
+    font-size: small;
+}
 .sr-select-color-key {
   display: flex;
   flex-direction: column;

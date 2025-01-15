@@ -11,6 +11,7 @@ export interface SrListNumberItem {
     label: string;
     value: number;
 }
+
 interface ChartState {
   currentFile: string;
   min_x: number;
@@ -18,7 +19,8 @@ interface ChartState {
   min_y: number;
   max_y: number;
   elevationDataOptions: string[];
-  yDataForChart: string[];
+  yDataOptions: string[];
+  selectedYData: string;
   xDataForChart: string;
   ndxOfElevationDataOptionsForHeight: number;
   func: string;
@@ -50,11 +52,11 @@ export const useChartStore = defineStore('chartStore', {
 
   actions: {
     // Initialize a state for a reqIdStr if it doesn't exist
-    ensureState(reqIdStr: string) {
+    ensureState(reqIdStr: string): boolean {
         if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
-            console.error('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
+            console.warn('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
             console.trace('Call stack for ensureState with invalid reqIdStr');
-            return; // Exit early to prevent further execution
+            return false; // Exit early to prevent further execution
         }     
         if (!this.stateByReqId[reqIdStr]) {
             //console.log('ensureState() initializing state for reqIdStr:', reqIdStr);
@@ -65,7 +67,8 @@ export const useChartStore = defineStore('chartStore', {
                 min_y: 0,
                 max_y: 0,
                 elevationDataOptions: [ 'not_set' ],
-                yDataForChart: [],
+                yDataOptions: [],
+                selectedYData: '',
                 xDataForChart: 'x_atc',
                 ndxOfElevationDataOptionsForHeight: 0,
                 func: '',
@@ -88,7 +91,7 @@ export const useChartStore = defineStore('chartStore', {
                 scOrients: [],
             };
         }
-
+        return true;
     },
     setMinX(reqIdStr: string, min_x: number) {
         this.ensureState(reqIdStr);
@@ -145,13 +148,13 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
     },
-    getNdxOfElevationDataOptionsForHeight(reqIdStr: string) {
-        this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight;
-    },
     getElevationDataOptionForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].elevationDataOptions[this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight];
+    },
+    getNdxOfElevationDataOptionsForHeight(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].ndxOfElevationDataOptionsForHeight;
     },
     setNdxOfElevationDataOptionsForHeight(reqIdStr: string,ndx: number) {
         this.ensureState(reqIdStr);
@@ -165,16 +168,27 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].elevationDataOptions = elevationDataOptions;
     },
-    getYDataForChart(reqIdStr: string): string[] {
+    getYDataOptions(reqIdStr: string): string[] {
         this.ensureState(reqIdStr);
-        const yData =  this.stateByReqId[reqIdStr].yDataForChart;
-        //console.log('getYDataForChart reqIdStr:',reqIdStr, ' yData:',yData);
+        const yData =  this.stateByReqId[reqIdStr].yDataOptions;
+        //console.log('getYDataOptions reqIdStr:',reqIdStr, ' yData:',yData);
         return yData;
     },
-    setYDataForChart(reqIdStr: string,yDataForChart: string[]): void {
+    setYDataOptions(reqIdStr: string,yDataOptions: string[]): void {
         this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].yDataForChart = yDataForChart;
-        //console.log('setYDataForChart reqIdStr:',reqIdStr, ' yData:',yDataForChart, ' state yData:',this.stateByReqId[reqIdStr].yDataForChart);
+        this.stateByReqId[reqIdStr].yDataOptions = yDataOptions;
+        //console.log('setYDataOptions reqIdStr:',reqIdStr, ' yData:',yDataOptions, ' state yData:',this.stateByReqId[reqIdStr].yDataOptions);
+    },    
+    getSelectedYData(reqIdStr: string): string {
+        if(this.ensureState(reqIdStr)){
+            return this.stateByReqId[reqIdStr].selectedYData;
+        } else {
+            return '';
+        }
+    },
+    setSelectedYData(reqIdStr: string, newVal: string) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].selectedYData = newVal;
     },    
     getXDataForChart(reqIdStr: string) {
         this.ensureState(reqIdStr);

@@ -3,7 +3,7 @@ import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,updateWhereClause,type ElevationDataItem } from './SrMapUtils';
-import { getHeightFieldname } from "@/utils/SrParquetUtils";
+import { getHeightFieldname,getDefaultElOptions } from "@/utils/SrParquetUtils";
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -37,29 +37,31 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
-
         // Update the index of the elevation data options for height
         chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
-
         // Retrieve the existing Y data for the chart
-        const existingYdata = chartStore.getYDataForChart(reqIdStr);
 
         // Get the elevation data option for height
-        const elevationOption = chartStore.getElevationDataOptionForHeight(reqIdStr);
+        //const elevationOption = chartStore.getElevationDataOptionForHeight(reqIdStr);
+ 
+        const defElOptions = await getDefaultElOptions(reqIdStr);
+        for(const elevationOption of defElOptions){
+            const existingYdata = chartStore.getYDataOptions(reqIdStr);
+            // Check if the elevation option is already in the Y data
+            if (!existingYdata.includes(elevationOption)) {
+                // Clone the existing Y data and add the new elevation option
+                const newYdata = [...existingYdata, elevationOption];
 
-        // Check if the elevation option is already in the Y data
-        if (!existingYdata.includes(elevationOption)) {
-            // Clone the existing Y data and add the elevation option
-            const newYdata = [...existingYdata, elevationOption];
-
-            // Update the Y data for the chart
-            chartStore.setYDataForChart(reqIdStr, newYdata);
+                // Update the Y data for the chart
+                chartStore.setYDataOptions(reqIdStr, newYdata);
+            }
         }
+        chartStore.setSelectedYData(reqIdStr,heightFieldname);
 
         // Optional: Debugging log
         console.log(
             'setElevationDataOptionsFromFieldNames',
-            { reqIdStr, fieldNames, heightFieldname, ndx, elevationOption, existingYdata }
+            { reqIdStr, fieldNames, heightFieldname, ndx }
         );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);

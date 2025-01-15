@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import Fieldset from "primevue/fieldset";
+import MultiSelect from "primevue/multiselect";
+import FloatLabel from "primevue/floatlabel";
 import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
@@ -9,7 +11,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed } from "vue";
-import { clearPlot } from "@/utils/plotUtils";
+import { clearPlot,yDataBindingsReactive,findReqMenuLabel } from "@/utils/plotUtils";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const atl03ColorMapStore = useAtl03ColorMapStore();
@@ -31,9 +33,21 @@ const computedFunc = computed(() => {
 });
 
 const computedLabel = computed(() => {
-  return `Plot Details for ${computedReqIdStr.value} - ${computedFunc.value}`;
+  return `Plot Configuration Details for ${computedReqIdStr.value} - ${computedFunc.value}`;
 });
 
+const computedElId = computed(() => {
+    return `srYdataItems-${props.req_id}`;
+});
+
+const computedMainLabel = computed(() => {
+    return `Available Y data options for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
+});
+
+async function onMainYDataSelectionChange(newValue: string[]) {
+    console.log("Main Y Data changed:", newValue);
+    await callPlotUpdateDebounced('from onMainYDataSelectionChange');
+}
 
 onMounted(() => {
     console.log('SrScatterPlotOptions onMounted props.req_id:', props.req_id);
@@ -55,6 +69,21 @@ async function changedColorKey() {
     :toggleable="true" 
     :collapsed="true"
 >
+    <div class="sr-select-Ydata-options">
+        <FloatLabel >
+            <MultiSelect class="sr-multiselect"
+                :placeholder="`${computedMainLabel}`"
+                :id="`srYdataItems-${req_id}`"
+                v-model="yDataBindingsReactive[computedReqIdStr]"
+                size="small" 
+                :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
+                display="chip"
+                @update:modelValue="onMainYDataSelectionChange"
+            />
+            <label :for=computedElId>{{`${computedMainLabel}`}}</label>
+        </FloatLabel>
+    </div>
+
     <div class="sr-sql-stmnt">
         <SrSqlStmnt 
             :req_id="props.req_id"
@@ -105,7 +134,14 @@ async function changedColorKey() {
     width: fit-content;
     min-width: 30rem;
 }
-
+.sr-select-Ydata-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 100%;
+}
 .sr-select-color-map {
     display: flex;
     flex-direction: column;
