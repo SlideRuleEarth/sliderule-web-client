@@ -33,7 +33,8 @@ interface ChartState {
   numOfPlottedPnts: number;
   selectedAtl03YapcColorMap: SrMenuItem;
   symbolSize: number;
-  symbolColor: string;
+  symbolColorEncoding: string;
+  solidSymbolColor: string;
   tracks: Array<SrListNumberItem>;
   selectAllTracks: boolean;
   beams: Array<SrListNumberItem>;
@@ -82,7 +83,8 @@ export const useChartStore = defineStore('chartStore', {
                 numOfPlottedPnts: 0,
                 selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
                 symbolSize: 3,
-                symbolColor: 'red',
+                symbolColorEncoding: 'solid',
+                solidSymbolColor: 'red',
                 tracks: [],
                 selectAllTracks: true,
                 beams:[],
@@ -150,13 +152,21 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
     },
-    setSymbolColor(reqIdStr: string, symbolColor: string) {
+    setSymbolColorEncoding(reqIdStr: string, symbolColorEncoding: string) {
         this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].symbolColor = symbolColor;
+        this.stateByReqId[reqIdStr].symbolColorEncoding = symbolColorEncoding;
     },
-    getSymbolColor(reqIdStr: string) {
+    getSymbolColorEncoding(reqIdStr: string) {
         this.ensureState(reqIdStr);
-        return this.stateByReqId[reqIdStr].symbolColor;
+        return this.stateByReqId[reqIdStr].symbolColorEncoding;
+    },
+    setSolidSymbolColor(reqIdStr: string, symbolColor: string) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].solidSymbolColor = symbolColor;
+    },
+    getSolidSymbolColor(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].solidSymbolColor;
     },
     getElevationDataOptionForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);

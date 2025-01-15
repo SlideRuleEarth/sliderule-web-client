@@ -8,7 +8,7 @@ import SrSliderInput from '@/components/SrSliderInput.vue';
 import Fieldset from 'primevue/fieldset';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { spotsOptions } from '@/utils/parmUtils';
 import { useMapStore } from '@/stores/mapStore';
@@ -305,7 +305,7 @@ const updateRecordSelection = async (item: SrMenuNumberItem) => {
     console.log('updateRecordSelection item:', item);
     if(atlChartFilterStore.selectedReqIdMenuItem.value > 0){
         console.log('handleUpdateReqId selectedReqId:', useAtlChartFilterStore().selectedReqIdMenuItem);
-        //await debouncedUpdateElevationMap(atlChartFilterStore.selectedReqIdMenuItem.value);
+        await prepareDbForReqId(atlChartFilterStore.selectedReqIdMenuItem.value);
     } else {
         console.warn("useAtlChartFilterStore().selectedReqIdMenuItem is undefined");
     }
