@@ -18,7 +18,7 @@ import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { findReqMenuLabel, initDataBindingsToChartStore,yDataSelectedReactive } from '@/utils/plotUtils';
+import { findReqMenuLabel, initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
@@ -36,11 +36,19 @@ const props = defineProps({
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const theAtl03ColorMapStore = useAtl03ColorMapStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 const reqParamsStore = useReqParamsStore();
-const computedReqIdStr = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
 const computedSelectedYId = computed(() => `srYdataItems-${computedReqIdStr.value}`);
+const computedSelColorEncodeId = computed(() => `srColorEncodeItems-${computedReqIdStr.value}`);
+const computedSolidColorId = computed(() => `srSolidColorItems-${computedReqIdStr.value}`);
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
+const computedSymbolColorEncoding = computed(() => {
+    return chartStore.getSelectedColorEncodeData(computedReqIdStr.value);
+});
+const computedSolidSymbolColor = computed(() => {
+    return chartStore.getSolidSymbolColor(computedReqIdStr.value);
+});
 const loadingComponent = ref(true);
 
 function getOverlayedReqLegend(overlayedReqId: number): string {
@@ -75,7 +83,7 @@ async function restoreAtl03DefaultColorsAndUpdatePlot() {
 onMounted(async () => {
     try {
         //console.log('SrScatterPlot onMounted');
-        theAtl03ColorMapStore.initializeAtl03ColorMapStore();
+        atl03ColorMapStore.initializeAtl03ColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
@@ -86,15 +94,15 @@ onMounted(async () => {
         if (reqId > 0) {
             const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
-            theAtl03ColorMapStore.initializeAtl03ColorMapStore();
+            atl03ColorMapStore.initializeAtl03ColorMapStore();
             await prepareDbForReqId(reqId);                                                                      
     
             if (func === 'atl03sp') {
-                theAtl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+                atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
             } else if (func.includes('atl06')) {
-                theAtl03ColorMapStore.setAtl03ColorKey('YAPC');
+                atl03ColorMapStore.setAtl03ColorKey('YAPC');
             } else if (func.includes('atl08')) {
-                theAtl03ColorMapStore.setAtl03ColorKey('atl08_class');
+                atl03ColorMapStore.setAtl03ColorKey('atl08_class');
             }
         } else {
             console.warn('reqId is undefined');
@@ -132,13 +140,13 @@ const messageClass = computed(() => {
 });
 
 const computedSelectedAtl03ColorMap = computed(() => {
-  return theAtl03ColorMapStore.getSelectedAtl03YapcColorMapName();
+  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
 });
 
 watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
     //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    theAtl03ColorMapStore.updateAtl03YapcColorMapValues();
-    //console.log('Color Map:', theAtl03ColorMapStore.getAtl03YapcColorMap());
+    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
     const reqId = atlChartFilterStore.getReqId();
     if (reqId > 0) {
         await callPlotUpdateDebounced('from watch computedSelectedAtl03ColorMap');
@@ -229,6 +237,8 @@ watch(
     tracks: chartStore.getTracks(computedReqIdStr.value),
     pairs: chartStore.getPairs(computedReqIdStr.value),
     ydata: chartStore.getSelectedYData(computedReqIdStr.value),
+    colorEncode: chartStore.getSelectedColorEncodeData(computedReqIdStr.value),
+    solidColor: chartStore.getSolidSymbolColor(computedReqIdStr.value),
   }),
   async (newValues, oldValues) => {
     if(!loadingComponent.value){
@@ -258,11 +268,11 @@ watch(
                 }" 
             />
             <SrAtl03ColorLegend 
-                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
                 @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
             />
             <SrAtl08ColorLegend 
-                v-if="((theAtl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
             />
         </div> 
         <div class="sr-scatter-plot-header">
@@ -301,6 +311,32 @@ watch(
                                     size="small"
                                 >
                                 </Select>
+                            </div>
+                            <div class="sr-ydata-menu">
+                                <label class="sr-y-data-label":for="computedSelColorEncodeId">Color Encode</label> 
+                                <Select class="sr-select-col-encode-data"
+                                    v-model="yColorEncodeSelectedReactive[computedReqIdStr]"
+                                    :options="chartStore.getYDataOptionsForColorEncoding(computedReqIdStr)"
+                                    placeholder="Select Color Encode With"
+                                    :id="computedSelColorEncodeId"
+                                    size="small"
+                                >
+                                </Select>
+                            </div>
+                            <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
+                                <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
+                                <div class="sr-color-selection-panel">
+                                    <Select
+                                        v-model="solidColorSelectedReactive[computedReqIdStr]"
+                                        :options="atl03ColorMapStore.namedColorPalette"
+                                        placeholder="Symbol Color"
+                                        :id="computedSolidColorId"
+                                        size="small"
+                                        
+                                    >
+                                    </Select>
+                                    <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -469,6 +505,21 @@ fieldset {
     margin: 0;
     font-size: small;
 }
+
+.sr-color-selection-panel{
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+}
+
+.color-preview {
+    width: 1rem;
+    height: 1rem;
+    margin: 0.5rem;
+    border: 1px solid var(--p-border-color);
+    border-radius: 2px;
+}
 .sr-select-color-key {
   display: flex;
   flex-direction: column;
@@ -548,4 +599,5 @@ fieldset {
   max-height: 50rem;
   max-width: 80rem;
 }
+
 </style>

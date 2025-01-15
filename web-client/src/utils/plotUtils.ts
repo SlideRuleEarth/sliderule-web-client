@@ -20,6 +20,8 @@ const chartStore = useChartStore();
 const requestsStore = useRequestsStore();
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
+export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
+export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 
 export interface SrScatterSeriesData{
   series: {
@@ -51,6 +53,18 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: string) => chartStore.setSelectedYData(reqId, value),
             });
         }
+        if(!(reqId in yColorEncodeSelectedReactive)){
+            yColorEncodeSelectedReactive[reqId] = computed({
+                get: () => chartStore.getSelectedColorEncodeData(reqId),
+                set: (value: string) => chartStore.setSelectedColorEncodeData(reqId, value),
+            });
+        } 
+        if(!(reqId in solidColorSelectedReactive)){
+            solidColorSelectedReactive[reqId] = computed({
+                get: () => chartStore.getSolidSymbolColor(reqId),
+                set: (value: string) => chartStore.setSolidSymbolColor(reqId, value),
+            });
+        }   
     });
 }
 

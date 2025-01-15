@@ -21,6 +21,7 @@ interface ChartState {
   elevationDataOptions: string[];
   yDataOptions: string[];
   selectedYData: string;
+  selectedColorEncodeData: string;
   xDataForChart: string;
   ndxOfElevationDataOptionsForHeight: number;
   func: string;
@@ -71,6 +72,7 @@ export const useChartStore = defineStore('chartStore', {
                 elevationDataOptions: [ 'not_set' ],
                 yDataOptions: [],
                 selectedYData: '',
+                selectedColorEncodeData: 'solid',
                 xDataForChart: 'x_atc',
                 ndxOfElevationDataOptionsForHeight: 0,
                 func: '',
@@ -160,7 +162,7 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].symbolColorEncoding;
     },
-    setSolidSymbolColor(reqIdStr: string, symbolColor: string) {
+    setSolidSymbolColor(reqIdStr: string, symbolColor: string): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].solidSymbolColor = symbolColor;
     },
@@ -194,6 +196,12 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getYDataOptions reqIdStr:',reqIdStr, ' yData:',yData);
         return yData;
     },
+    getYDataOptionsForColorEncoding(reqIdStr: string): string[] {
+        this.ensureState(reqIdStr);
+        const yData = ['solid', ...this.stateByReqId[reqIdStr].yDataOptions];
+        //console.log('getYDataOptions reqIdStr:',reqIdStr, ' yData:',yData);
+        return yData;
+    },
     setYDataOptions(reqIdStr: string,yDataOptions: string[]): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataOptions = yDataOptions;
@@ -209,6 +217,14 @@ export const useChartStore = defineStore('chartStore', {
     setSelectedYData(reqIdStr: string, newVal: string) {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].selectedYData = newVal;
+    },
+    getSelectedColorEncodeData(reqIdStr: string): string {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].selectedColorEncodeData;
+    },
+    setSelectedColorEncodeData(reqIdStr: string, newVal: string) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].selectedColorEncodeData = newVal;
     },    
     getXDataForChart(reqIdStr: string) {
         this.ensureState(reqIdStr);
