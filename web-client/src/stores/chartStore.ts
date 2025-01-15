@@ -33,6 +33,7 @@ interface ChartState {
   numOfPlottedPnts: number;
   selectedAtl03YapcColorMap: SrMenuItem;
   symbolSize: number;
+  symbolColor: string;
   tracks: Array<SrListNumberItem>;
   selectAllTracks: boolean;
   beams: Array<SrListNumberItem>;
@@ -81,6 +82,7 @@ export const useChartStore = defineStore('chartStore', {
                 numOfPlottedPnts: 0,
                 selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
                 symbolSize: 3,
+                symbolColor: 'red',
                 tracks: [],
                 selectAllTracks: true,
                 beams:[],
@@ -147,6 +149,14 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
         return this.stateByReqId[reqIdStr].symbolSize;
+    },
+    setSymbolColor(reqIdStr: string, symbolColor: string) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].symbolColor = symbolColor;
+    },
+    getSymbolColor(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].symbolColor;
     },
     getElevationDataOptionForHeight(reqIdStr: string) {
         this.ensureState(reqIdStr);

@@ -3,29 +3,27 @@
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
-        <SrMenu
-            v-for="(classValue, index) in atl03ColorMapStore.atl08ClassOptions"
-            :key="index"
-            :label="`${classValue.label} (${classValue.value})`"
-            :menuOptions="atl03ColorMapStore.getNamedColorPalette()"
-            :setSelectedMenuItem="(color:string) =>  atl03ColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-            :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value)"
-            @update:modelValue="handleSelectionChanged(classValue.label, $event)"
-        />
+        <div class="sr-menu-container" v-for="(classValue, index) in atl03ColorMapStore.atl08ClassOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
+            <SrMenu
+                :label="`${classValue.label} (${classValue.value})`"
+                :menuOptions="atl03ColorMapStore.getNamedColorPalette()"
+                :setSelectedMenuItem="(color: string) => atl03ColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
+                :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value)"
+                @update:modelValue="handleSelectionChanged(classValue.label, $event)"
+            />
+        </div>
     </Fieldset>
-
 </template>
 
 <script setup lang="ts">
 import SrMenu from './SrMenu.vue';
-import Fieldset  from 'primevue/fieldset';
+import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 
 const atl03ColorMapStore = useAtl03ColorMapStore();
-
-
-const emit = defineEmits(['selectionChanged','defaultsChanged']);
+const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
@@ -35,14 +33,14 @@ const handleSelectionChanged = (label: string, color: string) => {
 
 const restoreDefaultAtl08ClassColorMap = () => {
     atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
-    emit('defaultsChanged', { }); 
+    emit('defaultsChanged', {});
 };
 
 const onMounted = () => {
     console.log('SrAtl08ClassColors mounted');
 };
-
 </script>
+
 <style scoped>
 .sr-legend-box {
     padding: 0.3125rem;
@@ -51,11 +49,25 @@ const onMounted = () => {
     justify-content: center;
     align-items: center;
     flex-direction: column;
-
 }
+
 .sr-restore-defaults {
     display: flex;
     justify-content: center;
     margin-bottom: 0.5rem;
+}
+
+.sr-menu-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.color-preview {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    border: 1px solid var(--p-border-color);
+    border-radius: 2px;
 }
 </style>

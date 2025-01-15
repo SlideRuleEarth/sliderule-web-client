@@ -258,7 +258,7 @@ async function getSeriesForAtl06(
                     y: 1
                 },
                 itemStyle: {
-                    color: 'red' 
+                    color: chartStore.getSymbolColor(reqIdStr), 
                 },
                 z:10,
                 large: useAtlChartFilterStore().getLargeData(),
