@@ -25,17 +25,28 @@ export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComp
 
 export interface SrScatterSeriesData{
   series: {
-      name: string;
-      type: string;
-      data: number[][];
-      large: boolean;
-      largeThreshold: number;
-      animation: boolean;
-      yAxisIndex: number;
-      symbolSize?: number;
+    name: string;
+    type: string;
+    data: number[][];
+    large: boolean;
+    largeThreshold: number;
+    animation: boolean;
+    yAxisIndex: number;
+    symbolSize?: number;
+    progressive?: number;
+    progressiveThreshold?: number;
+    progressiveChunkMode?: string;
+    itemStyle?: {
+        color: string | ((params: any) => string);
+    };
+    encode?: {
+      x: number;
+      y: number;
+    };
+    z?: number;
   };
-  min: number;
-  max: number;
+  min: number | null;
+  max: number | null;  
 };
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -116,7 +127,7 @@ async function getSeriesForAtl03sp(
             console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing. chartData len:', Object.keys(chartData).length , ' minMaxValues len:', Object.keys(minMaxValues).length);
             return yItems; // Return empty array if either is empty
         }
-
+        const ySelectedName = chartStore.getSelectedYData(reqIdStr)
         yItems = y.map(yName => {
             const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
             const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
@@ -234,73 +245,78 @@ return yItems;
 
 
 async function getSeriesForAtl06(
-  reqIdStr:string, 
-  fileName: string, 
-  x: string, 
-  y: string[]
-): Promise<SrScatterSeriesData[]> {
-  //console.log('getSeriesForAtl06 fileName:', fileName, ' x:', x, ' y:', y, ' spots:', spots, ' rgt:', rgt, ' cycle:', cycle);
-  const startTime = performance.now();
-  let yItems=[] as SrScatterSeriesData[];
-  const plotConfig = await indexedDb.getPlotConfig();
-  const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
-  const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
-  const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
-  try{
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+  ): Promise<SrScatterSeriesData[]> {
+    const startTime = performance.now();
+    let yItems = [] as SrScatterSeriesData[];
+    const plotConfig = await indexedDb.getPlotConfig();
+    const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
+    const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
+    const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
+  
+    try {
       const name = 'atl06';
-      const { chartData = {} , normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(reqIdStr,fileName, x, y);
-      //console.log('getSeriesForAtl06 chartData:', chartData);
-      //console.log('getSeriesForAtl06 minMaxValues:', normalizedMinMaxValues);
-      // Check if either chartData or minMaxValues is empty
+      const { chartData = {}, normalizedMinMaxValues = {} } = await fetchAtl06ScatterData(reqIdStr, fileName, x, y);
+  
       if (Object.keys(chartData).length === 0 || Object.keys(normalizedMinMaxValues).length === 0) {
-          console.warn('getSeriesForAtl06 chartData or minMaxValues is empty, skipping processing.');
-          return yItems; // Return empty array if either is empty
+        console.warn('getSeriesForAtl06 chartData or minMaxValues is empty, skipping processing.');
+        return yItems;
       }
-      yItems = y.map(yName => {
-          const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
-          const min = normalizedMinMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
-          const max = normalizedMinMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
-          //console.log('getSeriesForAtl06 data:', data);
-          //console.log('getSeriesForAtl06 min:', min, ' max:', max);
-          return {
-              series: {
-                name: yName,
-                type: 'scatter',
-                data: data,
-                encode: {
-                    x: 0,
-                    y: 1
-                },
-                itemStyle: {
-                    color: chartStore.getSolidSymbolColor(reqIdStr), 
-                },
-                z:10,
-                large: useAtlChartFilterStore().getLargeData(),
-                largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
-                progressive: progressiveChunkSize,
-                progressiveThreshold: progressiveThreshold,
-                progressiveChunkMode: progressiveChunkMode,
-                animation: false,
-                yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
-                symbolSize: chartStore.getSymbolSize(reqIdStr),
+  
+      // Get the selected Y data name
+      const ySelectedName = chartStore.getSelectedYData(reqIdStr);
+  
+      if (y.includes(ySelectedName)) {
+        const data = chartData[ySelectedName]?.map(item => item.value) || [];
+        const min = normalizedMinMaxValues[ySelectedName]?.min ?? null;
+        const max = normalizedMinMaxValues[ySelectedName]?.max ?? null;
+  
+        yItems = [
+          {
+            series: {
+              name: ySelectedName,
+              type: 'scatter',
+              data: data,
+              encode: {
+                x: 0,
+                y: 1,
               },
-              min: min,
-              max: max
-          };
-      });
-      const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
-      chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
-      //console.log(`Total number of points across all series: ${totalPoints}`);
-  } catch (error) {
+              itemStyle: {
+                color: chartStore.getSolidSymbolColor(reqIdStr),
+              },
+              z: 10,
+              large: useAtlChartFilterStore().getLargeData(),
+              largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
+              progressive: progressiveChunkSize,
+              progressiveThreshold: progressiveThreshold,
+              progressiveChunkMode: progressiveChunkMode,
+              animation: false,
+              yAxisIndex: y.indexOf(ySelectedName),
+              symbolSize: chartStore.getSymbolSize(reqIdStr),
+            },
+            min: min,
+            max: max,
+          },
+        ];
+  
+        const totalPoints = yItems[0]?.series.data.length || 0;
+        chartStore.setNumOfPlottedPnts(reqIdStr, totalPoints);
+      } else {
+        console.warn(`Selected Y data name "${ySelectedName}" not found in provided Y array.`);
+      }
+    } catch (error) {
       console.error('getSeriesForAtl06 Error:', error);
-  } finally {
-      const endTime = performance.now(); // End time
+    } finally {
+      const endTime = performance.now();
       console.log(`getSeriesForAtl06 took ${endTime - startTime} milliseconds.`);
+    }
+  
+    return yItems;
   }
-  //console.log('getSeriesForAtl06 yItems:', yItems);
-  return yItems;
-}
-
+  
 async function getSeriesForAtl08(
     reqIdStr:string, 
     fileName: string, 
@@ -372,6 +388,7 @@ export function clearPlot() {
 }
 
 const formatTooltip = (params: any, func: string) => {
+    //console.log('formatTooltip params:', params);
     if (func === 'atl03sp') {
         const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
         return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
@@ -706,8 +723,8 @@ async function appendSeries(reqId: number): Promise<void> {
             let heightNames: string[] = [];
 
             heightSeriesData.forEach(d => {
-                if (d.min < heightMin) heightMin = d.min;
-                if (d.max > heightMax) heightMax = d.max;
+                if (d.min && (d.min < heightMin)) heightMin = d.min;
+                if (d.max && (d.max > heightMax)) heightMax = d.max;
                 heightNames.push(d.series.name);
             });
 
