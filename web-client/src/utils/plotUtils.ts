@@ -162,7 +162,7 @@ async function getGenericSeries({
 
     try {
         const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y);
-
+        console.log(`${functionName}: chartData:`, chartData);
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
 
@@ -175,6 +175,8 @@ async function getGenericSeries({
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
         if (y.includes(ySelectedName)) {
+            const yIndex = y.indexOf(ySelectedName)+1;
+            console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}.`);
             const data = chartData[ySelectedName]?.map((item) => item.value) || [];
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
@@ -184,7 +186,7 @@ async function getGenericSeries({
                     name: ySelectedName,
                     type: 'scatter',
                     data,
-                    encode: { x: 0, y: 1 },
+                    encode: { x: 0, y: yIndex },
                     itemStyle: { color: colorFunction },
                     z: zValue,
                     large: useAtlChartFilterStore().getLargeData(),
@@ -193,7 +195,7 @@ async function getGenericSeries({
                     progressiveThreshold,
                     progressiveChunkMode,
                     animation: false,
-                    yAxisIndex: y.indexOf(ySelectedName),
+                    yAxisIndex: 0, // only plotting on series i.e. y-axis 0
                     symbolSize: chartStore.getSymbolSize(reqIdStr),
                 },
                 min,
@@ -308,7 +310,7 @@ export function clearPlot() {
 }
 
 const formatTooltip = (params: any, func: string) => {
-    //console.log('formatTooltip params:', params);
+    console.log('formatTooltip params:', params);
     if (func === 'atl03sp') {
         const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
         return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
@@ -323,7 +325,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const fileName = chartStore.getFile(reqIdStr);
     const func = chartStore.getFunc(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const y = [chartStore.getSelectedYData(reqIdStr)];
+    const y = chartStore.getYDataOptions(reqIdStr);
     let seriesData = [] as SrScatterSeriesData[];
     try{
         if(fileName){
@@ -496,7 +498,6 @@ export async function getScatterOptions(req_id:number): Promise<any> {
 }
 
 export async function getScatterOptionsFor(reqId:number) {
-    //let newScatterOptions: EChartsOption = {}; // Initialize a container for the merged options.
     const newScatterOptions = await getScatterOptions(reqId);
     if (!newScatterOptions) {
         atlChartFilterStore.setShowMessage(true);
@@ -514,10 +515,10 @@ export async function getScatterOptionsFor(reqId:number) {
             //const options = plotRef.chart.getOption();
             //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
         } else {
-            console.error(`initScatterPlotWith ${reqId} plotRef.chart is undefined`);
+            console.error(`getScatterOptionsFor ${reqId} plotRef.chart is undefined`);
         }
     } else {
-        console.warn(`initScatterPlotWith No valid options to apply to chart`);
+        console.warn(`getScatterOptionsFor No valid options to apply to chart`);
     }
 }
 

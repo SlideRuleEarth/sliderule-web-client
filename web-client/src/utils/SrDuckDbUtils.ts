@@ -729,9 +729,7 @@ export async function fetchAtl08ScatterData(
             FROM '${fileName}'
         `;
         query2 += whereClause;
-        //console.log('fetchAtl06ScatterData query2:', query2);
         const queryResult2: QueryResult = await duckDbClient.query(query2);
-        //console.log('fetchAtl06ScatterData queryResult2:', queryResult2);
         for await (const rowChunk of queryResult2.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
