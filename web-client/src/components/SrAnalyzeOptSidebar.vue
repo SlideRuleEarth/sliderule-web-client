@@ -23,7 +23,7 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
-import SrScatterPlotOptions from "@/components/SrScatterPlotOptions.vue";
+import SrScatterPlotOptions from "@/components/SrScatterPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
 import { updateChartStore } from '@/utils/plotUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
