@@ -104,38 +104,44 @@ function getAtl03spColor(params: any):string {
     return colorStr;
 }
 
-
 async function getSeriesForAtl03sp(
-    reqIdStr:string, 
+    reqIdStr: string, 
     fileName: string, 
     x: string, 
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    //console.log('getSeriesForAtl03 fileName:', fileName, ' x:', x, ' y:', y,' symbolSize:',chartStore.getSymbolSize(reqIdStr));
     const startTime = performance.now(); // Start time
     let yItems = [] as SrScatterSeriesData[];
     const plotConfig = await indexedDb.getPlotConfig();
     const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000;
     const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000;
     const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
+    
     try {
         const name = 'atl03sp';
-        const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr,fileName, x, y);
-        //console.log('getSeriesForAtl03sp chartData:', chartData, ' minMaxValues:', minMaxValues);
-        // Check if either chartData or minMaxValues is empty
+        const { chartData = {}, minMaxValues = {} } = await fetchAtl03spScatterData(reqIdStr, fileName, x, y);
+        
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
-            console.warn('getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing. chartData len:', Object.keys(chartData).length , ' minMaxValues len:', Object.keys(minMaxValues).length);
+            console.warn(
+                'getSeriesForAtl03sp chartData or minMaxValues is empty, skipping processing. chartData len:',
+                Object.keys(chartData).length,
+                ' minMaxValues len:', 
+                Object.keys(minMaxValues).length
+            );
             return yItems; // Return empty array if either is empty
         }
-        const ySelectedName = chartStore.getSelectedYData(reqIdStr)
-        yItems = y.map(yName => {
-            const data = chartData[yName] ? chartData[yName].map(item => item.value) : [];
-            const min = minMaxValues[yName]?.min ?? null; // Default to null if minMaxValues[yName] or min is undefined
-            const max = minMaxValues[yName]?.max ?? null; // Default to null if minMaxValues[yName] or max is undefined
+        
+        const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
-            return {
+        // Filter y array to include only the selected y-axis data
+        if (y.includes(ySelectedName)) {
+            const data = chartData[ySelectedName]?.map(item => item.value) || [];
+            const min = minMaxValues[ySelectedName]?.min ?? null;
+            const max = minMaxValues[ySelectedName]?.max ?? null;
+
+            yItems.push({
                 series: {
-                    name: yName,
+                    name: ySelectedName,
                     type: 'scatter',
                     data: data,
                     encode: {
@@ -152,17 +158,18 @@ async function getSeriesForAtl03sp(
                     progressiveThreshold: progressiveThreshold,
                     progressiveChunkMode: progressiveChunkMode,
                     animation: false,
-                    yAxisIndex: y.indexOf(yName), // Set yAxisIndex to map each series to its respective yAxis
+                    yAxisIndex: y.indexOf(ySelectedName), // Use the index of ySelectedName in y array
                     symbolSize: chartStore.getSymbolSize(reqIdStr),
                 },
                 min: min,
                 max: max
-            };
-        });
-        // Log the total number of points across all series
+            });
+        } else {
+            console.warn(`Selected y-axis data (${ySelectedName}) is not in the provided y array.`);
+        }
+
         const totalPoints = yItems.reduce((sum, series) => sum + series.series.data.length, 0);
-        chartStore.setNumOfPlottedPnts(reqIdStr,totalPoints)
-        //console.log(`Total number of points across all series: ${totalPoints}`);
+        chartStore.setNumOfPlottedPnts(reqIdStr, totalPoints);
 
     } catch (error) {
         console.error('getSeriesForAtl03sp Error:', error);
@@ -170,7 +177,7 @@ async function getSeriesForAtl03sp(
         const endTime = performance.now(); // End time
         console.log(`getSeriesForAtl03sp took ${endTime - startTime} milliseconds.`);
     }
-    //console.log('getSeriesForAtl03sp yItems:', yItems);
+
     return yItems;
 }
 
