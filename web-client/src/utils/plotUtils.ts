@@ -51,6 +51,16 @@ export interface SrScatterSeriesData{
   max: number | null;  
 };
 
+export function initializeColorEncoding(reqIdStr:string){
+    if(chartStore.getFunc(reqIdStr) === 'atl03') {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
+    } else if(chartStore.getFunc(reqIdStr) === 'atl08') {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
+    } else {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
+    }
+}
+
 export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
     reqIds.forEach((reqId) => {

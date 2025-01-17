@@ -18,7 +18,7 @@
                     class="sr-select-col-encode-data"
                     v-model="yColorEncodeSelectedReactive[reqIdStr]"
                     :options="chartStore.getYDataOptions(reqIdStr)"
-                    placeholder="Select Color Encode With"
+                    placeholder="Encode Color with"
                     :id="`srYColEncode-overlayed-${reqIdStr}`"
                     size="small"
                 >
@@ -56,8 +56,8 @@ import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
-import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive } from '@/utils/plotUtils';
-import { computed, onMounted } from 'vue';
+import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
+import { computed, onMounted, ComputedRef } from 'vue';
 
 const props = defineProps<{ reqId: number }>();
 
@@ -72,7 +72,9 @@ const computedSolidSymbolColor = computed(() => {
     return chartStore.getSolidSymbolColor(reqIdStr.value);
 });
 
+
 onMounted(() => {
+    initializeColorEncoding(reqIdStr.value);
     initDataBindingsToChartStore([reqIdStr.value]);
 });
 
@@ -90,13 +92,13 @@ const useFindReqMenuLabel = () => {
   return findReqMenuLabel;
 };
 const findReqMenuLabel = useFindReqMenuLabel();
-
-const overlayedReqLegend = computed(() => {
-  return (overlayedReqId: number): string => {
-    const label = findReqMenuLabel.value(overlayedReqId);
-    return `${label} - Photon Cloud`;
-  };
+const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = computed(() => {
+    return (overlayedReqId: number): string => {
+        const label = findReqMenuLabel.value(overlayedReqId);
+        return `${label} - Photon Cloud`;
+    };
 });
+
 const handleSymbolSizeUpdate = (newSymbolSize: number) => {
     console.log(`Updated symbol size for ${props.reqId}:`, newSymbolSize);
 };
@@ -124,5 +126,9 @@ const handleSymbolSizeUpdate = (newSymbolSize: number) => {
     width: 100%;
     margin: 0.25rem;
 }
-  </style>
+.sr-y-data-label:hover {
+    color: #007bff; /* Accent color */
+}
+
+</style>
   

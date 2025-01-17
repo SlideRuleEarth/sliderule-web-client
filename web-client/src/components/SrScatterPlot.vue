@@ -303,7 +303,7 @@ watch(
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
-                    <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
+                    <!-- <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
                         <div>
                             <div class="sr-ydata-menu">
                                 <label class="sr-y-data-label":for="computedSelectedYId">Y Data </label> 
@@ -348,42 +348,11 @@ watch(
                                 @update:symbolSize="handleSymbolSizeUpdate"
                             />
                         </div>
-                    </Fieldset>
+                    </Fieldset> -->
+                    <SrPlotCntrl :reqId="atlChartFilterStore.selectedReqIdMenuItem.value" />
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
-                        <!-- <div class= "sr-multiselect-col">
-                            <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
-                                <div class="sr-ydata-menu">
-                                    <label class="sr-y-data-label":for="`srYdataItems-overlayed-${overlayedReqId}`">Y Data </label> 
-                                    <Select class="sr-select-ydata"
-                                        v-model="yDataSelectedReactive[overlayedReqId.toString()]"
-                                        :options="chartStore.getYDataOptions(overlayedReqId.toString())"
-                                        placeholder="Select Y data"
-                                        :id="`srYdataItems-overlayed-${overlayedReqId}`"
-                                        size="small"
-                                    >
-                                    </Select>
-                                </div>
-                                <div class="sr-ydata-menu">
-                                    <label class="sr-y-data-label":for="`srYColEncode-overlayed-${overlayedReqId}`">Color Encode</label> 
-                                    <Select class="sr-select-col-encode-data"
-                                        v-model="yColorEncodeSelectedReactive[overlayedReqId.toString()]"
-                                        :options="chartStore.getYDataOptions(overlayedReqId.toString())"
-                                        placeholder="Select Color Encode With"
-                                        :id="`srYColEncode-overlayed-${overlayedReqId}`"
-                                        size="small"
-                                    >
-                                    </Select>
-                                </div>
-                                <div>
-                                    <SrSymbolSize
-                                        :reqIdStr="overlayedReqId.toString()"
-                                        @update:symbolSize="handleSymbolSizeUpdate"
-                                    />
-                                </div>
-                            </Fieldset>
-                        </div> -->
                         <SrPlotCntrl :reqId="overlayedReqId" />   
                     </div>
                 </div>
