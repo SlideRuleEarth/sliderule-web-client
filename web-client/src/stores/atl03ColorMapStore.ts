@@ -32,6 +32,18 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         dataOrderNdx: {} as Record<string, number>,
         debugCnt: 0 as number,
     }),
+    getters: {
+        getDimensions(state): string[] {
+            return Object.keys(state.dataOrderNdx).sort((a, b) => {
+                const aValue = state.dataOrderNdx[a];
+                const bValue = state.dataOrderNdx[b];
+                return aValue - bValue;
+            });
+        },
+        getDataOrderNdx(): Record<string, number> {
+            return this.dataOrderNdx;
+        }    
+    },
     actions: {
         async initializeAtl03ColorMapStore() {
             //console.log('initializeAtl03ColorMapStore isInitialized:',this.isInitialized);
@@ -177,8 +189,5 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         setDataOrderNdx(dataOrderNdx: Record<string, number>) {
             this.dataOrderNdx = dataOrderNdx;
         },
-        getDataOrderNdx() {
-            return this.dataOrderNdx;
-        }
     },
 });

@@ -29,6 +29,7 @@ export interface SrScatterSeriesData{
     name: string;
     type: string;
     data: number[][];
+    dimensions: string[];
     large: boolean;
     largeThreshold: number;
     animation: boolean;
@@ -82,7 +83,7 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 
 let debugCnt = 10;
 function getAtl03spColor(params: any):string {
-    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx();
+    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
     if(debugCnt++ < 10){
         console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
         console.log('getAtl03spColor params.data:', params.data);
@@ -183,7 +184,7 @@ async function getGenericSeries({
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
         if (y.includes(ySelectedName)) {
-            const yIndex =  useAtl03ColorMapStore().getDataOrderNdx()[ySelectedName];
+            const yIndex =  useAtl03ColorMapStore().getDataOrderNdx[ySelectedName];
             const data = chartData[reqIdStr].data; // get raw number[][] data
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
@@ -193,7 +194,8 @@ async function getGenericSeries({
                 series: {
                     name: ySelectedName,
                     type: 'scatter',
-                    data: data, 
+                    data: data,
+                    dimensions:[...useAtl03ColorMapStore().getDimensions], 
                     encode: { x: 0, y: yIndex },
                     itemStyle: { color: colorFunction },
                     z: zValue,
@@ -368,15 +370,12 @@ export function clearPlot() {
     }
 }
 
-const formatTooltip = (params: any, func: string) => {
-    console.log('formatTooltip params:', params);
-    if (func === 'atl03sp') {
-        const [x, y, atl03_cnf, atl08_class, yapc_score] = params.value;
-        return `x: ${x}<br>y: ${y}<br>atl03_cnf: ${atl03_cnf}<br>atl08_class: ${atl08_class}<br>yapc_score: ${yapc_score}`;
-    } else {
-        const [x, y, x_actual] = params.value;
-        return `x: ${x}<br>y: ${y} <br>x_actual: ${x_actual}`;
-    }
+const formatTooltip = (params: any) => {
+    //console.log('formatTooltip params:', params );
+    const paramsData = params.data;
+    const paramsDim = params.dimensionNames as any[];
+    let ndx = 0;
+    return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
 };
 
 async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
@@ -486,7 +485,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: (params: any) => formatTooltip(params, func),
+                    formatter: (params: any) => formatTooltip(params),
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
