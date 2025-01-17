@@ -25,6 +25,7 @@ import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrReqDisplay from '@/components/SrReqDisplay.vue';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
+import SrPlotCntrl from "./SrPlotCntrl.vue";
 
 const props = defineProps({
     startingReqId: {
@@ -351,7 +352,7 @@ watch(
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
-                        <div class= "sr-multiselect-col">
+                        <!-- <div class= "sr-multiselect-col">
                             <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
                                 <div class="sr-ydata-menu">
                                     <label class="sr-y-data-label":for="`srYdataItems-overlayed-${overlayedReqId}`">Y Data </label> 
@@ -382,7 +383,8 @@ watch(
                                     />
                                 </div>
                             </Fieldset>
-                        </div>
+                        </div> -->
+                        <SrPlotCntrl :reqId="overlayedReqId" />   
                     </div>
                 </div>
             </div>
