@@ -29,6 +29,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         atl03CnfColorMap: [] as string[],
         atl08ClassColorMap: [] as string[],
         namedColorPalette: [] as string[],
+        dataOrderNdx: {} as Record<string, number>,
         debugCnt: 0 as number,
     }),
     actions: {
@@ -173,5 +174,11 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             await db.restoreDefaultColors();
             this.namedColorPalette = await db.getAllColors();
         },
+        setDataOrderNdx(dataOrderNdx: Record<string, number>) {
+            this.dataOrderNdx = dataOrderNdx;
+        },
+        getDataOrderNdx() {
+            return this.dataOrderNdx;
+        }
     },
 });

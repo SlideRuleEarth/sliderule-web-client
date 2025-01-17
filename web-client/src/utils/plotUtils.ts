@@ -2,14 +2,15 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore }  from "@/stores/atl03ColorMapStore";
-import { fetchAtl03spScatterData, fetchAtl03vpScatterData, fetchAtl06ScatterData, fetchAtl08ScatterData } from "@/utils/SrDuckDbUtils";
-import type { EChartsOption, LegendComponentOption, ScatterSeriesOption, EChartsType } from 'echarts';
+import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
+import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from "@/stores/requestsStore";
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
@@ -81,20 +82,22 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 
 let debugCnt = 10;
 function getAtl03spColor(params: any):string {
+    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx();
     if(debugCnt++ < 10){
-        //console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
-        //console.log('getAtl03spColor params.data:', params.data);
+        console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
+        console.log('getAtl03spColor params.data:', params.data);
+        console.log('getAtl03spColor dataNdx:', dataNdx);
     }
     let colorStr = 'red';
     let value = -1;
     if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl03_cnf'){ 
-        value = params.data[2];
+        value = params.data[dataNdx['atl03_cnf']];
         colorStr = useAtl03ColorMapStore().getColorForAtl03CnfValue(value);
     } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl08_class'){
-        value = params.data[3];
+        value = params.data[dataNdx['atl08_class']];
         colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
     } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'YAPC'){ 
-        value = params.data[4];
+        value = params.data[dataNdx['yapc_score']];
         const color = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
         colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
     }
@@ -118,16 +121,19 @@ interface GetSeriesParams {
     fileName: string;
     x: string;
     y: string[];
+    fetchOptions: FetchScatterDataOptions; 
     // The name of the function to fetch data:
     fetchData: (
         reqIdStr: string,
         fileName: string,
         x: string,
-        y: string[]
+        y: string[],
+        fetchOptions: FetchScatterDataOptions 
     ) => Promise<{
-        chartData: Record<string, { value: any[] }[]>;
-        minMaxValues?: Record<string, { min: number; max: number }>;
-        normalizedMinMaxValues?: Record<string, { min: number; max: number }>;
+        chartData: Record<string, SrScatterChartDataArray>;
+        minMaxValues: Record<string, { min: number; max: number }>;
+        normalizedMinMaxValues: Record<string, { min: number; max: number }>;
+        dataOrderNdx: Record<string, number>;
     }>;
     // The property name for minMax or normalizedMinMax
     minMaxProperty: 'minMaxValues' | 'normalizedMinMaxValues';
@@ -147,6 +153,7 @@ async function getGenericSeries({
     fileName,
     x,
     y,
+    fetchOptions,
     fetchData,
     minMaxProperty,
     colorFunction,
@@ -161,11 +168,12 @@ async function getGenericSeries({
     const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
 
     try {
-        const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y);
+        const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions);
         console.log(`${functionName}: chartData:`, chartData);
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
-
+        console.log(`${functionName}: minMaxValues:`, minMaxValues);
+        useAtl03ColorMapStore().setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName}: chartData or minMax is empty, skipping processing.`);
             return yItems;
@@ -175,17 +183,17 @@ async function getGenericSeries({
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
         if (y.includes(ySelectedName)) {
-            const yIndex = y.indexOf(ySelectedName)+1;
-            console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}.`);
-            const data = chartData[ySelectedName]?.map((item) => item.value) || [];
+            const yIndex =  useAtl03ColorMapStore().getDataOrderNdx()[ySelectedName];
+            const data = chartData[reqIdStr].data; // get raw number[][] data
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
+            console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}. Min: ${min}, Max: ${max}`, data);
 
             yItems.push({
                 series: {
                     name: ySelectedName,
                     type: 'scatter',
-                    data,
+                    data: data, 
                     encode: { x: 0, y: yIndex },
                     itemStyle: { color: colorFunction },
                     z: zValue,
@@ -217,43 +225,92 @@ async function getGenericSeries({
     return yItems;
 }
 
-async function getSeriesForAtl03sp(
+export async function getSeriesForAtl03sp(
     reqIdStr: string,
     fileName: string,
     x: string,
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    return getGenericSeries({
-        reqIdStr,
-        fileName,
-        x,
-        y,
-        fetchData: fetchAtl03spScatterData,        // function to fetch data
-        minMaxProperty: 'minMaxValues',           // which property has min/max
-        colorFunction: getAtl03spColor,           // color function
-        zValue: 0,                                // z value for ATL03
-        functionName: 'getSeriesForAtl03sp',      // name for logging
-    });
-}
+    console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+    const fetchOptions: FetchScatterDataOptions = {
+        normalizeX: false,
+        extraSelectColumns: ['segment_dist'],
+        /**
+         * handleMinMaxRow:
+         * Called once for the “min/max” result row. We replicate the logic:
+         *    minX = 0
+         *    maxX = max_x + max_segment_dist - min_segment_dist - min_x
+         * Store it in chartStore, or anywhere you like.
+         */
+        handleMinMaxRow: (reqId, row) => {
+            useChartStore().setMinX(reqId, 0);
+            useChartStore().setMaxX(
+                reqId,
+                row.max_x + row.max_segment_dist - row.min_segment_dist - row.min_x
+            );
+        },
 
-async function getSeriesForAtl03vp(
-    reqIdStr: string,
-    fileName: string,
-    x: string,
-    y: string[]
-): Promise<SrScatterSeriesData[]> {
+        /**
+         * transformRow:
+         * Called for each record in the main query. Return an array of numbers:
+         *  e.g. [ xOffset, y1, y2?, atl03_cnf, atl08_class, yapc_score ]
+         *
+         * xOffset = row[x] + row.segment_dist - min_segment_dist
+         * (We rely on the minMaxValues passed in. By default, fetchScatterData
+         * fills minMaxValues['segment_dist'] from the MIN/MAX query.)
+         */
+        transformRow: (row, xCol, yCols, minMaxValues,dataOrderNdx,orderNdx) => {
+            // figure out the offset for X
+            const segMin = minMaxValues['segment_dist']?.min || 0;
+            const xVal = row[xCol] + row.segment_dist - segMin;
+            orderNdx = setDataOrder(dataOrderNdx,'x',orderNdx);
+
+            // Start with [xVal], then push each y
+            const out = [xVal];
+            for (const yName of yCols) {
+                // If one of the yCols is actually "segment_dist" skip it.
+                if (yName !== 'segment_dist') {
+                    out.push(row[yName]);
+                    orderNdx = setDataOrder(dataOrderNdx,yName,orderNdx);
+                }
+            }
+            return [out,orderNdx];
+        },
+    };
+
     return getGenericSeries({
         reqIdStr,
         fileName,
         x,
         y,
-        fetchData: fetchAtl03vpScatterData,        // function to fetch data
-        minMaxProperty: 'minMaxValues',           // which property has min/max
-        colorFunction: getAtl03spColor,           // color function
-        zValue: 0,                                // z value for ATL03
-        functionName: 'getSeriesForAtl03vp',      // name for logging
+        fetchOptions,             // pass the specialized logic above
+        fetchData: fetchScatterData,
+        minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
+        colorFunction: getAtl03spColor, // your existing color mapper
+        zValue: 0,
+        functionName: 'getSeriesForAtl03sp', // for the log
     });
 }
+  
+
+// async function getSeriesForAtl03vp(
+//     reqIdStr: string,
+//     fileName: string,
+//     x: string,
+//     y: string[]
+// ): Promise<SrScatterSeriesData[]> {
+//     return getGenericSeries({
+//         reqIdStr,
+//         fileName,
+//         x,
+//         y,
+//         fetchData: fetchAtl03vpScatterData,        // function to fetch data
+//         minMaxProperty: 'minMaxValues',           // which property has min/max
+//         colorFunction: getAtl03spColor,           // color function
+//         zValue: 0,                                // z value for ATL03
+//         functionName: 'getSeriesForAtl03vp',      // name for logging
+//     });
+// }
 
 
 async function getSeriesForAtl06(
@@ -262,12 +319,14 @@ async function getSeriesForAtl06(
         x: string,
         y: string[]
 ): Promise<SrScatterSeriesData[]> {
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
     return getGenericSeries({
         reqIdStr,
         fileName,
         x,
         y,
-        fetchData: fetchAtl06ScatterData,         // function to fetch data
+        fetchOptions,
+        fetchData: fetchScatterData,         // function to fetch data
         minMaxProperty: 'normalizedMinMaxValues', // note the difference
         colorFunction: () => getAtl06Color(reqIdStr), // pass a function
         zValue: 10,                               // z value for ATL06
@@ -275,24 +334,24 @@ async function getSeriesForAtl06(
     });
 }
 
-async function getSeriesForAtl08(
-    reqIdStr: string,
-    fileName: string,
-    x: string,
-    y: string[]
-  ): Promise<SrScatterSeriesData[]> {
-    return getGenericSeries({
-      reqIdStr,
-      fileName,
-      x,
-      y,
-      fetchData: fetchAtl08ScatterData, // Specify the data fetch function for ATL08
-      minMaxProperty: 'normalizedMinMaxValues', // Specify the min-max property for ATL08
-      colorFunction: getAtl08Color,           // color function
-      zValue: 0,                                // z value for ATL03
-    functionName: 'getSeriesForAtl08', // Logging and error reporting name
-    });
-  }
+// async function getSeriesForAtl08(
+//     reqIdStr: string,
+//     fileName: string,
+//     x: string,
+//     y: string[]
+//   ): Promise<SrScatterSeriesData[]> {
+//     return getGenericSeries({
+//       reqIdStr,
+//       fileName,
+//       x,
+//       y,
+//       fetchData: fetchAtl08ScatterData, // Specify the data fetch function for ATL08
+//       minMaxProperty: 'normalizedMinMaxValues', // Specify the min-max property for ATL08
+//       colorFunction: getAtl08Color,           // color function
+//       zValue: 0,                                // z value for ATL03
+//     functionName: 'getSeriesForAtl08', // Logging and error reporting name
+//     });
+//   }
   
 
 export function clearPlot() {
@@ -331,12 +390,12 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
         if(fileName){
             if(func==='atl03sp'){
                 seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
-            } else if(func==='atl03vp'){
-                seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+            // } else if(func==='atl03vp'){
+            //     seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
-            } else if(func.includes('atl08')){
-                seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
+            // } else if(func.includes('atl08')){
+            //     seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
