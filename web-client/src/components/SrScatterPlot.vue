@@ -15,7 +15,7 @@ import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize, yDataBindingsReactive } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { findReqMenuLabel, initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive } from '@/utils/plotUtils';
@@ -176,6 +176,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
+                    chartStore.setSelectedColorEncodeData(thisReqIdStr, 'alt03_cnf');
                 } else {
                     console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
@@ -267,13 +268,15 @@ watch(
                     zlevel:100
                 }" 
             />
-            <SrAtl03ColorLegend 
-                v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-                @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
-            />
-            <SrAtl08ColorLegend 
-                v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-            />
+            <div class="sr-legend-panel">
+                <SrAtl03ColorLegend 
+                    v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                    @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+                />
+                <SrAtl08ColorLegend 
+                    v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
+                />
+            </div>
         </div> 
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -316,7 +319,7 @@ watch(
                                 <label class="sr-y-data-label":for="computedSelColorEncodeId">Color Encode</label> 
                                 <Select class="sr-select-col-encode-data"
                                     v-model="yColorEncodeSelectedReactive[computedReqIdStr]"
-                                    :options="chartStore.getYDataOptionsForColorEncoding(computedReqIdStr)"
+                                    :options="['solid',...chartStore.getYDataOptions(computedReqIdStr)]"
                                     placeholder="Select Color Encode With"
                                     :id="computedSelColorEncodeId"
                                     size="small"
@@ -331,8 +334,7 @@ watch(
                                         :options="atl03ColorMapStore.namedColorPalette"
                                         placeholder="Symbol Color"
                                         :id="computedSolidColorId"
-                                        size="small"
-                                        
+                                        size="small" 
                                     >
                                     </Select>
                                     <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
@@ -351,23 +353,35 @@ watch(
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
                         <div class= "sr-multiselect-col">
                             <Fieldset :legend="getOverlayedReqLegend(overlayedReqId)">
-                                <!-- <MultiSelect
-                                        class="sr-multiselect" 
-                                        :placeholder="`Y data for ${findReqMenuLabel(overlayedReqId)}`"
-                                        :id="`srMultiId-${overlayedReqId}`"
-                                        v-model="yDataBindingsReactive[overlayedReqId.toString()]"
+                                <div class="sr-ydata-menu">
+                                    <label class="sr-y-data-label":for="`srYdataItems-overlayed-${overlayedReqId}`">Y Data </label> 
+                                    <Select class="sr-select-ydata"
+                                        v-model="yDataSelectedReactive[overlayedReqId.toString()]"
+                                        :options="chartStore.getYDataOptions(overlayedReqId.toString())"
+                                        placeholder="Select Y data"
+                                        :id="`srYdataItems-overlayed-${overlayedReqId}`"
                                         size="small"
-                                        :options="useChartStore().getElevationDataOptions(overlayedReqId.toString())"
-                                        display="chip"
-                                        @update:modelValue="(newValue) => onOverlayYDataSelectionChange(overlayedReqId, newValue)"
-                                /> -->
+                                    >
+                                    </Select>
+                                </div>
+                                <div class="sr-ydata-menu">
+                                    <label class="sr-y-data-label":for="`srYColEncode-overlayed-${overlayedReqId}`">Color Encode</label> 
+                                    <Select class="sr-select-col-encode-data"
+                                        v-model="yColorEncodeSelectedReactive[overlayedReqId.toString()]"
+                                        :options="chartStore.getYDataOptions(overlayedReqId.toString())"
+                                        placeholder="Select Color Encode With"
+                                        :id="`srYColEncode-overlayed-${overlayedReqId}`"
+                                        size="small"
+                                    >
+                                    </Select>
+                                </div>
                                 <div>
                                     <SrSymbolSize
                                         :reqIdStr="overlayedReqId.toString()"
                                         @update:symbolSize="handleSymbolSizeUpdate"
                                     />
                                 </div>
-                        </Fieldset>
+                            </Fieldset>
                         </div>
                     </div>
                 </div>
@@ -420,6 +434,13 @@ watch(
   height: 100%;
   width: auto;
 }
+.sr-legend-panel{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items:center;
+}
+
 .sr-run-control{
     display: flex;
     flex-direction: row;
@@ -520,6 +541,13 @@ fieldset {
     border: 1px solid var(--p-border-color);
     border-radius: 2px;
 }
+
+.sr-select-col-encode-data,
+.sr-select-y-data {
+    width: 100%;
+    margin: 0.25rem;
+}
+
 .sr-select-color-key {
   display: flex;
   flex-direction: column;

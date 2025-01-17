@@ -29,11 +29,11 @@ const computedReqIdStr = computed(() => {
 });
 
 const computedFunc = computed(() => {
-    return chartStore.getFunc(computedReqIdStr.value);
+    return chartStore.getFunc(props.req_id.toString());
 });
 
 const computedLabel = computed(() => {
-  return `Plot Configuration Details for ${computedReqIdStr.value} - ${computedFunc.value}`;
+  return `Plot Configuration Details for ${props.req_id} - ${computedFunc.value}`;
 });
 
 const computedElId = computed(() => {
@@ -41,7 +41,7 @@ const computedElId = computed(() => {
 });
 
 const computedMainLabel = computed(() => {
-    return `Available Y data options for ${findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)}`;
+    return `Available Y data options for ${findReqMenuLabel(props.req_id)}`;
 });
 
 async function onMainYDataSelectionChange(newValue: string[]) {

@@ -54,6 +54,7 @@ export interface SrScatterSeriesData{
 export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
     reqIds.forEach((reqId) => {
+        //console.log(`initDataBindingsToChartStore getFunc(${reqId}):`, chartStore.getFunc(reqId)); 
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({
                 get: () => chartStore.getYDataOptions(reqId),
@@ -71,7 +72,7 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 get: () => chartStore.getSelectedColorEncodeData(reqId),
                 set: (value: string) => chartStore.setSelectedColorEncodeData(reqId, value),
             });
-        } 
+        }
         if(!(reqId in solidColorSelectedReactive)){
             solidColorSelectedReactive[reqId] = computed({
                 get: () => chartStore.getSolidSymbolColor(reqId),
@@ -188,7 +189,7 @@ async function getGenericSeries({
             const data = chartData[reqIdStr].data; // get raw number[][] data
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
-            console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}. Min: ${min}, Max: ${max}`, data);
+            //console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}. Min: ${min}, Max: ${max}`, data);
 
             yItems.push({
                 series: {
@@ -427,7 +428,7 @@ export async function initChartStore(){
                     console.error('No file found for reqId:',reqIdStr);
                 }
                 if(request && request.func){
-                    await chartStore.setFunc(reqIdStr,request.func);
+                    chartStore.setFunc(reqIdStr,request.func);
                 } else {
                     console.error('No func found for reqId:',reqIdStr);
                 }
@@ -1007,7 +1008,8 @@ export async function updateChartStore(req_id: number) {
         const func = await indexedDb.getFunc(req_id);
         //console.log('updateChartStore req_id:', req_id, 'func:', func);
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        await chartStore.setFunc(reqIdStr,func);
+        chartStore.initSelectedColorEncodeDataUsingFunc(reqIdStr, func);
+        chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),
             chartStore.getSpotValues(reqIdStr),

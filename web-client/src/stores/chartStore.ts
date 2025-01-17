@@ -196,12 +196,6 @@ export const useChartStore = defineStore('chartStore', {
         //console.log('getYDataOptions reqIdStr:',reqIdStr, ' yData:',yData);
         return yData;
     },
-    getYDataOptionsForColorEncoding(reqIdStr: string): string[] {
-        this.ensureState(reqIdStr);
-        const yData = ['solid', ...this.stateByReqId[reqIdStr].yDataOptions];
-        //console.log('getYDataOptions reqIdStr:',reqIdStr, ' yData:',yData);
-        return yData;
-    },
     setYDataOptions(reqIdStr: string,yDataOptions: string[]): void {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataOptions = yDataOptions;
@@ -248,6 +242,19 @@ export const useChartStore = defineStore('chartStore', {
         } else {
             console.error('setXDataForChartFromFunc() unknown function:', func);
         }
+    },
+    initSelectedColorEncodeDataUsingFunc(reqIdStr: string,func: string){
+        this.ensureState(reqIdStr);
+        if (func.includes('atl03')) {
+            this.setSelectedColorEncodeData(reqIdStr,'alt03_cnf');
+        } else if (func.includes('atl06')) {
+            this.setSelectedColorEncodeData(reqIdStr,'solid');
+        } else if (func.includes('atl08')) {
+            this.setSelectedColorEncodeData(reqIdStr,'atl08_class');
+        } else {
+            console.error('initSelectedColorEncodeDataUsingFunc() unknown function:', func);
+        }
+        console.log(`initSelectedColorEncodeDataUsingFunc(${reqIdStr},${func}) selectedColorEncodeData:`,this.getSelectedColorEncodeData(reqIdStr));
     },
     getFile(reqIdStr: string) {
         this.ensureState(reqIdStr);
