@@ -40,26 +40,6 @@ const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqI
 const loadingComponent = ref(true);
 const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
-// const computedSelectedYId = computed(() => `srYdataItems-${computedReqIdStr.value}`);
-// const computedSelColorEncodeId = computed(() => `srColorEncodeItems-${computedReqIdStr.value}`);
-// const computedSolidColorId = computed(() => `srSolidColorItems-${computedReqIdStr.value}`);
-// const computedSymbolColorEncoding = computed(() => {
-//     return chartStore.getSelectedColorEncodeData(computedReqIdStr.value);
-// });
-// const computedSolidSymbolColor = computed(() => {
-//     return chartStore.getSolidSymbolColor(computedReqIdStr.value);
-// });
-
-// function getOverlayedReqLegend(overlayedReqId: number): string {
-//     const label = findReqMenuLabel(overlayedReqId);
-//     return `${label} - Photon Cloud`;
-// }
-// async function handleSymbolSizeUpdate(newValue: number) {
-//     console.log('Symbol size updated to:', newValue);
-//     await callPlotUpdateDebounced('from handleSymbolSizeUpdate');
-// }
-
-
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
@@ -174,7 +154,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
-                    chartStore.setSelectedColorEncodeData(thisReqIdStr, 'alt03_cnf');
                 } else {
                     console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
@@ -236,7 +215,6 @@ watch(
     tracks: chartStore.getTracks(computedReqIdStr.value),
     pairs: chartStore.getPairs(computedReqIdStr.value),
     ydata: chartStore.getSelectedYData(computedReqIdStr.value),
-    colorEncode: chartStore.getSelectedColorEncodeData(computedReqIdStr.value),
     solidColor: chartStore.getSolidSymbolColor(computedReqIdStr.value),
   }),
   async (newValues, oldValues) => {

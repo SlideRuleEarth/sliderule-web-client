@@ -58,6 +58,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
 import { computed, onMounted, ComputedRef } from 'vue';
+import { init } from '@/sliderule/core';
 
 const props = defineProps<{ reqId: number }>();
 
@@ -75,7 +76,7 @@ const computedSolidSymbolColor = computed(() => {
 
 
 onMounted(() => {
-    initializeColorEncoding(reqIdStr.value);
+    initializeColorEncoding(reqIdStr.value,computedFunc.value);
     initDataBindingsToChartStore([reqIdStr.value]);
     console.log('computedFunc:', computedFunc.value);
 });
