@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { use } from "echarts/core"; 
 import ToggleButton from "primevue/togglebutton";
-import Select from "primevue/select";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
@@ -15,15 +14,13 @@ import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize, yDataBindingsReactive } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { findReqMenuLabel, initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive } from '@/utils/plotUtils';
+import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
-import Fieldset from "primevue/fieldset";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrReqDisplay from '@/components/SrReqDisplay.vue';
-import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 
@@ -40,27 +37,27 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const reqParamsStore = useReqParamsStore();
 const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
-const computedSelectedYId = computed(() => `srYdataItems-${computedReqIdStr.value}`);
-const computedSelColorEncodeId = computed(() => `srColorEncodeItems-${computedReqIdStr.value}`);
-const computedSolidColorId = computed(() => `srSolidColorItems-${computedReqIdStr.value}`);
-const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
-const computedSymbolColorEncoding = computed(() => {
-    return chartStore.getSelectedColorEncodeData(computedReqIdStr.value);
-});
-const computedSolidSymbolColor = computed(() => {
-    return chartStore.getSolidSymbolColor(computedReqIdStr.value);
-});
 const loadingComponent = ref(true);
+const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
-function getOverlayedReqLegend(overlayedReqId: number): string {
-    const label = findReqMenuLabel(overlayedReqId);
-    return `${label} - Photon Cloud`;
-}
+// const computedSelectedYId = computed(() => `srYdataItems-${computedReqIdStr.value}`);
+// const computedSelColorEncodeId = computed(() => `srColorEncodeItems-${computedReqIdStr.value}`);
+// const computedSolidColorId = computed(() => `srSolidColorItems-${computedReqIdStr.value}`);
+// const computedSymbolColorEncoding = computed(() => {
+//     return chartStore.getSelectedColorEncodeData(computedReqIdStr.value);
+// });
+// const computedSolidSymbolColor = computed(() => {
+//     return chartStore.getSolidSymbolColor(computedReqIdStr.value);
+// });
 
-async function handleSymbolSizeUpdate(newValue: number) {
-    console.log('Symbol size updated to:', newValue);
-    await callPlotUpdateDebounced('from handleSymbolSizeUpdate');
-}
+// function getOverlayedReqLegend(overlayedReqId: number): string {
+//     const label = findReqMenuLabel(overlayedReqId);
+//     return `${label} - Photon Cloud`;
+// }
+// async function handleSymbolSizeUpdate(newValue: number) {
+//     console.log('Symbol size updated to:', newValue);
+//     await callPlotUpdateDebounced('from handleSymbolSizeUpdate');
+// }
 
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -70,10 +67,10 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 
 
-async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number, newValue: string[]) {
-    console.log(`Overlay Y Data for ${thisoverlayedReqId} changed:`, newValue);
-    await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
-}
+// async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number, newValue: string[]) {
+//     console.log(`Overlay Y Data for ${thisoverlayedReqId} changed:`, newValue);
+//     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
+// }
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl03DefaultColorsAndUpdatePlot');
@@ -217,18 +214,18 @@ watch(atlChartFilterStore.selectedReqIdMenuItem, async (newSelection, oldSelecti
 });
 
 
-const symbolSizeSelection = async () => {
-    console.log('symbolSizeSelection');
-    await callPlotUpdateDebounced('symbolSizeSelection');
-};
+// const symbolSizeSelection = async () => {
+//     console.log('symbolSizeSelection');
+//     await callPlotUpdateDebounced('symbolSizeSelection');
+// };
 
-async function updateThePlot(msg:string) {
-    if(!loadingComponent.value){
-        await callPlotUpdateDebounced(msg);
-    } else {
-        console.warn(`Skipped updateThePlot for ${msg} - Loading component is still active`);
-    }
-}
+// async function updateThePlot(msg:string) {
+//     if(!loadingComponent.value){
+//         await callPlotUpdateDebounced(msg);
+//     } else {
+//         console.warn(`Skipped updateThePlot for ${msg} - Loading component is still active`);
+//     }
+// }
 
 watch(
   () => ({

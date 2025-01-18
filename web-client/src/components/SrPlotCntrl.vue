@@ -17,7 +17,7 @@
                 <Select
                     class="sr-select-col-encode-data"
                     v-model="yColorEncodeSelectedReactive[reqIdStr]"
-                    :options="chartStore.getYDataOptions(reqIdStr)"
+                    :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
                     placeholder="Encode Color with"
                     :id="`srYColEncode-overlayed-${reqIdStr}`"
                     size="small"
@@ -64,6 +64,7 @@ const props = defineProps<{ reqId: number }>();
 const chartStore = useChartStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const reqIdStr = computed(() => props.reqId.toString());
+const computedFunc = computed(() => chartStore.getFunc(reqIdStr.value));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
 const computedSymbolColorEncoding = computed(() => {
     return chartStore.getSelectedColorEncodeData(reqIdStr.value);
@@ -76,6 +77,7 @@ const computedSolidSymbolColor = computed(() => {
 onMounted(() => {
     initializeColorEncoding(reqIdStr.value);
     initDataBindingsToChartStore([reqIdStr.value]);
+    console.log('computedFunc:', computedFunc.value);
 });
 
 
@@ -94,8 +96,11 @@ const useFindReqMenuLabel = () => {
 const findReqMenuLabel = useFindReqMenuLabel();
 const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = computed(() => {
     return (overlayedReqId: number): string => {
-        const label = findReqMenuLabel.value(overlayedReqId);
-        return `${label} - Photon Cloud`;
+        let label = findReqMenuLabel.value(overlayedReqId);
+        if(computedFunc.value==='atl03sp'){
+            label = label+ ` - Photon Cloud`;
+        };
+        return `${label}`;
     };
 });
 

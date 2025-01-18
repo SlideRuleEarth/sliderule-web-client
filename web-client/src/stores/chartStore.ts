@@ -200,7 +200,20 @@ export const useChartStore = defineStore('chartStore', {
         this.ensureState(reqIdStr);
         this.stateByReqId[reqIdStr].yDataOptions = yDataOptions;
         //console.log('setYDataOptions reqIdStr:',reqIdStr, ' yData:',yDataOptions, ' state yData:',this.stateByReqId[reqIdStr].yDataOptions);
-    },    
+    },
+    getColorEncodeOptionsForFunc(reqIdStr: string,func: string): string[] {
+        if(func.includes('atl03')) {
+            return this.getYDataOptions(reqIdStr);
+        } else if(func.includes('atl06')) {
+            const ret = ['solid'];
+            return ret.concat(this.getYDataOptions(reqIdStr));
+        } else if(func.includes('atl08')) {
+            return this.getYDataOptions(reqIdStr);;
+        } else {
+            console.error('getColorEncodeOptionsForFunc() unknown function:', func);
+            return [];
+        }  
+    }, 
     getSelectedYData(reqIdStr: string): string {
         if(this.ensureState(reqIdStr)){
             return this.stateByReqId[reqIdStr].selectedYData;
