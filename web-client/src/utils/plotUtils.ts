@@ -19,6 +19,7 @@ import { reactive, computed } from 'vue';
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 const requestsStore = useRequestsStore();
+const atl03ColorMapStore = useAtl03ColorMapStore();
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -100,17 +101,17 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 
 function getAtl03spColorUsingAtl03_cnf(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    if(useAtl03ColorMapStore().getDebugCnt < 10){
-        console.log('getAtl03spColorUsingAtl03_cnf params.data:', params.data);
-        console.log('getAtl03spColorUsingAtl03_cnf dataNdx:', dataNdx);
-    }
+    // if(atl03ColorMapStore.getDebugCnt < 10){
+    //     console.log('getAtl03spColorUsingAtl03_cnf params.data:', params.data);
+    //     console.log('getAtl03spColorUsingAtl03_cnf dataNdx:', dataNdx);
+    // }
     let colorStr = 'red';
     let value = params.data[dataNdx['atl03_cnf']];
-    colorStr = useAtl03ColorMapStore().getColorForAtl03CnfValue(value);
-    const dc = useAtl03ColorMapStore().incrementDebugCnt();
-    if(dc < 10){
-        console.log(`getAtl03spColorUsingAtl03_cnf cnt:${dc} value:${value} colorStr:${colorStr}`);
-    }
+    colorStr = atl03ColorMapStore.getColorForAtl03CnfValue(value);
+    //const dc = atl03ColorMapStore.incrementDebugCnt();
+    // if(dc < 10){
+    //     console.log(`getAtl03spColorUsingAtl03_cnf cnt:${dc} value:${value} colorStr:${colorStr}`);
+    // }
     return colorStr;
 }
 

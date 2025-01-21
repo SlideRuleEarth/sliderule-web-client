@@ -3,18 +3,15 @@ import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import Fieldset from "primevue/fieldset";
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
-import SrMenu from "@/components/SrMenu.vue";
 import SrSwitchedSliderInput from "@/components/SrSwitchedSliderInput.vue";
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed } from "vue";
-import { clearPlot,yDataBindingsReactive,findReqMenuLabel } from "@/utils/plotUtils";
+import { yDataBindingsReactive,findReqMenuLabel } from "@/utils/plotUtils";
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
-const atl03ColorMapStore = useAtl03ColorMapStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 
@@ -54,12 +51,6 @@ onMounted(() => {
     console.log('SrScatterPlotOptions onMounted computedReqIdStr:', computedReqIdStr.value);
 });
 
-
-async function changedColorKey() {
-    //console.log('changedColorKey:', atl03ColorMapStore.getAtl03ColorKey());
-    clearPlot();
-    await callPlotUpdateDebounced('changedColorKey');
-}
 
 </script>
 <template>

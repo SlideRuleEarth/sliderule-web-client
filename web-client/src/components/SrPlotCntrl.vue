@@ -6,6 +6,7 @@
                 <Select class="sr-select-ydata"
                     v-model="yDataSelectedReactive[reqIdStr]"
                     :options="chartStore.getYDataOptions(reqIdStr)"
+                    @change="handleYDataSelectionChange"
                     placeholder="Select Y data"
                     :id="`srYdataItems-overlayed-${reqIdStr}`"
                     size="small"
@@ -19,6 +20,7 @@
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
                         :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
+                        @change="handleColorEncodeSelectionChange"
                         placeholder="Encode Color with"
                         :id="`srYColEncode-overlayed-${reqIdStr}`"
                         size="small"
@@ -123,10 +125,20 @@ const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = comp
     };
 });
 
-const handleSymbolSizeUpdate = (newSymbolSize: number) => {
+const handleSymbolSizeUpdate = async (newSymbolSize: number) => {
     console.log(`Updated symbol size for ${props.reqId}:`, newSymbolSize);
+    await callPlotUpdateDebounced('handleSymbolSizeUpdate');
 };
 
+const handleYDataSelectionChange = async (newValue: string[]) => {
+    console.log("Y Data changed:", newValue);
+    await callPlotUpdateDebounced('from handleYDataSelectionChange');
+};
+
+const handleColorEncodeSelectionChange = async (newValue: string) => {
+    console.log("Color Encode changed:", newValue);
+    await callPlotUpdateDebounced('from handleColorEncodeSelectionChange');
+};
 
 </script>
   
