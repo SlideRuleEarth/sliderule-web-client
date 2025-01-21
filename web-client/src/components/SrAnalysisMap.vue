@@ -63,7 +63,7 @@
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
             return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
         } else {
-            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted})`;
+            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted} pnts)`;
         }
     });
     const emit = defineEmits<{

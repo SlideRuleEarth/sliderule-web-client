@@ -58,7 +58,14 @@
                 @update:symbolSize="handleSymbolSizeUpdate"
             />
         </div>
-    
+        <div>
+            <SrRecIdReqDisplay :reqId="props.reqId"/>
+        </div>
+        <div class="sr-sql-stmnt">
+            <SrSqlStmnt 
+                :req_id="props.reqId"
+            />
+        </div>
     </Fieldset>
 </template>
   
@@ -75,9 +82,12 @@ import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
+import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
+import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 
 const props = defineProps<{ reqId: number }>();
 
+const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const reqIdStr = computed(() => props.reqId.toString());
@@ -121,6 +131,7 @@ const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = comp
         if(computedFunc.value==='atl03sp'){
             label = label+ ` - Photon Cloud`;
         };
+        label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(overlayedReqId.toString()))} pnts)`;
         return `${label}`;
     };
 });

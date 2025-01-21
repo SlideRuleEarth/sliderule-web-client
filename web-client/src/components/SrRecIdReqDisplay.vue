@@ -3,7 +3,7 @@
         <div class="sr-rec-req-display-panel-header"> 
             <SrCheckbox
                 v-model="showReqParms"
-                label="Show Request Parameters"
+                label="Show Req Parameters"
             />
         </div>
         <div class="sr-rec-req-display-parms" v-if="showReqParms">
@@ -13,35 +13,30 @@
   </template>
   
   <script setup lang="ts">
-    import { ref,onMounted,watch } from "vue";
+    import { ref,onMounted } from "vue";
     import SrCheckbox from "./SrCheckbox.vue";
     import { db } from "@/db/SlideRuleDb";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-
-    const atlChartFilterStore = useAtlChartFilterStore();
+    const props = defineProps({
+        reqId: {
+            type:Number, 
+            default:0
+        }
+    });
 
     const showReqParms = ref(false);
     const reqParms = ref<string>('');
     const curAPI = ref<string>('');;
 
     onMounted(async () => {
-        const reqId = atlChartFilterStore.getReqId();
-        if(reqId) {
-            curAPI.value = await db.getFunc(reqId);
-            const p = await db.getReqParams(reqId);
+        if(props.reqId) {
+            curAPI.value = await db.getFunc(props.reqId);
+            const p = await db.getReqParams(props.reqId);
             reqParms.value = JSON.stringify(p, null, 2);
         } else {
             console.log('SrRecReqDisplay onMounted: no reqId');
         }
     });
-    watch( () => atlChartFilterStore.getReqId(), async (newReqId, oldReqId) => {
-        console.log(`SrRecReqDisplay watch atlChartFilterStore reqId oldReqId:'${oldReqId} to newReqId:'${newReqId}`);
-        if (newReqId) {
-            curAPI.value = await db.getFunc(newReqId);
-            const p = await db.getReqParams(newReqId);
-            reqParms.value = JSON.stringify(p, null, 2);
-        }
-    });
+
   </script>
   
   <style scoped>

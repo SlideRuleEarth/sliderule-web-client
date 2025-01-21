@@ -17,7 +17,6 @@ import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
-import SrReqDisplay from '@/components/SrReqDisplay.vue';
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 
 const props = defineProps({
@@ -40,15 +39,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-
-
-
-// async function onOverlayYDataSelectionChange(thisoverlayedReqId: string | number, newValue: string[]) {
-//     console.log(`Overlay Y Data for ${thisoverlayedReqId} changed:`, newValue);
-//     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
-// }
-
-
 
 onMounted(async () => {
     try {
@@ -184,19 +174,6 @@ watch(atlChartFilterStore.selectedReqIdMenuItem, async (newSelection, oldSelecti
 });
 
 
-// const symbolSizeSelection = async () => {
-//     console.log('symbolSizeSelection');
-//     await callPlotUpdateDebounced('symbolSizeSelection');
-// };
-
-// async function updateThePlot(msg:string) {
-//     if(!loadingComponent.value){
-//         await callPlotUpdateDebounced(msg);
-//     } else {
-//         console.warn(`Skipped updateThePlot for ${msg} - Loading component is still active`);
-//     }
-// }
-
 watch(
   () => ({
     scOrients: chartStore.getScOrients(computedReqIdStr.value),
@@ -253,9 +230,6 @@ watch(
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
                 />
-            </div>
-            <div>
-                <SrReqDisplay checkboxLabel="Show request parameters for Overlayed Photon Cloud" />
             </div>
             <div class="sr-multiselect-container">
 
