@@ -54,12 +54,17 @@ export interface SrScatterSeriesData{
 export function initializeColorEncoding(reqIdStr:string,func:string){
     if(func.includes('atl03')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
+        //useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
+        //useAtl03ColorMapStore().setAtl03ColorKey('atl08_class');
+    } else if(func.includes('atl06')) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
+        //useAtl03ColorMapStore().setAtl03ColorKey('YAPC');
     } else {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
     }
-    console.log(`initializeColorEncoding ${reqIdStr} ${func} selectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -93,31 +98,54 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
     });
 }
 
-let debugCnt = 10;
-function getAtl03spColor(params: any):string {
+function getAtl03spColorUsingAtl03_cnf(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    if(debugCnt++ < 10){
-        console.log('getAtl03spColor Atl03ColorKey:', useAtl03ColorMapStore().getAtl03ColorKey());
-        console.log('getAtl03spColor params.data:', params.data);
-        console.log('getAtl03spColor dataNdx:', dataNdx);
+    if(useAtl03ColorMapStore().getDebugCnt < 10){
+        console.log('getAtl03spColorUsingAtl03_cnf params.data:', params.data);
+        console.log('getAtl03spColorUsingAtl03_cnf dataNdx:', dataNdx);
     }
     let colorStr = 'red';
-    let value = -1;
-    if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl03_cnf'){ 
-        value = params.data[dataNdx['atl03_cnf']];
-        colorStr = useAtl03ColorMapStore().getColorForAtl03CnfValue(value);
-    } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'atl08_class'){
-        value = params.data[dataNdx['atl08_class']];
-        colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
-    } else if(useAtl03ColorMapStore().getAtl03ColorKey() === 'YAPC'){ 
-        value = params.data[dataNdx['yapc_score']];
-        const color = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
-        colorStr = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
-    }
-    if(debugCnt++ < 10){
-        //console.log(`getAtl03spColor cnt:${debugCnt} value:${value} colorStr:${colorStr}`);
+    let value = params.data[dataNdx['atl03_cnf']];
+    colorStr = useAtl03ColorMapStore().getColorForAtl03CnfValue(value);
+    const dc = useAtl03ColorMapStore().incrementDebugCnt();
+    if(dc < 10){
+        console.log(`getAtl03spColorUsingAtl03_cnf cnt:${dc} value:${value} colorStr:${colorStr}`);
     }
     return colorStr;
+}
+
+function getAtl03spColorUsingAtl08_class(params: any):string {
+    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
+    if(useAtl03ColorMapStore().getDebugCnt < 10){
+        console.log('getAtl03spColorUsingAtl08_class params.data:', params.data);
+        console.log('getAtl03spColorUsingAtl08_class dataNdx:', dataNdx);
+        //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
+    }
+    let colorStr = 'red';
+    let value = params.data[dataNdx['atl08_class']];
+    colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
+    const dc = useAtl03ColorMapStore().incrementDebugCnt();
+    if(dc < 10){
+        console.log(`getAtl03spColorUsingAtl08_class cnt:${dc} value:${value} colorStr:${colorStr}`);
+    }
+    return colorStr;
+}
+
+function getAtl03spColorUsingYAPC(params: any):string {
+    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
+    if(useAtl03ColorMapStore().getDebugCnt < 10){
+        console.log('getAtl03spColorUsingYAPC params.data:', params.data);
+        console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
+        //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
+    }
+    let value = params.data[dataNdx['atl08_class']];
+    const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
+    const color = `rgba(${r},${g},${b},${a})`;
+    const dc = useAtl03ColorMapStore().incrementDebugCnt();
+    if(dc < 10){
+        console.log(`getAtl03spColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
+    }
+    return color;
 }
 
 function getAtl08Color(params: any):string {
@@ -291,6 +319,16 @@ export async function getSeriesForAtl03sp(
             return [out,orderNdx];
         },
     };
+    const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
+    let thisColorFunction = getAtl03spColorUsingAtl03_cnf as (params: any) => string;
+    if(cedk === 'atl03_cnf'){
+        thisColorFunction = getAtl03spColorUsingAtl03_cnf;
+    } else if(cedk === 'atl08_class'){
+        thisColorFunction = getAtl03spColorUsingAtl08_class;
+    } else if(cedk === 'solid'){
+        thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
+    }
+
 
     return getGenericSeries({
         reqIdStr,
@@ -300,7 +338,7 @@ export async function getSeriesForAtl03sp(
         fetchOptions,             // pass the specialized logic above
         fetchData: fetchScatterData,
         minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
-        colorFunction: getAtl03spColor, // your existing color mapper
+        colorFunction: thisColorFunction, // your existing color mapper
         zValue: 0,
         functionName: 'getSeriesForAtl03sp', // for the log
     });
@@ -940,7 +978,7 @@ async function updatePlot(msg:string){
         const runContext = await getPhotonOverlayRunContext();
         if(runContext.reqId > 0){
             await prepareDbForReqId(runContext.reqId);            
-            useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
+            //useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
         }
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
@@ -1019,7 +1057,6 @@ export async function updateChartStore(req_id: number) {
         const func = await indexedDb.getFunc(req_id);
         //console.log('updateChartStore req_id:', req_id, 'func:', func);
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        chartStore.initSelectedColorEncodeDataUsingFunc(reqIdStr, func);
         chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
             chartStore.getFunc(reqIdStr),

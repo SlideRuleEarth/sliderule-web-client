@@ -8,8 +8,8 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         selectedAtl03YapcColorMapName: 'viridis' as string,
         numShadesForAtl03Yapc: 1024 as number,
         atl03YapcColorMap: [] as[number, number, number, number][],
-        atl03ColorKey: 'atl03_cnf' as string,
-        atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
+        // atl03ColorKey: 'atl03_cnf' as string,
+        // atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
         atl03CnfOptions: [
             {label:'atl03_tep',value:-2}, 
             {label:'atl03_not_considered',value:-1}, 
@@ -42,7 +42,10 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         },
         getDataOrderNdx(): Record<string, number> {
             return this.dataOrderNdx;
-        }    
+        },    
+        getDebugCnt(): number {
+            return this.debugCnt;
+        },    
     },
     actions: {
         async initializeAtl03ColorMapStore() {
@@ -110,17 +113,12 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 width: '100%',  // Adjust the width as needed
             };
         },
-        setAtl03ColorKey(atl03ColorKey: string) {
-            this.atl03ColorKey = atl03ColorKey;
-        },
-        getAtl03ColorKey() {
-            return this.atl03ColorKey;
-        },
-        getAtl03ColorKeyOptions() {
-            return this.atl03ColorKeyOptions;
-        },
         setDebugCnt(debugCnt: number) {
             this.debugCnt = debugCnt;
+        },
+        incrementDebugCnt(): number {
+            this.debugCnt += 1;
+            return this.debugCnt;
         },
         setCnfColorMap(rgbColorMap: string[]) {
             this.atl03CnfColorMap = rgbColorMap;

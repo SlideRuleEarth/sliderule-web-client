@@ -72,7 +72,7 @@ export const useChartStore = defineStore('chartStore', {
                 elevationDataOptions: [ 'not_set' ],
                 yDataOptions: [],
                 selectedYData: '',
-                selectedColorEncodeData: 'solid',
+                selectedColorEncodeData: 'unset',
                 xDataForChart: 'x_atc',
                 ndxOfElevationDataOptionsForHeight: 0,
                 func: '',
@@ -85,7 +85,7 @@ export const useChartStore = defineStore('chartStore', {
                 numOfPlottedPnts: 0,
                 selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
                 symbolSize: 3,
-                symbolColorEncoding: 'solid',
+                symbolColorEncoding: 'unset',
                 solidSymbolColor: 'red',
                 tracks: [],
                 selectAllTracks: true,
@@ -255,19 +255,6 @@ export const useChartStore = defineStore('chartStore', {
         } else {
             console.error('setXDataForChartFromFunc() unknown function:', func);
         }
-    },
-    initSelectedColorEncodeDataUsingFunc(reqIdStr: string,func: string){
-        this.ensureState(reqIdStr);
-        if (func.includes('atl03')) {
-            this.setSelectedColorEncodeData(reqIdStr,'alt03_cnf');
-        } else if (func.includes('atl06')) {
-            this.setSelectedColorEncodeData(reqIdStr,'solid');
-        } else if (func.includes('atl08')) {
-            this.setSelectedColorEncodeData(reqIdStr,'atl08_class');
-        } else {
-            console.error('initSelectedColorEncodeDataUsingFunc() unknown function:', func);
-        }
-        console.log(`initSelectedColorEncodeDataUsingFunc(${reqIdStr},${func}) selectedColorEncodeData:`,this.getSelectedColorEncodeData(reqIdStr));
     },
     getFile(reqIdStr: string) {
         this.ensureState(reqIdStr);

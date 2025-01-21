@@ -13,16 +13,27 @@
                 </Select> 
             </div>
             <div class="sr-ydata-menu">
-                <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Color Encode</label>
-                <Select
-                    class="sr-select-col-encode-data"
-                    v-model="yColorEncodeSelectedReactive[reqIdStr]"
-                    :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
-                    placeholder="Encode Color with"
-                    :id="`srYColEncode-overlayed-${reqIdStr}`"
-                    size="small"
-                >
-                </Select>
+                <div>
+                    <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Color Encode</label>
+                    <Select
+                        class="sr-select-col-encode-data"
+                        v-model="yColorEncodeSelectedReactive[reqIdStr]"
+                        :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
+                        placeholder="Encode Color with"
+                        :id="`srYColEncode-overlayed-${reqIdStr}`"
+                        size="small"
+                    >
+                    </Select>
+                </div>
+                <div class="sr-legend-panel">
+                    <SrAtl03ColorLegend 
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))" 
+                        @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+                    />
+                    <SrAtl08ColorLegend 
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))" 
+                    />
+                </div>
             </div>
             <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
                 <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
@@ -58,7 +69,10 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
 import { computed, onMounted, ComputedRef } from 'vue';
-import { init } from '@/sliderule/core';
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
+import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
+import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
+import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
 
 const props = defineProps<{ reqId: number }>();
 
@@ -76,12 +90,16 @@ const computedSolidSymbolColor = computed(() => {
 
 
 onMounted(() => {
-    initializeColorEncoding(reqIdStr.value,computedFunc.value);
     initDataBindingsToChartStore([reqIdStr.value]);
+    initializeColorEncoding(reqIdStr.value,computedFunc.value);
     console.log('computedFunc:', computedFunc.value);
 });
 
-
+async function restoreAtl03DefaultColorsAndUpdatePlot() {
+    console.log('restoreAtl03DefaultColorsAndUpdatePlot');
+    restoreAtl03DefaultColors();
+    await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
+}
 const useFindReqMenuLabel = () => {
   const atlChartFilterStore = useAtlChartFilterStore();
 

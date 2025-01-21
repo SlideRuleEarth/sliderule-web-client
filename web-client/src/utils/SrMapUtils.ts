@@ -331,7 +331,6 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     
-    useAtl03ColorMapStore().setDebugCnt(0);
     const reqIdStr = useAtlChartFilterStore().getReqIdStr();
     //useAtlChartFilterStore().setIsLoading();
 

@@ -107,7 +107,7 @@ async function changedColorKey() {
         />
     </div>
 
-    <div class="sr-select-color-key">
+    <!-- <div class="sr-select-color-key">
         <SrMenu 
             v-if = "chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
             label="Alt03 Color Map" 
@@ -118,7 +118,7 @@ async function changedColorKey() {
             :menuOptions="atl03ColorMapStore.getAtl03ColorKeyOptions()" 
             tooltipText="Data key for Color of atl03 scatter plot"
         /> 
-    </div>
+    </div> -->
 
 </Fieldset>
 </template>

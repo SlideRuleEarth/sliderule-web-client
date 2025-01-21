@@ -7,10 +7,7 @@ import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } 
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { db as indexedDb } from "@/db/SlideRuleDb";
 import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
-import SrAtl03ColorLegend from "@/components/SrAtl03ColorLegend.vue";
-import SrAtl08ColorLegend from "@/components/SrAtl08ColorLegend.vue";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
@@ -21,7 +18,6 @@ import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrReqDisplay from '@/components/SrReqDisplay.vue';
-import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 
 const props = defineProps({
@@ -52,11 +48,7 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 //     await callPlotUpdateDebounced('from onOverlayYDataSelectionChange');
 // }
 
-async function restoreAtl03DefaultColorsAndUpdatePlot() {
-    console.log('restoreAtl03DefaultColorsAndUpdatePlot');
-    restoreAtl03DefaultColors();
-    await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
-}
+
 
 onMounted(async () => {
     try {
@@ -70,18 +62,17 @@ onMounted(async () => {
         atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
         initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
-            const func = await indexedDb.getFunc(reqId);
+            //const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
-            atl03ColorMapStore.initializeAtl03ColorMapStore();
             await prepareDbForReqId(reqId);                                                                      
     
-            if (func === 'atl03sp') {
-                atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-            } else if (func.includes('atl06')) {
-                atl03ColorMapStore.setAtl03ColorKey('YAPC');
-            } else if (func.includes('atl08')) {
-                atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-            }
+            // if (func === 'atl03sp') {
+            //     atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
+            // } else if (func.includes('atl06')) {
+            //     atl03ColorMapStore.setAtl03ColorKey('YAPC');
+            // } else if (func.includes('atl08')) {
+            //     atl03ColorMapStore.setAtl03ColorKey('atl08_class');
+            // }
         } else {
             console.warn('reqId is undefined');
         }        
@@ -244,15 +235,6 @@ watch(
                     zlevel:100
                 }" 
             />
-            <div class="sr-legend-panel">
-                <SrAtl03ColorLegend 
-                    v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl03_cnf') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-                    @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
-                />
-                <SrAtl08ColorLegend 
-                    v-if="((atl03ColorMapStore.getAtl03ColorKey() === 'atl08_class') && ((chartStore.getFunc(computedReqIdStr) === 'atl03sp') || (atlChartFilterStore.getSelectedOverlayedReqIds().length>0)))" 
-                />
-            </div>
         </div> 
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -278,52 +260,6 @@ watch(
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
-                    <!-- <Fieldset :legend="findReqMenuLabel(atlChartFilterStore.selectedReqIdMenuItem.value)">
-                        <div>
-                            <div class="sr-ydata-menu">
-                                <label class="sr-y-data-label":for="computedSelectedYId">Y Data </label> 
-                                <Select class="sr-select-ydata"
-                                    v-model="yDataSelectedReactive[computedReqIdStr]"
-                                    :options="chartStore.getYDataOptions(computedReqIdStr)"
-                                    placeholder="Select Y data"
-                                    :id="computedSelectedYId"
-                                    size="small"
-                                >
-                                </Select>
-                            </div>
-                            <div class="sr-ydata-menu">
-                                <label class="sr-y-data-label":for="computedSelColorEncodeId">Color Encode</label> 
-                                <Select class="sr-select-col-encode-data"
-                                    v-model="yColorEncodeSelectedReactive[computedReqIdStr]"
-                                    :options="['solid',...chartStore.getYDataOptions(computedReqIdStr)]"
-                                    placeholder="Select Color Encode With"
-                                    :id="computedSelColorEncodeId"
-                                    size="small"
-                                >
-                                </Select>
-                            </div>
-                            <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
-                                <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
-                                <div class="sr-color-selection-panel">
-                                    <Select
-                                        v-model="solidColorSelectedReactive[computedReqIdStr]"
-                                        :options="atl03ColorMapStore.namedColorPalette"
-                                        placeholder="Symbol Color"
-                                        :id="computedSolidColorId"
-                                        size="small" 
-                                    >
-                                    </Select>
-                                    <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <SrSymbolSize
-                                :reqIdStr="computedReqIdStr"
-                                @update:symbolSize="handleSymbolSizeUpdate"
-                            />
-                        </div>
-                    </Fieldset> -->
                     <SrPlotCntrl :reqId="atlChartFilterStore.selectedReqIdMenuItem.value" />
                 </div>
                 <div class="sr-multiselect-col">

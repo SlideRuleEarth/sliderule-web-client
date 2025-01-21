@@ -90,7 +90,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       // Return the label of the selected menu item
       return this.selectedReqIdMenuItem.value.toString();
     },
-      incrementDebugCnt() {
+    incrementDebugCnt() {
       return ++this.debugCnt;
     },
     getDebugCnt() {
