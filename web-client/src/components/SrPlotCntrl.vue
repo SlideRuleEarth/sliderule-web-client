@@ -30,10 +30,11 @@
                 <div class="sr-legend-panel">
                     <SrAtl03ColorLegend 
                         v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))" 
-                        @restore-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+                        @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
                     />
                     <SrAtl08ColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))" 
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
+                        @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
                 </div>
             </div>
@@ -79,7 +80,7 @@ import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
 import { computed, onMounted, ComputedRef } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
-import { restoreAtl03DefaultColors } from '@/utils/colorUtils';
+//import { restoreAtl03DefaultColors, restoreAtl08DefaultColors } from '@/utils/colorUtils';
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
@@ -109,9 +110,16 @@ onMounted(() => {
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl03DefaultColorsAndUpdatePlot');
-    restoreAtl03DefaultColors();
+    await atl03ColorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
+
+async function restoreAtl08DefaultColorsAndUpdatePlot() {
+    console.log('restoreAtl08DefaultColorsAndUpdatePlot');
+    await atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
+    await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
+}
+
 const useFindReqMenuLabel = () => {
   const atlChartFilterStore = useAtlChartFilterStore();
 

@@ -63,15 +63,6 @@ export function getColorMapOptions() {
     return options;
 }
 
-export const restoreAtl03DefaultColors = async () => {
-    try{
-        await atl03ColorMapStore.restoreDefaultAtl03CnfColorMap();
-        console.log('SrColorPalette colors:', atl03ColorMapStore.getNamedColorPalette());
-    } catch (error) {
-        console.error('Error restoring default colors:', error);
-    }
-};
-
 export interface SrRGBColor {
     r: number;
     g: number;
