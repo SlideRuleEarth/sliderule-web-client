@@ -98,21 +98,9 @@ const messageClass = computed(() => {
   };
 });
 
-const computedSelectedAtl03ColorMap = computed(() => {
+const computedYapcColorMap = computed(() => {
   return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
 });
-
-watch (() => computedSelectedAtl03ColorMap, async (newColorMap, oldColorMap) => {    
-    //console.log('Atl03ColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    atl03ColorMapStore.updateAtl03YapcColorMapValues();
-    //console.log('Color Map:', atl03ColorMapStore.getAtl03YapcColorMap());
-    const reqId = atlChartFilterStore.getReqId();
-    if (reqId > 0) {
-        await callPlotUpdateDebounced('from watch computedSelectedAtl03ColorMap');
-    } else {
-        console.warn('watch computedSelectedAtl03ColorMap reqId is undefined');
-    }
-}, { deep: true, immediate: true });
 
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {

@@ -13,37 +13,39 @@ export interface SrListNumberItem {
 }
 
 interface ChartState {
-  currentFile: string;
-  min_x: number;
-  max_x: number;
-  min_y: number;
-  max_y: number;
-  elevationDataOptions: string[];
-  yDataOptions: string[];
-  selectedYData: string;
-  selectedColorEncodeData: string;
-  xDataForChart: string;
-  ndxOfElevationDataOptionsForHeight: number;
-  func: string;
-  description: string;
-  querySql: string;
-  whereClause: string;
-  size: number;
-  recCnt: number;
-  xLegend: string;
-  numOfPlottedPnts: number;
-  selectedAtl03YapcColorMap: SrMenuItem;
-  symbolSize: number;
-  symbolColorEncoding: string;
-  solidSymbolColor: string;
-  tracks: Array<SrListNumberItem>;
-  selectAllTracks: boolean;
-  beams: Array<SrListNumberItem>;
-  spots: Array<SrListNumberItem>;
-  rgts: Array<SrListNumberItem>;
-  cycles: Array<SrListNumberItem>;
-  pairs: Array<SrListNumberItem>;
-  scOrients: Array<SrListNumberItem>;
+    currentFile: string;
+    min_x: number;
+    max_x: number;
+    min_y: number;
+    max_y: number;
+    min_yapc_score: number;
+    max_yapc_score: number;
+    elevationDataOptions: string[];
+    yDataOptions: string[];
+    selectedYData: string;
+    selectedColorEncodeData: string;
+    xDataForChart: string;
+    ndxOfElevationDataOptionsForHeight: number;
+    func: string;
+    description: string;
+    querySql: string;
+    whereClause: string;
+    size: number;
+    recCnt: number;
+    xLegend: string;
+    numOfPlottedPnts: number;
+    selectedAtl03YapcColorMap: SrMenuItem;
+    symbolSize: number;
+    symbolColorEncoding: string;
+    solidSymbolColor: string;
+    tracks: Array<SrListNumberItem>;
+    selectAllTracks: boolean;
+    beams: Array<SrListNumberItem>;
+    spots: Array<SrListNumberItem>;
+    rgts: Array<SrListNumberItem>;
+    cycles: Array<SrListNumberItem>;
+    pairs: Array<SrListNumberItem>;
+    scOrients: Array<SrListNumberItem>;
 }
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -69,6 +71,8 @@ export const useChartStore = defineStore('chartStore', {
                 max_x: 0,
                 min_y: 0,
                 max_y: 0,
+                min_yapc_score: 255,
+                max_yapc_score: 0,
                 elevationDataOptions: [ 'not_set' ],
                 yDataOptions: [],
                 selectedYData: '',
@@ -114,6 +118,22 @@ export const useChartStore = defineStore('chartStore', {
     getMaxX(reqIdStr: string) {
         this.ensureState(reqIdStr);
         return this.stateByReqId[reqIdStr].max_x;
+    },
+    setMinYapcScore(reqIdStr: string, min_yapc_score: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].min_yapc_score = min_yapc_score;
+    },
+    getMinYapcScore(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].min_yapc_score;
+    },
+    setMaxYapcScore(reqIdStr: string, max_yapc_score: number) {
+        this.ensureState(reqIdStr);
+        this.stateByReqId[reqIdStr].max_yapc_score = max_yapc_score;
+    },
+    getMaxYapcScore(reqIdStr: string) {
+        this.ensureState(reqIdStr);
+        return this.stateByReqId[reqIdStr].max_yapc_score;
     },
     setDescription(reqIdStr: string, description: string) { 
         this.ensureState(reqIdStr);

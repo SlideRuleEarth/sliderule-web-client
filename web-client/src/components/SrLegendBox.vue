@@ -1,6 +1,5 @@
 <template>
   <div class="sr-legend-box">
-    <!-- <h1 class="sr-legend-header">Legend</h1> -->
     <div class="sr-color-map-gradient" :style="gradientStyle">
     </div>
     <div class="sr-legend-minmax">
@@ -58,10 +57,6 @@ watch(
     flex-direction: column;
 }
 
-.sr-legend-header {
-    font-size: 0.75rem;
-    margin: 0;
-}
 
 .sr-color-map-gradient {
   border: 1px solid #ccc; /* Optional styling for better visibility */

@@ -14,7 +14,7 @@
         </Fieldset>
         <!-- New Manage Colors button -->
         <div class="sr-restore-defaults">
-            <Button label="Manage Atl03 Colors" @click="showDialog = true" size="small" />
+            <Button label="Manage Atl08 Colors" @click="showDialog = true" size="small" />
         </div>
   
         <!-- Dialog that contains SrAtl03CnfColors when visible -->
@@ -23,7 +23,7 @@
             :modal="true"
             :draggable="false"
             :resizable="false"
-            header="Manage ATL03 Colors"
+            header="Manage ATL08 Colors"
             @hide="onDialogHide"
         >
             <SrAtl08ClassColors

@@ -36,20 +36,25 @@
                         v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
+                    <SrYapcColorLegend 
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'yapc_score') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
+                        :req_id="props.reqId" 
+                        @restore-yapc-color-defaults-click="restoreYapcDefaultColorsAndUpdatePlot"
+                    />
                 </div>
-            </div>
-            <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
-                <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
-                <div class="sr-color-selection-panel">
-                    <Select
-                        v-model="solidColorSelectedReactive[reqIdStr]"
-                        :options="atl03ColorMapStore.namedColorPalette"
-                        placeholder="Symbol Color"
-                        :id="computedSolidColorId"
-                        size="small" 
-                    >
-                    </Select>
-                    <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
+                <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
+                    <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
+                    <div class="sr-color-selection-panel">
+                        <Select
+                            v-model="solidColorSelectedReactive[reqIdStr]"
+                            :options="atl03ColorMapStore.namedColorPalette"
+                            placeholder="Symbol Color"
+                            :id="computedSolidColorId"
+                            size="small" 
+                        >
+                        </Select>
+                        <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,9 +85,9 @@ import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
 import { computed, onMounted, ComputedRef } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
-//import { restoreAtl03DefaultColors, restoreAtl08DefaultColors } from '@/utils/colorUtils';
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
+import SrYapcColorLegend from '@/components/SrYapcColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 
@@ -118,6 +123,12 @@ async function restoreAtl08DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl08DefaultColorsAndUpdatePlot');
     await atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
+}
+
+async function restoreYapcDefaultColorsAndUpdatePlot() {
+    console.log('restoreYapcDefaultColorsAndUpdatePlot');
+    await atl03ColorMapStore.restoreDefaultYapcColorMap();
+    await callPlotUpdateDebounced('from restoreYapcDefaultColorsAndUpdatePlot');
 }
 
 const useFindReqMenuLabel = () => {

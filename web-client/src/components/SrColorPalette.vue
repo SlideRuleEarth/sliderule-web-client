@@ -33,16 +33,12 @@
                 @defaultsChanged="atl08ClassColorChanged"
             />
         </div>
-        <div class="sr-select-yapc-color-map">
-            <SrMenu 
-                label="YAPC Color Map" 
-                v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
-                :menuOptions="srColorMapNames" 
-                :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
-                :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
-                tooltipText="YAPC Color Map for atl03 scatter plot"
+        <!-- <div class="sr-select-yapc-color-map">
+            <SrYapcColors
+                @selectionChanged="yapcColorChanged"
+                @defaultsChanged="yapcColorChanged"
             />
-        </div>
+        </div> -->
     </div>
 </template>
 
@@ -54,8 +50,8 @@ import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
-import SrMenu from './SrMenu.vue';
-import { srColorMapNames,srColorTable } from '@/utils/colorUtils';
+import SrYapcColors from './SrYapcColors.vue';
+import { srColorTable } from '@/utils/colorUtils';
 
 const atl03ColorMapStore = useAtl03ColorMapStore();
 
@@ -80,12 +76,11 @@ const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
 };
 
 const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
-    //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
-    if (color) {
-      console.log('atl08ClassColorChanged');
-    } else {
-      console.warn('atl08ClassColorChanged color is undefined');
-    }
+    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+};
+
+const yapcColorChanged = async (colorKey:string): Promise<void> =>{
+    console.log(`yapcColorChanged:`,colorKey);
 };
 
 </script>

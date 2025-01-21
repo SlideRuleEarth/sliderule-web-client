@@ -137,7 +137,6 @@ function getAtl03spColorUsingYAPC(params: any):string {
     if(useAtl03ColorMapStore().getDebugCnt < 10){
         console.log('getAtl03spColorUsingYAPC params.data:', params.data);
         console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
-        //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
     }
     let value = params.data[dataNdx['atl08_class']];
     const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
@@ -147,11 +146,6 @@ function getAtl03spColorUsingYAPC(params: any):string {
         console.log(`getAtl03spColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
     }
     return color;
-}
-
-function getAtl08Color(params: any):string {
-    //TBD - add color logic for ATL08
-    return 'blue';
 }
 
 function getAtl06Color(reqIdStr: string):string {
@@ -326,6 +320,8 @@ export async function getSeriesForAtl03sp(
         thisColorFunction = getAtl03spColorUsingAtl03_cnf;
     } else if(cedk === 'atl08_class'){
         thisColorFunction = getAtl03spColorUsingAtl08_class;
+    } else if(cedk === 'YAPC'){
+        thisColorFunction = getAtl03spColorUsingYAPC;
     } else if(cedk === 'solid'){
         thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
     }

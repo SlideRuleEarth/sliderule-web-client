@@ -6,10 +6,8 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
         isInitialized: false as boolean,
         selectedAtl03YapcColorMapName: 'viridis' as string,
-        numShadesForAtl03Yapc: 1024 as number,
+        numShadesForAtl03Yapc: 256 as number,
         atl03YapcColorMap: [] as[number, number, number, number][],
-        // atl03ColorKey: 'atl03_cnf' as string,
-        // atl03ColorKeyOptions: ['YAPC','atl03_cnf','atl08_class'] as string[],
         atl03CnfOptions: [
             {label:'atl03_tep',value:-2}, 
             {label:'atl03_not_considered',value:-1}, 
@@ -54,6 +52,11 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 this.isInitialized = true;
                 this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
                 this.atl08ClassColorMap = await db.getAllAtl08ClassColors();
+                const plotConfig = await db.getPlotConfig();
+                if(plotConfig){
+                    this.selectedAtl03YapcColorMapName = plotConfig.defaultYapcColorMapName;
+                    this.numShadesForAtl03Yapc = plotConfig.defaultYapcNumShades;
+                }
                 this.namedColorPalette = await db.getAllColors();
             }
         },
@@ -179,6 +182,16 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         async restoreDefaultAtl08ClassColorMap() {
             await db.restoreDefaultAtl08ClassColors();
             this.atl03CnfColorMap = await db.getAllAtl08ClassColors();
+        },
+        async restoreDefaultYapcColorMap() {
+            await db.restoreDefaultYapcColorMap();
+            const plotConfig = await db.getPlotConfig();
+            if(plotConfig){
+                this.selectedAtl03YapcColorMapName = plotConfig.defaultYapcColorMapName;
+                this.numShadesForAtl03Yapc = plotConfig.defaultYapcNumShades;
+            } else {
+                console.error('restoreDefaultYapcColorMap no plotConfig');
+            }
         },
         async restoreDefaultColors() {
             await db.restoreDefaultColors();

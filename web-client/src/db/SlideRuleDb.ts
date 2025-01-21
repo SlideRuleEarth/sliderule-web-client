@@ -83,6 +83,8 @@ export interface SrPlotConfig {
     defaultAtl06SymbolSize: number;
     defaultAtl08SymbolSize: number;
     defaultAtl03SymbolSize: number;
+    defaultYapcColorMapName: string;
+    defaultYapcNumShades: number;
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -152,6 +154,13 @@ export class SlideRuleDexie extends Dexie {
                 await this.restoreDefaultAtl08ClassColors();
             }
             
+            const plotConfig = await this.plotConfig.get(1);
+            const yapcNumShades = plotConfig?.defaultYapcNumShades;
+            const yapcColorMapName = plotConfig?.defaultYapcColorMapName;
+            if(!yapcColorMapName || !yapcNumShades || yapcNumShades === 0){
+                await this.updatePlotConfig({id:1,defaultYapcColorMapName:'viridis',defaultYapcNumShades:256});
+            }
+
             // Check and populate colors
             const colorsCount = await this.colors.count();
             if (colorsCount === 0) {
@@ -164,31 +173,61 @@ export class SlideRuleDexie extends Dexie {
     }
     private async _initializePlotConfig(): Promise<void> {
         try {
-          // Check if plotConfig record is already there:
-          const count = await this.plotConfig.count();
-          if (count === 0) {
-            // Insert a single record with known id=1
-            await this.plotConfig.put({
-              id: 1,
-              isLarge: false,
-              largeThreshold: 50000,
-              progressiveChunkSize: 12000,
-              progressiveChunkThreshold: 10000,
-              progressiveChunkMode: 'auto',
+            // Check if plotConfig record is already there:
+            const count = await this.plotConfig.count();
+            if (count === 0) {
+                // Insert a single record with known id=1
+                this.restorePlotConfig();
+                console.warn('plotConfig table was initialized with default values.');
+            } else {
+                console.warn('plotConfig table already has records.');
+            }
+        } catch (error) {
+            console.error('Failed to initialize plotConfig record:', error);
+            throw error;
+        }
+    }
+      
+    async restorePlotConfig(): Promise<void> {
+        try {
+            // Clear existing records
+            await this.plotConfig.clear();
+
+            // Insert default record
+            await this.plotConfig.add({
+                id: 1,
+                isLarge: false,
+                largeThreshold: 50000,
+                progressiveChunkSize: 12000,
+                progressiveChunkThreshold: 10000,
+                progressiveChunkMode: 'auto',
                 defaultAtl06Color: 'red',
                 defaultAtl06SymbolSize: 3,
                 defaultAtl08SymbolSize: 1,
                 defaultAtl03SymbolSize: 1,
+                defaultYapcColorMapName: 'viridis',
+                defaultYapcNumShades: 256
             });
-            console.warn('plotConfig table was initialized with default values.');
-          }
-        } catch (error) {
-          console.error('Failed to initialize plotConfig record:', error);
-          throw error;
-        }
-      }
-      
 
+            console.warn('plotConfig table restored to default values.');
+        } catch (error) {
+            console.error('Failed to restore plotConfig:', error);
+            throw error;
+        }
+    }
+
+    async restoreDefaultYapcColorMap(): Promise<void> {
+        try {
+            const plotConfig = await this.plotConfig.get(1);
+            if(plotConfig){
+                await this.updatePlotConfig({id:1,defaultYapcColorMapName:'viridis',defaultYapcNumShades:256});
+            }
+        } catch (error) {
+            console.error('Failed to restore default yapc color map:', error);
+            throw error;
+        }
+    }
+    
     // Method to restore default colors for the colors table
     async restoreDefaultColors(): Promise<void> {
         try {
@@ -1044,27 +1083,27 @@ export class SlideRuleDexie extends Dexie {
     // Get the single record
     async getPlotConfig(): Promise<SrPlotConfig | undefined> {
         try {
-        // We assume that there is only ever one record (id = 1).
-        const config = await this.plotConfig.get(1);
-        if (!config) {
-            console.warn('No plotConfig record found. Did initialization fail?');
-        }
-        return config;
+            // We assume that there is only ever one record (id = 1).
+            const config = await this.plotConfig.get(1);
+            if (!config) {
+                console.warn('No plotConfig record found. Did initialization fail?');
+            }
+            return config;
         } catch (error) {
-        console.error('Error retrieving plotConfig:', error);
-        throw error;
+            console.error('Error retrieving plotConfig:', error);
+            throw error;
         }
     }
     
     // Update fields of the single record
     async updatePlotConfig(updates: Partial<SrPlotConfig>): Promise<void> {
         try {
-        // Keep the same id, forcibly set to 1
-        await this.plotConfig.update(1, updates);
-        // If update returns 0, it means there was no record to update
+            // Keep the same id, forcibly set to 1
+            await this.plotConfig.update(1, updates);
+            // If update returns 0, it means there was no record to update
         } catch (error) {
-        console.error('Error updating plotConfig:', error);
-        throw error;
+            console.error('Error updating plotConfig:', error);
+            throw error;
         }
     }
   
