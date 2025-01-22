@@ -208,11 +208,11 @@ export const useReqParamsStore = defineStore('reqParams', {
     actions: {
         async presetForScatterPlotOverlay(req_id: number) {
             console.log('presetForScatterPlotOverlay req_id:', req_id);
-            useReqParamsStore().setMissionValue("ICESat-2");
-            useReqParamsStore().setIceSat2API("atl03sp");
-            useReqParamsStore().setEnableGranuleSelection(true);
-            useReqParamsStore().setUseRgt(true);
-            useReqParamsStore().setUseCycle(true);
+            this.setMissionValue("ICESat-2");
+            this.setIceSat2API("atl03sp");
+            this.setEnableGranuleSelection(true);
+            this.setUseRgt(true);
+            this.setUseCycle(true);
             const svrParmsUsedStr = await db.getSvrParams(req_id) as unknown as string;
             //console.log(' presetForScatterPlotOverlay typeof svrParmsUsed:', typeof svrParmsUsedStr);
             const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
@@ -222,8 +222,8 @@ export const useReqParamsStore = defineStore('reqParams', {
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
             if(svrParmsUsed.server.rqst.parms){
                 if(svrParmsUsed.server.rqst.parms.poly){
-                    useReqParamsStore().setPoly(svrParmsUsed.server.rqst.parms.poly);
-                    useReqParamsStore().setConvexHull(convexHull(svrParmsUsed.server.rqst.parms.poly));
+                    this.setPoly(svrParmsUsed.server.rqst.parms.poly);
+                    this.setConvexHull(convexHull(svrParmsUsed.server.rqst.parms.poly));
                 } else {
                     console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
                 }
@@ -235,21 +235,27 @@ export const useReqParamsStore = defineStore('reqParams', {
                 // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
 
                 const reqIdStr = req_id.toString();
-                useReqParamsStore().setTracks(useChartStore().getTracks(reqIdStr));
-                useReqParamsStore().setBeams(useChartStore().getBeams(reqIdStr));
-                useReqParamsStore().setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
-                useReqParamsStore().setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
-            } else {
+                this.setTracks(useChartStore().getTracks(reqIdStr));
+                this.setBeams(useChartStore().getBeams(reqIdStr));
+                this.setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
+                this.setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
+                this.setSrt([-1]);
+                this.signalConfidenceNumber = [0,1,2,3,4];
+                this.enableAtl08Classification = true;
+                this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+                this.enableYAPC = true;
+                this.YAPCVersion = '0';
+              } else {
                 console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
             }
         },
         presetForMainRequest() {
           console.log('presetForMainRequest');
-          useReqParamsStore().setMissionValue("ICESat-2");
-          useReqParamsStore().setIceSat2API("atl06p");
-          useReqParamsStore().setEnableGranuleSelection(false);
-          useReqParamsStore().setUseRgt(false);
-          useReqParamsStore().setUseCycle(false);
+          this.setMissionValue("ICESat-2");
+          this.setIceSat2API("atl06p");
+          this.setEnableGranuleSelection(false);
+          this.setUseRgt(false);
+          this.setUseCycle(false);
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;

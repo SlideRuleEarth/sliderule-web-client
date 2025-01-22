@@ -55,14 +55,6 @@ onMounted(async () => {
             //const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
             await prepareDbForReqId(reqId);                                                                      
-    
-            // if (func === 'atl03sp') {
-            //     atl03ColorMapStore.setAtl03ColorKey('atl03_cnf');
-            // } else if (func.includes('atl06')) {
-            //     atl03ColorMapStore.setAtl03ColorKey('YAPC');
-            // } else if (func.includes('atl08')) {
-            //     atl03ColorMapStore.setAtl03ColorKey('atl08_class');
-            // }
         } else {
             console.warn('reqId is undefined');
         }        
