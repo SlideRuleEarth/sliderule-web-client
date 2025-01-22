@@ -4,7 +4,7 @@
             <div class="sr-sql-stmnt-display-panel-header"> 
                 <SrCheckbox
                     v-model="showSqlStmnt"
-                    label="Show Sql Statement"
+                    :label=props.label
                     :insensitive=props.insensitive
                     :tooltipText=props.tooltipText
                     :tooltipUrl=props.tooltipUrl

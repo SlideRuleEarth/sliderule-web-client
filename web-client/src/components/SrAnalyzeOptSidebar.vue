@@ -2,7 +2,7 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrMenuInput from '@/components/SrMenuInput.vue';
-import SrRecReqDisplay from '@/components/SrRecIdReqDisplay.vue';
+import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
 import SrSliderInput from '@/components/SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
@@ -578,7 +578,7 @@ const exportButtonClick = async () => {
                 </Fieldset> -->
             </div>
             <div class="sr-analysis-rec-parms">
-                <SrRecReqDisplay :reqId="Number(computedReqIdStr)"/>
+                <SrRecIdReqDisplay :reqId=Number(computedReqIdStr) :label="`Show req parms for record:${selectedReqIdValue}`"/>
             </div>
             <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
                 <Card>

@@ -61,9 +61,9 @@
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-            return `${loadStateStr.value} ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted}`;
+            return `${loadStateStr.value} Record:${computedReqIdStr.value} - ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
         } else {
-            return `${loadStateStr.value} ${computedFunc.value} (${currentRowsFormatted} pnts)`;
+            return `${loadStateStr.value} Record:${computedReqIdStr.value} - ${computedFunc.value} (${currentRowsFormatted} pnts)`;
         }
     });
     const emit = defineEmits<{

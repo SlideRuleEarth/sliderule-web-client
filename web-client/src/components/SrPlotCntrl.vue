@@ -67,7 +67,7 @@
         <div>
             <SrRecIdReqDisplay 
                 :reqId="props.reqId"
-                :label="`Req parms for ${props.reqId}`"
+                :label="`Show request parms for record:${props.reqId}`"
                 :tooltipText="reqParamsToolTipText"
                 
             />
@@ -75,7 +75,7 @@
         <div class="sr-sql-stmnt">
             <SrSqlStmnt 
                 :reqId="props.reqId"
-                :label="`Sql statement for ${props.reqId}`"
+                :label="`Show sql statement for record:${props.reqId}`"
                 :tooltipText="sqlStmntToolTipText"
             />
         </div>
