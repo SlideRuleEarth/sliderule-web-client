@@ -209,7 +209,9 @@ async function getGenericSeries({
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
         console.log(`${functionName}: minMaxValues:`, minMaxValues);
-        useAtl03ColorMapStore().setDataOrderNdx(rest['dataOrderNdx'] || {});
+        chartStore.setMinMaxValues(reqIdStr, minMaxValues);
+        chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
+        atl03ColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName}: chartData or minMax is empty, skipping processing.`);
             return yItems;

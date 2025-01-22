@@ -49,7 +49,6 @@ const emit = defineEmits(['yapc-selection-changed', 'yapc-defaults-changed']);
 
 // Initialize the store
 onMounted(async () => {
-    await atl03ColorMapStore.initializeAtl03ColorMapStore();
 });
 
 // Handle menu selection changes

@@ -66,7 +66,7 @@ const emit = defineEmits(['restore-yapc-color-defaults-click', 'yapc-color-chang
 const atl03ColorMapStore = useAtl03ColorMapStore();
 const gradientStyle = computed(() => {
     const style = atl03ColorMapStore.getColorGradientStyle();
-    //console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
+    console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
     return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
   });
   
@@ -77,6 +77,8 @@ onMounted(async () => {
     if (!atl03ColorMapStore.isInitialized) {
         await atl03ColorMapStore.initializeAtl03ColorMapStore();
     }
+    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    console.log('Mounted SrYapcColors colors:', atl03ColorMapStore.getNamedColorPalette());
 });
 
 

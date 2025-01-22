@@ -74,6 +74,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         },
         updateAtl03YapcColorMapValues()
         {
+            //console.log('updateAtl03YapcColorMapValues selectedColorMap:',this.selectedAtl03YapcColorMapName, ' numShadesForAtl03Yapc:',this.numShadesForAtl03Yapc);
             try{
                 this.atl03YapcColorMap = colormap({
                     colormap: this.selectedAtl03YapcColorMapName, // Use the selected colormap

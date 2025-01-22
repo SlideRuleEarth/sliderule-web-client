@@ -98,11 +98,6 @@ const messageClass = computed(() => {
   };
 });
 
-const computedYapcColorMap = computed(() => {
-  return atl03ColorMapStore.getSelectedAtl03YapcColorMapName();
-});
-
-
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
     console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
