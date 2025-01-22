@@ -322,7 +322,7 @@ export async function getSeriesForAtl03sp(
         thisColorFunction = getAtl03spColorUsingAtl03_cnf;
     } else if(cedk === 'atl08_class'){
         thisColorFunction = getAtl03spColorUsingAtl08_class;
-    } else if(cedk === 'YAPC'){
+    } else if(cedk === 'yapc_score'){
         thisColorFunction = getAtl03spColorUsingYAPC;
     } else if(cedk === 'solid'){
         thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
@@ -459,6 +459,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     } finally {
         const endTime = performance.now(); // End time
         console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds. seriesData.length:`, seriesData.length);
+        //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
     }
     return seriesData;
 }

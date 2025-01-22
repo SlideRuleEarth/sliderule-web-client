@@ -662,7 +662,7 @@ export interface SrScatterChartDataArray {
 export function setDataOrder(dataOrderNdx: Record<string, number>, colName: string, orderNdx: number) {
     if(!dataOrderNdx[colName] && !(dataOrderNdx[colName] === 0)){
         dataOrderNdx[colName] = orderNdx;
-        console.log('setDataOrder dataOrderNdx:', dataOrderNdx, ' orderNdx:', orderNdx, ' colName:', colName);
+        //console.log('setDataOrder dataOrderNdx:', dataOrderNdx, ' orderNdx:', orderNdx, ' colName:', colName);
         orderNdx = orderNdx + 1;
     };
     return orderNdx;
