@@ -147,9 +147,9 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
                         await updateChartStore(workerMsg.req_id);
                         await readOrCacheSummary(workerMsg.req_id);
-                        atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                         await prepareDbForReqId(workerMsg.req_id);
                         await callPlotUpdateDebounced('Overlayed Photon Cloud');
+                        atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
                         router.push(`/analyze/${workerMsg.req_id}`);
@@ -325,7 +325,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             if(runContext){
                 runContext.reqId = srReqRec.req_id;
                 db.addSrRunContext(runContext);
-                atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
+                //atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
             if(srViewKey.value){

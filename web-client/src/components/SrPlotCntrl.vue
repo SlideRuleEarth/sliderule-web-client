@@ -1,5 +1,5 @@
 <template>
-    <Fieldset :legend="FieldSetLegend(reqId)">
+    <Fieldset :legend="computedLabel">
         <div>
             <div class="sr-ydata-menu">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
@@ -87,10 +87,9 @@ import { useChartStore } from '@/stores/chartStore';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
-import { computed, onMounted, ComputedRef } from 'vue';
+import { computed, onMounted } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
@@ -121,7 +120,14 @@ const computedSymbolColorEncoding = computed(() => {
 const computedSolidSymbolColor = computed(() => {
     return chartStore.getSolidSymbolColor(reqIdStr.value);
 });
-
+const computedLabel = computed(() => {
+    let label = `${props.reqId} - ${computedFunc.value}`;
+    if(computedFunc.value.includes('atl03')){
+        label = label+` - Photon Cloud `;
+    }
+    label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))} pnts)`;
+    return `${label}`;
+});
 
 onMounted(() => {
     initDataBindingsToChartStore([reqIdStr.value]);
@@ -147,29 +153,6 @@ async function restoreYapcDefaultColorsAndUpdatePlot() {
     await callPlotUpdateDebounced('from restoreYapcDefaultColorsAndUpdatePlot');
 }
 
-const useFindReqMenuLabel = () => {
-  const atlChartFilterStore = useAtlChartFilterStore();
-
-  const findReqMenuLabel = computed(() => {
-    return (reqId: number): string => {
-      const item = atlChartFilterStore.reqIdMenuItems.find((i) => i.value === reqId);
-      return item ? item.label : 'unknown';
-    };
-  });
-
-  return findReqMenuLabel;
-};
-const findReqMenuLabel = useFindReqMenuLabel();
-const FieldSetLegend: ComputedRef<(overlayedReqId: number) => string> = computed(() => {
-    return (overlayedReqId: number): string => {
-        let label = findReqMenuLabel.value(overlayedReqId);
-        if(computedFunc.value==='atl03sp'){
-            label = label+ ` - Photon Cloud`;
-        };
-        label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(overlayedReqId.toString()))} pnts)`;
-        return `${label}`;
-    };
-});
 const reqParamsToolTipText = computed(() => {
     if(props.isOverlay){
         return `These were the params used to create the record ${props.reqId} for the overlayed scatter plot above`;

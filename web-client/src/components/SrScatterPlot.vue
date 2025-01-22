@@ -212,7 +212,7 @@ watch(
                     <SrPlotCntrl :reqId="atlChartFilterStore.selectedReqIdMenuItem.value" />
                 </div>
                 <div class="sr-multiselect-col">
-                    <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
+                    <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">
                         <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
                 </div>
