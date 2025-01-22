@@ -3,7 +3,12 @@
         <div class="sr-rec-req-display-panel-header"> 
             <SrCheckbox
                 v-model="showReqParms"
-                label="Show Req Parameters"
+                :label=props.label
+                :insensitive=props.insensitive
+                :tooltipText=props.tooltipText
+                :tooltipUrl=props.tooltipUrl
+                :labelFontSize=props.labelFontSize
+                :labelOnRight=props.labelOnRight
             />
         </div>
         <div class="sr-rec-req-display-parms" v-if="showReqParms">
@@ -16,12 +21,27 @@
     import { ref,onMounted } from "vue";
     import SrCheckbox from "./SrCheckbox.vue";
     import { db } from "@/db/SlideRuleDb";
-    const props = defineProps({
-        reqId: {
-            type:Number, 
-            default:0
+    const props = withDefaults(
+        defineProps<{
+            reqId: number;
+            label: string;
+            insensitive?: boolean;
+            tooltipText?: string;
+            tooltipUrl?: string;
+            labelFontSize?: string;
+            labelOnRight?: boolean;
+        }>(),
+        {
+            reqId: 0,
+            label: 'Show Req Parameters',
+            insensitive: false,
+            tooltipText: '',
+            tooltipUrl: '',
+            labelFontSize: 'small',
+            labelOnRight: false
         }
-    });
+    );
+
 
     const showReqParms = ref(false);
     const reqParms = ref<string>('');

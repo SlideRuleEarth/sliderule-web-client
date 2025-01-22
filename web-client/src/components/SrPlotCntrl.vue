@@ -1,5 +1,5 @@
 <template>
-    <Fieldset :legend="overlayedReqLegend(reqId)">
+    <Fieldset :legend="FieldSetLegend(reqId)">
         <div>
             <div class="sr-ydata-menu">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
@@ -65,11 +65,18 @@
             />
         </div>
         <div>
-            <SrRecIdReqDisplay :reqId="props.reqId"/>
+            <SrRecIdReqDisplay 
+                :reqId="props.reqId"
+                :label="`Req parms for ${props.reqId}`"
+                :tooltipText="reqParamsToolTipText"
+                
+            />
         </div>
         <div class="sr-sql-stmnt">
             <SrSqlStmnt 
-                :req_id="props.reqId"
+                :reqId="props.reqId"
+                :label="`Sql statement for ${props.reqId}`"
+                :tooltipText="sqlStmntToolTipText"
             />
         </div>
     </Fieldset>
@@ -91,7 +98,16 @@ import SrYapcColorLegend from '@/components/SrYapcColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 
-const props = defineProps<{ reqId: number }>();
+const props = withDefaults(
+    defineProps<{
+        reqId: number;
+        isOverlay?: boolean;
+    }>(),
+    {
+        reqId: 0,
+        isOverlay: false,
+    }
+);
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
@@ -144,7 +160,7 @@ const useFindReqMenuLabel = () => {
   return findReqMenuLabel;
 };
 const findReqMenuLabel = useFindReqMenuLabel();
-const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = computed(() => {
+const FieldSetLegend: ComputedRef<(overlayedReqId: number) => string> = computed(() => {
     return (overlayedReqId: number): string => {
         let label = findReqMenuLabel.value(overlayedReqId);
         if(computedFunc.value==='atl03sp'){
@@ -153,6 +169,16 @@ const overlayedReqLegend: ComputedRef<(overlayedReqId: number) => string> = comp
         label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(overlayedReqId.toString()))} pnts)`;
         return `${label}`;
     };
+});
+const reqParamsToolTipText = computed(() => {
+    if(props.isOverlay){
+        return `These were the params used to create the record ${props.reqId} for the overlayed scatter plot above`;
+    } else {
+        return `These were the params used to create the record ${props.reqId} for the elevation map in the upper left corner and the scatter plot above`;
+    }
+});
+const sqlStmntToolTipText = computed(() => {
+    return `This is the Sql statement used to create (the record ${props.reqId} portion of) the scatter plot above`;    
 });
 
 const handleSymbolSizeUpdate = async (newSymbolSize: number) => {

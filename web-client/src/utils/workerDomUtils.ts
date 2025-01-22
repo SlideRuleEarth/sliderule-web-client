@@ -352,7 +352,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                         requestsStore.setConsoleMsg('stopped...');
                         mapStore.setIsLoading(false);
                     }
-            } else {
+                } else {
                     console.error('runSlideRuleClicked IceSat2API was undefined');
                     useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
                     requestsStore.setConsoleMsg('stopped...');

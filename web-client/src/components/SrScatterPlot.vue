@@ -221,7 +221,7 @@ watch(
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds">
-                        <SrPlotCntrl :reqId="overlayedReqId" />   
+                        <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
                 </div>
             </div>
