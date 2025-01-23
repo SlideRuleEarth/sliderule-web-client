@@ -101,23 +101,6 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 }
 
 
-// function getColorUsingYAPC(params: any): string {
-//     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-//     // if(atl03ColorMapStore.getDebugCnt < 10){
-//     //     console.log('getColorUsingYAPC params.data:', params.data);
-//     //     console.log('getColorUsingYAPC dataNdx:', dataNdx);
-//     // }
-//     let value = params.data[dataNdx['yapc_score']];
-//     return useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
-//     //const color = `rgba(${r},${g},${b},${a})`;
-//     // const dc = atl03ColorMapStore.incrementDebugCnt();
-//     // if(dc < 10){
-//     //     console.log(`getColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
-//     // }
-//     //return color;
-// }
-
-
 function createDiscreteColorFunction(
     getColorFunction: (value: number) => string,
     ndx_name:string
@@ -148,7 +131,7 @@ const getAtl08ClassColorCached = createDiscreteColorFunction(
     'atl08_class'
 );
 
-const getColorUsingYAPC = atl03ColorMapStore.createGradientColorFunction('yapc_score',0,255);
+const getColorUsingGradient = atl03ColorMapStore.createGradientColorFunction('yapc_score',0,255);
 
 function getColorUsingAtl03_cnf(params: any): string {
     return getAtl03CnfColorCached(params);
@@ -335,7 +318,7 @@ export async function getSeriesForAtl03sp(
     } else if(cedk === 'atl08_class'){
         thisColorFunction = getColorUsingAtl08_class;
     } else if(cedk === 'yapc_score'){
-        thisColorFunction = getColorUsingYAPC;
+        thisColorFunction = getColorUsingGradient;
     } else if(cedk === 'solid'){
         thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
     }

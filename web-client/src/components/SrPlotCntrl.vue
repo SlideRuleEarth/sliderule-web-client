@@ -149,7 +149,7 @@ async function restoreAtl08DefaultColorsAndUpdatePlot() {
 
 async function restoreYapcDefaultColorsAndUpdatePlot() {
     console.log('restoreYapcDefaultColorsAndUpdatePlot');
-    await atl03ColorMapStore.restoreDefaultYapcColorMap();
+    await atl03ColorMapStore.restoreDefaultGradientColorMap();
     await callPlotUpdateDebounced('from restoreYapcDefaultColorsAndUpdatePlot');
 }
 

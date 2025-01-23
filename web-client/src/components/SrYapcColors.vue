@@ -1,18 +1,18 @@
 <template>
     <div class="legend">
-        <Fieldset legend="Yapc Colors" class="sr-legend-box" :toggleable="false" :collapsed="false">
+        <Fieldset legend="Color Map Control" class="sr-legend-box" :toggleable="false" :collapsed="false">
             <div class="sr-menu-container" >
                 <SrMenu 
-                    label="YAPC Color Map" 
-                    v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
+                    label="Color Map" 
+                    v-model="atl03ColorMapStore.selectedGradientColorMapName"
                     :menuOptions="srColorMapNames" 
-                    :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
-                    :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
+                    :getSelectedMenuItem="atl03ColorMapStore.getSelectedGradientColorMapName"
+                    :setSelectedMenuItem="atl03ColorMapStore.setSelectedGradientColorMapName"
                     @update:modelValue="handleSelectionChanged( $event)"
-                    tooltipText="YAPC Color Map for atl03 scatter plot"
+                    tooltipText="Color Map for scatter plot"
                 />
                 <SrSliderInput
-                    v-model="atl03ColorMapStore.numShadesForAtl03Yapc"
+                    v-model="atl03ColorMapStore.numShadesForGradient"
                     label="Number of Shades"
                     :min="(chartStore.getMinYapcScore(props.req_id.toString()) !== null && chartStore.getMinYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMinYapcScore(props.req_id.toString()) : 0)"
                     :max="(chartStore.getMaxYapcScore(props.req_id.toString()) !== null && chartStore.getMaxYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMaxYapcScore(props.req_id.toString()) : 0)"
@@ -22,7 +22,7 @@
 
             </div>
             <div class="sr-restore-defaults">
-                <Button label="Restore Defaults" @click="restoreDefaultYapcColorMap" />
+                <Button label="Restore Defaults" @click="restoreDefaultGradientColorMap" />
             </div>
         </Fieldset>
     </div>
@@ -53,12 +53,12 @@ onMounted(async () => {
 
 // Handle menu selection changes
 const handleSelectionChanged = (mapName: string) => {
-    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    atl03ColorMapStore.updateGradientColorMapValues();
     emit('yapc-selection-changed', { mapName });
 };
 
-const restoreDefaultYapcColorMap = () => {
-    atl03ColorMapStore.restoreDefaultYapcColorMap();
+const restoreDefaultGradientColorMap = () => {
+    atl03ColorMapStore.restoreDefaultGradientColorMap();
     emit('yapc-defaults-changed', {});
 };
 </script>

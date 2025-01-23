@@ -83,8 +83,8 @@ export interface SrPlotConfig {
     defaultAtl06SymbolSize: number;
     defaultAtl08SymbolSize: number;
     defaultAtl03SymbolSize: number;
-    defaultYapcColorMapName: string;
-    defaultYapcNumShades: number;
+    defaultGradientColorMapName: string;
+    defaultGradientNumShades: number;
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -155,10 +155,10 @@ export class SlideRuleDexie extends Dexie {
             }
             
             const plotConfig = await this.plotConfig.get(1);
-            const yapcNumShades = plotConfig?.defaultYapcNumShades;
-            const yapcColorMapName = plotConfig?.defaultYapcColorMapName;
-            if(!yapcColorMapName || !yapcNumShades || yapcNumShades === 0){
-                await this.updatePlotConfig({id:1,defaultYapcColorMapName:'viridis',defaultYapcNumShades:256});
+            const gradientNumShades = plotConfig?.defaultGradientNumShades;
+            const gradientColorMapName = plotConfig?.defaultGradientColorMapName;
+            if(!gradientColorMapName || !gradientNumShades || gradientNumShades === 0){
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
             }
 
             // Check and populate colors
@@ -205,8 +205,8 @@ export class SlideRuleDexie extends Dexie {
                 defaultAtl06SymbolSize: 3,
                 defaultAtl08SymbolSize: 1,
                 defaultAtl03SymbolSize: 1,
-                defaultYapcColorMapName: 'viridis',
-                defaultYapcNumShades: 256
+                defaultGradientColorMapName: 'viridis',
+                defaultGradientNumShades: 256
             });
 
             console.warn('plotConfig table restored to default values.');
@@ -216,14 +216,14 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async restoreDefaultYapcColorMap(): Promise<void> {
+    async restoreDefaultGradientColorMap(): Promise<void> {
         try {
             const plotConfig = await this.plotConfig.get(1);
             if(plotConfig){
-                await this.updatePlotConfig({id:1,defaultYapcColorMapName:'viridis',defaultYapcNumShades:256});
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
             }
         } catch (error) {
-            console.error('Failed to restore default yapc color map:', error);
+            console.error('Failed to restore default gradient color map:', error);
             throw error;
         }
     }

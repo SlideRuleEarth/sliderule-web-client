@@ -5,9 +5,9 @@ import { db } from '@/db/SlideRuleDb';
 export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
     state: () => ({
         isInitialized: false as boolean,
-        selectedAtl03YapcColorMapName: 'viridis' as string,
-        numShadesForAtl03Yapc: 256 as number,
-        atl03YapcColorMap: [] as string[],
+        selectedGradientColorMapName: 'viridis' as string,
+        numShadesForGradient: 256 as number,
+        gradientColorMap: [] as string[],
         atl03CnfOptions: [
             {label:'atl03_tep',value:-2}, 
             {label:'atl03_not_considered',value:-1}, 
@@ -54,60 +54,60 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 this.atl08ClassColorMap = await db.getAllAtl08ClassColors();
                 const plotConfig = await db.getPlotConfig();
                 if(plotConfig){
-                    this.selectedAtl03YapcColorMapName = plotConfig.defaultYapcColorMapName;
-                    this.numShadesForAtl03Yapc = plotConfig.defaultYapcNumShades;
+                    this.selectedGradientColorMapName = plotConfig.defaultGradientColorMapName;
+                    this.numShadesForGradient = plotConfig.defaultGradientNumShades;
                 }
                 this.namedColorPalette = await db.getAllColors();
             }
         },
-        setSelectedAtl03YapcColorMapName(atl03YapcColorMap: string) {
-            this.selectedAtl03YapcColorMapName = atl03YapcColorMap;
+        setSelectedGradientColorMapName(gradientColorMap: string) {
+            this.selectedGradientColorMapName = gradientColorMap;
         },
-        getSelectedAtl03YapcColorMapName() {
-            return this.selectedAtl03YapcColorMapName;
+        getSelectedGradientColorMapName() {
+            return this.selectedGradientColorMapName;
         },
-        setNumShadesForAtl03Yapc(numShades: number) {
-            this.numShadesForAtl03Yapc = numShades;
+        setNumShadesForGradient(numShades: number) {
+            this.numShadesForGradient = numShades;
         },
-        getNumShadesForAtl03Yapc() {
-            return this.numShadesForAtl03Yapc;
+        getNumShadesForGradient() {
+            return this.numShadesForGradient;
         },
-        updateAtl03YapcColorMapValues() {
+        updateGradientColorMapValues() {
             try {
               const colorArray = colormap({
-                colormap: this.selectedAtl03YapcColorMapName,
-                nshades: this.numShadesForAtl03Yapc,
+                colormap: this.selectedGradientColorMapName,
+                nshades: this.numShadesForGradient,
                 format: 'rgba',
                 alpha: 1
               });
               
               // Convert from [r, g, b, a] to 'rgba(r,g,b,a)'
-              this.atl03YapcColorMap = colorArray.map(
+              this.gradientColorMap = colorArray.map(
                 ([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`
               );
             } catch (error) {
-              console.error('updateAtl03YapcColorMapValues error:', error);
+              console.error('updateGradientColorMapValues error:', error);
               throw error;
             }
           },
-        getAtl03YapcColorMap() {
-            return this.atl03YapcColorMap;
+        getGradientColorMap() {
+            return this.gradientColorMap;
         },
-        getYapcColorForValue(value:number, minValue:number, maxValue:number):string {
+        getGradientColorForValue(value:number, minValue:number, maxValue:number):string {
             // Normalize the value to a value between 0 and 255
-            const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForAtl03Yapc-1);
+            const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForGradient-1);
             // Clamp the value to ensure it's within the valid range
-            const colorIndex = Math.max(0, Math.min(this.numShadesForAtl03Yapc-1, normalizedValue));
+            const colorIndex = Math.max(0, Math.min(this.numShadesForGradient-1, normalizedValue));
             // Return the color from the selected colormap
-            const c = this.atl03YapcColorMap[colorIndex];
+            const c = this.gradientColorMap[colorIndex];
             // if(this.debugCnt++ < 10){
-            //     console.log('getYapcColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
+            //     console.log('getGradientColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
             // }
             return c;
         },
         createGradientColorFunction(ndx_name:string,minValue: number, maxValue: number) {
             const range = maxValue - minValue;
-            const scale = (this.numShadesForAtl03Yapc - 1) / range;
+            const scale = (this.numShadesForGradient - 1) / range;
             let ndx:number = -1;
           
             return (params:any) => {
@@ -116,16 +116,16 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
                 }
                 const value = params.data[ndx];
                 // Clamp quickly
-                if (value <= minValue) return this.atl03YapcColorMap[0];
-                if (value >= maxValue) return this.atl03YapcColorMap[this.numShadesForAtl03Yapc - 1];
+                if (value <= minValue) return this.gradientColorMap[0];
+                if (value >= maxValue) return this.gradientColorMap[this.numShadesForGradient - 1];
                 const colorIndex = Math.floor((value - minValue) * scale);
-                return this.atl03YapcColorMap[colorIndex];
+                return this.gradientColorMap[colorIndex];
             }
         },
         getColorGradientStyle() {
             //console.log('getColorGradientStyle');
             return {
-                background: `linear-gradient(to right, ${this.atl03YapcColorMap})`,
+                background: `linear-gradient(to right, ${this.gradientColorMap})`,
                 height: '10px', // Adjust the height as needed
                 width: '100%',  // Adjust the width as needed
             };
@@ -197,14 +197,14 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             await db.restoreDefaultAtl08ClassColors();
             this.atl03CnfColorMap = await db.getAllAtl08ClassColors();
         },
-        async restoreDefaultYapcColorMap() {
-            await db.restoreDefaultYapcColorMap();
+        async restoreDefaultGradientColorMap() {
+            await db.restoreDefaultGradientColorMap();
             const plotConfig = await db.getPlotConfig();
             if(plotConfig){
-                this.selectedAtl03YapcColorMapName = plotConfig.defaultYapcColorMapName;
-                this.numShadesForAtl03Yapc = plotConfig.defaultYapcNumShades;
+                this.selectedGradientColorMapName = plotConfig.defaultGradientColorMapName;
+                this.numShadesForGradient = plotConfig.defaultGradientNumShades;
             } else {
-                console.error('restoreDefaultYapcColorMap no plotConfig');
+                console.error('restoreDefaultGradientColorMap no plotConfig');
             }
         },
         async restoreDefaultColors() {

@@ -25,7 +25,7 @@
 
         <!-- New Manage Colors button -->
         <div class="sr-restore-defaults">
-            <Button label="Manage Yapc Colors" @click="showDialog = true" size="small" />
+            <Button label="Manage Colors" @click="showDialog = true" size="small" />
         </div>
   
         <!-- Dialog that contains SrYapcColors when visible -->
@@ -34,7 +34,7 @@
             :modal="true"
             :draggable="false"
             :resizable="false"
-            header="Manage Yapc Colors"
+            header="Manage Colors"
             @hide="onDialogHide"
         >
             <SrYapcColors
@@ -77,7 +77,7 @@ onMounted(async () => {
     if (!atl03ColorMapStore.isInitialized) {
         await atl03ColorMapStore.initializeAtl03ColorMapStore();
     }
-    atl03ColorMapStore.updateAtl03YapcColorMapValues();
+    atl03ColorMapStore.updateGradientColorMapValues();
     console.log('Mounted SrYapcColors colors:', atl03ColorMapStore.getNamedColorPalette());
 });
 
