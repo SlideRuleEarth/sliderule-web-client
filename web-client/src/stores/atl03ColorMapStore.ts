@@ -101,9 +101,9 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             const colorIndex = Math.max(0, Math.min(this.numShadesForAtl03Yapc-1, normalizedValue));
             // Return the color from the selected colormap
             const c = this.atl03YapcColorMap[colorIndex];
-            if(this.debugCnt++ < 10){
-                console.log('getYapcColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
-            }
+            // if(this.debugCnt++ < 10){
+            //     console.log('getYapcColorForValue:',value,minValue,maxValue,normalizedValue,colorIndex,c);
+            // }
             return c;
         },
         getColorGradientStyle() {

@@ -100,18 +100,18 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 }
 
 
-function getAtl03spColorUsingYAPC(params: any):string {
+function getColorUsingYAPC(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
     // if(useAtl03ColorMapStore().getDebugCnt < 10){
-    //     console.log('getAtl03spColorUsingYAPC params.data:', params.data);
-    //     console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
+    //     console.log('getColorUsingYAPC params.data:', params.data);
+    //     console.log('getColorUsingYAPC dataNdx:', dataNdx);
     // }
     let value = params.data[dataNdx['yapc_score']];
     const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
     const color = `rgba(${r},${g},${b},${a})`;
     // const dc = useAtl03ColorMapStore().incrementDebugCnt();
     // if(dc < 10){
-    //     console.log(`getAtl03spColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
+    //     console.log(`getColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
     // }
     return color;
 }
@@ -148,12 +148,12 @@ const getAtl08ClassColorCached = createDiscreteColorFunction(
 );
 
 
-function getAtl03spColorUsingAtl03_cnf(params: any): string {
+function getColorUsingAtl03_cnf(params: any): string {
     return getAtl03CnfColorCached(params);
 }
 
 
-function getAtl03spColorUsingAtl08_class(params: any): string {
+function getColorUsingAtl08_class(params: any): string {
     return getAtl08ClassColorCached(params);
 }
 
@@ -327,13 +327,13 @@ export async function getSeriesForAtl03sp(
         },
     };
     const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
-    let thisColorFunction = getAtl03spColorUsingAtl03_cnf as (params: any) => string;
+    let thisColorFunction = getColorUsingAtl03_cnf as (params: any) => string;
     if(cedk === 'atl03_cnf'){
-        thisColorFunction = getAtl03spColorUsingAtl03_cnf;
+        thisColorFunction = getColorUsingAtl03_cnf;
     } else if(cedk === 'atl08_class'){
-        thisColorFunction = getAtl03spColorUsingAtl08_class;
+        thisColorFunction = getColorUsingAtl08_class;
     } else if(cedk === 'yapc_score'){
-        thisColorFunction = getAtl03spColorUsingYAPC;
+        thisColorFunction = getColorUsingYAPC;
     } else if(cedk === 'solid'){
         thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
     }
@@ -367,7 +367,7 @@ export async function getSeriesForAtl03sp(
 //         y,
 //         fetchData: fetchAtl03vpScatterData,        // function to fetch data
 //         minMaxProperty: 'minMaxValues',           // which property has min/max
-//         colorFunction: getAtl03spColor,           // color function
+//         colorFunction: getColor,           // color function
 //         zValue: 0,                                // z value for ATL03
 //         functionName: 'getSeriesForAtl03vp',      // name for logging
 //     });
