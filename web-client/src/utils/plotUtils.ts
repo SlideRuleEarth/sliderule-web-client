@@ -117,34 +117,34 @@ function getAtl03spColorUsingAtl03_cnf(params: any):string {
 
 function getAtl03spColorUsingAtl08_class(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    if(useAtl03ColorMapStore().getDebugCnt < 10){
-        console.log('getAtl03spColorUsingAtl08_class params.data:', params.data);
-        console.log('getAtl03spColorUsingAtl08_class dataNdx:', dataNdx);
-        //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
-    }
+    // if(useAtl03ColorMapStore().getDebugCnt < 10){
+    //     console.log('getAtl03spColorUsingAtl08_class params.data:', params.data);
+    //     console.log('getAtl03spColorUsingAtl08_class dataNdx:', dataNdx);
+    //     //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
+    // }
     let colorStr = 'red';
     let value = params.data[dataNdx['atl08_class']];
     colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
-    const dc = useAtl03ColorMapStore().incrementDebugCnt();
-    if(dc < 10){
-        console.log(`getAtl03spColorUsingAtl08_class cnt:${dc} value:${value} colorStr:${colorStr}`);
-    }
+    // const dc = useAtl03ColorMapStore().incrementDebugCnt();
+    // if(dc < 10){
+    //     console.log(`getAtl03spColorUsingAtl08_class cnt:${dc} value:${value} colorStr:${colorStr}`);
+    // }
     return colorStr;
 }
 
 function getAtl03spColorUsingYAPC(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    if(useAtl03ColorMapStore().getDebugCnt < 10){
-        console.log('getAtl03spColorUsingYAPC params.data:', params.data);
-        console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
-    }
+    // if(useAtl03ColorMapStore().getDebugCnt < 10){
+    //     console.log('getAtl03spColorUsingYAPC params.data:', params.data);
+    //     console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
+    // }
     let value = params.data[dataNdx['yapc_score']];
     const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
     const color = `rgba(${r},${g},${b},${a})`;
-    const dc = useAtl03ColorMapStore().incrementDebugCnt();
-    if(dc < 10){
-        console.log(`getAtl03spColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
-    }
+    // const dc = useAtl03ColorMapStore().incrementDebugCnt();
+    // if(dc < 10){
+    //     console.log(`getAtl03spColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
+    // }
     return color;
 }
 
@@ -464,44 +464,55 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     return seriesData;
 }
 
-export async function initChartStore(){
+export async function initChartStore() {
     for (const reqIdItem of atlChartFilterStore.reqIdMenuItems) {
         const reqIdStr = reqIdItem.value.toString();
-        const thisReqId = Number(reqIdItem.value);
-        if(thisReqId > 0) {
-            try{
-                const request = await indexedDb.getRequest(thisReqId);
-                if(request &&request.file){
-                    chartStore.setFile(reqIdStr,request.file);
-                } else {
-                    console.error('No file found for reqId:',reqIdStr);
-                }
-                if(request && request.func){
-                    chartStore.setFunc(reqIdStr,request.func);
-                } else {
-                    console.error('No func found for reqId:',reqIdStr);
-                }
-                if(request && request.description){
-                    chartStore.setDescription(reqIdStr,request.description);
-                } else {
-                    // this is not an error, just a warning
-                    //console.warn('No description found for reqId:',reqIdStr);
-                }
-                if(request && request.num_bytes){
-                    useChartStore().setSize(reqIdStr,request.num_bytes);
-                } else {
-                    console.error('No num_bytes found for reqId:',reqIdStr);
-                }
-                if(request && request.cnt){
-                    useChartStore().setRecCnt(reqIdStr,request.cnt);
-                } else {
-                    console.error('No num_points found for reqId:',reqIdStr, ' request:', request);
-                }
-            } catch (error) {
-                console.error(`Error in load menu items with reqId: ${reqIdStr}`, error);
+        const reqId = Number(reqIdItem.value);
+
+        if (reqId <= 0) {
+            console.warn('Invalid request ID:', reqId);
+            continue;
+        }
+
+        try {
+            const request = await indexedDb.getRequest(reqId);
+
+            if (!request) {
+                console.error(`No request found for reqId: ${reqIdStr}`);
+                continue;
             }
-        } else {
-            console.warn('Invalid request ID:', thisReqId);
+
+            const { file, func, description, num_bytes, cnt } = request;
+
+            if (file) {
+                chartStore.setFile(reqIdStr, file);
+            } else {
+                console.error(`No file found for reqId: ${reqIdStr}`, request);
+            }
+
+            if (func) {
+                chartStore.setFunc(reqIdStr, func);
+            } else {
+                console.error(`No func found for reqId: ${reqIdStr}`, request);
+            }
+
+            if (description) {
+                chartStore.setDescription(reqIdStr, description);
+            } // No warning needed for missing description.
+
+            if (num_bytes) {
+                useChartStore().setSize(reqIdStr, num_bytes);
+            } else {
+                console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
+            }
+
+            if (cnt) {
+                useChartStore().setRecCnt(reqIdStr, cnt);
+            } else {
+                console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+            }
+        } catch (error) {
+            console.error(`Error processing reqId: ${reqIdStr}`, error);
         }
     }
 }
