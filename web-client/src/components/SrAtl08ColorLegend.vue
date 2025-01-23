@@ -1,9 +1,8 @@
 <template>
-    <div class="legend">
-        <!-- Existing ATL08 class color items -->
+    <div class="sr-legend">
         <Fieldset
             class="sr-legend-box"
-            legend="ATL08 Colors"
+            legend="ATL08 Class Colors"
             :toggleable="false"
             :collapsed="false" 
         >
@@ -12,18 +11,16 @@
                 <div class="label"> {{ formatLabel(option.label) }} ({{ option.value }}) </div>
             </div>
         </Fieldset>
-        <!-- New Manage Colors button -->
         <div class="sr-restore-defaults">
-            <Button label="Manage Atl08 Colors" @click="showDialog = true" size="small" />
+            <Button label="Manage Atl08 Class Colors" @click="showDialog = true" size="small" />
         </div>
   
-        <!-- Dialog that contains SrAtl03CnfColors when visible -->
         <Dialog
             v-model:visible="showDialog"
             :modal="true"
             :draggable="false"
             :resizable="false"
-            header="Manage ATL08 Colors"
+            header="Manage Atl08 Class Colors"
             @hide="onDialogHide"
         >
             <SrAtl08ClassColors
@@ -81,7 +78,7 @@ function onDialogHide() {
 </script>
   
   <style scoped>
-  .legend {
+  .sr-legend {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -102,5 +99,33 @@ function onDialogHide() {
   .label {
     font-size: 14px;
   }
+
+  .sr-legend-box {
+    padding: 0.2rem; /* 3.2px equivalent */
+    margin-top: 1rem;
+    border-radius: var(--p-border-radius);
+    position: relative; /* Enable positioning for the legend */
+}
+
+/* Custom Fieldset legend style */
+:deep(.sr-legend-box .p-fieldset-legend) {
+    font-size: small;
+    font-weight: normal;
+    color: white;
+    padding: 0.2rem;
+    text-align: center;
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: black;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    padding: 0 0.5rem;
+}
+:deep(.p-fieldset-content-container) {
+    padding-top: 1.5rem; /* Adjust padding to prevent overlap with the legend */
+}
 </style>
   

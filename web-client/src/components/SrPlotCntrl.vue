@@ -36,10 +36,14 @@
                         v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
-                    <SrYapcColorLegend 
+                    <SrGradientColorLegend 
                         v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'yapc_score') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
-                        :req_id="props.reqId" 
-                        @restore-yapc-color-defaults-click="restoreYapcDefaultColorsAndUpdatePlot"
+                        label="Yapc Score Colors"
+                        :req_id="props.reqId"
+                        :data_key="chartStore.getSelectedColorEncodeData(reqIdStr)"
+                        @gradient-color-map-changed="gradientColorMapChanged" 
+                        @restore-gradient-color-defaults-click="gradientDefaultColorMapRestored"
+                        @gradient-num-shades-changed="gradientNumShadesChanged"
                     />
                 </div>
                 <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
@@ -67,7 +71,7 @@
         <div>
             <SrRecIdReqDisplay 
                 :reqId="props.reqId"
-                :label="`Show request parms for record:${props.reqId}`"
+                :label="`Request Params`"
                 :tooltipText="reqParamsToolTipText"
                 
             />
@@ -75,7 +79,7 @@
         <div class="sr-sql-stmnt">
             <SrSqlStmnt 
                 :reqId="props.reqId"
-                :label="`Show sql statement for record:${props.reqId}`"
+                :label="`Sql statement`"
                 :tooltipText="sqlStmntToolTipText"
             />
         </div>
@@ -93,7 +97,7 @@ import { computed, onMounted } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
-import SrYapcColorLegend from '@/components/SrYapcColorLegend.vue';
+import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 
@@ -147,10 +151,19 @@ async function restoreAtl08DefaultColorsAndUpdatePlot() {
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
 
-async function restoreYapcDefaultColorsAndUpdatePlot() {
-    console.log('restoreYapcDefaultColorsAndUpdatePlot');
-    await colorMapStore.restoreDefaultGradientColorMap();
-    await callPlotUpdateDebounced('from restoreYapcDefaultColorsAndUpdatePlot');
+async function gradientDefaultColorMapRestored() {
+    console.log('gradientDefaultColorMapRestored');
+    await callPlotUpdateDebounced('from gradientDefaultColorMapRestored');
+}
+
+async function gradientColorMapChanged() {
+    console.log('gradientColorMapChanged');
+    await callPlotUpdateDebounced('from gradientColorMapChanged');
+}
+
+async function gradientNumShadesChanged() {
+    console.log('gradientNumShadesChanged');
+    await callPlotUpdateDebounced('from gradientNumShadesChanged');
 }
 
 const reqParamsToolTipText = computed(() => {

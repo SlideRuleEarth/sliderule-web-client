@@ -33,12 +33,6 @@
                 @defaultsChanged="atl08ClassColorChanged"
             />
         </div>
-        <!-- <div class="sr-select-yapc-color-map">
-            <SrYapcColors
-                @selectionChanged="yapcColorChanged"
-                @defaultsChanged="yapcColorChanged"
-            />
-        </div> -->
     </div>
 </template>
 
@@ -50,7 +44,6 @@ import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
-import SrYapcColors from './SrYapcColors.vue';
 import { srColorTable } from '@/utils/colorUtils';
 
 const colorMapStore = useColorMapStore();

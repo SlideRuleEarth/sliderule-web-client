@@ -129,15 +129,6 @@ onMounted(() => {
     width: 100%;
 }
 
-.sr-select-yapc-color-map {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 0.5rem;
-    margin: 0.5rem;
-    width: 100%;
-}
-
 .sr-scatter-plot-options {
     display: flex;
     flex-direction: column;

@@ -1,9 +1,8 @@
 <template>
-    <div class="legend">
-        <!-- Existing ATL03 CNF color items -->
+    <div class="sr-legend">
         <Fieldset
             class="sr-legend-box"
-            legend="ATL03 Colors"
+            legend="Atl03 Cnf Colors"
             :toggleable="false"
             :collapsed="false" 
         >
@@ -13,18 +12,14 @@
             </div>
         </Fieldset>
 
-        <!-- New Manage Colors button -->
-        <div class="sr-restore-defaults">
-            <Button label="Manage Atl03 Colors" @click="showDialog = true" size="small" />
-        </div>
+        <Button label="Manage Atl03 Cnf Colors" @click="showDialog = true" size="small" />
   
-        <!-- Dialog that contains SrAtl03CnfColors when visible -->
         <Dialog
             v-model:visible="showDialog"
             :modal="true"
             :draggable="false"
             :resizable="false"
-            header="Manage ATL03 Colors"
+            header="Manage ATL03 Cnf Colors"
             @hide="onDialogHide"
         >
             <SrAtl03CnfColors
@@ -78,7 +73,7 @@ function onDialogHide() {
 </script>
   
 <style scoped>
-.legend {
+.sr-legend {
   display: flex;
   flex-direction: column;
   gap: 0.25rem; /* 4px equivalent */
@@ -114,19 +109,22 @@ function onDialogHide() {
 
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {
-    font-size: 0.75rem; /* Adjust font size */
-    font-weight: normal; /* Optional: Adjust font weight */
-    color:white; /* Adjust color */
-    padding: 0.2rem; /* Adjust padding for a smaller appearance */
-    text-align: center; /* Center text horizontally */
-    position: absolute; /* Position relative to the Fieldset */
-    top: 0.5rem; /* Align legend to the top */
-    left: 50%; /* Center horizontally */
-    transform: translate(-50%, -50%); /* Adjust position to center it over the top border */
-    background:  black; /* Match the background color */
-    z-index: 1; /* Ensure it appears above the Fieldset border */
-    padding: 0 0.5rem; /* Add spacing to prevent overlap with text */
+    font-size: small;
+    font-weight: normal;
+    color: white;
+    padding: 0.2rem;
+    text-align: center;
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: black;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    padding: 0 0.5rem;
 }
+
 :deep(.p-fieldset-content-container) {
     padding-top: 1.5rem; /* Adjust padding to prevent overlap with the legend */
 }
