@@ -43,6 +43,8 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 onMounted(async () => {
     try {
         //console.log('SrScatterPlot onMounted');
+        console.log('SrScatterPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+
         atl03ColorMapStore.initializeAtl03ColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');

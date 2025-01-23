@@ -99,38 +99,6 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
     });
 }
 
-function getAtl03spColorUsingAtl03_cnf(params: any):string {
-    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    // if(atl03ColorMapStore.getDebugCnt < 10){
-    //     console.log('getAtl03spColorUsingAtl03_cnf params.data:', params.data);
-    //     console.log('getAtl03spColorUsingAtl03_cnf dataNdx:', dataNdx);
-    // }
-    let colorStr = 'red';
-    let value = params.data[dataNdx['atl03_cnf']];
-    colorStr = atl03ColorMapStore.getColorForAtl03CnfValue(value);
-    //const dc = atl03ColorMapStore.incrementDebugCnt();
-    // if(dc < 10){
-    //     console.log(`getAtl03spColorUsingAtl03_cnf cnt:${dc} value:${value} colorStr:${colorStr}`);
-    // }
-    return colorStr;
-}
-
-function getAtl03spColorUsingAtl08_class(params: any):string {
-    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    // if(useAtl03ColorMapStore().getDebugCnt < 10){
-    //     console.log('getAtl03spColorUsingAtl08_class params.data:', params.data);
-    //     console.log('getAtl03spColorUsingAtl08_class dataNdx:', dataNdx);
-    //     //console.log('getAtl03spColorUsingAtl08_class cedk:', cedk);
-    // }
-    let colorStr = 'red';
-    let value = params.data[dataNdx['atl08_class']];
-    colorStr = useAtl03ColorMapStore().getColorForAtl08ClassValue(value);
-    // const dc = useAtl03ColorMapStore().incrementDebugCnt();
-    // if(dc < 10){
-    //     console.log(`getAtl03spColorUsingAtl08_class cnt:${dc} value:${value} colorStr:${colorStr}`);
-    // }
-    return colorStr;
-}
 
 function getAtl03spColorUsingYAPC(params: any):string {
     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
@@ -147,6 +115,48 @@ function getAtl03spColorUsingYAPC(params: any):string {
     // }
     return color;
 }
+
+
+function createDiscreteColorFunction(
+    getColorFunction: (value: number) => string,
+    ndx_name:string
+) 
+{
+    const colorCache: Record<number, string> = {};
+    let ndx:number = -1;
+    return (params:any) => {
+        //console.log('createDiscreteColorFunction1 ndx:',ndx,' params:',params);
+        if(ndx<0){
+            ndx = atl03ColorMapStore.getDataOrderNdx[ndx_name]
+        }
+        const value = params.data[ndx];
+        if (colorCache[value] === undefined) {
+            colorCache[value] = getColorFunction(value);
+        }
+        return colorCache[value];
+    };
+}
+
+const getAtl03CnfColorCached = createDiscreteColorFunction(
+    atl03ColorMapStore.getColorForAtl03CnfValue,
+    'atl03_cnf'
+);
+
+const getAtl08ClassColorCached = createDiscreteColorFunction(
+    atl03ColorMapStore.getColorForAtl08ClassValue,
+    'atl08_class'
+);
+
+
+function getAtl03spColorUsingAtl03_cnf(params: any): string {
+    return getAtl03CnfColorCached(params);
+}
+
+
+function getAtl03spColorUsingAtl08_class(params: any): string {
+    return getAtl08ClassColorCached(params);
+}
+
 
 function getAtl06Color(reqIdStr: string):string {
     return chartStore.getSolidSymbolColor(reqIdStr)

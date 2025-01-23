@@ -34,6 +34,7 @@
     "dexie": "^4.0.8",
     "duckdb": "^1.1.0",
     "echarts": "^5.5.1",
+    "echarts-gl": "^2.0.9",
     "events": "^3.3.0",
     "lodash-es": "^4.17.21",
     "mitt": "^3.0.1",

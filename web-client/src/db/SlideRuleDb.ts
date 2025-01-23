@@ -1026,7 +1026,7 @@ export class SlideRuleDexie extends Dexie {
                 .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
                 .toArray();
           
-            console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+            //console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
             if (found.length <= 0) {
                 console.log(`No matching record found for run context:`, runContext);
                 return undefined;

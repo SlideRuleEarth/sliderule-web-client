@@ -79,7 +79,7 @@
 
     // Watch for changes on reqId
     watch( () => props.selectedReqIdItem, async (newReqId, oldReqId) => {
-        const msg = `reqId changed from: ${oldReqId.label} ${oldReqId.value} to ${newReqId.label} ${newReqId.value}`;
+        const msg = `props.selectedReqIdItem reqId changed from: label:${oldReqId.label} value:${oldReqId.value} to label:${newReqId.label} value:${newReqId.value}`;
         console.log(msg);
         if(newReqId.value !== oldReqId.value){
             await updateAnalysisMapView(msg);
