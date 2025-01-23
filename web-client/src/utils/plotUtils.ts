@@ -138,7 +138,7 @@ function getAtl03spColorUsingYAPC(params: any):string {
         console.log('getAtl03spColorUsingYAPC params.data:', params.data);
         console.log('getAtl03spColorUsingYAPC dataNdx:', dataNdx);
     }
-    let value = params.data[dataNdx['atl08_class']];
+    let value = params.data[dataNdx['yapc_score']];
     const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
     const color = `rgba(${r},${g},${b},${a})`;
     const dc = useAtl03ColorMapStore().incrementDebugCnt();
