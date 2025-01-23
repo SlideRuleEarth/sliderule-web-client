@@ -3,13 +3,13 @@
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
-        <div class="sr-menu-container" v-for="(classValue, index) in atl03ColorMapStore.atl08ClassOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
+        <div class="sr-menu-container" v-for="(classValue, index) in colorMapStore.atl08ClassOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: colorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
             <SrMenu
                 :label="`${classValue.label} (${classValue.value})`"
-                :menuOptions="atl03ColorMapStore.getNamedColorPalette()"
-                :setSelectedMenuItem="(color: string) => atl03ColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-                :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl08ClassValue(classValue.value)"
+                :menuOptions="colorMapStore.getNamedColorPalette()"
+                :setSelectedMenuItem="(color: string) => colorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
+                :getSelectedMenuItem="() => colorMapStore.getColorForAtl08ClassValue(classValue.value)"
                 @update:modelValue="handleSelectionChanged(classValue.label, $event)"
             />
         </div>
@@ -20,9 +20,9 @@
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
@@ -32,7 +32,7 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl08ClassColorMap = () => {
-    atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
+    colorMapStore.restoreDefaultAtl08ClassColorMap();
     emit('defaultsChanged', {});
 };
 

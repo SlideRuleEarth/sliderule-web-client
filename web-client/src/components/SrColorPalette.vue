@@ -46,14 +46,14 @@
 import { onMounted } from 'vue';
 import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
 import SrYapcColors from './SrYapcColors.vue';
 import { srColorTable } from '@/utils/colorUtils';
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 
 interface AtColorChangeEvent {
   label: string;
@@ -61,8 +61,8 @@ interface AtColorChangeEvent {
 }
 
 onMounted(() => {
-    atl03ColorMapStore.initializeAtl03ColorMapStore();
-    srColorTable.value[1] = atl03ColorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
+    colorMapStore.initializeColorMapStore();
+    srColorTable.value[1] = colorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
     console.log('Mounted SrColorPalette colors:', srColorTable.value);
 });
 

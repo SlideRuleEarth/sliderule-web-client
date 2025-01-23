@@ -3,13 +3,13 @@
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl03CnfColorMap" />
         </div>
-        <div class="sr-menu-container" v-for="(cnfValue, index) in atl03ColorMapStore.atl03CnfOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: atl03ColorMapStore.getColorForAtl03CnfValue(cnfValue.value) }"></div>
+        <div class="sr-menu-container" v-for="(cnfValue, index) in colorMapStore.atl03CnfOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: colorMapStore.getColorForAtl03CnfValue(cnfValue.value) }"></div>
             <SrMenu
                 :label="`${cnfValue.label} (${cnfValue.value})`"
-                :menuOptions="atl03ColorMapStore.namedColorPalette"
-                :setSelectedMenuItem="(color:string) =>  atl03ColorMapStore.setColorForAtl03CnfValue(cnfValue.value, color)"
-                :getSelectedMenuItem="() => atl03ColorMapStore.getColorForAtl03CnfValue(cnfValue.value)"
+                :menuOptions="colorMapStore.namedColorPalette"
+                :setSelectedMenuItem="(color:string) =>  colorMapStore.setColorForAtl03CnfValue(cnfValue.value, color)"
+                :getSelectedMenuItem="() => colorMapStore.getColorForAtl03CnfValue(cnfValue.value)"
                 @update:modelValue="handleSelectionChanged(cnfValue.label, $event)"
             />
         </div>
@@ -21,14 +21,14 @@ import { onMounted } from 'vue';
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
 // Initialize the store
 onMounted(async () => {
-  await atl03ColorMapStore.initializeAtl03ColorMapStore();
+  await colorMapStore.initializeColorMapStore();
 });
 
 // Handle menu selection changes
@@ -37,7 +37,7 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl03CnfColorMap = () => {
-    atl03ColorMapStore.restoreDefaultAtl03CnfColorMap();
+    colorMapStore.restoreDefaultAtl03CnfColorMap();
     emit('defaultsChanged', {});
 };
 </script>

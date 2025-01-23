@@ -47,7 +47,7 @@
                     <div class="sr-color-selection-panel">
                         <Select
                             v-model="solidColorSelectedReactive[reqIdStr]"
-                            :options="atl03ColorMapStore.namedColorPalette"
+                            :options="colorMapStore.namedColorPalette"
                             placeholder="Symbol Color"
                             :id="computedSolidColorId"
                             size="small" 
@@ -87,7 +87,7 @@ import { useChartStore } from '@/stores/chartStore';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
 import { computed, onMounted } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
@@ -110,7 +110,7 @@ const props = withDefaults(
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const reqIdStr = computed(() => props.reqId.toString());
 const computedFunc = computed(() => chartStore.getFunc(reqIdStr.value));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
@@ -137,19 +137,19 @@ onMounted(() => {
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl03DefaultColorsAndUpdatePlot');
-    await atl03ColorMapStore.restoreDefaultAtl03CnfColorMap();
+    await colorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl08DefaultColorsAndUpdatePlot');
-    await atl03ColorMapStore.restoreDefaultAtl08ClassColorMap();
+    await colorMapStore.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
 
 async function restoreYapcDefaultColorsAndUpdatePlot() {
     console.log('restoreYapcDefaultColorsAndUpdatePlot');
-    await atl03ColorMapStore.restoreDefaultGradientColorMap();
+    await colorMapStore.restoreDefaultGradientColorMap();
     await callPlotUpdateDebounced('from restoreYapcDefaultColorsAndUpdatePlot');
 }
 

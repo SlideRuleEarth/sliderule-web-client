@@ -7,7 +7,7 @@ import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } 
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { useAtl03ColorMapStore } from "@/stores/atl03ColorMapStore";
+import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
@@ -29,7 +29,7 @@ const props = defineProps({
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const reqParamsStore = useReqParamsStore();
 const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
 const loadingComponent = ref(true);
@@ -45,7 +45,7 @@ onMounted(async () => {
         //console.log('SrScatterPlot onMounted');
         console.log('SrScatterPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 
-        atl03ColorMapStore.initializeAtl03ColorMapStore();
+        colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;

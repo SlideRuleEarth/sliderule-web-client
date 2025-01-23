@@ -40,19 +40,19 @@ import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
 
-const store = useAtl03ColorMapStore();
+const store = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);
 
 onMounted(async () => {
     if (!store.isInitialized) {
-        await store.initializeAtl03ColorMapStore();
+        await store.initializeColorMapStore();
     }
 });
 

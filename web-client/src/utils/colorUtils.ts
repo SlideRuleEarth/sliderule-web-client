@@ -1,7 +1,7 @@
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import { computed,ref } from 'vue';
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 
 // Predefined list of CSS color names
 export const cssColorNames = [
@@ -39,8 +39,8 @@ export const srColorMapNames = [
 ];
 
 export const selectedColors = computed({
-    get: () => atl03ColorMapStore.getNamedColorPalette(),
-    set: (value) => atl03ColorMapStore.setNamedColorPalette(value)
+    get: () => colorMapStore.getNamedColorPalette(),
+    set: (value) => colorMapStore.setNamedColorPalette(value)
 });
 
 // Initialize the source and target lists for the PickList

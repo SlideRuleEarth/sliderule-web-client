@@ -52,7 +52,7 @@ import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import SrYapcColors from './SrYapcColors.vue';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import { useChartStore } from '@/stores/chartStore';
 import Fieldset from 'primevue/fieldset';
 
@@ -63,9 +63,9 @@ const props = defineProps<{
 
 const chartStore = useChartStore();
 const emit = defineEmits(['restore-yapc-color-defaults-click', 'yapc-color-changed']);
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const gradientStyle = computed(() => {
-    const style = atl03ColorMapStore.getColorGradientStyle();
+    const style = colorMapStore.getColorGradientStyle();
     console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
     return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
   });
@@ -74,11 +74,11 @@ const gradientStyle = computed(() => {
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!atl03ColorMapStore.isInitialized) {
-        await atl03ColorMapStore.initializeAtl03ColorMapStore();
+    if (!colorMapStore.isInitialized) {
+        await colorMapStore.initializeColorMapStore();
     }
-    atl03ColorMapStore.updateGradientColorMapValues();
-    console.log('Mounted SrYapcColors colors:', atl03ColorMapStore.getNamedColorPalette());
+    colorMapStore.updateGradientColorMapValues();
+    console.log('Mounted SrYapcColors colors:', colorMapStore.getNamedColorPalette());
 });
 
 

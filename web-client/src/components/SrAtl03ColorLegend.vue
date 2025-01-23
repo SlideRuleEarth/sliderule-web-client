@@ -41,25 +41,25 @@ import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!atl03ColorMapStore.isInitialized) {
-        await atl03ColorMapStore.initializeAtl03ColorMapStore();
+    if (!colorMapStore.isInitialized) {
+        await colorMapStore.initializeColorMapStore();
     }
 });
 
-const atl03CnfOptions = computed(() => atl03ColorMapStore.atl03CnfOptions);
+const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
 
 const getColorForAtl03CnfValue = (value: number): string => {
-    return atl03ColorMapStore.getColorForAtl03CnfValue(value);
+    return colorMapStore.getColorForAtl03CnfValue(value);
 };
 
 const formatLabel = (label: string): string => {

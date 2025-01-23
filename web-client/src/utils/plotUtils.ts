@@ -1,7 +1,7 @@
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
-import { useAtl03ColorMapStore }  from "@/stores/atl03ColorMapStore";
+import { useColorMapStore }  from "@/stores/colorMapStore";
 import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
 import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
 import { createWhereClause } from "./spotUtils";
@@ -20,7 +20,7 @@ import { at } from "lodash";
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 const requestsStore = useRequestsStore();
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -56,13 +56,13 @@ export interface SrScatterSeriesData{
 export function initializeColorEncoding(reqIdStr:string,func:string){
     if(func.includes('atl03')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
-        //useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
+        //useColorMapStore().setAtl03ColorKey('atl03_cnf');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
-        //useAtl03ColorMapStore().setAtl03ColorKey('atl08_class');
+        //useColorMapStore().setAtl03ColorKey('atl08_class');
     } else if(func.includes('atl06')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
-        //useAtl03ColorMapStore().setAtl03ColorKey('YAPC');
+        //useColorMapStore().setAtl03ColorKey('YAPC');
     } else {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
     }
@@ -111,7 +111,7 @@ function createDiscreteColorFunction(
     return (params:any) => {
         //console.log('createDiscreteColorFunction1 ndx:',ndx,' params:',params);
         if(ndx<0){
-            ndx = atl03ColorMapStore.getDataOrderNdx[ndx_name]
+            ndx = colorMapStore.getDataOrderNdx[ndx_name]
         }
         const value = params.data[ndx];
         if (colorCache[value] === undefined) {
@@ -122,16 +122,16 @@ function createDiscreteColorFunction(
 }
 
 const getAtl03CnfColorCached = createDiscreteColorFunction(
-    atl03ColorMapStore.getColorForAtl03CnfValue,
+    colorMapStore.getColorForAtl03CnfValue,
     'atl03_cnf'
 );
 
 const getAtl08ClassColorCached = createDiscreteColorFunction(
-    atl03ColorMapStore.getColorForAtl08ClassValue,
+    colorMapStore.getColorForAtl08ClassValue,
     'atl08_class'
 );
 
-const getColorUsingGradient = atl03ColorMapStore.createGradientColorFunction('yapc_score',0,255);
+const getColorUsingGradient = colorMapStore.createGradientColorFunction('yapc_score',0,255);
 
 function getColorUsingAtl03_cnf(params: any): string {
     return getAtl03CnfColorCached(params);
@@ -206,7 +206,7 @@ async function getGenericSeries({
         console.log(`${functionName}: minMaxValues:`, minMaxValues);
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
-        atl03ColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
+        colorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName}: chartData or minMax is empty, skipping processing.`);
             return yItems;
@@ -216,7 +216,7 @@ async function getGenericSeries({
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
         if (y.includes(ySelectedName)) {
-            const yIndex =  useAtl03ColorMapStore().getDataOrderNdx[ySelectedName];
+            const yIndex =  useColorMapStore().getDataOrderNdx[ySelectedName];
             const data = chartData[reqIdStr].data; // get raw number[][] data
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
@@ -227,7 +227,7 @@ async function getGenericSeries({
                     name: ySelectedName,
                     type: 'scatter',
                     data: data,
-                    dimensions:[...useAtl03ColorMapStore().getDimensions], 
+                    dimensions:[...useColorMapStore().getDimensions], 
                     encode: { x: 0, y: yIndex },
                     itemStyle: { color: colorFunction },
                     z: zValue,
@@ -990,7 +990,7 @@ async function updatePlot(msg:string){
         const runContext = await getPhotonOverlayRunContext();
         if(runContext.reqId > 0){
             await prepareDbForReqId(runContext.reqId);            
-            //useAtl03ColorMapStore().setAtl03ColorKey('atl03_cnf');
+            //useColorMapStore().setAtl03ColorKey('atl03_cnf');
         }
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();

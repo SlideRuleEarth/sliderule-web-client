@@ -4,15 +4,15 @@
             <div class="sr-menu-container" >
                 <SrMenu 
                     label="Color Map" 
-                    v-model="atl03ColorMapStore.selectedGradientColorMapName"
+                    v-model="colorMapStore.selectedGradientColorMapName"
                     :menuOptions="srColorMapNames" 
-                    :getSelectedMenuItem="atl03ColorMapStore.getSelectedGradientColorMapName"
-                    :setSelectedMenuItem="atl03ColorMapStore.setSelectedGradientColorMapName"
+                    :getSelectedMenuItem="colorMapStore.getSelectedGradientColorMapName"
+                    :setSelectedMenuItem="colorMapStore.setSelectedGradientColorMapName"
                     @update:modelValue="handleSelectionChanged( $event)"
                     tooltipText="Color Map for scatter plot"
                 />
                 <SrSliderInput
-                    v-model="atl03ColorMapStore.numShadesForGradient"
+                    v-model="colorMapStore.numShadesForGradient"
                     label="Number of Shades"
                     :min="(chartStore.getMinYapcScore(props.req_id.toString()) !== null && chartStore.getMinYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMinYapcScore(props.req_id.toString()) : 0)"
                     :max="(chartStore.getMaxYapcScore(props.req_id.toString()) !== null && chartStore.getMaxYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMaxYapcScore(props.req_id.toString()) : 0)"
@@ -34,7 +34,7 @@ import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { srColorMapNames } from '@/utils/colorUtils';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import SrSliderInput from './SrSliderInput.vue';
 import { useChartStore } from '@/stores/chartStore';
 
@@ -43,7 +43,7 @@ const props = defineProps<{
   req_id: number;
 }>();
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
+const colorMapStore = useColorMapStore();
 const chartStore = useChartStore();
 const emit = defineEmits(['yapc-selection-changed', 'yapc-defaults-changed']);
 
@@ -53,12 +53,12 @@ onMounted(async () => {
 
 // Handle menu selection changes
 const handleSelectionChanged = (mapName: string) => {
-    atl03ColorMapStore.updateGradientColorMapValues();
+    colorMapStore.updateGradientColorMapValues();
     emit('yapc-selection-changed', { mapName });
 };
 
 const restoreDefaultGradientColorMap = () => {
-    atl03ColorMapStore.restoreDefaultGradientColorMap();
+    colorMapStore.restoreDefaultGradientColorMap();
     emit('yapc-defaults-changed', {});
 };
 </script>

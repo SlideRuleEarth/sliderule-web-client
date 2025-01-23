@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 import { db } from '@/db/SlideRuleDb';
 
-export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
+export const useColorMapStore = defineStore('colorMapStore', {
     state: () => ({
         isInitialized: false as boolean,
         selectedGradientColorMapName: 'viridis' as string,
@@ -46,8 +46,8 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         },    
     },
     actions: {
-        async initializeAtl03ColorMapStore() {
-            //console.log('initializeAtl03ColorMapStore isInitialized:',this.isInitialized);
+        async initializeColorMapStore() {
+            //console.log('initializeColorMapStore isInitialized:',this.isInitialized);
             if(!this.isInitialized){
                 this.isInitialized = true;
                 this.atl03CnfColorMap = await db.getAllAtl03CnfColors();
