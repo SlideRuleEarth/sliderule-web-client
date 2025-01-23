@@ -14,6 +14,7 @@ import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/Sr
 import { useRequestsStore } from "@/stores/requestsStore";
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
+import { at } from "lodash";
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -100,21 +101,21 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
 }
 
 
-function getColorUsingYAPC(params: any):string {
-    const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
-    // if(useAtl03ColorMapStore().getDebugCnt < 10){
-    //     console.log('getColorUsingYAPC params.data:', params.data);
-    //     console.log('getColorUsingYAPC dataNdx:', dataNdx);
-    // }
-    let value = params.data[dataNdx['yapc_score']];
-    const [r, g, b, a] = useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
-    const color = `rgba(${r},${g},${b},${a})`;
-    // const dc = useAtl03ColorMapStore().incrementDebugCnt();
-    // if(dc < 10){
-    //     console.log(`getColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
-    // }
-    return color;
-}
+// function getColorUsingYAPC(params: any): string {
+//     const dataNdx = useAtl03ColorMapStore().getDataOrderNdx;
+//     // if(atl03ColorMapStore.getDebugCnt < 10){
+//     //     console.log('getColorUsingYAPC params.data:', params.data);
+//     //     console.log('getColorUsingYAPC dataNdx:', dataNdx);
+//     // }
+//     let value = params.data[dataNdx['yapc_score']];
+//     return useAtl03ColorMapStore().getYapcColorForValue(value,0,255);
+//     //const color = `rgba(${r},${g},${b},${a})`;
+//     // const dc = atl03ColorMapStore.incrementDebugCnt();
+//     // if(dc < 10){
+//     //     console.log(`getColorUsingYAPC cnt:${dc} value:${value} color:${color}`);
+//     // }
+//     //return color;
+// }
 
 
 function createDiscreteColorFunction(
@@ -147,6 +148,7 @@ const getAtl08ClassColorCached = createDiscreteColorFunction(
     'atl08_class'
 );
 
+const getColorUsingYAPC = atl03ColorMapStore.createGradientColorFunction('yapc_score',0,255);
 
 function getColorUsingAtl03_cnf(params: any): string {
     return getAtl03CnfColorCached(params);

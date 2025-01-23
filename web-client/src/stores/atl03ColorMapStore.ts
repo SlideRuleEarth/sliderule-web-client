@@ -7,7 +7,7 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         isInitialized: false as boolean,
         selectedAtl03YapcColorMapName: 'viridis' as string,
         numShadesForAtl03Yapc: 256 as number,
-        atl03YapcColorMap: [] as[number, number, number, number][],
+        atl03YapcColorMap: [] as string[],
         atl03CnfOptions: [
             {label:'atl03_tep',value:-2}, 
             {label:'atl03_not_considered',value:-1}, 
@@ -72,29 +72,28 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
         getNumShadesForAtl03Yapc() {
             return this.numShadesForAtl03Yapc;
         },
-        updateAtl03YapcColorMapValues()
-        {
-            //console.log('updateAtl03YapcColorMapValues selectedColorMap:',this.selectedAtl03YapcColorMapName, ' numShadesForAtl03Yapc:',this.numShadesForAtl03Yapc);
-            try{
-                this.atl03YapcColorMap = colormap({
-                    colormap: this.selectedAtl03YapcColorMapName, // Use the selected colormap
-                    nshades: this.numShadesForAtl03Yapc, // Number of shades in the colormap
-                    format: 'rgba', // Use RGBA format for alpha transparency
-                    alpha: 1 // Fully opaque
-                });
+        updateAtl03YapcColorMapValues() {
+            try {
+              const colorArray = colormap({
+                colormap: this.selectedAtl03YapcColorMapName,
+                nshades: this.numShadesForAtl03Yapc,
+                format: 'rgba',
+                alpha: 1
+              });
+              
+              // Convert from [r, g, b, a] to 'rgba(r,g,b,a)'
+              this.atl03YapcColorMap = colorArray.map(
+                ([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`
+              );
             } catch (error) {
-                console.warn('updateAtl03YapcColorMapValues this.selectedAtl03YapcColorMap:',this.selectedAtl03YapcColorMapName);
-                console.warn('updateAtl03YapcColorMapValues this.numShadesForAtl03Yapc:',this.numShadesForAtl03Yapc);
-                console.error('updateAtl03YapcColorMapValues error:',error);
-                throw error;
+              console.error('updateAtl03YapcColorMapValues error:', error);
+              throw error;
             }
-            //console.log('selectedAtl03YapcColorMap:',this.selectedAtl03YapcColorMap);
-            //console.log('atl03YapcColorMap:',this.atl03YapcColorMap);   
-        },
+          },
         getAtl03YapcColorMap() {
             return this.atl03YapcColorMap;
         },
-        getYapcColorForValue(value:number, minValue:number, maxValue:number) {
+        getYapcColorForValue(value:number, minValue:number, maxValue:number):string {
             // Normalize the value to a value between 0 and 255
             const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * this.numShadesForAtl03Yapc-1);
             // Clamp the value to ensure it's within the valid range
@@ -106,13 +105,27 @@ export const useAtl03ColorMapStore = defineStore('atl03ColorMap', {
             // }
             return c;
         },
+        createGradientColorFunction(ndx_name:string,minValue: number, maxValue: number) {
+            const range = maxValue - minValue;
+            const scale = (this.numShadesForAtl03Yapc - 1) / range;
+            let ndx:number = -1;
+          
+            return (params:any) => {
+                if(ndx<0){
+                    ndx = this.getDataOrderNdx[ndx_name]
+                }
+                const value = params.data[ndx];
+                // Clamp quickly
+                if (value <= minValue) return this.atl03YapcColorMap[0];
+                if (value >= maxValue) return this.atl03YapcColorMap[this.numShadesForAtl03Yapc - 1];
+                const colorIndex = Math.floor((value - minValue) * scale);
+                return this.atl03YapcColorMap[colorIndex];
+            }
+        },
         getColorGradientStyle() {
             //console.log('getColorGradientStyle');
-            const gradientColors = this.atl03YapcColorMap
-                .map(color => `rgba(${color.join(',')})`) // Convert each color to a valid CSS rgba string
-                .join(', '); // Join colors to create a CSS gradient string
             return {
-                background: `linear-gradient(to right, ${gradientColors})`,
+                background: `linear-gradient(to right, ${this.atl03YapcColorMap})`,
                 height: '10px', // Adjust the height as needed
                 width: '100%',  // Adjust the width as needed
             };
