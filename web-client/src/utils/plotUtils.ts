@@ -538,6 +538,11 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
     const cycles = chartStore.getCycles(reqIdStr).map(cycle => cycle?.value).filter(value => value !== undefined);
     const spots = chartStore.getSpots(reqIdStr).map(spot => spot.value);
+    // Get the CSS variable value dynamically
+    const primaryButtonColor = getComputedStyle(document.documentElement)
+        .getPropertyValue('--p-button-text-primary-color')
+        .trim(); // Retrieve and trim the color value
+
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
@@ -560,7 +565,8 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
-                    left: 'left'
+                    left: 'left',
+                    itemStyle: { color: primaryButtonColor }
                 },
                 notMerge: true,
                 lazyUpdate: true,
