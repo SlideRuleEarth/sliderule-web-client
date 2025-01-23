@@ -14,10 +14,10 @@
                 <SrSliderInput
                     v-model="colorMapStore.numShadesForGradient"
                     label="Number of Shades"
-                    :min="(chartStore.getMinYapcScore(props.req_id.toString()) !== null && chartStore.getMinYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMinYapcScore(props.req_id.toString()) : 0)"
-                    :max="(chartStore.getMaxYapcScore(props.req_id.toString()) !== null && chartStore.getMaxYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMaxYapcScore(props.req_id.toString()) : 0)"
+                    :min="(chartStore.getMinValue(props.req_id.toString(),'yapc_score') !== null && chartStore.getMinValue(props.req_id.toString(),'yapc_score') !== undefined ? chartStore.getMinValue(props.req_id.toString(),'yapc_score') : 0)"
+                    :max="(chartStore.getMaxValue(props.req_id.toString(),'yapc_score') !== null && chartStore.getMaxValue(props.req_id.toString(),'yapc_score') !== undefined ? chartStore.getMaxValue(props.req_id.toString(),'yapc_score') : 0)"
                     :step="1"
-                    :tooltipText="`Number of Shades for YAPC Color Map`"
+                    :tooltipText="`Number of Shades for Gradient Color Map`"
                 />
 
             </div>

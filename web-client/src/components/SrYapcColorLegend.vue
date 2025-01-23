@@ -13,10 +13,10 @@
                     </div>
                     <div class="sr-legend-minmax">
                         <span class="sr-legend-min">
-                            {{ (chartStore.getMinYapcScore(props.req_id.toString()) !== null && chartStore.getMinYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMinYapcScore(props.req_id.toString()) : '?') }}
+                            {{ (chartStore.getMinValue(props.req_id.toString(),'yapc_score') !== null && chartStore.getMinValue(props.req_id.toString(),'yapc_score') !== undefined ? chartStore.getMinValue(props.req_id.toString(),'yapc_score') : '?') }}
                         </span>
                         <span class="sr-legend-max">
-                            {{ (chartStore.getMaxYapcScore(props.req_id.toString()) !== null && chartStore.getMaxYapcScore(props.req_id.toString()) !== undefined ? chartStore.getMaxYapcScore(props.req_id.toString()) : '?') }}
+                            {{ (chartStore.getMaxValue(props.req_id.toString(),'yapc_score') !== null && chartStore.getMaxValue(props.req_id.toString(),'yapc_score') !== undefined ? chartStore.getMaxValue(props.req_id.toString(),'yapc_score') : '?') }}
                         </span>
                     </div>
                 </div>

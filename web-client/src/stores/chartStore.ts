@@ -123,16 +123,24 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].max_x;
         },
-        getMinYapcScore(reqIdStr: string) : number{
+        // getMinYapcScore(reqIdStr: string) : number{
+        //     this.ensureState(reqIdStr);
+        //     const minMax = this.getMinMaxValues(reqIdStr);
+        //     //console.log('getMinYapcScore minMax.yapc_scrote:',minMax.yapc_score);
+        //     return minMax.yapc_score.min;
+        // },
+        // getMaxYapcScore(reqIdStr: string): number {
+        //     this.ensureState(reqIdStr);
+        //     const minMax = this.getMinMaxValues(reqIdStr);
+        //     return minMax.yapc_score.max;
+        // },
+        getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            const minMax = this.getMinMaxValues(reqIdStr);
-            //console.log('getMinYapcScore minMax.yapc_scrote:',minMax.yapc_score);
-            return minMax.yapc_score.min;
+            return this.stateByReqId[reqIdStr].minMaxValues[key].min;
         },
-        getMaxYapcScore(reqIdStr: string): number {
+        getMaxValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            const minMax = this.getMinMaxValues(reqIdStr);
-            return minMax.yapc_score.max;
+            return this.stateByReqId[reqIdStr].minMaxValues[key].max;
         },
         setDescription(reqIdStr: string, description: string) { 
             this.ensureState(reqIdStr);
