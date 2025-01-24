@@ -18,8 +18,8 @@ interface ChartState {
     max_x: number;
     min_y: number;
     max_y: number;
-    min_yapc_score: number;
-    max_yapc_score: number;
+    //min_yapc_score: number;
+    //max_yapc_score: number;
     elevationDataOptions: string[];
     yDataOptions: string[];
     selectedYData: string;
@@ -73,8 +73,8 @@ export const useChartStore = defineStore('chartStore', {
                     max_x: 0,
                     min_y: 0,
                     max_y: 0,
-                    min_yapc_score: 255,
-                    max_yapc_score: 0,
+                    //min_yapc_score: 255,
+                    //max_yapc_score: 0,
                     elevationDataOptions: [ 'not_set' ],
                     yDataOptions: [],
                     selectedYData: '',

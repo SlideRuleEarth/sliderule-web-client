@@ -14,7 +14,7 @@ import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/Sr
 import { useRequestsStore } from "@/stores/requestsStore";
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
-import { at } from "lodash";
+import { at, max } from "lodash";
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -131,7 +131,7 @@ const getAtl08ClassColorCached = createDiscreteColorFunction(
     'atl08_class'
 );
 
-const getColorUsingGradient = colorMapStore.createGradientColorFunction('yapc_score',0,255);
+//const getColorUsingGradient = colorMapStore.createGradientColorFunction('yapc_score',0,255);
 
 function getColorUsingAtl03_cnf(params: any): string {
     return getAtl03CnfColorCached(params);
@@ -169,7 +169,7 @@ interface GetSeriesParams {
     // The property name for minMax or normalizedMinMax
     minMaxProperty: 'minMaxValues' | 'normalizedMinMaxValues';
     // A function or color for the series item style
-    colorFunction: (params: any) => string;
+    colorFunction?: (params: any) => string;
     // Additional ECharts config
     zValue: number;
     // Logging prefix for console
@@ -211,7 +211,19 @@ async function getGenericSeries({
             console.warn(`${functionName}: chartData or minMax is empty, skipping processing.`);
             return yItems;
         }
-
+        if(!colorFunction){
+            const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
+            let thisColorFunction;
+            if(cedk === 'solid'){
+                thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
+            } else {
+                const minValue = chartStore.getMinValue(reqIdStr, cedk);
+                const maxValue = chartStore.getMaxValue(reqIdStr, cedk);
+                thisColorFunction = colorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
+            }
+            colorFunction = thisColorFunction;
+        }
+    
         // Get the selected Y data name
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
@@ -312,15 +324,11 @@ export async function getSeriesForAtl03sp(
         },
     };
     const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
-    let thisColorFunction = getColorUsingAtl03_cnf as (params: any) => string;
+    let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){
         thisColorFunction = getColorUsingAtl03_cnf;
     } else if(cedk === 'atl08_class'){
         thisColorFunction = getColorUsingAtl08_class;
-    } else if(cedk === 'yapc_score'){
-        thisColorFunction = getColorUsingGradient;
-    } else if(cedk === 'solid'){
-        thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
     }
 
 
@@ -332,7 +340,7 @@ export async function getSeriesForAtl03sp(
         fetchOptions,             // pass the specialized logic above
         fetchData: fetchScatterData,
         minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
-        colorFunction: thisColorFunction, // your existing color mapper
+        colorFunction: thisColorFunction, 
         zValue: 0,
         functionName: 'getSeriesForAtl03sp', // for the log
     });
@@ -374,7 +382,6 @@ async function getSeriesForAtl06(
         fetchOptions,
         fetchData: fetchScatterData,         // function to fetch data
         minMaxProperty: 'normalizedMinMaxValues', // note the difference
-        colorFunction: () => getAtl06Color(reqIdStr), // pass a function
         zValue: 10,                               // z value for ATL06
         functionName: 'getSeriesForAtl06',
     });

@@ -67,7 +67,7 @@ export const useColorMapStore = defineStore('colorMapStore', {
             return this.selectedGradientColorMapName;
         },
         setNumShadesForGradient(numShades: number) {
-            this.numShadesForGradient = numShades;
+            this.numShadesForGradient = Math.max(numShades, 10); //at least 10 shades
         },
         getNumShadesForGradient() {
             return this.numShadesForGradient;

@@ -20,8 +20,8 @@
                     v-model="colorMapStore.numShadesForGradient"
                     label="Number of Shades"
                     @update:model-value="gradientNumShadesChanged"
-                    :min="(chartStore.getMinValue(props.req_id.toString(),props.data_key) !== null && chartStore.getMinValue(props.req_id.toString(),props.data_key) !== undefined ? chartStore.getMinValue(props.req_id.toString(),props.data_key) : 0)"
-                    :max="(chartStore.getMaxValue(props.req_id.toString(),props.data_key) !== null && chartStore.getMaxValue(props.req_id.toString(),props.data_key) !== undefined ? chartStore.getMaxValue(props.req_id.toString(),props.data_key) : 0)"
+                    :min="getFormattedMinValue"
+                    :max="getFormattedMaxValue"
                     sliderWidth="5rem"
                     inputWidth="5rem"
                     :step="1"
@@ -33,10 +33,10 @@
                 </div>
                 <div class="sr-legend-minmax">
                     <span class="sr-legend-min">
-                        {{ (chartStore.getMinValue(props.req_id.toString(),props.data_key) !== null && chartStore.getMinValue(props.req_id.toString(),props.data_key) !== undefined ? chartStore.getMinValue(props.req_id.toString(),props.data_key) : '?') }}
+                        {{ getFormattedMinValue }}
                     </span>
                     <span class="sr-legend-max">
-                        {{ (chartStore.getMaxValue(props.req_id.toString(),props.data_key) !== null && chartStore.getMaxValue(props.req_id.toString(),props.data_key) !== undefined ? chartStore.getMaxValue(props.req_id.toString(),props.data_key) : '?') }}
+                        {{ getFormattedMaxValue }}
                     </span>
                 </div>
             </div>        
@@ -89,6 +89,24 @@ onMounted(async () => {
     //console.log('Mounted SrGradientColorCntrl colors:', colorMapStore.getGradientColorMap());
 });
 
+// const getFormattedMinValue = computed(() => {
+// //     const minValue = chartStore.getMinValue(props.req_id.toString(), props.data_key);
+// //     if (minValue !== null && minValue !== undefined) {
+// //         return Math.max(parseFloat(minValue.toFixed(1)), 10);
+// //     }
+//      return 10; // Default to the minimum value if minValue is null or undefined
+// });
+const getFormattedMinValue = computed(() => {
+    return 10;
+});
+
+// const getFormattedMaxValue = computed(() => {
+//     const maxValue = chartStore.getMaxValue(props.req_id.toString(), props.data_key);
+//     return maxValue !== null && maxValue !== undefined ? parseFloat(maxValue.toFixed(1)) : 0;
+// });
+const getFormattedMaxValue = computed(() => {
+    return 256;
+});
 
 const gradientColorMapChanged = () => {
     colorMapStore.updateGradientColorMapValues();

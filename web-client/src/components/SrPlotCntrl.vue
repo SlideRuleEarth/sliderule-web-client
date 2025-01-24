@@ -37,8 +37,8 @@
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
                     <SrGradientColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'yapc_score') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
-                        label="Yapc Score Colors"
+                        v-if="shouldDisplayGradientColorLegend"
+                        :label="gradientLabel"
                         :req_id="props.reqId"
                         :data_key="chartStore.getSelectedColorEncodeData(reqIdStr)"
                         @gradient-color-map-changed="gradientColorMapChanged" 
@@ -131,6 +131,30 @@ const computedLabel = computed(() => {
     }
     label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))} pnts)`;
     return `${label}`;
+});
+
+
+const shouldDisplayGradientColorLegend = computed(() => {
+    const func = chartStore.getFunc(reqIdStr.value);
+    const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
+    let should = false;
+    if(selectedColorEncodeData && (selectedColorEncodeData !== 'unset')){
+        if(func.includes('atl03sp')){
+            if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl03_cnf'){
+                should = true;
+            }
+        } else if(func.includes('atl06')){
+            if(selectedColorEncodeData !== 'solid'){
+                should = true;
+            }
+        }
+    }
+    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayGradientColorLegend:', should);
+    return should;
+});
+
+const gradientLabel = computed(() => {
+    return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} Colors`;
 });
 
 onMounted(() => {
