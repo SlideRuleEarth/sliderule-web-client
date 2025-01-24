@@ -48,6 +48,7 @@ interface ChartState {
     scOrients: Array<SrListNumberItem>;
     minMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
+    showYDataMenu: boolean;
 }
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -101,6 +102,7 @@ export const useChartStore = defineStore('chartStore', {
                     scOrients: [],
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
                     dataOrderNdx: {} as Record<string, number>,
+                    showYDataMenu: false,
                 };
             }
             return true;
@@ -121,17 +123,6 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].max_x;
         },
-        // getMinYapcScore(reqIdStr: string) : number{
-        //     this.ensureState(reqIdStr);
-        //     const minMax = this.getMinMaxValues(reqIdStr);
-        //     //console.log('getMinYapcScore minMax.yapc_scrote:',minMax.yapc_score);
-        //     return minMax.yapc_score.min;
-        // },
-        // getMaxYapcScore(reqIdStr: string): number {
-        //     this.ensureState(reqIdStr);
-        //     const minMax = this.getMinMaxValues(reqIdStr);
-        //     return minMax.yapc_score.max;
-        // },
         getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].minMaxValues[key].min;
@@ -535,6 +526,15 @@ export const useChartStore = defineStore('chartStore', {
         setDataOrderNdx(reqIdStr: string, dataOrderNdx: Record<string, number>): void {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].dataOrderNdx = dataOrderNdx;
+        },
+        setShowYDataMenu(reqIdStr: string, showYDataMenu: boolean): void {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].showYDataMenu = showYDataMenu;
+            //console.log('setShowYDataMenu', showYDataMenu);
+        },
+        getShowYDataMenu(reqIdStr: string): boolean {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].showYDataMenu;
         },
     },
 });

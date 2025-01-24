@@ -14,7 +14,6 @@ import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/Sr
 import { useRequestsStore } from "@/stores/requestsStore";
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
-import { at, max } from "lodash";
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -25,7 +24,7 @@ export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedR
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
-
+export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 export interface SrScatterSeriesData{
   series: {
     name: string;
@@ -56,13 +55,10 @@ export interface SrScatterSeriesData{
 export function initializeColorEncoding(reqIdStr:string,func:string){
     if(func.includes('atl03')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
-        //useColorMapStore().setAtl03ColorKey('atl03_cnf');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
-        //useColorMapStore().setAtl03ColorKey('atl08_class');
     } else if(func.includes('atl06')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
-        //useColorMapStore().setAtl03ColorKey('YAPC');
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean');
     } else {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
     }
@@ -95,6 +91,12 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
             solidColorSelectedReactive[reqId] = computed({
                 get: () => chartStore.getSolidSymbolColor(reqId),
                 set: (value: string) => chartStore.setSolidSymbolColor(reqId, value),
+            });
+        }
+        if(!(reqId in showYDataMenuReactive)){
+            showYDataMenuReactive[reqId] = computed({
+                get: () => chartStore.getShowYDataMenu(reqId),
+                set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         }   
     });

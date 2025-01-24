@@ -226,7 +226,8 @@
     <div>
         <SrCheckbox 
             class="sr-show-hide-tooltip"
-            label="Elevation data on hover"
+            :defaultValue="true"
+            label="Show map tooltip"
             labelFontSize="small"
             tooltipText="Show or hide the elevation when hovering mouse over a track"
             v-model="mapStore.showTheTooltip"

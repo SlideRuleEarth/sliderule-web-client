@@ -5,7 +5,8 @@ import FloatLabel from "primevue/floatlabel";
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed } from "vue";
-import { yDataBindingsReactive,findReqMenuLabel } from "@/utils/plotUtils";
+import SrCheckbox from "./SrCheckbox.vue";
+import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive } from "@/utils/plotUtils";
 
 const chartStore = useChartStore();
 
@@ -67,6 +68,15 @@ onMounted(() => {
             />
             <label :for=computedElId>{{`${computedMainLabel}`}}</label>
         </FloatLabel>
+        <SrCheckbox 
+            class="sr-show-hide-ydata"
+            :defaultValue="true"
+            label="Show Y Data menu"
+            labelFontSize="small"
+            tooltipText="Show or hide the Y Data selection in plot control"
+            v-model="showYDataMenuReactive[computedReqIdStr]"
+            size="small" 
+        />              
     </div>
 
 </Fieldset>

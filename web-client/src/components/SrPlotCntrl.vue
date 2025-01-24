@@ -1,7 +1,7 @@
 <template>
     <Fieldset :legend="computedLabel">
         <div>
-            <div class="sr-ydata-menu">
+            <div class="sr-ydata-menu" v-if="showYDataMenuReactive[reqIdStr]">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
                 <Select class="sr-select-ydata"
                     v-model="yDataSelectedReactive[reqIdStr]"
@@ -15,7 +15,7 @@
             </div>
             <div class="sr-ydata-menu">
                 <div>
-                    <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Color Encode</label>
+                    <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Point Color</label>
                     <Select
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
@@ -92,7 +92,7 @@ import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding } from '@/utils/plotUtils';
+import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
 import { computed, onMounted } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
