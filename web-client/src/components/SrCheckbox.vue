@@ -96,9 +96,7 @@
   
   // Initialize `localChecked` on mount
   onMounted(() => {
-    if (props.defaultValue) {
-      localChecked.value = getValue(props.modelValue);
-    }
+    setValue(props.modelValue, props.defaultValue);
   });
   
   const emitChange = () => {

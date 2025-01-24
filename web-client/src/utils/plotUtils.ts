@@ -386,25 +386,25 @@ async function getSeriesForAtl06(
     });
 }
 
-// async function getSeriesForAtl08(
-//     reqIdStr: string,
-//     fileName: string,
-//     x: string,
-//     y: string[]
-//   ): Promise<SrScatterSeriesData[]> {
-//     return getGenericSeries({
-//       reqIdStr,
-//       fileName,
-//       x,
-//       y,
-//       fetchData: fetchAtl08ScatterData, // Specify the data fetch function for ATL08
-//       minMaxProperty: 'normalizedMinMaxValues', // Specify the min-max property for ATL08
-//       colorFunction: getAtl08Color,           // color function
-//       zValue: 0,                                // z value for ATL03
-//     functionName: 'getSeriesForAtl08', // Logging and error reporting name
-//     });
-//   }
-  
+async function getSeriesForAtl08(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+return getGenericSeries({
+    reqIdStr,
+    fileName,
+    x,
+    y,
+    fetchOptions,
+    fetchData: fetchScatterData,         // function to fetch data
+    minMaxProperty: 'normalizedMinMaxValues', // note the difference
+    zValue: 10,                               // z value for ATL06
+    functionName: 'getSeriesForAtl08',
+});
+}
 
 export function clearPlot() {
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -443,8 +443,8 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
                 seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
-            // } else if(func.includes('atl08')){
-            //     seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl08')){
+                seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }

@@ -227,7 +227,8 @@ export const useChartStore = defineStore('chartStore', {
                 const ret = ['solid'];
                 return ret.concat(this.getYDataOptions(reqIdStr));
             } else if(func.includes('atl08')) {
-                return this.getYDataOptions(reqIdStr);;
+                const ret = ['solid'];
+                return ret.concat(this.getYDataOptions(reqIdStr));
             } else {
                 console.error('getColorEncodeOptionsForFunc() unknown function:', func);
                 return [];
@@ -262,11 +263,10 @@ export const useChartStore = defineStore('chartStore', {
         },
         setXDataForChartUsingFunc(reqIdStr: string,func: string) {
             this.ensureState(reqIdStr);
-            if (func.includes('atl03')) {
+            if (func.includes('atl03sp')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
-            if (func.includes('atl03vp')) {
+            } else if (func.includes('atl03vp')) {
                 this.setXDataForChart(reqIdStr,'segment_dist_x');
-            }
             } else if (func.includes('atl06')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl08')) {
