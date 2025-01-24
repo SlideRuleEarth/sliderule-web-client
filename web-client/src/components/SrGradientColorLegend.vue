@@ -28,7 +28,7 @@
                     :tooltipText="`Number of Shades for Gradient Color Map`"
                 />
             </div>
-            <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" />
+            <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
         <Button label="Restore Defaults" @click="gradientDefaultsRestored" />
 
