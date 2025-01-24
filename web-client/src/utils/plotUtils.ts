@@ -53,8 +53,10 @@ export interface SrScatterSeriesData{
 };
 
 export function initializeColorEncoding(reqIdStr:string,func:string){
-    if(func.includes('atl03')) {
+    if(func.includes('atl03sp')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
+    } else if(func.includes('atl03vp')) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'segment_ph_cnt');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
     } else if(func.includes('atl06')) {
@@ -145,10 +147,6 @@ function getColorUsingAtl08_class(params: any): string {
 }
 
 
-function getAtl06Color(reqIdStr: string):string {
-    return chartStore.getSolidSymbolColor(reqIdStr)
-}
-
 interface GetSeriesParams {
     reqIdStr: string;
     fileName: string;
@@ -225,7 +223,7 @@ async function getGenericSeries({
             }
             colorFunction = thisColorFunction;
         }
-    
+        //console.log(`${functionName}: colorFunction:`, colorFunction);
         // Get the selected Y data name
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
@@ -348,26 +346,25 @@ export async function getSeriesForAtl03sp(
     });
 }
   
-
-// async function getSeriesForAtl03vp(
-//     reqIdStr: string,
-//     fileName: string,
-//     x: string,
-//     y: string[]
-// ): Promise<SrScatterSeriesData[]> {
-//     return getGenericSeries({
-//         reqIdStr,
-//         fileName,
-//         x,
-//         y,
-//         fetchData: fetchAtl03vpScatterData,        // function to fetch data
-//         minMaxProperty: 'minMaxValues',           // which property has min/max
-//         colorFunction: getColor,           // color function
-//         zValue: 0,                                // z value for ATL03
-//         functionName: 'getSeriesForAtl03vp',      // name for logging
-//     });
-// }
-
+async function getSeriesForAtl03vp(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+return getGenericSeries({
+    reqIdStr,
+    fileName,
+    x,
+    y,
+    fetchOptions,
+    fetchData: fetchScatterData,         
+    minMaxProperty: 'minMaxValues', // note the difference
+    zValue: 10,                               
+    functionName: 'getSeriesForAtl03vp',
+});
+}
 
 async function getSeriesForAtl06(
         reqIdStr: string,
@@ -442,8 +439,8 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
         if(fileName){
             if(func==='atl03sp'){
                 seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
-            // } else if(func==='atl03vp'){
-            //     seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+            } else if(func==='atl03vp'){
+                seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
             // } else if(func.includes('atl08')){
@@ -621,7 +618,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     } finally {
         //console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
         const endTime = performance.now(); // End time
-        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`);
+        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`,options);
         return options;
     }
 }
@@ -959,6 +956,7 @@ export const updateScatterOptionsOnly = async (msg:string) => {
 
 export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     const reqIdStr = atlChartFilterStore.getReqId().toString();
+    console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
     const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: atlChartFilterStore.getReqId(),
@@ -966,7 +964,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             rgt: chartStore.getRgts(reqIdStr)[0].value,
             cycle: chartStore.getCycles(reqIdStr)[0].value,
             track: chartStore.getTracks(reqIdStr)[0].value,
-            beam: chartStore.getBeams(reqIdStr)[0].value
+            beam: ((chartStore.stateByReqId[reqIdStr].beams.length>0) ? chartStore.getBeams(reqIdStr)[0].value : -1),
         }
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
@@ -1052,9 +1050,9 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     const func = await indexedDb.getFunc(req_id);
     const plotConfig = await indexedDb.getPlotConfig();
     if (func.includes('atl03sp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03SymbolSize  ?? 1));
+        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
     } else if (func.includes('atl06')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
     } else if (func.includes('atl08')) {

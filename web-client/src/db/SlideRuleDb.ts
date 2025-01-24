@@ -82,7 +82,8 @@ export interface SrPlotConfig {
     defaultAtl06Color: string;
     defaultAtl06SymbolSize: number;
     defaultAtl08SymbolSize: number;
-    defaultAtl03SymbolSize: number;
+    defaultAtl03spSymbolSize: number;
+    defaultAtl03vpSymbolSize: number;
     defaultGradientColorMapName: string;
     defaultGradientNumShades: number;
 }
@@ -204,7 +205,8 @@ export class SlideRuleDexie extends Dexie {
                 defaultAtl06Color: 'red',
                 defaultAtl06SymbolSize: 3,
                 defaultAtl08SymbolSize: 1,
-                defaultAtl03SymbolSize: 1,
+                defaultAtl03spSymbolSize: 1,
+                defaultAtl03vpSymbolSize: 3,
                 defaultGradientColorMapName: 'viridis',
                 defaultGradientNumShades: 256
             });

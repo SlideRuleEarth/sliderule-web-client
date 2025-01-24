@@ -94,7 +94,7 @@ export const useChartStore = defineStore('chartStore', {
                     solidSymbolColor: 'red',
                     tracks: [],
                     selectAllTracks: true,
-                    beams:[],
+                    beams:[{ label: 'unknown', value: -1}],
                     spots: [],
                     rgts: [], 
                     cycles: [],
@@ -218,8 +218,11 @@ export const useChartStore = defineStore('chartStore', {
             //console.log('setYDataOptions reqIdStr:',reqIdStr, ' yData:',yDataOptions, ' state yData:',this.stateByReqId[reqIdStr].yDataOptions);
         },
         getColorEncodeOptionsForFunc(reqIdStr: string,func: string): string[] {
-            if(func.includes('atl03')) {
+            if(func.includes('atl03sp')) {
                 return this.getYDataOptions(reqIdStr);
+            } else if(func.includes('atl03vp')) {
+                const ret = ['solid'];
+                return ret.concat(this.getYDataOptions(reqIdStr));
             } else if(func.includes('atl06')) {
                 const ret = ['solid'];
                 return ret.concat(this.getYDataOptions(reqIdStr));

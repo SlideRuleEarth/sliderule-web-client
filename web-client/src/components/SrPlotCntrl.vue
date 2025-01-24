@@ -139,7 +139,7 @@ const shouldDisplayGradientColorLegend = computed(() => {
     const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
     let should = false;
     if(selectedColorEncodeData && (selectedColorEncodeData !== 'unset')){
-        if(func.includes('atl03sp')){
+        if(func.includes('atl03')){
             if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl03_cnf'){
                 should = true;
             }

@@ -373,7 +373,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
     console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
     console.log('Clicked: pair',cs.getPairValues(reqIdStr));
-    if(func==='atl03sp'){
+    if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
             cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
