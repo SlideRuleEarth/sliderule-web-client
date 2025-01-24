@@ -227,27 +227,27 @@ export const useReqParamsStore = defineStore('reqParams', {
                 } else {
                     console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
                 }
-                // console.log('beams:', useAtlChartFilterStore().getBeams());
-                // console.log('rgts:', useAtlChartFilterStore().getRgts());
-                // console.log('cycles:', useAtlChartFilterStore().getCycles());
-                // console.log('pairs:', useAtlChartFilterStore().getPairs());
-                // console.log('spots:', useAtlChartFilterStore().getSpots());
-                // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
-
-                const reqIdStr = req_id.toString();
-                this.setTracks(useChartStore().getTracks(reqIdStr));
-                this.setBeams(useChartStore().getBeams(reqIdStr));
-                this.setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
-                this.setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
-                this.setSrt([-1]);
-                this.signalConfidenceNumber = [0,1,2,3,4];
-                this.enableAtl08Classification = true;
-                this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
-                this.enableYAPC = true;
-                this.YAPCVersion = '0';
-              } else {
+            } else {
                 console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
             }
+            // console.log('beams:', useAtlChartFilterStore().getBeams());
+            // console.log('rgts:', useAtlChartFilterStore().getRgts());
+            // console.log('cycles:', useAtlChartFilterStore().getCycles());
+            // console.log('pairs:', useAtlChartFilterStore().getPairs());
+            // console.log('spots:', useAtlChartFilterStore().getSpots());
+            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
+
+            const reqIdStr = req_id.toString();
+            this.setTracks(useChartStore().getTracks(reqIdStr));
+            this.setBeams(useChartStore().getBeams(reqIdStr));
+            this.setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
+            this.setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
+            this.setSrt([-1]);
+            this.signalConfidenceNumber = [0,1,2,3,4];
+            this.enableAtl08Classification = true;
+            this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+            this.enableYAPC = true;
+            this.YAPCVersion = '0';
         },
         presetForMainRequest() {
           console.log('presetForMainRequest');
