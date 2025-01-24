@@ -89,24 +89,16 @@ onMounted(async () => {
     //console.log('Mounted SrGradientColorCntrl colors:', colorMapStore.getGradientColorMap());
 });
 
-// const getFormattedMinValue = computed(() => {
-// //     const minValue = chartStore.getMinValue(props.req_id.toString(), props.data_key);
-// //     if (minValue !== null && minValue !== undefined) {
-// //         return Math.max(parseFloat(minValue.toFixed(1)), 10);
-// //     }
-//      return 10; // Default to the minimum value if minValue is null or undefined
-// });
 const getFormattedMinValue = computed(() => {
-    return 10;
+    const minValue = chartStore.getMinValue(props.req_id.toString(), props.data_key);
+    return minValue !== null && minValue !== undefined ? parseFloat(minValue.toFixed(1)) : 0;
 });
 
-// const getFormattedMaxValue = computed(() => {
-//     const maxValue = chartStore.getMaxValue(props.req_id.toString(), props.data_key);
-//     return maxValue !== null && maxValue !== undefined ? parseFloat(maxValue.toFixed(1)) : 0;
-// });
 const getFormattedMaxValue = computed(() => {
-    return 256;
+    const maxValue = chartStore.getMaxValue(props.req_id.toString(), props.data_key);
+    return maxValue !== null && maxValue !== undefined ? parseFloat(maxValue.toFixed(1)) : 0;
 });
+
 
 const gradientColorMapChanged = () => {
     colorMapStore.updateGradientColorMapValues();
