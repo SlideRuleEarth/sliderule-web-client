@@ -28,18 +28,7 @@
                     :tooltipText="`Number of Shades for Gradient Color Map`"
                 />
             </div>
-            <div class="sr-legend-box">
-                <div class="sr-color-map-gradient" :style="gradientStyle">
-                </div>
-                <div class="sr-legend-minmax">
-                    <span class="sr-legend-min">
-                        {{ getFormattedMinValue }}
-                    </span>
-                    <span class="sr-legend-max">
-                        {{ getFormattedMaxValue }}
-                    </span>
-                </div>
-            </div>        
+            <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" />
         </Fieldset>
         <Button label="Restore Defaults" @click="gradientDefaultsRestored" />
 
@@ -56,6 +45,7 @@ import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import Button from 'primevue/button';
+import SrLegendBox from './SrLegendBox.vue';
 
 // Define props with TypeScript types
 const props = withDefaults(

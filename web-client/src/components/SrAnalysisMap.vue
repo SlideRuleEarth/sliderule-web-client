@@ -24,6 +24,7 @@
     import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import SrCheckbox from "@/components/SrCheckbox.vue";
+    import { getHFieldName } from "@/utils/SrParquetUtils";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -55,7 +56,9 @@
     }); 
     const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
     const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
-
+    const computedHFieldName = computed(() => {
+        return getHFieldName(computedFunc.value);
+    });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
@@ -198,7 +201,12 @@
             />
 
             <MapControls.OlScalelineControl />
-            <SrLegendControl @legend-control-created="handleLegendControlCreated" />
+            <SrLegendControl 
+                @legend-control-created="handleLegendControlCreated"
+                :reqIdStr="computedReqIdStr"
+                :data_key="computedHFieldName"   
+            >
+            </SrLegendControl>
             <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
             <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
             <Sources.OlSourceVector :projection="computedProjName">

@@ -4,10 +4,11 @@
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
-        {{ curReqSumStore.get_h_mean_Min() !== null && curReqSumStore.get_h_mean_Min() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Min().toFixed(1)) : '?' }}
+        {{ chartStore.getMinValue(props.reqIdStr,props.data_key) !== null && chartStore.getMinValue(props.reqIdStr,props.data_key) !== undefined ? parseFloat(chartStore.getMinValue(props.reqIdStr,props.data_key).toFixed(1)) : '?' }}
       </span>
+      <span class="sr-legend-name"> {{ props.data_key }} </span>
       <span class="sr-legend-max">
-        {{ curReqSumStore.get_h_mean_Max() !== null && curReqSumStore.get_h_mean_Max() !== undefined ? parseFloat(curReqSumStore.get_h_mean_Max().toFixed(1)) : '?' }}
+        {{ chartStore.getMaxValue(props.reqIdStr,props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr,props.data_key) !== undefined ? parseFloat(chartStore.getMaxValue(props.reqIdStr,props.data_key).toFixed(1)) : '?' }}
       </span>
     </div>
   </div>
@@ -15,11 +16,24 @@
 
 <script setup lang="ts">
   import { onMounted } from 'vue'
-  import { useCurReqSumStore } from '@/stores/curReqSumStore';
+  import { useChartStore } from '@/stores/chartStore';
   import { computed,watch } from 'vue';
   import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+
+  const chartStore = useChartStore();
   const colorMapStore = useElevationColorMapStore();
-  const curReqSumStore = useCurReqSumStore();
+
+  // Props definition
+  const props = withDefaults(
+    defineProps<{
+      reqIdStr: string;
+      data_key: string;
+    }>(),
+    {
+      reqIdStr: '',
+      data_key: '',
+    }
+  );
 
   const emit = defineEmits(['legendbox-created', 'picked-changed']);
   const gradientStyle = computed(() => {
@@ -72,7 +86,11 @@ watch(
     font-size: 0.75rem;
     padding-left: 0.25rem;
 }
-
+.sr-legend-name {
+    font-size: 0.7rem; /* a little bit smaller */
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
 .sr-legend-max {
     font-size: 0.75rem;
     padding-right: 0.25rem;
