@@ -73,6 +73,24 @@ onMounted(() => {
 
 </template>
 <style scoped>
+
+.sr-multiselect {
+  width: 100%;
+  max-width: 100%;
+  /* no fit-content here */
+  display: flex;
+  flex-wrap: wrap;
+
+  :deep(.p-multiselect-label-container) {
+    display: flex;
+    flex-wrap: wrap;
+    max-height: 8rem;       /* optional vertical limit */
+    overflow-y: auto;       /* scroll if too many chips */
+    overflow-x: auto; 
+    box-sizing: border-box;
+  }
+}
+
 .sr-scatter-plot-options {
     display: flex;
     flex-direction: column;

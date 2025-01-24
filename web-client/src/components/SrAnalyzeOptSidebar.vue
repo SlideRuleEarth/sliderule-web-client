@@ -20,7 +20,7 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
-import SrScatterPlotOptions from "@/components/SrScatterPlotConfig.vue";
+import SrScatterPlotConfig from "@/components/SrScatterPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
 import { updateChartStore } from '@/utils/plotUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
@@ -593,18 +593,18 @@ const exportButtonClick = async () => {
                 </Card>
 
             </div>
-            <div class="sr-scatterplot-options-container">
-                <!-- SrScatterPlotOptions for the main req_id -->
-                <div class="sr-scatterplot-options">
-                    <SrScatterPlotOptions
+            <div class="sr-scatterplot-cfg-container">
+                <!-- SrScatterPlotConfig for the main req_id -->
+                <div class="sr-scatterplot-cfg">
+                    <SrScatterPlotConfig
                         v-if="isMounted" 
                         :req_id="Number(computedReqIdStr)"
                     />
                 </div>
 
-                <!-- SrScatterPlotOptions for each overlayed req_id -->
-                <div class="sr-scatterplot-options" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
-                    <SrScatterPlotOptions 
+                <!-- SrScatterPlotConfig for each overlayed req_id -->
+                <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
+                    <SrScatterPlotConfig 
                         :req_id="overlayedReqId" 
                     />
                 </div>
@@ -794,7 +794,7 @@ const exportButtonClick = async () => {
         justify-content: space-between;
         margin: 0.25rem;
     }
-    .sr-scatterplot-options-container {
+    .sr-scatterplot-cfg-container {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -803,7 +803,7 @@ const exportButtonClick = async () => {
         max-width: 100%; 
         margin: 0.25rem;
     }
-    .sr-scatterplot-options {
+    .sr-scatterplot-cfg {
         margin: 0 auto;    /*  center it */
     }
 

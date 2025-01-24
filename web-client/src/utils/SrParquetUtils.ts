@@ -198,7 +198,7 @@ export async function getDefaultElOptions(reqIdStr:string) : Promise<string[]>{
         const req_id = parseInt(reqIdStr);
         const funcStr = await db.getFunc(req_id);
         if (funcStr === 'atl06p') {
-            return ['h_mean','rms_misfit','h_sigma'];
+            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final'];
         } else if (funcStr === 'atl06sp') {
             return ['h_li'];
         } else if (funcStr=== 'atl03vp'){
