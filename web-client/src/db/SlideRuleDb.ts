@@ -204,7 +204,7 @@ export class SlideRuleDexie extends Dexie {
                 progressiveChunkMode: 'auto',
                 defaultAtl06Color: 'red',
                 defaultAtl06SymbolSize: 3,
-                defaultAtl08SymbolSize: 1,
+                defaultAtl08SymbolSize: 3,
                 defaultAtl03spSymbolSize: 1,
                 defaultAtl03vpSymbolSize: 3,
                 defaultGradientColorMapName: 'viridis',

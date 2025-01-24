@@ -58,7 +58,7 @@ export function initializeColorEncoding(reqIdStr:string,func:string){
     } else if(func.includes('atl03vp')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'segment_ph_cnt');
     } else if(func.includes('atl08')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'atl08_cnf');
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean_canopy');
     } else if(func.includes('atl06')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean');
     } else {
@@ -217,6 +217,8 @@ async function getGenericSeries({
             if(cedk === 'solid'){
                 thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
             } else {
+                console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
+                console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
                 const minValue = chartStore.getMinValue(reqIdStr, cedk);
                 const maxValue = chartStore.getMaxValue(reqIdStr, cedk);
                 thisColorFunction = colorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
