@@ -432,7 +432,7 @@ export const useReqParamsStore = defineStore('reqParams', {
 
           if(this.enableAtl08Classification) {
             if(this.atl08LandType.length>0){
-              req.alt08_class = this.atl08LandType;
+              req.atl08_class = this.atl08LandType;
             }
           }
           if(this.enableYAPC) {
