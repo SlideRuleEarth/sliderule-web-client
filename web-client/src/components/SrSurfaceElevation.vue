@@ -5,15 +5,22 @@ import { useReqParamsStore } from '../stores/reqParamsStore';
 import SrCheckbox from './SrCheckbox.vue';
 
 const reqParamsStore = useReqParamsStore();
-
+function presetValues() {
+    if (!reqParamsStore.enableSurfaceElevation) {
+        reqParamsStore.maxIterations = 3;
+        reqParamsStore.minWindowHeight = 3;
+        reqParamsStore.maxRobustDispersion = -1;
+    }
+}
 </script>
 <template>
     <div class="sr-surface-elevation-container">
         <div class="sr-surface-elevation-header">
             <SrCheckbox 
                 label="Surface Elevation Algorithm"
-                labelFontSize="large" 
                 v-model="reqParamsStore.enableSurfaceElevation"
+                @update:model-value="presetValues"
+                labelFontSize="large" 
                 tooltipText="The surface elevation of the selected photons"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
             />
@@ -25,6 +32,8 @@ const reqParamsStore = useReqParamsStore();
                 :insensitive="!reqParamsStore.enableSurfaceElevation"
                 :min="1"
                 :max="200"
+                :sliderMin="1"
+                :sliderMax="10"
                 :defaultValue="reqParamsStore.maxIterations" 
                 :decimalPlaces="0"
                 tooltipText="maxi: The maximum number of iterations, not including initial least-squares-fit selection"
@@ -36,6 +45,8 @@ const reqParamsStore = useReqParamsStore();
                 :insensitive="!reqParamsStore.enableSurfaceElevation"
                 :min="0"
                 :max="200"
+                :sliderMin="3"
+                :sliderMax="20"
                 :defaultValue="reqParamsStore.minWindowHeight" 
                 :decimalPlaces="0"
                 tooltipText="H_min_win: The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
