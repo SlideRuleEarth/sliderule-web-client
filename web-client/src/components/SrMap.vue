@@ -711,13 +711,25 @@
 }
 
 :deep( .ol-control.ol-layerswitcher ){
-  top: 2.25rem;
+  top: 2.5rem;
   bottom: auto;
   left: auto;
+  right:7rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px ;
+}
 
+:deep( .ol-control.ol-attribution){
+    bottom: 0.5rem;
+    top: auto;
+    left: auto;
+    right: 7rem;
+    background-color: transparent;
+    border-radius: var(--p-border-radius);
+    border: 1px;
+    border-color: black;
+    background-color:  color var(--p-primary-color);
 }
 
 :deep( .ol-control.ol-layerswitcher button ){
