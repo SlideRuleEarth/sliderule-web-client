@@ -21,7 +21,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -33,7 +33,6 @@
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
-    import SrLegendControl  from "./SrLegendControl.vue";
     import SrDrawControl from "@/components/SrDrawControl.vue";
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
@@ -481,6 +480,10 @@
                 //   map.addControl(plink);
                 // }
                 await updateThisMapView("SrMap onMounted");
+                map.on('moveend', () => {
+                    saveMapZoomState(map);
+                });
+
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -525,17 +528,6 @@
         if(map){
             //console.log("adding baseLayerControl");
             map.addControl(baseLayerControl);
-        } else {
-            console.error("Error:map is null");
-        }
-    };
-
-    const handleLegendControlCreated = (legendControl: any) => {
-        //console.log(legendControl);
-        const map = mapRef.value?.map;
-        if(map){
-            //console.log("adding legendControl");
-            map.addControl(legendControl);
         } else {
             console.error("Error:map is null");
         }
@@ -673,7 +665,6 @@
 
         <MapControls.OlScalelineControl />
         <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
-        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
         <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
         <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
     </Map.OlMap>
@@ -894,11 +885,7 @@
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
 }
-:deep(.sr-legend-control){
-  background: rgba(255, 255, 255, 0.25);
-  bottom: 0.5rem;
-  right: 2.5rem;
-}
+
 
 
 :deep(.ol-zoom .ol-zoom-in) {

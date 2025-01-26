@@ -125,11 +125,21 @@ export const useChartStore = defineStore('chartStore', {
         },
         getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].minMaxValues[key].min;
+            if(this.stateByReqId[reqIdStr].minMaxValues[key]){
+                return this.stateByReqId[reqIdStr].minMaxValues[key].min;
+            } else {
+                console.log('getMinValue() key:', key, ' not found in minMaxValues');
+                return 0;
+            }
         },
         getMaxValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].minMaxValues[key].max;
+            if(this.stateByReqId[reqIdStr].minMaxValues[key]){
+                return this.stateByReqId[reqIdStr].minMaxValues[key].max;
+            } else {
+                console.log('getMaxValue() key:', key, ' not found in minMaxValues');
+                return 0;
+            }
         },
         setDescription(reqIdStr: string, description: string) { 
             this.ensureState(reqIdStr);

@@ -7,7 +7,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Deck } from '@deck.gl/core';
-import { toLonLat } from 'ol/proj';
+import { toLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -728,7 +728,62 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
     console.log(`Total features: ${features.length}`);
 }
 
+export function saveMapZoomState(map:OLMap){
+    if(map){
+        const mapStore = useMapStore();
+        const view = map.getView();
+        const center = view.getCenter();
+        if(center){
+            mapStore.setCenterToRestore(center);
+        } else {
+            console.error("SrMap Error: center is null");
+        }
+        const zoom = view.getZoom();
+        if(zoom){
+            mapStore.setZoomToRestore(zoom);
+        } else {
+            console.error("SrMap Error: zoom is null");
+        }
+        console.log('saveMapZoomState center:',center,' zoom:',zoom);
+    } else {
+        console.error("SrMap Error: map is null");
+    }
+}
+
+export function restoreMapView(proj:ProjectionLike) : OlView | null {
+    const mapStore = useMapStore();
+    const extentToRestore = mapStore.getExtentToRestore();
+    const centerToRestore = mapStore.getCenterToRestore();
+    const zoomToRestore = mapStore.getZoomToRestore();
+    let newView = null;
+    // Validate the restore parameters
+    if (
+        extentToRestore === null ||
+        centerToRestore === null ||
+        zoomToRestore === null
+    ) {
+        console.warn('One or more restore parameters are null extent:',extentToRestore,' center:',centerToRestore,' zoom:',zoomToRestore);
+    } else if (
+        !extentToRestore.every(value => Number.isFinite(value))
+    ) {
+        console.warn('Invalid extentToRestore:', extentToRestore);
+    } else {
+        // All restore parameters are valid, create a new view
+        newView = new OlView({
+            projection: proj,
+            extent: extentToRestore,
+            center: centerToRestore,
+            zoom: zoomToRestore,
+        });
+        console.log('Restored view with extent:', extentToRestore);
+        console.log('Restored view with center:', centerToRestore);
+        console.log('Restored view with zoom:', zoomToRestore);
+    }
+    return newView;
+}
+
 export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
+    // This function is generic and shared between the two maps
     try {
         if(map){
             console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ altChartFilterStore.selectedReqIdStr:`,useAtlChartFilterStore().getReqIdStr());
@@ -817,43 +872,48 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 console.log('Initial newView center:', center);
                 console.log('Initial newView zoom:', srProjObj.default_zoom);
                 console.log('Initial newView:', newView);
+                useMapStore().setExtentToRestore(extent);
                 
-                if (reason === 'handleUpdateBaseLayer') {
-                    console.log('Restoring view for handleUpdateBaseLayer');
+                // if (reason === 'handleUpdateBaseLayer') {
+                //     console.log('Restoring view for handleUpdateBaseLayer');
                 
-                    const mapStore = useMapStore();
-                    const extentToRestore = mapStore.getExtentToRestore();
-                    const centerToRestore = mapStore.getCenterToRestore();
-                    const zoomToRestore = mapStore.getZoomToRestore();
+                //     const mapStore = useMapStore();
+                //     const extentToRestore = mapStore.getExtentToRestore();
+                //     const centerToRestore = mapStore.getCenterToRestore();
+                //     const zoomToRestore = mapStore.getZoomToRestore();
                 
-                    // Validate the restore parameters
-                    if (
-                        extentToRestore === null ||
-                        centerToRestore === null ||
-                        zoomToRestore === null
-                    ) {
-                        console.warn('One or more restore parameters are null');
-                    } else if (
-                        !extentToRestore.every(value => Number.isFinite(value))
-                    ) {
-                        console.warn('Invalid extentToRestore:', extentToRestore);
-                    } else {
-                        // All restore parameters are valid, create a new view
-                        newView = new OlView({
-                            projection: newProj,
-                            extent: extentToRestore,
-                            center: centerToRestore,
-                            zoom: zoomToRestore,
-                        });
-                        console.log('Restored view with extent:', extentToRestore);
-                        console.log('Restored view with center:', centerToRestore);
-                        console.log('Restored view with zoom:', zoomToRestore);
-                    }
+                //     // Validate the restore parameters
+                //     if (
+                //         extentToRestore === null ||
+                //         centerToRestore === null ||
+                //         zoomToRestore === null
+                //     ) {
+                //         console.warn('One or more restore parameters are null');
+                //     } else if (
+                //         !extentToRestore.every(value => Number.isFinite(value))
+                //     ) {
+                //         console.warn('Invalid extentToRestore:', extentToRestore);
+                //     } else {
+                //         // All restore parameters are valid, create a new view
+                //         newView = new OlView({
+                //             projection: newProj,
+                //             extent: extentToRestore,
+                //             center: centerToRestore,
+                //             zoom: zoomToRestore,
+                //         });
+                //         console.log('Restored view with extent:', extentToRestore);
+                //         console.log('Restored view with center:', centerToRestore);
+                //         console.log('Restored view with zoom:', zoomToRestore);
+                //     }
+                // }
+                const restoredView = restoreMapView(newProj);
+                if (restoredView) {
+                    newView = restoredView;
+                } else {
+                    console.warn('Failed to restore view for:', reason);
                 }
-                
                 console.log('Setting new view:', newView);
                 map.setView(newView);
-                
             } else {
                 if(!baseLayer){
                     console.error("Error:baseLayer is null");

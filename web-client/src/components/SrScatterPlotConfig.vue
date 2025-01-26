@@ -70,7 +70,7 @@ onMounted(() => {
         </FloatLabel>
         <SrCheckbox 
             class="sr-show-hide-ydata"
-            :defaultValue="true"
+            :defaultValue="false"
             label="Show Y Data menu"
             labelFontSize="small"
             tooltipText="Show or hide the Y Data selection in plot control"
