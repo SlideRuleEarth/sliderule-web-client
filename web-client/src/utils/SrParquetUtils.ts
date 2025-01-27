@@ -204,7 +204,7 @@ export async function getDefaultElOptions(reqIdStr:string) : Promise<string[]>{
         } else if (funcStr=== 'atl03vp'){
             return ['segment_ph_cnt'];
         } else if (funcStr=== 'atl03sp'){
-            return ['height','yapc_score','atl03_cnf','atl08_class'];
+            return ['height'];
         } else if (funcStr==='atl08p'){
             return ['h_mean_canopy'];
         } else if (funcStr===('gedi02ap')) {
