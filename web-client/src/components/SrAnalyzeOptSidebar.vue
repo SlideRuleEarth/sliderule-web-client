@@ -113,7 +113,7 @@ async function syncRouteToChartStore(newReqId: number) : Promise<number> {
         if(newMenuItem){
             if(atlChartFilterStore.setReqId(newReqId)){
                 console.log('Route ID changed to:', newReqId);
-                initChartStore();
+                await initChartStore();
             } else {
                 console.error("Invalid 1 (not in records) route parameter for 'id':", newReqId);
                 toast.add({ severity: 'error', summary: 'Invalid route', detail: `Invalid (not in records) route parameter for record:${newReqId}`, life: srToastStore.getLife()});

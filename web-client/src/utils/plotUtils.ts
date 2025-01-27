@@ -212,10 +212,10 @@ async function getGenericSeries({
             return yItems;
         }
         if(!colorFunction){
-            const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
+            const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
             let thisColorFunction;
             if(cedk === 'solid'){
-                thisColorFunction = (params: any) => useChartStore().getSolidSymbolColor(reqIdStr);
+                thisColorFunction = (params: any) => chartStore.getSolidSymbolColor(reqIdStr);
             } else {
                 console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
                 console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
@@ -291,8 +291,8 @@ export async function getSeriesForAtl03sp(
          * Store it in chartStore, or anywhere you like.
          */
         handleMinMaxRow: (reqId, row) => {
-            useChartStore().setMinX(reqId, 0);
-            useChartStore().setMaxX(
+            chartStore.setMinX(reqId, 0);
+            chartStore.setMaxX(
                 reqId,
                 row.max_x + row.max_segment_dist - row.min_segment_dist - row.min_x
             );
@@ -325,7 +325,7 @@ export async function getSeriesForAtl03sp(
             return [out,orderNdx];
         },
     };
-    const cedk = useChartStore().getSelectedColorEncodeData(reqIdStr);
+    const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){
         thisColorFunction = getColorUsingAtl03_cnf;
@@ -481,7 +481,7 @@ export async function initChartStore() {
             const request = await indexedDb.getRequest(reqId);
 
             if (!request) {
-                console.error(`No request found for reqId: ${reqIdStr}`);
+                console.error(`No request found for reqId: ${reqIdStr}`, request);
                 continue;
             }
 
@@ -504,15 +504,19 @@ export async function initChartStore() {
             } // No warning needed for missing description.
 
             if (num_bytes) {
-                useChartStore().setSize(reqIdStr, num_bytes);
+                chartStore.setSize(reqIdStr, num_bytes);
             } else {
-                console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
+                if(num_bytes===undefined){
+                    console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
+                }
             }
 
             if (cnt) {
-                useChartStore().setRecCnt(reqIdStr, cnt);
+                chartStore.setRecCnt(reqIdStr, cnt);
             } else {
-                console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+                if(cnt===undefined){
+                    console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+                }
             }
         } catch (error) {
             console.error(`Error processing reqId: ${reqIdStr}`, error);

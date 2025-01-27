@@ -324,7 +324,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         if(srReqRec.req_id) {
             if(runContext){
                 runContext.reqId = srReqRec.req_id;
-                db.addSrRunContext(runContext);
+                await db.addSrRunContext(runContext);
                 //atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);

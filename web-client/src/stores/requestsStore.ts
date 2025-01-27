@@ -63,7 +63,7 @@ export const useRequestsStore = defineStore('requests', {
       console.log('createNewSrRequestRecord() newReqId:', newReqId);
       if(newReqId){
         try{
-          this.reqs.push({req_id: newReqId, status: 'pending', func: '', parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+          this.reqs.push({req_id: newReqId, status: 'pending', func: '', cnt:0, parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
           await this.fetchReqs();  // Fetch the updated requests from the db
           const newReq = this.getReqById(newReqId);
           console.log('New req created:', newReq);

@@ -711,10 +711,9 @@
 }
 
 :deep( .ol-control.ol-layerswitcher ){
-  top: 2.5rem;
+  top: 2.25rem;
   bottom: auto;
   left: auto;
-  right:7rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px ;
@@ -724,7 +723,6 @@
     bottom: 0.5rem;
     top: auto;
     left: auto;
-    right: 7rem;
     background-color: transparent;
     border-radius: var(--p-border-radius);
     border: 1px;
