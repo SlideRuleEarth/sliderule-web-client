@@ -16,7 +16,7 @@
                     @update:modelValue="gradientColorMapChanged"
                     tooltipText="Gradient Color Map for scatter plot"
                 />
-                <SrSliderInput
+                <!-- <SrSliderInput
                     v-model="colorMapStore.numShadesForGradient"
                     label="Number of Shades"
                     @update:model-value="gradientNumShadesChanged"
@@ -26,7 +26,7 @@
                     inputWidth="5rem"
                     :step="1"
                     :tooltipText="`Number of Shades for Gradient Color Map`"
-                />
+                /> -->
             </div>
             <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
