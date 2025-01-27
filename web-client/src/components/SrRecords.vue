@@ -307,7 +307,7 @@ const tooltipRef = ref();
                     <i 
                       class="pi pi-trash"
                       @click="deleteReqAndChildren(slotProps.data.req_id)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Delete Requests')"
+                      @mouseover="tooltipRef.showTooltip($event, 'Delete this request and any of its children')"
                       @mouseleave="tooltipRef.hideTooltip"
                     ></i>
                 </template>
