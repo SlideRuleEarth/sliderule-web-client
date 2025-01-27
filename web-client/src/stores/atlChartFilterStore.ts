@@ -34,6 +34,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     selectedReqIdMenuItem:{label:'select a record',value:0} as SrMenuNumberItem,
   }),
 
+  getters: {
+    getReqIdMenuItems: (state): SrMenuNumberItem[] => {
+      return state.reqIdMenuItems;
+    },
+    getReqIds: (state): number[] => {
+      return state.reqIdMenuItems.map(item => item.value); // Extracts the numeric 'value' from each menu item
+    },
+  },
   actions: {
     setRgtOptionsWithNumbers(rgtOptions: number[]) {
       if (!Array.isArray(rgtOptions)) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, computed } from "vue";
+    import { ref, onMounted, computed, watch } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
@@ -13,7 +13,6 @@
     import { get as getProjection } from 'ol/proj.js';
     import { addLayersForCurrentView } from "@/composables/SrLayers";
     import { Layer as OLlayer } from 'ol/layer';
-    import { Layers, Sources, Styles } from "vue3-openlayers";
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
     import { Polygon as OlPolygon } from 'ol/geom';
@@ -40,9 +39,12 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { renderSvrReqPoly } from "@/utils/SrMapUtils";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
 
     interface SrDrawControlMethods {
         resetPicked: () => void;
@@ -76,6 +78,11 @@
     const drawVectorSource = new VectorSource({wrapX: false});
     const drawVectorLayer = new VectorLayer({
         source: drawVectorSource,
+    });
+
+    const recordsVectorSource = new VectorSource({wrapX: false});
+    const recordsLayer = new VectorLayer({
+        source: recordsVectorSource,
     });
     // Set a custom property, like 'name'
     const drawPolygon = new DrawType({
@@ -396,6 +403,8 @@
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         drawVectorLayer.set('name', 'Drawing Layer');
+        recordsLayer.set('name', 'Records Layer');
+        recordsLayer.set('title', 'Records Layer');
         Object.values(srProjections.value).forEach(projection => {
             console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
@@ -521,6 +530,22 @@
         }
     };
 
+    function addRecordPolys() : void {
+        const startTime = new Date().getTime();
+        const reqIds = atlChartFilterStore.getReqIds;
+
+        reqIds.forEach(reqId => {
+            console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
+            const map = mapRef.value?.map;
+            if(map){
+                renderSvrReqPoly(map, reqId);
+            }
+        });
+        const endTime = new Date().getTime();
+        console.log('SrMap updateThisMapView renderSvrReqPoly for reqIds:',reqIds,` took ${endTime - startTime} ms`);
+
+    }
+
     const updateThisMapView = async (reason:string) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
@@ -531,11 +556,8 @@
                 if(srViewKey.value){
                     await updateMapView(map,srViewKey.value,reason)
                     //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
-                    // thisView.on('change:resolution', function() {
-                    //     const zoomLevel = thisView.getZoom();
-                    //     console.log('Zoom level changed to:', zoomLevel);
-                    // });
                     map.addLayer(drawVectorLayer);
+                    map.addLayer(recordsLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                             
 
@@ -623,6 +645,12 @@
         } 
     };
 
+    // Watch for changes in reqIds and handle the logic
+    watch(() => atlChartFilterStore.getReqIds, (newReqIds, oldReqIds) => {
+        console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
+        addRecordPolys();
+    },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
+    
 </script>
 
 <template>
@@ -655,22 +683,6 @@
         <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
         <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
         <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
-
-        <Layers.OlVectorLayer title="Records Layer" name= 'Records Layer' :zIndex=999 >
-            <Sources.OlSourceVector :projection="computedProjName">
-                <Styles.OlStyle>
-                    <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-                    <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
-                </Styles.OlStyle>
-            </Sources.OlSourceVector>
-            <Styles.OlStyle>
-                <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-                <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-                <Styles.OlStyleCircle :radius="7">
-                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-                </Styles.OlStyleCircle>
-            </Styles.OlStyle>
-        </Layers.OlVectorLayer>
     </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
 </div>

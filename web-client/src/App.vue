@@ -68,8 +68,9 @@ onMounted(() => {
     checkUnsupported();
 });
 
-const requestButtonClick = () => {
+const requestButtonClick = async () => {
   console.log('Request button clicked');
+  atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
   router.push('/request'); 
 };
 

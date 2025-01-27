@@ -748,10 +748,15 @@ export class SlideRuleDexie extends Dexie {
     async getSvrReqPoly(req_id:number): Promise<SrRegion> {
         try {
             const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
-            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
-            if(svrParmsUsed.server.rqst.parms){
+            if(svrParmsUsedStr){
+                const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
                 if(svrParmsUsed.server.rqst.parms){
-                    return svrParmsUsed.server.rqst.parms.poly;
+                    if(svrParmsUsed.server.rqst.parms){
+                        return svrParmsUsed.server.rqst.parms.poly;
+                    } else {
+                        console.error(`No svr_parms found with req_id ${req_id}`);
+                        return {} as SrRegion;
+                    }
                 } else {
                     console.error(`No svr_parms found with req_id ${req_id}`);
                     return {} as SrRegion;

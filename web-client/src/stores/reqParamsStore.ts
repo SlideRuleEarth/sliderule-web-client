@@ -223,6 +223,8 @@ export const useReqParamsStore = defineStore('reqParams', {
                 this.setPoly(poly);
                 this.setConvexHull(convexHull(poly));
                 this.setAreaOfConvexHull(calculatePolygonArea(poly));
+            } else {
+                console.error('presetForScatterPlotOverlay: no poly for req_id:', req_id);
             }
 
 

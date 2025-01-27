@@ -7,7 +7,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Deck } from '@deck.gl/core';
-import { toLonLat, type ProjectionLike } from 'ol/proj';
+import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -748,7 +748,7 @@ export function saveMapZoomState(map:OLMap){
         } else {
             console.error("SrMap Error: zoom is null");
         }
-        console.log('saveMapZoomState center:',center,' zoom:',zoom);
+        //console.log('saveMapZoomState center:',center,' zoom:',zoom);
     } else {
         console.error("SrMap Error: map is null");
     }
@@ -786,39 +786,134 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
     return newView;
 }
 
-export function renderRequestPolygon(map: OLMap, poly: {lon:number, lat:number}[]): void {
+// export function renderRequestPolygon(map: OLMap, poly: {lon:number, lat:number}[]): void {
+//     let flatLonLatPairs;
+
+//     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+//     if (!vectorLayer) {
+//         console.error('renderRequestPolygon Records Layer not found');
+//         return;
+//     }
+//     if (!Array.isArray(poly)) {
+//         console.error('renderRequestPolygon Invalid polygon data: poly is not an array');
+//         return;
+//     }
+
+//     // Convert `poly` to OpenLayers `Coordinate[]`
+//     const coordinates: Coordinate[] = poly.map(point => [point.lon, point.lat]);
+
+//     // Ensure the first and last points are the same to close the polygon
+//     if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
+//         coordinates.push(coordinates[0]); // Close the loop
+//     }
+
+//     if (vectorLayer && vectorLayer instanceof OLlayer) {
+//         const vectorSource = vectorLayer.getSource();
+//         if (vectorSource) {
+//             //vectorSource.clear();
+
+//             // Wrap the coordinates array in another array to represent a polygon ring
+//             const feature = new Feature({
+//                 geometry: new OlPolygon([coordinates]),
+//             });
+//             const geometry = feature.getGeometry() as OlPolygon;
+//             console.log("renderRequestPolygon geometry:", geometry);
+//             // Check if the geometry is a polygon
+//             if (geometry && geometry.getType() === 'Polygon') {
+//                 //console.log("geometry:",geometry);
+//                 // Get the coordinates of all the rings of the polygon
+//                 const rings = geometry.getCoordinates(); // This retrieves all rings
+//                 console.log("renderRequestPolygon Original polyCoords:", rings);
+
+//                 const projName = useMapStore().getSrViewObj().projectionName;
+//                 let thisProj = getProjection(projName);
+//                 if(thisProj){
+//                     console.log("renderRequestPolygon thisProj:",thisProj, ' projName:',projName, ' units:',thisProj.getUnits());
+//                     const projection = map.getView().getProjection();
+//                     console.log('map projection:', projection.getCode(), projection.getUnits());
+                    
+//                     if(thisProj.getUnits() === 'degrees'){
+//                         flatLonLatPairs = rings.flatMap(ring => ring);
+//                     } else {
+//                         //Convert each ring's coordinates to lon/lat using toLonLat
+//                         const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
+//                             ring.map(coord => fromLonLat(coord) as Coordinate)
+//                         );
+//                         console.log("Converted polyCoords:", convertedRings);
+//                         flatLonLatPairs = convertedRings.flatMap(ring => ring);
+//                     }
+//                 } else {
+//                     console.error('Invalid projection:', projName);
+//                 }
+//             } else {
+//                 console.error('Invalid geometry:', geometry);
+//             }
+//             vectorSource.addFeature(feature);
+//             console.log('renderRequestPolygon Added feature to vectorSource:', vectorSource, ' feature:', feature);
+//         } else {
+//             console.error('Records Layer source not found');
+//         }
+//     } else {
+//         console.error('Records Layer not found');
+//     }
+//     console.log('renderRequestPolygon Done rendering polygon:', flatLonLatPairs);
+// }
+
+
+export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[]): void {
+    // 1. Find your vector layer
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
     if (!vectorLayer) {
-        console.error('renderRequestPolygon Records Layer not found');
+      console.error('renderRequestPolygon: "Records Layer" not found');
+      return;
+    }
+    // 2. Get the source
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error('Records Layer source not found');
         return;
+    
     }
-    if (!Array.isArray(poly)) {
-        console.error('renderRequestPolygon Invalid polygon data: poly is not an array');
-        return;
+    const vectorSource = vectorLayer.getSource();
+    // 3. Ensure the polygon is closed
+    const originalCoordinates: Coordinate[] = poly.map(p => [p.lon, p.lat]);
+    if (originalCoordinates.length > 0) {
+      const first = originalCoordinates[0];
+      const last = originalCoordinates[originalCoordinates.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) {
+        originalCoordinates.push(first); // close the loop
+      }
     }
 
-    // Convert `poly` to OpenLayers `Coordinate[]`
-    const coordinates: Coordinate[] = poly.map(point => [point.lon, point.lat]);
-
-    // Ensure the first and last points are the same to close the polygon
-    if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
-        coordinates.push(coordinates[0]); // Close the loop
+    // 4. Transform coordinates FROM lat/lon TO map's projection if needed
+    const projection = map.getView().getProjection();
+    let coordinates: Coordinate[];
+    if (projection.getUnits() !== 'degrees') {
+      // e.g. if the map is in EPSG:3857 or meters, transform from lat/lon
+      coordinates = originalCoordinates.map(coord => fromLonLat(coord));
+    } else {
+      // already in lat/lon
+      coordinates = originalCoordinates;
     }
 
-    if (vectorLayer && vectorLayer instanceof OLlayer) {
-        const vectorSource = vectorLayer.getSource();
-        if (vectorSource) {
-            vectorSource.clear();
+    // 5. Create the Polygon feature
+    const polygon = new OlPolygon([coordinates]);
+    const feature = new Feature({ geometry: polygon });
+    vectorSource.addFeature(feature);
 
-            // Wrap the coordinates array in another array to represent a polygon ring
-            const feature = new Feature({
-                geometry: new OlPolygon([coordinates]),
-            });
+    // 6. (Optionally) zoom to the new polygon
+    //map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
 
-            vectorSource.addFeature(feature);
+    console.log('renderRequestPolygon: feature added', feature);
+}
+
+export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
+    const poly = await db.getSvrReqPoly(reqId);
+    if(poly){
+        if(map){
+            renderRequestPolygon(map, poly);
         }
     } else {
-        console.error('Records Layer not found');
+        console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
     }
 }
 
