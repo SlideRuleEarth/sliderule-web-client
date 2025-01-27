@@ -12,28 +12,35 @@ const chartStore = useChartStore();
 
 
 // Define props with TypeScript types
-const props = defineProps<{
-  req_id: number;
-}>();
+const props = withDefaults(
+    defineProps<{
+        reqId: number;
+        isOverlay?: boolean;
+    }>(),
+    {
+        reqId: 0,
+        isOverlay: false,
+    }
+);
 
 const computedReqIdStr = computed(() => {
-    return props.req_id.toString();
+    return props.reqId.toString();
 });
 
 const computedFunc = computed(() => {
-    return chartStore.getFunc(props.req_id.toString());
+    return chartStore.getFunc(props.reqId.toString());
 });
 
 const computedLabel = computed(() => {
-  return `Plot Configuration for ${props.req_id} - ${computedFunc.value}`;
+  return `Plot Configuration for ${props.reqId} - ${computedFunc.value}`;
 });
 
 const computedElId = computed(() => {
-    return `srYdataItems-${props.req_id}`;
+    return `srYdataItems-${props.reqId}`;
 });
 
 const computedMainLabel = computed(() => {
-    return `Available Y data options for ${findReqMenuLabel(props.req_id)}`;
+    return `Available Y data options for ${findReqMenuLabel(props.reqId)}`;
 });
 
 async function onMainYDataSelectionChange(newValue: string[]) {
@@ -42,7 +49,7 @@ async function onMainYDataSelectionChange(newValue: string[]) {
 }
 
 onMounted(() => {
-    console.log('SrScatterPlotOptions onMounted props.req_id:', props.req_id);
+    console.log('SrScatterPlotOptions onMounted props.reqId:', props.reqId);
     console.log('SrScatterPlotOptions onMounted computedReqIdStr:', computedReqIdStr.value);
 });
 
@@ -59,7 +66,7 @@ onMounted(() => {
         <FloatLabel >
             <MultiSelect class="sr-multiselect"
                 :placeholder="`${computedMainLabel}`"
-                :id="`srYdataItems-${req_id}`"
+                :id="`srYdataItems-${reqId}`"
                 v-model="yDataBindingsReactive[computedReqIdStr]"
                 size="small" 
                 :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
@@ -68,7 +75,8 @@ onMounted(() => {
             />
             <label :for=computedElId>{{`${computedMainLabel}`}}</label>
         </FloatLabel>
-        <SrCheckbox 
+        <SrCheckbox
+            v-if="(!props.isOverlay)" 
             class="sr-show-hide-ydata"
             :defaultValue="false"
             label="Show Y Data menu"

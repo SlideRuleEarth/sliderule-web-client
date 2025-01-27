@@ -598,14 +598,15 @@ const exportButtonClick = async () => {
                 <div class="sr-scatterplot-cfg">
                     <SrScatterPlotConfig
                         v-if="isMounted" 
-                        :req_id="Number(computedReqIdStr)"
+                        :reqId="Number(computedReqIdStr)"
                     />
                 </div>
 
                 <!-- SrScatterPlotConfig for each overlayed req_id -->
                 <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                     <SrScatterPlotConfig 
-                        :req_id="overlayedReqId" 
+                        :reqId="overlayedReqId"
+                        :isOverlay="true" 
                     />
                 </div>
             </div>        
