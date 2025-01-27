@@ -209,19 +209,19 @@
             </SrLegendControl>
             <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
             <Layers.OlVectorLayer title="Drawing Layer" name= 'Drawing Layer' :zIndex=999 >
-            <Sources.OlSourceVector :projection="computedProjName">
+                <Sources.OlSourceVector :projection="computedProjName">
+                    <Styles.OlStyle>
+                        <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+                        <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+                    </Styles.OlStyle>
+                </Sources.OlSourceVector>
                 <Styles.OlStyle>
-                    <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
-                    <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+                    <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+                    <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+                    <Styles.OlStyleCircle :radius="7">
+                    <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+                    </Styles.OlStyleCircle>
                 </Styles.OlStyle>
-            </Sources.OlSourceVector>
-            <Styles.OlStyle>
-                <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
-                <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
-                <Styles.OlStyleCircle :radius="7">
-                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
-                </Styles.OlStyleCircle>
-            </Styles.OlStyle>
             </Layers.OlVectorLayer>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>

@@ -13,6 +13,7 @@
     import { get as getProjection } from 'ol/proj.js';
     import { addLayersForCurrentView } from "@/composables/SrLayers";
     import { Layer as OLlayer } from 'ol/layer';
+    import { Layers, Sources, Styles } from "vue3-openlayers";
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
     import { Polygon as OlPolygon } from 'ol/geom';
@@ -236,19 +237,6 @@
                     // Get the coordinates of all the rings of the polygon
                     const rings = geometry.getCoordinates(); // This retrieves all rings
                     console.log("Original polyCoords:", rings);
-
-                    // Convert each ring's coordinates to lon/lat using toLonLat
-                    // const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-                    //     ring.map(coord => toLonLat(coord) as Coordinate)
-                    // );
-                    // console.log("Converted polyCoords:", convertedRings);
-                    // mapStore.polyCoords = convertedRings;
-                    // const flatLonLatPairs = convertedRings.flatMap(ring => ring);
-                    // const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
-                    //     lon: coord[0],
-                    //     lat: coord[1]
-                    // }));
-                    
 
                     const projName = useMapStore().getSrViewObj().projectionName;
                     let thisProj = getProjection(projName);
@@ -667,6 +655,22 @@
         <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
         <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
         <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
+
+        <Layers.OlVectorLayer title="Records Layer" name= 'Records Layer' :zIndex=999 >
+            <Sources.OlSourceVector :projection="computedProjName">
+                <Styles.OlStyle>
+                    <Styles.OlStyleStroke color="blue" :width="2"></Styles.OlStyleStroke>
+                    <Styles.OlStyleFill color="rgba(255, 255, 0, 0.4)"></Styles.OlStyleFill>
+                </Styles.OlStyle>
+            </Sources.OlSourceVector>
+            <Styles.OlStyle>
+                <Styles.OlStyleStroke color="red" :width="2"></Styles.OlStyleStroke>
+                <Styles.OlStyleFill color="rgba(255,255,255,0.1)"></Styles.OlStyleFill>
+                <Styles.OlStyleCircle :radius="7">
+                <Styles.OlStyleFill color="red"></Styles.OlStyleFill>
+                </Styles.OlStyleCircle>
+            </Styles.OlStyle>
+        </Layers.OlVectorLayer>
     </Map.OlMap>
   <div class="sr-tooltip-style" id="tooltip"></div>
 </div>

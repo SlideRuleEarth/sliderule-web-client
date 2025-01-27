@@ -213,23 +213,19 @@ export const useReqParamsStore = defineStore('reqParams', {
             this.setEnableGranuleSelection(true);
             this.setUseRgt(true);
             this.setUseCycle(true);
-            const svrParmsUsedStr = await db.getSvrParams(req_id) as unknown as string;
-            //console.log(' presetForScatterPlotOverlay typeof svrParmsUsed:', typeof svrParmsUsedStr);
-            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
             // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
-            if(svrParmsUsed.server.rqst.parms){
-                if(svrParmsUsed.server.rqst.parms.poly){
-                    this.setPoly(svrParmsUsed.server.rqst.parms.poly);
-                    this.setConvexHull(convexHull(svrParmsUsed.server.rqst.parms.poly));
-                } else {
-                    console.error('presetForScatterPlotOverlay: reqParmsUsed.parms.poly is null');
-                }
-            } else {
-                console.error('presetForScatterPlotOverlay: reqParmsUsed.parms is null');
+
+            const poly = await db.getSvrReqPoly(req_id);
+            if(poly){
+                this.setPoly(poly);
+                this.setConvexHull(convexHull(poly));
+                this.setAreaOfConvexHull(calculatePolygonArea(poly));
             }
+
+
             // console.log('beams:', useAtlChartFilterStore().getBeams());
             // console.log('rgts:', useAtlChartFilterStore().getRgts());
             // console.log('cycles:', useAtlChartFilterStore().getCycles());

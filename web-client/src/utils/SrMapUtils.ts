@@ -36,6 +36,10 @@ import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
 import { clearPlot } from '@/utils/plotUtils';
+import type { SrSvrParmsUsed } from '@/types/SrTypes';
+import { Polygon as OlPolygon } from 'ol/geom';
+import { db } from '@/db/SlideRuleDb';
+import type { Coordinate } from 'ol/coordinate';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -780,6 +784,42 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
         console.log('Restored view with zoom:', zoomToRestore);
     }
     return newView;
+}
+
+export function renderRequestPolygon(map: OLMap, poly: {lon:number, lat:number}[]): void {
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    if (!vectorLayer) {
+        console.error('renderRequestPolygon Records Layer not found');
+        return;
+    }
+    if (!Array.isArray(poly)) {
+        console.error('renderRequestPolygon Invalid polygon data: poly is not an array');
+        return;
+    }
+
+    // Convert `poly` to OpenLayers `Coordinate[]`
+    const coordinates: Coordinate[] = poly.map(point => [point.lon, point.lat]);
+
+    // Ensure the first and last points are the same to close the polygon
+    if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
+        coordinates.push(coordinates[0]); // Close the loop
+    }
+
+    if (vectorLayer && vectorLayer instanceof OLlayer) {
+        const vectorSource = vectorLayer.getSource();
+        if (vectorSource) {
+            vectorSource.clear();
+
+            // Wrap the coordinates array in another array to represent a polygon ring
+            const feature = new Feature({
+                geometry: new OlPolygon([coordinates]),
+            });
+
+            vectorSource.addFeature(feature);
+        }
+    } else {
+        console.error('Records Layer not found');
+    }
 }
 
 export async function updateMapView(map:OLMap, srViewKey:string, reason:string){

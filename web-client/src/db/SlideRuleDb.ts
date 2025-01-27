@@ -3,6 +3,8 @@ import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateRespo
 import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import type { SrSvrParmsUsed } from '@/types/SrTypes';
+import type { SrRegion } from '@/sliderule/icesat2';
+
 export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{
     days : number,
@@ -736,6 +738,27 @@ export class SlideRuleDexie extends Dexie {
             } else {
                 console.error(`No request found with req_id ${req_id}`);
                 return {} as NullReqParams;
+            }
+        } catch (error) {
+            console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    async getSvrReqPoly(req_id:number): Promise<SrRegion> {
+        try {
+            const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
+            const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
+            if(svrParmsUsed.server.rqst.parms){
+                if(svrParmsUsed.server.rqst.parms){
+                    return svrParmsUsed.server.rqst.parms.poly;
+                } else {
+                    console.error(`No svr_parms found with req_id ${req_id}`);
+                    return {} as SrRegion;
+                }
+            } else {
+                console.error(`No svr_parms found with req_id ${req_id}`);
+                return {} as SrRegion;
             }
         } catch (error) {
             console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
