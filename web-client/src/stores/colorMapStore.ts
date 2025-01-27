@@ -195,7 +195,7 @@ export const useColorMapStore = defineStore('colorMapStore', {
         },
         async restoreDefaultAtl08ClassColorMap() {
             await db.restoreDefaultAtl08ClassColors();
-            this.atl03CnfColorMap = await db.getAllAtl08ClassColors();
+            this.atl08ClassColorMap = await db.getAllAtl08ClassColors();
         },
         async restoreDefaultGradientColorMap() {
             await db.restoreDefaultGradientColorMap();
