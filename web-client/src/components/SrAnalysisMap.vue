@@ -12,11 +12,10 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-    import { SrMenuNumberItem } from "@/types/SrTypes";
+    import { SrPrimeTreeNode } from "@/types/SrTypes";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
+    import { Map, MapControls } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
@@ -26,6 +25,8 @@
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrParquetUtils";
+    import { useRecTreeStore } from "@/stores/recTreeStore";
+
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -43,6 +44,7 @@
     const mapStore = useMapStore();
     const chartStore = useChartStore();
     const requestsStore = useRequestsStore();
+    const recTreeStore = useRecTreeStore();
     const controls = ref([]);
 
     const handleEvent = (event: any) => {
@@ -50,13 +52,11 @@
     };
     const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
 
-    const atlChartFilterStore = useAtlChartFilterStore();
     const elevationIsLoading = computed(() => mapStore.getIsLoading());
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedReqIdStr = computed(() => atlChartFilterStore.getReqIdStr());
-    const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
+    const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
     const computedHFieldName = computed(() => {
         return getHFieldName(computedFunc.value);
     });
@@ -65,28 +65,32 @@
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-            return `${loadStateStr.value} Record:${computedReqIdStr.value} - ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
+            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
         } else {
-            return `${loadStateStr.value} Record:${computedReqIdStr.value} - ${computedFunc.value} (${currentRowsFormatted} pnts)`;
+            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${computedFunc.value} (${currentRowsFormatted} pnts)`;
         }
     });
-    const emit = defineEmits<{
-        (e: 'update-record-selection', menuItem: SrMenuNumberItem): void;
-    }>();
+    
+    const props = withDefaults(
+        defineProps<{
+            selectedReqId: number;
+        }>(),
+        {
+            selectedReqId: 0,
+        }
+    );
 
-    const props = defineProps({
-        selectedReqIdItem: {
-            type: Object as () => SrMenuNumberItem,
-            required: true
-        }
-    });
 
     // Watch for changes on reqId
-    watch( () => props.selectedReqIdItem, async (newReqId, oldReqId) => {
-        const msg = `props.selectedReqIdItem reqId changed from: label:${oldReqId.label} value:${oldReqId.value} to label:${newReqId.label} value:${newReqId.value}`;
+    watch( () => props.selectedReqId, async (newReqId, oldReqId) => {
+        const msg = `props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
         console.log(msg);
-        if(newReqId.value !== oldReqId.value){
-            await updateAnalysisMapView(msg);
+        if(newReqId !== oldReqId){
+            if(newReqId > 0){
+                await updateAnalysisMapView(msg);
+            } else {
+                console.error("Error: SrAnalysisMap selectedReqId is 0?");
+            }
         }
     });
 
@@ -103,7 +107,7 @@
     });
 
     onMounted(async () => {
-        console.log("SrAnalysisMap onMounted using selectedReqIdItem:",props.selectedReqIdItem);
+        console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
@@ -138,22 +142,17 @@
         }
     };
 
-    function handleUpdateRecordSelector(recordItem: SrMenuNumberItem) {
-        console.log("handleUpdateRecordSelector",recordItem);
-        //const reqId = parseInt(recordItem.value);
-        //console.log("handleUpdateRecordSelector reqId:",reqId);
-        //emit('update-record-selection', recordItem);
-    };
+
 
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
-        let srViewName = await db.getSrViewName(props.selectedReqIdItem.value);
-        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqIdItem:`,props.selectedReqIdItem);
+        let srViewName = await db.getSrViewName(props.selectedReqId);
+        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqId:`,props.selectedReqId);
 
         try {
             if(map){
                 await updateMapView(map, srViewName, reason);
-                zoomMapForReqIdUsingView(map, props.selectedReqIdItem.value,srViewName);
+                zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
                 initDeck(map);
             } else {
                 console.error("SrMap Error:map is null");
@@ -169,7 +168,7 @@
             console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
             console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
         }
-        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqIdItem:${props.selectedReqIdItem} ------`);
+        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqId:${props.selectedReqId} ------`);
     };
 </script>
 
@@ -204,11 +203,11 @@
             <MapControls.OlScalelineControl />
             <SrLegendControl 
                 @legend-control-created="handleLegendControlCreated"
-                :reqIdStr="computedReqIdStr"
+                :reqIdStr="recTreeStore.selectedReqIdStr"
                 :data_key="computedHFieldName"   
             >
             </SrLegendControl>
-            <SrRecSelectControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
+            <SrRecSelectControl @record-selector-control-created="handleRecordSelectorControlCreated" />
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">

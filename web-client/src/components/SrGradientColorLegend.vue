@@ -16,17 +16,6 @@
                     @update:modelValue="gradientColorMapChanged"
                     tooltipText="Gradient Color Map for scatter plot"
                 />
-                <!-- <SrSliderInput
-                    v-model="colorMapStore.numShadesForGradient"
-                    label="Number of Shades"
-                    @update:model-value="gradientNumShadesChanged"
-                    :min="getFormattedMinValue"
-                    :max="getFormattedMaxValue"
-                    sliderWidth="5rem"
-                    inputWidth="5rem"
-                    :step="1"
-                    :tooltipText="`Number of Shades for Gradient Color Map`"
-                /> -->
             </div>
             <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
@@ -37,13 +26,11 @@
   
 <script setup lang="ts">
 
-import { onMounted, computed } from 'vue';
+import { onMounted } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import { useChartStore } from '@/stores/chartStore';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
-import SrSliderInput from './SrSliderInput.vue';
 import Button from 'primevue/button';
 import SrLegendBox from './SrLegendBox.vue';
 
@@ -61,14 +48,9 @@ const props = withDefaults(
     }
 );
 
-const chartStore = useChartStore();
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
 const colorMapStore = useColorMapStore();
-const gradientStyle = computed(() => {
-    const style = colorMapStore.getColorGradientStyle();
-    console.log('--> computed: colorMapStore.getColorGradientStyle() :', style);
-    return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
-  });
+
   
 
 onMounted(async () => {
@@ -79,17 +61,6 @@ onMounted(async () => {
     //console.log('Mounted SrGradientColorCntrl colors:', colorMapStore.getGradientColorMap());
 });
 
-const getFormattedMinValue = computed(() => {
-    const minValue = chartStore.getMinValue(props.req_id.toString(), props.data_key);
-    return minValue !== null && minValue !== undefined ? parseFloat(minValue.toFixed(1)) : 0;
-});
-
-const getFormattedMaxValue = computed(() => {
-    const maxValue = chartStore.getMaxValue(props.req_id.toString(), props.data_key);
-    return maxValue !== null && maxValue !== undefined ? parseFloat(maxValue.toFixed(1)) : 0;
-});
-
-
 const gradientColorMapChanged = () => {
     colorMapStore.updateGradientColorMapValues();
     emit('gradient-color-map-changed');
@@ -98,11 +69,6 @@ const gradientColorMapChanged = () => {
 const gradientDefaultsRestored = () => {
     colorMapStore.restoreDefaultGradientColorMap();
     emit('restore-gradient-color-defaults-click');
-};
-
-const gradientNumShadesChanged = () => {
-    colorMapStore.updateGradientColorMapValues();
-    emit('gradient-num-shades-changed');
 };
 
 

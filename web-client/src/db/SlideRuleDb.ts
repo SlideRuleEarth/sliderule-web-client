@@ -1103,7 +1103,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const runContext = await this.runContexts.where('reqId').equals(reqId).first();
             if (!runContext) {
-                console.log(`No run context found for req_id ${reqId}`);
+                //console.log(`No run context found for req_id ${reqId}`);
             }
             return runContext;
         } catch (error) {

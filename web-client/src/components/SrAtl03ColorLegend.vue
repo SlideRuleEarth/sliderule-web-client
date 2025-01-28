@@ -38,6 +38,7 @@ import Dialog from 'primevue/dialog';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
+import { getColorForAtl03CnfValue } from '@/utils/colorUtils';
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
 const colorMapStore = useColorMapStore();
@@ -53,9 +54,6 @@ onMounted(async () => {
 
 const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
 
-const getColorForAtl03CnfValue = (value: number): string => {
-    return colorMapStore.getColorForAtl03CnfValue(value);
-};
 
 const formatLabel = (label: string): string => {
     return label.replace(/^atl03_/, '').replace(/_/g, ' ');

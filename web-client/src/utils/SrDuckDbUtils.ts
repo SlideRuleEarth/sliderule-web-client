@@ -25,10 +25,10 @@ interface SummaryRowData {
     numPoints: number;
 }
 const srMutex = new SrMutex();
-const chartStore = useChartStore();
 
 async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
     try {
+        const chartStore = useChartStore();
         // Update elevation data options in the chart store
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
 
@@ -322,6 +322,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
+        const chartStore = useChartStore();
         const rgts = chartStore.getRgtValues(reqIdStr);
         const cycles = chartStore.getCycleValues(reqIdStr); 
         if(func.includes('atl06')){

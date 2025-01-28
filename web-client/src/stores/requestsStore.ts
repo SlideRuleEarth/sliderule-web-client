@@ -152,7 +152,8 @@ export const useRequestsStore = defineStore('requests', {
             return {
               label: `${id.toString()} - ${funcStr}`,
               value: id,
-              parentReqId, // Optional
+              parentReqId: parentReqId,
+              api: funcStr,
             } as SrMenuNumberItem; // Explicitly cast to SrMenuNumberItem
           }
     

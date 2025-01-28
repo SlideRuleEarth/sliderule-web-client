@@ -9,17 +9,15 @@ import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { useRequestsStore } from "@/stores/requestsStore";
 import { useDeviceStore } from '@/stores/deviceStore';
-import { useRecTreeStore } from '@/stores/recTreeStore';
-import { buildRecTree, updateRecMenu } from "@/utils/recTreeUtils";
+
+import { useRecTreeStore } from "@/stores/recTreeStore";
 
 const srToastStore = useSrToastStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const requestsStore = useRequestsStore();
+const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
-const recTreeStore = useRecTreeStore();
 
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -60,13 +58,14 @@ const detectBrowserAndOS = () => {
 
 };
 
-onMounted(() => {
+onMounted(async () => {
+    const reqId = await recTreeStore.updateRecMenu('from App');// 
     // Get the computed style of the document's root element
     const rootStyle = window.getComputedStyle(document.documentElement);
     // Extract the font size from the computed style
     const fontSize = rootStyle.fontSize;
     // Log the font size to the console
-    console.log(`App.vue onMounted Current root font size: ${fontSize}`);
+    console.log(`App.vue onMounted Current root font size: ${fontSize} reqId: ${reqId}`);
     detectBrowserAndOS();
     checkUnsupported();
 });
@@ -82,23 +81,13 @@ const recordButtonClick = () => {
 
 const analysisButtonClick = async () => {
     try{
-        if (atlChartFilterStore.getReqId()>0) {
-            router.push(`/analyze/${atlChartFilterStore.getReqIdStr()}`);
-        } else {
-            //atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-            //if (atlChartFilterStore.reqIdMenuItems.length === 0) {
-            const len = await updateRecMenu();
-            if(len === 0){
-                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
-                return;
-            }  
-            const reqId = atlChartFilterStore.reqIdMenuItems[0].value;
+        const reqId =recTreeStore.selectedReqId;
+        if (reqId>0) {
+            router.push(`/analyze/${reqId.toString()}`);
+        } else { 
+            const reqId = recTreeStore.selectedReqId;
             if (reqId > 0) {
-                if(atlChartFilterStore.setReqId(reqId)){
-                    router.push(`/analyze/${reqId.toString()}`);
-                } else {
-                    toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
-                }
+                router.push(`/analyze/${reqId.toString()}`);
             } else {
                 toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
             }

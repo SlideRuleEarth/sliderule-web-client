@@ -43,10 +43,12 @@
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import { renderSvrReqPoly,addFeatureClickListener } from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
+    import { useRecTreeStore } from "@/stores/recTreeStore";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
     const atlChartFilterStore = useAtlChartFilterStore();
+    const recTreeStore = useRecTreeStore();
 
     interface SrDrawControlMethods {
         resetPicked: () => void;
@@ -544,9 +546,9 @@
         }
     };
 
-    function addRecordPolys() : void {
+    async function addRecordPolys() : Promise<void> {
         //const startTime = new Date().getTime();
-        const reqIds = atlChartFilterStore.getReqIds;
+        const reqIds = recTreeStore.allReqIds;
 
         reqIds.forEach(reqId => {
             //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
@@ -660,7 +662,7 @@
     };
 
     // Watch for changes in reqIds and handle the logic
-    watch(() => atlChartFilterStore.getReqIds, (newReqIds, oldReqIds) => {
+    watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
         console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
         addRecordPolys();
     },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially

@@ -37,13 +37,13 @@ import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
 import { clearPlot } from '@/utils/plotUtils';
-import type { SrSvrParmsUsed } from '@/types/SrTypes';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 
 
 
@@ -342,7 +342,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     
-    const reqIdStr = useAtlChartFilterStore().getReqIdStr();
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
     //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
@@ -903,7 +903,7 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
     // This function is generic and shared between the two maps
     try {
         if(map){
-            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ altChartFilterStore.selectedReqIdStr:`,useAtlChartFilterStore().getReqIdStr());
+            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ useRecTreeStore().selectedReqIdStr:`,useRecTreeStore().selectedReqIdStr);
             const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);

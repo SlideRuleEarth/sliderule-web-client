@@ -78,11 +78,13 @@ export interface Region {
     label: string;
     value: number;
     parentReqId?: number;
+    api?: string;
   }
   export interface SrPrimeTreeNode {
-    key?: string;
-    label?: string;
-    data?: any;
+    key: string;
+    label: string;
+    data: any;
     children?: SrPrimeTreeNode[];
+    api?: string;
     [key: string]: any; // For additional properties
   }
