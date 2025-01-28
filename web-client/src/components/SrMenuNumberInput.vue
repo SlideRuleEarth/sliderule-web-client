@@ -22,7 +22,7 @@
 <script setup lang="ts">
     import { onMounted,computed,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    import { SrMenuNumberItem } from '@/stores/atlChartFilterStore';
+    import { SrMenuNumberItem } from "@/types/SrTypes";
 
 
     const props = defineProps({

@@ -9,7 +9,8 @@ import { db } from '@/db/SlideRuleDb';
 import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
-import { SrMenuNumberItem, useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { SrMenuNumberItem } from "@/types/SrTypes";
 import { useDeckStore } from '@/stores/deckStore';
 import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
@@ -33,6 +34,7 @@ import { getHeightFieldname } from "@/utils/SrParquetUtils";
 import { initChartStore } from '@/utils/plotUtils';
 import { useRequestsStore } from '@/stores/requestsStore';
 import Card from 'primevue/card';
+import { updateRecMenu } from '@/utils/recTreeUtils';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -103,8 +105,10 @@ async function syncRouteToChartStore(newReqId: number) : Promise<number> {
             toast.add({ severity: 'error', summary: 'Invalid route', detail: `Invalid (NaN) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
             return 0;
         }
-        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-        if(atlChartFilterStore.reqIdMenuItems.length === 0){
+        //atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+        //if(atlChartFilterStore.reqIdMenuItems.length === 0){
+        const len = await updateRecMenu();
+        if(len === 0){
             console.warn("Invalid (no records) route parameter for 'id':", newReqId);
             toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
             return 0;

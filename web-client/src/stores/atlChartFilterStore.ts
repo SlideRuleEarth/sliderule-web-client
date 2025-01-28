@@ -1,14 +1,11 @@
 import { defineStore } from 'pinia';
+import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/chartStore';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
 
-export interface SrMenuNumberItem {
-  label: string;
-  value: number;
-}
 
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {

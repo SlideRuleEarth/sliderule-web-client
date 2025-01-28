@@ -12,7 +12,8 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import { SrMenuNumberItem } from "@/types/SrTypes";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls, Layers, Sources, Styles } from "vue3-openlayers";
@@ -21,7 +22,7 @@
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView,dumpMapLayers } from "@/utils/SrMapUtils";
-    import SrRecordSelectorControl from "./SrRecordSelectorControl.vue";
+    import SrRecSelectControl from "./SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrParquetUtils";
@@ -138,10 +139,10 @@
     };
 
     function handleUpdateRecordSelector(recordItem: SrMenuNumberItem) {
-        //console.log("handleUpdateRecordSelector",recordItem);
+        console.log("handleUpdateRecordSelector",recordItem);
         //const reqId = parseInt(recordItem.value);
         //console.log("handleUpdateRecordSelector reqId:",reqId);
-        emit('update-record-selection', recordItem);
+        //emit('update-record-selection', recordItem);
     };
 
     const updateAnalysisMapView = async (reason:string) => {
@@ -207,7 +208,7 @@
                 :data_key="computedHFieldName"   
             >
             </SrLegendControl>
-            <SrRecordSelectorControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
+            <SrRecSelectControl @record-selector-control-created="handleRecordSelectorControlCreated" @update-record-selector="handleUpdateRecordSelector"/>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">

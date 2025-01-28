@@ -157,7 +157,7 @@ onMounted(async () => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
     requestsStore.fetchReqs();
-    atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+    //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
 });
 
 onUnmounted(() => {

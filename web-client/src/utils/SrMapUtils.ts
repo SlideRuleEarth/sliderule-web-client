@@ -5,7 +5,8 @@ import { PointCloudLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
+import type { FeatureLike } from 'ol/Feature';
 import { Deck } from '@deck.gl/core';
 import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
@@ -40,6 +41,12 @@ import type { SrSvrParmsUsed } from '@/types/SrTypes';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
+import { Text as TextStyle } from 'ol/style';
+import Geometry from 'ol/geom/Geometry';
+import type { SrRegion } from '@/sliderule/icesat2';
+
+
+
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -786,81 +793,45 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
     return newView;
 }
 
-// export function renderRequestPolygon(map: OLMap, poly: {lon:number, lat:number}[]): void {
-//     let flatLonLatPairs;
 
-//     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
-//     if (!vectorLayer) {
-//         console.error('renderRequestPolygon Records Layer not found');
-//         return;
-//     }
-//     if (!Array.isArray(poly)) {
-//         console.error('renderRequestPolygon Invalid polygon data: poly is not an array');
-//         return;
-//     }
+export function addFeatureClickListener(
+    map: OLMap,
+    onFeatureClick: (feature: Feature<Geometry>) => void
+): void {
+    map.on('singleclick', (evt) => {
+      map.forEachFeatureAtPixel(evt.pixel, (featureLike: FeatureLike) => {
+        // Check if it really is a Feature (not a RenderFeature)
+        if (featureLike instanceof Feature) {
 
-//     // Convert `poly` to OpenLayers `Coordinate[]`
-//     const coordinates: Coordinate[] = poly.map(point => [point.lon, point.lat]);
+            onFeatureClick(featureLike);
+            return true; // Stop searching for features
+        }
+        return false; // Continue searching for features
+      });
+    });
+}
 
-//     // Ensure the first and last points are the same to close the polygon
-//     if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
-//         coordinates.push(coordinates[0]); // Close the loop
-//     }
+function createPolygonStyle(label: string): Style {
+    return new Style({
+      fill: new Fill({
+        color: 'rgba(0, 0, 255, 0.02)'
+      }),
+      stroke: new Stroke({
+        color: 'blue',
+        width: 2
+      }),
+      text: new TextStyle({
+        text: label || '',
+        font: '14px Calibri,sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }), // Outline for contrast
+        overflow: true,  
+        placement: 'point', // Usually for points/lines; for polygons it often centers automatically.
+      })
+    });
+}
 
-//     if (vectorLayer && vectorLayer instanceof OLlayer) {
-//         const vectorSource = vectorLayer.getSource();
-//         if (vectorSource) {
-//             //vectorSource.clear();
-
-//             // Wrap the coordinates array in another array to represent a polygon ring
-//             const feature = new Feature({
-//                 geometry: new OlPolygon([coordinates]),
-//             });
-//             const geometry = feature.getGeometry() as OlPolygon;
-//             console.log("renderRequestPolygon geometry:", geometry);
-//             // Check if the geometry is a polygon
-//             if (geometry && geometry.getType() === 'Polygon') {
-//                 //console.log("geometry:",geometry);
-//                 // Get the coordinates of all the rings of the polygon
-//                 const rings = geometry.getCoordinates(); // This retrieves all rings
-//                 console.log("renderRequestPolygon Original polyCoords:", rings);
-
-//                 const projName = useMapStore().getSrViewObj().projectionName;
-//                 let thisProj = getProjection(projName);
-//                 if(thisProj){
-//                     console.log("renderRequestPolygon thisProj:",thisProj, ' projName:',projName, ' units:',thisProj.getUnits());
-//                     const projection = map.getView().getProjection();
-//                     console.log('map projection:', projection.getCode(), projection.getUnits());
-                    
-//                     if(thisProj.getUnits() === 'degrees'){
-//                         flatLonLatPairs = rings.flatMap(ring => ring);
-//                     } else {
-//                         //Convert each ring's coordinates to lon/lat using toLonLat
-//                         const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-//                             ring.map(coord => fromLonLat(coord) as Coordinate)
-//                         );
-//                         console.log("Converted polyCoords:", convertedRings);
-//                         flatLonLatPairs = convertedRings.flatMap(ring => ring);
-//                     }
-//                 } else {
-//                     console.error('Invalid projection:', projName);
-//                 }
-//             } else {
-//                 console.error('Invalid geometry:', geometry);
-//             }
-//             vectorSource.addFeature(feature);
-//             console.log('renderRequestPolygon Added feature to vectorSource:', vectorSource, ' feature:', feature);
-//         } else {
-//             console.error('Records Layer source not found');
-//         }
-//     } else {
-//         console.error('Records Layer not found');
-//     }
-//     console.log('renderRequestPolygon Done rendering polygon:', flatLonLatPairs);
-// }
-
-
-export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[]): void {
+export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: number, lat: number}[],zoomTo?:boolean): void {
     // 1. Find your vector layer
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
     if (!vectorLayer) {
@@ -897,23 +868,34 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
 
     // 5. Create the Polygon feature
     const polygon = new OlPolygon([coordinates]);
-    const feature = new Feature({ geometry: polygon });
+    const feature = new Feature({ geometry: polygon, req_id:reqId });
+    feature.setStyle(createPolygonStyle(reqId.toString()));
     vectorSource.addFeature(feature);
 
     // 6. (Optionally) zoom to the new polygon
-    //map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
-
-    console.log('renderRequestPolygon: feature added', feature);
+    if(zoomTo){
+        map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    }
+    //console.log('renderRequestPolygon: feature added', feature);
 }
 
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
-    const poly = await db.getSvrReqPoly(reqId);
-    if(poly){
-        if(map){
-            renderRequestPolygon(map, poly);
+    try{
+        const poly:SrRegion = await db.getSvrReqPoly(reqId);
+        const rc = await db.getRunContext(reqId);
+        if(poly.length > 0){
+            if(!rc?.trackFilter){
+                if(map){
+                    renderRequestPolygon(map, reqId, poly);
+                }
+            } else {
+                console.warn('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+            }
+        } else {
+            console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
         }
-    } else {
-        console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+    } catch (error) {
+        console.error('renderSvrReqPoly Error:',error);
     }
 }
 

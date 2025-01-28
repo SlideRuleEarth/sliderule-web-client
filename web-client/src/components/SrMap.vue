@@ -15,6 +15,7 @@
     import { Layer as OLlayer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
+    import { FeatureLike } from 'ol/Feature';
     import { Polygon as OlPolygon } from 'ol/geom';
     import { DragBox as DragBoxType } from 'ol/interaction';
     import { Draw as DrawType } from 'ol/interaction';
@@ -40,7 +41,8 @@
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-    import { renderSvrReqPoly } from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,addFeatureClickListener } from "@/utils/SrMapUtils";
+    import router from '@/router/index.js';
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -399,6 +401,18 @@
         }
     }
 
+    function onFeatureClick(featureLike:FeatureLike){
+        console.log('onFeatureClick:',featureLike);
+        if (featureLike instanceof OlFeature) {
+            const properties = featureLike.getProperties();
+
+            console.log('Feature properties:',properties);
+            router.push(`/analyze/${properties.req_id.toString()}`);
+        } else {
+            console.error('Feature is not an instance of Feature');
+        }
+    }
+
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -480,7 +494,7 @@
                 map.on('moveend', () => {
                     saveMapZoomState(map);
                 });
-
+                addFeatureClickListener(map,onFeatureClick);
             } else {
                 console.log("SrMap Error:map is null");
             } 
@@ -531,18 +545,18 @@
     };
 
     function addRecordPolys() : void {
-        const startTime = new Date().getTime();
+        //const startTime = new Date().getTime();
         const reqIds = atlChartFilterStore.getReqIds;
 
         reqIds.forEach(reqId => {
-            console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
+            //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
             const map = mapRef.value?.map;
             if(map){
                 renderSvrReqPoly(map, reqId);
             }
         });
-        const endTime = new Date().getTime();
-        console.log('SrMap updateThisMapView renderSvrReqPoly for reqIds:',reqIds,` took ${endTime - startTime} ms`);
+        //const endTime = new Date().getTime();
+        //console.log('SrMap addRecordPolys renderSvrReqPoly for reqIds:',reqIds,` took ${endTime - startTime} ms`);
 
     }
 

@@ -18,6 +18,7 @@ import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
+import { updateRecMenu } from "@/utils/recTreeUtils";
 
 const props = defineProps({
     startingReqId: {
@@ -51,7 +52,7 @@ onMounted(async () => {
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
-        atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+        //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
         initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
             //const func = await indexedDb.getFunc(reqId);
@@ -108,6 +109,10 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
                     atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+                    const len = await updateRecMenu();
+                    if(len === 0){
+                        console.warn('handlePhotonCloudChange - No Requests Found');
+                    }
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
@@ -135,7 +140,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
 watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
-        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+        //atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
     } catch (error) {
         console.error('watch selectedOverlayedReqIds Failed to update selected request:', error);
     }

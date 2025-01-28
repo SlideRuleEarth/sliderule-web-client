@@ -11,12 +11,15 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useDeviceStore } from '@/stores/deviceStore';
+import { useRecTreeStore } from '@/stores/recTreeStore';
+import { buildRecTree, updateRecMenu } from "@/utils/recTreeUtils";
 
 const srToastStore = useSrToastStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
+const recTreeStore = useRecTreeStore();
 
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -69,9 +72,8 @@ onMounted(() => {
 });
 
 const requestButtonClick = async () => {
-  console.log('Request button clicked');
-  atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-  router.push('/request'); 
+    console.log('Request button clicked');
+    router.push('/request'); 
 };
 
 const recordButtonClick = () => {
@@ -83,8 +85,10 @@ const analysisButtonClick = async () => {
         if (atlChartFilterStore.getReqId()>0) {
             router.push(`/analyze/${atlChartFilterStore.getReqIdStr()}`);
         } else {
-            atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-            if (atlChartFilterStore.reqIdMenuItems.length === 0) {
+            //atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+            //if (atlChartFilterStore.reqIdMenuItems.length === 0) {
+            const len = await updateRecMenu();
+            if(len === 0){
                 toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
                 return;
             }  

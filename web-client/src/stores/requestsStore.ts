@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/sliderule/icesat2';
 import { liveQuery } from 'dexie';
-import type { SrMenuNumberItem } from '@/stores/atlChartFilterStore';
+import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 
@@ -127,29 +127,77 @@ export const useRequestsStore = defineStore('requests', {
     async getNumReqs(): Promise<number> {
       const reqIDs = await this.fetchReqIds();
       return reqIDs.length;
-    },
+    },   
     async getMenuItems(): Promise<SrMenuNumberItem[]> {
       const fetchedReqIds = await this.fetchReqIds();
-      
-      const promises = fetchedReqIds.map(async (id: number) => {
-        const status = await db.getStatus(id);
-        const funcStr = await db.getFunc(id);
-        // const descr = await db.getDescription(id);
-        // let truncatedDescr = '';
-        // if (descr !== DEFAULT_DESCRIPTION) {
-        //   truncatedDescr = descr.length > 10 ? descr.substring(0, 10) + '...' : descr;
-        //   truncatedDescr = ' - ' + truncatedDescr;
-        // }
-        if ((status == 'success') || (status == 'imported')) {
-          return { label: `${id.toString()} - ${funcStr}`, value: id };
+    
+      // Sort reqIds in descending order
+      fetchedReqIds.sort((a, b) => b - a);
+    
+      // 1. Build an array of items
+      const items = await Promise.all(
+        fetchedReqIds.map(async (id: number) => {
+          const status = await db.getStatus(id);
+          const funcStr = await db.getFunc(id);
+          const rc = await db.getRunContext(id);
+    
+          const parentReqId = rc?.parentReqId; // Optional parentReqId
+          // Calculate spaces based on the number of digits in parentReqId
+          const parentReqIdSpaces = parentReqId
+            ? '-'.repeat(parentReqId.toString().length)
+            : '';
+    
+          // Only include items you care about
+          if (status === 'success' || status === 'imported') {
+            return {
+              label: `${id.toString()} - ${funcStr}`,
+              value: id,
+              parentReqId, // Optional
+            } as SrMenuNumberItem; // Explicitly cast to SrMenuNumberItem
+          }
+    
+          // Return undefined if it doesn't match your criteria
+          return undefined;
+        })
+      );
+    
+      // 2. Filter out undefined safely
+      const filteredItems = items.filter(
+        (item): item is SrMenuNumberItem => item !== undefined
+      );
+    
+      // 3. Build a map: parentReqId -> array of children
+      const childrenMap = new Map<number | undefined, SrMenuNumberItem[]>();
+      for (const item of filteredItems) {
+        const parentId = item.parentReqId ?? undefined; // Explicitly allow undefined keys
+        if (!childrenMap.has(parentId)) {
+          childrenMap.set(parentId, []);
         }
-      });
+        childrenMap.get(parentId)!.push(item);
+      }
     
-      const results = await Promise.all(promises);
+      // 4. Recursively build a flat list where each parent is followed by its children
+      const finalItems: SrMenuNumberItem[] = [];
     
-      // Filter out undefined values
-      return results.filter((item): item is SrMenuNumberItem => item !== undefined);
+      function buildHierarchy(parentId: number | undefined) {
+        const children = childrenMap.get(parentId) || [];
+        // Sort children in descending order by `value` (reqId)
+        children.sort((a, b) => b.value - a.value);
+    
+        for (const child of children) {
+          finalItems.push(child);
+          // Then recursively place child’s children below it
+          buildHierarchy(child.value);
+        }
+      }
+    
+      // Start with “top-level” items (those whose parentReqId is undefined)
+      buildHierarchy(undefined);
+    
+      // finalItems now has parents first, children right after the respective parent
+      return finalItems;
     },
+            
     watchReqTable() {
       const subscription = liveQuery(() => db.table('requests').orderBy('req_id').reverse().toArray())
       .subscribe({
