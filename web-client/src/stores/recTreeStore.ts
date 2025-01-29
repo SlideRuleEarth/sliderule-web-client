@@ -3,6 +3,7 @@ import { ref, computed, type ComputedRef } from 'vue';
 import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStore } from '@/utils/plotUtils';
+import { init } from '@/sliderule/core';
 
 
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
@@ -131,6 +132,18 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         }
     };
       
+    const initToFirstRecord = () => {
+        const firstReqId = allReqIds.value[0];
+        if(firstReqId > 0){
+            if(findAndSelectNode(firstReqId)){
+                console.warn('initToFirstRecord set selected record to firstReqId:', firstReqId, 'selected firstReqId:', firstReqId);
+            } else {
+                console.error('initToFirstRecord findAndSelectNode FAILED for firstReqId:', firstReqId);
+            }
+        } else {
+            console.error('initToFirstRecord found invalid reqId in first record:', firstReqId);
+        }
+    };
 
     const findAndSelectNode = (reqId: number): boolean => {
         const findNode = (nodes: SrPrimeTreeNode[]): SrPrimeTreeNode | null => {
@@ -187,6 +200,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         allReqIds,
         loadTreeData,
         findAndSelectNode,
-        updateRecMenu
+        updateRecMenu,
+        initToFirstRecord,
     };
 });

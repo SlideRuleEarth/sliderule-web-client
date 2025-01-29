@@ -355,7 +355,7 @@ export class DuckDBClient {
       //   console.log(`insertOpfsParquet File ${name} already registered`);
       // }
     } catch (error) {
-      console.error('insertOpfsParquet error:', error);
+      console.error('insertOpfsParquet error:', error, ' for name:', name);
       throw error;
     }
   }
