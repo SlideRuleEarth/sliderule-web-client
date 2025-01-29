@@ -17,6 +17,8 @@ const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
 import { useRoute } from 'vue-router';
+import { init } from '@/sliderule/core';
+import { first } from 'lodash';
 
 const route = useRoute();
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -35,11 +37,20 @@ watch(() => route.params.id, async (newId) => {
     let newReqId = Number(newId) || 0;
     try{
         if(newReqId > 0){
-            recTreeStore.findAndSelectNode(newReqId);
-            console.log('App watch Route ID changed to:', newReqId);
+            const first = recTreeStore.findAndSelectNode(newReqId);
+            if(first){
+                console.log('App watch Route ID changed to:', newReqId);
+            } else {
+                if(recTreeStore.allReqIds.length===0){
+                    console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+                    toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+                }
+            }
         } else {
-            console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
-            toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+            if(recTreeStore.allReqIds.length===0){
+                console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+                toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+            }
         }
     } catch (error) {
         console.error('App watch Error processing route ID change:', error);
@@ -81,8 +92,28 @@ onMounted(async () => {
     // Extract the font size from the computed style
     const fontSize = rootStyle.fontSize;
     // Log the font size to the console
-    const firstReqId = await recTreeStore.updateRecMenu('from App');
-    console.log(`App.vue onMounted Current root font size: ${fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId, 'firstReqId:', firstReqId);
+    const initialReqId = await recTreeStore.updateRecMenu('from App');
+    if(recTreeStore.allReqIds.length===0){
+        console.warn("App onMounted detected no records");
+        toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+    }
+    if(recTreeStore.findAndSelectNode(initialReqId)){
+        console.log('App onMounted initialReqId:', initialReqId);
+    } else {
+        console.warn('App onMounted Failed to find selected request:', initialReqId);
+        if(recTreeStore.allReqIds.length>0){ // is there a record to select?
+            const firstReqId = recTreeStore.allReqIds[0];
+            if(firstReqId > 0){
+                if(recTreeStore.findAndSelectNode(firstReqId)){
+                    console.warn('App onMounted set selected record to firstReqId:', firstReqId, 'selected firstReqId:', firstReqId);
+                }
+            } else {
+                console.error('App onMounted found invalid reqId in first record:', initialReqId);
+            }
+        }
+    }
+
+    console.log(`App.vue onMounted Current root font size: ${fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
     detectBrowserAndOS();
     checkUnsupported();
 });
@@ -98,16 +129,21 @@ const recordButtonClick = () => {
 
 const analysisButtonClick = async () => {
     try{
+        if(recTreeStore.allReqIds.length===0){
+            toast.add({ severity: 'warn', summary: 'No Records Found', detail: 'Please first create a new record by making a request', life: srToastStore.getLife() });
+        }
         const reqId =recTreeStore.selectedReqId;
-        if (reqId>0) {
+        if (reqId > 0) {
             router.push(`/analyze/${reqId.toString()}`);
-        } else { 
-            if (reqId > 0) {
-                router.push(`/analyze/${reqId.toString()}`);
-            } else {
-                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+        } else {
+            console.log('analysisButtonClick',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
+            if(recTreeStore.allReqIds.length===0){
+                toast.add({ severity: 'warn', summary: 'No Records Found', detail: 'Please first create a new record by making a request', life: srToastStore.getLife() });
+            } else {    
+                toast.add({ severity: 'warn', summary: 'Invalid Record specified', detail: 'Please specify a valid record Id', life: srToastStore.getLife() });
             }
         }
+        
     } catch (error) {
         console.error(`Failed analysisButtonClick`, error);
         throw error;

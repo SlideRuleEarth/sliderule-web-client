@@ -230,6 +230,7 @@ const updateElevationMap = async (req_id: number) => {
         mapStore.setIsLoading(true);
         firstRec = await duckDbReadAndUpdateElevationData(req_id);
         mapStore.setIsLoading(false);
+        mapStore.setMapInitialized(true);
     } catch (error) {
         console.warn('Failed to update selected request:', error);
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
@@ -375,16 +376,6 @@ const exportButtonClick = async () => {
                     />
                 </div>
                 <div class="sr-req-description">
-                    <!-- <SrMenuInput
-                        label="Record" 
-                        labelFontSize="medium"
-                        :justify_center="true"
-                        :menuOptions="atlChartFilterStore.reqIdMenuItems" 
-                        v-model="selectedReqId"
-                        @update:modelValue="handleUpdateReqId"
-                        :defaultOptionIndex="Number(defaultReqIdMenuItemIndex)"
-                        :tooltipText=tooltipTextStr
-                    /> -->
                     <SrEditDesc :reqId="recTreeStore.selectedReqId"/>
                     <Button
                         icon="pi pi-file-export"
@@ -548,14 +539,15 @@ const exportButtonClick = async () => {
                 <!-- SrScatterPlotConfig for the main req_id -->
                 <div class="sr-scatterplot-cfg">
                     <SrScatterPlotConfig
-                        v-if="isMounted" 
+                        v-if="mapStore.mapInitialized" 
                         :reqId="recTreeStore.selectedReqId"
                     />
                 </div>
 
                 <!-- SrScatterPlotConfig for each overlayed req_id -->
                 <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
-                    <SrScatterPlotConfig 
+                    <SrScatterPlotConfig
+                        v-if="mapStore.mapInitialized" 
                         :reqId="overlayedReqId"
                         :isOverlay="true" 
                     />

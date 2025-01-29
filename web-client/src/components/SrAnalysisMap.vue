@@ -12,7 +12,6 @@
     import SrLegendControl from './SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { SrPrimeTreeNode } from "@/types/SrTypes";
     import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls } from "vue3-openlayers";

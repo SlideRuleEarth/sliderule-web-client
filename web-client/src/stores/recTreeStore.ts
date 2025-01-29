@@ -49,7 +49,7 @@ function buildRecTree(nodes: SrMenuNumberItem[]): SrPrimeTreeNode[] {
 export const useRecTreeStore = defineStore('recTreeStore', () => {
     // State
     const treeData = ref<SrPrimeTreeNode[]>([]);
-    const selectedValue = ref<Record<string, boolean>>({'88':true});
+    const selectedValue = ref<Record<string, boolean>>({'0':false});
     const reqIdMenuItems = ref<SrMenuNumberItem[]>([]);
 
     // Getters
@@ -102,11 +102,9 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
                     if(findAndSelectNode(selectReqId)){
                         console.log('loadTreeData: Selected node with reqId:',selectReqId);
                     } else {
-                        //setSelectedValue(treeData.value[0].key);
                         console.warn('loadTreeData: findAndSelectNode failed to find selectReqId',selectReqId);
                     }
                 } else if (!selectedNodeKey.value){
-                    //setSelectedValue(treeData.value[0].key);
                     console.warn('loadTreeData: No selectedNodeKey available for:',selectReqId);
                 }
             } else {
@@ -120,12 +118,19 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     const setSelectedValue = (key: string) => {
         const node = findNodeByKey(treeData.value, key);
         if (node?.key) {
-            //selectedValue.value = node.key; 
-            console.log('setSelectedValue: selectedValue:',selectedValue.value,'selectedNodeKey:', selectedNodeKey.value,' selectedReqId:',selectedReqId.value);
+          // Set selectedValue to the shape: { [node.key]: true }
+          selectedValue.value = { [node.key]: true };
+          console.log(
+            'setSelectedValue: selectedValue:',
+            selectedValue.value,
+            'selectedNodeKey:', selectedNodeKey.value,
+            'selectedReqId:', selectedReqId.value
+          );
         } else {
-            console.warn('setSelectedValue: Node not found in treeData');
+          console.warn('setSelectedValue: Node not found in treeData');
         }
     };
+      
 
     const findAndSelectNode = (reqId: number): boolean => {
         const findNode = (nodes: SrPrimeTreeNode[]): SrPrimeTreeNode | null => {
@@ -163,7 +168,6 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             await loadTreeData(reqIdMenuItems.value,newReqId);
             console.log('updateRecMenu treeData:', treeData);
             initDataBindingsToChartStore(reqIdMenuItems.value.map(item => item.value.toString()));
-
             await initChartStore();
         } catch (error) {
             console.error('updateRecMenu Failed to updateRecMenu:', error);

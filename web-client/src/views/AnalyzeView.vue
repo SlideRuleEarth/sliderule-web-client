@@ -11,7 +11,7 @@ const route = useRoute();
 const reqId = ref(Number(route.params.id));
 
 onMounted(async () => {
-    console.log('AnalyzeView onMounted Loading AnalyzeView with ID:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId);
+    console.log('AnalyzeView onMounted Loading AnalyzeView with route specified reqId:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId);
     
 });
 
