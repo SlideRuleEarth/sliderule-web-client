@@ -74,6 +74,7 @@ onMounted(async () => {
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     console.log('SrScatterPlot watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
+        prepareDbForReqId(newReqId);
         await callPlotUpdateDebounced('from SrScatterPlot watch recTreeStore.selectedReqId');
     }
 });

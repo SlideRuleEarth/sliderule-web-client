@@ -3,7 +3,6 @@ import { ref, computed, type ComputedRef } from 'vue';
 import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStore } from '@/utils/plotUtils';
-import { init } from '@/sliderule/core';
 
 
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
@@ -52,8 +51,12 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     const treeData = ref<SrPrimeTreeNode[]>([]);
     const selectedValue = ref<Record<string, boolean>>({'0':false});
     const reqIdMenuItems = ref<SrMenuNumberItem[]>([]);
-
+    //const readyToPlot = ref<boolean>(false);
     // Getters
+
+    // const getReadyToPlot = ():boolean => {
+    //     return readyToPlot.value;
+    // };
 
     const selectedNodeKey:ComputedRef<string> = computed(() => {
         const keys = Object.keys(selectedValue.value)
@@ -95,6 +98,11 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     const allReqIds = computed(() => {return reqIdMenuItems.value.map(item => item.value);});
     
     // Actions
+
+    // const setReadyToPlot = (ready:boolean) => {
+    //     readyToPlot.value = ready;
+    // };
+
     const loadTreeData = async (items: SrMenuNumberItem[], selectReqId?: number) => {
         try {
             treeData.value = buildRecTree(items); // Transform to TreeNode structure
@@ -202,5 +210,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         findAndSelectNode,
         updateRecMenu,
         initToFirstRecord,
+        //getReadyToPlot,
+        //setReadyToPlot,
     };
 });

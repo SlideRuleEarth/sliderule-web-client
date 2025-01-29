@@ -141,8 +141,6 @@
         }
     };
 
-
-
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
         let srViewName = await db.getSrViewName(props.selectedReqId);

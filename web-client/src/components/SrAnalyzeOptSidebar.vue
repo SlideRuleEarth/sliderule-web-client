@@ -237,11 +237,11 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         //console.log('pushing selectedReqId:', req_id);
-        router.push(`/analyze/${recTreeStore.selectedReqId}`);
-        console.log('Successfully navigated to analyze:', recTreeStore.selectedReqId);
         if(firstRec){
             clicked(firstRec); // preset filters using the first row
         }
+        await router.push(`/analyze/${recTreeStore.selectedReqId}`);
+        console.log('Successfully navigated to analyze:', recTreeStore.selectedReqId);
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
     }

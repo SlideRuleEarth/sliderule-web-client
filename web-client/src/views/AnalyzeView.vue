@@ -38,9 +38,7 @@ onMounted(async () => {
 });
 
 watch(() => route.params.id, async (newId) => {
-    let newReqId = Number(newId) || 0;
-    reqId.value = newReqId;
-    console.log('AnalyzeView watch: Route ID changed to:', newId,' reqId.value:', reqId.value);
+    console.log('AnalyzeView watch: Route ID changed to:', newId);
 });
 
 </script>
