@@ -179,8 +179,8 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
         unlock();
     }
 }
+
 const computeSamplingRate = async(req_id:number): Promise<number> => {
-    
     let sample_fraction = 1.0;
     try{
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
@@ -201,7 +201,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
             console.error('computeSamplingRate summary is undefined using 1.0');
         }
     } catch (error) {
-        console.error('computeSamplingRate error:', error);
+        console.error('computeSamplingRate error:', error, 'req_id:', req_id);
     }
     return sample_fraction;
 }

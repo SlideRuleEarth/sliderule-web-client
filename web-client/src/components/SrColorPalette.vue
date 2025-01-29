@@ -51,9 +51,13 @@ interface AtColorChangeEvent {
   color?: string; // color can be undefined
 }
 
+const selectedColors = computed({
+    get: () => useColorMapStore().getNamedColorPalette(),
+    set: (value) => useColorMapStore().setNamedColorPalette(value)
+});
 
 // Predefined list of CSS color names
-export const cssColorNames = [
+const cssColorNames = [
     "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black",
     "BlanchedAlmond", "Blue", "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse",
     "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson", "Cyan", "DarkBlue", 
@@ -79,13 +83,10 @@ export const cssColorNames = [
 
 const colorMapStore = useColorMapStore();
 
-export const selectedColors = computed({
-    get: () => useColorMapStore().getNamedColorPalette(),
-    set: (value) => useColorMapStore().setNamedColorPalette(value)
-});
+
 
 // Initialize the source and target lists for the PickList
-export const srColorTable = ref([
+const srColorTable = ref([
     cssColorNames.map(color => ({ label: color, value: color })),
     selectedColors.value.map(color => ({ label: color, value: color }))
 ]);

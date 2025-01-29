@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 import { db } from '@/db/SlideRuleDb';
+import { computed } from 'vue';
 
 export const useColorMapStore = defineStore('colorMapStore', {
     state: () => ({
