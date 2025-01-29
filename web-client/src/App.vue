@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref,onMounted } from 'vue';
+import { ref,onMounted,watch } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
@@ -8,17 +8,17 @@ import SrUserAgent from './components/SrUserAgent.vue';
 import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
-import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useDeviceStore } from '@/stores/deviceStore';
 
 import { useRecTreeStore } from "@/stores/recTreeStore";
 
 const srToastStore = useSrToastStore();
-const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
+import { useRoute } from 'vue-router';
 
+const route = useRoute();
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
 
@@ -31,6 +31,22 @@ const checkUnsupported = () =>{
   }
 }
 
+watch(() => route.params.id, async (newId) => {
+    let newReqId = Number(newId) || 0;
+    try{
+        if(newReqId > 0){
+            recTreeStore.findAndSelectNode(newReqId);
+            console.log('App watch Route ID changed to:', newReqId);
+        } else {
+            console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+            toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+        }
+    } catch (error) {
+        console.error('App watch Error processing route ID change:', error);
+        console.error("App watch exception setting route parameter for 'id':", newReqId);
+        toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+    }
+});
 // Function to detect browser and OS from userAgent string
 const detectBrowserAndOS = () => {
   deviceStore.setUserAgent(navigator.userAgent);
@@ -59,13 +75,14 @@ const detectBrowserAndOS = () => {
 };
 
 onMounted(async () => {
-    const reqId = await recTreeStore.updateRecMenu('from App');// 
+    //const reqId = await recTreeStore.updateRecMenu('from App');// 
     // Get the computed style of the document's root element
     const rootStyle = window.getComputedStyle(document.documentElement);
     // Extract the font size from the computed style
     const fontSize = rootStyle.fontSize;
     // Log the font size to the console
-    console.log(`App.vue onMounted Current root font size: ${fontSize} reqId: ${reqId}`);
+    const firstReqId = await recTreeStore.updateRecMenu('from App');
+    console.log(`App.vue onMounted Current root font size: ${fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId, 'firstReqId:', firstReqId);
     detectBrowserAndOS();
     checkUnsupported();
 });
@@ -85,7 +102,6 @@ const analysisButtonClick = async () => {
         if (reqId>0) {
             router.push(`/analyze/${reqId.toString()}`);
         } else { 
-            const reqId = recTreeStore.selectedReqId;
             if (reqId > 0) {
                 router.push(`/analyze/${reqId.toString()}`);
             } else {

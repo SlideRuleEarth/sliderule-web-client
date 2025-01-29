@@ -4,12 +4,14 @@ import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
 import { onMounted, ref, watch } from 'vue';
 import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
 import SrScatterPlot from "@/components/SrScatterPlot.vue";
+import { useRecTreeStore } from "@/stores/recTreeStore";
 
+const recTreeStore = useRecTreeStore();
 const route = useRoute();
 const reqId = ref(Number(route.params.id));
 
 onMounted(async () => {
-    console.log('AnalyzeView onMounted Loading AnalyzeView with ID:', reqId.value);
+    console.log('AnalyzeView onMounted Loading AnalyzeView with ID:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId);
     
 });
 
@@ -24,10 +26,16 @@ watch(() => route.params.id, async (newId) => {
 <template>
     <TwoColumnLayout>
         <template v-slot:sidebar-col>
-            <SrAnalyzeOptSidebar :startingReqId="reqId"/>
+            <SrAnalyzeOptSidebar
+                v-if="(recTreeStore.selectedReqId > 0)" 
+                :startingReqId="reqId"
+            />
         </template>
         <template v-slot:main>
-            <SrScatterPlot :startingReqId="reqId"/>
+            <SrScatterPlot 
+                v-if="(recTreeStore.selectedReqId > 0)" 
+                :startingReqId="reqId"
+            />
         </template>
     </TwoColumnLayout>
 </template>

@@ -42,10 +42,10 @@ onUnmounted(() => {
 async function updateRecordSelector(event: Event) {
     const key = Object.keys(event)[0];
     const reqId = await recTreeStore.updateRecMenu('from updateRecordSelector',Number(key));
-    console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId);
+    console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId,'recTreeStore.selectedValue:',recTreeStore.selectedValue, 'recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
     if(reqId>0){
-        if (recTreeStore.selectedNode) {
-            console.log('updateRecordSelector recTreeStore.selectedNode:', recTreeStore.selectedNode);
+        if (recTreeStore.selectedNodeKey) {
+            console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
         } else {
             console.error('Failed to update selected request:', reqId);
         }
@@ -63,13 +63,12 @@ function nodeSelect(node:any) {
 <template>
     <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
         <TreeSelect
-            v-model="recTreeStore.selectedNode"
+            v-model="recTreeStore.selectedValue"
             :options="recTreeStore.treeData" 
             placeholder="Select a Record"
             selectionMode="single"
             size="small"
             :filter="true"
-            :metaKeySelection="false"
             @update:modelValue="updateRecordSelector"
             @nodeSelect="nodeSelect"
         />

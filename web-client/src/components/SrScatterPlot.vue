@@ -151,25 +151,47 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
 
 
 watch(
-  () => ({
-    scOrients: chartStore.getScOrients(recTreeStore.selectedReqIdStr),
-    rgts: chartStore.getRgts(recTreeStore.selectedReqIdStr),
-    cycles: chartStore.getCycles(recTreeStore.selectedReqIdStr),
-    spots: chartStore.getSpots(recTreeStore.selectedReqIdStr),
-    tracks: chartStore.getTracks(recTreeStore.selectedReqIdStr),
-    pairs: chartStore.getPairs(recTreeStore.selectedReqIdStr),
-    ydata: chartStore.getSelectedYData(recTreeStore.selectedReqIdStr),
-    solidColor: chartStore.getSolidSymbolColor(recTreeStore.selectedReqIdStr),
-  }),
+  () => {
+    const reqId = recTreeStore.selectedReqIdStr;
+
+    // If reqId is undefined, null, or empty, return default values
+    if (!reqId) {
+      return {
+        scOrients: [],
+        rgts: [],
+        cycles: [],
+        spots: [],
+        tracks: [],
+        pairs: [],
+        ydata: [],
+        solidColor: null,
+      };
+    }
+
+    // Otherwise, fetch the real values
+    return {
+      scOrients: chartStore.getScOrients(reqId),
+      rgts: chartStore.getRgts(reqId),
+      cycles: chartStore.getCycles(reqId),
+      spots: chartStore.getSpots(reqId),
+      tracks: chartStore.getTracks(reqId),
+      pairs: chartStore.getPairs(reqId),
+      ydata: chartStore.getSelectedYData(reqId),
+      solidColor: chartStore.getSolidSymbolColor(reqId),
+    };
+  },
   async (newValues, oldValues) => {
-    if(!loadingComponent.value){
-        await callPlotUpdateDebounced('watch multiple properties changed');
+    if (!loadingComponent.value) {
+      await callPlotUpdateDebounced('watch multiple properties changed');
     } else {
-        console.warn(`Skipped updateThePlot for watch multiple properties - Loading component is still active`);
-    }  
+      console.warn(
+        `Skipped updateThePlot for watch multiple properties - Loading component is still active`
+      );
+    }
   },
   { deep: true }
 );
+
 
 </script>
 <template>
@@ -192,7 +214,7 @@ watch(
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!recTreeStore.selectedApi.includes('atl03')">
+            <div class="sr-run-control" v-if="!recTreeStore.selectedNodeApi?.includes('atl03')">
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -210,7 +232,10 @@ watch(
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
-                    <SrPlotCntrl :reqId="recTreeStore.selectedReqId" />
+                    <SrPlotCntrl
+                        v-if="(recTreeStore.selectedReqId > 0)"
+                        :reqId="recTreeStore.selectedReqId" 
+                />
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">

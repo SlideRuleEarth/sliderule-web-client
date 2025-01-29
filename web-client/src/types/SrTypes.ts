@@ -83,7 +83,7 @@ export interface Region {
   export interface SrPrimeTreeNode {
     key: string;
     label: string;
-    data: any;
+    data: number;
     children?: SrPrimeTreeNode[];
     api?: string;
     [key: string]: any; // For additional properties

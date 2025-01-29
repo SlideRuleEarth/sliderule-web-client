@@ -89,24 +89,9 @@ const highlightedTrackDetails = computed(() => {
         return '';
     }
 });
-const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
+//const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
 
-async function syncRouteToChartStore(newReqId: number) : Promise<number> {
-    let finalReqId = 0;
-    try{
-        finalReqId = await recTreeStore.updateRecMenu(' from syncRouteToChartStore',newReqId);
-        if(finalReqId <= 0){
-            console.warn("Invalid (no records) route parameter for 'id':", newReqId);
-            toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
-        }
-    } catch (error) {
-        console.error('Error processing route ID change:', error);
-        console.error("exception setting route parameter for 'id':", newReqId);
-        toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
-    }
-    console.log('Route ID changed to:', finalReqId);
-    return finalReqId;
-}
+
 
 async function initAnalysisMap() {
     const req_id = recTreeStore.selectedReqId;
@@ -138,7 +123,11 @@ onMounted(async () => {
     atlChartFilterStore.setSelectedOverlayedReqIds([]);
     try {
         //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(recTreeStore.selectedReqIdStr));
-        let req_id = await syncRouteToChartStore(props.startingReqId);
+        //let req_id = await syncRouteToChartStore(props.startingReqId);
+        const req_id = recTreeStore.selectedReqId;
+        if(req_id !== props.startingReqId){
+            console.warn(`onMounted: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
+        }
         const height_fieldname = await getHeightFieldname(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         console.log('onMounted summary:', summary, 'req_id:', req_id);
@@ -380,7 +369,7 @@ const exportButtonClick = async () => {
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
                     <div v-if="loading">Loading...{{ chartStore.getFunc(recTreeStore.selectedReqIdStr) }}</div>
                     <SrAnalysisMap 
-                        v-else 
+                        v-else-if="(recTreeStore.selectedReqId > 0)"
                         :selectedReqId="recTreeStore.selectedReqId"
                         @update-record-selection="updateRecordSelection"
                     />
@@ -542,7 +531,7 @@ const exportButtonClick = async () => {
             <div class="sr-analysis-rec-parms">
                 <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
             </div>
-            <div class="sr-photon-cloud" v-if="!computedFunc.includes('atl03') && (!atlChartFilterStore.isLoading)">
+            <div class="sr-photon-cloud" v-if="!recTreeStore.selectedNodeApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
                 <Card>
                     <template #title>
                         <div class="sr-card-title-center">Highlighted Track</div>

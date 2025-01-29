@@ -1,11 +1,25 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, type ComputedRef } from 'vue';
 import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStore } from '@/utils/plotUtils';
 
 
-
+function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
+    if (!nodes) return null;
+  
+    for (const node of nodes) {
+      if (node.key === key) {
+        return node;
+      }
+      if (node.children) {
+        const childNode = findNodeByKey(node.children, key);
+        if (childNode) return childNode;
+      }
+    }
+    return null;
+}
+  
 function buildRecTree(nodes: SrMenuNumberItem[]): SrPrimeTreeNode[] {
     const nodeMap: Record<number, SrPrimeTreeNode> = {};
     for (const item of nodes) {
@@ -35,14 +49,48 @@ function buildRecTree(nodes: SrMenuNumberItem[]): SrPrimeTreeNode[] {
 export const useRecTreeStore = defineStore('recTreeStore', () => {
     // State
     const treeData = ref<SrPrimeTreeNode[]>([]);
-    const selectedNode = ref<SrPrimeTreeNode | null>(null);
+    const selectedValue = ref<Record<string, boolean>>({'88':true});
     const reqIdMenuItems = ref<SrMenuNumberItem[]>([]);
 
     // Getters
-    const selectedNodeLabel = computed(() => selectedNode.value?.label || 'No node selected');
-    const selectedReqIdStr = computed(() => selectedNode.value?.key || '0');
-    const selectedReqId = computed(() => selectedNode.value?.data || 0);
-    const selectedApi = computed(() => selectedNode.value?.api || 'No API');
+
+    const selectedNodeKey:ComputedRef<string> = computed(() => {
+        const keys = Object.keys(selectedValue.value)
+        return keys.length ? keys[0] : '0';
+      });
+
+    const selectedNodeLabel:ComputedRef<string> = computed(() => {
+        if (!selectedNodeKey.value || !treeData.value) {
+          return ''; // or null
+        }
+        const node = findNodeByKey(treeData.value, selectedNodeKey.value);
+        return node ? node.label : '';
+    });
+
+    const selectedReqId:ComputedRef<number> = computed(() => {
+        if (!selectedNodeKey.value || !treeData.value) {
+          return 0;
+        }
+        const node = findNodeByKey(treeData.value, selectedNodeKey.value);
+        return node?.data ? node.data : 0;
+    });
+
+    const selectedReqIdStr:ComputedRef<string> = computed(() => {
+        if (!selectedNodeKey.value || !treeData.value) {
+          return ''; 
+        }
+        const node = findNodeByKey(treeData.value, selectedNodeKey.value);
+        return node ? node.key : '';
+    });
+
+    const selectedNodeApi:ComputedRef<string> = computed(() => {
+        if (!selectedNodeKey.value || !treeData.value) {
+          return ''; 
+        }
+        const node = findNodeByKey(treeData.value, selectedNodeKey.value);
+        return node?.api ? node.api : '';
+    });    
+    //const selectedNodeApi = computed(() => selectedNodeKey.value?.api || 'No API');
     const allReqIds = computed(() => {return reqIdMenuItems.value.map(item => item.value);});
     
     // Actions
@@ -51,9 +99,15 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             treeData.value = buildRecTree(items); // Transform to TreeNode structure
             if (treeData.value.length > 0) {
                 if(selectReqId && (selectReqId > 0)){
-                    findAndSelectNode(selectReqId);
-                } else {
-                    selectedNode.value = treeData.value[0];
+                    if(findAndSelectNode(selectReqId)){
+                        console.log('loadTreeData: Selected node with reqId:',selectReqId);
+                    } else {
+                        //setSelectedValue(treeData.value[0].key);
+                        console.warn('loadTreeData: findAndSelectNode failed to find selectReqId',selectReqId);
+                    }
+                } else if (!selectedNodeKey.value){
+                    //setSelectedValue(treeData.value[0].key);
+                    console.warn('loadTreeData: No selectedNodeKey available for:',selectReqId);
                 }
             } else {
                  console.log('loadTreeData: No nodes available');
@@ -63,12 +117,13 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         }
     };
 
-    const selectNode = (node: SrPrimeTreeNode) => {
-        if (treeData.value.includes(node) || treeData.value.some(root => root.children?.includes(node))) {
-            selectedNode.value = node;
-            console.log('selectNode: node:', selectedNode.value,' selectedReqId:',selectedReqId.value);
+    const setSelectedValue = (key: string) => {
+        const node = findNodeByKey(treeData.value, key);
+        if (node?.key) {
+            //selectedValue.value = node.key; 
+            console.log('setSelectedValue: selectedValue:',selectedValue.value,'selectedNodeKey:', selectedNodeKey.value,' selectedReqId:',selectedReqId.value);
         } else {
-            console.warn('selectNode: Node not found in treeData');
+            console.warn('setSelectedValue: Node not found in treeData');
         }
     };
 
@@ -91,7 +146,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         const node = findNode(treeData.value);
         if (node) {
             console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
-            selectNode(node);
+            setSelectedValue(node.key);
             return true; // Node was found and selected
         } else {
             console.warn(`findAndSelectNode Node with reqId ${reqId} not found`);
@@ -101,10 +156,6 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
 
     const updateRecMenu = async (logMsg:string,newReqId?:number): Promise<number> => {
         console.log('updateRecMenu', logMsg,'newReqId', newReqId); 
-        if(newReqId === undefined){
-            newReqId = 0;
-        }
-        let finalReqId = newReqId;
         const requestsStore = useRequestsStore();
         try{
             reqIdMenuItems.value = await requestsStore.getMenuItems();
@@ -117,19 +168,20 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         } catch (error) {
             console.error('updateRecMenu Failed to updateRecMenu:', error);
         }
-        return finalReqId;
+        console.log('updateRecMenu selectedReqId:',selectedReqId.value);
+        return selectedReqId.value? selectedReqId.value : 0;
     };   
     return {
         treeData,
-        selectedNode,
+        selectedValue,
+        selectedNodeKey,
         selectedNodeLabel,
         selectedReqId,
         selectedReqIdStr,
-        selectedApi,
+        selectedNodeApi,
         reqIdMenuItems,
         allReqIds,
         loadTreeData,
-        selectNode,
         findAndSelectNode,
         updateRecMenu
     };
