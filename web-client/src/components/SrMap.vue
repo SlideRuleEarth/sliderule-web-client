@@ -22,7 +22,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState, zoomToRequestPolygon } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -503,6 +503,9 @@
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
             addRecordPolys();
+            // if(currentReqId){
+            //     zoomToRequestPolygon(map, currentReqId);
+            // }
         } else {
             console.log("SrMap Error:mapRef.value?.map is null");
         }

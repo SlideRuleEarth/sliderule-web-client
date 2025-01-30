@@ -45,9 +45,6 @@ import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
-
-
-
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
@@ -831,6 +828,31 @@ function createPolygonStyle(label: string): Style {
       })
     });
 }
+export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    if (!vectorLayer) {
+      console.error('zoomToRequestPolygon: "Records Layer" not found');
+      return;
+    }
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error('Records Layer source not found');
+        return;
+    
+    }    
+    const vectorSource = vectorLayer.getSource();
+    if (!(vectorSource instanceof VectorSource)) {
+        console.error('zoomToRequestPolygon: vector source not found');
+        return;
+    }
+
+    const features = vectorSource.getFeatures();
+    const feature = features.find(f => f.get('req_id') === reqId);
+    if (feature) {
+      map.getView().fit(feature.getGeometry().getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    } else {
+      console.error('zoomToRequestPolygon: feature not found for reqId:',reqId);
+    }
+}
 
 export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: number, lat: number}[],zoomTo?:boolean): void {
     // 1. Find your vector layer
@@ -877,7 +899,7 @@ export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: numbe
     if(zoomTo){
         map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
     }
-    console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
+    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
 }
 
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
