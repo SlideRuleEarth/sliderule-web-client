@@ -131,19 +131,27 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
             if(workerMsg && workerMsg.req_id > 0){
                 const reqIdStr = workerMsg.req_id.toString();
+                let rc:SrRunContext|undefined = undefined;
                 try{
+                    rc = await db.getRunContext(workerMsg.req_id);
                     fileName = await db.getFilename(workerMsg.req_id);
                     chartStore.setFile(reqIdStr,fileName);
                     const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
                     await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
-                    await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id);
+                    if(rc?.parentReqId && rc.parentReqId > 0){
+                        await useRecTreeStore().updateRecMenu('opfs_ready');// update the tree menu but not the selected node
+                    } else {
+                        const newReqId = await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id); // update the tree menu and use this as selected node
+                        if(newReqId != workerMsg.req_id){
+                            console.error('handleWorkerMsg opfs_ready newReqId:',newReqId,' does not match workerMsg.req_id:',workerMsg.req_id);
+                        }
+                    }
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);
                     useSrToastStore().error('Error',emsg);
                 }
                 try {
-                    const rc = await db.getRunContext(workerMsg.req_id);
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
                         await updateChartStore(workerMsg.req_id);

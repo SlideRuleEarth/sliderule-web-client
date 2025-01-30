@@ -1082,7 +1082,8 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
     const chartStore = useChartStore(); 
-    const func = useRecTreeStore().findApiForReqId(req_id);
+    const requestsStore = useRequestsStore();
+    const func = await indexedDb.getFunc(req_id);//must use db
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {

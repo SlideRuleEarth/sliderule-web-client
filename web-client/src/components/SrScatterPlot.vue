@@ -105,15 +105,10 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 await processRunSlideRuleClicked(runContext);
                 console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
-                    const reqId = await recTreeStore.updateRecMenu('show Photon');
                     const thisReqIdStr = runContext.reqId.toString();
                     const parentReqIdStr = runContext.parentReqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
-                    if(reqId <= 0){
-                        console.error('SrScatterPlot handlePhotonCloudChange - No Requests Found');
-                    }
-                    console.log('SrScatterPlot handlePhotonCloudChange - reqId:', reqId);
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
