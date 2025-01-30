@@ -407,9 +407,10 @@
         console.log('onFeatureClick:',featureLike);
         if (featureLike instanceof OlFeature) {
             const properties = featureLike.getProperties();
-
             console.log('Feature properties:',properties);
-            router.push(`/analyze/${properties.req_id.toString()}`);
+            if(properties.req_id){
+                router.push(`/analyze/${properties.req_id.toString()}`);
+            }
         } else {
             console.error('Feature is not an instance of Feature');
         }
@@ -501,6 +502,7 @@
                 console.log("SrMap Error:map is null");
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
+            addRecordPolys();
         } else {
             console.log("SrMap Error:mapRef.value?.map is null");
         }
@@ -547,19 +549,19 @@
     };
 
     async function addRecordPolys() : Promise<void> {
-        //const startTime = new Date().getTime();
+        const startTime = performance.now(); // Start time
         const reqIds = recTreeStore.allReqIds;
-
-        reqIds.forEach(reqId => {
-            //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
-            const map = mapRef.value?.map;
-            if(map){
+        const map = mapRef.value?.map;
+        if(map){
+            reqIds.forEach(reqId => {           
+                //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
                 renderSvrReqPoly(map, reqId);
-            }
-        });
-        //const endTime = new Date().getTime();
-        //console.log('SrMap addRecordPolys renderSvrReqPoly for reqIds:',reqIds,` took ${endTime - startTime} ms`);
-
+            });
+        } else {
+            console.error("SrMap addRecordPolys Error:map is null");
+        }
+        const endTime = performance.now(); // End time
+        console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
     }
 
     const updateThisMapView = async (reason:string) => {
@@ -662,10 +664,10 @@
     };
 
     // Watch for changes in reqIds and handle the logic
-    watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
-        console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
-        addRecordPolys();
-    },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
+    // watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
+    //     console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
+    //     addRecordPolys();
+    // },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
     
 </script>
 

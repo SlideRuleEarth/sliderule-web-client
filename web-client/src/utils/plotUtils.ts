@@ -427,12 +427,12 @@ export function clearPlot() {
     if (plotRef) {
         if(plotRef.chart){
             plotRef.chart.clear();
-            //console.log('plotRef.chart cleared');
+            console.log('clearPlot: plotRef.chart cleared');
         } else {
-            console.warn('plotRef.chart is undefined');
+            console.warn('clearPlot: plotRef.chart is undefined');
         }
     } else {
-        console.warn('plotRef is undefined');
+        console.warn('clearPlot: plotRef is undefined');
     }
 }
 

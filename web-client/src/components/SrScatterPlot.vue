@@ -82,7 +82,7 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
 watch(() => plotRef.value, async (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
-        console.warn('SrScatterPlot plotRef changed:', newPlotRef);
+        console.warn('SrScatterPlot watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
         await callPlotUpdateDebounced('from SrScatterPlot watch plotRef.value');
     }
@@ -111,8 +111,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     const parentReqIdStr = runContext.parentReqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
-                    //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-                    const reqId = await recTreeStore.updateRecMenu('show Photon',runContext.reqId);
+                    const reqId = await recTreeStore.updateRecMenu('show Photon');
                     if(reqId <= 0){
                         console.error('SrScatterPlot handlePhotonCloudChange - No Requests Found');
                     }
@@ -138,7 +137,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     } else {
         console.warn(`SrScatterPlot Skipped handlePhotonCloudChange - Loading component is still active`);
     }
-}, { deep: true, immediate: true });
+});
 
 
 watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelection) => {
@@ -157,33 +156,37 @@ watch(
 
     // If reqId is undefined, null, or empty, return default values
     if (!reqId) {
-      return {
-        scOrients: [],
-        rgts: [],
-        cycles: [],
-        spots: [],
-        tracks: [],
-        pairs: [],
-        ydata: [],
-        solidColor: null,
-      };
+        return {
+            scOrients: [],
+            rgts: [],
+            cycles: [],
+            spots: [],
+            tracks: [],
+            pairs: [],
+            ydata: [],
+            solidColor: null,
+        };
     }
 
     // Otherwise, fetch the real values
     return {
-      scOrients: chartStore.getScOrients(reqId),
-      rgts: chartStore.getRgts(reqId),
-      cycles: chartStore.getCycles(reqId),
-      spots: chartStore.getSpots(reqId),
-      tracks: chartStore.getTracks(reqId),
-      pairs: chartStore.getPairs(reqId),
-      ydata: chartStore.getSelectedYData(reqId),
-      solidColor: chartStore.getSolidSymbolColor(reqId),
+        scOrients: chartStore.getScOrients(reqId),
+        rgts: chartStore.getRgts(reqId),
+        cycles: chartStore.getCycles(reqId),
+        spots: chartStore.getSpots(reqId),
+        tracks: chartStore.getTracks(reqId),
+        pairs: chartStore.getPairs(reqId),
+        ydata: chartStore.getSelectedYData(reqId),
+        solidColor: chartStore.getSolidSymbolColor(reqId),
     };
   },
   async (newValues, oldValues) => {
     if (!loadingComponent.value) {
-      await callPlotUpdateDebounced('watch multiple properties changed');
+        if(newValues.ydata.length > 0){
+            await callPlotUpdateDebounced('watch selected Y data changed');
+        } else {
+            console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
+        }
     } else {
       console.warn(
         `Skipped updateThePlot for watch multiple properties - Loading component is still active`

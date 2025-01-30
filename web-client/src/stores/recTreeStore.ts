@@ -103,9 +103,10 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     //     readyToPlot.value = ready;
     // };
 
-    const loadTreeData = async (items: SrMenuNumberItem[], selectReqId?: number) => {
+    const loadTreeData = async (selectReqId?: number) => {
         try {
-            treeData.value = buildRecTree(items); // Transform to TreeNode structure
+            reqIdMenuItems.value = await useRequestsStore().getMenuItems();
+            treeData.value = buildRecTree(reqIdMenuItems.value); // Transform to TreeNode structure
             if (treeData.value.length > 0) {
                 if(selectReqId && (selectReqId > 0)){
                     if(findAndSelectNode(selectReqId)){
@@ -153,6 +154,11 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         }
     };
 
+    const findApiForReqId = (reqId: number): string => {
+        const node = findNodeByKey(treeData.value, reqId.toString());
+        return node?.api || '';
+    };
+
     const findAndSelectNode = (reqId: number): boolean => {
         const findNode = (nodes: SrPrimeTreeNode[]): SrPrimeTreeNode | null => {
             for (const node of nodes) {
@@ -182,11 +188,9 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
 
     const updateRecMenu = async (logMsg:string,newReqId?:number): Promise<number> => {
         console.log('updateRecMenu', logMsg,'newReqId', newReqId); 
-        const requestsStore = useRequestsStore();
         try{
-            reqIdMenuItems.value = await requestsStore.getMenuItems();
             console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value);
-            await loadTreeData(reqIdMenuItems.value,newReqId);
+            await loadTreeData(newReqId);
             console.log('updateRecMenu treeData:', treeData);
             initDataBindingsToChartStore(reqIdMenuItems.value.map(item => item.value.toString()));
             await initChartStore();
@@ -210,6 +214,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         findAndSelectNode,
         updateRecMenu,
         initToFirstRecord,
+        findApiForReqId,
         //getReadyToPlot,
         //setReadyToPlot,
     };

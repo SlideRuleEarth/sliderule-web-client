@@ -6,7 +6,7 @@ import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
 import SrSliderInput from '@/components/SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, prepareDbForReqId, updateAllFilterOptions } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
@@ -30,9 +30,9 @@ import { clicked } from '@/utils/SrMapUtils'
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
-import { getHFieldName } from "@/utils/SrParquetUtils";
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { getHFieldName } from '@/utils/SrDuckDbUtils';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -103,7 +103,7 @@ async function initAnalysisMap() {
             chartStore.setSpots(reqIdStr,[]);
             chartStore.setRgts(reqIdStr,[]);
             chartStore.setCycles(reqIdStr,[]);
-            await updateFilter([req_id]);
+            //await updateFilter([req_id]);
             await debouncedUpdateElevationMap();
         } else {
             console.warn('watch useAtlChartFilterStore().selectedReqIdMenuItem/newSelection --> Request Id is <= 0',req_id);
@@ -175,7 +175,7 @@ const tracksSelection = () => {
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
     let firstRec = null as ElevationDataItem | null;
-    const reqIdStr = req_id.toString();
+    //const reqIdStr = req_id.toString();
     if(req_id <= 0){
         console.warn(`updateElevationMap Invalid request ID:${req_id}`);
         return;
@@ -183,20 +183,20 @@ const updateElevationMap = async (req_id: number) => {
     try {
         //console.log('Request:', request);
         deckStore.deleteSelectedLayer();
-        const rgts = await updateRgtOptions(req_id);
-        //console.log('watch req_id rgts:',rgts);
-        const cycles = await updateCycleOptions(req_id);
-        //console.log('watch req_id cycles:',cycles);
-        if(chartStore.getFunc(reqIdStr)==='atl03sp'){
-            const pairs = await updatePairOptions(req_id);
-            //console.log('watch req_id pairs:',pairs);
-            const scOrients = await updateScOrientOptions(req_id);
-            //console.log('watch req_id scOrients:',scOrients);
-            const tracks = await updateTrackOptions(req_id);
-            //console.log('watch req_id tracks:',tracks);
-        }
-
-        updateFilter([req_id]);
+        // const rgts = await updateRgtOptions(req_id);
+        // //console.log('watch req_id rgts:',rgts);
+        // const cycles = await updateCycleOptions(req_id);
+        // //console.log('watch req_id cycles:',cycles);
+        // if(chartStore.getFunc(reqIdStr)==='atl03sp'){
+        //     const pairs = await updatePairOptions(req_id);
+        //     //console.log('watch req_id pairs:',pairs);
+        //     const scOrients = await updateScOrientOptions(req_id);
+        //     //console.log('watch req_id scOrients:',scOrients);
+        //     const tracks = await updateTrackOptions(req_id);
+        //     //console.log('watch req_id tracks:',tracks);
+        // }
+        updateAllFilterOptions(req_id);
+        //updateFilter([req_id]); // query to set all options for all 
         mapStore.setIsLoading(true);
         firstRec = await duckDbReadAndUpdateElevationData(req_id);
         mapStore.setIsLoading(false);
@@ -234,31 +234,31 @@ const updateRecordSelection = async (item: SrMenuNumberItem) => {
     }
 };
 
-const updateFilter = async (req_ids: number[]) => {
-    try {
-        // Process each request ID and aggregate results
-        let rgts:number[] = [];
-        let cycles:number[] = [];
-        for (const req_id of req_ids) {
-            const rgtOptions = await updateRgtOptions(req_id);
-            const cycleOptions = await updateCycleOptions(req_id);
-            rgts.push(...rgtOptions); // Append rgt options
-            cycles.push(...cycleOptions); // Append cycle options
-        }
+// const updateFilter = async (req_ids: number[]) => {
+//     try {
+//         // Process each request ID and aggregate results
+//         let rgts:number[] = [];
+//         let cycles:number[] = [];
+//         for (const req_id of req_ids) {
+//             const rgtOptions = await updateRgtOptions(req_id);
+//             const cycleOptions = await updateCycleOptions(req_id);
+//             rgts.push(...rgtOptions); // Append rgt options
+//             cycles.push(...cycleOptions); // Append cycle options
+//         }
         
-        // Remove duplicates from the aggregated results (if needed)
-        rgts = [...new Set(rgts)];
-        cycles = [...new Set(cycles)];
+//         // Remove duplicates from the aggregated results (if needed)
+//         rgts = [...new Set(rgts)];
+//         cycles = [...new Set(cycles)];
 
-        // Update the store with the aggregated results
-        const atlChartFilterStore = useAtlChartFilterStore();
-        atlChartFilterStore.setRgtOptionsWithNumbers(rgts);
-        atlChartFilterStore.setCycleOptionsWithNumbers(cycles);
+//         // Update the store with the aggregated results
+//         const atlChartFilterStore = useAtlChartFilterStore();
+//         atlChartFilterStore.setRgtOptionsWithNumbers(rgts);
+//         atlChartFilterStore.setCycleOptionsWithNumbers(cycles);
 
-    } catch (error) {
-        console.error('Failed to update selected requests:', error);
-    }
-};
+//     } catch (error) {
+//         console.error('Failed to update selected requests:', error);
+//     }
+// };
 
 async function processNewReqId() {
     const startTime = performance.now(); // Start time
@@ -272,7 +272,7 @@ async function processNewReqId() {
         if(req_id !== props.startingReqId){
             console.warn(`processNewReqId: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
         }
-        const height_fieldname = getHFieldName(recTreeStore.selectedNodeApi);
+        const height_fieldname = getHFieldName(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         console.log('processNewReqId summary:', summary, 'req_id:', req_id);
         await updateChartStore(req_id);
@@ -311,8 +311,10 @@ watch(
   async (newValue, oldValue) => {
     console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
     // Perform any additional actions on change
-    if(newValue > 0){
+    if(newValue > 0 && (newValue !== oldValue)){
         await processNewReqId();
+    } else {
+        console.warn(`recTreeStore.selectedReqId is <= 0 or unchanged: ${newValue}`);
     }
   }
 );

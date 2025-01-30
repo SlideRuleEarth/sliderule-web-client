@@ -32,7 +32,7 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
@@ -296,16 +296,16 @@ export function updateWhereClause(reqIdStr:string){
         if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: pairs is undefined or empty');
+            console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
         }
         if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: sc_orient is undefined or empty');
+            console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
         }
         cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        console.log('Clicked: atl03spWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
     } else if(func === 'atl03vp'){
         const atl03vpWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -313,7 +313,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
     } else if (func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -321,7 +321,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
     } else if (func === 'atl08p'){
         const atl08pWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -329,9 +329,9 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
     } else {
-        console.error('Clicked: Unknown func?:',func);
+        console.error('updateWhereClause Unknown func?:',func);
     }
 
 }
@@ -876,10 +876,11 @@ export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: numbe
     if(zoomTo){
         map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
     }
-    //console.log('renderRequestPolygon: feature added', feature);
+    console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
 }
 
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
+    //const startTime = performance.now(); // Start time
     try{
         const poly:SrRegion = await db.getSvrReqPoly(reqId);
         const rc = await db.getRunContext(reqId);
@@ -889,7 +890,7 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
                     renderRequestPolygon(map, reqId, poly);
                 }
             } else {
-                console.warn('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+                //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
             }
         } else {
             console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
@@ -897,9 +898,15 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
     } catch (error) {
         console.error('renderSvrReqPoly Error:',error);
     }
+    //const endTime = performance.now(); // End time
+    //console.log(`renderSvrReqPoly took ${endTime - startTime} milliseconds.`);
 }
 
-export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
+export async function updateMapView(map:OLMap, 
+        srViewKey:string, 
+        reason:string, 
+        restore:boolean=false
+): Promise<void> {
     // This function is generic and shared between the two maps
     try {
         if(map){
@@ -990,44 +997,13 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 console.log('Initial newView zoom:', srProjObj.default_zoom);
                 console.log('Initial newView:', newView);
                 useMapStore().setExtentToRestore(extent);
-                
-                // if (reason === 'handleUpdateBaseLayer') {
-                //     console.log('Restoring view for handleUpdateBaseLayer');
-                
-                //     const mapStore = useMapStore();
-                //     const extentToRestore = mapStore.getExtentToRestore();
-                //     const centerToRestore = mapStore.getCenterToRestore();
-                //     const zoomToRestore = mapStore.getZoomToRestore();
-                
-                //     // Validate the restore parameters
-                //     if (
-                //         extentToRestore === null ||
-                //         centerToRestore === null ||
-                //         zoomToRestore === null
-                //     ) {
-                //         console.warn('One or more restore parameters are null');
-                //     } else if (
-                //         !extentToRestore.every(value => Number.isFinite(value))
-                //     ) {
-                //         console.warn('Invalid extentToRestore:', extentToRestore);
-                //     } else {
-                //         // All restore parameters are valid, create a new view
-                //         newView = new OlView({
-                //             projection: newProj,
-                //             extent: extentToRestore,
-                //             center: centerToRestore,
-                //             zoom: zoomToRestore,
-                //         });
-                //         console.log('Restored view with extent:', extentToRestore);
-                //         console.log('Restored view with center:', centerToRestore);
-                //         console.log('Restored view with zoom:', zoomToRestore);
-                //     }
-                // }
-                const restoredView = restoreMapView(newProj);
-                if (restoredView) {
-                    newView = restoredView;
-                } else {
-                    console.warn('Failed to restore view for:', reason);
+                if(restore){
+                    const restoredView = restoreMapView(newProj);
+                    if (restoredView) {
+                        newView = restoredView;
+                    } else {
+                        console.warn('Failed to restore view for:', reason);
+                    }    
                 }
                 console.log('Setting new view:', newView);
                 map.setView(newView);

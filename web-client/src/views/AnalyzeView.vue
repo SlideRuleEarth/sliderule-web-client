@@ -7,6 +7,7 @@ import SrScatterPlot from "@/components/SrScatterPlot.vue";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useToast } from "primevue/usetoast";
+
 const router = useRouter();
 
 const recTreeStore = useRecTreeStore();
@@ -21,11 +22,11 @@ const shouldDisplay = computed(() => {
 }); 
 
 onMounted(async () => {
-    console.log('AnalyzeView onMounted Loading AnalyzeView with route specified reqId:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
+    //console.log('AnalyzeView onMounted Loading AnalyzeView with route specified reqId:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
     if(recTreeStore.allReqIds.length > 0){
         console.log('AnalyzeView onMounted: recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
         if(recTreeStore.allReqIds.includes(reqId.value)){
-            console.warn('AnalyzeView onMounted: GOOD route setting to reqId:', reqId.value);
+            console.log('AnalyzeView onMounted: GOOD route setting to reqId:', reqId.value);
         } else {
             console.warn('AnalyzeView onMounted: BAD route setting to first record recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds, ' router.params.id:', route.params.id);
             recTreeStore.initToFirstRecord();

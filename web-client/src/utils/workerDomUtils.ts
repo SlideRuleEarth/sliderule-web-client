@@ -10,14 +10,14 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile,prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
 import { callPlotUpdateDebounced,updateChartStore } from '@/utils/plotUtils';
-import { readOrCacheSummary } from '@/utils/SrParquetUtils';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -136,6 +136,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     chartStore.setFile(reqIdStr,fileName);
                     const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
                     await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
+                    await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id);
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);
@@ -152,7 +153,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
-                        router.push(`/analyze/${workerMsg.req_id}`);
+                        router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue
                     }
                 } catch (error) {
                     console.error('handleWorkerMsg opfs_ready error:',error);
@@ -205,8 +206,6 @@ function handleWorkerError(error:ErrorEvent, errorMsg:string) {
     cleanUpWorker();
 }
 
-
-
 function cleanUpWorker(){
     //mapStore.unsubscribeLiveElevationQuery();
     if (workerTimeoutHandle) {
@@ -220,7 +219,7 @@ function cleanUpWorker(){
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.setIsLoading(false); // controls spinning progress
-   mapStore.setIsAborting(false);
+    mapStore.setIsAborting(false);
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
 }

@@ -6,6 +6,7 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
 import SrColorPalette from './SrColorPalette.vue';
+import SrClearCache from './SrClearCache.vue';
 
 const SrYAPC = defineAsyncComponent(() => import('./SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('./SrAtl03Cnf.vue'));
@@ -126,6 +127,7 @@ const isExpanded = (panelIndex: number) => {
                     <AccordionHeader>Storage Usage</AccordionHeader>
                     <AccordionContent v-if="isExpanded(11)">
                         <SrStorageUsage />
+                        <SrClearCache />
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="12">

@@ -23,7 +23,7 @@
     import SrRecSelectControl from "./SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import SrCheckbox from "@/components/SrCheckbox.vue";
-    import { getHFieldName } from "@/utils/SrParquetUtils";
+    import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
 
 
@@ -57,7 +57,7 @@
     }); 
     const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
     const computedHFieldName = computed(() => {
-        return getHFieldName(recTreeStore.selectedNodeApi);
+        return getHFieldName(recTreeStore.selectedReqId);
     });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {

@@ -7,7 +7,7 @@ import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { updateFilename } from '@/utils/SrParquetUtils';
 import { duckDbLoadOpfsParquetFile,duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
-import { getHFieldName } from '@/utils/SrParquetUtils';
+import { getHFieldNameForFuncStr } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
 import { db } from '@/db/SlideRuleDb';
 import type { SrRegion } from '@/sliderule/icesat2'
@@ -68,7 +68,7 @@ const customUploader = async (event:any) => {
             const writableStream = await opfsFileHandle.createWritable();
             await writableStream.write(file);
             await writableStream.close();
-            const heightFieldname = await  getHFieldName(srReqRec.func);
+            const heightFieldname = getHFieldNameForFuncStr(srReqRec.func);
 
             await duckDbReadOrCacheSummary(srReqRec.req_id, heightFieldname);
             const summary = await db.getWorkerSummary(srReqRec.req_id);

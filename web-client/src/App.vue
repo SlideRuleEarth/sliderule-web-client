@@ -17,6 +17,7 @@ const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
 import { useRoute } from 'vue-router';
+import SrClearCache from './components/SrClearCache.vue';
 
 const route = useRoute();
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -113,15 +114,12 @@ const analysisButtonClick = async () => {
         if (reqId > 0) {
             router.push(`/analyze/${reqId.toString()}`);
         } else {
-            console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
-            if(recTreeStore.allReqIds.length===0){
-                toast.add({ severity: 'warn', summary: 'No Records Found', detail: 'Please first create a new record by making a request', life: srToastStore.getLife() });
-            } else {    
+            if(recTreeStore.allReqIds.length > 0){
+                console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
                 toast.add({ severity: 'warn', summary: 'Invalid Record specified', detail: ' Setting to first record Id', life: srToastStore.getLife() });
-                recTreeStore.initToFirstRecord();
+                recTreeStore.initToFirstRecord();   
             }
         }
-        
     } catch (error) {
         console.error(`Failed analysisButtonClick`, error);
         throw error;
@@ -162,6 +160,7 @@ const handleVersionButtonClick = () => {
       <div class="sr-about">
         <SrBuildDate />
         <SrUserAgent />
+        <SrClearCache />
       </div>
     </Dialog>
     <Dialog v-model:visible="showUnsupportedDialog" header="Browser/OS Support" :modal="true" :closable="true" style="width: 50vw;">
