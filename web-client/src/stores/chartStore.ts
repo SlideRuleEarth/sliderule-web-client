@@ -123,7 +123,7 @@ export const useChartStore = defineStore('chartStore', {
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
                 console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
-                //console.trace('Call stack for getMinValue()');
+                console.trace('Call stack for getMinValue()');
                 return 0;
             }
         },

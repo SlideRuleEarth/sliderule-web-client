@@ -63,6 +63,8 @@ export function initializeColorEncoding(reqIdStr:string,func:string){
         chartStore.setSelectedColorEncodeData(reqIdStr, 'segment_ph_cnt');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean_canopy');
+    } else if(func.includes('atl06sp')) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_li');
     } else if(func.includes('atl06')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean');
     } else {
