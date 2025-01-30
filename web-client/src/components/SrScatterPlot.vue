@@ -17,7 +17,9 @@ import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
+import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
+
 
 const props = defineProps({
     startingReqId: {
@@ -31,9 +33,8 @@ const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const colorMapStore = useColorMapStore();
 const reqParamsStore = useReqParamsStore();
-const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
+const recTreeStore = useRecTreeStore();
 const loadingComponent = ref(true);
-const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -51,8 +52,8 @@ onMounted(async () => {
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
-        atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-        initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
+        //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+        //initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
             //const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
@@ -68,19 +69,20 @@ onMounted(async () => {
     }
 });
 
-watch(() => atlChartFilterStore.getReqId(), async (newReqId) => {
-    console.log('reqId changed:', newReqId);
+watch(() => recTreeStore.selectedReqId, async (newReqId) => {
+    console.log('SrScatterPlot watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        await callPlotUpdateDebounced('from watch atlChartFilterStore.getReqId()');
+        prepareDbForReqId(newReqId);
+        await callPlotUpdateDebounced('from SrScatterPlot watch recTreeStore.selectedReqId');
     }
 });
 
 watch(() => plotRef.value, async (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
-        console.warn('plotRef changed:', newPlotRef);
+        console.warn('SrScatterPlot watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
-        await callPlotUpdateDebounced('from watch plotRef.value');
+        await callPlotUpdateDebounced('from SrScatterPlot watch plotRef.value');
     }
 });
 
@@ -93,7 +95,7 @@ const messageClass = computed(() => {
 });
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
-    console.log('showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
+    console.log('SrScatterPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
@@ -101,19 +103,18 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await reqParamsStore.presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext);
-                console.log('handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+                console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     const parentReqIdStr = runContext.parentReqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
-                    atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
                 } else {
-                    console.error('handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                    console.error('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else {
                 await initSymbolSize(runContext.reqId);
@@ -122,55 +123,72 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
         } else {
-            console.log('handlePhotonCloudChange - showPhotonCloud FALSE');
+            console.log('SrScatterPlot handlePhotonCloudChange - showPhotonCloud FALSE');
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
         }
     } else {
-        console.warn(`Skipped handlePhotonCloudChange - Loading component is still active`);
+        console.warn(`SrScatterPlot Skipped handlePhotonCloudChange - Loading component is still active`);
     }
-}, { deep: true, immediate: true });
+});
 
 
 watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelection) => {
     console.log('watch selectedOverlayedReqIds --> Request ID changed from:', oldSelection ,' to:', newSelection);
     try{
-        atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
+        //atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
     } catch (error) {
         console.error('watch selectedOverlayedReqIds Failed to update selected request:', error);
     }
 });
 
-watch(atlChartFilterStore.selectedReqIdMenuItem, async (newSelection, oldSelection) => {
-    //console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
-    try{
-        console.log('watch selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
-    } catch (error) {
-        console.error('Failed to update selected request:', error);
-    }
-});
-
 
 watch(
-  () => ({
-    scOrients: chartStore.getScOrients(computedReqIdStr.value),
-    rgts: chartStore.getRgts(computedReqIdStr.value),
-    cycles: chartStore.getCycles(computedReqIdStr.value),
-    spots: chartStore.getSpots(computedReqIdStr.value),
-    tracks: chartStore.getTracks(computedReqIdStr.value),
-    pairs: chartStore.getPairs(computedReqIdStr.value),
-    ydata: chartStore.getSelectedYData(computedReqIdStr.value),
-    solidColor: chartStore.getSolidSymbolColor(computedReqIdStr.value),
-  }),
+  () => {
+    const reqId = recTreeStore.selectedReqIdStr;
+
+    // If reqId is undefined, null, or empty, return default values
+    if (!reqId) {
+        return {
+            scOrients: [],
+            rgts: [],
+            cycles: [],
+            spots: [],
+            tracks: [],
+            pairs: [],
+            ydata: [],
+            solidColor: null,
+        };
+    }
+
+    // Otherwise, fetch the real values
+    return {
+        scOrients: chartStore.getScOrients(reqId),
+        rgts: chartStore.getRgts(reqId),
+        cycles: chartStore.getCycles(reqId),
+        spots: chartStore.getSpots(reqId),
+        tracks: chartStore.getTracks(reqId),
+        pairs: chartStore.getPairs(reqId),
+        ydata: chartStore.getSelectedYData(reqId),
+        solidColor: chartStore.getSolidSymbolColor(reqId),
+    };
+  },
   async (newValues, oldValues) => {
-    if(!loadingComponent.value){
-        await callPlotUpdateDebounced('watch multiple properties changed');
+    if (!loadingComponent.value) {
+        if(newValues.ydata.length > 0){
+            await callPlotUpdateDebounced('watch selected Y data changed');
+        } else {
+            console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
+        }
     } else {
-        console.warn(`Skipped updateThePlot for watch multiple properties - Loading component is still active`);
-    }  
+      console.warn(
+        `Skipped updateThePlot for watch multiple properties - Loading component is still active`
+      );
+    }
   },
   { deep: true }
 );
+
 
 </script>
 <template>
@@ -193,7 +211,7 @@ watch(
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!computedFunc.includes('atl03')">
+            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -211,7 +229,10 @@ watch(
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
-                    <SrPlotCntrl :reqId="atlChartFilterStore.selectedReqIdMenuItem.value" />
+                    <SrPlotCntrl
+                        v-if="(recTreeStore.selectedReqId > 0)"
+                        :reqId="recTreeStore.selectedReqId" 
+                />
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
 import { db } from '@/db/SlideRuleDb';
+import { computed } from 'vue';
 
 export const useColorMapStore = defineStore('colorMapStore', {
     state: () => ({
@@ -143,17 +144,6 @@ export const useColorMapStore = defineStore('colorMapStore', {
         getCnfColorMap() {
             return this.atl03CnfColorMap;
         },
-        getColorForAtl03CnfValue(value:number) { // value is the atl03_cnf value -2 to 4
-            const ndx = value + 2;
-            if(ndx < 0 || ndx > 6){
-                if(this.debugCnt++ < 10){
-                    console.error('getColorForAtl03CnfValue invalid value:',value);
-                }
-                return 'White'; // Return White for invalid values
-            }
-            const c = this.atl03CnfColorMap[ndx];
-            return c;
-        },
         async setColorForAtl03CnfValue(value:number,namedColorValue:string) { // value is the atl03_cnf value -2 to 4
             const ndx = value + 2;
             if(ndx < 0 || ndx > 6){
@@ -162,15 +152,6 @@ export const useColorMapStore = defineStore('colorMapStore', {
             }
             this.atl03CnfColorMap[ndx] = namedColorValue;
             await db.addOrUpdateAtl03CnfColor(value,namedColorValue);
-        },
-        getColorForAtl08ClassValue(value:number) { // value is the atl08_class value 0 to 4
-            const ndx = value;
-            if(ndx < 0 || ndx > 4){
-                console.error('getRGBColorForAtl08ClassValue invalid value:',value);
-                return 'White'; // Return White for invalid values
-            }
-            const c = this.atl08ClassColorMap[ndx];
-            return c;
         },
         async setColorForAtl08ClassValue(value:number,namedColorValue:string) { // value is the atl08_class value 0 to 4
             const ndx = value;

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
-import {  useAtlChartFilterStore } from './atlChartFilterStore';
 
 export interface SrMenuItem {
     name: string;
@@ -18,15 +17,12 @@ interface ChartState {
     max_x: number;
     min_y: number;
     max_y: number;
-    //min_yapc_score: number;
-    //max_yapc_score: number;
     elevationDataOptions: string[];
     yDataOptions: string[];
     selectedYData: string;
     selectedColorEncodeData: string;
     xDataForChart: string;
     ndxOfElevationDataOptionsForHeight: number;
-    func: string;
     description: string;
     querySql: string;
     whereClause: string;
@@ -51,7 +47,6 @@ interface ChartState {
     showYDataMenu: boolean;
 }
 
-const atlChartFilterStore = useAtlChartFilterStore();
 
 export const useChartStore = defineStore('chartStore', {
     state: () => ({
@@ -80,7 +75,6 @@ export const useChartStore = defineStore('chartStore', {
                     selectedColorEncodeData: 'unset',
                     xDataForChart: 'x_atc',
                     ndxOfElevationDataOptionsForHeight: 0,
-                    func: '',
                     description: 'description here',
                     querySql: '',
                     whereClause: '',
@@ -128,7 +122,8 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
-                console.log('getMinValue() key:', key, ' not found in minMaxValues');
+                console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                console.trace('Call stack for getMinValue()');
                 return 0;
             }
         },
@@ -137,7 +132,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
-                console.log('getMaxValue() key:', key, ' not found in minMaxValues');
+                console.log('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
                 return 0;
             }
         },
@@ -293,14 +288,6 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].currentFile = fileName;
         },
-        getFunc(reqIdStr: string) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].func;
-        },
-        setFunc(reqIdStr: string,func: string) {
-            this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].func = func;
-        },
         setXLegend(reqIdStr: string,xLegend: string) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].xLegend = xLegend;
@@ -364,7 +351,6 @@ export const useChartStore = defineStore('chartStore', {
         },
         setSpots(reqIdStr: string, spots: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore setSpots:', spots);
             this.stateByReqId[reqIdStr].spots = spots;
         },
         getSpots(reqIdStr: string): SrListNumberItem[] {
@@ -377,17 +363,14 @@ export const useChartStore = defineStore('chartStore', {
         },
         setSpotWithNumber(reqIdStr: string, spot: number) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.setSpotWithNumber():', spot);
             this.setSpots(reqIdStr,[{ label: spot.toString(), value: spot }]);
         },
         setRgts(reqIdStr: string, rgts: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore setRgts:', rgts);
             this.stateByReqId[reqIdStr].rgts = rgts;
         },
         getRgts(reqIdStr: string) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore getRgts:', this.rgts);
             return this.stateByReqId[reqIdStr].rgts;
         },
         getRgtValues(reqIdStr: string) {
@@ -400,22 +383,18 @@ export const useChartStore = defineStore('chartStore', {
         },
         setRgtWithNumber(reqIdStr: string, rgt: number) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.setRgtWithNumber():', rgt);
             this.setRgts(reqIdStr,[{ label: rgt.toString(), value: rgt }]);
         },
         setCycleWithNumber(reqIdStr: string, cycle: number) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.setCycleWithNumber():', cycle);
             this.setCycles(reqIdStr,[{ label: cycle.toString(), value: cycle }]);
         },
         setCycles(reqIdStr: string, cycles: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.setCycles():', cycles);
             this.stateByReqId[reqIdStr].cycles = cycles;
         },
         getCycles(reqIdStr: string) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.getCycles():', this.cycles);
             return this.stateByReqId[reqIdStr].cycles;
         },
         setTracks(reqIdStr: string, tracks: SrListNumberItem[]) {
@@ -429,7 +408,6 @@ export const useChartStore = defineStore('chartStore', {
         setTrackWithNumber(reqIdStr: string, track: number) {
             this.ensureState(reqIdStr);
             this.setTracks(reqIdStr,[{ label: track.toString(), value: track }]);
-            //console.log('atlChartFilterStore.setTrackWithNumber(', track,') tracks:', this.tracks);
         },
         getTrackValues(reqIdStr: string) {
             this.ensureState(reqIdStr);
@@ -454,7 +432,6 @@ export const useChartStore = defineStore('chartStore', {
         },    
         setBeamsAndTracksWithGts(reqIdStr: string, gts: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            //console.log('atlChartFilterStore.setBeamsAndTracksWithGts(',gt,')');
             const parms = getBeamsAndTracksWithGts(gts);
             this.setBeams(reqIdStr,parms.beams);
             this.setTracks(reqIdStr,parms.tracks);
@@ -472,7 +449,6 @@ export const useChartStore = defineStore('chartStore', {
                 .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
                 .filter((beam): beam is SrListNumberItem => beam !== undefined);
             this.setBeams(reqIdStr,beams);
-            //console.log('atlChartFilterStore.setBeamsForTracks(',input_tracks,') beams:', beams);
         },
         setBeamWithNumber(reqIdStr: string, beam: number) {
             this.ensureState(reqIdStr);

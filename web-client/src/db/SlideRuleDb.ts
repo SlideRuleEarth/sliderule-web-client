@@ -658,7 +658,6 @@ export class SlideRuleDexie extends Dexie {
                     console.error(`getFunc No request found with req_id ${req_id}`);
                     return '';
                 }
-                //console.log('getFunc req_id:',req_id,'func:',request.func, 'request:',request);
                 return request.func || '';
             } else {
                 console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
@@ -1103,7 +1102,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const runContext = await this.runContexts.where('reqId').equals(reqId).first();
             if (!runContext) {
-                console.log(`No run context found for req_id ${reqId}`);
+                //console.log(`No run context found for req_id ${reqId}`);
             }
             return runContext;
         } catch (error) {

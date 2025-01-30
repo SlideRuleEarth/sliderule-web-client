@@ -5,7 +5,8 @@ import { PointCloudLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
+import type { FeatureLike } from 'ol/Feature';
 import { Deck } from '@deck.gl/core';
 import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
@@ -31,15 +32,18 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
 import { clearPlot } from '@/utils/plotUtils';
-import type { SrSvrParmsUsed } from '@/types/SrTypes';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
+import { Text as TextStyle } from 'ol/style';
+import Geometry from 'ol/geom/Geometry';
+import type { SrRegion } from '@/sliderule/icesat2';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -278,7 +282,8 @@ export interface ElevationDataItem {
 
 export function updateWhereClause(reqIdStr:string){
     const cs = useChartStore();
-    const func = cs.getFunc(reqIdStr);
+    const reqId = parseInt(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(reqId);
     console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
     if(func==='atl03sp'){
         let atl03spWhereClause = `
@@ -289,16 +294,16 @@ export function updateWhereClause(reqIdStr:string){
         if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: pairs is undefined or empty');
+            console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
         }
         if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: sc_orient is undefined or empty');
+            console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
         }
         cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        console.log('Clicked: atl03spWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
     } else if(func === 'atl03vp'){
         const atl03vpWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -306,7 +311,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
     } else if (func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -314,7 +319,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
     } else if (func === 'atl08p'){
         const atl08pWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -322,9 +327,9 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',cs.getWhereClause(reqIdStr))
+        console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
     } else {
-        console.error('Clicked: Unknown func?:',func);
+        console.error('updateWhereClause Unknown func?:',func);
     }
 
 }
@@ -335,7 +340,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     
-    const reqIdStr = useAtlChartFilterStore().getReqIdStr();
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
     //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
@@ -370,7 +375,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
-    const func = useChartStore().getFunc(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     console.log('Clicked: func',func);
     console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
     console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
@@ -786,81 +791,70 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
     return newView;
 }
 
-// export function renderRequestPolygon(map: OLMap, poly: {lon:number, lat:number}[]): void {
-//     let flatLonLatPairs;
 
-//     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
-//     if (!vectorLayer) {
-//         console.error('renderRequestPolygon Records Layer not found');
-//         return;
-//     }
-//     if (!Array.isArray(poly)) {
-//         console.error('renderRequestPolygon Invalid polygon data: poly is not an array');
-//         return;
-//     }
+export function addFeatureClickListener(
+    map: OLMap,
+    onFeatureClick: (feature: Feature<Geometry>) => void
+): void {
+    map.on('singleclick', (evt) => {
+      map.forEachFeatureAtPixel(evt.pixel, (featureLike: FeatureLike) => {
+        // Check if it really is a Feature (not a RenderFeature)
+        if (featureLike instanceof Feature) {
 
-//     // Convert `poly` to OpenLayers `Coordinate[]`
-//     const coordinates: Coordinate[] = poly.map(point => [point.lon, point.lat]);
+            onFeatureClick(featureLike);
+            return true; // Stop searching for features
+        }
+        return false; // Continue searching for features
+      });
+    });
+}
 
-//     // Ensure the first and last points are the same to close the polygon
-//     if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
-//         coordinates.push(coordinates[0]); // Close the loop
-//     }
+function createPolygonStyle(label: string): Style {
+    return new Style({
+      fill: new Fill({
+        color: 'rgba(0, 0, 255, 0.02)'
+      }),
+      stroke: new Stroke({
+        color: 'blue',
+        width: 2
+      }),
+      text: new TextStyle({
+        text: label || '',
+        font: '14px Calibri,sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }), // Outline for contrast
+        overflow: true,  
+        placement: 'point', // Usually for points/lines; for polygons it often centers automatically.
+      })
+    });
+}
+export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    if (!vectorLayer) {
+      console.error('zoomToRequestPolygon: "Records Layer" not found');
+      return;
+    }
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error('Records Layer source not found');
+        return;
+    
+    }    
+    const vectorSource = vectorLayer.getSource();
+    if (!(vectorSource instanceof VectorSource)) {
+        console.error('zoomToRequestPolygon: vector source not found');
+        return;
+    }
 
-//     if (vectorLayer && vectorLayer instanceof OLlayer) {
-//         const vectorSource = vectorLayer.getSource();
-//         if (vectorSource) {
-//             //vectorSource.clear();
+    const features = vectorSource.getFeatures();
+    const feature = features.find(f => f.get('req_id') === reqId);
+    if (feature) {
+      map.getView().fit(feature.getGeometry().getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    } else {
+      console.error('zoomToRequestPolygon: feature not found for reqId:',reqId);
+    }
+}
 
-//             // Wrap the coordinates array in another array to represent a polygon ring
-//             const feature = new Feature({
-//                 geometry: new OlPolygon([coordinates]),
-//             });
-//             const geometry = feature.getGeometry() as OlPolygon;
-//             console.log("renderRequestPolygon geometry:", geometry);
-//             // Check if the geometry is a polygon
-//             if (geometry && geometry.getType() === 'Polygon') {
-//                 //console.log("geometry:",geometry);
-//                 // Get the coordinates of all the rings of the polygon
-//                 const rings = geometry.getCoordinates(); // This retrieves all rings
-//                 console.log("renderRequestPolygon Original polyCoords:", rings);
-
-//                 const projName = useMapStore().getSrViewObj().projectionName;
-//                 let thisProj = getProjection(projName);
-//                 if(thisProj){
-//                     console.log("renderRequestPolygon thisProj:",thisProj, ' projName:',projName, ' units:',thisProj.getUnits());
-//                     const projection = map.getView().getProjection();
-//                     console.log('map projection:', projection.getCode(), projection.getUnits());
-                    
-//                     if(thisProj.getUnits() === 'degrees'){
-//                         flatLonLatPairs = rings.flatMap(ring => ring);
-//                     } else {
-//                         //Convert each ring's coordinates to lon/lat using toLonLat
-//                         const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-//                             ring.map(coord => fromLonLat(coord) as Coordinate)
-//                         );
-//                         console.log("Converted polyCoords:", convertedRings);
-//                         flatLonLatPairs = convertedRings.flatMap(ring => ring);
-//                     }
-//                 } else {
-//                     console.error('Invalid projection:', projName);
-//                 }
-//             } else {
-//                 console.error('Invalid geometry:', geometry);
-//             }
-//             vectorSource.addFeature(feature);
-//             console.log('renderRequestPolygon Added feature to vectorSource:', vectorSource, ' feature:', feature);
-//         } else {
-//             console.error('Records Layer source not found');
-//         }
-//     } else {
-//         console.error('Records Layer not found');
-//     }
-//     console.log('renderRequestPolygon Done rendering polygon:', flatLonLatPairs);
-// }
-
-
-export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[]): void {
+export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: number, lat: number}[],zoomTo?:boolean): void {
     // 1. Find your vector layer
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
     if (!vectorLayer) {
@@ -897,31 +891,49 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
 
     // 5. Create the Polygon feature
     const polygon = new OlPolygon([coordinates]);
-    const feature = new Feature({ geometry: polygon });
+    const feature = new Feature({ geometry: polygon, req_id:reqId });
+    feature.setStyle(createPolygonStyle(reqId.toString()));
     vectorSource.addFeature(feature);
 
     // 6. (Optionally) zoom to the new polygon
-    //map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
-
-    console.log('renderRequestPolygon: feature added', feature);
+    if(zoomTo){
+        map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    }
+    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
 }
 
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
-    const poly = await db.getSvrReqPoly(reqId);
-    if(poly){
-        if(map){
-            renderRequestPolygon(map, poly);
+    //const startTime = performance.now(); // Start time
+    try{
+        const poly:SrRegion = await db.getSvrReqPoly(reqId);
+        const rc = await db.getRunContext(reqId);
+        if(poly.length > 0){
+            if(!rc?.trackFilter){
+                if(map){
+                    renderRequestPolygon(map, reqId, poly);
+                }
+            } else {
+                //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+            }
+        } else {
+            console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
         }
-    } else {
-        console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+    } catch (error) {
+        console.error('renderSvrReqPoly Error:',error);
     }
+    //const endTime = performance.now(); // End time
+    //console.log(`renderSvrReqPoly took ${endTime - startTime} milliseconds.`);
 }
 
-export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
+export async function updateMapView(map:OLMap, 
+        srViewKey:string, 
+        reason:string, 
+        restore:boolean=false
+): Promise<void> {
     // This function is generic and shared between the two maps
     try {
         if(map){
-            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ altChartFilterStore.selectedReqIdStr:`,useAtlChartFilterStore().getReqIdStr());
+            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ useRecTreeStore().selectedReqIdStr:`,useRecTreeStore().selectedReqIdStr);
             const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);
@@ -1008,44 +1020,13 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 console.log('Initial newView zoom:', srProjObj.default_zoom);
                 console.log('Initial newView:', newView);
                 useMapStore().setExtentToRestore(extent);
-                
-                // if (reason === 'handleUpdateBaseLayer') {
-                //     console.log('Restoring view for handleUpdateBaseLayer');
-                
-                //     const mapStore = useMapStore();
-                //     const extentToRestore = mapStore.getExtentToRestore();
-                //     const centerToRestore = mapStore.getCenterToRestore();
-                //     const zoomToRestore = mapStore.getZoomToRestore();
-                
-                //     // Validate the restore parameters
-                //     if (
-                //         extentToRestore === null ||
-                //         centerToRestore === null ||
-                //         zoomToRestore === null
-                //     ) {
-                //         console.warn('One or more restore parameters are null');
-                //     } else if (
-                //         !extentToRestore.every(value => Number.isFinite(value))
-                //     ) {
-                //         console.warn('Invalid extentToRestore:', extentToRestore);
-                //     } else {
-                //         // All restore parameters are valid, create a new view
-                //         newView = new OlView({
-                //             projection: newProj,
-                //             extent: extentToRestore,
-                //             center: centerToRestore,
-                //             zoom: zoomToRestore,
-                //         });
-                //         console.log('Restored view with extent:', extentToRestore);
-                //         console.log('Restored view with center:', centerToRestore);
-                //         console.log('Restored view with zoom:', zoomToRestore);
-                //     }
-                // }
-                const restoredView = restoreMapView(newProj);
-                if (restoredView) {
-                    newView = restoredView;
-                } else {
-                    console.warn('Failed to restore view for:', reason);
+                if(restore){
+                    const restoredView = restoreMapView(newProj);
+                    if (restoredView) {
+                        newView = restoredView;
+                    } else {
+                        console.warn('Failed to restore view for:', reason);
+                    }    
                 }
                 console.log('Setting new view:', newView);
                 map.setView(newView);

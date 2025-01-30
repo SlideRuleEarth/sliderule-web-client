@@ -74,4 +74,17 @@ export interface Region {
     server: Server;
     recordinfo: RecordInfo;
   }
-  
+  export interface SrMenuNumberItem {
+    label: string;
+    value: number;
+    parentReqId?: number;
+    api?: string;
+  }
+  export interface SrPrimeTreeNode {
+    key: string;
+    label: string;
+    data: number;
+    children?: SrPrimeTreeNode[];
+    api?: string;
+    [key: string]: any; // For additional properties
+  }

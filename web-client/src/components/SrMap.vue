@@ -15,13 +15,14 @@
     import { Layer as OLlayer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
+    import { FeatureLike } from 'ol/Feature';
     import { Polygon as OlPolygon } from 'ol/geom';
     import { DragBox as DragBoxType } from 'ol/interaction';
     import { Draw as DrawType } from 'ol/interaction';
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState, zoomToRequestPolygon } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -40,11 +41,14 @@
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-    import { renderSvrReqPoly } from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,addFeatureClickListener } from "@/utils/SrMapUtils";
+    import router from '@/router/index.js';
+    import { useRecTreeStore } from "@/stores/recTreeStore";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
     const atlChartFilterStore = useAtlChartFilterStore();
+    const recTreeStore = useRecTreeStore();
 
     interface SrDrawControlMethods {
         resetPicked: () => void;
@@ -399,6 +403,19 @@
         }
     }
 
+    function onFeatureClick(featureLike:FeatureLike){
+        console.log('onFeatureClick:',featureLike);
+        if (featureLike instanceof OlFeature) {
+            const properties = featureLike.getProperties();
+            console.log('Feature properties:',properties);
+            if(properties.req_id){
+                router.push(`/analyze/${properties.req_id.toString()}`);
+            }
+        } else {
+            console.error('Feature is not an instance of Feature');
+        }
+    }
+
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -480,11 +497,15 @@
                 map.on('moveend', () => {
                     saveMapZoomState(map);
                 });
-
+                addFeatureClickListener(map,onFeatureClick);
             } else {
                 console.log("SrMap Error:map is null");
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
+            addRecordPolys();
+            // if(currentReqId){
+            //     zoomToRequestPolygon(map, currentReqId);
+            // }
         } else {
             console.log("SrMap Error:mapRef.value?.map is null");
         }
@@ -530,20 +551,20 @@
         }
     };
 
-    function addRecordPolys() : void {
-        const startTime = new Date().getTime();
-        const reqIds = atlChartFilterStore.getReqIds;
-
-        reqIds.forEach(reqId => {
-            console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
-            const map = mapRef.value?.map;
-            if(map){
+    async function addRecordPolys() : Promise<void> {
+        const startTime = performance.now(); // Start time
+        const reqIds = recTreeStore.allReqIds;
+        const map = mapRef.value?.map;
+        if(map){
+            reqIds.forEach(reqId => {           
+                //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
                 renderSvrReqPoly(map, reqId);
-            }
-        });
-        const endTime = new Date().getTime();
-        console.log('SrMap updateThisMapView renderSvrReqPoly for reqIds:',reqIds,` took ${endTime - startTime} ms`);
-
+            });
+        } else {
+            console.error("SrMap addRecordPolys Error:map is null");
+        }
+        const endTime = performance.now(); // End time
+        console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
     }
 
     const updateThisMapView = async (reason:string) => {
@@ -646,10 +667,10 @@
     };
 
     // Watch for changes in reqIds and handle the logic
-    watch(() => atlChartFilterStore.getReqIds, (newReqIds, oldReqIds) => {
-        console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
-        addRecordPolys();
-    },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
+    // watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
+    //     console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
+    //     addRecordPolys();
+    // },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
     
 </script>
 

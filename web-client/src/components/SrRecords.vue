@@ -10,19 +10,19 @@ import { deleteOpfsFile, calculateChecksumFromOpfs } from '@/utils/SrParquetUtil
 import { findParam } from '@/utils/parmUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import InputText from 'primevue/inputtext'; // Import InputText for editing
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrImportParquetFile  from '@/components/SrImportParquetFile.vue';
 import { cleanupAllRequests } from '@/utils/storageUtils';
 import SrCustomTooltip from './SrCustomTooltip.vue';
 import { useToast } from "primevue/usetoast";
 import { useSrToastStore } from "@/stores/srToastStore";
+import { useRecTreeStore } from "@/stores/recTreeStore";
 
-const atlChartFilterStore = useAtlChartFilterStore();
 const requestsStore = useRequestsStore();
 const isReqParmCodeFmt = ref(true);
 const isSvrParmCodeFmt = ref(true);
 const toast = useToast();
 const srToastStore = useSrToastStore();
+const recTreeStore = useRecTreeStore();
 
 
 const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
@@ -32,10 +32,11 @@ const onEditComplete = (data: Record<string, any>, field: string, event: Event) 
     db.updateRequestRecord({req_id: data.req_id, description: data.description}, false);
     console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
 };
-const analyze = (id:number) => {
+const analyze = async (id:number) => {
     try {
         console.log('Analyze ', id);
-        if(atlChartFilterStore.setReqId(id)){
+        const reqId = await recTreeStore.updateRecMenu('from SrRecords analyze',id);
+        if(reqId > 0) {
             router.push(`/analyze/${id.toString()}`);
             console.log('Router Push for Analyze request for id:', id, ' is successful');
         } else {
@@ -157,7 +158,7 @@ onMounted(async () => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
     requestsStore.fetchReqs();
-    atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
+    //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
 });
 
 onUnmounted(() => {

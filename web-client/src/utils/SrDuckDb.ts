@@ -300,66 +300,73 @@ export class DuckDBClient {
   escape(name: string) {
     return `"${name}"`;
   }
+
+  async isParquetLoaded(name: string): Promise<boolean> {
+    try {
+        const conn = await this._db!.connect(); 
+        // Query DuckDB's internal catalog to check if the view exists
+        const result = await conn.query(`SELECT view_name FROM duckdb_views WHERE view_name = '${name}'`);
+        // Convert the result to an array and check if there's any row
+        const rows = result.toArray();
+        return rows.length > 0;
+    } catch (error) {
+      console.error('isParquetLoaded error:', error, ' for name:', name);
+      return false;
+    }
+  }
+    
+
   // Method to insert a Parquet file from OPFS
   async insertOpfsParquet(name: string) {
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
     try {
-      //if (!this._filesInDb.has(name)) {
-        const duckDB = await this.duckDB();
-        const opfsRoot = await navigator.storage.getDirectory();
-        const folderName = 'SlideRule'; 
-        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-        const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
-        const file = await fileHandle.getFile();
-        //console.log('insertOpfsParquet fileHandle:', fileHandle);
-        //console.log('insertOpfsParquet file:', file);
-        console.log('insertOpfsParquet file.size:', file.size);
-        // if it is empty and log a warning
-        if (file.size === 0) {
-          console.warn(`insertOpfsParquet empty file?: ${name} file:`, file);
-        }
+      // Check if the file is already loaded
+      if (await this.isParquetLoaded(name)) {
+        console.log(`insertOpfsParquet File ${name} is already loaded.`);
+        return;
+      }
   
-        const url = URL.createObjectURL(file);
-        let isRegistered = false;
-        try {
-          await duckDB.registerFileURL(
-            name,
-            url,
-            DuckDBDataProtocol.HTTP,
-            true,
-          );
-        } catch (error: any) {
-          if ('File already registered' in error) {
-            isRegistered = true;
-            console.log('insertOpfsParquet File already registered');
-          } else {
-            console.error('insertOpfsParquet registerFileURL error:', error);
-            throw error;
-          }
-        }
+      const duckDB = await this.duckDB();
+      const opfsRoot = await navigator.storage.getDirectory();
+      const folderName = 'SlideRule'; 
+      const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+      const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
+      const file = await fileHandle.getFile();
   
-        const conn = await duckDB.connect();
-        await conn.query(
-          `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`,
-        );
-        console.log('insertOpfsParquet view created for name:', name);
+      console.log('insertOpfsParquet file.size:', file.size);
+      if (file.size === 0) {
+        console.warn(`insertOpfsParquet empty file?: ${name}`);
+      }
   
-        // Add the file to the set of registered files
-        if (!isRegistered) {
-          this._filesInDb.add(name);
-          console.log('insertOpfsParquet inserted name:', name);
+      const url = URL.createObjectURL(file);
+      let isRegistered = false;
+  
+      try {
+        await duckDB.registerFileURL(name, url, DuckDBDataProtocol.HTTP, true);
+      } catch (error: any) {
+        if ('File already registered' in error) {
+          isRegistered = true;
+          console.log('insertOpfsParquet File already registered');
         } else {
-          console.log(`insertOpfsParquet File ${name} already registered`);
+          console.error('insertOpfsParquet registerFileURL error:', error);
+          throw error;
         }
-      // } else {
-      //   console.log(`insertOpfsParquet File ${name} already registered`);
-      // }
+      }
+  
+      const conn = await duckDB.connect();
+      await conn.query(`CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`);
+      console.log('insertOpfsParquet view created for name:', name);
+  
+      if (!isRegistered) {
+        this._filesInDb.add(name);
+        console.log('insertOpfsParquet inserted name:', name);
+      }
     } catch (error) {
-      console.error('insertOpfsParquet error:', error);
+      console.error('insertOpfsParquet error:', error, ' for name:', name);
       throw error;
     }
   }
-
+  
   // Method to dump detailed metadata from a Parquet file
   async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
     const conn = await this._db!.connect();

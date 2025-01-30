@@ -29,11 +29,11 @@
                 </div>
                 <div class="sr-legend-panel">
                     <SrAtl03ColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))" 
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf') && (recTreeStore.selectedApi === 'atl03sp'))" 
                         @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
                     />
                     <SrAtl08ColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (chartStore.getFunc(reqIdStr) === 'atl03sp'))"
+                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (recTreeStore.selectedApi === 'atl03sp'))"
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
                     <SrGradientColorLegend 
@@ -46,7 +46,7 @@
                         @gradient-num-shades-changed="gradientNumShadesChanged"
                     />
                 </div>
-                <div class="sr-ydata-menu" v-if="computedSymbolColorEncoding=='solid'" >
+                <div class="sr-ydata-menu" v-if="(yColorEncodeSelectedReactive[reqIdStr].value==='solid')" >
                     <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
                     <div class="sr-color-selection-panel">
                         <Select
@@ -100,6 +100,8 @@ import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
 import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
+import { useRecTreeStore } from '@/stores/recTreeStore';
+
 
 const props = withDefaults(
     defineProps<{
@@ -115,12 +117,10 @@ const props = withDefaults(
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
+const recTreeStore = useRecTreeStore();
 const reqIdStr = computed(() => props.reqId.toString());
-const computedFunc = computed(() => chartStore.getFunc(reqIdStr.value));
+const computedFunc = computed(() => recTreeStore.findApiForReqId(props.reqId));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
-const computedSymbolColorEncoding = computed(() => {
-    return chartStore.getSelectedColorEncodeData(reqIdStr.value);
-});
 const computedSolidSymbolColor = computed(() => {
     return chartStore.getSolidSymbolColor(reqIdStr.value);
 });
@@ -135,7 +135,7 @@ const computedLabel = computed(() => {
 
 
 const shouldDisplayGradientColorLegend = computed(() => {
-    const func = chartStore.getFunc(reqIdStr.value);
+    const func = recTreeStore.findApiForReqId(props.reqId);
     const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
     let should = false;
     if(selectedColorEncodeData && (selectedColorEncodeData !== 'unset')){

@@ -1,25 +1,28 @@
-import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
-import { useColorMapStore }  from "@/stores/colorMapStore";
 import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
 import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
 import {type  SrRunContext } from '@/db/SlideRuleDb';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/SrDuckDbUtils';
-import { useRequestsStore } from "@/stores/requestsStore";
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
+import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+import { useRecTreeStore } from "@/stores/recTreeStore";
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { useRequestsStore } from "@/stores/requestsStore";
+import { useColorMapStore }  from "@/stores/colorMapStore";
+import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
 
 
-const atlChartFilterStore = useAtlChartFilterStore();
-const chartStore = useChartStore();
-const requestsStore = useRequestsStore();
-const colorMapStore = useColorMapStore();
+// const atlChartFilterStore = useAtlChartFilterStore();
+// const chartStore = useChartStore();
+// const requestsStore = useRequestsStore();
+// const colorMapStore = useColorMapStore();
+// const recTreeStore = useRecTreeStore();
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -53,12 +56,15 @@ export interface SrScatterSeriesData{
 };
 
 export function initializeColorEncoding(reqIdStr:string,func:string){
+    const chartStore = useChartStore();
     if(func.includes('atl03sp')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
     } else if(func.includes('atl03vp')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'segment_ph_cnt');
     } else if(func.includes('atl08')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean_canopy');
+    } else if(func.includes('atl06sp')) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_li');
     } else if(func.includes('atl06')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean');
     } else {
@@ -69,8 +75,8 @@ export function initializeColorEncoding(reqIdStr:string,func:string){
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
+    const chartStore = useChartStore();
     reqIds.forEach((reqId) => {
-        //console.log(`initDataBindingsToChartStore getFunc(${reqId}):`, chartStore.getFunc(reqId)); 
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({
                 get: () => chartStore.getYDataOptions(reqId),
@@ -115,7 +121,7 @@ function createDiscreteColorFunction(
     return (params:any) => {
         //console.log('createDiscreteColorFunction1 ndx:',ndx,' params:',params);
         if(ndx<0){
-            ndx = colorMapStore.getDataOrderNdx[ndx_name]
+            ndx = useColorMapStore().getDataOrderNdx[ndx_name]
         }
         const value = params.data[ndx];
         if (colorCache[value] === undefined) {
@@ -125,13 +131,18 @@ function createDiscreteColorFunction(
     };
 }
 
+
+
 const getAtl03CnfColorCached = createDiscreteColorFunction(
-    colorMapStore.getColorForAtl03CnfValue,
+    getColorForAtl03CnfValue,
     'atl03_cnf'
 );
 
+
+
+
 const getAtl08ClassColorCached = createDiscreteColorFunction(
-    colorMapStore.getColorForAtl08ClassValue,
+    getColorForAtl08ClassValue,
     'atl08_class'
 );
 
@@ -204,8 +215,10 @@ async function getGenericSeries({
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
         console.log(`${functionName}: minMaxValues:`, minMaxValues);
+        const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
+        const colorMapStore = useColorMapStore();
         colorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName}: chartData or minMax is empty, skipping processing.`);
@@ -280,6 +293,7 @@ export async function getSeriesForAtl03sp(
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
     console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+    const chartStore = useChartStore();
     const fetchOptions: FetchScatterDataOptions = {
         normalizeX: false,
         extraSelectColumns: ['segment_dist'],
@@ -409,16 +423,17 @@ return getGenericSeries({
 }
 
 export function clearPlot() {
+    const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef) {
         if(plotRef.chart){
             plotRef.chart.clear();
-            //console.log('plotRef.chart cleared');
+            console.log('clearPlot: plotRef.chart cleared');
         } else {
-            console.warn('plotRef.chart is undefined');
+            console.warn('clearPlot: plotRef.chart is undefined');
         }
     } else {
-        console.warn('plotRef is undefined');
+        console.warn('clearPlot: plotRef is undefined');
     }
 }
 
@@ -431,9 +446,11 @@ const formatTooltip = (params: any) => {
 };
 
 async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
+    const chartStore = useChartStore();
     const startTime = performance.now(); // Start time
     const fileName = chartStore.getFile(reqIdStr);
-    const func = chartStore.getFunc(reqIdStr);
+    const reqId = Number(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     let seriesData = [] as SrScatterSeriesData[];
@@ -468,7 +485,9 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
 }
 
 export async function initChartStore() {
-    for (const reqIdItem of atlChartFilterStore.reqIdMenuItems) {
+    const recTreeStore = useRecTreeStore();
+    const chartStore = useChartStore();
+    for (const reqIdItem of recTreeStore.reqIdMenuItems) {
         const reqIdStr = reqIdItem.value.toString();
         const reqId = Number(reqIdItem.value);
 
@@ -491,12 +510,6 @@ export async function initChartStore() {
                 chartStore.setFile(reqIdStr, file);
             } else {
                 console.error(`No file found for reqId: ${reqIdStr}`, request);
-            }
-
-            if (func) {
-                chartStore.setFunc(reqIdStr, func);
-            } else {
-                console.error(`No func found for reqId: ${reqIdStr}`, request);
             }
 
             if (description) {
@@ -522,14 +535,15 @@ export async function initChartStore() {
             console.error(`Error processing reqId: ${reqIdStr}`, error);
         }
     }
+    console.log('initChartStore initialized chartStore');
 }
 
 
 export async function getScatterOptions(req_id:number): Promise<any> {
+    const chartStore = useChartStore();
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
-    const func = chartStore.getFunc(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
     const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
@@ -630,6 +644,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
 }
 
 export async function getScatterOptionsFor(reqId:number) {
+    const atlChartFilterStore = useAtlChartFilterStore();
     const newScatterOptions = await getScatterOptions(reqId);
     if (!newScatterOptions) {
         atlChartFilterStore.setShowMessage(true);
@@ -656,6 +671,8 @@ export async function getScatterOptionsFor(reqId:number) {
 
 const initScatterPlotWith = async (reqId: number) => {
     const startTime = performance.now();
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const chartStore = useChartStore();
     console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
     if (reqId === undefined || reqId <= 0) {
@@ -939,33 +956,41 @@ const updateScatterPlot = async (msg:string) => {
 
 const refreshScatterPlot = async (msg:string) => {
     console.log(`refreshScatterPlot ${msg}`);
+    const recTreeStore = useRecTreeStore();
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         clearPlot();
-        await initScatterPlotWith(useAtlChartFilterStore().getReqId());
+        await initScatterPlotWith(recTreeStore.selectedReqId);
         await updateScatterPlot(msg);
     } else {
-        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+        console.error(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
     }
 };
 
 export const updateScatterOptionsOnly = async (msg:string) => {
+    console.log(`updateScatterOptionsOnly ${msg}`);
+    const recTreeStore = useRecTreeStore();
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         clearPlot();
-        await getScatterOptionsFor(useAtlChartFilterStore().getReqId());
+        await getScatterOptionsFor(recTreeStore.selectedReqId);
         await updateScatterPlot(msg);
     } else {
-        console.warn(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
+        console.error(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
     }
 }
 
 export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
-    const reqIdStr = atlChartFilterStore.getReqId().toString();
+    const recTreeStore = useRecTreeStore();
+    const chartStore = useChartStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const requestsStore = useRequestsStore();
+
+    const reqIdStr = recTreeStore.selectedReqIdStr;
     console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
     const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
-        parentReqId: atlChartFilterStore.getReqId(),
+        parentReqId: recTreeStore.selectedReqId,
         trackFilter: {
             rgt: chartStore.getRgts(reqIdStr)[0].value,
             cycle: chartStore.getCycles(reqIdStr)[0].value,
@@ -995,7 +1020,9 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 
 async function updatePlot(msg:string){
     console.log('updatePlot called for:',msg);
-    const reqIdStr = useAtlChartFilterStore().getReqId().toString();
+    const recTreeStore = useRecTreeStore();
+    const chartStore = useChartStore();
+    const reqIdStr = recTreeStore.selectedReqIdStr;
     if( (chartStore.getRgtValues(reqIdStr).length > 0) &&
         (chartStore.getCycleValues(reqIdStr).length > 0) &&
         (chartStore.getSpotValues(reqIdStr).length > 0)
@@ -1008,7 +1035,7 @@ async function updatePlot(msg:string){
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        await duckDbReadAndUpdateSelectedLayer(useAtlChartFilterStore().getReqId(),chunkSize,maxNumPnts);
+        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
         console.warn('Rgt:', chartStore.getRgtValues(reqIdStr));
@@ -1022,6 +1049,7 @@ let pendingResolves: Array<() => void> = [];
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
     console.log("callPlotUpdateDebounced called for:", msg);
+    const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');
   
@@ -1045,7 +1073,8 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 }
 
 export const findReqMenuLabel = (reqId:number) => {
-    const item = atlChartFilterStore.reqIdMenuItems.find(
+    const recTreeStore = useRecTreeStore();
+    const item = recTreeStore.reqIdMenuItems.find(
         (i) => i.value === reqId
     )
     return item ? item.label : 'unknown'
@@ -1053,8 +1082,10 @@ export const findReqMenuLabel = (reqId:number) => {
 
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
-    const func = await indexedDb.getFunc(req_id);
     const plotConfig = await indexedDb.getPlotConfig();
+    const chartStore = useChartStore(); 
+    const requestsStore = useRequestsStore();
+    const func = await indexedDb.getFunc(req_id);//must use db
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
@@ -1064,7 +1095,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else if (func.includes('atl08')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
     } else {
-        console.error('initSymbolSize unknown function:', func);
+        console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
     }
     console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
     return chartStore.getSymbolSize(reqIdStr);
@@ -1079,12 +1110,13 @@ export async function updateChartStore(req_id: number) {
     }
     try {
         const reqIdStr = req_id.toString();
-        const func = await indexedDb.getFunc(req_id);
-        //console.log('updateChartStore req_id:', req_id, 'func:', func);
+        //console.log('updateChartStore req_id:', req_id);
+        const func = useRecTreeStore().findApiForReqId(req_id);
+        const chartStore = useChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        chartStore.setFunc(reqIdStr,func);
+        //chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
-            chartStore.getFunc(reqIdStr),
+            useRecTreeStore().findApiForReqId(req_id),
             chartStore.getSpotValues(reqIdStr),
             chartStore.getRgtValues(reqIdStr),
             chartStore.getCycleValues(reqIdStr),

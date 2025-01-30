@@ -4,12 +4,12 @@
             <Button label="Restore Defaults" @click="restoreDefaultAtl03CnfColorMap" />
         </div>
         <div class="sr-menu-container" v-for="(cnfValue, index) in colorMapStore.atl03CnfOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: colorMapStore.getColorForAtl03CnfValue(cnfValue.value) }"></div>
+            <div class="color-preview" :style="{ backgroundColor: getColorForAtl03CnfValue(cnfValue.value) }"></div>
             <SrMenu
                 :label="`${cnfValue.label} (${cnfValue.value})`"
                 :menuOptions="colorMapStore.namedColorPalette"
                 :setSelectedMenuItem="(color:string) =>  colorMapStore.setColorForAtl03CnfValue(cnfValue.value, color)"
-                :getSelectedMenuItem="() => colorMapStore.getColorForAtl03CnfValue(cnfValue.value)"
+                :getSelectedMenuItem="() => getColorForAtl03CnfValue(cnfValue.value)"
                 @update:modelValue="handleSelectionChanged(cnfValue.label, $event)"
             />
         </div>
@@ -22,6 +22,7 @@ import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
+import { getColorForAtl03CnfValue } from '@/utils/colorUtils';
 
 const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);

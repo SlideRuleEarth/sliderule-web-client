@@ -1,14 +1,11 @@
 import { defineStore } from 'pinia';
+import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/stores/chartStore';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
 
-export interface SrMenuNumberItem {
-  label: string;
-  value: number;
-}
 
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
@@ -30,17 +27,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: true as boolean,
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
-    reqIdMenuItems: [] as SrMenuNumberItem[],
-    selectedReqIdMenuItem:{label:'select a record',value:0} as SrMenuNumberItem,
+    //reqIdMenuItems: [] as SrMenuNumberItem[],
+    //selectedReqIdMenuItem:{label:'select a record',value:0} as SrMenuNumberItem,
   }),
 
   getters: {
-    getReqIdMenuItems: (state): SrMenuNumberItem[] => {
-      return state.reqIdMenuItems;
-    },
-    getReqIds: (state): number[] => {
-      return state.reqIdMenuItems.map(item => item.value); // Extracts the numeric 'value' from each menu item
-    },
+    // getReqIdMenuItems: (state): SrMenuNumberItem[] => {
+    //   return state.reqIdMenuItems;
+    // },
+    // getReqIds: (state): number[] => {
+    //   return state.reqIdMenuItems.map(item => item.value); // Extracts the numeric 'value' from each menu item
+    // },
   },
   actions: {
     setRgtOptionsWithNumbers(rgtOptions: number[]) {
@@ -76,28 +73,28 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setTrackOptionsWithNumbers(tracks: number[]) {
       this.setTrackOptions(tracks.map(track => ({ label: track.toString(), value: track })));
     },
-    setReqId(req_id: number):boolean {
-        // Find the corresponding menu item in reqIdMenuItems
-        const menuItem = this.reqIdMenuItems.find(item => item.value === req_id);
-        let found = false;
-        // If the menu item exists, set it as the selected item
-        if (menuItem) {
-            this.selectedReqIdMenuItem = menuItem;
-            found = true;
-        } else {
-            console.warn(`setReqId: No matching menu item found for req_id ${req_id}`);
-        }
-        return found;
-    },
-    getReqId(): number {
-      // Return the value of the selected menu item
-      return this.selectedReqIdMenuItem.value;
-    },
+    // setReqId(req_id: number):boolean {
+    //     // Find the corresponding menu item in reqIdMenuItems
+    //     const menuItem = this.reqIdMenuItems.find(item => item.value === req_id);
+    //     let found = false;
+    //     // If the menu item exists, set it as the selected item
+    //     if (menuItem) {
+    //         this.selectedReqIdMenuItem = menuItem;
+    //         found = true;
+    //     } else {
+    //         console.warn(`setReqId: No matching menu item found for req_id ${req_id}`);
+    //     }
+    //     return found;
+    // },
+    // getReqId(): number {
+    //   // Return the value of the selected menu item
+    //   return this.selectedReqIdMenuItem.value;
+    // },
     
-    getReqIdStr(): string {
-      // Return the label of the selected menu item
-      return this.selectedReqIdMenuItem.value.toString();
-    },
+    // getReqIdStr(): string {
+    //   // Return the label of the selected menu item
+    //   return this.selectedReqIdMenuItem.value.toString();
+    // },
     incrementDebugCnt() {
       return ++this.debugCnt;
     },
@@ -182,11 +179,11 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getShowPhotonCloud() {
         return this.showPhotonCloud;
     },
-    getSelectedReqIdMenuItem() : SrMenuNumberItem {
-      return this.selectedReqIdMenuItem;
-    },
-    setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuNumberItem) {
-      this.selectedReqIdMenuItem = selectedReqIdMenuItem;
-    },
+    // getSelectedReqIdMenuItem() : SrMenuNumberItem {
+    //   return this.selectedReqIdMenuItem;
+    // },
+    // setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuNumberItem) {
+    //   this.selectedReqIdMenuItem = selectedReqIdMenuItem;
+    // },
 }
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref,onMounted } from 'vue';
+import { ref,onMounted,watch } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import SrAppBar from "./components/SrAppBar.vue";
@@ -8,16 +8,18 @@ import SrUserAgent from './components/SrUserAgent.vue';
 import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
-import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { useRequestsStore } from "@/stores/requestsStore";
 import { useDeviceStore } from '@/stores/deviceStore';
 
+import { useRecTreeStore } from "@/stores/recTreeStore";
+
 const srToastStore = useSrToastStore();
-const atlChartFilterStore = useAtlChartFilterStore();
-const requestsStore = useRequestsStore();
+const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
+import { useRoute } from 'vue-router';
+import SrClearCache from './components/SrClearCache.vue';
 
+const route = useRoute();
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
 
@@ -30,6 +32,31 @@ const checkUnsupported = () =>{
   }
 }
 
+watch(() => route.params.id, async (newId) => {
+    let newReqId = Number(newId) || 0;
+    try{
+        if(newReqId > 0){
+            const first = recTreeStore.findAndSelectNode(newReqId);
+            if(first){
+                console.log('App watch Route ID changed to:', newReqId);
+            } else {
+                if(recTreeStore.allReqIds.length===0){
+                    console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+                    toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+                }
+            }
+        } else {
+            if(recTreeStore.allReqIds.length===0){
+                console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+                toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+            }
+        }
+    } catch (error) {
+        console.error('App watch Error processing route ID change:', error);
+        console.error("App watch exception setting route parameter for 'id':", newReqId);
+        toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+    }
+});
 // Function to detect browser and OS from userAgent string
 const detectBrowserAndOS = () => {
   deviceStore.setUserAgent(navigator.userAgent);
@@ -57,21 +84,21 @@ const detectBrowserAndOS = () => {
 
 };
 
-onMounted(() => {
+onMounted(async () => {
+    const reqId = await recTreeStore.updateRecMenu('from App');// 
     // Get the computed style of the document's root element
     const rootStyle = window.getComputedStyle(document.documentElement);
     // Extract the font size from the computed style
     const fontSize = rootStyle.fontSize;
     // Log the font size to the console
-    console.log(`App.vue onMounted Current root font size: ${fontSize}`);
+    console.log(`App.vue onMounted Current root font size: ${fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
     detectBrowserAndOS();
     checkUnsupported();
 });
 
 const requestButtonClick = async () => {
-  console.log('Request button clicked');
-  atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-  router.push('/request'); 
+    console.log('Request button clicked');
+    router.push('/request'); 
 };
 
 const recordButtonClick = () => {
@@ -80,23 +107,17 @@ const recordButtonClick = () => {
 
 const analysisButtonClick = async () => {
     try{
-        if (atlChartFilterStore.getReqId()>0) {
-            router.push(`/analyze/${atlChartFilterStore.getReqIdStr()}`);
+        if(recTreeStore.allReqIds.length===0){
+            toast.add({ severity: 'warn', summary: 'No Records Found', detail: 'Please first create a new record by making a request', life: srToastStore.getLife() });
+        }
+        const reqId =recTreeStore.selectedReqId;
+        if (reqId > 0) {
+            router.push(`/analyze/${reqId.toString()}`);
         } else {
-            atlChartFilterStore.reqIdMenuItems = await requestsStore.getMenuItems();
-            if (atlChartFilterStore.reqIdMenuItems.length === 0) {
-                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
-                return;
-            }  
-            const reqId = atlChartFilterStore.reqIdMenuItems[0].value;
-            if (reqId > 0) {
-                if(atlChartFilterStore.setReqId(reqId)){
-                    router.push(`/analyze/${reqId.toString()}`);
-                } else {
-                    toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
-                }
-            } else {
-                toast.add({ severity: 'warn', summary: 'No Requests Found', detail: 'Please create a request first', life: srToastStore.getLife() });
+            if(recTreeStore.allReqIds.length > 0){
+                console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
+                toast.add({ severity: 'warn', summary: 'Invalid Record specified', detail: ' Setting to first record Id', life: srToastStore.getLife() });
+                recTreeStore.initToFirstRecord();   
             }
         }
     } catch (error) {
@@ -139,6 +160,7 @@ const handleVersionButtonClick = () => {
       <div class="sr-about">
         <SrBuildDate />
         <SrUserAgent />
+        <SrClearCache />
       </div>
     </Dialog>
     <Dialog v-model:visible="showUnsupportedDialog" header="Browser/OS Support" :modal="true" :closable="true" style="width: 50vw;">
