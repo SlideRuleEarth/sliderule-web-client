@@ -30,7 +30,7 @@ import { clicked } from '@/utils/SrMapUtils'
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
-import { getHeightFieldname } from "@/utils/SrParquetUtils";
+import { getHFieldName } from "@/utils/SrParquetUtils";
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
@@ -116,37 +116,7 @@ async function initAnalysisMap() {
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
-    const startTime = performance.now(); // Start time
-    mapStore.setTotalRows(0);
-    mapStore.setCurrentRows(0);
-    atlChartFilterStore.setDebugCnt(0);
-    atlChartFilterStore.setSelectedOverlayedReqIds([]);
-    try {
-        //console.log('onMounted selectedReqId:', req_id, 'func:', chartStore.getFunc(recTreeStore.selectedReqIdStr));
-        //let req_id = await syncRouteToChartStore(props.startingReqId);
-        const req_id = recTreeStore.selectedReqId;
-        if(req_id !== props.startingReqId){
-            console.warn(`onMounted: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
-        }
-        const height_fieldname = await getHeightFieldname(req_id);
-        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
-        console.log('onMounted summary:', summary, 'req_id:', req_id);
-        await updateChartStore(req_id);
-        await initAnalysisMap();
-        //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
-    } catch (error) {
-        if (error instanceof Error) {
-            console.error('onMounted Failed to load menu items:', error.message);
-        } else {
-            console.error('onMounted Unknown error occurred:', error);
-        }
-    } finally {
-        loading.value = false;
-        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
-        const endTime = performance.now(); // End time
-        isMounted.value = true;
-        console.log(`onMounted took ${endTime - startTime} milliseconds.`);
-    }
+    await processNewReqId();
 });
 
 const onSpotSelection = async() => {
@@ -290,6 +260,39 @@ const updateFilter = async (req_ids: number[]) => {
     }
 };
 
+async function processNewReqId() {
+    const startTime = performance.now(); // Start time
+    mapStore.setTotalRows(0);
+    mapStore.setCurrentRows(0);
+    atlChartFilterStore.setDebugCnt(0);
+    atlChartFilterStore.setSelectedOverlayedReqIds([]);
+    try {
+        const req_id = recTreeStore.selectedReqId;
+        console.log('processNewReqId selectedReqId:', req_id);
+        if(req_id !== props.startingReqId){
+            console.warn(`processNewReqId: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
+        }
+        const height_fieldname = getHFieldName(recTreeStore.selectedNodeApi);
+        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+        console.log('processNewReqId summary:', summary, 'req_id:', req_id);
+        await updateChartStore(req_id);
+        await initAnalysisMap();
+        //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error('processNewReqId Failed:', error.message);
+        } else {
+            console.error('processNewReqId Unknown error occurred:', error);
+        }
+    } finally {
+        loading.value = false;
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
+        const endTime = performance.now(); // End time
+        isMounted.value = true;
+        console.log(`processNewReqId took ${endTime - startTime} milliseconds.`);
+    }
+}
+
 watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
     colorMapStore.setElevationColorMap(newColorMap.value);
@@ -309,7 +312,7 @@ watch(
     console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
     // Perform any additional actions on change
     if(newValue > 0){
-        await initAnalysisMap();
+        await processNewReqId();
     }
   }
 );

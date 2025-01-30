@@ -33,7 +33,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
 
         // Get the height field name
-        const heightFieldname = await getHeightFieldname(Number(reqIdStr));
+        const heightFieldname = await getHeightFieldname();
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
@@ -184,7 +184,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     let sample_fraction = 1.0;
     try{
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-        const height_fieldname = await getHeightFieldname(req_id);
+        const height_fieldname = await getHeightFieldname();
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         if(summary){
             const numPointsStr = summary.numPoints;
@@ -283,7 +283,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
             throw error;
         }
         const name = EL_LAYER_NAME+'_'+req_id.toString();
-        const height_fieldname = await getHeightFieldname(req_id);
+        const height_fieldname = await getHeightFieldname();
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });

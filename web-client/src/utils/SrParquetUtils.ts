@@ -3,10 +3,10 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-
+import { useRecTreeStore } from "@/stores/recTreeStore";
 import { duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
-
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
+
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -196,7 +196,8 @@ export function getHFieldName(funcStr:string) {
 export async function getDefaultElOptions(reqIdStr:string) : Promise<string[]>{
     try{
         const req_id = parseInt(reqIdStr);
-        const funcStr = await db.getFunc(req_id);
+        const recTreeStore = useRecTreeStore();
+        const funcStr = recTreeStore.selectedNodeApi;
         if (funcStr === 'atl06p') {
             return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final'];
         } else if (funcStr === 'atl06sp') {
@@ -221,9 +222,9 @@ export async function getDefaultElOptions(reqIdStr:string) : Promise<string[]>{
         throw error;  
     }
 }
-export const getHeightFieldname = async (req_id:number) => {
-    const result = await db.getFunc(req_id);
-    return getHFieldName(result);
+export const getHeightFieldname = async () => {
+    const recTreeStore = useRecTreeStore();
+    return getHFieldName(recTreeStore.selectedNodeApi)
 }
 
 export const getTrackFieldname = async (req_id:number) => {
@@ -240,8 +241,8 @@ export const getTrackFieldname = async (req_id:number) => {
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            const func = await db.getFunc(req_id);
-            const height_fieldname = getHFieldName(func);
+            const recTreeStore = useRecTreeStore();
+            const height_fieldname = getHFieldName(recTreeStore.selectedNodeApi);
             return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
             throw new Error('readOrCacheSummary unknown reader');

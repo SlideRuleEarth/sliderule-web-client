@@ -57,7 +57,7 @@
     }); 
     const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
     const computedHFieldName = computed(() => {
-        return getHFieldName(computedFunc.value);
+        return getHFieldName(recTreeStore.selectedNodeApi);
     });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
