@@ -7,9 +7,9 @@ import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
 import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive } from "@/utils/plotUtils";
+import { useRecTreeStore } from "@/stores/recTreeStore";
 
-const chartStore = useChartStore();
-
+const recTreeStore = useRecTreeStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -28,7 +28,7 @@ const computedReqIdStr = computed(() => {
 });
 
 const computedFunc = computed(() => {
-    return chartStore.getFunc(props.reqId.toString());
+    return recTreeStore.findApiForReqId(props.reqId);
 });
 
 const computedLabel = computed(() => {

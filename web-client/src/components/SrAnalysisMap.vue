@@ -55,7 +55,6 @@
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
-    const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
     const computedHFieldName = computed(() => {
         return getHFieldName(recTreeStore.selectedReqId);
     });
@@ -64,9 +63,9 @@
         const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
         const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
         if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
-            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${computedFunc.value} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
+            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
         } else {
-            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${computedFunc.value} (${currentRowsFormatted} pnts)`;
+            return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
         }
     });
     

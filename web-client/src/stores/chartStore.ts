@@ -17,15 +17,12 @@ interface ChartState {
     max_x: number;
     min_y: number;
     max_y: number;
-    //min_yapc_score: number;
-    //max_yapc_score: number;
     elevationDataOptions: string[];
     yDataOptions: string[];
     selectedYData: string;
     selectedColorEncodeData: string;
     xDataForChart: string;
     ndxOfElevationDataOptionsForHeight: number;
-    func: string;
     description: string;
     querySql: string;
     whereClause: string;
@@ -78,7 +75,6 @@ export const useChartStore = defineStore('chartStore', {
                     selectedColorEncodeData: 'unset',
                     xDataForChart: 'x_atc',
                     ndxOfElevationDataOptionsForHeight: 0,
-                    func: '',
                     description: 'description here',
                     querySql: '',
                     whereClause: '',
@@ -291,14 +287,6 @@ export const useChartStore = defineStore('chartStore', {
         setFile(reqIdStr: string,fileName: string) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].currentFile = fileName;
-        },
-        getFunc(reqIdStr: string) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].func;
-        },
-        setFunc(reqIdStr: string,func: string) {
-            this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].func = func;
         },
         setXLegend(reqIdStr: string,xLegend: string) {
             this.ensureState(reqIdStr);

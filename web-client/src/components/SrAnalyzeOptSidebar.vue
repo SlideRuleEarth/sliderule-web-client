@@ -89,9 +89,6 @@ const highlightedTrackDetails = computed(() => {
         return '';
     }
 });
-//const computedFunc = computed(() => chartStore.getFunc(recTreeStore.selectedReqIdStr));
-
-
 
 async function initAnalysisMap() {
     const req_id = recTreeStore.selectedReqId;
@@ -183,18 +180,6 @@ const updateElevationMap = async (req_id: number) => {
     try {
         //console.log('Request:', request);
         deckStore.deleteSelectedLayer();
-        // const rgts = await updateRgtOptions(req_id);
-        // //console.log('watch req_id rgts:',rgts);
-        // const cycles = await updateCycleOptions(req_id);
-        // //console.log('watch req_id cycles:',cycles);
-        // if(chartStore.getFunc(reqIdStr)==='atl03sp'){
-        //     const pairs = await updatePairOptions(req_id);
-        //     //console.log('watch req_id pairs:',pairs);
-        //     const scOrients = await updateScOrientOptions(req_id);
-        //     //console.log('watch req_id scOrients:',scOrients);
-        //     const tracks = await updateTrackOptions(req_id);
-        //     //console.log('watch req_id tracks:',tracks);
-        // }
         updateAllFilterOptions(req_id);
         //updateFilter([req_id]); // query to set all options for all 
         mapStore.setIsLoading(true);
@@ -373,7 +358,7 @@ const exportButtonClick = async () => {
         <div class="sr-analysis-opt-sidebar-container" v-else>
             <div class="sr-map-descr">
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-                    <div v-if="loading">Loading...{{ chartStore.getFunc(recTreeStore.selectedReqIdStr) }}</div>
+                    <div v-if="loading">Loading...{{ recTreeStore.selectedApi }}</div>
                     <SrAnalysisMap 
                         v-else-if="(recTreeStore.selectedReqId > 0)"
                         :selectedReqId="recTreeStore.selectedReqId"
@@ -418,11 +403,11 @@ const exportButtonClick = async () => {
                     /> 
                 </div>  
             </div>
-            <div v-if="useDebugStore().enableSpotPatternDetails && !chartStore.getFunc(recTreeStore.selectedReqIdStr).includes('gedi')">            
+            <div v-if="useDebugStore().enableSpotPatternDetails && !recTreeStore.selectedApi.includes('gedi')">            
                 <!-- <Fieldset  legend="Track Filter" :toggleable="true" :collapsed="true">
                     <div class="sr-analyze-filters">
                         <SrListbox id="spots"
-                            v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
+                            v-if = "!recTreeStore.selectedApi.includes('gedi')" 
                             label="Spot(s)" 
                             v-model="chartStore.getSpots(computedReqIdStr)"
                             :getSelectedMenuItem="atlChartFilterStore.getSpots"
@@ -438,7 +423,7 @@ const exportButtonClick = async () => {
                             :justify_center="true"
                         />
                         <SrListbox id="rgts"
-                            v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
+                            v-if = "!recTreeStore.selectedApi.includes('gedi')" 
                             label="Rgt(s)" 
                             v-model="atlChartFilterStore.rgts" 
                             :getSelectedMenuItem="atlChartFilterStore.getRgts"
@@ -449,7 +434,7 @@ const exportButtonClick = async () => {
                             @update:modelValue="RgtsSelection"
                         />
                         <SrListbox id="cycles" 
-                            v-if = "!chartStore.getFunc(computedReqIdStr).includes('gedi')" 
+                            v-if = "!recTreeStore.selectedApi.includes('gedi')" 
                             label="Cycle(s)" 
                             v-model="chartStore.cycles"
                             :getSelectedMenuItem="atlChartFilterStore.getCycles"
@@ -477,7 +462,7 @@ const exportButtonClick = async () => {
                             <div class="sr-pair-sc-orient">
                                 <SrListbox id="scOrients"
                                     label="scOrient(s)" 
-                                    v-if="chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
+                                    v-if="recTreeStore.selectedApi === 'atl03sp'"
                                     v-model="atlChartFilterStore.scOrients" 
                                     :getSelectedMenuItem="atlChartFilterStore.getScOrients"
                                     :setSelectedMenuItem="atlChartFilterStore.setScOrients"
@@ -488,7 +473,7 @@ const exportButtonClick = async () => {
                                     />
                                 <SrListbox id="pairs"
                                     label="pair(s)" 
-                                    v-if="chartStore.getFunc(computedReqIdStr) === 'atl03sp'"
+                                    v-if="recTreeStore.selectedApi === 'atl03sp'"
                                     v-model="atlChartFilterStore.pairs" 
                                     :getSelectedMenuItem="atlChartFilterStore.getPairs"
                                     :setSelectedMenuItem="atlChartFilterStore.setPairs"
@@ -510,7 +495,7 @@ const exportButtonClick = async () => {
                                 @update:modelValue="tracksSelection"
                             />
                             <SrListbox id="beams" 
-                                v-if=" !chartStore.getFunc(computedReqIdStr).includes('gedi')"
+                                v-if=" !recTreeStore.selectedApi.includes('gedi')"
                                 :insensitive="true"
                                 label="Beam(s)" 
                                 v-model="atlChartFilterStore.beams"
@@ -527,7 +512,7 @@ const exportButtonClick = async () => {
             <div class="sr-analysis-rec-parms">
                 <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
             </div>
-            <div class="sr-photon-cloud" v-if="!recTreeStore.selectedNodeApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
+            <div class="sr-photon-cloud" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
                 <Card>
                     <template #title>
                         <div class="sr-card-title-center">Highlighted Track</div>

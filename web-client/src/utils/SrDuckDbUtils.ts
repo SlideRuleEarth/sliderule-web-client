@@ -710,7 +710,7 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         atlChartFilterStore.setRgtOptionsWithNumbers(rgts);
         const cycles = await updateCycleOptions(req_id);
         atlChartFilterStore.setCycleOptionsWithNumbers(cycles);
-        if(useChartStore().getFunc(req_id.toString())==='atl03sp'){
+        if(useRecTreeStore().findApiForReqId(req_id)==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             atlChartFilterStore.setPairOptionsWithNumbers(pairs);
             const tracks = await updateTrackOptions(req_id);

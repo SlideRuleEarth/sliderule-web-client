@@ -34,9 +34,7 @@ const atlChartFilterStore = useAtlChartFilterStore();
 const colorMapStore = useColorMapStore();
 const reqParamsStore = useReqParamsStore();
 const recTreeStore = useRecTreeStore();
-//const computedReqIdStr = computed<string>(() => atlChartFilterStore.selectedReqIdMenuItem.value.toString());
 const loadingComponent = ref(true);
-//const computedFunc = computed(() => chartStore.getFunc(computedReqIdStr.value));
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -107,11 +105,11 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 await processRunSlideRuleClicked(runContext);
                 console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
+                    const reqId = await recTreeStore.updateRecMenu('show Photon');
                     const thisReqIdStr = runContext.reqId.toString();
                     const parentReqIdStr = runContext.parentReqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
-                    const reqId = await recTreeStore.updateRecMenu('show Photon');
                     if(reqId <= 0){
                         console.error('SrScatterPlot handlePhotonCloudChange - No Requests Found');
                     }
@@ -218,7 +216,7 @@ watch(
         <div class="sr-scatter-plot-header">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!recTreeStore.selectedNodeApi?.includes('atl03')">
+            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"

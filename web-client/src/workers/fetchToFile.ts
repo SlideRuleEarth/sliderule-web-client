@@ -5,7 +5,6 @@ import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
 import { abortedMsg,progressMsg,serverMsg,startedMsg,errorMsg,successMsg} from '@/workers/workerUtils';
-import { read } from "fs";
 
 let target_numSvrExceptions = 0;
 let target_numArrowDataRecs = 0;
@@ -22,7 +21,8 @@ export async function checkDoneProcessing(  thisReqID:number,
                                             read_state:string, 
                                             num_svr_exceptions:number, 
                                             num_arrow_data_recs_processed:number,
-                                            num_arrow_meta_recs_processed:number): Promise<void>{
+                                            num_arrow_meta_recs_processed:number): Promise<boolean>{
+    let isDone = false;
     num_checks++;
     if(!thisReqID || (thisReqID <= 0)){
         const emsg = `checkDoneProcessing: Invalid req_id:${thisReqID}`;
@@ -44,7 +44,6 @@ export async function checkDoneProcessing(  thisReqID:number,
             } else {
                 msg = `checkDoneProcessing: Successfully finished reading/writing req_id: ${thisReqID} read_state:${read_state}`;
                 if(read_state === 'done_reading'){
-                    read_state = 'done';// prevent multiple calls to postMessage
                     console.log('Success:', status_details, 'req_id:', thisReqID, 'num_checks:', num_checks);
                     postMessage(await successMsg(thisReqID, msg));
                 }
@@ -52,6 +51,7 @@ export async function checkDoneProcessing(  thisReqID:number,
             read_state = 'done';
             syncAccessHandle.close();
             const fileName = await db.getFilename(thisReqID);
+            isDone = true;
             postMessage(opfsReadyMsg(thisReqID, fileName));
             console.log(msg);
         } else {
@@ -60,6 +60,7 @@ export async function checkDoneProcessing(  thisReqID:number,
     } else {
         console.warn('ignoring read_state:',read_state);
     }
+    return isDone;
 }
 
 
@@ -109,6 +110,7 @@ onmessage = async (event) => {
         let arrowDataFileOffset: number = 0;
         let arrowMetaFileOffset: number = 0;
         let arrowCbNdx = -1;
+        let finished = false;
 
         const outputFormat = req.parms.output?.format;
         const opfsRoot = await navigator.storage.getDirectory();
@@ -202,12 +204,14 @@ onmessage = async (event) => {
                         }
                         await db.updateRequestRecord( {req_id:reqID, num_bytes: arrowDataFileOffset});
                     }
-                    await checkDoneProcessing(  reqID,                                                         
-                                                syncAccessHandle, 
-                                                read_state, 
-                                                num_svr_exceptions, 
-                                                num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
-                                                num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed);
+                    if(!finished){
+                        finished = await checkDoneProcessing(reqID,                                                         
+                                                            syncAccessHandle, 
+                                                            read_state, 
+                                                            num_svr_exceptions, 
+                                                            num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed,
+                                                            num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed);
+                    }
                 },
                 'arrowrec.eof': async (result:any) => {
                     arrowCbNdx++;

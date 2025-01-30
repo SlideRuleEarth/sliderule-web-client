@@ -285,7 +285,8 @@ export interface ElevationDataItem {
 
 export function updateWhereClause(reqIdStr:string){
     const cs = useChartStore();
-    const func = cs.getFunc(reqIdStr);
+    const reqId = parseInt(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(reqId);
     console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
     if(func==='atl03sp'){
         let atl03spWhereClause = `
@@ -377,7 +378,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
-    const func = useChartStore().getFunc(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     console.log('Clicked: func',func);
     console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
     console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))

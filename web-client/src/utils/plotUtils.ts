@@ -75,7 +75,6 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
     const chartStore = useChartStore();
     reqIds.forEach((reqId) => {
-        //console.log(`initDataBindingsToChartStore getFunc(${reqId}):`, chartStore.getFunc(reqId)); 
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({
                 get: () => chartStore.getYDataOptions(reqId),
@@ -448,7 +447,8 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();
     const startTime = performance.now(); // Start time
     const fileName = chartStore.getFile(reqIdStr);
-    const func = chartStore.getFunc(reqIdStr);
+    const reqId = Number(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     let seriesData = [] as SrScatterSeriesData[];
@@ -510,12 +510,6 @@ export async function initChartStore() {
                 console.error(`No file found for reqId: ${reqIdStr}`, request);
             }
 
-            if (func) {
-                chartStore.setFunc(reqIdStr, func);
-            } else {
-                console.error(`No func found for reqId: ${reqIdStr}`, request);
-            }
-
             if (description) {
                 chartStore.setDescription(reqIdStr, description);
             } // No warning needed for missing description.
@@ -548,7 +542,6 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
-    const func = chartStore.getFunc(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
     const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
@@ -968,19 +961,20 @@ const refreshScatterPlot = async (msg:string) => {
         await initScatterPlotWith(recTreeStore.selectedReqId);
         await updateScatterPlot(msg);
     } else {
-        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+        console.error(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
     }
 };
 
 export const updateScatterOptionsOnly = async (msg:string) => {
-    const plotRef = useAtlChartFilterStore().getPlotRef();
+    console.log(`updateScatterOptionsOnly ${msg}`);
     const recTreeStore = useRecTreeStore();
+    const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         clearPlot();
         await getScatterOptionsFor(recTreeStore.selectedReqId);
         await updateScatterPlot(msg);
     } else {
-        console.warn(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
+        console.error(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
     }
 }
 
@@ -1086,9 +1080,9 @@ export const findReqMenuLabel = (reqId:number) => {
 
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
-    const func = await indexedDb.getFunc(req_id);
     const plotConfig = await indexedDb.getPlotConfig();
     const chartStore = useChartStore(); 
+    const func = useRecTreeStore().findApiForReqId(req_id);
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
@@ -1098,7 +1092,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else if (func.includes('atl08')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
     } else {
-        console.error('initSymbolSize unknown function:', func);
+        console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
     }
     console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
     return chartStore.getSymbolSize(reqIdStr);
@@ -1113,13 +1107,13 @@ export async function updateChartStore(req_id: number) {
     }
     try {
         const reqIdStr = req_id.toString();
-        const func = await indexedDb.getFunc(req_id);
-        //console.log('updateChartStore req_id:', req_id, 'func:', func);
+        //console.log('updateChartStore req_id:', req_id);
+        const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        chartStore.setFunc(reqIdStr,func);
+        //chartStore.setFunc(reqIdStr,func);
         const whereClause = createWhereClause(
-            chartStore.getFunc(reqIdStr),
+            useRecTreeStore().findApiForReqId(req_id),
             chartStore.getSpotValues(reqIdStr),
             chartStore.getRgtValues(reqIdStr),
             chartStore.getCycleValues(reqIdStr),

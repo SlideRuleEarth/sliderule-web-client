@@ -87,14 +87,13 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         return node ? node.key : '';
     });
 
-    const selectedNodeApi:ComputedRef<string> = computed(() => {
+    const selectedApi:ComputedRef<string> = computed(() => {
         if (!selectedNodeKey.value || !treeData.value) {
           return ''; 
         }
         const node = findNodeByKey(treeData.value, selectedNodeKey.value);
         return node?.api ? node.api : '';
     });    
-    //const selectedNodeApi = computed(() => selectedNodeKey.value?.api || 'No API');
     const allReqIds = computed(() => {return reqIdMenuItems.value.map(item => item.value);});
     
     // Actions
@@ -207,7 +206,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         selectedNodeLabel,
         selectedReqId,
         selectedReqIdStr,
-        selectedNodeApi,
+        selectedApi,
         reqIdMenuItems,
         allReqIds,
         loadTreeData,
