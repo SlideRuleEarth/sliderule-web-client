@@ -753,7 +753,7 @@ export function saveMapZoomState(map:OLMap){
         } else {
             console.error("SrMap Error: zoom is null");
         }
-        //console.log('saveMapZoomState center:',center,' zoom:',zoom);
+        console.log('saveMapZoomState center:',center,' zoom:',zoom);
     } else {
         console.error("SrMap Error: map is null");
     }
@@ -784,9 +784,9 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
             center: centerToRestore,
             zoom: zoomToRestore,
         });
-        //console.log('Restored view with extent:', extentToRestore);
-        //console.log('Restored view with center:', centerToRestore);
-        //console.log('Restored view with zoom:', zoomToRestore);
+        console.log('Restored view with extent:', extentToRestore);
+        console.log('Restored view with center:', centerToRestore);
+        console.log('Restored view with zoom:', zoomToRestore);
     }
     return newView;
 }
@@ -1028,7 +1028,7 @@ export async function updateMapView(map:OLMap,
                         console.warn('Failed to restore view for:', reason);
                     }    
                 }
-                //console.log('Setting new view:', newView);
+                console.log('Setting new view:', newView);
                 map.setView(newView);
             } else {
                 if(!baseLayer){
