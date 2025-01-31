@@ -830,32 +830,40 @@ export async function fetchScatterData(
                     console.warn('fetchScatterData: rowData is null in min/max query');
                     continue;
                 }
-                // If the user provided a callback to handle min/max row logic:
+        
                 if (handleMinMaxRow) {
-                    handleMinMaxRow(reqIdStr, row); // override default store logic
+                    handleMinMaxRow(reqIdStr, row);
                 } else {
-                    // Default store logic
                     useChartStore().setMinX(reqIdStr, 0);
                     useChartStore().setMaxX(reqIdStr, row.max_x - row.min_x);
                 }
-
-                // Populate minMaxValues
-                minMaxValues['x'] = { min: row.min_x, max: row.max_x };
+        
+                // Populate minMaxValues, but exclude NaN values
+                minMaxValues['x'] = {
+                    min: isNaN(row.min_x) ? 0 : row.min_x, 
+                    max: isNaN(row.max_x) ? 0 : row.max_x
+                };
+        
                 y.forEach((yName) => {
-                    minMaxValues[yName] = {
-                        min: row[`min_${yName}`],
-                        max: row[`max_${yName}`]
-                    };
+                    const minY = row[`min_${yName}`];
+                    const maxY = row[`max_${yName}`];
+        
+                    if (!isNaN(minY) && !isNaN(maxY)) {
+                        minMaxValues[yName] = { min: minY, max: maxY };
+                    }
                 });
+        
                 extraSelectColumns.forEach((colName) => {
-                    minMaxValues[colName] = {
-                        min: row[`min_${colName}`],
-                        max: row[`max_${colName}`]
-                    };
+                    const minCol = row[`min_${colName}`];
+                    const maxCol = row[`max_${colName}`];
+        
+                    if (!isNaN(minCol) && !isNaN(maxCol)) {
+                        minMaxValues[colName] = { min: minCol, max: maxCol };
+                    }
                 });
             }
         }
-
+        
         /**
          * 2. Build the main query to fetch rows for x, all y columns, plus extras.
          */
@@ -882,44 +890,47 @@ export async function fetchScatterData(
                     console.warn('fetchScatterData: rowData is null in main query');
                     continue;
                 }
-
+        
                 let rowValues: number[] = [];
-
+        
                 if (transformRow) {
                     // If user provided a custom transformation, use that.
                     // The callback can return an array in the shape [x, y1, y2, ..., extras].
                     [rowValues,orderNdx] = transformRow(row, x, y, minMaxValues,dataOrderNdx,orderNdx);
                 } else {
-                    // Otherwise, do a default transformation:
+                    // Default transformation:
                     //
                     // 1) The first entry is xVal (normalized if `normalizeX` is true).
                     // 2) Then each y value.
                     // 3) Then any extras if you like.
-                    const xVal = normalizeX
-                        ? row[x] - minMaxValues['x'].min
-                        : row[x];
+                    const xVal = normalizeX ? row[x] - minMaxValues['x'].min : row[x];
                     rowValues = [xVal];
-                    
-                    orderNdx = setDataOrder(dataOrderNdx,'x',orderNdx);
-                    
-
+        
+                    orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
+        
                     y.forEach((yName) => {
                         rowValues.push(row[yName]);
-                        orderNdx = setDataOrder(dataOrderNdx,yName,orderNdx);
+                        orderNdx = setDataOrder(dataOrderNdx, yName, orderNdx);
                     });
-
-                    // If you want to automatically push extras:
+        
                     if (extraSelectColumns.length > 0) {
                         extraSelectColumns.forEach((colName) => {
                             rowValues.push(row[colName]);
-                            orderNdx = setDataOrder(dataOrderNdx,colName,orderNdx);
+                            orderNdx = setDataOrder(dataOrderNdx, colName, orderNdx);
                         });
                     }
                 }
+        
+                // **Exclude rows that contain NaN values**
+                if (rowValues.some((val) => isNaN(val))) {
+                    console.warn('Skipping row due to NaN values:', rowValues);
+                    continue;
+                }
+        
                 chartData[reqIdStr].data.push(rowValues);
             }
         }
-
+        
         /**
          * 4. If we are normalizing X, adjust min=0 and max=(max-min).
          *    Otherwise, keep original min/max as-is.
