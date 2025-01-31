@@ -29,11 +29,11 @@
                 </div>
                 <div class="sr-legend-panel">
                     <SrAtl03ColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf') && (recTreeStore.selectedApi === 'atl03sp'))" 
+                        v-if="shouldDisplayAtl03ColorLegend" 
                         @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
                     />
                     <SrAtl08ColorLegend 
-                        v-if="((chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class') && (recTreeStore.selectedApi === 'atl03sp'))"
+                        v-if="shouldDisplayAtl08ColorLegend"
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
                     />
                     <SrGradientColorLegend 
@@ -156,6 +156,31 @@ const shouldDisplayGradientColorLegend = computed(() => {
 const gradientLabel = computed(() => {
     return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} Colors`;
 });
+
+
+const shouldDisplayAtl03ColorLegend = computed(() => {
+    const func = recTreeStore.findApiForReqId(props.reqId);
+    const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
+    let should = false;
+    if(func.includes('atl03') && selectedColorEncodeData === 'atl03_cnf'){
+        should = true;
+    }
+    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl03ColorLegend:', should);
+    return should;
+});
+
+const shouldDisplayAtl08ColorLegend = computed(() => {
+    const func = recTreeStore.findApiForReqId(props.reqId);
+    const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
+    let should = false;
+    if(func.includes('atl03') && selectedColorEncodeData === 'atl08_class'){
+        should = true;
+    }
+    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
+    return should;
+});
+
+
 
 onMounted(() => {
     initDataBindingsToChartStore([reqIdStr.value]);

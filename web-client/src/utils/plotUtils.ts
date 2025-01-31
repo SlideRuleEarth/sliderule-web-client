@@ -55,24 +55,28 @@ export interface SrScatterSeriesData{
   max: number | null;  
 };
 
+export function getDefaultColorEncoding(reqId:number) {
+    const func = useRecTreeStore().findApiForReqId(reqId);
+    if(func.includes('atl03sp')) {
+        return 'atl03_cnf';
+    } else if(func.includes('atl03vp')) {
+        return 'segment_ph_cnt';
+    } else if(func.includes('atl08')) {
+        return 'h_mean_canopy';
+    } else if(func.includes('atl06sp')) {
+        return 'h_li';
+    } else if(func.includes('atl06')) {
+        return 'h_mean';
+    } else {
+        return 'solid';
+    }
+}
+
 export function initializeColorEncoding(reqId:number){
     const reqIdStr = reqId.toString();
-    const func = useRecTreeStore().findApiForReqId(reqId);
     const chartStore = useChartStore();
-    if(func.includes('atl03sp')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
-    } else if(func.includes('atl03vp')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'segment_ph_cnt');
-    } else if(func.includes('atl08')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean_canopy');
-    } else if(func.includes('atl06sp')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_li');
-    } else if(func.includes('atl06')) {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'h_mean');
-    } else {
-        chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
-    }
-    console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId));
+    console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {

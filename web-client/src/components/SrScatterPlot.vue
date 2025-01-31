@@ -11,7 +11,7 @@ import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initSymbolSize } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -19,6 +19,7 @@ import { useMapStore } from "@/stores/mapStore";
 import { useReqParamsStore } from "@/stores/reqParamsStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
+import { run } from "node:test";
 
 
 const props = defineProps({
@@ -57,6 +58,7 @@ onMounted(async () => {
         if (reqId > 0) {
             //const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
+            initializeColorEncoding(reqId);
             await prepareDbForReqId(reqId);                                                                      
         } else {
             console.warn('reqId is undefined');
@@ -109,6 +111,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     const parentReqIdStr = runContext.parentReqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
+                    initializeColorEncoding(runContext.reqId);
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
                     chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
@@ -118,6 +121,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 }
             } else {
                 await initSymbolSize(runContext.reqId);
+                initializeColorEncoding(runContext.reqId);
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;

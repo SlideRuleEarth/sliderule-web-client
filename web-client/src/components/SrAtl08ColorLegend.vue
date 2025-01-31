@@ -39,25 +39,23 @@ import Dialog from 'primevue/dialog';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
+import { getColorForAtl08ClassValue } from '@/utils/colorUtils';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
 
-const store = useColorMapStore();
+const colorMapStore = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!store.isInitialized) {
-        await store.initializeColorMapStore();
+    if (!colorMapStore.isInitialized) {
+        await colorMapStore.initializeColorMapStore();
     }
 });
 
-const atl08ClassOptions = computed(() => store.atl08ClassOptions);
+const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
 
-const getColorForAtl08ClassValue = (value: number): string => {
-    return store.getColorForAtl08ClassValue(value);
-};
 
 // Function to format the label
 const formatLabel = (label: string): string => {
