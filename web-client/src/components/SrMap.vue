@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, computed } from "vue";
+    import { ref, onMounted, onBeforeUnmount, computed } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
@@ -15,13 +15,14 @@
     import { Layer as OLlayer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
     import { Feature as OlFeature } from 'ol';
+    import { FeatureLike } from 'ol/Feature';
     import { Polygon as OlPolygon } from 'ol/geom';
     import { DragBox as DragBoxType } from 'ol/interaction';
     import { Draw as DrawType } from 'ol/interaction';
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState, zoomToRequestPolygon, restoreMapView } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -33,16 +34,19 @@
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
-    import SrLegendControl  from "./SrLegendControl.vue";
     import SrDrawControl from "@/components/SrDrawControl.vue";
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,addFeatureClickListener } from "@/utils/SrMapUtils";
+    import router from '@/router/index.js';
+    import { useRecTreeStore } from "@/stores/recTreeStore";
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
+    const recTreeStore = useRecTreeStore();
 
     interface SrDrawControlMethods {
         resetPicked: () => void;
@@ -76,6 +80,11 @@
     const drawVectorSource = new VectorSource({wrapX: false});
     const drawVectorLayer = new VectorLayer({
         source: drawVectorSource,
+    });
+
+    const recordsVectorSource = new VectorSource({wrapX: false});
+    const recordsLayer = new VectorLayer({
+        source: recordsVectorSource,
     });
     // Set a custom property, like 'name'
     const drawPolygon = new DrawType({
@@ -230,26 +239,13 @@
                 //console.log("feature:", feature);
                 // Get the geometry of the feature
                 const geometry = feature.getGeometry() as OlPolygon;
-                console.log("geometry:", geometry);
+                //console.log("geometry:", geometry);
                 // Check if the geometry is a polygon
                 if (geometry && geometry.getType() === 'Polygon') {
                     //console.log("geometry:",geometry);
                     // Get the coordinates of all the rings of the polygon
                     const rings = geometry.getCoordinates(); // This retrieves all rings
-                    console.log("Original polyCoords:", rings);
-
-                    // Convert each ring's coordinates to lon/lat using toLonLat
-                    // const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-                    //     ring.map(coord => toLonLat(coord) as Coordinate)
-                    // );
-                    // console.log("Converted polyCoords:", convertedRings);
-                    // mapStore.polyCoords = convertedRings;
-                    // const flatLonLatPairs = convertedRings.flatMap(ring => ring);
-                    // const srLonLatCoordinates: SrRegion = flatLonLatPairs.map(coord => ({
-                    //     lon: coord[0],
-                    //     lat: coord[1]
-                    // }));
-                    
+                    //console.log("Original polyCoords:", rings);
 
                     const projName = useMapStore().getSrViewObj().projectionName;
                     let thisProj = getProjection(projName);
@@ -259,7 +255,7 @@
                         const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
                             ring.map(coord => toLonLat(coord) as Coordinate)
                         );
-                        console.log("Converted polyCoords:", convertedRings);
+                        //console.log("Converted polyCoords:", convertedRings);
                         mapStore.polyCoords = convertedRings;
                         flatLonLatPairs = convertedRings.flatMap(ring => ring);
                     } else {
@@ -274,14 +270,14 @@
                         //console.log('poly is clockwise, reversing');
                         reqParamsStore.poly = srLonLatCoordinates.reverse();
                     } else {
-                        //console.log('poly is counter-clockwise');
+                        ////console.log('poly is counter-clockwise');
                         reqParamsStore.poly = srLonLatCoordinates;
                     }
-                    console.log('reqParamsStore.poly:',reqParamsStore.poly);
+                    //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
                     //console.log('srLonLatCoordinates:',srLonLatCoordinates);
                     reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates)); // this also poplates the area
-                    console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+                    //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
                     // Create GeoJSON from reqParamsStore.convexHull
                     const thisConvexHull = reqParamsStore.getConvexHull();
                     const tag = reqParamsStore.getFormattedAreaOfConvexHull();
@@ -405,15 +401,30 @@
         }
     }
 
+    function onFeatureClick(featureLike:FeatureLike){
+        //console.log('onFeatureClick:',featureLike);
+        if (featureLike instanceof OlFeature) {
+            const properties = featureLike.getProperties();
+            //console.log('Feature properties:',properties);
+            if(properties.req_id){
+                router.push(`/analyze/${properties.req_id.toString()}`);
+            }
+        } else {
+            console.error('Feature is not an instance of Feature');
+        }
+    }
+
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         drawVectorLayer.set('name', 'Drawing Layer');
+        recordsLayer.set('name', 'Records Layer');
+        recordsLayer.set('title', 'Records Layer');
         Object.values(srProjections.value).forEach(projection => {
-            console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
+            //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
         });
-        console.log("SrMap onMounted registering proj4:",proj4);
+        //console.log("SrMap onMounted registering proj4:",proj4);
         register(proj4);
         if (mapRef.value?.map) {
             //console.log("SrMap onMounted map:",mapRef.value.map);
@@ -458,35 +469,36 @@
                     // }
                 });
                 mapStore.setCurrentWmsCap(mapStore.getSrViewObj().projectionName);
-                //const defaultBaseLayer = mapStore.getSrViewObj().baseLayerName;
-                //const curProj = mapStore.getSrViewObj().projectionName;
-                // if(defaultBaseLayer){
-                //     const newLayer = getLayer(curProj, defaultBaseLayer);
-                //     if(newLayer){
-                //         if(mapStore.map){
-                //             //console.log(`SrMap adding Base Layer for proj:${curProj}:`, newLayer );
-                //             mapStore.map.addLayer(newLayer);
-                //         } else {
-                //             console.log('SrMap map not available');
-                //         }
-                //     } else {
-                //         console.error(`SrMap Error: no layer found for curProj:${curProj} defaultBaseLayer.title:${defaultBaseLayer}`);
-                //     }
-                // } else {
-                //     console.error("SrMap Error:defaultBaseLayer is null");    
-                // }
+
                 //mapStore.setCurrentWmtsCap(mapStore.getProjection());
                 // if(mapStore.plink){
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                await updateThisMapView("SrMap onMounted");
+
+                await updateThisMapView("SrMap onMounted",true);
+
+                addFeatureClickListener(map,onFeatureClick);
             } else {
-                console.log("SrMap Error:map is null");
+                console.error("SrMap Error:map is null");
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
+            addRecordPolys();
+            // if(currentReqId){
+            //     zoomToRequestPolygon(map, currentReqId);
+            // }
         } else {
-            console.log("SrMap Error:mapRef.value?.map is null");
+            console.error("SrMap Error:mapRef.value?.map is null");
+        }
+    });
+
+    // Call saveMapZoomState only when leaving the page
+    onBeforeUnmount(() => {
+        console.log("SrMap onBeforeUnmount - Saving map zoom state");
+        if (mapRef.value?.map) {
+            saveMapZoomState(mapRef.value.map);
+        } else {
+            console.error("SrMap Error: mapRef.value?.map is null on unmount");
         }
     });
 
@@ -504,7 +516,7 @@
         if(map){
             map.addControl(drawControl);
         } else {
-            console.log("Error:map is null");
+            console.error("Error:map is null");
         }
     };
 
@@ -530,18 +542,23 @@
         }
     };
 
-    const handleLegendControlCreated = (legendControl: any) => {
-        //console.log(legendControl);
+    async function addRecordPolys() : Promise<void> {
+        const startTime = performance.now(); // Start time
+        const reqIds = recTreeStore.allReqIds;
         const map = mapRef.value?.map;
         if(map){
-            //console.log("adding legendControl");
-            map.addControl(legendControl);
+            reqIds.forEach(reqId => {           
+                //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
+                renderSvrReqPoly(map, reqId);
+            });
         } else {
-            console.error("Error:map is null");
+            console.error("SrMap addRecordPolys Error:map is null");
         }
-    };
+        const endTime = performance.now(); // End time
+        //console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
+    }
 
-    const updateThisMapView = async (reason:string) => {
+    const updateThisMapView = async (reason:string,restoreView:boolean=false) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
@@ -549,13 +566,10 @@
                 const srViewObj = mapStore.getSrViewObj();
                 const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
                 if(srViewKey.value){
-                    await updateMapView(map,srViewKey.value,reason)
+                    await updateMapView(map,srViewKey.value,reason,restoreView);
                     //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
-                    // thisView.on('change:resolution', function() {
-                    //     const zoomLevel = thisView.getZoom();
-                    //     console.log('Zoom level changed to:', zoomLevel);
-                    // });
                     map.addLayer(drawVectorLayer);
+                    map.addLayer(recordsLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                             
 
@@ -602,7 +616,8 @@
             const map = mapRef.value?.map;
             try{
                 if(map){
-                    await updateThisMapView("handleUpdateSrView");
+                    saveMapZoomState(map);
+                    await updateThisMapView("handleUpdateSrView",true);
                 } else {
                     console.error("SrMap Error:map is null");
                 }
@@ -634,7 +649,8 @@
                 } else {
                     console.error("SrMap Error: zoom is null");
                 }
-                await updateThisMapView("handleUpdateBaseLayer");
+                saveMapZoomState(map);
+                await updateThisMapView("handleUpdateBaseLayer",true);
             } else {
                 console.error("SrMap Error:map is null");
             }
@@ -643,6 +659,12 @@
         } 
     };
 
+    // Watch for changes in reqIds and handle the logic
+    // watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
+    //     console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
+    //     addRecordPolys();
+    // },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
+    
 </script>
 
 <template>
@@ -673,7 +695,6 @@
 
         <MapControls.OlScalelineControl />
         <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
-        <SrLegendControl @legend-control-created="handleLegendControlCreated" />
         <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
         <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
     </Map.OlMap>
@@ -726,7 +747,17 @@
   background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px ;
+}
 
+:deep( .ol-control.ol-attribution){
+    bottom: 0.5rem;
+    top: auto;
+    left: auto;
+    background-color: transparent;
+    border-radius: var(--p-border-radius);
+    border: 1px;
+    border-color: black;
+    background-color:  color var(--p-primary-color);
 }
 
 :deep( .ol-control.ol-layerswitcher button ){
@@ -894,11 +925,7 @@
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
 }
-:deep(.sr-legend-control){
-  background: rgba(255, 255, 255, 0.25);
-  bottom: 0.5rem;
-  right: 2.5rem;
-}
+
 
 
 :deep(.ol-zoom .ol-zoom-in) {

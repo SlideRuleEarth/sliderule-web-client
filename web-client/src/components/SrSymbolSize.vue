@@ -62,6 +62,7 @@
     gap: 0.5rem; /* Add spacing between elements */
     width: auto; /* Let the container size itself based on the content */
     padding: 0.5rem; /* Optional: Add some padding for spacing */
+    width: 6rem;
 }
 
 .sr-ss-label {
@@ -72,6 +73,10 @@
 .sr-ss-number-container {
     display: inline-flex; /* Allow the input to shrink-wrap */
     align-items: center;
+    width: 7.5rem;
+}
+:deep(.p-inputnumber-input){
+    width:7.5rem;
 }
 
 :deep(.sr-ss-number) {

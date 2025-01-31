@@ -4,9 +4,6 @@ import { useMapStore } from '@/stores/mapStore';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 
-import { duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
-
-import type { SrRequestSummary } from '@/db/SlideRuleDb';
 
 function mapToJsType(type: string | undefined): string {
     switch (type) {
@@ -171,33 +168,6 @@ export function updateExtremeLatLon(elevationData:ElevationPlottable[],
     return {extLatLon:localExtLatLon,extHMean:localExtHMean};
 }
 
-export function getHFieldName(funcStr:string) {
-    if (funcStr === 'atl06p') {
-        return 'h_mean';
-    } else if (funcStr === 'atl06sp') {
-        return 'h_li';
-    } else if (funcStr=== 'atl03vp'){
-        return 'segment_ph_cnt';
-    } else if (funcStr=== 'atl03sp'){
-        return 'height';
-    } else if (funcStr==='atl08p'){
-        return 'h_mean_canopy';
-    } else if (funcStr===('gedi02ap')) {
-        return 'elevation_hr';
-    } else if (funcStr===('gedi04ap')) {
-        return 'agbd';
-    } else if(funcStr===('gedi01bp')) {
-        return 'elevation_start';
-    } else {
-        throw new Error(`Unknown height fieldname for ${funcStr} in getHFieldName`);
-    }
-}
-
-export const getHeightFieldname = async (req_id:number) => {
-    const result = await db.getFunc(req_id);
-    return getHFieldName(result);
-}
-
 export const getTrackFieldname = async (req_id:number) => {
     const result = await db.getFunc(req_id);
     if (result.includes('atl06')) {
@@ -206,21 +176,6 @@ export const getTrackFieldname = async (req_id:number) => {
         return 'track';
     } else {
         throw new Error(`Unknown height fieldname for ${result} in getTrackFieldname`);
-    }
-}
-
-export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
-    try{
-        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            const func = await db.getFunc(req_id);
-            const height_fieldname = getHFieldName(func);
-            return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
-        } else {
-            throw new Error('readOrCacheSummary unknown reader');
-        }
-    } catch (error) {
-        console.error('readOrCacheSummary error:',error);
-        throw error;
     }
 }
 

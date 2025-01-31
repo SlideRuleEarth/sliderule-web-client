@@ -108,7 +108,7 @@ const mobileMenuItems = [
         command: handleRequestButtonClick
     },
     {
-        label: 'Record',
+        label: 'Records',
         icon: 'pi pi-list',
         command: handleRecordButtonClick
     },
@@ -166,7 +166,7 @@ onMounted(() => {
             <Button icon="pi pi-sliders-h" label="Request" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRequestButtonClick"></Button>
-            <Button icon="pi pi-list" label="Record" 
+            <Button icon="pi pi-list" label="Records" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRecordButtonClick"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" 

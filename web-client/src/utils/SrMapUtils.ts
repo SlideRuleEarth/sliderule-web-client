@@ -5,9 +5,10 @@ import { PointCloudLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
+import type { FeatureLike } from 'ol/Feature';
 import { Deck } from '@deck.gl/core';
-import { toLonLat } from 'ol/proj';
+import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -20,7 +21,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 import { srViews } from "@/composables/SrViews";
@@ -31,11 +32,18 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrParquetUtils";
+import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
 import { clearPlot } from '@/utils/plotUtils';
+import { Polygon as OlPolygon } from 'ol/geom';
+import { db } from '@/db/SlideRuleDb';
+import type { Coordinate } from 'ol/coordinate';
+import { Text as TextStyle } from 'ol/style';
+import Geometry from 'ol/geom/Geometry';
+import type { SrRegion } from '@/sliderule/icesat2';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -68,7 +76,7 @@ export function drawGeoJson(
     zoomTo: boolean = false,
     tag: string = '', 
 ): void {
-    console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
+    //console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
     try{
         const map = useMapStore().map;
         if(!map){
@@ -110,7 +118,7 @@ export function drawGeoJson(
                 feature.setStyle(style);
                 feature.set('tag', tag);  // Add the tag to the feature's properties
             });
-            console.log('drawGeoJson add features:',features);
+            //console.log('drawGeoJson add features:',features);
             vectorSource.addFeatures(features);
             // Zoom to the extent of the new features
             if (zoomTo) {
@@ -274,8 +282,9 @@ export interface ElevationDataItem {
 
 export function updateWhereClause(reqIdStr:string){
     const cs = useChartStore();
-    const func = cs.getFunc(reqIdStr);
-    console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
+    const reqId = parseInt(reqIdStr);
+    const func = useRecTreeStore().findApiForReqId(reqId);
+    //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
     if(func==='atl03sp'){
         let atl03spWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -285,16 +294,16 @@ export function updateWhereClause(reqIdStr:string){
         if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: pairs is undefined or empty');
+            console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
         }
         if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
             atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
         } else {
-            console.warn('Clicked: sc_orient is undefined or empty');
+            console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
         }
         cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        console.log('Clicked: atl03spWhereClause',cs.getWhereClause(reqIdStr))
+        //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
     } else if(func === 'atl03vp'){
         const atl03vpWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -302,7 +311,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        console.log('Clicked: atl06spWhereClause',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
     } else if (func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -310,7 +319,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl06WhereClause);
-        console.log('Clicked: atl06WhereClause',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
     } else if (func === 'atl08p'){
         const atl08pWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -318,9 +327,9 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        console.log('Clicked: atl08pWhereClause',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
     } else {
-        console.error('Clicked: Unknown func?:',func);
+        console.error('updateWhereClause Unknown func?:',func);
     }
 
 }
@@ -331,8 +340,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     
-    useAtl03ColorMapStore().setDebugCnt(0);
-    const reqIdStr = useAtlChartFilterStore().getReqIdStr();
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
     //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
@@ -367,22 +375,22 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
-    const func = useChartStore().getFunc(reqIdStr);
-    console.log('Clicked: func',func);
-    console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
-    console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
-    console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
-    console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
-    console.log('Clicked: pair',cs.getPairValues(reqIdStr));
-    if(func==='atl03sp'){
+    const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
+    //console.log('Clicked: func',func);
+    //console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
+    //console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
+    //console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
+    //console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
+    //console.log('Clicked: pair',cs.getPairValues(reqIdStr));
+    if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
             cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
         }
     }
     updateWhereClause(reqIdStr);
-    console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
-    console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
+    //console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
+    //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
 
 }
 
@@ -404,11 +412,11 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         },
         pointSize: useDeckStore().getPointSize(),
         onDragStart: () => {
-            console.log('onDragStart');
+            //console.log('onDragStart');
             document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
           },
         onDragEnd: () => {
-            console.log('onDragEnd');
+            //console.log('onDragEnd');
             document.body.style.cursor = 'default'; // Revert to default when dragging ends
         },
     });
@@ -539,7 +547,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
             const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
-            console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
+            //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
             // if(replaced){
@@ -560,7 +568,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
 }
 
 export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string): OLlayer{
-    console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
+    //console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
 
     const layerOptions = {
         title: name,
@@ -594,15 +602,15 @@ export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string)
 // Sync deck view with OL view
 
 export function resetDeckGLInstance(map:OLMap): Deck | null{
-    console.log('resetDeckGLInstance');
+    //console.log('resetDeckGLInstance');
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
         let deck = null;
         const mapView =  map.getView();
-        console.log('mapView:',mapView);
+        //console.log('mapView:',mapView);
         const mapCenter = mapView.getCenter();
         const mapZoom = mapView.getZoom();
-        console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+        //console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
         if(mapCenter && mapZoom){
             const tgt = map.getViewport() as HTMLDivElement;
             deck = new Deck({
@@ -626,27 +634,27 @@ export function resetDeckGLInstance(map:OLMap): Deck | null{
 }
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    console.log('addDeckLayerToMap:',name);
+    //console.log('addDeckLayerToMap:',name);
     const mapView =  map.getView();
     const projection = mapView.getProjection();
     const projectionUnits = projection.getUnits();
     const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === name);
     if (updatingLayer) {
-        console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
+        //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
         map.removeLayer(updatingLayer);
     }
     useDeckStore().deleteLayer(name);
     const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
     if(deckLayer){
         map.addLayer(deckLayer);
-        console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
         console.error('No current_layer to add.');
     }
 }
 
 export function initDeck(map: OLMap){
-    console.log('initDeck start')
+    //console.log('initDeck start')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(map); 
     if(deck){
@@ -654,7 +662,7 @@ export function initDeck(map: OLMap){
     } else {
       console.error('initDeck(): deck Instance is null');
     }
-    console.log('initDeck end: deck:',deck);
+    //console.log('initDeck end: deck:',deck);
 }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -678,7 +686,7 @@ export function checkAreaOfConvexHullWarning(): boolean {
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().warn('Warn',msg);
         } else {
-            console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+            //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
         }
         return false;
     }
@@ -687,13 +695,13 @@ export function checkAreaOfConvexHullWarning(): boolean {
 
 export function checkAreaOfConvexHullError(): boolean {
     const limit = useReqParamsStore().getAreaErrorThreshold()
-    console.log('checkAreaOfConvexHullError area:',limit);
+    //console.log('checkAreaOfConvexHullError area:',limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
         const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().error('Error',msg);
         } else {
-            console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+            //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
         }
         return false;
     }
@@ -723,21 +731,214 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
         const geoJsonFeature = format.writeFeatureObject(feature, {
             featureProjection: 'EPSG:3857', // Replace with your desired projection
         });
-        console.log(`Feature #${index + 1}:`, JSON.stringify(geoJsonFeature, null, 2));
+        //console.log(`Feature #${index + 1}:`, JSON.stringify(geoJsonFeature, null, 2));
     });
 
-    console.log(`Total features: ${features.length}`);
+    //console.log(`Total features: ${features.length}`);
 }
 
-export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
+export function saveMapZoomState(map:OLMap){
+    if(map){
+        const mapStore = useMapStore();
+        const view = map.getView();
+        const center = view.getCenter();
+        if(center){
+            mapStore.setCenterToRestore(center);
+        } else {
+            console.error("SrMap Error: center is null");
+        }
+        const zoom = view.getZoom();
+        if(zoom){
+            mapStore.setZoomToRestore(zoom);
+        } else {
+            console.error("SrMap Error: zoom is null");
+        }
+        console.log('saveMapZoomState center:',center,' zoom:',zoom);
+    } else {
+        console.error("SrMap Error: map is null");
+    }
+}
+
+export function restoreMapView(proj:ProjectionLike) : OlView | null {
+    const mapStore = useMapStore();
+    const extentToRestore = mapStore.getExtentToRestore();
+    const centerToRestore = mapStore.getCenterToRestore();
+    const zoomToRestore = mapStore.getZoomToRestore();
+    let newView = null;
+    // Validate the restore parameters
+    if (
+        extentToRestore === null ||
+        centerToRestore === null ||
+        zoomToRestore === null
+    ) {
+        console.warn('One or more restore parameters are null extent:',extentToRestore,' center:',centerToRestore,' zoom:',zoomToRestore);
+    } else if (
+        !extentToRestore.every(value => Number.isFinite(value))
+    ) {
+        console.warn('Invalid extentToRestore:', extentToRestore);
+    } else {
+        // All restore parameters are valid, create a new view
+        newView = new OlView({
+            projection: proj,
+            extent: extentToRestore,
+            center: centerToRestore,
+            zoom: zoomToRestore,
+        });
+        //console.log('Restored view with extent:', extentToRestore);
+        //console.log('Restored view with center:', centerToRestore);
+        //console.log('Restored view with zoom:', zoomToRestore);
+    }
+    return newView;
+}
+
+
+export function addFeatureClickListener(
+    map: OLMap,
+    onFeatureClick: (feature: Feature<Geometry>) => void
+): void {
+    map.on('singleclick', (evt) => {
+      map.forEachFeatureAtPixel(evt.pixel, (featureLike: FeatureLike) => {
+        // Check if it really is a Feature (not a RenderFeature)
+        if (featureLike instanceof Feature) {
+
+            onFeatureClick(featureLike);
+            return true; // Stop searching for features
+        }
+        return false; // Continue searching for features
+      });
+    });
+}
+
+function createPolygonStyle(label: string): Style {
+    return new Style({
+      fill: new Fill({
+        color: 'rgba(0, 0, 255, 0.02)'
+      }),
+      stroke: new Stroke({
+        color: 'blue',
+        width: 2
+      }),
+      text: new TextStyle({
+        text: label || '',
+        font: '14px Calibri,sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }), // Outline for contrast
+        overflow: true,  
+        placement: 'point', // Usually for points/lines; for polygons it often centers automatically.
+      })
+    });
+}
+export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    if (!vectorLayer) {
+      console.error('zoomToRequestPolygon: "Records Layer" not found');
+      return;
+    }
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error('Records Layer source not found');
+        return;
+    
+    }    
+    const vectorSource = vectorLayer.getSource();
+    if (!(vectorSource instanceof VectorSource)) {
+        console.error('zoomToRequestPolygon: vector source not found');
+        return;
+    }
+
+    const features = vectorSource.getFeatures();
+    const feature = features.find(f => f.get('req_id') === reqId);
+    if (feature) {
+      map.getView().fit(feature.getGeometry().getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    } else {
+      console.error('zoomToRequestPolygon: feature not found for reqId:',reqId);
+    }
+}
+
+export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: number, lat: number}[],zoomTo?:boolean): void {
+    // 1. Find your vector layer
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    if (!vectorLayer) {
+      console.error('renderRequestPolygon: "Records Layer" not found');
+      return;
+    }
+    // 2. Get the source
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error('Records Layer source not found');
+        return;
+    
+    }
+    const vectorSource = vectorLayer.getSource();
+    // 3. Ensure the polygon is closed
+    const originalCoordinates: Coordinate[] = poly.map(p => [p.lon, p.lat]);
+    if (originalCoordinates.length > 0) {
+      const first = originalCoordinates[0];
+      const last = originalCoordinates[originalCoordinates.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) {
+        originalCoordinates.push(first); // close the loop
+      }
+    }
+
+    // 4. Transform coordinates FROM lat/lon TO map's projection if needed
+    const projection = map.getView().getProjection();
+    let coordinates: Coordinate[];
+    if (projection.getUnits() !== 'degrees') {
+      // e.g. if the map is in EPSG:3857 or meters, transform from lat/lon
+      coordinates = originalCoordinates.map(coord => fromLonLat(coord));
+    } else {
+      // already in lat/lon
+      coordinates = originalCoordinates;
+    }
+
+    // 5. Create the Polygon feature
+    const polygon = new OlPolygon([coordinates]);
+    const feature = new Feature({ geometry: polygon, req_id:reqId });
+    feature.setStyle(createPolygonStyle(reqId.toString()));
+    vectorSource.addFeature(feature);
+
+    // 6. (Optionally) zoom to the new polygon
+    if(zoomTo){
+        map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    }
+    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
+}
+
+export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
+    //const startTime = performance.now(); // Start time
+    try{
+        const poly:SrRegion = await db.getSvrReqPoly(reqId);
+        const rc = await db.getRunContext(reqId);
+        if(poly.length > 0){
+            if(!rc?.trackFilter){
+                if(map){
+                    renderRequestPolygon(map, reqId, poly);
+                }
+            } else {
+                //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+            }
+        } else {
+            console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+        }
+    } catch (error) {
+        console.error('renderSvrReqPoly Error:',error);
+    }
+    //const endTime = performance.now(); // End time
+    //console.log(`renderSvrReqPoly took ${endTime - startTime} milliseconds.`);
+}
+
+export async function updateMapView(map:OLMap, 
+        srViewKey:string, 
+        reason:string, 
+        restore:boolean=false
+): Promise<void> {
+    // This function is generic and shared between the two maps
     try {
         if(map){
-            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ altChartFilterStore.selectedReqIdStr:`,useAtlChartFilterStore().getReqIdStr());
+            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ useRecTreeStore().selectedReqIdStr:`,useRecTreeStore().selectedReqIdStr);
             const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);
             const baseLayer = srViewObj.baseLayerName;
-            console.log(`updateMapView for ${reason} with baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
+            //console.log(`updateMapView for ${reason} with baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
             if(baseLayer && newProj && srViewObj){
                 map.getAllLayers().forEach((layer: OLlayer) => {
                     //console.log(`removing layer:`,layer.get('title'));
@@ -753,11 +954,11 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
                 const fromLonLat = getTransform('EPSG:4326', newProj);
                 let extent = newProj.getExtent();
-                console.log("newProj:",newProj);         
-                console.log("newProj.getExtent():",extent);         
+                //console.log("newProj:",newProj);         
+                //console.log("newProj.getExtent():",extent);         
                 if((extent===undefined)||(extent===null)){
                     if(srProjObj.extent){
-                        console.log("extent is null using srProjObj.extent");
+                        //console.log("extent is null using srProjObj.extent");
                         extent = srProjObj.extent;
                     } else {
                         console.error("extent is null using bbox");
@@ -766,10 +967,10 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                             bbox[2] += 360;
                         }
                         if(newProj.getUnits() === 'degrees'){
-                            console.log("using bbox for extent in degrees bbox:",bbox);
+                            //console.log("using bbox for extent in degrees bbox:",bbox);
                             extent = bbox;
                         } else {
-                            console.log("using bbox for extent transformed from degrees to meters bbox:",bbox);
+                            //console.log("using bbox for extent transformed from degrees to meters bbox:",bbox);
                             extent = applyTransform(bbox, fromLonLat, undefined, undefined);
                         }
                         newProj.setExtent(extent);
@@ -778,16 +979,16 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
 
                 let worldExtent = newProj.getWorldExtent();
                 if((worldExtent===undefined) || (worldExtent===null) ||  worldExtent.some(value => !Number.isFinite(value))){
-                    console.log("worldExtent is null using bbox");
+                    //console.log("worldExtent is null using bbox");
                     let bbox = srProjObj.bbox;
                     if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
                         bbox[2] += 360;
                     }
                     if(newProj.getUnits() === 'degrees'){
-                        console.log("using bbox for worldExtent in degrees bbox:",bbox);
+                        //console.log("using bbox for worldExtent in degrees bbox:",bbox);
                         worldExtent = bbox;
                     } else {
-                        console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
+                        //console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
                         worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
                     }
                     if(worldExtent.some(value => !Number.isFinite(value))){
@@ -800,7 +1001,7 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                 }
                 let center = getExtentCenter(extent);
                 if(srProjObj.center){
-                    console.log("using srProjObj.center for center");
+                    //console.log("using srProjObj.center for center");
                     center = srProjObj.center;
                 }
 
@@ -814,47 +1015,21 @@ export async function updateMapView(map:OLMap, srViewKey:string, reason:string){
                     center: center,
                     zoom: srProjObj.default_zoom,
                 });
-                console.log('Initial newView extent:', extent);
-                console.log('Initial newView center:', center);
-                console.log('Initial newView zoom:', srProjObj.default_zoom);
-                console.log('Initial newView:', newView);
-                
-                if (reason === 'handleUpdateBaseLayer') {
-                    console.log('Restoring view for handleUpdateBaseLayer');
-                
-                    const mapStore = useMapStore();
-                    const extentToRestore = mapStore.getExtentToRestore();
-                    const centerToRestore = mapStore.getCenterToRestore();
-                    const zoomToRestore = mapStore.getZoomToRestore();
-                
-                    // Validate the restore parameters
-                    if (
-                        extentToRestore === null ||
-                        centerToRestore === null ||
-                        zoomToRestore === null
-                    ) {
-                        console.warn('One or more restore parameters are null');
-                    } else if (
-                        !extentToRestore.every(value => Number.isFinite(value))
-                    ) {
-                        console.warn('Invalid extentToRestore:', extentToRestore);
+                //console.log('Initial newView extent:', extent);
+                //console.log('Initial newView center:', center);
+                //console.log('Initial newView zoom:', srProjObj.default_zoom);
+                //console.log('Initial newView:', newView);
+                useMapStore().setExtentToRestore(extent);
+                if(restore){
+                    const restoredView = restoreMapView(newProj);
+                    if (restoredView) {
+                        newView = restoredView;
                     } else {
-                        // All restore parameters are valid, create a new view
-                        newView = new OlView({
-                            projection: newProj,
-                            extent: extentToRestore,
-                            center: centerToRestore,
-                            zoom: zoomToRestore,
-                        });
-                        console.log('Restored view with extent:', extentToRestore);
-                        console.log('Restored view with center:', centerToRestore);
-                        console.log('Restored view with zoom:', zoomToRestore);
-                    }
+                        console.warn('Failed to restore view for:', reason);
+                    }    
                 }
-                
                 console.log('Setting new view:', newView);
                 map.setView(newView);
-                
             } else {
                 if(!baseLayer){
                     console.error("Error:baseLayer is null");
@@ -878,7 +1053,7 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
     try{
         let reqExtremeLatLon = [0,0,0,0];
         if(reqId > 0){   
-            console.log('calling readOrCacheSummary(',reqId,')');  
+            //console.log('calling readOrCacheSummary(',reqId,')');  
             const workerSummary = await readOrCacheSummary(reqId);
             if(workerSummary){
                 const extremeLatLon = workerSummary.extLatLon;
@@ -913,7 +1088,7 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
             const fromLonLat = getTransform('EPSG:4326', srViewObj.projectionName);
             view_extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
         } else {
-            console.log('using degrees view_extent?:',view_extent);
+            //console.log('using degrees view_extent?:',view_extent);
         }
         //console.log(`zoomMapForReqIdUsingView:${reqId} view_extent:`,view_extent);
         map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});

@@ -6,8 +6,8 @@
                 <Slider 
                     v-model="innerValue" 
                     :name="sliderName" 
-                    :min="min" 
-                    :max="max" 
+                    :min="sliderMin" 
+                    :max="sliderMax" 
                     :step="sliderStepSize" 
                     class="sr-slider" 
                     :disabled="props.insensitive" 
@@ -55,6 +55,14 @@
         max: {
             type: Number,
             default: 100
+        },
+        sliderMin: {
+            type: Number,
+            default: 0 // or some narrower subrange
+        },
+        sliderMax: {
+            type: Number,
+            default: 100 // or whatever narrower portion
         },
         defaultValue: {
             type: Number,

@@ -4,7 +4,12 @@
             <div class="sr-sql-stmnt-display-panel-header"> 
                 <SrCheckbox
                     v-model="showSqlStmnt"
-                    label="Show Sql Statement"
+                    :label=props.label
+                    :insensitive=props.insensitive
+                    :tooltipText=props.tooltipText
+                    :tooltipUrl=props.tooltipUrl
+                    :labelFontSize=props.labelFontSize
+                    :labelOnRight=props.labelOnRight
                 />
             </div>
             <div class="sr-sql-stmnt-display-parms" v-if="showSqlStmnt">
@@ -19,13 +24,29 @@
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { useChartStore } from "@/stores/chartStore";
 
-    // Define props with TypeScript types
-    const props = defineProps<{
-    req_id: number;
+    const props = withDefaults(
+        defineProps<{
+            reqId: number;
+            label: string;
+            insensitive?: boolean;
+            tooltipText?: string;
+            tooltipUrl?: string;
+            labelFontSize?: string;
+            labelOnRight?: boolean;
+        }>(),
+        {
+            reqId: 0,
+            label: 'Show Req Parameters',
+            insensitive: false,
+            tooltipText: '',
+            tooltipUrl: '',
+            labelFontSize: 'small',
+            labelOnRight: false,
+        }
+    );
 
-    }>();
-    const computedReqIdStr = computed(() => {
-        return props.req_id.toString();
+const computedReqIdStr = computed(() => {
+        return props.reqId.toString();
     });
 
     const chartStore = useChartStore();

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Control } from 'ol/control';
-import SrMenuNumberInput from './SrMenuNumberInput.vue';
-import { SrMenuNumberItem, useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { computed } from "vue";
 import { formatBytes } from '@/utils/SrParquetUtils';
+import { useRecTreeStore } from "@/stores/recTreeStore";
+import TreeSelect from 'primevue/treeselect';
+
 
 const recordSelectorControlElement = ref<HTMLElement | null>(null);
 const emit = defineEmits<{
   (e: 'record-selector-control-created', control: Control): void;
-  (e: 'update-record-selector', recordItem: SrMenuNumberItem): void;
 }>();
-const atlChartFilterStore = useAtlChartFilterStore();
+const recTreeStore = useRecTreeStore();
 
 let customControl: Control | null = null;
 const getSize = computed(() => {
@@ -26,9 +26,7 @@ const tooltipTextStr = computed(() => {
     return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
 
-const selectedReqIdValue = computed(() => atlChartFilterStore.selectedReqIdMenuItem.value);
-
-onMounted(() => {
+onMounted(async () => {
   if (recordSelectorControlElement.value) {
     customControl = new Control({ element: recordSelectorControlElement.value });
     emit('record-selector-control-created', customControl);
@@ -41,30 +39,40 @@ onUnmounted(() => {
   }
 });
 
-function updateRecordSelector(event: Event) {
-  emit('update-record-selector', useAtlChartFilterStore().selectedReqIdMenuItem);
-  console.log("updateRecord:", event);
+async function updateRecordSelector(event: Event) {
+    const key = Object.keys(event)[0];
+    const reqId = Number(key);
+    console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId,'recTreeStore.selectedValue:',recTreeStore.selectedValue, 'recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
+    if(reqId>0){
+        if (recTreeStore.selectedNodeKey) {
+            console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
+        } else {
+            console.error('Failed to update selected request:', reqId);
+        }
+    } else {
+        console.error('Failed to update selected request:', reqId);
+    }
 }
 
-watch(selectedReqIdValue, async (newSelection, oldSelection) => {
-    //console.log('watch useAtlChartFilterStore().selectedReqIdMenuItem --> Request ID changed from:', oldSelection ,' to:', newSelection);
-    try{
-        console.log('watch atlChartFilterStore.selectedReqIdMenuItem.value --> Request ID changed from:', oldSelection ,' to:', newSelection);
-    } catch (error) {
-        console.error('Failed to update selected request:', error);
-    }
-});
+function nodeSelect(node:any) {
+    console.log('nodeSelect:', node);
+}
+
 </script>
 
 <template>
-  <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
-    <SrMenuNumberInput
-        v-model="atlChartFilterStore.selectedReqIdMenuItem"
-        :menuOptions="atlChartFilterStore.reqIdMenuItems" 
-        @change="updateRecordSelector"
-        :tooltipText=tooltipTextStr
-    />
-  </div>
+    <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
+        <TreeSelect
+            v-model="recTreeStore.selectedValue"
+            :options="recTreeStore.treeData" 
+            placeholder="Select a Record"
+            selectionMode="single"
+            size="small"
+            :filter="true"
+            @update:modelValue="updateRecordSelector"
+            @nodeSelect="nodeSelect"
+        />
+    </div>
 </template>
 
 <style scoped>

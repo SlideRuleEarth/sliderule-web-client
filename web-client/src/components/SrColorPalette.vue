@@ -33,40 +33,67 @@
                 @defaultsChanged="atl08ClassColorChanged"
             />
         </div>
-        <div class="sr-select-yapc-color-map">
-            <SrMenu 
-                label="YAPC Color Map" 
-                v-model="atl03ColorMapStore.selectedAtl03YapcColorMapName"
-                :menuOptions="srColorMapNames" 
-                :getSelectedMenuItem="atl03ColorMapStore.getSelectedAtl03YapcColorMapName"
-                :setSelectedMenuItem="atl03ColorMapStore.setSelectedAtl03YapcColorMapName"
-                tooltipText="YAPC Color Map for atl03 scatter plot"
-            />
-        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted,computed,ref } from 'vue';
 import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
-import { useAtl03ColorMapStore } from '@/stores/atl03ColorMapStore';
+import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
 import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
-import SrMenu from './SrMenu.vue';
-import { srColorMapNames,srColorTable } from '@/utils/colorUtils';
 
-const atl03ColorMapStore = useAtl03ColorMapStore();
 
 interface AtColorChangeEvent {
   label: string;
   color?: string; // color can be undefined
 }
 
+const selectedColors = computed({
+    get: () => useColorMapStore().getNamedColorPalette(),
+    set: (value) => useColorMapStore().setNamedColorPalette(value)
+});
+
+// Predefined list of CSS color names
+const cssColorNames = [
+    "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black",
+    "BlanchedAlmond", "Blue", "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse",
+    "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson", "Cyan", "DarkBlue", 
+    "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", 
+    "DarkOliveGreen", "DarkOrange", "DarkOrchid", "DarkRed", "DarkSalmon", "DarkSeaGreen", 
+    "DarkSlateBlue", "DarkSlateGray", "DarkTurquoise", "DarkViolet", "DeepPink", "DeepSkyBlue",
+    "DimGray", "DodgerBlue", "FireBrick", "FloralWhite", "ForestGreen", "Fuchsia", "Gainsboro",
+    "GhostWhite", "Gold", "GoldenRod", "Gray", "Green", "GreenYellow", "HoneyDew", "HotPink",
+    "IndianRed", "Indigo", "Ivory", "Khaki", "Lavender", "LavenderBlush", "LawnGreen",
+    "LemonChiffon", "LightBlue", "LightCoral", "LightCyan", "LightGoldenRodYellow", "LightGray",
+    "LightGreen", "LightPink", "LightSalmon", "LightSeaGreen", "LightSkyBlue", "LightSlateGray",
+    "LightSteelBlue", "LightYellow", "Lime", "LimeGreen", "Linen", "Magenta", "Maroon", "MediumAquaMarine",
+    "MediumBlue", "MediumOrchid", "MediumPurple", "MediumSeaGreen", "MediumSlateBlue", 
+    "MediumSpringGreen", "MediumTurquoise", "MediumVioletRed", "MidnightBlue", "MintCream",
+    "MistyRose", "Moccasin", "NavajoWhite", "Navy", "OldLace", "Olive", "OliveDrab", "Orange",
+    "OrangeRed", "Orchid", "PaleGoldenRod", "PaleGreen", "PaleTurquoise", "PaleVioletRed", 
+    "PapayaWhip", "PeachPuff", "Peru", "Pink", "Plum", "PowderBlue", "Purple", "RebeccaPurple",
+    "Red", "RosyBrown", "RoyalBlue", "SaddleBrown", "Salmon", "SandyBrown", "SeaGreen", "SeaShell",
+    "Sienna", "Silver", "SkyBlue", "SlateBlue", "SlateGray", "Snow", "SpringGreen", "SteelBlue",
+    "Tan", "Teal", "Thistle", "Tomato", "Turquoise", "Violet", "Wheat", "White", "WhiteSmoke",
+    "Yellow", "YellowGreen"
+];
+
+const colorMapStore = useColorMapStore();
+
+
+
+// Initialize the source and target lists for the PickList
+const srColorTable = ref([
+    cssColorNames.map(color => ({ label: color, value: color })),
+    selectedColors.value.map(color => ({ label: color, value: color }))
+]);
+
 onMounted(() => {
-    atl03ColorMapStore.initializeAtl03ColorMapStore();
-    srColorTable.value[1] = atl03ColorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
+    colorMapStore.initializeColorMapStore();
+    srColorTable.value[1] = colorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
     console.log('Mounted SrColorPalette colors:', srColorTable.value);
 });
 
@@ -80,12 +107,11 @@ const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
 };
 
 const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
-    //console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
-    if (color) {
-      console.log('atl08ClassColorChanged');
-    } else {
-      console.warn('atl08ClassColorChanged color is undefined');
-    }
+    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
+};
+
+const yapcColorChanged = async (colorKey:string): Promise<void> =>{
+    console.log(`yapcColorChanged:`,colorKey);
 };
 
 </script>

@@ -3,6 +3,8 @@ import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateRespo
 import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import type { SrSvrParmsUsed } from '@/types/SrTypes';
+import type { SrRegion } from '@/sliderule/icesat2';
+
 export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{
     days : number,
@@ -82,7 +84,10 @@ export interface SrPlotConfig {
     defaultAtl06Color: string;
     defaultAtl06SymbolSize: number;
     defaultAtl08SymbolSize: number;
-    defaultAtl03SymbolSize: number;
+    defaultAtl03spSymbolSize: number;
+    defaultAtl03vpSymbolSize: number;
+    defaultGradientColorMapName: string;
+    defaultGradientNumShades: number;
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -152,6 +157,13 @@ export class SlideRuleDexie extends Dexie {
                 await this.restoreDefaultAtl08ClassColors();
             }
             
+            const plotConfig = await this.plotConfig.get(1);
+            const gradientNumShades = plotConfig?.defaultGradientNumShades;
+            const gradientColorMapName = plotConfig?.defaultGradientColorMapName;
+            if(!gradientColorMapName || !gradientNumShades || gradientNumShades === 0){
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
+            }
+
             // Check and populate colors
             const colorsCount = await this.colors.count();
             if (colorsCount === 0) {
@@ -164,31 +176,62 @@ export class SlideRuleDexie extends Dexie {
     }
     private async _initializePlotConfig(): Promise<void> {
         try {
-          // Check if plotConfig record is already there:
-          const count = await this.plotConfig.count();
-          if (count === 0) {
-            // Insert a single record with known id=1
-            await this.plotConfig.put({
-              id: 1,
-              isLarge: false,
-              largeThreshold: 50000,
-              progressiveChunkSize: 12000,
-              progressiveChunkThreshold: 10000,
-              progressiveChunkMode: 'auto',
+            // Check if plotConfig record is already there:
+            const count = await this.plotConfig.count();
+            if (count === 0) {
+                // Insert a single record with known id=1
+                this.restorePlotConfig();
+                console.warn('plotConfig table was initialized with default values.');
+            } else {
+                console.log('plotConfig table already has records.');
+            }
+        } catch (error) {
+            console.error('Failed to initialize plotConfig record:', error);
+            throw error;
+        }
+    }
+      
+    async restorePlotConfig(): Promise<void> {
+        try {
+            // Clear existing records
+            await this.plotConfig.clear();
+
+            // Insert default record
+            await this.plotConfig.add({
+                id: 1,
+                isLarge: false,
+                largeThreshold: 50000,
+                progressiveChunkSize: 12000,
+                progressiveChunkThreshold: 10000,
+                progressiveChunkMode: 'auto',
                 defaultAtl06Color: 'red',
                 defaultAtl06SymbolSize: 3,
-                defaultAtl08SymbolSize: 1,
-                defaultAtl03SymbolSize: 1,
+                defaultAtl08SymbolSize: 3,
+                defaultAtl03spSymbolSize: 1,
+                defaultAtl03vpSymbolSize: 3,
+                defaultGradientColorMapName: 'viridis',
+                defaultGradientNumShades: 256
             });
-            console.warn('plotConfig table was initialized with default values.');
-          }
-        } catch (error) {
-          console.error('Failed to initialize plotConfig record:', error);
-          throw error;
-        }
-      }
-      
 
+            console.warn('plotConfig table restored to default values.');
+        } catch (error) {
+            console.error('Failed to restore plotConfig:', error);
+            throw error;
+        }
+    }
+
+    async restoreDefaultGradientColorMap(): Promise<void> {
+        try {
+            const plotConfig = await this.plotConfig.get(1);
+            if(plotConfig){
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
+            }
+        } catch (error) {
+            console.error('Failed to restore default gradient color map:', error);
+            throw error;
+        }
+    }
+    
     // Method to restore default colors for the colors table
     async restoreDefaultColors(): Promise<void> {
         try {
@@ -615,7 +658,6 @@ export class SlideRuleDexie extends Dexie {
                     console.error(`getFunc No request found with req_id ${req_id}`);
                     return '';
                 }
-                //console.log('getFunc req_id:',req_id,'func:',request.func, 'request:',request);
                 return request.func || '';
             } else {
                 console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
@@ -695,6 +737,32 @@ export class SlideRuleDexie extends Dexie {
             } else {
                 console.error(`No request found with req_id ${req_id}`);
                 return {} as NullReqParams;
+            }
+        } catch (error) {
+            console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+
+    async getSvrReqPoly(req_id:number): Promise<SrRegion> {
+        try {
+            const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
+            if(svrParmsUsedStr){
+                const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
+                if(svrParmsUsed.server.rqst.parms){
+                    if(svrParmsUsed.server.rqst.parms){
+                        return svrParmsUsed.server.rqst.parms.poly;
+                    } else {
+                        console.error(`No svr_parms found with req_id ${req_id}`);
+                        return {} as SrRegion;
+                    }
+                } else {
+                    console.error(`No svr_parms found with req_id ${req_id}`);
+                    return {} as SrRegion;
+                }
+            } else {
+                console.error(`No svr_parms found with req_id ${req_id}`);
+                return {} as SrRegion;
             }
         } catch (error) {
             console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
@@ -830,7 +898,8 @@ export class SlideRuleDexie extends Dexie {
             //console.log("Adding pending request...");
             const reqId = await this.requests.add({ 
                 status: 'pending', 
-                func: '', 
+                func: '',
+                cnt: 0, 
                 parameters: {} as NullReqParams, 
                 start_time: new Date(), 
                 end_time: new Date(),
@@ -987,7 +1056,7 @@ export class SlideRuleDexie extends Dexie {
                 .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
                 .toArray();
           
-            console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+            //console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
             if (found.length <= 0) {
                 console.log(`No matching record found for run context:`, runContext);
                 return undefined;
@@ -1033,7 +1102,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const runContext = await this.runContexts.where('reqId').equals(reqId).first();
             if (!runContext) {
-                console.error(`No run context found for req_id ${reqId}`);
+                //console.log(`No run context found for req_id ${reqId}`);
             }
             return runContext;
         } catch (error) {
@@ -1044,27 +1113,27 @@ export class SlideRuleDexie extends Dexie {
     // Get the single record
     async getPlotConfig(): Promise<SrPlotConfig | undefined> {
         try {
-        // We assume that there is only ever one record (id = 1).
-        const config = await this.plotConfig.get(1);
-        if (!config) {
-            console.warn('No plotConfig record found. Did initialization fail?');
-        }
-        return config;
+            // We assume that there is only ever one record (id = 1).
+            const config = await this.plotConfig.get(1);
+            if (!config) {
+                console.warn('No plotConfig record found. Did initialization fail?');
+            }
+            return config;
         } catch (error) {
-        console.error('Error retrieving plotConfig:', error);
-        throw error;
+            console.error('Error retrieving plotConfig:', error);
+            throw error;
         }
     }
     
     // Update fields of the single record
     async updatePlotConfig(updates: Partial<SrPlotConfig>): Promise<void> {
         try {
-        // Keep the same id, forcibly set to 1
-        await this.plotConfig.update(1, updates);
-        // If update returns 0, it means there was no record to update
+            // Keep the same id, forcibly set to 1
+            await this.plotConfig.update(1, updates);
+            // If update returns 0, it means there was no record to update
         } catch (error) {
-        console.error('Error updating plotConfig:', error);
-        throw error;
+            console.error('Error updating plotConfig:', error);
+            throw error;
         }
     }
   

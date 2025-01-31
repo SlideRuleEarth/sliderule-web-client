@@ -15,6 +15,7 @@ import Ripple from 'primevue/ripple';
 import App from './App.vue'
 import router from './router'
 import 'echarts/lib/chart/scatter';
+import 'echarts-gl';
 import StyleClass from 'primevue/styleclass';
 import ConfirmationService from 'primevue/confirmationservice';
 import OpenLayersMap, {
@@ -61,6 +62,11 @@ const SrPreset = definePreset(Lara, {
     }
   }
 });
+const pinia = createPinia();
+pinia.use(createPersistedState({
+  //auto: true, // all pinia stores are saved to the storage
+  storage: sessionStorage // session is per tab and not persistent when tab is closed
+}))
 
 export const app = createApp(App)
 app.config.errorHandler = (err, vm, info) => {
@@ -69,11 +75,7 @@ app.config.errorHandler = (err, vm, info) => {
 const vue3_openlayer_options: Vue3OpenlayersGlobalOptions = {
     debug: false,
 };
-const pinia = createPinia();
-pinia.use(createPersistedState({
-  //auto: true, // all pinia stores are saved to the storage
-  storage: sessionStorage // session is per tab and not persistent when tab is closed
-}))
+
 
 app.use(pinia);
 app.use(OpenLayersMap, vue3_openlayer_options );
