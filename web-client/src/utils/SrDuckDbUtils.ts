@@ -839,11 +839,10 @@ export async function fetchScatterData(
                 }
         
                 // Populate minMaxValues, but exclude NaN values
-                minMaxValues['x'] = {
-                    min: isNaN(row.min_x) ? 0 : row.min_x, 
-                    max: isNaN(row.max_x) ? 0 : row.max_x
-                };
-        
+                if (!isNaN(row.min_x) && !isNaN(row.max_x)) {
+                    minMaxValues['x'] = { min: row.min_x, max: row.max_x };
+                }
+
                 y.forEach((yName) => {
                     const minY = row[`min_${yName}`];
                     const maxY = row[`max_${yName}`];
