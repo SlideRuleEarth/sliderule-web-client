@@ -241,13 +241,13 @@
                 //console.log("feature:", feature);
                 // Get the geometry of the feature
                 const geometry = feature.getGeometry() as OlPolygon;
-                console.log("geometry:", geometry);
+                //console.log("geometry:", geometry);
                 // Check if the geometry is a polygon
                 if (geometry && geometry.getType() === 'Polygon') {
                     //console.log("geometry:",geometry);
                     // Get the coordinates of all the rings of the polygon
                     const rings = geometry.getCoordinates(); // This retrieves all rings
-                    console.log("Original polyCoords:", rings);
+                    //console.log("Original polyCoords:", rings);
 
                     const projName = useMapStore().getSrViewObj().projectionName;
                     let thisProj = getProjection(projName);
@@ -257,7 +257,7 @@
                         const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
                             ring.map(coord => toLonLat(coord) as Coordinate)
                         );
-                        console.log("Converted polyCoords:", convertedRings);
+                        //console.log("Converted polyCoords:", convertedRings);
                         mapStore.polyCoords = convertedRings;
                         flatLonLatPairs = convertedRings.flatMap(ring => ring);
                     } else {
@@ -272,14 +272,14 @@
                         //console.log('poly is clockwise, reversing');
                         reqParamsStore.poly = srLonLatCoordinates.reverse();
                     } else {
-                        //console.log('poly is counter-clockwise');
+                        ////console.log('poly is counter-clockwise');
                         reqParamsStore.poly = srLonLatCoordinates;
                     }
-                    console.log('reqParamsStore.poly:',reqParamsStore.poly);
+                    //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
                     //console.log('srLonLatCoordinates:',srLonLatCoordinates);
                     reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates)); // this also poplates the area
-                    console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
+                    //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
                     // Create GeoJSON from reqParamsStore.convexHull
                     const thisConvexHull = reqParamsStore.getConvexHull();
                     const tag = reqParamsStore.getFormattedAreaOfConvexHull();
@@ -404,10 +404,10 @@
     }
 
     function onFeatureClick(featureLike:FeatureLike){
-        console.log('onFeatureClick:',featureLike);
+        //console.log('onFeatureClick:',featureLike);
         if (featureLike instanceof OlFeature) {
             const properties = featureLike.getProperties();
-            console.log('Feature properties:',properties);
+            //console.log('Feature properties:',properties);
             if(properties.req_id){
                 router.push(`/analyze/${properties.req_id.toString()}`);
             }
@@ -423,10 +423,10 @@
         recordsLayer.set('name', 'Records Layer');
         recordsLayer.set('title', 'Records Layer');
         Object.values(srProjections.value).forEach(projection => {
-            console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
+            //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
         });
-        console.log("SrMap onMounted registering proj4:",proj4);
+        //console.log("SrMap onMounted registering proj4:",proj4);
         register(proj4);
         if (mapRef.value?.map) {
             //console.log("SrMap onMounted map:",mapRef.value.map);
@@ -499,7 +499,7 @@
                 });
                 addFeatureClickListener(map,onFeatureClick);
             } else {
-                console.log("SrMap Error:map is null");
+                console.error("SrMap Error:map is null");
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
             addRecordPolys();
@@ -507,7 +507,7 @@
             //     zoomToRequestPolygon(map, currentReqId);
             // }
         } else {
-            console.log("SrMap Error:mapRef.value?.map is null");
+            console.error("SrMap Error:mapRef.value?.map is null");
         }
     });
 
@@ -525,7 +525,7 @@
         if(map){
             map.addControl(drawControl);
         } else {
-            console.log("Error:map is null");
+            console.error("Error:map is null");
         }
     };
 
@@ -564,7 +564,7 @@
             console.error("SrMap addRecordPolys Error:map is null");
         }
         const endTime = performance.now(); // End time
-        console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
+        //console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
     }
 
     const updateThisMapView = async (reason:string) => {

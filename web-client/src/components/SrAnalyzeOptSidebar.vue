@@ -12,7 +12,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { SrMenuNumberItem } from "@/types/SrTypes";
 import { useDeckStore } from '@/stores/deckStore';
-import { updateCycleOptions, updateRgtOptions, updatePairOptions, updateScOrientOptions, updateTrackOptions } from '@/utils/SrDuckDbUtils';
 import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
@@ -210,7 +209,7 @@ const debouncedUpdateElevationMap = debounce(() => {
 }, 500);
 
 const updateRecordSelection = async (item: SrMenuNumberItem) => {
-    console.log('updateRecordSelection item:', item);
+    //console.log('updateRecordSelection item:', item);
     if(recTreeStore.selectedReqId > 0){
         console.log('handleUpdateReqId selectedReqId:', recTreeStore.selectedReqId);
         await prepareDbForReqId(recTreeStore.selectedReqId);
@@ -253,13 +252,13 @@ async function processNewReqId() {
     atlChartFilterStore.setSelectedOverlayedReqIds([]);
     try {
         const req_id = recTreeStore.selectedReqId;
-        console.log('processNewReqId selectedReqId:', req_id);
+        //console.log('processNewReqId selectedReqId:', req_id);
         if(req_id !== props.startingReqId){
             console.warn(`processNewReqId: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
         }
         const height_fieldname = getHFieldName(req_id);
         const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
-        console.log('processNewReqId summary:', summary, 'req_id:', req_id);
+        //console.log('processNewReqId summary:', summary, 'req_id:', req_id);
         await updateChartStore(req_id);
         await initAnalysisMap();
         //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);

@@ -38,7 +38,7 @@ watch(() => route.params.id, async (newId) => {
         if(newReqId > 0){
             const first = recTreeStore.findAndSelectNode(newReqId);
             if(first){
-                console.log('App watch Route ID changed to:', newReqId);
+                //console.log('App watch Route ID changed to:', newReqId);
             } else {
                 if(recTreeStore.allReqIds.length===0){
                     console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
@@ -97,7 +97,7 @@ onMounted(async () => {
 });
 
 const requestButtonClick = async () => {
-    console.log('Request button clicked');
+    //console.log('Request button clicked');
     router.push('/request'); 
 };
 
@@ -115,7 +115,7 @@ const analysisButtonClick = async () => {
             router.push(`/analyze/${reqId.toString()}`);
         } else {
             if(recTreeStore.allReqIds.length > 0){
-                console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
+                //console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
                 toast.add({ severity: 'warn', summary: 'Invalid Record specified', detail: ' Setting to first record Id', life: srToastStore.getLife() });
                 recTreeStore.initToFirstRecord();   
             }

@@ -109,7 +109,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             if (treeData.value.length > 0) {
                 if(selectReqId && (selectReqId > 0)){
                     if(findAndSelectNode(selectReqId)){
-                        console.log('loadTreeData: Selected node with reqId:',selectReqId);
+                        //console.log('loadTreeData: Selected node with reqId:',selectReqId);
                     } else {
                         console.warn('loadTreeData: findAndSelectNode failed to find selectReqId',selectReqId);
                     }
@@ -129,12 +129,12 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         if (node?.key) {
           // Set selectedValue to the shape: { [node.key]: true }
           selectedValue.value = { [node.key]: true };
-          console.log(
-            'setSelectedValue: selectedValue:',
-            selectedValue.value,
-            'selectedNodeKey:', selectedNodeKey.value,
-            'selectedReqId:', selectedReqId.value
-          );
+            //console.log(
+            //     'setSelectedValue: selectedValue:',
+            //     selectedValue.value,
+            //     'selectedNodeKey:', selectedNodeKey.value,
+            //     'selectedReqId:', selectedReqId.value
+            //   );
         } else {
           console.warn('setSelectedValue: Node not found in treeData');
         }
@@ -176,7 +176,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     
         const node = findNode(treeData.value);
         if (node) {
-            console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
+            //console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
             setSelectedValue(node.key);
             return true; // Node was found and selected
         } else {
@@ -186,17 +186,17 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     };
 
     const updateRecMenu = async (logMsg:string,newReqId?:number): Promise<number> => {
-        console.log('updateRecMenu', logMsg,'newReqId', newReqId); 
+        //console.log('updateRecMenu', logMsg,'newReqId', newReqId); 
         try{
-            console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value);
+            //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value);
             await loadTreeData(newReqId);
-            console.log('updateRecMenu treeData:', treeData);
+            //console.log('updateRecMenu treeData:', treeData);
             initDataBindingsToChartStore(reqIdMenuItems.value.map(item => item.value.toString()));
             await initChartStore();
         } catch (error) {
             console.error('updateRecMenu Failed to updateRecMenu:', error);
         }
-        console.log('updateRecMenu selectedReqId:',selectedReqId.value);
+        //console.log('updateRecMenu selectedReqId:',selectedReqId.value);
         return selectedReqId.value? selectedReqId.value : 0;
     };   
     return {

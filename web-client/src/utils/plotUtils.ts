@@ -70,7 +70,7 @@ export function initializeColorEncoding(reqIdStr:string,func:string){
     } else {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
     }
-    console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    //console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -211,10 +211,10 @@ async function getGenericSeries({
 
     try {
         const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions);
-        console.log(`${functionName}: chartData:`, chartData);
+        //console.log(`${functionName}: chartData:`, chartData);
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
-        console.log(`${functionName}: minMaxValues:`, minMaxValues);
+        //console.log(`${functionName}: minMaxValues:`, minMaxValues);
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
@@ -230,8 +230,8 @@ async function getGenericSeries({
             if(cedk === 'solid'){
                 thisColorFunction = (params: any) => chartStore.getSolidSymbolColor(reqIdStr);
             } else {
-                console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
-                console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
+                //console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
+                //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
                 const minValue = chartStore.getMinValue(reqIdStr, cedk);
                 const maxValue = chartStore.getMaxValue(reqIdStr, cedk);
                 thisColorFunction = colorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
@@ -292,7 +292,7 @@ export async function getSeriesForAtl03sp(
     x: string,
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+    //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
     const chartStore = useChartStore();
     const fetchOptions: FetchScatterDataOptions = {
         normalizeX: false,
@@ -428,7 +428,7 @@ export function clearPlot() {
     if (plotRef) {
         if(plotRef.chart){
             plotRef.chart.clear();
-            console.log('clearPlot: plotRef.chart cleared');
+            //console.log('clearPlot: plotRef.chart cleared');
         } else {
             console.warn('clearPlot: plotRef.chart is undefined');
         }
@@ -535,7 +535,7 @@ export async function initChartStore() {
             console.error(`Error processing reqId: ${reqIdStr}`, error);
         }
     }
-    console.log('initChartStore initialized chartStore');
+    //console.log('initChartStore initialized chartStore');
 }
 
 
@@ -673,7 +673,7 @@ const initScatterPlotWith = async (reqId: number) => {
     const startTime = performance.now();
     const atlChartFilterStore = useAtlChartFilterStore();
     const chartStore = useChartStore();
-    console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
+    //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
     if (reqId === undefined || reqId <= 0) {
         console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
@@ -735,7 +735,7 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-        console.log(`appendSeries(${reqIdStr}): existing filteredOptions:`, filteredOptions);
+        //console.log(`appendSeries(${reqIdStr}): existing filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
         if (!seriesData.length) {
@@ -922,10 +922,7 @@ async function appendSeries(reqId: number): Promise<void> {
             // }, { notMerge: false }
         });
 
-        console.log(
-        `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,
-        chart.getOption()
-        );
+        //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {
         console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
     }
@@ -933,12 +930,12 @@ async function appendSeries(reqId: number): Promise<void> {
   
 const updateScatterPlot = async (msg:string) => {
     const startTime = performance.now();
-    console.log(`updateScatterPlot for: ${msg}`);
+    //console.log(`updateScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
-        console.log(`updateScatterPlot reqIds:`, reqIds);
+        //console.log(`updateScatterPlot reqIds:`, reqIds);
         reqIds.forEach(async reqId => { 
             if(reqId > 0){
                 await updateChartStore(reqId);
@@ -955,7 +952,7 @@ const updateScatterPlot = async (msg:string) => {
 }
 
 const refreshScatterPlot = async (msg:string) => {
-    console.log(`refreshScatterPlot ${msg}`);
+    //console.log(`refreshScatterPlot ${msg}`);
     const recTreeStore = useRecTreeStore();
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
@@ -968,7 +965,7 @@ const refreshScatterPlot = async (msg:string) => {
 };
 
 export const updateScatterOptionsOnly = async (msg:string) => {
-    console.log(`updateScatterOptionsOnly ${msg}`);
+    //console.log(`updateScatterOptionsOnly ${msg}`);
     const recTreeStore = useRecTreeStore();
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
@@ -987,7 +984,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     const requestsStore = useRequestsStore();
 
     const reqIdStr = recTreeStore.selectedReqIdStr;
-    console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
+    //console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
     const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
@@ -999,7 +996,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         }
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
-        console.log('Show Photon Cloud Overlay checked');
+        //console.log('Show Photon Cloud Overlay checked');
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){
             runContext.reqId = reqId;
@@ -1009,7 +1006,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             chartStore.setTracks(childReqIdStr,chartStore.getTracks(reqIdStr));
             chartStore.setBeams(childReqIdStr,chartStore.getBeams(reqIdStr));
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
-            console.log('findCachedRec reqId found:', reqId);
+            //console.log('findCachedRec reqId found:', reqId);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
             requestsStore.setSvrMsg('');
@@ -1102,7 +1099,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
 }
 
 export async function updateChartStore(req_id: number) {
-    console.log('updateChartStore req_id:', req_id);
+    //console.log('updateChartStore req_id:', req_id);
     const reqIdStr = req_id.toString();
     if (req_id <= 0) {
         console.warn(`updateChartStore Invalid request ID:${req_id}`);

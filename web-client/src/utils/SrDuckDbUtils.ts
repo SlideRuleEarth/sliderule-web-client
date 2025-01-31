@@ -128,18 +128,14 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         }
         chartStore.setSelectedYData(reqIdStr,heightFieldname);
 
-        // Optional: Debugging log
-        console.log(
-            'setElevationDataOptionsFromFieldNames',
-            { reqIdStr, fieldNames, heightFieldname, ndx }
-        );
+        //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
     }
 }
 
 export async function prepareDbForReqId(reqId: number): Promise<void> {
-    console.log(`prepareDbForReqId for ${reqId}`);
+    //console.log(`prepareDbForReqId for ${reqId}`);
     const startTime = performance.now(); // Start time
     try{
         const fileName = await indexedDb.getFilename(reqId);
@@ -277,7 +273,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
 }
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<ElevationDataItem|null> => {
-    console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     let firstRec = null;
     let srViewName = await indexedDb.getSrViewName(req_id);
     if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
@@ -615,7 +611,7 @@ export async function getTracks(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getTracks() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getTracks() took ${endTime - startTime} milliseconds.`);
     }
     return tracks;
 }
@@ -655,7 +651,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getScOrient() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getScOrient() took ${endTime - startTime} milliseconds.`);
     }
     return scOrients;
 }
@@ -697,7 +693,7 @@ export async function updateCycleOptions(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
     }
     return cycles;
 }
@@ -723,7 +719,7 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.updateAllFilterOptions() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.updateAllFilterOptions() took ${endTime - startTime} milliseconds.`);
     }
 }
 export interface FetchScatterDataOptions {
@@ -797,7 +793,7 @@ export async function fetchScatterData(
     } = options;
 
     const startTime = performance.now();
-    console.log('fetchScatterData (single array) reqIdStr:', reqIdStr, 'fileName:', fileName);
+    //console.log('fetchScatterData (single array) reqIdStr:', reqIdStr, 'fileName:', fileName);
 
     // We'll store everything under a single key = reqIdStr
     const chartData: Record<string, SrScatterChartDataArray> = {
@@ -938,7 +934,7 @@ export async function fetchScatterData(
 
         // Optionally set an axis legend
         useChartStore().setXLegend(reqIdStr, `${x} (normalized) - Meters`);
-        console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
+        //console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
         return { chartData, minMaxValues, normalizedMinMaxValues, dataOrderNdx };
     } catch (error) {
         console.error('fetchScatterData Error:', error);

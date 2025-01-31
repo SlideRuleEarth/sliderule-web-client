@@ -76,7 +76,7 @@ export function drawGeoJson(
     zoomTo: boolean = false,
     tag: string = '', 
 ): void {
-    console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
+    //console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
     try{
         const map = useMapStore().map;
         if(!map){
@@ -118,7 +118,7 @@ export function drawGeoJson(
                 feature.setStyle(style);
                 feature.set('tag', tag);  // Add the tag to the feature's properties
             });
-            console.log('drawGeoJson add features:',features);
+            //console.log('drawGeoJson add features:',features);
             vectorSource.addFeatures(features);
             // Zoom to the extent of the new features
             if (zoomTo) {
@@ -284,7 +284,7 @@ export function updateWhereClause(reqIdStr:string){
     const cs = useChartStore();
     const reqId = parseInt(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
-    console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
+    //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
     if(func==='atl03sp'){
         let atl03spWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -303,7 +303,7 @@ export function updateWhereClause(reqIdStr:string){
         }
         cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
+        //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
     } else if(func === 'atl03vp'){
         const atl03vpWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -311,7 +311,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
     } else if (func.includes('atl06')){ // all atl06
         const atl06WhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -319,7 +319,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl06WhereClause);
-        console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
     } else if (func === 'atl08p'){
         const atl08pWhereClause = `
             WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
@@ -327,7 +327,7 @@ export function updateWhereClause(reqIdStr:string){
             AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
         `;
         cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
+        //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
     } else {
         console.error('updateWhereClause Unknown func?:',func);
     }
@@ -376,12 +376,12 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     }
     // for atl03
     const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-    console.log('Clicked: func',func);
-    console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
-    console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
-    console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
-    console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
-    console.log('Clicked: pair',cs.getPairValues(reqIdStr));
+    //console.log('Clicked: func',func);
+    //console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
+    //console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
+    //console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
+    //console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
+    //console.log('Clicked: pair',cs.getPairValues(reqIdStr));
     if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
@@ -389,8 +389,8 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         }
     }
     updateWhereClause(reqIdStr);
-    console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
-    console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
+    //console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
+    //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
 
 }
 
@@ -412,11 +412,11 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         },
         pointSize: useDeckStore().getPointSize(),
         onDragStart: () => {
-            console.log('onDragStart');
+            //console.log('onDragStart');
             document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
           },
         onDragEnd: () => {
-            console.log('onDragEnd');
+            //console.log('onDragEnd');
             document.body.style.cursor = 'default'; // Revert to default when dragging ends
         },
     });
@@ -547,7 +547,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
             const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
-            console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
+            //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
             useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
             // if(replaced){
@@ -568,7 +568,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
 }
 
 export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string): OLlayer{
-    console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
+    //console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
 
     const layerOptions = {
         title: name,
@@ -602,15 +602,15 @@ export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string)
 // Sync deck view with OL view
 
 export function resetDeckGLInstance(map:OLMap): Deck | null{
-    console.log('resetDeckGLInstance');
+    //console.log('resetDeckGLInstance');
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
         let deck = null;
         const mapView =  map.getView();
-        console.log('mapView:',mapView);
+        //console.log('mapView:',mapView);
         const mapCenter = mapView.getCenter();
         const mapZoom = mapView.getZoom();
-        console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+        //console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
         if(mapCenter && mapZoom){
             const tgt = map.getViewport() as HTMLDivElement;
             deck = new Deck({
@@ -634,27 +634,27 @@ export function resetDeckGLInstance(map:OLMap): Deck | null{
 }
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    console.log('addDeckLayerToMap:',name);
+    //console.log('addDeckLayerToMap:',name);
     const mapView =  map.getView();
     const projection = mapView.getProjection();
     const projectionUnits = projection.getUnits();
     const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === name);
     if (updatingLayer) {
-        console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
+        //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
         map.removeLayer(updatingLayer);
     }
     useDeckStore().deleteLayer(name);
     const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
     if(deckLayer){
         map.addLayer(deckLayer);
-        console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
     } else {
         console.error('No current_layer to add.');
     }
 }
 
 export function initDeck(map: OLMap){
-    console.log('initDeck start')
+    //console.log('initDeck start')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(map); 
     if(deck){
@@ -662,7 +662,7 @@ export function initDeck(map: OLMap){
     } else {
       console.error('initDeck(): deck Instance is null');
     }
-    console.log('initDeck end: deck:',deck);
+    //console.log('initDeck end: deck:',deck);
 }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -686,7 +686,7 @@ export function checkAreaOfConvexHullWarning(): boolean {
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().warn('Warn',msg);
         } else {
-            console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+            //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
         }
         return false;
     }
@@ -695,13 +695,13 @@ export function checkAreaOfConvexHullWarning(): boolean {
 
 export function checkAreaOfConvexHullError(): boolean {
     const limit = useReqParamsStore().getAreaErrorThreshold()
-    console.log('checkAreaOfConvexHullError area:',limit);
+    //console.log('checkAreaOfConvexHullError area:',limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
         const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().error('Error',msg);
         } else {
-            console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+            //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
         }
         return false;
     }
@@ -731,10 +731,10 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
         const geoJsonFeature = format.writeFeatureObject(feature, {
             featureProjection: 'EPSG:3857', // Replace with your desired projection
         });
-        console.log(`Feature #${index + 1}:`, JSON.stringify(geoJsonFeature, null, 2));
+        //console.log(`Feature #${index + 1}:`, JSON.stringify(geoJsonFeature, null, 2));
     });
 
-    console.log(`Total features: ${features.length}`);
+    //console.log(`Total features: ${features.length}`);
 }
 
 export function saveMapZoomState(map:OLMap){
@@ -784,9 +784,9 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
             center: centerToRestore,
             zoom: zoomToRestore,
         });
-        console.log('Restored view with extent:', extentToRestore);
-        console.log('Restored view with center:', centerToRestore);
-        console.log('Restored view with zoom:', zoomToRestore);
+        //console.log('Restored view with extent:', extentToRestore);
+        //console.log('Restored view with center:', centerToRestore);
+        //console.log('Restored view with zoom:', zoomToRestore);
     }
     return newView;
 }
@@ -938,7 +938,7 @@ export async function updateMapView(map:OLMap,
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);
             const baseLayer = srViewObj.baseLayerName;
-            console.log(`updateMapView for ${reason} with baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
+            //console.log(`updateMapView for ${reason} with baseLayer:${baseLayer} projectionName:${srViewObj.projectionName} projection:`,newProj);    
             if(baseLayer && newProj && srViewObj){
                 map.getAllLayers().forEach((layer: OLlayer) => {
                     //console.log(`removing layer:`,layer.get('title'));
@@ -954,11 +954,11 @@ export async function updateMapView(map:OLMap,
                 //console.log(`${newProj.getCode()} units: ${newProj.getUnits()}`);
                 const fromLonLat = getTransform('EPSG:4326', newProj);
                 let extent = newProj.getExtent();
-                console.log("newProj:",newProj);         
-                console.log("newProj.getExtent():",extent);         
+                //console.log("newProj:",newProj);         
+                //console.log("newProj.getExtent():",extent);         
                 if((extent===undefined)||(extent===null)){
                     if(srProjObj.extent){
-                        console.log("extent is null using srProjObj.extent");
+                        //console.log("extent is null using srProjObj.extent");
                         extent = srProjObj.extent;
                     } else {
                         console.error("extent is null using bbox");
@@ -967,10 +967,10 @@ export async function updateMapView(map:OLMap,
                             bbox[2] += 360;
                         }
                         if(newProj.getUnits() === 'degrees'){
-                            console.log("using bbox for extent in degrees bbox:",bbox);
+                            //console.log("using bbox for extent in degrees bbox:",bbox);
                             extent = bbox;
                         } else {
-                            console.log("using bbox for extent transformed from degrees to meters bbox:",bbox);
+                            //console.log("using bbox for extent transformed from degrees to meters bbox:",bbox);
                             extent = applyTransform(bbox, fromLonLat, undefined, undefined);
                         }
                         newProj.setExtent(extent);
@@ -979,16 +979,16 @@ export async function updateMapView(map:OLMap,
 
                 let worldExtent = newProj.getWorldExtent();
                 if((worldExtent===undefined) || (worldExtent===null) ||  worldExtent.some(value => !Number.isFinite(value))){
-                    console.log("worldExtent is null using bbox");
+                    //console.log("worldExtent is null using bbox");
                     let bbox = srProjObj.bbox;
                     if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
                         bbox[2] += 360;
                     }
                     if(newProj.getUnits() === 'degrees'){
-                        console.log("using bbox for worldExtent in degrees bbox:",bbox);
+                        //console.log("using bbox for worldExtent in degrees bbox:",bbox);
                         worldExtent = bbox;
                     } else {
-                        console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
+                        //console.log("using bbox for worldExtent transformed from degrees to meters bbox:",bbox);
                         worldExtent = applyTransform(bbox, fromLonLat, undefined, undefined);
                     }
                     if(worldExtent.some(value => !Number.isFinite(value))){
@@ -1001,7 +1001,7 @@ export async function updateMapView(map:OLMap,
                 }
                 let center = getExtentCenter(extent);
                 if(srProjObj.center){
-                    console.log("using srProjObj.center for center");
+                    //console.log("using srProjObj.center for center");
                     center = srProjObj.center;
                 }
 
@@ -1015,10 +1015,10 @@ export async function updateMapView(map:OLMap,
                     center: center,
                     zoom: srProjObj.default_zoom,
                 });
-                console.log('Initial newView extent:', extent);
-                console.log('Initial newView center:', center);
-                console.log('Initial newView zoom:', srProjObj.default_zoom);
-                console.log('Initial newView:', newView);
+                //console.log('Initial newView extent:', extent);
+                //console.log('Initial newView center:', center);
+                //console.log('Initial newView zoom:', srProjObj.default_zoom);
+                //console.log('Initial newView:', newView);
                 useMapStore().setExtentToRestore(extent);
                 if(restore){
                     const restoredView = restoreMapView(newProj);
@@ -1028,7 +1028,7 @@ export async function updateMapView(map:OLMap,
                         console.warn('Failed to restore view for:', reason);
                     }    
                 }
-                console.log('Setting new view:', newView);
+                //console.log('Setting new view:', newView);
                 map.setView(newView);
             } else {
                 if(!baseLayer){
@@ -1053,7 +1053,7 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
     try{
         let reqExtremeLatLon = [0,0,0,0];
         if(reqId > 0){   
-            console.log('calling readOrCacheSummary(',reqId,')');  
+            //console.log('calling readOrCacheSummary(',reqId,')');  
             const workerSummary = await readOrCacheSummary(reqId);
             if(workerSummary){
                 const extremeLatLon = workerSummary.extLatLon;
@@ -1088,7 +1088,7 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
             const fromLonLat = getTransform('EPSG:4326', srViewObj.projectionName);
             view_extent = applyTransform(reqExtremeLatLon, fromLonLat, undefined, 8);
         } else {
-            console.log('using degrees view_extent?:',view_extent);
+            //console.log('using degrees view_extent?:',view_extent);
         }
         //console.log(`zoomMapForReqIdUsingView:${reqId} view_extent:`,view_extent);
         map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});

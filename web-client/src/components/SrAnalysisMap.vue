@@ -157,7 +157,7 @@
             console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
         } finally {
             if(map){
-                dumpMapLayers(map,'SrAnalysisMap');
+                //dumpMapLayers(map,'SrAnalysisMap');
             } else {
                 console.error("SrAnalysisMap Error:map is null");
             }
