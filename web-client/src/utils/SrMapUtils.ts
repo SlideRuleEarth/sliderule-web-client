@@ -784,9 +784,9 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
             center: centerToRestore,
             zoom: zoomToRestore,
         });
-        console.log('Restored view with extent:', extentToRestore);
-        console.log('Restored view with center:', centerToRestore);
-        console.log('Restored view with zoom:', zoomToRestore);
+        //console.log('Restored view with extent:', extentToRestore);
+        //console.log('Restored view with center:', centerToRestore);
+        //console.log('Restored view with zoom:', zoomToRestore);
     }
     return newView;
 }

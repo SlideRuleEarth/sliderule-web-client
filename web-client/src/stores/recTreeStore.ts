@@ -188,15 +188,15 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     const updateRecMenu = async (logMsg:string,newReqId?:number): Promise<number> => {
         //console.log('updateRecMenu', logMsg,'newReqId', newReqId); 
         try{
-            //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value);
+            //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value);
             await loadTreeData(newReqId);
             //console.log('updateRecMenu treeData:', treeData);
             initDataBindingsToChartStore(reqIdMenuItems.value.map(item => item.value.toString()));
             await initChartStore();
         } catch (error) {
-            console.error('updateRecMenu Failed to updateRecMenu:', error);
+            console.error(`updateRecMenu ${logMsg} Failed to updateRecMenu:`, error);
         }
-        //console.log('updateRecMenu selectedReqId:',selectedReqId.value);
+        console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
         return selectedReqId.value? selectedReqId.value : 0;
     };   
     return {

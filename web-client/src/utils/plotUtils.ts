@@ -76,7 +76,7 @@ export function initializeColorEncoding(reqId:number){
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
     chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId));
-    console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    //console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -1092,7 +1092,6 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
     const chartStore = useChartStore(); 
-    const requestsStore = useRequestsStore();
     const func = await indexedDb.getFunc(req_id);//must use db
     if (func.includes('atl03sp')) {
         chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
@@ -1105,7 +1104,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else {
         console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
     }
-    console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
+    //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
     return chartStore.getSymbolSize(reqIdStr);
 }
 

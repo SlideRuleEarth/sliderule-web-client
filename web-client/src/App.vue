@@ -85,7 +85,10 @@ const detectBrowserAndOS = () => {
 };
 
 onMounted(async () => {
-    const reqId = await recTreeStore.updateRecMenu('from App');// 
+    const reqId = await recTreeStore.updateRecMenu('from App');
+    if((reqId <= 0) && (recTreeStore.allReqIds.length > 0)){
+        recTreeStore.initToFirstRecord();
+    } 
     // Get the computed style of the document's root element
     const rootStyle = window.getComputedStyle(document.documentElement);
     // Extract the font size from the computed style
