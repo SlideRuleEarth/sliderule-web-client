@@ -8,7 +8,8 @@ import { useToast } from "primevue/usetoast";
 import { updateFilename } from '@/utils/SrParquetUtils';
 import { duckDbLoadOpfsParquetFile,duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { getHFieldNameForFuncStr } from '@/utils/SrDuckDbUtils';
-import { useRequestsStore } from '@/stores/requestsStore'; // Adjust the path based on your file structure
+import { useRequestsStore } from '@/stores/requestsStore'; 
+import { useRecTreeStore } from '@/stores/recTreeStore';
 import { db } from '@/db/SlideRuleDb';
 import type { SrRegion } from '@/sliderule/icesat2'
 
@@ -23,7 +24,7 @@ export interface SvrParms { // fill this out as neccessary
     }
 }
 const requestsStore = useRequestsStore();
-
+const recTreeStore = useRecTreeStore();
 const toast = useToast();
 
 ////////////// upload toast items
@@ -83,6 +84,7 @@ const customUploader = async (event:any) => {
                 await db.updateRequestRecord(srReqRec); 
                 // console.log('Updated srReqRec:', srReqRec);
                 // console.log('svr_parms:', svr_parms);
+                recTreeStore.loadTreeData();// update the menu to include new item
                 const msg = `File imported and copied to OPFS successfully!`;
                 console.log(msg);
                 alert(msg);
