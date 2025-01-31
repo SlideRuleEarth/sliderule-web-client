@@ -35,8 +35,7 @@ const onEditComplete = (data: Record<string, any>, field: string, event: Event) 
 const analyze = async (id:number) => {
     try {
         console.log('Analyze ', id);
-        const reqId = await recTreeStore.updateRecMenu('from SrRecords analyze',id);
-        if(reqId > 0) {
+        if(recTreeStore.findAndSelectNode(id)){
             router.push(`/analyze/${id.toString()}`);
             console.log('Router Push for Analyze request for id:', id, ' is successful');
         } else {

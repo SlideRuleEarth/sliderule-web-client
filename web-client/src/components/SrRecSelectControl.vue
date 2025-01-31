@@ -41,7 +41,7 @@ onUnmounted(() => {
 
 async function updateRecordSelector(event: Event) {
     const key = Object.keys(event)[0];
-    const reqId = await recTreeStore.updateRecMenu('from updateRecordSelector',Number(key));
+    const reqId = Number(key);
     console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId,'recTreeStore.selectedValue:',recTreeStore.selectedValue, 'recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
     if(reqId>0){
         if (recTreeStore.selectedNodeKey) {

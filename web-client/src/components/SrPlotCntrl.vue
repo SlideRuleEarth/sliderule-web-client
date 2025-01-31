@@ -159,7 +159,7 @@ const gradientLabel = computed(() => {
 
 onMounted(() => {
     initDataBindingsToChartStore([reqIdStr.value]);
-    initializeColorEncoding(reqIdStr.value,computedFunc.value);
+    initializeColorEncoding(props.reqId);
     console.log('computedFunc:', computedFunc.value);
 });
 

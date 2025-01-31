@@ -55,7 +55,9 @@ export interface SrScatterSeriesData{
   max: number | null;  
 };
 
-export function initializeColorEncoding(reqIdStr:string,func:string){
+export function initializeColorEncoding(reqId:number){
+    const reqIdStr = reqId.toString();
+    const func = useRecTreeStore().findApiForReqId(reqId);
     const chartStore = useChartStore();
     if(func.includes('atl03sp')) {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'atl03_cnf');
@@ -70,7 +72,7 @@ export function initializeColorEncoding(reqIdStr:string,func:string){
     } else {
         chartStore.setSelectedColorEncodeData(reqIdStr, 'solid');
     }
-    //console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    console.log(`initializeColorEncoding ${reqIdStr} ${func} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -485,6 +487,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
 }
 
 export async function initChartStore() {
+    const startTime = performance.now(); // Start time
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     for (const reqIdItem of recTreeStore.reqIdMenuItems) {
@@ -497,6 +500,9 @@ export async function initChartStore() {
         }
 
         try {
+
+            initSymbolSize(reqId);
+            initializeColorEncoding(reqId);
             const request = await indexedDb.getRequest(reqId);
 
             if (!request) {
@@ -535,7 +541,8 @@ export async function initChartStore() {
             console.error(`Error processing reqId: ${reqIdStr}`, error);
         }
     }
-    //console.log('initChartStore initialized chartStore');
+    const endTime = performance.now(); // End time
+    console.log(`initChartStore took ${endTime - startTime} milliseconds.`);
 }
 
 

@@ -183,7 +183,7 @@ export class SlideRuleDexie extends Dexie {
                 this.restorePlotConfig();
                 console.warn('plotConfig table was initialized with default values.');
             } else {
-                console.warn('plotConfig table already has records.');
+                console.log('plotConfig table already has records.');
             }
         } catch (error) {
             console.error('Failed to initialize plotConfig record:', error);
