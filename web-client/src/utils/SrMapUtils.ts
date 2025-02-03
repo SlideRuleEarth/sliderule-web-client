@@ -796,6 +796,13 @@ export function saveMapZoomState(map:OLMap){
         console.error("SrMap Error: map is null");
     }
 }
+export function canRestoreZoomCenter(map:OLMap): boolean {
+    const mapStore = useMapStore();
+    const extentToRestore = mapStore.getExtentToRestore();
+    const centerToRestore = mapStore.getCenterToRestore();
+    const zoomToRestore = mapStore.getZoomToRestore();
+    return (centerToRestore !== null && zoomToRestore !== null && extentToRestore !== null);
+}
 
 export function restoreMapView(proj:ProjectionLike) : OlView | null {
     const mapStore = useMapStore();
@@ -959,9 +966,12 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
     }
     vectorSource.addFeature(feature);
 
-    // 6. if current request zoom to the new polygon
+    // 6. if tis is current request and no saved zoom: zoom to the new polygon
     if(reqId === 0){
-        map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+        if(!canRestoreZoomCenter(map)){
+            console.log('renderRequestPolygon: zooming to new polygon');
+            map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+        }
     }
     //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon, 'color',color, 'reqId:',reqId, 'layerName:',layerName);
 }
@@ -990,9 +1000,9 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
 }
 
 export async function updateMapView(map:OLMap, 
-        srViewKey:string, 
-        reason:string, 
-        restore:boolean=false
+                                    srViewKey:string, 
+                                    reason:string, 
+                                    restore:boolean=false
 ): Promise<void> {
     // This function is generic and shared between the two maps
     try {

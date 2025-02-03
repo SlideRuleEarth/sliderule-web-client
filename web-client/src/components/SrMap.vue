@@ -22,7 +22,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -476,7 +476,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                await updateThisMapView("SrMap onMounted",!haveReqPoly);
+                await updateThisMapView("SrMap onMounted",canRestoreZoomCenter(map));
 
                 addFeatureClickListener(map,onFeatureClick);
             } else {
@@ -568,7 +568,6 @@
                 if(vectorSource){
                     if(reqParamsStore.poly){
                         renderRequestPolygon(map, reqParamsStore.poly, 'red');
-                        //const theConvexHull = reqParamsStore.getConvexHull();
                     } else {
                         console.error("drawCurrentReqPoly Error:reqParamsStore.poly is null");
                     }

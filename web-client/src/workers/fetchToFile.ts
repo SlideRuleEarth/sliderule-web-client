@@ -58,7 +58,7 @@ export async function checkDoneProcessing(  thisReqID:number,
             console.warn('Not Done yet - checkDoneProcessing num_checks:', num_checks, 'num_post_done_checks:', num_post_done_checks, 'read_state:', read_state, 'abortRequested:', abortRequested, 'thisReqID:', thisReqID, 'num_svr_exceptions:', num_svr_exceptions, 'num_arrow_data_recs_processed:', num_arrow_data_recs_processed, 'num_arrow_meta_recs_processed:', num_arrow_meta_recs_processed, 'target_numSvrExceptions:', target_numSvrExceptions, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'target_numArrowMetaRecs:', target_numArrowMetaRecs)
         }
     } else {
-        console.warn('ignoring read_state:',read_state);
+        //console.warn('ignoring read_state:',read_state);
     }
     return isDone;
 }
