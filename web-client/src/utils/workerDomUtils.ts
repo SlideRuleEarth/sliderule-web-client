@@ -5,7 +5,7 @@ import { type TimeoutHandle } from '@/stores/mapStore';
 import { useCurReqSumStore } from "@/stores/curReqSumStore";
 import { useMapStore } from '@/stores/mapStore';
 import { useRequestsStore } from "@/stores/requestsStore";
-import { useReqParamsStore } from "@/stores/reqParamsStore";
+import { useReqParamsStore,useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
@@ -24,7 +24,6 @@ const sysConfigStore = useSysConfigStore();
 const curReqSumStore = useCurReqSumStore();
 const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
-const reqParamsStore = useReqParamsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 
@@ -32,17 +31,34 @@ let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
 
-function startFetchToFileWorker(){
+async function getReqParamStore(reqId:number):Promise<ReturnType<typeof useReqParamsStore>> {
+    const rc = await db.getRunContext(reqId)
+    if(rc){
+        if(rc.parentReqId && rc.parentReqId > 0){
+            return useAutoReqParamsStore();
+        } else {
+            console.warn('getReqParamStore using useReqParamsStore for reqId:',reqId,' invalid rc?:',rc);
+            return useReqParamsStore();
+        }
+    } else {
+        return useReqParamsStore();
+    }
+}
+
+async function startFetchToFileWorker(reqId:number):Promise<Worker> {
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
+
+    const reqParamsStore = await getReqParamStore(reqId);
+
     const timeoutDuration = reqParamsStore.getWorkerThreadTimeout(); 
     console.log('startFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
-    workerTimeoutHandle = setTimeout(() => {
+    workerTimeoutHandle = setTimeout(async () => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${(timeoutDuration/1000)} secs`;
             console.error(msg); // added to the timeout to let server timeout first
             //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
             useSrToastStore().info('Timeout',msg);
-            cleanUpWorker();
+            await cleanUpWorker(reqId);
             worker = null;
         }
     }, timeoutDuration);
@@ -75,7 +91,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg aborted');
             useSrToastStore().warn('Aborted',workerMsg.msg);
             requestsStore.setConsoleMsg('Job aborted');
-            cleanUpWorker();
+            await cleanUpWorker(workerMsg.req_id);
             break;
         case 'server_msg':
             //console.log('handleWorkerMsg server_msg:',workerMsg.msg);
@@ -122,7 +138,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 useSrToastStore().error(workerMsg.error?.type,workerMsg.error?.message);
             }
             if(worker){
-                cleanUpWorker();
+                await cleanUpWorker(workerMsg.req_id);
             }
             console.log('Error... isLoading:',mapStore.isLoading);
             break;
@@ -171,7 +187,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
             }
             if(worker){
-                cleanUpWorker();
+                await cleanUpWorker(workerMsg.req_id);
             }
             break;
 
@@ -207,14 +223,14 @@ export function processAbortClicked() {
     mapStore.setIsLoading(false); // controls spinning progress
 }
 
-function handleWorkerError(error:ErrorEvent, errorMsg:string) {
+function handleWorkerError(reqId:number,error:ErrorEvent, errorMsg:string) {
     console.error('Error:', error);
     //toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
     useSrToastStore().error('Error',errorMsg);
-    cleanUpWorker();
+    cleanUpWorker(reqId);
 }
 
-function cleanUpWorker(){
+async function cleanUpWorker(reqId:number){
     //mapStore.unsubscribeLiveElevationQuery();
     if (workerTimeoutHandle) {
         clearTimeout(workerTimeoutHandle);
@@ -228,6 +244,7 @@ function cleanUpWorker(){
     //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.setIsLoading(false); // controls spinning progress
     mapStore.setIsAborting(false);
+    const reqParamsStore = await getReqParamStore(reqId);
     reqParamsStore.using_worker = false;
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
 }
@@ -257,13 +274,21 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             mapStore.setIsLoading(true); // controls spinning progress
             mapStore.setTotalRows(0);
             mapStore.setCurrentRows(0);
-            worker = startFetchToFileWorker();
+            worker = await startFetchToFileWorker(srReqRec.req_id);
             worker.onmessage = handleWorkerMsgEvent;
-            worker.onerror = (error) => {
+            worker.onerror = async (error) => {
                 if(worker){
                     console.error('Worker error:', error);
-                    handleWorkerError(error, 'Worker faced an unexpected error');
-                    cleanUpWorker();
+                    if(srReqRec.req_id){
+                        handleWorkerError(srReqRec.req_id, error, 'Worker faced an unexpected error');
+                    } else {
+                        console.error('runFetchToFileWorker req_id is undefined FAILED to handleWorkerError');
+                    }
+                    if(srReqRec.req_id){
+                        await cleanUpWorker(srReqRec.req_id);
+                    } else {
+                        console.error('runFetchToFileWorker req_id is undefined FAILED to cleanup worker');
+                    }
                     requestsStore.setConsoleMsg('Worker faced an unexpected error');
                     requestsStore.setSvrMsg('');
                 }
@@ -311,85 +336,78 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
     requestsStore.setSvrMsgCnt(0);
     requestsStore.setSvrMsg('waiting...');
     curReqSumStore.setPercentComplete(0);
-
-    if(!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)){
-        console.warn('No geographic reqion defined reqParamsStore.poly:',reqParamsStore.poly, ' reqParamsStore.ignorePolygon:',reqParamsStore.ignorePolygon);
-        //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-        if(rc===null){
-            useSrToastStore().error('Error','You must define a geographic region. Draw a poly (no bigger than a couple square miles) or upload a shapefile.');
-            requestsStore.setConsoleMsg('You need to supply geographic region ...');
-        } else {
-            console.error('runSlideRuleClicked INVALID reqParamsStore.poly:',reqParamsStore.poly, ' reqParamsStore.ignorePolygon:',reqParamsStore.ignorePolygon);
-        }
-        mapStore.setIsLoading(false);
-        return;
-    }
-    requestsStore.setConsoleMsg('Running...');
     const srReqRec = await requestsStore.createNewSrRequestRecord();
-    if(srReqRec) {
-        console.log('runSlideRuleClicked srReqRec:',srReqRec);
-        if(srReqRec.req_id) {
-            if(runContext){
-                runContext.reqId = srReqRec.req_id;
-                await db.addSrRunContext(runContext);
-                //atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
+    if (srReqRec) {
+        console.log('runSlideRuleClicked srReqRec:', srReqRec);
+        if (srReqRec.req_id) {
+            requestsStore.setConsoleMsg('loading params...');
+            if (rc) {
+                rc.reqId = srReqRec.req_id;
+                await db.addSrRunContext(rc);
+            }
+            const reqParamsStore = await getReqParamStore(srReqRec.req_id);
+            if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
+                console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                if (rc === null) {
+                    useSrToastStore().error('Error', 'You must define a geographic region.');
+                    requestsStore.setConsoleMsg('You need to supply a geographic region...');
+                } else {
+                    console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                }
+                mapStore.setIsLoading(false);
+                return;
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
-            if(srViewKey.value){
+            if (srViewKey.value) {
                 srReqRec.srViewName = srViewKey.value;
             } else {
                 console.error('runSlideRuleClicked srViewKey was undefined');
-                useSrToastStore().error('Error','There was an error. srViewKey was undefined');
+                useSrToastStore().error('Error', 'There was an error. srViewKey was undefined');
                 requestsStore.setConsoleMsg('stopped...');
                 mapStore.setIsLoading(false);
                 return;
             }
-            if(useReqParamsStore().getMissionValue() === 'ICESat-2') {
-                if((useReqParamsStore().getIceSat2API() !== undefined) || (useReqParamsStore().getIceSat2API() !== null) || (useReqParamsStore().getIceSat2API() !== '')){
-                    console.log('runSlideRuleClicked IceSat2API:',useReqParamsStore().getIceSat2API());
-                    srReqRec.func = useReqParamsStore().getIceSat2API();
+
+            if (reqParamsStore.getMissionValue() === 'ICESat-2') {
+                if (reqParamsStore.getIceSat2API()) {
+                    console.log('runSlideRuleClicked IceSat2API:', reqParamsStore.getIceSat2API());
+                    srReqRec.func = reqParamsStore.getIceSat2API();
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                    if(srViewKey.value){
+                    if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
                         runFetchToFileWorker(srReqRec);
-                    } else {
-                        console.error('runSlideRuleClicked srviewName was undefined');
-                        useSrToastStore().error('Error','There was an error. srviewName was undefined');
-                        requestsStore.setConsoleMsg('stopped...');
-                        mapStore.setIsLoading(false);
                     }
                 } else {
                     console.error('runSlideRuleClicked IceSat2API was undefined');
-                    useSrToastStore().error('Error','There was an error. IceSat2API was undefined');
+                    useSrToastStore().error('Error', 'There was an error. IceSat2API was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                     mapStore.setIsLoading(false);
                 }
-            } else if(useReqParamsStore().getMissionValue() === 'GEDI') {
-                if(useReqParamsStore().getGediAPI() || (useReqParamsStore().getGediAPI() !== undefined) || (useReqParamsStore().getGediAPI() !== null) || (useReqParamsStore().getGediAPI() !== '')){
-                    console.log('runSlideRuleClicked GediAPI:',useReqParamsStore().getGediAPI());
-                    srReqRec.func = useReqParamsStore().getGediAPI();
+            } else if (reqParamsStore.getMissionValue() === 'GEDI') {
+                if (reqParamsStore.getGediAPI()) {
+                    console.log('runSlideRuleClicked GediAPI:', reqParamsStore.getGediAPI());
+                    srReqRec.func = reqParamsStore.getGediAPI();
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
                     srReqRec.start_time = new Date();
                     srReqRec.end_time = new Date();
+                    requestsStore.setConsoleMsg('running...');
                     runFetchToFileWorker(srReqRec);
                 } else {
                     console.error('runSlideRuleClicked GediAPI was undefined');
-                    useSrToastStore().error('Error','There was an error. GediAPI was undefined');
+                    useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                     mapStore.setIsLoading(false);
                 }
-            }        
+            }
         } else {
             console.error('runSlideRuleClicked req_id is undefined');
-            //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
-            useSrToastStore().error('Error','There was an error');
+            useSrToastStore().error('Error', 'There was an error');
             return;
-
         }
     } else {
         console.error('runSlideRuleClicked srReqRec was undefined');
-        useSrToastStore().error('Error','There was an error');
+        useSrToastStore().error('Error', 'There was an error');
         requestsStore.setConsoleMsg('stopped...');
         mapStore.setIsLoading(false);
     }

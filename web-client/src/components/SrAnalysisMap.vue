@@ -203,7 +203,10 @@
                 :data_key="computedHFieldName"   
             >
             </SrLegendControl>
-            <SrRecSelectControl @record-selector-control-created="handleRecordSelectorControlCreated" />
+            <SrRecSelectControl
+                class="sr-record-selector-control" 
+                @record-selector-control-created="handleRecordSelectorControlCreated" 
+            />
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
@@ -278,11 +281,10 @@
   overflow: hidden;    /* if you still want curved corners to clip the child */
 }
 
-:deep(.sr-select-menu-item) {
-    margin-top:0rem;
-    padding: 0rem; 
-    font-size: small;
-    width: 8rem;
+:deep(.sr-record-selector-control) {
+    margin-top:0.25rem;
+    margin-left: 0.25rem;
+    font-size:smaller;
 }
 
 :deep(.sr-select-menu-default) {

@@ -70,69 +70,107 @@ export const clearPolyCoords = () => {
 }
 
 export function drawGeoJson(
+    uniqueId: string,
     vectorSource: VectorSource,
-    geoJsonData: string, 
-    noFill: boolean = false, 
+    geoJsonData: string | object, // Allow string or object
+    noFill: boolean = false,
     zoomTo: boolean = false,
-    tag: string = '', 
+    tag: string = '',
 ): void {
-    //console.log('drawGeoJson geoJsonData:',geoJsonData,tag);
-    try{
+    console.log('drawGeoJson: uniqueId:',uniqueId,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
+    try {
         const map = useMapStore().map;
-        if(!map){
-            console.error('Map is not defined.');
+        if (!map) {
+            console.error('drawGeoJson: Map is not defined.');
             return;
         }
-        if(vectorSource){
-            dumpFeaturesToConsole(vectorSource);
-            // Parse GeoJSON data
-            const format = new GeoJSON();
-            const features = format.readFeatures(geoJsonData, {
-                featureProjection: useMapStore().getSrViewObj().projectionName, 
-            });
-            // add features to source
-            let style: Style;
-            if (noFill) {
-                // Define a style without a fill
-                style = new Style({
-                    stroke: new Stroke({
-                        color: 'rgba(255, 0, 0, 1)', // Red stroke with 100% opacity
-                        width: 2,
-                    }),
-                });
-            } else {
-                // Define a style with both fill and stroke
-                style = new Style({
-                    fill: new Fill({
-                        color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-                    }),
-                    stroke: new Stroke({
-                        color: 'rgba(0, 0, 255, 1)', // Blue stroke with 100% opacity
-                        width: 2,
-                    }),
-                });
-            }
-            // add style and tag to features
-            features.forEach((feature,index) => {
-                feature.setId(`feature-${index}`);
-                feature.setStyle(style);
-                feature.set('tag', tag);  // Add the tag to the feature's properties
-            });
-            //console.log('drawGeoJson add features:',features);
-            vectorSource.addFeatures(features);
-            // Zoom to the extent of the new features
-            if (zoomTo) {
-                const extent = vectorSource.getExtent();
-                map.getView().fit(extent, { padding: [50, 50, 50, 50] });
-            }
-            dumpFeaturesToConsole(vectorSource);
-        } else {
-            console.error('VectorSource is not defined.');
+        if (!vectorSource) {
+            console.error('drawGeoJson: VectorSource is not defined.');
+            return;
         }
+        if (!geoJsonData) {
+            console.warn('drawGeoJson: GeoJSON data is null or undefined.');
+            return;
+        }
+
+        let geoJsonString: string;
+        if (typeof geoJsonData === 'string') {
+            geoJsonString = geoJsonData.trim();
+            if (geoJsonString === '') {
+                console.warn('drawGeoJson: Empty GeoJSON data.');
+                return;
+            }
+        } else if (typeof geoJsonData === 'object') {
+            try {
+                geoJsonString = JSON.stringify(geoJsonData);
+            } catch (stringifyError) {
+                console.error('drawGeoJson: Failed to convert object to JSON string.', stringifyError);
+                return;
+            }
+        } else {
+            console.error('drawGeoJson: Invalid GeoJSON data type:', typeof geoJsonData);
+            return;
+        }
+
+        // Parse GeoJSON data
+        let features = [];
+        try {
+            const format = new GeoJSON();
+            //console.log('drawGeoJson: geoJsonString:',geoJsonString);
+            features = format.readFeatures(geoJsonString, {
+                featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
+            });
+        } catch (parseError) {
+            console.error('drawGeoJson: Failed to parse GeoJSON data.', parseError);
+            return;
+        }
+
+        if (features.length === 0) {
+            console.warn('drawGeoJson: No valid features found in GeoJSON.');
+            return;
+        }
+
+        //console.log(`drawGeoJson: Adding ${features.length} feature(s) with tag: ${tag}`);
+
+        // Define style based on noFill flag
+        const style = new Style({
+            stroke: new Stroke({
+                color: noFill ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)',
+                width: 2,
+            }),
+            fill: noFill
+                ? undefined
+                : new Fill({
+                      color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
+                  }),
+        });
+
+        // Apply styles and ensure unique IDs
+        features.forEach((feature, index) => {
+            feature.setId(`feature-${uniqueId}`); // Unique ID
+            feature.setStyle(style);
+            feature.set('tag', tag);
+        });
+
+        vectorSource.addFeatures(features);
+
+        console.log('drawGeoJson: Features in source after addition:', vectorSource.getFeatures().length);
+
+        // Zoom to extent of features if requested
+        if (zoomTo && vectorSource.getFeatures().length > 0) {
+            const extent = vectorSource.getExtent();
+            if (extent.every((val) => val !== Infinity && val !== -Infinity)) {
+                map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+            } else {
+                console.warn('drawGeoJson: Invalid extent, skipping zoom.');
+            }
+        }
+
     } catch (error) {
-        console.error('drawGeoJson error:',error);
+        console.error('drawGeoJson: Unexpected error:', error);
     }
 }
+
 
 export function enableTagDisplay(map: OLMap, vectorSource: VectorSource): void {
     const tooltipEl = document.getElementById('tooltip');
@@ -758,6 +796,13 @@ export function saveMapZoomState(map:OLMap){
         console.error("SrMap Error: map is null");
     }
 }
+export function canRestoreZoomCenter(map:OLMap): boolean {
+    const mapStore = useMapStore();
+    const extentToRestore = mapStore.getExtentToRestore();
+    const centerToRestore = mapStore.getCenterToRestore();
+    const zoomToRestore = mapStore.getZoomToRestore();
+    return (centerToRestore !== null && zoomToRestore !== null && extentToRestore !== null);
+}
 
 export function restoreMapView(proj:ProjectionLike) : OlView | null {
     const mapStore = useMapStore();
@@ -809,10 +854,10 @@ export function addFeatureClickListener(
     });
 }
 
-function createPolygonStyle(label: string): Style {
+function createBlueReqPolygonStyle(label: string): Style {
     return new Style({
       fill: new Fill({
-        color: 'rgba(0, 0, 255, 0.02)'
+        color: 'rgba(0, 0, 255, 0.05)'
       }),
       stroke: new Stroke({
         color: 'blue',
@@ -828,6 +873,26 @@ function createPolygonStyle(label: string): Style {
       })
     });
 }
+
+function createRedReqPolygonStyle(): Style {
+    return new Style({
+      fill: new Fill({
+        color: 'rgba(255, 0, 0, 0.1)'
+      }),
+      stroke: new Stroke({
+        color: 'red',
+        width: 2
+      }),
+      text: new TextStyle({
+        font: '14px Calibri,sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }), // Outline for contrast
+        overflow: true,  
+        placement: 'point', // Usually for points/lines; for polygons it often centers automatically.
+      })
+    });
+}
+
 export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
     if (!vectorLayer) {
@@ -854,9 +919,9 @@ export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
     }
 }
 
-export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: number, lat: number}[],zoomTo?:boolean): void {
+export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[],color:string, reqId:number=0, layerName:string='Drawing Layer'): void {
     // 1. Find your vector layer
-    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Records Layer');
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
     if (!vectorLayer) {
       console.error('renderRequestPolygon: "Records Layer" not found');
       return;
@@ -891,15 +956,24 @@ export function renderRequestPolygon(map: OLMap, reqId:number, poly: {lon: numbe
 
     // 5. Create the Polygon feature
     const polygon = new OlPolygon([coordinates]);
-    const feature = new Feature({ geometry: polygon, req_id:reqId });
-    feature.setStyle(createPolygonStyle(reqId.toString()));
+    const feature = new Feature({ geometry: polygon, req_id:(reqId>0)?reqId:null });
+    if(color==='red'){
+        feature.setStyle(createRedReqPolygonStyle());
+        feature.setId(`SelectedArea-${reqId}`);
+    } else {
+        feature.setStyle(createBlueReqPolygonStyle(reqId.toString()));
+        feature.setId(`SelectedAreaCH-${reqId}`);
+    }
     vectorSource.addFeature(feature);
 
-    // 6. (Optionally) zoom to the new polygon
-    if(zoomTo){
-        map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+    // 6. if tis is current request and no saved zoom: zoom to the new polygon
+    if(reqId === 0){
+        if(!canRestoreZoomCenter(map)){
+            console.log('renderRequestPolygon: zooming to new polygon');
+            map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+        }
     }
-    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon);
+    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon, 'color',color, 'reqId:',reqId, 'layerName:',layerName);
 }
 
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
@@ -910,7 +984,7 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
         if(poly.length > 0){
             if(!rc?.trackFilter){
                 if(map){
-                    renderRequestPolygon(map, reqId, poly);
+                    renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
                 }
             } else {
                 //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
@@ -926,14 +1000,14 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
 }
 
 export async function updateMapView(map:OLMap, 
-        srViewKey:string, 
-        reason:string, 
-        restore:boolean=false
+                                    srViewKey:string, 
+                                    reason:string, 
+                                    restore:boolean=false
 ): Promise<void> {
     // This function is generic and shared between the two maps
     try {
         if(map){
-            console.log(`------ updateMapView for srView Key:${srViewKey} ${reason} ------ useRecTreeStore().selectedReqIdStr:`,useRecTreeStore().selectedReqIdStr);
+            console.log(`------ updateMapView ${reason} srView Key:${srViewKey} ------ `);
             const srViewObj = srViews.value[`${srViewKey}`];
             const srProjObj = srProjections.value[srViewObj.projectionName];
             let newProj = getProjection(srViewObj.projectionName);

@@ -9,9 +9,8 @@ import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
-import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
+import { convexHull } from "@/composables/SrTurfUtils";
 import { useChartStore } from '@/stores/chartStore';
-import type { SrSvrParmsUsed } from '@/types/SrTypes';
 
 interface YapcConfig {
   version: number;
@@ -21,8 +20,8 @@ interface YapcConfig {
   win_x?: number; // Optional property
 }
 
-export const useReqParamsStore = defineStore('reqParams', {
-
+const createReqParamsStore = (id: string) => 
+  defineStore(id, {
     state: () => ({
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
@@ -247,14 +246,6 @@ export const useReqParamsStore = defineStore('reqParams', {
             this.enableYAPC = true;
             this.YAPCVersion = '0';
         },
-        presetForMainRequest() {
-          console.log('presetForMainRequest');
-          this.setMissionValue("ICESat-2");
-          this.setIceSat2API("atl06p");
-          this.setEnableGranuleSelection(false);
-          this.setUseRgt(false);
-          this.setUseCycle(false);
-        },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
         },
@@ -450,11 +441,12 @@ export const useReqParamsStore = defineStore('reqParams', {
             req.cmr = { polygon: this.convexHull };
           }
           if(useMapStore().getPolySource()=='Upload geojson File' && this.poly) {
-            req.raster = {
-              data: this.poly,
-              length: this.poly.length,
-              cellsize: this.getRasterizePolyCellSize(),
-            }
+            // req.raster = {
+            //   data: this.poly,
+            //   length: this.poly.length,
+            //   cellsize: this.getRasterizePolyCellSize(),
+            // }
+            console.log("TBD set raster here?");
           }
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
@@ -856,5 +848,6 @@ export const useReqParamsStore = defineStore('reqParams', {
         
     },
 })
-
+export const useReqParamsStore = createReqParamsStore('reqParamsStore');
+export const useAutoReqParamsStore = createReqParamsStore('autoReqParamsStore');
 
