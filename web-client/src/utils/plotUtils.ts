@@ -17,12 +17,6 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useColorMapStore }  from "@/stores/colorMapStore";
 import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
 
-
-// const atlChartFilterStore = useAtlChartFilterStore();
-// const chartStore = useChartStore();
-// const requestsStore = useRequestsStore();
-// const colorMapStore = useColorMapStore();
-// const recTreeStore = useRecTreeStore();
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
