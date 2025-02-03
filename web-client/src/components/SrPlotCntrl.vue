@@ -3,7 +3,8 @@
         <div>
             <div class="sr-ydata-menu" v-if="showYDataMenuReactive[reqIdStr]">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
-                <Select class="sr-select-ydata"
+                <Select 
+                    class="sr-select-ydata"
                     v-model="yDataSelectedReactive[reqIdStr]"
                     :options="chartStore.getYDataOptions(reqIdStr)"
                     @change="handleYDataSelectionChange"
@@ -46,10 +47,11 @@
                         @gradient-num-shades-changed="gradientNumShadesChanged"
                     />
                 </div>
-                <div class="sr-ydata-menu" v-if="(yColorEncodeSelectedReactive[reqIdStr].value==='solid')" >
-                    <label class="sr-y-data-label":for="computedSolidColorId">Color</label> 
-                    <div class="sr-color-selection-panel">
+                <div class="sr-solid-color-selection-panel" v-if="(chartStore.getSelectedColorEncodeData(reqIdStr)==='solid')" >
+                    <label class="sr-solid-color-menu-label":for="computedSolidColorId">Solid Color</label> 
+                    <div class="sr-solid-color-panel">
                         <Select
+                            class="sr-select-solid-color"
                             v-model="solidColorSelectedReactive[reqIdStr]"
                             :options="colorMapStore.namedColorPalette"
                             placeholder="Symbol Color"
@@ -57,7 +59,7 @@
                             size="small" 
                         >
                         </Select>
-                        <div class="color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
+                        <div class="sr-solid-color-preview" :style="{ backgroundColor: computedSolidSymbolColor }"></div>
                     </div>
                 </div>
             </div>
@@ -250,22 +252,80 @@ const handleColorEncodeSelectionChange = async (newValue: string) => {
     flex-direction: column;
     justify-content: center;
     align-items: flex-start; /* Align content to the left */
-    gap: 0.5rem; /* Add spacing between elements */
     width: auto; /* Let the container size itself based on the content */
     padding: 0.5rem; /* Optional: Add some padding for spacing */
 }
+
 .sr-y-data-label {
     margin: 0;
     font-size: small;
 }
-.sr-select-col-encode-data,
+
+.sr-select-ydata {
+    width: 100%;
+    margin: 0rem;
+}
+
+.sr-select-col-encode-data{
+    width: 100%;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
 .sr-select-y-data {
     width: 100%;
-    margin: 0.25rem;
+    margin: 0rem;
+    margin-bottom: 0.25rem;
 }
+
 .sr-y-data-label:hover {
     color: #007bff; /* Accent color */
 }
 
+.sr-solid-color-menu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+}
+
+.sr-solid-color-menu-label-container {
+    margin: 0;
+    font-size: small;
+    align-items: left;
+}
+
+.sr-solid-color-menu-label {
+    margin: 0;
+    margin-bottom: 0.25rem;
+    font-size: small;
+}
+
+.sr-solid-color-selection-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content:left;
+    margin-top:1.0rem;
+}
+
+.sr-solid-color-panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.sr-select-solid-color{
+    width: 100%;
+    margin-bottom: 0.25rem;
+}
+
+.sr-solid-color-preview {
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--p-border-color);
+    border-radius: 2px;
+    margin-left:0.25rem;
+}
 </style>
   
