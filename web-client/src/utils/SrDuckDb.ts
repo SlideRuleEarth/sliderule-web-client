@@ -284,7 +284,7 @@ export class DuckDBClient {
         const rows = tbl.toArray().map((r) => Object.fromEntries(r));
         return Object.keys(rows[0]);
       } catch (error) {
-        console.error('Query execution error:', error);
+        console.error(`Query SELECT * FROM ${fileName} execution error:`, error);
         throw error;
       } finally {
         await conn.close();

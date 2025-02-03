@@ -59,7 +59,7 @@ const customUploader = async (event: { files: File[] }) => {
                             if(vectorLayer && vectorLayer instanceof OLlayer){
                                 const vectorSource = vectorLayer.getSource();
                                 if(vectorSource){
-                                    drawGeoJson(vectorSource, geoJsonData, true, true); // noFill, zoomTo = true
+                                    drawGeoJson('fromFile',vectorSource, geoJsonData, true, true); // noFill, zoomTo = true
                                     console.log('returned from drawGeoJson');   
                                     const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
                                         return { lon: coord[0], lat: coord[1] };
@@ -70,19 +70,19 @@ const customUploader = async (event: { files: File[] }) => {
                                         reqParamsStore.poly = srLonLatCoordinates;
                                     }
                                     console.log('calling convexHull');
-                                    reqParamsStore.convexHull = convexHull(srLonLatCoordinates);
+                                    reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates));
                                     const geoJson = {
                                         type: "Feature",
                                         geometry: {
                                             type: "Polygon",
-                                            coordinates: [reqParamsStore.convexHull.map(coord => [coord.lon, coord.lat])]
+                                            coordinates: [reqParamsStore.getConvexHull()?.map(coord => [coord.lon, coord.lat])]
                                         },
                                         properties: {
                                             name: "Convex Hull Polygon"
                                         }
                                     };
-                                    const label = reqParamsStore.getFormattedAreaOfConvexHull().toString() + " km^2";
-                                    drawGeoJson(vectorSource,JSON.stringify(geoJson),false,false,label); // with Fill and overlayExisting
+                                    const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
+                                    drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),false,false,label); // with Fill and overlayExisting
                                     reqParamsStore.poly = reqParamsStore.convexHull; 
                                 } else {
                                     console.error('Error parsing GeoJSON:', e.target.result);

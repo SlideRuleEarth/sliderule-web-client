@@ -278,7 +278,12 @@ export const useMapStore = defineStore('map', {
         return this.centerToRestore;
     },
     setCenterToRestore(center: number[]) {
+      console.log('setCenterToRestore:', center);
+      if (center) {
         this.centerToRestore = center;
+      } else {
+        console.warn('setCenterToRestore: center was null?');
+      }
     },
     getZoomToRestore() {
         return this.zoomToRestore;

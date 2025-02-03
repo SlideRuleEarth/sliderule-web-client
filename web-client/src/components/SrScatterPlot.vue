@@ -16,10 +16,9 @@ import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
-import { useReqParamsStore } from "@/stores/reqParamsStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
-import { run } from "node:test";
+import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 
 
 const props = defineProps({
@@ -33,7 +32,6 @@ const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const colorMapStore = useColorMapStore();
-const reqParamsStore = useReqParamsStore();
 const recTreeStore = useRecTreeStore();
 const loadingComponent = ref(true);
 
@@ -103,7 +101,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const runContext = await getPhotonOverlayRunContext();
             if(runContext.reqId <= 0){
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
-                await reqParamsStore.presetForScatterPlotOverlay(runContext.parentReqId);
+                await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext);
                 console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){

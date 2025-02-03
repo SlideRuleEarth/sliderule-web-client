@@ -22,7 +22,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, dumpMapLayers, saveMapZoomState, zoomToRequestPolygon, restoreMapView } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
@@ -298,7 +298,7 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson(vectorSource, JSON.stringify(geoJson), false, false, tag );
+                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), false, false, tag );
                         reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
@@ -430,6 +430,7 @@
             //console.log("SrMap onMounted map:",mapRef.value.map);
             mapStore.setMap(mapRef.value.map);
             const map = mapStore.getMap() as OLMap;
+            const haveReqPoly = !((reqParamsStore.poly===undefined) || (reqParamsStore.poly === null) || (reqParamsStore.poly.length === 0));
             if(map){
                 if(!geoCoderStore.isInitialized()){
                 //console.log("Initializing geocoder");
@@ -475,8 +476,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-
-                await updateThisMapView("SrMap onMounted",true);
+                await updateThisMapView("SrMap onMounted",!haveReqPoly);
 
                 addFeatureClickListener(map,onFeatureClick);
             } else {
@@ -484,9 +484,10 @@
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
             addRecordPolys();
-            // if(currentReqId){
-            //     zoomToRequestPolygon(map, currentReqId);
-            // }
+            if(haveReqPoly){
+                //draw and zoom to the current reqParamsStore.poly
+                drawCurrentReqPoly();
+            }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
         }
@@ -558,7 +559,31 @@
         //console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
     }
 
-    const updateThisMapView = async (reason:string,restoreView:boolean=false) => {
+    function drawCurrentReqPoly(){
+        const map = mapRef.value?.map;
+        if(map){
+            const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+            if(vectorLayer && vectorLayer instanceof OLlayer){
+                const vectorSource = vectorLayer.getSource();
+                if(vectorSource){
+                    if(reqParamsStore.poly){
+                        renderRequestPolygon(map, reqParamsStore.poly, 'red');
+                        //const theConvexHull = reqParamsStore.getConvexHull();
+                    } else {
+                        console.error("drawCurrentReqPoly Error:reqParamsStore.poly is null");
+                    }
+                } else {
+                    console.error("drawCurrentReqPoly Error:vectorSource is null");
+                }
+            } else {
+                console.error("drawCurrentReqPoly Error:vectorLayer is null");
+            }
+        } else {
+            console.error("drawCurrentReqPoly Error:map is null");
+        }
+    }
+
+    const updateThisMapView = async (reason:string, restoreView:boolean=false) => {
         console.log(`****** SrMap updateThisMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
@@ -571,24 +596,6 @@
                     map.addLayer(drawVectorLayer);
                     map.addLayer(recordsLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
-                            
-
-                    // dumpMapLayers(map, 'SrMap updateThisMapView initDeck');
-                    // Permalink
-                    // if(mapStore.plink){
-                    //   var url = mapStore.plink.getUrlParam('url');
-                    //   var layerName = mapStore.plink.getUrlParam('layer');
-                    //   //console.log(`url: ${url} layerName: ${layerName}`);
-                    //   if (url) {
-                    //     const currentWmsCapCntrl = mapStore.getWmsCapFromCache(mapStore.currentWmsCapProjectionName );
-                    //     currentWmsCapCntrl.loadLayer(url, layerName,() => {
-                    //       // TBD: Actions to perform after the layer is loaded, if any
-                    //       console.log(`wms Layer loaded from permalink: ${layerName}`);
-                    //     });
-                    //   } else {
-                    //     console.log("No url in permalink");
-                    //   }
-                    // }
                 } else {
                     console.error("SrMap Error: srViewKey is null");
                 }

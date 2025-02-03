@@ -38,7 +38,6 @@
         if(props.includeAdvToggle) { // this means it is the Request Run button
             requestsStore.displayHelpfulMapAdvice("1) Zoom in\n 2) Select a geographic region of about several square Km.    Then:\n 3) Click 'Run SlideRule' to start the process");
             requestsStore.setConsoleMsg(`Zoom in and select a geographic region (several sq Km).  Then click 'Run SlideRule' to start the process`);
-            reqParamsStore.presetForMainRequest();
         } else { // this means it is the Overlay Photon Cloud button
             const msg = `Click 'Show Atl03 Photons' to fetch highlighted track Photon Cloud data and overlay on plot`;
             requestsStore.displayHelpfulMapAdvice(msg);
