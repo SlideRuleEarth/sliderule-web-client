@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
@@ -8,78 +7,110 @@ import AccordionContent from 'primevue/accordioncontent';
 import SrColorPalette from '@/components/SrColorPalette.vue';
 import SrClearCache from '@/components/SrClearCache.vue';
 import SrSysConfig from '@/components/SrSysConfig.vue';
-import SrStorageUsage from  '@/components/SrStorageUsage.vue';
+import SrStorageUsage from '@/components/SrStorageUsage.vue';
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue';
-import {ref } from 'vue';
-
-const expandedPanels = ref<number[]>([]);
+import Card from 'primevue/card';
 
 </script>
-
-
 
 <template>
   <SingleColumnLayout>
     <template v-slot:sr-single-col>
-      <h1>Settings</h1>
-      <div class="sr-settings-opt-card">
-        <div class="sr-settings-opt-wrapper">
-            <Accordion class="sr-settings-accordian" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus" >
-                <AccordionPanel value="0">
-                    <AccordionHeader>System Configuration</AccordionHeader>
-                    <AccordionContent>
-                        <SrSysConfig />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="1">
-                    <AccordionHeader>Storage Usage</AccordionHeader>
-                    <AccordionContent>
-                        <SrStorageUsage />
-                        <SrClearCache />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="2">
-                    <AccordionHeader>Advanced</AccordionHeader>
-                    <AccordionContent>
-                        <SrAdvOptPanel />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="3">
-                    <AccordionHeader>Color Defaults</AccordionHeader>
-                    <AccordionContent>
-                        <SrColorPalette />
-                    </AccordionContent>
-                </AccordionPanel>
-            </Accordion>
-        </div>
-    </div>
+      <Card class="sr-settings-opt-card" >
+        <template #title>
+            <div class="sr-settings-title">Settings</div>
+        </template>
+        <template #content>
 
+		<div class="sr-settings-opt-wrapper">
+          <Accordion class="sr-settings-accordion" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus">
+
+			<AccordionPanel value="0">
+				<AccordionHeader>System Configuration</AccordionHeader>
+				<AccordionContent>
+					<SrSysConfig />
+				</AccordionContent>
+            </AccordionPanel>
+
+            <AccordionPanel value="1">
+				<AccordionHeader>Storage Usage</AccordionHeader>
+				<AccordionContent>
+					<SrStorageUsage />
+					<SrClearCache />
+				</AccordionContent>
+            </AccordionPanel>
+
+            <AccordionPanel value="2">
+                <AccordionHeader>Advanced</AccordionHeader>
+                <AccordionContent>
+                    <SrAdvOptPanel />
+                </AccordionContent>
+            </AccordionPanel>
+
+            <AccordionPanel value="3">
+                <AccordionHeader>Color Defaults</AccordionHeader>
+                <AccordionContent>
+                    <SrColorPalette />
+                </AccordionContent>
+                </AccordionPanel>
+
+          </Accordion>
+		  </div>
+          </template>
+        </Card>
     </template>
   </SingleColumnLayout>
 </template>
 
 <style scoped>
-.sr-settings-opt-header {
-    justify-content: center;
-    align-items: center;
-    margin-top: 0rem;
-}
-
+/* Ensure consistent width of settings panel */
 .sr-settings-opt-card {
-    display: flex;
-    flex-direction: column;
+    display:block;
     justify-content: center;
     align-items: center;
+    width: 40rem; /* Adjust as needed */
+    margin: 0 auto;
+    padding: 1rem;
+    background: var(--surface-ground, black);
+    border-radius: 10px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
 }
-.sr-settings-opt-wrapper{
+.sr-settings-title {
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
+    font-size: 1.5rem; /* Adjust as needed */
+    font-weight: bold;
+    text-align: center;
     width: 100%;
+    margin-bottom: 1rem;
 }
-.sr-settings-accordian {
+
+/* Ensure wrapper maintains width */
+.sr-settings-opt-wrapper {
+    width: 100%;
+    max-width: 100%; /* Prevent expansion */
+    margin: 1rem;
+    padding: 1rem;
+}
+
+/* Accordion must keep a fixed width */
+.sr-settings-accordion {
+    width: 100%;
+    max-width: 100%;
+	width: 40rem;
+}
+
+/* Prevent content from making accordion wider */
+:deep(.p-accordion-content) {
+    overflow: hidden; /* Prevents expanding width */
+    word-wrap: break-word; /* Ensures long words don’t break layout */
     width: 100%;
 }
 
+/* Ensure accordion panels do not change width when expanded */
+:deep(.p-accordion-panel) {
+    width: 100%;
+    max-width: 100%;
+}
 </style>
