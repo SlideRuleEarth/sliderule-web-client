@@ -1,4 +1,3 @@
-import { set, type get } from 'lodash'
 import { defineStore } from 'pinia'
 export const useSysConfigStore = defineStore('sysConfig', {
 

@@ -103,6 +103,7 @@ import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { SelectChangeEvent } from 'primevue/select';
 
 
 const props = withDefaults(
@@ -233,15 +234,18 @@ const handleSymbolSizeUpdate = async (newSymbolSize: number) => {
     await callPlotUpdateDebounced('handleSymbolSizeUpdate');
 };
 
-const handleYDataSelectionChange = async (newValue: string[]) => {
+const handleYDataSelectionChange = async (event: SelectChangeEvent) => {
+    const newValue = event.value as string[]; // Extract the selected value
     console.log("Y Data changed:", newValue);
     await callPlotUpdateDebounced('from handleYDataSelectionChange');
 };
 
-const handleColorEncodeSelectionChange = async (newValue: string) => {
+const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
+    const newValue = event.value as string; // Extract the selected value
     console.log("Color Encode changed:", newValue);
     await callPlotUpdateDebounced('from handleColorEncodeSelectionChange');
 };
+
 
 </script>
   
