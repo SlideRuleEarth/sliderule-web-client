@@ -37,7 +37,7 @@ const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'about-button-click']);
+const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
 
 
 const handleRequestButtonClick = () => {
@@ -51,6 +51,9 @@ const handleAnalysisButtonClick = () => {
 };
 const handleAboutButtonClick = () => {
     emit('about-button-click');
+};
+const handleSettingsButtonClick = () => {
+    emit('settings-button-click');
 };
 const handleVersionButtonClick = () => {
     emit('version-button-click');
@@ -118,14 +121,19 @@ const mobileMenuItems = [
         command: handleAnalysisButtonClick
     },
     {
-        label: 'About',
-        icon: 'pi pi-info-circle',
-        command: handleAboutButtonClick
-    },
-    {
         label: 'Documentation',
         icon: 'pi pi-book',
         items: docMenuItems[0].items
+    },
+    {
+        label: 'Settings',
+        icon: 'pi pi-cog',
+        command: handleSettingsButtonClick
+    },
+    {
+        label: 'About',
+        icon: 'pi pi-info-circle',
+        command: handleAboutButtonClick
     },
 ];
 
@@ -176,6 +184,9 @@ onMounted(() => {
                     class="p-button-rounded p-button-text desktop-only"
                     @click="toggleDocsMenu"></Button>
             <Menu :model="docMenuItems" popup ref="docsMenu" />
+            <Button icon="pi pi-cog" label="Settings" 
+                    class="p-button-rounded p-button-text desktop-only"
+                    @click="handleSettingsButtonClick"></Button>
             <Button icon="pi pi-info-circle" label="About" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleAboutButtonClick"></Button>

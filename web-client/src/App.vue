@@ -127,7 +127,11 @@ const analysisButtonClick = async () => {
         console.error(`Failed analysisButtonClick`, error);
         throw error;
     }
-  };
+};
+
+const settingsButtonClick = () => {
+  router.push('/settings');
+};
 
 const aboutButtonClick = () => {
   //router.push('/about');
@@ -151,6 +155,7 @@ const handleVersionButtonClick = () => {
         @record-button-click="recordButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
+		@settings-button-click="settingsButtonClick"
         @version-button-click="handleVersionButtonClick"
       />
     </header>
