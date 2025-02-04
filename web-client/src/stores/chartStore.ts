@@ -142,20 +142,12 @@ export const useChartStore = defineStore('chartStore', {
         },
         // Example action to set query SQL for a specific reqIdStr
         setQuerySql(reqIdStr: string, sql: string) {
-        this.ensureState(reqIdStr);
-        this.stateByReqId[reqIdStr].querySql = sql;
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].querySql = sql;
         },
-        getQuerySql(reqIdStr?: string): string {
-            if (reqIdStr) {
-                this.ensureState(reqIdStr);
-                return this.stateByReqId[reqIdStr]?.querySql || '';
-            } else {
-                // Concatenate all `querySql` values from the state objects
-                return Object.values(this.stateByReqId)
-                    .map(state => state.querySql || '')
-                    .filter(sql => sql.trim() !== '') // Remove empty or whitespace-only strings
-                    .join(' ');
-            }
+        getQuerySql(reqIdStr: string): string {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].querySql;
         },
         setWhereClause(reqIdStr: string, whereClause: string) {
         this.ensureState(reqIdStr);

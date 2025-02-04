@@ -867,11 +867,8 @@ export async function fetchScatterData(
          * 2. Build the main query to fetch rows for x, all y columns, plus extras.
          */
         const allColumns = [x, ...y, ...extraSelectColumns].join(', ');
-        let mainQuery = `
-            SELECT 
-                ${allColumns}
-            FROM '${fileName}'
-            ${whereClause} `;
+        // be cognizent of spaces and line breaks in the query
+        let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${whereClause}`;
 
         useChartStore().setQuerySql(reqIdStr, mainQuery);
 

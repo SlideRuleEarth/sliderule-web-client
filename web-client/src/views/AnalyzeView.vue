@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useRoute,useRouter } from 'vue-router';
 import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
-import { onMounted, ref, watch, computed } from 'vue';
+import { onMounted, watch, computed } from 'vue';
 import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
-import SrScatterPlot from "@/components/SrScatterPlot.vue";
+import SrAnalysis from "@/components/SrAnalysis.vue";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useToast } from "primevue/usetoast";
@@ -53,10 +53,7 @@ watch(() => route.params.id, async (newId) => {
             />
         </template>
         <template v-slot:main>
-            <SrScatterPlot 
-                v-if="shouldDisplay" 
-                :startingReqId="reqId"
-            />
+            <SrAnalysis />
         </template>
     </TwoColumnLayout>
 </template>
