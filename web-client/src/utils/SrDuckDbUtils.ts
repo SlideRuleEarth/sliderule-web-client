@@ -2,7 +2,7 @@ import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,updateWhereClause,type ElevationDataItem } from './SrMapUtils';
+import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,updateWhereClause,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
