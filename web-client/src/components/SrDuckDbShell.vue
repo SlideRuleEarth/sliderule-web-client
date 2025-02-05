@@ -31,11 +31,13 @@
             v-if="rows.length > 0" 
             :value="rows"
             scrollable
+            scrollHeight="400px"
             scrollDirection="both" 
-            style="margin-top: 1rem; width: 100%;"
+            style="margin-top: 1rem; width: 50rem;"
         >
             <Column
                 v-for="col in columns"
+                sortable
                 :key="col"
                 :field="col"
                 :header="col"
