@@ -19,6 +19,13 @@
             <Button :disabled="isLoading" @click="executeQuery">
                 {{ isLoading ? "Running..." : "Run" }}
             </Button>
+            <Button 
+                v-if="rows.length > 0" 
+                @click="exportToCSV"
+                style="margin-left: 1rem;"
+                >
+                Export CSV
+            </Button>
 
             <!-- Error Display -->
             <p v-if="error" class="error">
@@ -75,6 +82,43 @@ function getSql(){
         return `No SQL statement available for this reqId: ${recTreeStore.selectedReqIdStr}`;
     }
     return sqlStmnt.trim();
+}
+
+function exportToCSV(): void {
+    // If no rows, do nothing
+    if (!rows.value || rows.value.length === 0) {
+        return;
+    }
+
+    // 1. Create CSV header from columns
+    let csvContent = columns.value.join(',') + '\n';
+
+    // 2. Append rows
+    rows.value.forEach(row => {
+        // Convert each cell to string, handle commas, quotes if needed
+        const rowData = columns.value.map(col => {
+        // Convert "undefined" or null values to empty string
+        const cellValue = row[col] == null ? '' : String(row[col]);
+        // Optional: handle quotes, escape commas, etc. if you want more robust CSV
+        return `"${cellValue.replace(/"/g, '""')}"`;
+        });
+        csvContent += rowData.join(',') + '\n';
+    });
+
+    // 3. Create a Blob object for the CSV data
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // 4. Create a temporary link to download the Blob
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'export.csv');
+    link.style.visibility = 'hidden';
+
+    // 5. Trigger the download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 onMounted(async () => {
