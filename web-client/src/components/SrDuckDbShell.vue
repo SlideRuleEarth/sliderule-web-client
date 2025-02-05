@@ -64,6 +64,8 @@ import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import { useRequestsStore } from '@/stores/requestsStore';
+const requestsStore = useRequestsStore();
 
 const recTreeStore = useRecTreeStore();
 const chartStore = useChartStore();
@@ -125,6 +127,8 @@ onMounted(async () => {
     try {
         duckDbClient = await createDuckDbClient();
         query.value = getSql();
+        requestsStore.displayHelpfulPlotAdvice("click Run to generate a table of the selected track data");
+        requestsStore.displayHelpfulPlotAdvice("You can query the table with any valid SQL statement");
         console.log('SrDuckDbShell onMounted: DuckDB client initialized ');
     } catch (err: any) {
         error.value = `Failed to initialize DuckDB: ${err?.message ?? err}`;

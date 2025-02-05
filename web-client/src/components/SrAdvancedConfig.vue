@@ -44,7 +44,7 @@
             v-model="requestsStore.helpfulReqAdviceCnt"
             label="Give Helpful Advice when # Requests < this"
             :min="1"
-            :max="30"
+            :max="999999"
             :decimalPlaces=0
             tooltipText="Symbol size for Atl06 Scatter Plot"
         />
