@@ -1,5 +1,5 @@
 import type { SysConfig } from "@/sliderule/core"
-import type { SrRunContext } from "@/db/SlideRuleDb";
+import type { SrRunCtx } from "@/db/SlideRuleDb";
 import type { ReqParams } from "@/sliderule/icesat2";
 import { db } from "@/db/SlideRuleDb";
 // No Pinia store can be used in this file because it is called from a web worker   
@@ -11,7 +11,7 @@ export interface WebWorkerCmd {
     sysConfig?: SysConfig;
     func?: string;
     parameters?: ReqParams;
-    context?: SrRunContext;
+    context?: SrRunCtx;
 }
 
 export type WorkerStatus = 'started' | 'progress' | 'summary' | 'success' | 'error' | 'geoParquet_rcvd' | 'feather_rcvd' | 'opfs_ready' | 'server_msg' | 'aborted';

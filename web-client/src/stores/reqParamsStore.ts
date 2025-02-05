@@ -211,7 +211,6 @@ const createReqParamsStore = (id: string) =>
             this.setIceSat2API("atl03sp");
             this.setEnableGranuleSelection(true);
             this.setUseRgt(true);
-            this.setUseCycle(true);
             // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
@@ -231,14 +230,11 @@ const createReqParamsStore = (id: string) =>
             // console.log('rgts:', useAtlChartFilterStore().getRgts());
             // console.log('cycles:', useAtlChartFilterStore().getCycles());
             // console.log('pairs:', useAtlChartFilterStore().getPairs());
-            // console.log('spots:', useAtlChartFilterStore().getSpots());
+            // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());
             // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
 
             const reqIdStr = req_id.toString();
-            this.setTracks(useChartStore().getTracks(reqIdStr));
-            this.setBeams(useChartStore().getBeams(reqIdStr));
-            this.setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
-            this.setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
+            this.setRgt(useChartStore().getRgts(reqIdStr)[0]);//should only be one
             this.setSrt([-1]);
             this.signalConfidenceNumber = [0,1,2,3,4];
             this.enableAtl08Classification = true;

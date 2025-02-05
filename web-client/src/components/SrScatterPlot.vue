@@ -10,7 +10,6 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
@@ -19,7 +18,8 @@ import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-
+import { selectedCycleReactive } from "@/utils/plotUtils";
+import Listbox from 'primevue/listbox';
 
 const props = defineProps({
     startingReqId: {
@@ -40,6 +40,10 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
+const computedCycleOptions = computed(() => {
+    return chartStore.getCycleOptions(recTreeStore.selectedReqIdStr);
+});
+
 onMounted(async () => {
     try {
         //console.log('SrScatterPlot onMounted');
@@ -51,13 +55,9 @@ onMounted(async () => {
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
-        //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
-        //initDataBindingsToChartStore(atlChartFilterStore.reqIdMenuItems.map(item => item.value.toString()));
         if (reqId > 0) {
-            //const func = await indexedDb.getFunc(reqId);
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            await prepareDbForReqId(reqId);                                                                      
         } else {
             console.warn('reqId is undefined');
         }        
@@ -72,7 +72,6 @@ onMounted(async () => {
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     console.log('SrScatterPlot watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
-        prepareDbForReqId(newReqId);
         await callPlotUpdateDebounced('from SrScatterPlot watch recTreeStore.selectedReqId');
     }
 });
@@ -111,7 +110,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     await initSymbolSize(runContext.reqId);
                     initializeColorEncoding(runContext.reqId);
                     chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
-                    chartStore.setBeams(thisReqIdStr, chartStore.getBeams(parentReqIdStr));
+                    chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
                     chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
                     chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
                 } else {
@@ -168,7 +167,7 @@ watch(
         scOrients: chartStore.getScOrients(reqId),
         rgts: chartStore.getRgts(reqId),
         cycles: chartStore.getCycles(reqId),
-        spots: chartStore.getSpots(reqId),
+        spots: chartStore.getSelectedSpotOptions(reqId),
         tracks: chartStore.getTracks(reqId),
         pairs: chartStore.getPairs(reqId),
         ydata: chartStore.getSelectedYData(reqId),
@@ -214,6 +213,11 @@ watch(
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
+                <Listbox 
+                    class="sr-select-cycle"
+                    v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr].value" 
+                    :options="computedCycleOptions" 
+                />
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -297,6 +301,11 @@ watch(
     align-items:center;
 }
 
+.sr-select-cycle {
+    width: 100%;
+    min-width: 10rem;
+    margin: 0.25rem;
+}
 .sr-run-control{
     display: flex;
     flex-direction: row;

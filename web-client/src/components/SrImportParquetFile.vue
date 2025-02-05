@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { updateFilename } from '@/utils/SrParquetUtils';
-import { duckDbLoadOpfsParquetFile,duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { getHFieldNameForFuncStr } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore'; 
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -71,7 +71,7 @@ const customUploader = async (event:any) => {
             await writableStream.close();
             const heightFieldname = getHFieldNameForFuncStr(srReqRec.func);
 
-            await duckDbReadOrCacheSummary(srReqRec.req_id, heightFieldname);
+            await readOrCacheSummary(srReqRec.req_id);
             const summary = await db.getWorkerSummary(srReqRec.req_id);
             console.log('Summary:', summary);
             if(summary){

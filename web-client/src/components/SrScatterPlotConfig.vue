@@ -40,7 +40,7 @@ const computedElId = computed(() => {
 });
 
 const computedMainLabel = computed(() => {
-    return `Available Y data options for ${findReqMenuLabel(props.reqId)}`;
+    return `Available data options for ${findReqMenuLabel(props.reqId)}`;
 });
 
 async function onMainYDataSelectionChange(newValue: string[]) {

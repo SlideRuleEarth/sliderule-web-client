@@ -34,17 +34,19 @@ interface ChartState {
     symbolSize: number;
     symbolColorEncoding: string;
     solidSymbolColor: string;
-    tracks: Array<SrListNumberItem>;
+    tracks: number[];
     selectAllTracks: boolean;
     beams: Array<SrListNumberItem>;
     spots: Array<SrListNumberItem>;
-    rgts: Array<SrListNumberItem>;
-    cycles: Array<SrListNumberItem>;
+    rgts: number[];
     pairs: Array<SrListNumberItem>;
     scOrients: Array<SrListNumberItem>;
     minMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
+    rgtOptions: number[];
+    cycleOptions: SrListNumberItem[];
+    selectedCycleOptions: SrListNumberItem[];
 }
 
 
@@ -90,8 +92,11 @@ export const useChartStore = defineStore('chartStore', {
                     selectAllTracks: true,
                     beams:[{ label: 'unknown', value: -1}],
                     spots: [],
-                    rgts: [], 
-                    cycles: [],
+                    rgts: [],
+                    rgtOptions: [], 
+                    //cycles: [],
+                    cycleOptions: [] as SrListNumberItem[],
+                    selectedCycleOptions: [] as SrListNumberItem[],
                     pairs: [],
                     scOrients: [],
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
@@ -328,12 +333,11 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
         },
-
-        setBeams(reqIdStr: string, beams: SrListNumberItem[]) {
+        setSelectedBeamOptions(reqIdStr: string, beams: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].beams = beams;
         },
-        getBeams(reqIdStr: string) {
+        getSelectedBeamOptions(reqIdStr: string) {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].beams;
         },
@@ -341,116 +345,118 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].beams.map(beam => beam.value);
         },
-        setSpots(reqIdStr: string, spots: SrListNumberItem[]) {
+        getBeamLabels(reqIdStr: string): string[] { 
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].beams.map(beam => beam.label);
+        },
+        setSelectedSpotOptions(reqIdStr: string, spots: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].spots = spots;
         },
-        getSpots(reqIdStr: string): SrListNumberItem[] {
+        getSelectedSpotOptions(reqIdStr: string): SrListNumberItem[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].spots;
         },
-        getSpotValues(reqIdStr: string) {
+        getSpots(reqIdStr: string) {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].spots.map(spot => spot.value);
         },
         setSpotWithNumber(reqIdStr: string, spot: number) {
             this.ensureState(reqIdStr);
-            this.setSpots(reqIdStr,[{ label: spot.toString(), value: spot }]);
+            this.setSelectedSpotOptions(reqIdStr,[{ label: spot.toString(), value: spot }]);
         },
-        setRgts(reqIdStr: string, rgts: SrListNumberItem[]) {
+        setRgts(reqIdStr: string, rgts: number[]) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].rgts = rgts;
         },
-        getRgts(reqIdStr: string) {
+        getRgts(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].rgts;
         },
-        getRgtValues(reqIdStr: string) {
+        setCycles(reqIdStr: string, cycles: number[]) {
             this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].rgts.map(rgt => rgt.value);
+            if (!Array.isArray(cycles)) {
+                console.error('setCycles received invalid cycles:', cycles);
+                this.stateByReqId[reqIdStr].selectedCycleOptions = [];
+                return;
+            }
+            this.stateByReqId[reqIdStr].selectedCycleOptions = cycles.map(cycle => ({ label: cycle.toString(), value: cycle }));
+            console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles);
         },
-        getCycleValues(reqIdStr: string) {
+        getCycles(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].cycles.map(cycle => cycle.value);
+            const options = this.stateByReqId[reqIdStr]?.selectedCycleOptions;
+            if (!Array.isArray(options)) {
+                console.error(`getCycles: selectedCycleOptions is not an array`, options);
+                return [];
+            }
+            return options.map(cycle => cycle.value);
         },
-        setRgtWithNumber(reqIdStr: string, rgt: number) {
+        setSelectedCycleOptions(reqIdStr: string, cycleOptions: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            this.setRgts(reqIdStr,[{ label: rgt.toString(), value: rgt }]);
+            if (!Array.isArray(cycleOptions)) {
+                console.error('setSelectedCycleOptions received invalid cycleOptions:', cycleOptions);
+                this.stateByReqId[reqIdStr].selectedCycleOptions = [];
+                return;
+            }
+            this.stateByReqId[reqIdStr].selectedCycleOptions = cycleOptions;
         },
-        setCycleWithNumber(reqIdStr: string, cycle: number) {
+        getSelectedCycleOptions(reqIdStr: string): SrListNumberItem[] {
             this.ensureState(reqIdStr);
-            this.setCycles(reqIdStr,[{ label: cycle.toString(), value: cycle }]);
+            return this.stateByReqId[reqIdStr].selectedCycleOptions;
         },
-        setCycles(reqIdStr: string, cycles: SrListNumberItem[]) {
-            this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].cycles = cycles;
-        },
-        getCycles(reqIdStr: string) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].cycles;
-        },
-        setTracks(reqIdStr: string, tracks: SrListNumberItem[]) {
+        setTracks(reqIdStr: string, tracks: number[]) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].tracks = tracks;
         },
-        getTracks(reqIdStr: string) {
+        getTracks(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].tracks;
         },
         setTrackWithNumber(reqIdStr: string, track: number) {
             this.ensureState(reqIdStr);
-            this.setTracks(reqIdStr,[{ label: track.toString(), value: track }]);
-        },
-        getTrackValues(reqIdStr: string) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].tracks.map(track => track.value);
-        },
-        setSelectAllTracks(reqIdStr: string, selectAllTracks: boolean) {
-            this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].selectAllTracks = selectAllTracks;
-        },
-        getSelectAllTracks(reqIdStr: string) {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].selectAllTracks;
+            this.setTracks(reqIdStr,[track]);
         },
         appendTrackWithNumber(reqIdStr: string, track: number) {
             this.ensureState(reqIdStr);
             // Check if the track already exists in the list
-            const trackExists = this.stateByReqId[reqIdStr].tracks.some(t => t.value === track);
+            const trackExists = this.stateByReqId[reqIdStr].tracks.some(t => t === track);
             // If it doesn't exist, append it
             if (!trackExists) {
-                this.stateByReqId[reqIdStr].tracks.push({ label: track.toString(), value: track });
+                this.stateByReqId[reqIdStr].tracks.push(track);
             }
         },    
         setBeamsAndTracksWithGts(reqIdStr: string, gts: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
             const parms = getBeamsAndTracksWithGts(gts);
-            this.setBeams(reqIdStr,parms.beams);
-            this.setTracks(reqIdStr,parms.tracks);
+            const trkList = parms.tracks.map(track => track.value);
+            this.setSelectedBeamOptions(reqIdStr,parms.beams);
+            this.setTracks(reqIdStr,trkList);
         },
         setTracksForBeams(reqIdStr: string, input_beams: SrListNumberItem[]) {    
             this.ensureState(reqIdStr);
             const tracks = input_beams
                 .map(beam => tracksOptions.find(track => Number(beam.label.charAt(2)) === track.value))
                 .filter((track): track is SrListNumberItem => track !== undefined);
-            this.setTracks(reqIdStr,tracks);
+            const trkList = tracks.map(track => track.value);
+            this.setTracks(reqIdStr,trkList);
         },
-        setBeamsForTracks(reqIdStr: string, input_tracks: SrListNumberItem[]) {
+        setBeamsForTracks(reqIdStr: string, input_tracks: number[]) {
             this.ensureState(reqIdStr);
             const beams = input_tracks
                 .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
                 .filter((beam): beam is SrListNumberItem => beam !== undefined);
-            this.setBeams(reqIdStr,beams);
+            this.setSelectedBeamOptions(reqIdStr,beams);
         },
         setBeamWithNumber(reqIdStr: string, beam: number) {
             this.ensureState(reqIdStr);
-            this.setBeams(reqIdStr,[{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
+            this.setSelectedBeamOptions(reqIdStr,[{ label: beamsOptions.find(option => option.value === beam)?.label || '', value: beam }]);
         },
         setPairs(reqIdStr: string, pairs: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].pairs = pairs;
         },
-        getPairs(reqIdStr: string) {
+        getPairs(reqIdStr: string):SrListNumberItem[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].pairs;
         },
@@ -465,7 +471,7 @@ export const useChartStore = defineStore('chartStore', {
                 this.stateByReqId[reqIdStr].pairs.push({ label: pair.toString(), value: pair });
             }
         },
-        getPairValues(reqIdStr: string) {
+        getPairValues(reqIdStr: string) : number[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].pairs.map(pair => pair.value);
         },
@@ -473,7 +479,7 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].scOrients = scOrients;
         },
-        getScOrients(reqIdStr: string) {
+        getScOrients(reqIdStr: string) : SrListNumberItem[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].scOrients;
         },
@@ -481,7 +487,7 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].scOrients = [{ label: scOrient.toString(), value: scOrient }];
         },
-        getScOrientValues(reqIdStr: string) {
+        getScOrientValues(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].scOrients.map(scOrient => scOrient.value);
         },
@@ -517,5 +523,29 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].showYDataMenu;
         },
+        setRgtOptions(reqIdStr: string,rgtOptions: number[]) {
+            this.ensureState(reqIdStr);
+            if (!Array.isArray(this.stateByReqId[reqIdStr].rgtOptions)) {
+              console.error('rgtOptions is not an array:', rgtOptions);
+              return;
+            }
+            this.stateByReqId[reqIdStr].rgtOptions = rgtOptions;
+        },
+        getRgtOptions(reqIdStr: string) : number[] {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].rgtOptions;
+        },
+        setCycleOptions(reqIdStr: string, cycleOptions: SrListNumberItem[]) {
+            this.ensureState(reqIdStr);
+            console.log('setCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',cycleOptions);
+            this.stateByReqId[reqIdStr].cycleOptions = cycleOptions;
+        },
+        getCycleOptions(reqIdStr: string): SrListNumberItem[] {
+            this.ensureState(reqIdStr);
+            console.log('getCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',this.stateByReqId[reqIdStr].cycleOptions);
+            return this.stateByReqId[reqIdStr].cycleOptions;
+        },
+      
+
     },
 });

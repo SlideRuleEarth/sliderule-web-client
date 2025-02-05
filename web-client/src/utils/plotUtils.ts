@@ -1,12 +1,11 @@
-import { useChartStore } from "@/stores/chartStore";
+import { useChartStore, type SrListNumberItem } from "@/stores/chartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
 import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
-import {type  SrRunContext } from '@/db/SlideRuleDb';
-import { prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { type SrRunCtx } from '@/db/SlideRuleDb';
 import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/SrDuckDbUtils';
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
@@ -22,6 +21,8 @@ export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedR
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<SrListNumberItem[]> }>({});
+export const selectedBeamReactive = reactive<{ [key: string]: WritableComputedRef<SrListNumberItem[]> }>({});
 export interface SrScatterSeriesData{
   series: {
     name: string;
@@ -106,7 +107,19 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 get: () => chartStore.getShowYDataMenu(reqId),
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
-        }   
+        } 
+        if(!(reqId in selectedCycleReactive)){
+            selectedCycleReactive[reqId] = computed({
+                get: ():SrListNumberItem[] => chartStore.getSelectedCycleOptions(reqId),
+                set: (values: SrListNumberItem[]):void => chartStore.setSelectedCycleOptions(reqId, values),
+            });
+        }
+        if(!(reqId in selectedBeamReactive)){
+            selectedBeamReactive[reqId] = computed({
+                get: ():SrListNumberItem[] => chartStore.getSelectedBeamOptions(reqId),
+                set: (values: SrListNumberItem[]):void => chartStore.setSelectedBeamOptions(reqId, values),
+            });
+        }  
     });
 }
 
@@ -551,9 +564,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const fileName = chartStore.getFile(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const rgts = chartStore.getRgts(reqIdStr).map(rgt => rgt?.value).filter(value => value !== undefined);
-    const cycles = chartStore.getCycles(reqIdStr).map(cycle => cycle?.value).filter(value => value !== undefined);
-    const spots = chartStore.getSpots(reqIdStr).map(spot => spot.value);
+    const rgts = chartStore.getRgts(reqIdStr);
+    const cycles = chartStore.getCycles(reqIdStr);
+    const spots = chartStore.getSpots(reqIdStr);
     // Get the CSS variable value dynamically
     const primaryButtonColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--p-button-text-primary-color')
@@ -563,7 +576,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     try{
         let seriesData = [] as SrScatterSeriesData[];
         if(fileName){
-            if(spots?.length && rgts && cycles){
+            if(spots.length>0 && rgts.length>0 && cycles.length>0){
                 seriesData = await getSeriesFor(reqIdStr);
             } else {
                 console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
@@ -982,7 +995,7 @@ export const updateScatterOptionsOnly = async (msg:string) => {
     }
 }
 
-export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
+export async function getPhotonOverlayRunContext(): Promise<SrRunCtx> {
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -990,34 +1003,29 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 
     const reqIdStr = recTreeStore.selectedReqIdStr;
     //console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
-    const runContext: SrRunContext = {
+    const runCtx: SrRunCtx = {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
-        trackFilter: {
-            rgt: chartStore.getRgts(reqIdStr)[0].value,
-            cycle: chartStore.getCycles(reqIdStr)[0].value,
-            track: chartStore.getTracks(reqIdStr)[0].value,
-            beam: ((chartStore.stateByReqId[reqIdStr].beams.length>0) ? chartStore.getBeams(reqIdStr)[0].value : -1),
-        }
+        rgt: chartStore.getRgts(reqIdStr)[0],
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
         //console.log('Show Photon Cloud Overlay checked');
-        const reqId = await indexedDb.findCachedRec(runContext);
+        const reqId = await indexedDb.findCachedRec(runCtx);
         if(reqId && (reqId > 0)){
-            runContext.reqId = reqId;
+            runCtx.reqId = reqId;
             const childReqIdStr = reqId.toString();
             chartStore.setRgts(childReqIdStr,chartStore.getRgts(reqIdStr));
             chartStore.setCycles(childReqIdStr,chartStore.getCycles(reqIdStr));
             chartStore.setTracks(childReqIdStr,chartStore.getTracks(reqIdStr));
-            chartStore.setBeams(childReqIdStr,chartStore.getBeams(reqIdStr));
+            chartStore.setSelectedBeamOptions(childReqIdStr,chartStore.getSelectedBeamOptions(reqIdStr));
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
             //console.log('findCachedRec reqId found:', reqId);
         } else {
-            console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+            console.warn('findCachedRec reqId not found, NEED to fetch for:', runCtx);
             requestsStore.setSvrMsg('');
         }
     }
-    return runContext;
+    return runCtx;
 }
 
 async function updatePlot(msg:string){
@@ -1025,24 +1033,19 @@ async function updatePlot(msg:string){
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     const reqIdStr = recTreeStore.selectedReqIdStr;
-    if( (chartStore.getRgtValues(reqIdStr).length > 0) &&
-        (chartStore.getCycleValues(reqIdStr).length > 0) &&
-        (chartStore.getSpotValues(reqIdStr).length > 0)
+    if( (chartStore.getRgts(reqIdStr).length > 0) &&
+        (chartStore.getCycles(reqIdStr).length > 0) &&
+        (chartStore.getSpots(reqIdStr).length > 0)
     ){
-        const runContext = await getPhotonOverlayRunContext();
-        if(runContext.reqId > 0){
-            await prepareDbForReqId(runContext.reqId);            
-            //useColorMapStore().setAtl03ColorKey('atl03_cnf');
-        }
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
-        console.warn('Rgt:', chartStore.getRgtValues(reqIdStr));
-        console.warn('Cycle:', chartStore.getCycleValues(reqIdStr));
-        console.warn('Spot:', chartStore.getSpotValues(reqIdStr));
+        console.warn('Rgt:', chartStore.getRgts(reqIdStr));
+        console.warn('Cycle:', chartStore.getCycles(reqIdStr));
+        console.warn('Spot:', chartStore.getSpots(reqIdStr));
     }
 }
 let updatePlotTimeoutId: number | undefined;
@@ -1115,19 +1118,18 @@ export async function updateChartStore(req_id: number) {
         const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        //chartStore.setFunc(reqIdStr,func);
+        
         const whereClause = createWhereClause(
             useRecTreeStore().findApiForReqId(req_id),
-            chartStore.getSpotValues(reqIdStr),
-            chartStore.getRgtValues(reqIdStr),
-            chartStore.getCycleValues(reqIdStr),
+            chartStore.getSpots(reqIdStr),
+            chartStore.getRgts(reqIdStr),
+            chartStore.getCycles(reqIdStr),
         );
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
+        } else {
+            console.error('updateChartStore whereClause is empty');
         }
-        //console.log('setFunc calling setSymbolSize for reqIdStr:',reqIdStr, 'func:',func, 'plotConfig:',plotConfig);
-
-
     } catch (error) {
         console.warn('updateChartStore Failed to update selected request:', error);
     }

@@ -1,4 +1,4 @@
-import type { SrRequestRecord, SrRunContext } from '@/db/SlideRuleDb';
+import type { SrRequestRecord, SrRunCtx } from '@/db/SlideRuleDb';
 import { checkAreaOfConvexHullError } from './SrMapUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
@@ -10,13 +10,13 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
-import { callPlotUpdateDebounced,updateChartStore } from '@/utils/plotUtils';
+import { callPlotUpdateDebounced } from '@/utils/plotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const consoleStore = useSrSvrConsoleStore();
@@ -147,7 +147,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
             if(workerMsg && workerMsg.req_id > 0){
                 const reqIdStr = workerMsg.req_id.toString();
-                let rc:SrRunContext|undefined = undefined;
+                let rc:SrRunCtx|undefined = undefined;
                 try{
                     rc = await db.getRunContext(workerMsg.req_id);
                     fileName = await db.getFilename(workerMsg.req_id);
@@ -170,9 +170,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 try {
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
-                        await updateChartStore(workerMsg.req_id);
-                        await readOrCacheSummary(workerMsg.req_id);
-                        await prepareDbForReqId(workerMsg.req_id);
                         await callPlotUpdateDebounced('Overlayed Photon Cloud');
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                     } else {
@@ -318,8 +315,8 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 }
 
 // Function that is called when the "Run SlideRule" button is clicked
-export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
-    let runContext = rc as SrRunContext;
+export async function processRunSlideRuleClicked(rc:SrRunCtx|null = null) : Promise<void> {
+    let runContext = rc as SrRunCtx;
     if(!checkAreaOfConvexHullError()){
         return;
     }
@@ -343,7 +340,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             requestsStore.setConsoleMsg('loading params...');
             if (rc) {
                 rc.reqId = srReqRec.req_id;
-                await db.addSrRunContext(rc);
+                await db.addSrRunCtx(rc);
             }
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
