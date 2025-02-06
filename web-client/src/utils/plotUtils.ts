@@ -5,7 +5,7 @@ import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOptio
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
-import { type SrRunCtx } from '@/db/SlideRuleDb';
+import { type SrRunContext } from '@/db/SlideRuleDb';
 import type { SrScatterChartDataArray,FetchScatterDataOptions } from '@/utils/SrDuckDbUtils';
 import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
@@ -1002,7 +1002,7 @@ export const updateScatterOptionsOnly = async (msg:string) => {
     }
 }
 
-export async function getPhotonOverlayRunContext(): Promise<SrRunCtx> {
+export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -1010,7 +1010,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunCtx> {
 
     const reqIdStr = recTreeStore.selectedReqIdStr;
     //console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
-    const runCtx: SrRunCtx = {
+    const runCtx: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
         rgt: chartStore.getRgts(reqIdStr)[0],

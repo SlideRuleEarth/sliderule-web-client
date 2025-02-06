@@ -1,4 +1,4 @@
-import type { SrRequestRecord, SrRunCtx } from '@/db/SlideRuleDb';
+import type { SrRequestRecord, SrRunContext } from '@/db/SlideRuleDb';
 import { checkAreaOfConvexHullError } from './SrMapUtils';
 import { useSysConfigStore} from "@/stores/sysConfigStore";
 import { type TimeoutHandle } from '@/stores/mapStore';    
@@ -147,7 +147,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
             if(workerMsg && workerMsg.req_id > 0){
                 const reqIdStr = workerMsg.req_id.toString();
-                let rc:SrRunCtx|undefined = undefined;
+                let rc:SrRunContext|undefined = undefined;
                 try{
                     rc = await db.getRunContext(workerMsg.req_id);
                     fileName = await db.getFilename(workerMsg.req_id);
@@ -315,8 +315,8 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 }
 
 // Function that is called when the "Run SlideRule" button is clicked
-export async function processRunSlideRuleClicked(rc:SrRunCtx|null = null) : Promise<void> {
-    let runContext = rc as SrRunCtx;
+export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
+    let runContext = rc as SrRunContext;
     if(!checkAreaOfConvexHullError()){
         return;
     }
@@ -340,7 +340,7 @@ export async function processRunSlideRuleClicked(rc:SrRunCtx|null = null) : Prom
             requestsStore.setConsoleMsg('loading params...');
             if (rc) {
                 rc.reqId = srReqRec.req_id;
-                await db.addSrRunCtx(rc);
+                await db.addSrRunContext(rc);
             }
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
