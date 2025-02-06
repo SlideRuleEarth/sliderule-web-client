@@ -50,21 +50,21 @@ export interface Atl03Color {
     color: string;  // 
 }
 
-export interface SrTrkFilter { // Deprecated
+export interface SrTrkFilter {
     rgt: number;
     cycle: number;
     track: number;
     beam: number;
 }
 
-export interface SrRunContext { // Deprecated
+export interface SrRunContext {
     reqId: number;
     parentReqId : number;
     trackFilter : SrTrkFilter;
 }
 
 // Extends SrRunContext and also has a numeric ID for Dexie
-export interface SrRunContextRecord extends SrRunContext { //Deprecated
+export interface SrRunContextRecord extends SrRunContext {
     id?: number; // Dexie will auto-increment this
     // ...but also flatten out the fields we want to index:
     rgt: number;           
@@ -72,11 +72,7 @@ export interface SrRunContextRecord extends SrRunContext { //Deprecated
     track: number;        
     beam: number;         
 }
-export interface SrRunCtx {
-    reqId: number;
-    parentReqId : number;
-    rgt : number;
-}
+
 
 export interface SrPlotConfig {
     id?: number; // let Dexie store the record at id=1
@@ -126,13 +122,12 @@ export class SlideRuleDexie extends Dexie {
     colors!: Table<SrColors>;
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
-    runContexts!: Table<SrRunContextRecord>; // Deprecated
-    runCtxs!: Table<SrRunCtx>;
+    runContexts!: Table<SrRunContextRecord>;
     plotConfig!: Table<SrPlotConfig>;
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(5).stores({ // Old version
+        this.version(7).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id', 
             colors: '&color',
@@ -142,37 +137,6 @@ export class SlideRuleDexie extends Dexie {
             runContexts: '++id, &reqId, parentReqId, rgt, cycle, beam, track, [parentReqId+rgt+cycle+beam]',
             plotConfig: 'id',  // single record table
         });
-        this.version(6)
-        .stores({
-            requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: '++db_id, &req_id', 
-            colors: '&color',
-            atl03CnfColors: 'number',
-            atl08ClassColors: 'number', 
-            runCtxs: '&reqId, parentReqId, rgt, [parentReqId+rgt]', // New table
-            plotConfig: 'id',  // single record table
-        })
-        .upgrade(async (tx) => {
-            console.log('Migrating runContexts to runCtxs...');
-    
-            try {
-                const oldData = await tx.table('runContexts').toArray(); // Fetch existing data
-    
-                if (oldData.length) {
-                    await tx.table('runCtxs').bulkPut(
-                        oldData.map(({ reqId, parentReqId, rgt }) => ({
-                            reqId,
-                            parentReqId,
-                            rgt,
-                        }))
-                    );
-                    console.log(`Successfully migrated ${oldData.length} records from runContexts to runCtxs.`);
-                }
-            } catch (error) {
-                console.error('Error migrating runContexts to runCtxs:', error);
-            }
-        });
-    
         this._initializeDefaultColors();
         this._initializePlotConfig(); // <-- Add initialization call
         this._useMiddleware();
@@ -1084,20 +1048,21 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async findCachedRec(runCtx: SrRunCtx): Promise<number | undefined> {
+
+    async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
-            const found = await this.runCtxs
-                .where('[parentReqId+rgt]')
-                .equals([runCtx.parentReqId, runCtx.rgt])
+            const found = await this.runContexts
+                .where('[parentReqId+rgt+cycle+beam]')
+                .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
                 .toArray();
           
-            //console.log('findCachedRec found?:',found); // All runCtxs for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+            //console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
             if (found.length <= 0) {
-                console.log(`No matching record found for run context:`, runCtx);
+                console.log(`No matching record found for run context:`, runContext);
                 return undefined;
             }
             if (found.length > 1) {
-                console.warn(`Multiple matching records found for run context:`, runCtx);
+                console.warn(`Multiple matching records found for run context:`, runContext);
             }
             return found[0].reqId;
         } catch (error) {
@@ -1106,33 +1071,38 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async addSrRunCtx(runCtx: SrRunCtx): Promise<void> {
+    async addSrRunContext(runContext: SrRunContext): Promise<void> {
         try {
-            await this.runCtxs.put(runCtx);
+            const thisRunContextRecord: SrRunContextRecord = {
+                reqId: runContext.reqId,
+                parentReqId: runContext.parentReqId,
+                trackFilter: runContext.trackFilter,
+                rgt: runContext.trackFilter.rgt,
+                cycle: runContext.trackFilter.cycle,
+                beam: runContext.trackFilter.beam,
+                track: runContext.trackFilter.track,
+            };
+            await this.runContexts.put(thisRunContextRecord);
         } catch (error) {
-            console.error('Failed to add SrRunCtx:', error);
+            console.error('Failed to add SrRunContext:', error);
             throw error;
         }
     }
 
     async removeRunContext(reqId: number): Promise<void> {
         try {
-            await this.runCtxs.where('reqId').equals(reqId).delete();
+            await this.runContexts.where('reqId').equals(reqId).delete();
         } catch (error) {
             console.error(`Failed to remove run context for req_id ${reqId}:`, error);
             throw error;
         }
     }
 
-    async getRunContext(reqId: number): Promise<SrRunCtx | undefined> {
+    async getRunContext(reqId: number): Promise<SrRunContextRecord | undefined> {
         try {
-            const rctxs = await this.runCtxs.where('reqId').equals(reqId).toArray();
-            const runContext = rctxs[0];
+            const runContext = await this.runContexts.where('reqId').equals(reqId).first();
             if (!runContext) {
                 //console.log(`No run context found for req_id ${reqId}`);
-            }
-            if(rctxs.length > 1){
-                console.error(`Multiple run contexts? found for req_id ${reqId}`);
             }
             return runContext;
         } catch (error) {
