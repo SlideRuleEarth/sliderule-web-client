@@ -325,6 +325,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 firstRec = (rows[0]);
+                const cycleOptions = await getAllCycleOptionsForRgt(useRecTreeStore().selectedReqId, firstRec.rgt);
+                useChartStore().setCycleOptions(req_id.toString(), cycleOptions);
                 clicked(firstRec);
                 numDataItemsUsed += rows.length;
                 useMapStore().setCurrentRows(numDataItemsUsed);
@@ -756,10 +758,8 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         console.log('updateAllFilterOptions cycleOptions:', cycleOptions, 'size:', cycleOptions.length); 
         console.log('updateAllFilterOptions cycleOptions:', chartStore.getCycleOptions(reqIdStr));
         console.log('updateAllFilterOptions cycleOptions[0]:', cycleOptions[0],cycleOptions[0].value);
-        chartStore.setCycleOptions(reqIdStr,cycleOptions);
-        if(cycleOptions.length > 0){
-            chartStore.setCycles(reqIdStr,[cycleOptions[0].value]);// auto select first cycle
-        }
+        const opts = await getAllCycleOptionsForRgt(req_id,rgts[0]);
+        chartStore.setCycleOptions(reqIdStr, opts);
         if(useRecTreeStore().findApiForReqId(req_id)==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             atlChartFilterStore.setPairOptionsWithNumbers(pairs);
@@ -869,6 +869,7 @@ export async function fetchScatterData(
     let orderNdx=0;
 
     try {
+        await duckDbClient.insertOpfsParquet(fileName);
         /**
          * 1. Compute min/max for x and each of the y columns.
          */

@@ -281,7 +281,7 @@ const createReqParamsStore = (id: string) =>
               if(req_id > 0) {
                 reqIdStr = `${req_id}`;
               }
-              path = `${this.getFunc()}_${reqIdStr}_SVR_TMP_${new Date().toISOString()
+              path = `${this.getFunc()}_${reqIdStr}_${new Date().toISOString()
                 .replace(/:/g, '_')
                 .replace(/\./g, '_')
                 .replace(/T/g, '_')

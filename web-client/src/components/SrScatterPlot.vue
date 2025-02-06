@@ -20,6 +20,8 @@ import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import { selectedCycleReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
+import SrLegendBox from "./SrLegendBox.vue";
+import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 
 const props = defineProps({
     startingReqId: {
@@ -42,6 +44,10 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const computedCycleOptions = computed(() => {
     return chartStore.getCycleOptions(recTreeStore.selectedReqIdStr);
+});
+
+const computedDataKey = computed(() => {
+    return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
 onMounted(async () => {
@@ -119,6 +125,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             } else {
                 await initSymbolSize(runContext.reqId);
                 initializeColorEncoding(runContext.reqId);
+                await prepareDbForReqId(runContext.reqId);
+                atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
@@ -218,11 +226,13 @@ function handleValueChange(value) {
                     zlevel:100
                 }" 
             />
-        </div> 
-        <div class="sr-scatter-plot-header">
-            <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
+            <div class="sr-cycles-legend-panel">
+                <SrLegendBox
+                    v-if = "(computedDataKey!='solid')"
+                    :reqIdStr="recTreeStore.selectedReqIdStr" 
+                    :data_key="computedDataKey" 
+                    :transparentBackground="false" 
+                />
                 <Listbox 
                     class="sr-select-cycle"
                     v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
@@ -241,6 +251,12 @@ function handleValueChange(value) {
                         </div>
                     </template>
                 </Listbox>
+             </div>
+        </div> 
+        <div class="sr-scatter-plot-header">
+            <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
+            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -322,6 +338,15 @@ function handleValueChange(value) {
     flex-direction: column;
     justify-content: center;
     align-items:center;
+}
+.sr-cycles-legend-panel{
+    display: flex;
+    flex-direction: column;
+    justify-content:space-between;
+    align-items:center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
 }
 :deep(.sr-listbox-header-title) {
     display: flex;

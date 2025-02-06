@@ -113,14 +113,21 @@ onmessage = async (event) => {
         let finished = false;
 
         const outputFormat = req.parms.output?.format;
+        const fileName = req.parms?.output?.path
+        if(!fileName){
+            console.error('fileName was not provided fileName:', fileName);
+            postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'fileName was not provided' }));
+            return;
+        }
+
         const opfsRoot = await navigator.storage.getDirectory();
         const folderName = 'SlideRule'; 
         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        const fileName = `${cmd.func}_${reqID}_${new Date().toISOString()
-            .replace(/:/g, '_')
-            .replace(/\./g, '_')
-            .replace(/T/g, '_')
-            .replace(/Z/g, '')}.parquet`;
+        // const fileName = `${cmd.func}_${reqID}_${new Date().toISOString()
+        //     .replace(/:/g, '_')
+        //     .replace(/\./g, '_')
+        //     .replace(/T/g, '_')
+        //     .replace(/Z/g, '')}.parquet`;
         console.log(cmd.func,' arrowCbNdx:',arrowCbNdx,' fileName:', fileName, ' outputFormat:', outputFormat, ' opfsRoot:', opfsRoot, 'req', req);
 
         const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });

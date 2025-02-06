@@ -1030,7 +1030,6 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             chartStore.setCycles(childReqIdStr,chartStore.getCycles(reqIdStr));
             chartStore.setTracks(childReqIdStr,chartStore.getTracks(reqIdStr));
             chartStore.setSelectedBeamOptions(childReqIdStr,chartStore.getSelectedBeamOptions(reqIdStr));
-            atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
             //console.log('findCachedRec reqId found:', reqId);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);

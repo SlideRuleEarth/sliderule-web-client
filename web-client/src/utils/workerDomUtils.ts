@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile,prepareDbForReqId } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
@@ -172,9 +172,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 try {
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
+                        await readOrCacheSummary(workerMsg.req_id);
                         await prepareDbForReqId(workerMsg.req_id);
-                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
                         router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue

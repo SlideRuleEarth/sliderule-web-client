@@ -385,7 +385,7 @@ export const useChartStore = defineStore('chartStore', {
                 return this.findCycleOption(reqIdStr, cycle) || { label: cycle.toString(), value: cycle };
             });
             this.setSelectedCycleOptions(reqIdStr,cycleOptions);
-            //console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles, ' selectedCycleOptions:',this.stateByReqId[reqIdStr].selectedCycleOptions );
+            console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles, ' selectedCycleOptions:',this.stateByReqId[reqIdStr].selectedCycleOptions );
         },
         getCycles(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
