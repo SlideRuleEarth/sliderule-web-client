@@ -232,7 +232,15 @@ function handleValueChange(value) {
                     :metaKeySelection="true"
                     :options="computedCycleOptions"
                     @change="handleValueChange"
-                />
+                >
+                    <template #header>
+                        <div class="p-listbox-header">
+                            <div class="sr-listbox-header-title">
+                                <span>Cycles</span>
+                            </div>
+                        </div>
+                    </template>
+                </Listbox>
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -315,14 +323,35 @@ function handleValueChange(value) {
     justify-content: center;
     align-items:center;
 }
-
-.sr-select-cycle {
+:deep(.sr-listbox-header-title) {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin: 0.25rem;
+    padding: 0.25rem;
+    font-weight: bold;
+    color: var(--p-text-color);
+    border-radius: var(--p-border-radius);
+}
+:deep(.p-listbox-list-container) {
     width: 100%;
     min-width: 5rem;
-    max-width: 7rem;
+    max-width: 16rem;
     max-height: 10rem;
     margin: 0.25rem;
 }
+:deep(.p-listbox-option) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:deep(.p-listbox-header) {
+    padding: 0.125rem;
+    margin: 0.125rem;
+}
+
 .sr-run-control{
     display: flex;
     flex-direction: row;

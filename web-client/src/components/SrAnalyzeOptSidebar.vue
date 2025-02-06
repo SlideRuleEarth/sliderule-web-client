@@ -10,7 +10,6 @@ import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { SrMenuNumberItem } from "@/types/SrTypes";
 import { useDeckStore } from '@/stores/deckStore';
 import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";

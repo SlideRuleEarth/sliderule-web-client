@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,prepareDbForReqId } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
@@ -75,8 +75,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
             numBytes = await db.getNumBytes(workerMsg.req_id);
+            const summary = await db.getWorkerSummary(workerMsg.req_id);
             if(numBytes > 0){
-                successMsg = `Record ${workerMsg.req_id} created with ${numBytes} bytes.\n\nClick on another track to plot elevation of that track.`;
+                successMsg = `Record ${workerMsg.req_id} created with ${summary?.numPoints.toLocaleString()} points (${numBytes.toLocaleString()} bytes).
+                Click on another track to plot the elevation of that track.`;
                 useSrToastStore().success('Success',successMsg,15000); // 15 seconds
             } else {
                 successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
@@ -170,6 +172,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 try {
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
+                        await prepareDbForReqId(workerMsg.req_id);
                         await callPlotUpdateDebounced('Overlayed Photon Cloud');
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                     } else {

@@ -251,6 +251,26 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     return sample_fraction;
 }
 
+export async function prepareDbForReqId(reqId: number): Promise<void> {
+    //console.log(`prepareDbForReqId for ${reqId}`);
+    const startTime = performance.now(); // Start time
+    try{
+        const fileName = await indexedDb.getFilename(reqId);
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const colNames = await duckDbClient.queryForColNames(fileName);
+        updateAllFilterOptions(reqId);
+        updateChartStore(reqId);
+        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
+    } catch (error) {
+        console.error('prepareDbForReqId error:', error);
+        throw error;
+    } finally {                                                                    
+        const endTime = performance.now(); // End time
+        console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
+    }
+}
+
 export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<ElevationDataItem|null> => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     let firstRec = null;
@@ -329,11 +349,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
             updateElLayerWithObject(name,rows as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
-            const colNames = await duckDbClient.queryForColNames(filename);
-            await updateAllFilterOptions(req_id);
-            await updateChartStore(req_id);
-            await setElevationDataOptionsFromFieldNames(req_id.toString(), colNames);
-    } else {
+            prepareDbForReqId(req_id);
+        } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
 
@@ -672,8 +689,9 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit'
-                      });
-                    cycles.push({label:timeStr, value:row.cycle});
+                    });
+                    const newLabel = `${row.cycle}: ${timeStr}`;
+                    cycles.push({label:newLabel, value:row.cycle});
                 } else {
                     console.warn('getCycles fetchData rowData is null');
                 }
@@ -688,6 +706,43 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
     }
     return cycles;
 }
+
+export async function getAllCycleOptionsForRgt(req_id: number,rgt:number): Promise<SrListNumberItem[]> {
+    const startTime = performance.now(); // Start time
+
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+    const cycles = [] as SrListNumberItem[];
+    try{
+        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' GROUP BY cycle ORDER BY cycle ASC;`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getCycle row:', row);
+                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    const newLabel = `${row.cycle}: ${timeStr}`;
+                    cycles.push({label:newLabel, value:row.cycle});
+                } else {
+                    console.warn('getCycles fetchData rowData is null');
+                }
+            }
+        } 
+    } catch (error) {
+        console.error('getAllCycleOptions Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        //console.log(`SrDuckDbUtils.getAllCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+    }
+    return cycles;
+}
+
 
 export async function updateAllFilterOptions(req_id: number): Promise<void> {
     const startTime = performance.now(); // Start time

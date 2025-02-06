@@ -99,10 +99,10 @@ function exportToCSV(): void {
     rows.value.forEach(row => {
         // Convert each cell to string, handle commas, quotes if needed
         const rowData = columns.value.map(col => {
-        // Convert "undefined" or null values to empty string
-        const cellValue = row[col] == null ? '' : String(row[col]);
-        // Optional: handle quotes, escape commas, etc. if you want more robust CSV
-        return `"${cellValue.replace(/"/g, '""')}"`;
+            // Convert "undefined" or null values to empty string
+            const cellValue = row[col] == null ? '' : String(row[col]);
+            // Optional: handle quotes, escape commas, etc. if you want more robust CSV
+            return `"${cellValue.replace(/"/g, '""')}"`;
         });
         csvContent += rowData.join(',') + '\n';
     });

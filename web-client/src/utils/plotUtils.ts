@@ -1010,16 +1010,21 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 
     const reqIdStr = recTreeStore.selectedReqIdStr;
     //console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
-    const runCtx: SrRunContext = {
+    const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
-        rgt: chartStore.getRgts(reqIdStr)[0],
+        trackFilter: {
+            rgt: chartStore.getRgts(reqIdStr)[0],
+            cycle: chartStore.getCycles(reqIdStr)[0],
+            track: chartStore.getTracks(reqIdStr)[0],
+            beam: ((chartStore.stateByReqId[reqIdStr].beams.length>0) ? chartStore.getBeamValues(reqIdStr)[0] : -1),
+        }
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
         //console.log('Show Photon Cloud Overlay checked');
-        const reqId = await indexedDb.findCachedRec(runCtx);
+        const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){
-            runCtx.reqId = reqId;
+            runContext.reqId = reqId;
             const childReqIdStr = reqId.toString();
             chartStore.setRgts(childReqIdStr,chartStore.getRgts(reqIdStr));
             chartStore.setCycles(childReqIdStr,chartStore.getCycles(reqIdStr));
@@ -1028,11 +1033,11 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
             //console.log('findCachedRec reqId found:', reqId);
         } else {
-            console.warn('findCachedRec reqId not found, NEED to fetch for:', runCtx);
+            console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
             requestsStore.setSvrMsg('');
         }
     }
-    return runCtx;
+    return runContext;
 }
 
 async function updatePlot(msg:string){
