@@ -190,6 +190,16 @@ watch(
   { deep: true }
 );
 
+function handleValueChange(value) {
+    console.log('SrScatterPlot handleValueChange:', value);
+    const reqId = recTreeStore.selectedReqIdStr;
+    if (reqId) {
+        //callPlotUpdateDebounced('from handleModelValueChange');
+    } else {
+        console.warn('reqId is undefined');
+    }
+    console.log('SrScatterPlot handleValueChange:', value);
+}
 
 </script>
 <template>
@@ -215,8 +225,13 @@ watch(
             <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                 <Listbox 
                     class="sr-select-cycle"
-                    v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr].value" 
-                    :options="computedCycleOptions" 
+                    v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
+                    optionLabel="label"
+                    optionValue="value"
+                    :multiple="true"
+                    :metaKeySelection="true"
+                    :options="computedCycleOptions"
+                    @change="handleValueChange"
                 />
                 <ToggleButton 
                     class="sr-show-hide-button"
@@ -303,7 +318,9 @@ watch(
 
 .sr-select-cycle {
     width: 100%;
-    min-width: 10rem;
+    min-width: 5rem;
+    max-width: 7rem;
+    max-height: 10rem;
     margin: 0.25rem;
 }
 .sr-run-control{

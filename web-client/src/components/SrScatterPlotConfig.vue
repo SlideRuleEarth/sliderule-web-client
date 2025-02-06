@@ -49,8 +49,8 @@ async function onMainYDataSelectionChange(newValue: string[]) {
 }
 
 onMounted(() => {
-    console.log('SrScatterPlotOptions onMounted props.reqId:', props.reqId);
-    console.log('SrScatterPlotOptions onMounted computedReqIdStr:', computedReqIdStr.value);
+    //console.log('SrScatterPlotConfig onMounted props.reqId:', props.reqId);
+    //console.log('SrScatterPlotConfig onMounted computedReqIdStr:', computedReqIdStr.value);
 });
 
 

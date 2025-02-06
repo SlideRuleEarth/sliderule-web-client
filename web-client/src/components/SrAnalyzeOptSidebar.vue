@@ -80,7 +80,7 @@ const computedInitializing = computed(() => {
 
 const highlightedTrackDetails = computed(() => {
     if(chartStore.getRgts(recTreeStore.selectedReqIdStr).length > 0 &&  chartStore.getTracks(recTreeStore.selectedReqIdStr).length > 0 && chartStore.getBeamValues(recTreeStore.selectedReqIdStr).length > 0) {
-        return `rgt:${chartStore.getRgts(recTreeStore.selectedReqIdStr)} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)}`;
+        return `rgt:${chartStore.getRgts(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)}`;
     } else {
         return '';
     }
@@ -619,11 +619,6 @@ const exportButtonClick = async () => {
     }
     .sr-link-small-text {
         font-size: smaller;
-    }
-
-    :deep(.p-listbox-option) {
-        padding-top: 0.125rem;
-        padding-bottom: 0rem;
     }
 
     .sr-analysis-rec-parms{

@@ -407,7 +407,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        cs.setSelectedCycleOptions(reqIdStr, [d.cycle]);
+        cs.setCycles(reqIdStr, [d.cycle]);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
@@ -429,7 +429,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     updateChartStore(useRecTreeStore().selectedReqId);
     //console.log('Clicked: spot',cs.getSpots(reqIdStr))
     //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
-
+    console.log('clicked:',d,'chartStore:',cs);
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {

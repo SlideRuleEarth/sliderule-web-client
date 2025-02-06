@@ -501,7 +501,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
 
 export interface SrScatterChartData { value: number[] };
 
-export async function updateRgtOptions(req_id: number): Promise<number[]> {
+export async function getAllRgtOptions(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
@@ -654,7 +654,7 @@ export async function updateScOrientOptions(req_id: number): Promise<number[]> {
     return scOrients;
 }
 
-export async function updateCycleOptions(req_id: number): Promise<SrListNumberItem[]> {
+export async function getAllCycleOptions(req_id: number): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
@@ -668,7 +668,11 @@ export async function updateCycleOptions(req_id: number): Promise<SrListNumberIt
             for (const row of rowChunk) {
                 if (row) {
                     //console.log('getCycle row:', row);
-                    const timeStr = new Date(row.time).toLocaleString();
+                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                      });
                     cycles.push({label:timeStr, value:row.cycle});
                 } else {
                     console.warn('getCycles fetchData rowData is null');
@@ -676,11 +680,11 @@ export async function updateCycleOptions(req_id: number): Promise<SrListNumberIt
             }
         } 
     } catch (error) {
-        console.error('updateCycleOptions Error:', error);
+        console.error('getAllCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+        //console.log(`SrDuckDbUtils.getAllCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
     }
     return cycles;
 }
@@ -691,13 +695,15 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
     try{
         const atlChartFilterStore = useAtlChartFilterStore();
         const chartStore = useChartStore();
-        const rgts = await updateRgtOptions(req_id);
-        chartStore.setRgts(reqIdStr,rgts);
-        const cycles = await updateCycleOptions(req_id);
-        console.log('updateAllFilterOptions cycles:', cycles, 'size:', cycles.length); 
-        chartStore.setCycleOptions(reqIdStr,cycles);
-        if(cycles.length > 0){
-            chartStore.setCycles(reqIdStr,[cycles[0].value]);// auto select first cycle
+        const rgts = await getAllRgtOptions(req_id);
+        chartStore.setRgtOptions(reqIdStr,rgts);
+        const cycleOptions = await getAllCycleOptions(req_id);
+        console.log('updateAllFilterOptions cycleOptions:', cycleOptions, 'size:', cycleOptions.length); 
+        console.log('updateAllFilterOptions cycleOptions:', chartStore.getCycleOptions(reqIdStr));
+        console.log('updateAllFilterOptions cycleOptions[0]:', cycleOptions[0],cycleOptions[0].value);
+        chartStore.setCycleOptions(reqIdStr,cycleOptions);
+        if(cycleOptions.length > 0){
+            chartStore.setCycles(reqIdStr,[cycleOptions[0].value]);// auto select first cycle
         }
         if(useRecTreeStore().findApiForReqId(req_id)==='atl03sp'){
             const pairs = await updatePairOptions(req_id);

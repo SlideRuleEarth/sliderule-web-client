@@ -21,8 +21,8 @@ export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedR
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<SrListNumberItem[]> }>({});
-export const selectedBeamReactive = reactive<{ [key: string]: WritableComputedRef<SrListNumberItem[]> }>({});
+export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
+//export const selectedBeamReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export interface SrScatterSeriesData{
   series: {
     name: string;
@@ -108,18 +108,25 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         } 
-        if(!(reqId in selectedCycleReactive)){
+        if (!(reqId in selectedCycleReactive)) {
             selectedCycleReactive[reqId] = computed({
-                get: ():SrListNumberItem[] => chartStore.getSelectedCycleOptions(reqId),
-                set: (values: SrListNumberItem[]):void => chartStore.setSelectedCycleOptions(reqId, values),
+                get: (): number[] => {
+                    const value = chartStore.getCycles(reqId);
+                    //console.log(`selectedCycleReactive[${reqId}] get:`, value);
+                    return value;
+                },
+                set: (values: number[]): void => {
+                    //console.log(`selectedCycleReactive[${reqId}] set:`, values);
+                    chartStore.setCycles(reqId, values);
+                },
             });
-        }
-        if(!(reqId in selectedBeamReactive)){
-            selectedBeamReactive[reqId] = computed({
-                get: ():SrListNumberItem[] => chartStore.getSelectedBeamOptions(reqId),
-                set: (values: SrListNumberItem[]):void => chartStore.setSelectedBeamOptions(reqId, values),
-            });
-        }  
+        }        
+        // if(!(reqId in selectedBeamReactive)){
+        //     selectedBeamReactive[reqId] = computed({
+        //         get: ():SrListNumberItem[] => chartStore.getSelectedBeamOptions(reqId),
+        //         set: (values: SrListNumberItem[]):void => chartStore.setSelectedBeamOptions(reqId, values),
+        //     });
+        // }  
     });
 }
 

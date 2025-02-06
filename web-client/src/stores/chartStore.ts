@@ -46,7 +46,7 @@ interface ChartState {
     showYDataMenu: boolean;
     rgtOptions: number[];
     cycleOptions: SrListNumberItem[];
-    selectedCycleOptions: SrListNumberItem[];
+    selectedCycleOptions: Array<SrListNumberItem>;
 }
 
 
@@ -93,11 +93,10 @@ export const useChartStore = defineStore('chartStore', {
                     beams:[{ label: 'unknown', value: -1}],
                     spots: [],
                     rgts: [],
+                    pairs: [],
                     rgtOptions: [], 
-                    //cycles: [],
                     cycleOptions: [] as SrListNumberItem[],
                     selectedCycleOptions: [] as SrListNumberItem[],
-                    pairs: [],
                     scOrients: [],
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
                     dataOrderNdx: {} as Record<string, number>,
@@ -375,13 +374,18 @@ export const useChartStore = defineStore('chartStore', {
         },
         setCycles(reqIdStr: string, cycles: number[]) {
             this.ensureState(reqIdStr);
+
+            //console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles);
             if (!Array.isArray(cycles)) {
                 console.error('setCycles received invalid cycles:', cycles);
                 this.stateByReqId[reqIdStr].selectedCycleOptions = [];
                 return;
             }
-            this.stateByReqId[reqIdStr].selectedCycleOptions = cycles.map(cycle => ({ label: cycle.toString(), value: cycle }));
-            console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles);
+            const cycleOptions = cycles.map(cycle => {
+                return this.findCycleOption(reqIdStr, cycle) || { label: cycle.toString(), value: cycle };
+            });
+            this.setSelectedCycleOptions(reqIdStr,cycleOptions);
+            //console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles, ' selectedCycleOptions:',this.stateByReqId[reqIdStr].selectedCycleOptions );
         },
         getCycles(reqIdStr: string): number[] {
             this.ensureState(reqIdStr);
@@ -390,7 +394,9 @@ export const useChartStore = defineStore('chartStore', {
                 console.error(`getCycles: selectedCycleOptions is not an array`, options);
                 return [];
             }
-            return options.map(cycle => cycle.value);
+            const cycles = options.map(cycle => cycle?.value);
+            //console.log('getCycles reqIdStr:',reqIdStr, 'options:',options, ' cycles:',cycles);
+            return cycles;
         },
         setSelectedCycleOptions(reqIdStr: string, cycleOptions: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
@@ -399,7 +405,13 @@ export const useChartStore = defineStore('chartStore', {
                 this.stateByReqId[reqIdStr].selectedCycleOptions = [];
                 return;
             }
-            this.stateByReqId[reqIdStr].selectedCycleOptions = cycleOptions;
+            if(cycleOptions){
+                this.stateByReqId[reqIdStr].selectedCycleOptions = cycleOptions;
+            } else {
+                console.warn('setSelectedCycleOptions received null cycleOptions');
+                this.stateByReqId[reqIdStr].selectedCycleOptions = [];
+            }
+            //console.log('setSelectedCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',this.stateByReqId[reqIdStr].selectedCycleOptions );
         },
         getSelectedCycleOptions(reqIdStr: string): SrListNumberItem[] {
             this.ensureState(reqIdStr);
@@ -537,15 +549,17 @@ export const useChartStore = defineStore('chartStore', {
         },
         setCycleOptions(reqIdStr: string, cycleOptions: SrListNumberItem[]) {
             this.ensureState(reqIdStr);
-            console.log('setCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',cycleOptions);
             this.stateByReqId[reqIdStr].cycleOptions = cycleOptions;
+            //console.log('setCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',cycleOptions,'this.stateByReqId[reqIdStr].cycleOptions:',this.stateByReqId[reqIdStr].cycleOptions);  
         },
         getCycleOptions(reqIdStr: string): SrListNumberItem[] {
             this.ensureState(reqIdStr);
-            console.log('getCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',this.stateByReqId[reqIdStr].cycleOptions);
+            //console.log('getCycleOptions reqIdStr:',reqIdStr, ' cycleOptions:',this.stateByReqId[reqIdStr].cycleOptions);
             return this.stateByReqId[reqIdStr].cycleOptions;
         },
-      
-
+        findCycleOption(reqIdStr: string, cycle: number): SrListNumberItem | undefined {
+            const cycleOptions = this.getCycleOptions(reqIdStr);
+            return cycleOptions.find(option => option.value === cycle);
+        },
     },
 });
