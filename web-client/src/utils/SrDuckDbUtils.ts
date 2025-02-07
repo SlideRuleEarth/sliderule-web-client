@@ -2,7 +2,7 @@ import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,updateWhereClause,type ElevationDataItem } from '@/utils/SrMapUtils';
+import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -10,8 +10,10 @@ import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import { useChartStore } from '@/stores/chartStore';
+import { useChartStore, type SrListNumberItem } from '@/stores/chartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { updateChartStore } from './plotUtils';
+import { clicked } from '@/utils/SrMapUtils'
 
 interface SummaryRowData {
     minLat: number;
@@ -28,9 +30,8 @@ const srMutex = new SrMutex();
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            const recTreeStore = useRecTreeStore();
             const height_fieldname = getHFieldName(req_id);
-            return await duckDbReadOrCacheSummary(req_id,height_fieldname);    
+            return await _duckDbReadOrCacheSummary(req_id,height_fieldname);    
         } else {
             throw new Error('readOrCacheSummary unknown reader');
         }
@@ -134,38 +135,18 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
     }
 }
 
-export async function prepareDbForReqId(reqId: number): Promise<void> {
-    //console.log(`prepareDbForReqId for ${reqId}`);
-    const startTime = performance.now(); // Start time
-    try{
-        const fileName = await indexedDb.getFilename(reqId);
-        const duckDbClient = await createDuckDbClient();
-        await duckDbClient.insertOpfsParquet(fileName);
-        const colNames = await duckDbClient.queryForColNames(fileName);
-        updateAllFilterOptions(reqId);
-        updateWhereClause(reqId.toString());
-        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
-    } catch (error) {
-        console.error('prepareDbForReqId error:', error);
-        throw error;
-    } finally {                                                                    
-        const endTime = performance.now(); // End time
-        console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
-    }
-}
-
-export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
+async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
     const unlock = await srMutex.lock();
     try {
         const filename = await indexedDb.getFilename(req_id);
         const summary = await indexedDb.getWorkerSummary(req_id);
-        //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
+        //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
 
         if (summary && summary.extLatLon && summary.extHMean) {
-            //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' existing summary:', summary);
+            //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' existing summary:', summary);
             return summary;
         } else {
-            //console.log('duckDbReadOrCacheSummary req_id:', req_id, ' Reading new summary');
+            //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' Reading new summary');
             const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
             const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
             const duckDbClient = await createDuckDbClient();
@@ -173,7 +154,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
             try {
                 await duckDbClient.insertOpfsParquet(filename);
-                //console.log('duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
+                //console.log('_duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
 
                 const results = await duckDbClient.query(`
                     SELECT
@@ -192,7 +173,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
                 // Collect rows from the async generator in chunks
                 const rows: SummaryRowData[] = [];
-                //console.log('duckDbReadOrCacheSummary results:', results);
+                //console.log('_duckDbReadOrCacheSummary results:', results);
                 for await (const chunk of results.readRows()) {
                     for (const row of chunk) {
                         const typedRow: SummaryRowData = {
@@ -212,7 +193,7 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
 
                 if (rows.length > 0) {
                     const row = rows[0];
-                    //console.log('duckDbReadOrCacheSummary row:', row);
+                    //console.log('_duckDbReadOrCacheSummary row:', row);
                     localExtLatLon.minLat = row.minLat;
                     localExtLatLon.maxLat = row.maxLat;
                     localExtLatLon.minLon = row.minLon;
@@ -234,12 +215,12 @@ export async function duckDbReadOrCacheSummary(req_id: number, height_fieldname:
                 }
                 return await indexedDb.getWorkerSummary(req_id);
             } catch (error) {
-                console.error('duckDbReadOrCacheSummary error:', error);
+                console.error('_duckDbReadOrCacheSummary error:', error);
                 throw error;
             }
         }
     } catch (error) {
-        console.error('duckDbReadOrCacheSummary error:', error);
+        console.error('_duckDbReadOrCacheSummary error:', error);
         throw error;
     } finally {
         unlock();
@@ -250,13 +231,11 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     let sample_fraction = 1.0;
     try{
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-        const height_fieldname = getHFieldName(req_id);
-        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+        const summary = await readOrCacheSummary(req_id);
         if(summary){
             const numPointsStr = summary.numPoints;
             const numPoints = parseInt(String(numPointsStr));
             // console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
-
             try{
                 sample_fraction = maxNumPnts /numPoints; 
             } catch (error) {
@@ -270,6 +249,26 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
         console.error('computeSamplingRate error:', error, 'req_id:', req_id);
     }
     return sample_fraction;
+}
+
+export async function prepareDbForReqId(reqId: number): Promise<void> {
+    //console.log(`prepareDbForReqId for ${reqId}`);
+    const startTime = performance.now(); // Start time
+    try{
+        const fileName = await indexedDb.getFilename(reqId);
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const colNames = await duckDbClient.queryForColNames(fileName);
+        updateAllFilterOptions(reqId);
+        updateChartStore(reqId);
+        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
+    } catch (error) {
+        console.error('prepareDbForReqId error:', error);
+        throw error;
+    } finally {                                                                    
+        const endTime = performance.now(); // End time
+        console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
+    }
 }
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<ElevationDataItem|null> => {
@@ -326,6 +325,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 firstRec = (rows[0]);
+                const cycleOptions = await getAllCycleOptionsForRgt(useRecTreeStore().selectedReqId, firstRec.rgt);
+                useChartStore().setCycleOptions(req_id.toString(), cycleOptions);
+                clicked(firstRec);
                 numDataItemsUsed += rows.length;
                 useMapStore().setCurrentRows(numDataItemsUsed);
                      
@@ -345,10 +347,13 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         }
         const name = EL_LAYER_NAME+'_'+req_id.toString();
         const height_fieldname = getHFieldName(req_id);
-        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
+        const summary = await readOrCacheSummary(req_id);
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
             updateElLayerWithObject(name,rows as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
+            prepareDbForReqId(req_id);
+        } else {
+            console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
 
     } catch (error) {
@@ -384,14 +389,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
         const chartStore = useChartStore();
-        const rgts = chartStore.getRgtValues(reqIdStr);
-        const cycles = chartStore.getCycleValues(reqIdStr); 
+        const rgt = chartStore.getRgt(reqIdStr);
+        const cycles = chartStore.getCycles(reqIdStr); 
         if(func.includes('atl06')){
-            const spots = chartStore.getSpotValues(reqIdStr);
+            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -400,20 +405,20 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
         } else if(func.includes('atl03vp')){
-            const spots = chartStore.getSpotValues(reqIdStr);
+            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
         } else if(func.includes('atl08')){
-            const spots = chartStore.getSpotValues(reqIdStr);
+            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -515,7 +520,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
 
 export interface SrScatterChartData { value: number[] };
 
-export async function updateRgtOptions(req_id: number): Promise<number[]> {
+export async function getAllRgtOptions(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
@@ -668,44 +673,93 @@ export async function updateScOrientOptions(req_id: number): Promise<number[]> {
     return scOrients;
 }
 
-export async function updateCycleOptions(req_id: number): Promise<number[]> {
+export async function getAllCycleOptions(req_id: number): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
-    const cycles = [] as number[];
+    const cycles = [] as SrListNumberItem[];
     try{
-        const query = `SELECT DISTINCT cycle FROM '${fileName}' order by cycle ASC`;
+        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' GROUP BY cycle ORDER BY cycle ASC;`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
                     //console.log('getCycle row:', row);
-                    cycles.push(row.cycle);
+                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    const newLabel = `${row.cycle}: ${timeStr}`;
+                    cycles.push({label:newLabel, value:row.cycle});
                 } else {
                     console.warn('getCycles fetchData rowData is null');
                 }
             }
         } 
     } catch (error) {
-        console.error('updateCycleOptions Error:', error);
+        console.error('getAllCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.updateCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+        //console.log(`SrDuckDbUtils.getAllCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
     }
     return cycles;
 }
 
+export async function getAllCycleOptionsForRgt(req_id: number,rgt:number): Promise<SrListNumberItem[]> {
+    const startTime = performance.now(); // Start time
+
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+    const cycles = [] as SrListNumberItem[];
+    try{
+        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' GROUP BY cycle ORDER BY cycle ASC;`;
+        const queryResult: QueryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                    //console.log('getCycle row:', row);
+                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    const newLabel = `${row.cycle}: ${timeStr}`;
+                    cycles.push({label:newLabel, value:row.cycle});
+                } else {
+                    console.warn('getCycles fetchData rowData is null');
+                }
+            }
+        } 
+    } catch (error) {
+        console.error('getAllCycleOptions Error:', error);
+        throw error;
+    } finally {
+        const endTime = performance.now(); // End time
+        //console.log(`SrDuckDbUtils.getAllCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+    }
+    return cycles;
+}
+
+
 export async function updateAllFilterOptions(req_id: number): Promise<void> {
     const startTime = performance.now(); // Start time
+    const reqIdStr = req_id.toString();
     try{
         const atlChartFilterStore = useAtlChartFilterStore();
-        const rgts = await updateRgtOptions(req_id);
-        atlChartFilterStore.setRgtOptionsWithNumbers(rgts);
-        const cycles = await updateCycleOptions(req_id);
-        atlChartFilterStore.setCycleOptionsWithNumbers(cycles);
+        const chartStore = useChartStore();
+        const rgts = await getAllRgtOptions(req_id);
+        chartStore.setRgtOptions(reqIdStr,rgts);
+        const cycleOptions = await getAllCycleOptions(req_id);
+        console.log('updateAllFilterOptions cycleOptions:', cycleOptions, 'size:', cycleOptions.length); 
+        console.log('updateAllFilterOptions cycleOptions:', chartStore.getCycleOptions(reqIdStr));
+        console.log('updateAllFilterOptions cycleOptions[0]:', cycleOptions[0],cycleOptions[0].value);
+        const opts = await getAllCycleOptionsForRgt(req_id,rgts[0]);
+        chartStore.setCycleOptions(reqIdStr, opts);
         if(useRecTreeStore().findApiForReqId(req_id)==='atl03sp'){
             const pairs = await updatePairOptions(req_id);
             atlChartFilterStore.setPairOptionsWithNumbers(pairs);
@@ -784,6 +838,14 @@ export async function fetchScatterData(
     normalizedMinMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
 }> {
+    // Ensure 'time' is in the y array
+    if (!y.includes('time')) {
+        y = [...y, 'time'];
+    }
+    // Ensure cycle is in the y array
+    if (!y.includes('cycle')) {
+        y = [...y, 'cycle'];
+    }
     const {
         extraSelectColumns = [],
         transformRow,
@@ -807,6 +869,7 @@ export async function fetchScatterData(
     let orderNdx=0;
 
     try {
+        await duckDbClient.insertOpfsParquet(fileName);
         /**
          * 1. Compute min/max for x and each of the y columns.
          */

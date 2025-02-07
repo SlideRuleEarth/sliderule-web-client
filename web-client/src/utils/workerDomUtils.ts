@@ -16,7 +16,7 @@ import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
-import { callPlotUpdateDebounced,updateChartStore } from '@/utils/plotUtils';
+import { callPlotUpdateDebounced } from '@/utils/plotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const consoleStore = useSrSvrConsoleStore();
@@ -75,8 +75,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
             numBytes = await db.getNumBytes(workerMsg.req_id);
+            const summary = await db.getWorkerSummary(workerMsg.req_id);
             if(numBytes > 0){
-                successMsg = `Record ${workerMsg.req_id} created with ${numBytes} bytes.\n\nClick on another track to plot elevation of that track.`;
+                successMsg = `Record ${workerMsg.req_id} created with ${summary?.numPoints.toLocaleString()} points (${numBytes.toLocaleString()} bytes).
+                Click on another track to plot the elevation of that track.`;
                 useSrToastStore().success('Success',successMsg,15000); // 15 seconds
             } else {
                 successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
@@ -170,11 +172,10 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 try {
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
-                        await updateChartStore(workerMsg.req_id);
                         await readOrCacheSummary(workerMsg.req_id);
                         await prepareDbForReqId(workerMsg.req_id);
-                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
                         router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue

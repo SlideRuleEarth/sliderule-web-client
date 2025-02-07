@@ -2,7 +2,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
-import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -21,7 +20,6 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { useColorMapStore } from '@/stores/colorMapStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 import { srViews } from "@/composables/SrViews";
@@ -32,11 +30,11 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary,getAllCycleOptionsForRgt } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
-import { clearPlot } from '@/utils/plotUtils';
+import { clearPlot,updateChartStore  } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
@@ -44,6 +42,7 @@ import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -318,59 +317,58 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-export function updateWhereClause(reqIdStr:string){
-    const cs = useChartStore();
-    const reqId = parseInt(reqIdStr);
-    const func = useRecTreeStore().findApiForReqId(reqId);
-    //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
-    if(func==='atl03sp'){
-        let atl03spWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND track IN (${cs.getTrackValues(reqIdStr).join(", ")}) 
-        `;
-        if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
-            atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
-        } else {
-            console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
-        }
-        if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
-            atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
-        } else {
-            console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
-        }
-        cs.setWhereClause(reqIdStr,atl03spWhereClause);
+// export function updateWhereClause(reqIdStr:string){
+//     const cs = useChartStore();
+//     const reqId = parseInt(reqIdStr);
+//     const func = useRecTreeStore().findApiForReqId(reqId);
+//     //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
+//     if(func==='atl03sp'){
+//         let atl03spWhereClause = `
+//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
+//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
+//             AND track IN (${cs.getTracks(reqIdStr).join(", ")}) 
+//         `;
+//         if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
+//             atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
+//         } else {
+//             console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
+//         }
+//         if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
+//             atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
+//         } else {
+//             console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
+//         }
+//         //cs.setWhereClause(reqIdStr,atl03spWhereClause);
         
-        //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
-    } else if(func === 'atl03vp'){
-        const atl03vpWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
-    } else if (func.includes('atl06')){ // all atl06
-        const atl06WhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl06WhereClause);
-        //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
-    } else if (func === 'atl08p'){
-        const atl08pWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
-    } else {
-        console.error('updateWhereClause Unknown func?:',func);
-    }
-
-}
+//         //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
+//     } else if(func === 'atl03vp'){
+//         const atl03vpWhereClause = `
+//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
+//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
+//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
+//         `;
+//         //cs.setWhereClause(reqIdStr,atl03vpWhereClause);
+//         //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
+//     } else if (func.includes('atl06')){ // all atl06
+//         const atl06WhereClause = `
+//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
+//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
+//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
+//         `;
+//         //cs.setWhereClause(reqIdStr,atl06WhereClause);
+//         //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
+//     } else if (func === 'atl08p'){
+//         const atl08pWhereClause = `
+//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
+//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
+//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
+//         `;
+//         //cs.setWhereClause(reqIdStr,atl08pWhereClause);
+//         //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
+//     } else {
+//         console.error('updateWhereClause Unknown func?:',func);
+//     }
+// }
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
@@ -403,12 +401,12 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         cs.setScOrientWithNumber(reqIdStr, getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        cs.setRgtWithNumber(reqIdStr, d.rgt);
+        cs.setRgt(reqIdStr, d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        cs.setCycleWithNumber(reqIdStr, d.cycle);
+        cs.setCycles(reqIdStr, [d.cycle]);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
@@ -426,10 +424,11 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
             cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
         }
     }
-    updateWhereClause(reqIdStr);
-    //console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
+    //updateWhereClause(reqIdStr);
+    updateChartStore(useRecTreeStore().selectedReqId);
+    //console.log('Clicked: spot',cs.getSpots(reqIdStr))
     //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
-
+    console.log('clicked:',d,'chartStore:',cs);
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
@@ -979,18 +978,22 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
     //const startTime = performance.now(); // Start time
     try{
-        const poly:SrRegion = await db.getSvrReqPoly(reqId);
-        const rc = await db.getRunContext(reqId);
-        if(poly.length > 0){
-            if(!rc?.trackFilter){
-                if(map){
+        if(map){
+            const poly:SrRegion = await db.getSvrReqPoly(reqId);
+            const rc = await db.getRunContext(reqId);
+            if(poly.length > 0){
+                if(rc){
+                    if(rc?.parentReqId<=0){
+                        renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
+                    }
+                } else {
                     renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
                 }
             } else {
-                //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+                console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
             }
         } else {
-            console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+            console.error('renderSvrReqPoly Error: map is null');
         }
     } catch (error) {
         console.error('renderSvrReqPoly Error:',error);

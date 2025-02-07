@@ -6,11 +6,10 @@ import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
 import SrSliderInput from '@/components/SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData, duckDbReadOrCacheSummary, prepareDbForReqId, updateAllFilterOptions } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { SrMenuNumberItem } from "@/types/SrTypes";
 import { useDeckStore } from '@/stores/deckStore';
 import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";
@@ -22,16 +21,15 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotConfig from "@/components/SrScatterPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
-import { updateChartStore } from '@/utils/plotUtils';
+//import { updateChartStore } from '@/utils/plotUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
-import { clicked } from '@/utils/SrMapUtils'
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
-import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
+//import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { getHFieldName } from '@/utils/SrDuckDbUtils';
+//import { getHFieldName } from '@/utils/SrDuckDbUtils';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();
@@ -70,8 +68,6 @@ const props = defineProps({
 const tooltipRef = ref();
 const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
-const rgtsOptions = computed(() => atlChartFilterStore.getRgtOptions());
-const cyclesOptions = computed(() => atlChartFilterStore.getCycleOptions());
 const toast = useToast();
 const srToastStore = useSrToastStore();
 const isMounted = ref(false);
@@ -82,32 +78,8 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    if(chartStore.getRgts(recTreeStore.selectedReqIdStr) && chartStore.getRgts(recTreeStore.selectedReqIdStr).length > 0 && chartStore.getCycles(recTreeStore.selectedReqIdStr) && chartStore.getCycles(recTreeStore.selectedReqIdStr).length > 0 && chartStore.getTracks(recTreeStore.selectedReqIdStr) && chartStore.getTracks(recTreeStore.selectedReqIdStr).length > 0 && chartStore.getBeams(recTreeStore.selectedReqIdStr) && chartStore.getBeams(recTreeStore.selectedReqIdStr).length > 0) {
-        return `rgt:${chartStore.getRgts(recTreeStore.selectedReqIdStr)[0].value} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)[0].value} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)[0].value} beam:${chartStore.getBeams(recTreeStore.selectedReqIdStr)[0].label}`;
-    } else {
-        return '';
-    }
+    return `rgt:${chartStore.getRgt(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)}`;
 });
-
-async function initAnalysisMap() {
-    const req_id = recTreeStore.selectedReqId;
-    try{
-        if(req_id > 0){
-            const reqIdStr = req_id.toString();
-            atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            deckStore.deleteSelectedLayer();
-            chartStore.setSpots(reqIdStr,[]);
-            chartStore.setRgts(reqIdStr,[]);
-            chartStore.setCycles(reqIdStr,[]);
-            //await updateFilter([req_id]);
-            await debouncedUpdateElevationMap();
-        } else {
-            console.warn('watch useAtlChartFilterStore().selectedReqIdMenuItem/newSelection --> Request Id is <= 0',req_id);
-        }
-    } catch (error) {
-        console.error(`Failed to update with selected record ${req_id}:`, error);
-    }    
-}
 
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
@@ -116,7 +88,7 @@ onMounted(async () => {
 });
 
 const onSpotSelection = async() => {
-    const spots = chartStore.getSpots(recTreeStore.selectedReqIdStr);
+    const spots = chartStore.getSelectedSpotOptions(recTreeStore.selectedReqIdStr);
     //console.log('onSpotSelection spots:', spots);
     spots.forEach((spot) => {
         const d = getDetailsFromSpotNumber(spot.value);
@@ -179,7 +151,6 @@ const updateElevationMap = async (req_id: number) => {
     try {
         //console.log('Request:', request);
         deckStore.deleteSelectedLayer();
-        updateAllFilterOptions(req_id);
         //updateFilter([req_id]); // query to set all options for all 
         mapStore.setIsLoading(true);
         firstRec = await duckDbReadAndUpdateElevationData(req_id);
@@ -191,9 +162,9 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         //console.log('pushing selectedReqId:', req_id);
-        if(firstRec){
-            clicked(firstRec); // preset filters using the first row
-        }
+        // if(firstRec){
+        //     clicked(firstRec); // preset filters using the first row
+        // }
         await router.push(`/analyze/${recTreeStore.selectedReqId}`);
         console.log('Successfully navigated to analyze:', recTreeStore.selectedReqId);
     } catch (error) {
@@ -208,42 +179,6 @@ const debouncedUpdateElevationMap = debounce(() => {
     return updateElevationMap(req_id);
 }, 500);
 
-const updateRecordSelection = async (item: SrMenuNumberItem) => {
-    //console.log('updateRecordSelection item:', item);
-    if(recTreeStore.selectedReqId > 0){
-        console.log('handleUpdateReqId selectedReqId:', recTreeStore.selectedReqId);
-        await prepareDbForReqId(recTreeStore.selectedReqId);
-    } else {
-        console.warn("useAtlChartFilterStore().selectedReqIdMenuItem is undefined");
-    }
-};
-
-// const updateFilter = async (req_ids: number[]) => {
-//     try {
-//         // Process each request ID and aggregate results
-//         let rgts:number[] = [];
-//         let cycles:number[] = [];
-//         for (const req_id of req_ids) {
-//             const rgtOptions = await updateRgtOptions(req_id);
-//             const cycleOptions = await updateCycleOptions(req_id);
-//             rgts.push(...rgtOptions); // Append rgt options
-//             cycles.push(...cycleOptions); // Append cycle options
-//         }
-        
-//         // Remove duplicates from the aggregated results (if needed)
-//         rgts = [...new Set(rgts)];
-//         cycles = [...new Set(cycles)];
-
-//         // Update the store with the aggregated results
-//         const atlChartFilterStore = useAtlChartFilterStore();
-//         atlChartFilterStore.setRgtOptionsWithNumbers(rgts);
-//         atlChartFilterStore.setCycleOptionsWithNumbers(cycles);
-
-//     } catch (error) {
-//         console.error('Failed to update selected requests:', error);
-//     }
-// };
-
 async function processNewReqId() {
     const startTime = performance.now(); // Start time
     mapStore.setTotalRows(0);
@@ -256,11 +191,7 @@ async function processNewReqId() {
         if(req_id !== props.startingReqId){
             console.warn(`processNewReqId: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
         }
-        const height_fieldname = getHFieldName(req_id);
-        const summary = await duckDbReadOrCacheSummary(req_id, height_fieldname);
-        //console.log('processNewReqId summary:', summary, 'req_id:', req_id);
-        await updateChartStore(req_id);
-        await initAnalysisMap();
+        debouncedUpdateElevationMap();
         //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
     } catch (error) {
         if (error instanceof Error) {
@@ -290,9 +221,7 @@ watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {
     }
 }, { deep: true });
 
-watch(
-  () => recTreeStore.selectedReqId,
-  async (newValue, oldValue) => {
+watch(() => recTreeStore.selectedReqId,async (newValue, oldValue) => {
     console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
     // Perform any additional actions on change
     if(newValue > 0 && (newValue !== oldValue)){
@@ -361,7 +290,6 @@ const exportButtonClick = async () => {
                     <SrAnalysisMap 
                         v-else-if="(recTreeStore.selectedReqId > 0)"
                         :selectedReqId="recTreeStore.selectedReqId"
-                        @update-record-selection="updateRecordSelection"
                     />
                 </div>
                 <div class="sr-req-description">
@@ -408,9 +336,9 @@ const exportButtonClick = async () => {
                         <SrListbox id="spots"
                             v-if = "!recTreeStore.selectedApi.includes('gedi')" 
                             label="Spot(s)" 
-                            v-model="chartStore.getSpots(computedReqIdStr)"
-                            :getSelectedMenuItem="atlChartFilterStore.getSpots"
-                            :setSelectedMenuItem="atlChartFilterStore.setSpots"
+                            v-model="chartStore.getSelectedSpotOptions(computedReqIdStr)"
+                            :getSelectedMenuItem="atlChartFilterStore.getSelectedSpotOptions"
+                            :setSelectedMenuItem="atlChartFilterStore.setSelectedSpotOptions"
                             :menuOptions="spotsOptions"
                             tooltipText="Laser pulses from ATLAS illuminate three left/right pairs of spots on the surface that \
             trace out six approximately 14 m wide ground tracks as ICESat-2 orbits Earth. Each ground track is \
@@ -686,11 +614,6 @@ const exportButtonClick = async () => {
     }
     .sr-link-small-text {
         font-size: smaller;
-    }
-
-    :deep(.p-listbox-option) {
-        padding-top: 0.125rem;
-        padding-bottom: 0rem;
     }
 
     .sr-analysis-rec-parms{
