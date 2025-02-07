@@ -21,15 +21,12 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrScatterPlotConfig from "@/components/SrScatterPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
-//import { updateChartStore } from '@/utils/plotUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
-//import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-//import { getHFieldName } from '@/utils/SrDuckDbUtils';
 
 
 const atlChartFilterStore = useAtlChartFilterStore();

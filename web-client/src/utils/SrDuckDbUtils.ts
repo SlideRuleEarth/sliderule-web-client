@@ -12,7 +12,7 @@ import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useChartStore, type SrListNumberItem } from '@/stores/chartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { updateChartStore } from './plotUtils';
+import { updateWhereClauseAndXData } from './plotUtils';
 import { clicked } from '@/utils/SrMapUtils'
 
 interface SummaryRowData {
@@ -260,7 +260,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
         updateAllFilterOptions(reqId);
-        updateChartStore(reqId);
+        updateWhereClauseAndXData(reqId);
         await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);

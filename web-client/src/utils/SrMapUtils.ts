@@ -34,7 +34,7 @@ import { readOrCacheSummary,getAllCycleOptionsForRgt } from "@/utils/SrDuckDbUti
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
-import { clearPlot,updateChartStore  } from '@/utils/plotUtils';
+import { clearPlot,updateWhereClauseAndXData  } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
@@ -425,7 +425,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         }
     }
     //updateWhereClause(reqIdStr);
-    updateChartStore(useRecTreeStore().selectedReqId);
+    updateWhereClauseAndXData(useRecTreeStore().selectedReqId);
     //console.log('Clicked: spot',cs.getSpots(reqIdStr))
     //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
     console.log('clicked:',d,'chartStore:',cs);

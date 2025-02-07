@@ -10,7 +10,7 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize, updateWhereClauseAndXData } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -110,29 +110,28 @@ async function getDataForCycle(cycle) {
     const runContext = await getPhotonOverlayRunContext(cycle);
     const parentReqIdStr = runContext.parentReqId.toString();
     if(runContext.reqId <= 0){
-        //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
+        //console.log('getDataForCycle runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
         await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,chartStore.getRgt(parentReqIdStr),cycle);
         await processRunSlideRuleClicked(runContext);
         console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
-        if(runContext.reqId > 0){ // request was successfully processed
-            const thisReqIdStr = runContext.reqId.toString();
-            initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-            await initSymbolSize(runContext.reqId);
-            initializeColorEncoding(runContext.reqId);
-            chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
-            chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
-            chartStore.setRgt(thisReqIdStr, chartStore.getRgt(parentReqIdStr));
-            chartStore.appendToSelectedCycleOptions(thisReqIdStr, cycle);
-        } else {
+        if(runContext.reqId <= 0){ // request was successfully processed
             console.error('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
         }
     } else {
-        await initSymbolSize(runContext.reqId);
-        initializeColorEncoding(runContext.reqId);
-        await prepareDbForReqId(runContext.reqId);
-        atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
-        await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+        console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked skipped - reqId already exists');
     }
+    const thisReqIdStr = runContext.reqId.toString();
+    initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
+    await updateWhereClauseAndXData(runContext.reqId);
+    await initSymbolSize(runContext.reqId);
+    initializeColorEncoding(runContext.reqId);
+    await prepareDbForReqId(runContext.reqId);
+    chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
+    chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
+    chartStore.setRgt(thisReqIdStr, chartStore.getRgt(parentReqIdStr));
+    chartStore.appendToSelectedCycleOptions(thisReqIdStr, cycle);
+    atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
+    await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
     const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
     requestsStore.setConsoleMsg(msg);
 }

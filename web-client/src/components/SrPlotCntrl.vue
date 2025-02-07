@@ -5,7 +5,6 @@
                <Chip>Photon Cloud</Chip>
             </div>
             <div class="sr-num-of-pnts">
-                <Chip>{{ computedNumOfPnts }} Points</Chip>
             </div>
             <div class="sr-ydata-menu" v-if="showYDataMenuReactive[reqIdStr]">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
@@ -23,6 +22,7 @@
             <div class="sr-ydata-menu">
                 <div>
                     <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Point Color</label>
+                    <OverlayBadge :value="computedNumOfPnts" size="small">
                     <Select
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
@@ -33,6 +33,7 @@
                         size="small"
                     >
                     </Select>
+                    </OverlayBadge>
                 </div>
                 <div class="sr-legend-panel">
                     <SrAtl03ColorLegend 
@@ -91,6 +92,9 @@
                 :tooltipText="sqlStmntToolTipText"
             />
         </div>
+        <div class="sr-npnts">
+            <p>  {{ computedNumOfPnts }} Points</p>
+        </div>
     </Fieldset>
 </template>
   
@@ -99,6 +103,8 @@ import { useChartStore } from '@/stores/chartStore';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
+import Chip from 'primevue/chip';
+import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
 import { computed, onMounted } from 'vue';
@@ -349,6 +355,8 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
 :deep(.p-fieldset-legend) {
     white-space: pre-line; /* This allows \n to work as a line break */
 }
-
+.sr-npnts {
+    font-size: small;
+}
 </style>
   

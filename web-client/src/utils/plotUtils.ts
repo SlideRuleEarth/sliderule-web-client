@@ -727,7 +727,7 @@ const initScatterPlotWith = async (reqId: number) => {
         console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
         return;
     }
-    await updateChartStore(reqId);
+    await updateWhereClauseAndXData(reqId);
 
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataOptions(reqIdStr);
@@ -986,7 +986,7 @@ const updateScatterPlot = async (msg:string) => {
         //console.log(`updateScatterPlot reqIds:`, reqIds);
         reqIds.forEach(async reqId => { 
             if(reqId > 0){
-                await updateChartStore(reqId);
+                await updateWhereClauseAndXData(reqId);
                 await appendSeries(reqId);
             } else {
                 console.error(`updateScatterPlot Invalid request ID:${reqId}`);
@@ -1139,16 +1139,16 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     return chartStore.getSymbolSize(reqIdStr);
 }
 
-export async function updateChartStore(req_id: number) {
-    //console.log('updateChartStore req_id:', req_id);
+export async function updateWhereClauseAndXData(req_id: number) {
+    //console.log('updateWhereClauseAndXData req_id:', req_id);
     const reqIdStr = req_id.toString();
     if (req_id <= 0) {
-        console.warn(`updateChartStore Invalid request ID:${req_id}`);
+        console.warn(`updateWhereClauseAndXData Invalid request ID:${req_id}`);
         return;
     }
     try {
         const reqIdStr = req_id.toString();
-        //console.log('updateChartStore req_id:', req_id);
+        //console.log('updateWhereClauseAndXData req_id:', req_id);
         const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
@@ -1162,9 +1162,9 @@ export async function updateChartStore(req_id: number) {
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
         } else {
-            console.error('updateChartStore whereClause is empty');
+            console.error('updateWhereClauseAndXData whereClause is empty');
         }
     } catch (error) {
-        console.warn('updateChartStore Failed to update selected request:', error);
+        console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
     }
 }
