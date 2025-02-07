@@ -10,7 +10,6 @@ import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
-import { useChartStore } from '@/stores/chartStore';
 
 interface YapcConfig {
   version: number;
@@ -205,26 +204,41 @@ const createReqParamsStore = (id: string) =>
         enableSurfaceElevation: false,
     }),
     actions: {
-        async presetForScatterPlotOverlay(req_id: number) {
-            console.log('presetForScatterPlotOverlay req_id:', req_id);
-            this.setMissionValue("ICESat-2");
-            this.setIceSat2API("atl03sp");
-            this.setEnableGranuleSelection(true);
-            this.setUseRgt(true);
+        async initForScatterPlotOverlay(parentReqId: number) {
+          // set all the things that are static for Photon Cloud overlays
+          console.log('initForScatterPlotOverlay parentReqId:', parentReqId);
+          this.setMissionValue("ICESat-2");
+          this.setIceSat2API("atl03sp");
+          this.setEnableGranuleSelection(true);
+          const poly = await db.getSvrReqPoly(parentReqId);
+          if(poly){
+              this.setPoly(poly);
+              this.setConvexHull(convexHull(poly));
+              this.setAreaOfConvexHull(calculatePolygonArea(poly));
+          } else {
+              console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
+          }
+          this.setSrt([-1]);
+          this.signalConfidenceNumber = [0,1,2,3,4];
+          this.enableAtl08Classification = true;
+          this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+          this.enableYAPC = true;
+          this.YAPCVersion = '0';
+        },
+        async presetForScatterPlotOverlay(parentReqId: number,rgt:number,cycle:number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
+            // set things the user may have changed in this routine
+            console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
             // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
-            const poly = await db.getSvrReqPoly(req_id);
-            if(poly){
-                this.setPoly(poly);
-                this.setConvexHull(convexHull(poly));
-                this.setAreaOfConvexHull(calculatePolygonArea(poly));
-            } else {
-                console.error('presetForScatterPlotOverlay: no poly for req_id:', req_id);
-            }
-
+            this.setUseRgt(true);
+            //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
+            this.setRgt(rgt);
+            this.setEnableGranuleSelection(true);
+            this.setUseCycle(true);
+            this.setCycle(cycle);
 
             // console.log('beams:', useAtlChartFilterStore().getBeams());
             // console.log('rgts:', useAtlChartFilterStore().getRgts());
@@ -233,14 +247,6 @@ const createReqParamsStore = (id: string) =>
             // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());
             // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
 
-            const reqIdStr = req_id.toString();
-            this.setRgt(useChartStore().getRgts(reqIdStr)[0]);//should only be one
-            this.setSrt([-1]);
-            this.signalConfidenceNumber = [0,1,2,3,4];
-            this.enableAtl08Classification = true;
-            this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
-            this.enableYAPC = true;
-            this.YAPCVersion = '0';
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;

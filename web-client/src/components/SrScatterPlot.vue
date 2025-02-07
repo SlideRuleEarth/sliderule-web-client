@@ -21,6 +21,7 @@ import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import { selectedCycleReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
+import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 
 const props = defineProps({
@@ -64,6 +65,8 @@ onMounted(async () => {
         if (reqId > 0) {
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
+            // set this so if the user looks at it, it will be there
+            await useAutoReqParamsStore().initForScatterPlotOverlay(reqId);
         } else {
             console.warn('reqId is undefined');
         }        
@@ -78,6 +81,8 @@ onMounted(async () => {
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     console.log('SrScatterPlot watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
+        // this is just to preset certain values that the user never changes
+        await useAutoReqParamsStore().initForScatterPlotOverlay(newReqId);
         await callPlotUpdateDebounced('from SrScatterPlot watch recTreeStore.selectedReqId');
     }
 });
@@ -99,38 +104,45 @@ const messageClass = computed(() => {
   };
 });
 
+async function getDataForCycle(cycle) {
+    console.log('SrScatterPlot getDataForCycle:', cycle);
+    const runContext = await getPhotonOverlayRunContext(cycle);
+    const parentReqIdStr = runContext.parentReqId.toString();
+    if(runContext.reqId <= 0){
+        //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
+        await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,chartStore.getRgt(parentReqIdStr),cycle);
+        await processRunSlideRuleClicked(runContext);
+        console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+        if(runContext.reqId > 0){ // request was successfully processed
+            const thisReqIdStr = runContext.reqId.toString();
+            initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
+            await initSymbolSize(runContext.reqId);
+            initializeColorEncoding(runContext.reqId);
+            chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
+            chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
+            chartStore.setRgt(thisReqIdStr, chartStore.getRgt(parentReqIdStr));
+            chartStore.appendToSelectedCycleOptions(thisReqIdStr, cycle);
+        } else {
+            console.error('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
+        }
+    } else {
+        await initSymbolSize(runContext.reqId);
+        initializeColorEncoding(runContext.reqId);
+        await prepareDbForReqId(runContext.reqId);
+        atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
+        await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+    }
+    const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
+    requestsStore.setConsoleMsg(msg);
+}
+
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
     console.log('SrScatterPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
-            const runContext = await getPhotonOverlayRunContext();
-            if(runContext.reqId <= 0){
-                //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
-                await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
-                await processRunSlideRuleClicked(runContext);
-                console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
-                if(runContext.reqId > 0){
-                    const thisReqIdStr = runContext.reqId.toString();
-                    const parentReqIdStr = runContext.parentReqId.toString();
-                    initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-                    await initSymbolSize(runContext.reqId);
-                    initializeColorEncoding(runContext.reqId);
-                    chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
-                    chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
-                    chartStore.setRgts(thisReqIdStr, chartStore.getRgts(parentReqIdStr));
-                    chartStore.setCycles(thisReqIdStr, chartStore.getCycles(parentReqIdStr));
-                } else {
-                    console.error('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
-                }
-            } else {
-                await initSymbolSize(runContext.reqId);
-                initializeColorEncoding(runContext.reqId);
-                await prepareDbForReqId(runContext.reqId);
-                atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
-                await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
-            }
-            const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
-            requestsStore.setConsoleMsg(msg);
+            chartStore.getCycles(recTreeStore.selectedReqIdStr).forEach(async (cycle) => {
+                await getDataForCycle(cycle);
+            });
         } else {
             console.log('SrScatterPlot handlePhotonCloudChange - showPhotonCloud FALSE');
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
@@ -154,10 +166,11 @@ watch(atlChartFilterStore.selectedOverlayedReqIds, async (newSelection, oldSelec
 
 watch(
   () => {
-    const reqId = recTreeStore.selectedReqIdStr;
+    const reqId = recTreeStore.selectedReqId;
+    const reqIdStr = recTreeStore.selectedReqIdStr;
 
     // If reqId is undefined, null, or empty, return default values
-    if (!reqId) {
+    if (!reqId || reqId <= 0) {
         return {
             scOrients: [],
             rgts: [],
@@ -172,14 +185,14 @@ watch(
 
     // Otherwise, fetch the real values
     return {
-        scOrients: chartStore.getScOrients(reqId),
-        rgts: chartStore.getRgts(reqId),
-        cycles: chartStore.getCycles(reqId),
-        spots: chartStore.getSelectedSpotOptions(reqId),
-        tracks: chartStore.getTracks(reqId),
-        pairs: chartStore.getPairs(reqId),
-        ydata: chartStore.getSelectedYData(reqId),
-        solidColor: chartStore.getSolidSymbolColor(reqId),
+        scOrients: chartStore.getScOrients(reqIdStr),
+        rgt: chartStore.getRgt(reqIdStr),
+        cycles: chartStore.getCycles(reqIdStr),
+        spots: chartStore.getSelectedSpotOptions(reqIdStr),
+        tracks: chartStore.getTracks(reqIdStr),
+        pairs: chartStore.getPairs(reqIdStr),
+        ydata: chartStore.getSelectedYData(reqIdStr),
+        solidColor: chartStore.getSolidSymbolColor(reqIdStr),
     };
   },
   async (newValues, oldValues) => {
@@ -198,15 +211,16 @@ watch(
   { deep: true }
 );
 
-function handleValueChange(value) {
-    console.log('SrScatterPlot handleValueChange:', value);
+function handleCycleValueChange(value) {
+    console.log('SrScatterPlot handleCycleValueChange:', value);
+    atlChartFilterStore.setSelectedOverlayedReqIds([]);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
         //callPlotUpdateDebounced('from handleModelValueChange');
     } else {
         console.warn('reqId is undefined');
     }
-    console.log('SrScatterPlot handleValueChange:', value);
+    console.log('SrScatterPlot handleCycleValueChange:', value);
 }
 
 </script>
@@ -241,7 +255,7 @@ function handleValueChange(value) {
                     :multiple="true"
                     :metaKeySelection="true"
                     :options="computedCycleOptions"
-                    @change="handleValueChange"
+                    @change="handleCycleValueChange"
                 >
                     <template #header>
                         <div class="p-listbox-header">
@@ -253,7 +267,7 @@ function handleValueChange(value) {
                 </Listbox>
              </div>
         </div> 
-        <div class="sr-scatter-plot-header">
+        <div class="sr-scatter-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
@@ -277,12 +291,20 @@ function handleValueChange(value) {
                     <SrPlotCntrl
                         v-if="(recTreeStore.selectedReqId > 0)"
                         :reqId="recTreeStore.selectedReqId" 
-                />
+                    />
                 </div>
                 <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">
                         <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
+                </div>
+                <div class="sr-multiselect-col-req">
+                    <SrReqDisplay
+                    v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
+                        checkboxLabel='Show Photon Cloud Req Params'
+                        :isForPhotonCloud="true"
+                        :tooltipText="'The params that will be used for the Photon Cloud overlay'"
+                    />
                 </div>
             </div>
         </div>
@@ -310,7 +332,7 @@ function handleValueChange(value) {
   overflow-x: auto;
 }
 
-.sr-scatter-plot-header {
+.sr-scatter-plot-cntrl {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -419,7 +441,7 @@ function handleValueChange(value) {
 .sr-multiselect-container {
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
-    justify-content: space-between; /* Distribute items with equal spacing */
+    justify-content: flex-start; /* All items are packed toward the start of the main axis */
     align-items: flex-start; /* Align items at the start */
     width: 100%;
     margin: 0.25rem 0;
@@ -428,8 +450,8 @@ function handleValueChange(value) {
 
 .sr-multiselect-col {
     flex: 1 1 45%; /* Allow columns to take up 45% of the container width */
-    min-width: 18rem; /* 300px equivalent */
-    max-width: 32rem; /* 500px equivalent */
+    min-width: 10rem; /* 300px equivalent */
+    max-width: 16rem; /* 500px equivalent */
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -437,6 +459,16 @@ function handleValueChange(value) {
     margin: 0.25rem;
 }
 
+.sr-multiselect-col-req {
+    flex: 1 1 45%; /* Allow columns to take up 45% of the container width */
+    min-width: 10rem; /* 300px equivalent */
+    max-width: 25rem; /* 500px equivalent */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch; /* Stretch items to match the width */
+    margin: 0.25rem;
+}
 fieldset {
     word-wrap: break-word; /* Break long words */
     white-space: normal; /* Allow wrapping */

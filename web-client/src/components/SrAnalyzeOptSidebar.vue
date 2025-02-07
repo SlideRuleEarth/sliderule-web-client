@@ -78,11 +78,7 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    if(chartStore.getRgts(recTreeStore.selectedReqIdStr).length > 0 &&  chartStore.getTracks(recTreeStore.selectedReqIdStr).length > 0 && chartStore.getBeamValues(recTreeStore.selectedReqIdStr).length > 0) {
-        return `rgt:${chartStore.getRgts(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)}`;
-    } else {
-        return '';
-    }
+    return `rgt:${chartStore.getRgt(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)}`;
 });
 
 onMounted(async () => {

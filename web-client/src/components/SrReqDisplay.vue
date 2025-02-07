@@ -4,6 +4,7 @@
                 <SrCheckbox
                     v-model="showReqParms"
                     :label="checkboxLabel"
+                    :tooltipText="tooltipText"
                 />
             </div>
             <div 
@@ -24,6 +25,7 @@
 <script setup lang="ts">
   import { computed, ref } from "vue";
   import { useReqParamsStore } from "@/stores/reqParamsStore";
+  import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
   import SrCheckbox from "./SrCheckbox.vue";
   import { useSrToastStore } from "@/stores/srToastStore";
   
@@ -33,9 +35,23 @@
           type: String,
           default: "Show Request Parameters",
       },
+      isForPhotonCloud: {
+          type: Boolean,
+          default: false,
+      },
+      tooltipText: {
+          type: String,
+          default: "Show or hide the request parameters",
+      },
   });
   
-  const reqParamsStore = useReqParamsStore();
+  let reqParamsStore;
+  if(props.isForPhotonCloud) {
+    reqParamsStore = useAutoReqParamsStore();
+  } else {
+    reqParamsStore = useReqParamsStore();
+  }
+  
   const showReqParms = ref(false);
   const isHovered = ref(false);
   

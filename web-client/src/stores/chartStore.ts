@@ -38,7 +38,7 @@ interface ChartState {
     selectAllTracks: boolean;
     beams: Array<SrListNumberItem>;
     spots: Array<SrListNumberItem>;
-    rgts: number[];
+    rgt: number;
     pairs: Array<SrListNumberItem>;
     scOrients: Array<SrListNumberItem>;
     minMaxValues: Record<string, { min: number; max: number }>;
@@ -92,7 +92,7 @@ export const useChartStore = defineStore('chartStore', {
                     selectAllTracks: true,
                     beams:[{ label: 'unknown', value: -1}],
                     spots: [],
-                    rgts: [],
+                    rgt: -1,
                     pairs: [],
                     rgtOptions: [], 
                     cycleOptions: [] as SrListNumberItem[],
@@ -364,13 +364,13 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.setSelectedSpotOptions(reqIdStr,[{ label: spot.toString(), value: spot }]);
         },
-        setRgts(reqIdStr: string, rgts: number[]) {
+        setRgt(reqIdStr: string, rgt: number) {
             this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].rgts = rgts;
+            this.stateByReqId[reqIdStr].rgt = rgt;
         },
-        getRgts(reqIdStr: string): number[] {
+        getRgt(reqIdStr: string): number {
             this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].rgts;
+            return this.stateByReqId[reqIdStr].rgt;
         },
         setCycles(reqIdStr: string, cycles: number[]) {
             this.ensureState(reqIdStr);
@@ -416,6 +416,13 @@ export const useChartStore = defineStore('chartStore', {
         getSelectedCycleOptions(reqIdStr: string): SrListNumberItem[] {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].selectedCycleOptions;
+        },
+        appendToSelectedCycleOptions(reqIdStr: string, cycle: number) {
+            this.ensureState(reqIdStr);
+            const cycleExists = this.stateByReqId[reqIdStr].selectedCycleOptions.some(c => c.value === cycle);
+            if(!cycleExists){
+                this.stateByReqId[reqIdStr].selectedCycleOptions.push({ label: cycle.toString(), value: cycle });
+            }
         },
         setTracks(reqIdStr: string, tracks: number[]) {
             this.ensureState(reqIdStr);

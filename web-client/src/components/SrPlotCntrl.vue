@@ -1,6 +1,12 @@
 <template>
     <Fieldset :legend="computedLabel">
         <div>
+            <div class="sr-num-of-pnts" v-if="props.isOverlay">
+               <Chip>Photon Cloud</Chip>
+            </div>
+            <div class="sr-num-of-pnts">
+                <Chip>{{ computedNumOfPnts }} Points</Chip>
+            </div>
             <div class="sr-ydata-menu" v-if="showYDataMenuReactive[reqIdStr]">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
                 <Select 
@@ -129,11 +135,10 @@ const computedSolidSymbolColor = computed(() => {
 });
 const computedLabel = computed(() => {
     let label = `${props.reqId} - ${computedFunc.value}`;
-    if(computedFunc.value.includes('atl03')){
-        label = label+` - Photon Cloud `;
-    }
-    label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))} pnts)`;
     return `${label}`;
+});
+const computedNumOfPnts = computed(() => {
+    return `${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))}`
 });
 
 
@@ -259,6 +264,16 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     width: auto; /* Let the container size itself based on the content */
     padding: 0.5rem; /* Optional: Add some padding for spacing */
 }
+.sr-num-of-pnts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    font-size: large;
+    font-weight: bold;
+    margin-bottom: 0rem;
+    padding: 0rem; /* Optional: Add some padding for spacing */
+}
 
 .sr-y-data-label {
     margin: 0;
@@ -331,5 +346,9 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     border-radius: 2px;
     margin-left:0.25rem;
 }
+:deep(.p-fieldset-legend) {
+    white-space: pre-line; /* This allows \n to work as a line break */
+}
+
 </style>
   

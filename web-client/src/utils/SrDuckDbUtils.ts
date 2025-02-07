@@ -389,14 +389,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const func = await indexedDb.getFunc(req_id);
         let queryStr = `SELECT * FROM '${filename}'`;
         const chartStore = useChartStore();
-        const rgts = chartStore.getRgts(reqIdStr);
+        const rgt = chartStore.getRgt(reqIdStr);
         const cycles = chartStore.getCycles(reqIdStr); 
         if(func.includes('atl06')){
             const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -409,7 +409,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -418,7 +418,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt IN (${rgt}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `

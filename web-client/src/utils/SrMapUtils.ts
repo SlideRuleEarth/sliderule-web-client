@@ -401,7 +401,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         cs.setScOrientWithNumber(reqIdStr, getScOrientFromSpotGt(d.spot,d.gt));
     }
     if(d.rgt !== undefined){
-        cs.setRgts(reqIdStr, [d.rgt]);
+        cs.setRgt(reqIdStr, d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
