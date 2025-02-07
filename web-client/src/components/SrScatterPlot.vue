@@ -22,6 +22,7 @@ import { selectedCycleReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
+import SrBeamPattern from "./SrBeamPattern.vue";
 import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 
 const props = defineProps({
@@ -247,6 +248,7 @@ function handleCycleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
+                <SrBeamPattern />
                 <Listbox 
                     class="sr-select-cycle"
                     v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
