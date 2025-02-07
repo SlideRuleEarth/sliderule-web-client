@@ -351,7 +351,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
             updateElLayerWithObject(name,rows as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
-            prepareDbForReqId(req_id);
+            await prepareDbForReqId(req_id);
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }

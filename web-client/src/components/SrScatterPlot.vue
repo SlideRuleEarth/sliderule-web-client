@@ -105,7 +105,7 @@ const messageClass = computed(() => {
   };
 });
 
-async function getDataForCycle(cycle) {
+async function getDataForCycle(cycle:number):Promise<void> {
     console.log('SrScatterPlot getDataForCycle:', cycle);
     const runContext = await getPhotonOverlayRunContext(cycle);
     const parentReqIdStr = runContext.parentReqId.toString();
@@ -122,7 +122,6 @@ async function getDataForCycle(cycle) {
     }
     const thisReqIdStr = runContext.reqId.toString();
     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-    await updateWhereClauseAndXData(runContext.reqId);
     await initSymbolSize(runContext.reqId);
     initializeColorEncoding(runContext.reqId);
     await prepareDbForReqId(runContext.reqId);
@@ -130,10 +129,7 @@ async function getDataForCycle(cycle) {
     chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
     chartStore.setRgt(thisReqIdStr, chartStore.getRgt(parentReqIdStr));
     chartStore.appendToSelectedCycleOptions(thisReqIdStr, cycle);
-    atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId]);
-    await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
-    const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
-    requestsStore.setConsoleMsg(msg);
+    atlChartFilterStore.appendToSelectedOverlayedReqIds(runContext.reqId);
 }
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
@@ -143,6 +139,9 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             chartStore.getCycles(recTreeStore.selectedReqIdStr).forEach(async (cycle) => {
                 await getDataForCycle(cycle);
             });
+            await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+            const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
+            requestsStore.setConsoleMsg(msg);
         } else {
             console.log('SrScatterPlot handlePhotonCloudChange - showPhotonCloud FALSE');
             atlChartFilterStore.setSelectedOverlayedReqIds([]);

@@ -100,6 +100,14 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setSelectedOverlayedReqIds(selectedOverlayedReqIds: number[]) {
       this.selectedOverlayedReqIds = selectedOverlayedReqIds;
     },
+    appendToSelectedOverlayedReqIds(reqId: number) {
+      const reqIdExists = this.selectedOverlayedReqIds.includes(reqId);
+      if(!reqIdExists){
+        this.selectedOverlayedReqIds.push(reqId);
+      } else {
+        console.warn('appendToSelectedOverlayedReqIds: reqId:', reqId, 'already exists in selectedOverlayedReqIds:', this.selectedOverlayedReqIds);
+      }
+    },
     setShowMessage(showMessage: boolean) { 
         this.showMessage = showMessage;
     },
