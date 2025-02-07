@@ -248,7 +248,7 @@ function handleCycleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
-                <SrBeamPattern />
+                <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                 <Listbox 
                     class="sr-select-cycle"
                     v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 

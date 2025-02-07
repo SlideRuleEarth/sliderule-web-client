@@ -40,13 +40,15 @@ interface ChartState {
     spots: Array<SrListNumberItem>;
     rgt: number;
     pairs: Array<SrListNumberItem>;
+    rgtOptions: number[];
+    cycleOptions: SrListNumberItem[];
+    selectedCycleOptions: Array<SrListNumberItem>;
     scOrients: Array<SrListNumberItem>;
     minMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
-    rgtOptions: number[];
-    cycleOptions: SrListNumberItem[];
-    selectedCycleOptions: Array<SrListNumberItem>;
+    spotOptions: SrListNumberItem[];
+    selectedSpotOptions: Array<SrListNumberItem>;
 }
 
 
@@ -101,6 +103,8 @@ export const useChartStore = defineStore('chartStore', {
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
+                    spotOptions: [] as SrListNumberItem[],
+                    selectedSpotOptions: [] as SrListNumberItem[],
                 };
             }
             return true;
@@ -360,6 +364,20 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].spots.map(spot => spot.value);
         },
+        setSpots(reqIdStr: string, spots: number[]) {
+            this.ensureState(reqIdStr);
+            //console.log('setCycles reqIdStr:',reqIdStr, ' cycles:',cycles);
+            if (!Array.isArray(spots)) {
+                console.error('setSpots received invalid spots:', spots);
+                this.stateByReqId[reqIdStr].selectedSpotOptions = [];
+                return;
+            }
+            const spotOptions = spots.map(spot => {
+                return this.findSpotOption(reqIdStr, spot) || { label: spot.toString(), value: spot };
+            });
+            this.setSelectedSpotOptions(reqIdStr,spotOptions);
+            console.log('setSpots reqIdStr:',reqIdStr, ' spots:',spots, ' selectedSpotOptions:',this.stateByReqId[reqIdStr].selectedSpotOptions );
+        },
         setSpotWithNumber(reqIdStr: string, spot: number) {
             this.ensureState(reqIdStr);
             this.setSelectedSpotOptions(reqIdStr,[{ label: spot.toString(), value: spot }]);
@@ -567,6 +585,15 @@ export const useChartStore = defineStore('chartStore', {
         findCycleOption(reqIdStr: string, cycle: number): SrListNumberItem | undefined {
             const cycleOptions = this.getCycleOptions(reqIdStr);
             return cycleOptions.find(option => option.value === cycle);
+        },
+        getSpotOptions(reqIdStr: string): SrListNumberItem[] {
+            this.ensureState(reqIdStr);
+            //console.log('getSpotOptions reqIdStr:',reqIdStr, ' spotOptions:',this.stateByReqId[reqIdStr].spotOptions);
+            return this.stateByReqId[reqIdStr].spotOptions;
+        },
+        findSpotOption(reqIdStr: string, spot: number): SrListNumberItem | undefined {
+            const spotOptions = this.getSpotOptions(reqIdStr);
+            return spotOptions.find(option => option.value === spot);
         },
     },
 });

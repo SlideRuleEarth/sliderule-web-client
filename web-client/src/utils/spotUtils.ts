@@ -134,20 +134,10 @@ export function getSqlForSpot(spot:number){
     return sqlStr;
 }
 
-// export function getSqlForGroundTrack(gt:number){
-//     const {sc_orient, spot, pair} = getDetailsFromGroundTrack(gt);
-//     return '(sc_orient = ' + sc_orient + ' AND spot = ' + spot + ' AND pair = ' + pair + ')';
-// }
-
 export function getSqlForSpots(spots:number[]){
     const sqls = spots.map(spot => getSqlForSpot(spot));
     return sqls.join(' OR ');
 }
-
-// export function getSqlForGroundTracks(gts:number[]){
-//     const sqls = gts.map(gt => getSqlForGroundTrack(gt));
-//     return '(' + sqls.join(' OR ') + ')';
-// }
 
 export function createWhereClause(func:string, spots:number[],rgt:number,cycles:number[]){
     //console.log('createWhereClause: func:', func);
