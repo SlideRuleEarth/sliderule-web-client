@@ -5,6 +5,7 @@ import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { get, set } from 'lodash';
 import { number } from 'echarts';
+import { SC_FORWARD } from '@/sliderule/icesat2';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const cycleOptions = ref<SrListNumberItem[]>([]);
@@ -316,6 +317,13 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         }
         return selectedScOrientOptions.value.map(scOrient => scOrient.value);
     }
+    function hasScForward(): boolean {
+        return selectedScOrientOptions.value.some(scOrient => scOrient.value === SC_FORWARD);
+    }
+
+    function hasScBackward(): boolean {
+        return selectedScOrientOptions.value.some(scOrient => scOrient.value !== SC_FORWARD);
+    }
 
     function setSelectedScOrientOptions(scOrientOptions: SrListNumberItem[]) {
         if (!Array.isArray(scOrientOptions)) {
@@ -394,5 +402,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         appendScOrient,
         setFilteredScOrientOptions,
         getFilteredScOrientOptions,
+        hasScForward,
+        hasScBackward,
     };
 });

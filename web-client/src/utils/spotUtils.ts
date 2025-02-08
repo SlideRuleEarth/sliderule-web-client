@@ -1,4 +1,6 @@
 
+import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
+
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -14,6 +16,8 @@ const GT2R = 40;
 const GT3L = 50;
 const GT3R = 60;
 const INVALID_GT = -1;
+
+const SC_UNKNOWN = -1;
 
 export function getSpotNumber(sc_orient:number, track:number, pair:number) {
     //const num_combinations = 18; // 3(number of s/c orientations) * 3(number of tracks) * 2(number of pairs)
@@ -125,6 +129,40 @@ export function getDetailsFromSpotNumber(spot:number) {
             break;
     }
     return details;
+}
+
+export function getScOrientFromSpotAndGt(spot:number, gt:number){
+    const d = getDetailsFromSpotNumber(spot);
+    let sc_orient = SC_UNKNOWN;
+    if (gt == GT1L && spot == SPOT_1){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT1L && spot == SPOT_6){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT2L && spot == SPOT_3){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT2L && spot == SPOT_4){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT3L && spot == SPOT_5){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT3L && spot == SPOT_2){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT1R && spot == SPOT_2){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT1R && spot == SPOT_5){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT2R && spot == SPOT_4){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT2R && spot == SPOT_3){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT3R && spot == SPOT_6){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT3R && spot == SPOT_1){
+        sc_orient = SC_FORWARD;
+    } else {
+        console.warn('getScOrientFromSpotAndGt: INVALID spot:', spot, 'gt:', gt);
+    }
+
+    return sc_orient;
 }
 
 export function getSqlForSpot(spot:number){

@@ -31,7 +31,6 @@ interface ChartState {
     symbolColorEncoding: string;
     solidSymbolColor: string;
     selectAllTracks: boolean;
-    //scOrients: Array<SrListNumberItem>;
     minMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
@@ -77,7 +76,6 @@ export const useChartStore = defineStore('chartStore', {
                     symbolColorEncoding: 'unset',
                     solidSymbolColor: 'red',
                     selectAllTracks: true,
-                    //scOrients: [],
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
@@ -312,51 +310,6 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
         },
-        // setPairs(reqIdStr: string, pairs: SrListNumberItem[]) {
-        //     this.stateByReqId[reqIdStr].pairs = pairs;
-        // },
-        // getPairs(reqIdStr: string):SrListNumberItem[] {
-        //     this.ensureState(reqIdStr);
-        //     return this.stateByReqId[reqIdStr].pairs;
-        // },
-        // setPairWithNumber(reqIdStr: string, pair: number) {
-        //     this.ensureState(reqIdStr);
-        //     this.stateByReqId[reqIdStr].pairs = [{ label: pair.toString(), value: pair }];
-        // },
-        // appendPairWithNumber(reqIdStr: string,pair: number) {
-        //     this.ensureState(reqIdStr);
-        //     const pairExists = this.stateByReqId[reqIdStr].pairs.some(p => p.value === pair);
-        //     if(!pairExists){
-        //         this.stateByReqId[reqIdStr].pairs.push({ label: pair.toString(), value: pair });
-        //     }
-        // },
-        // getPairValues(reqIdStr: string) : number[] {
-        //     this.ensureState(reqIdStr);
-        //     return this.stateByReqId[reqIdStr].pairs.map(pair => pair.value);
-        // },
-        // setScOrients(reqIdStr: string, scOrients: SrListNumberItem[]) {
-        //     this.ensureState(reqIdStr);
-        //     this.stateByReqId[reqIdStr].scOrients = scOrients;
-        // },
-        // getScOrients(reqIdStr: string) : SrListNumberItem[] {
-        //     this.ensureState(reqIdStr);
-        //     return this.stateByReqId[reqIdStr].scOrients;
-        // },
-        // setScOrientWithNumber(reqIdStr: string, scOrient: number) {
-        //     this.ensureState(reqIdStr);
-        //     this.stateByReqId[reqIdStr].scOrients = [{ label: scOrient.toString(), value: scOrient }];
-        // },
-        // getScOrientValues(reqIdStr: string): number[] {
-        //     this.ensureState(reqIdStr);
-        //     return this.stateByReqId[reqIdStr].scOrients.map(scOrient => scOrient.value);
-        // },
-        // appendScOrientWithNumber(reqIdStr: string, scOrient: number) {
-        //     this.ensureState(reqIdStr);
-        //     const scoExists = this.stateByReqId[reqIdStr].scOrients.some(sco => sco.value === scOrient);
-        //     if(!scoExists && (scOrient >= 0)){
-        //         this.stateByReqId[reqIdStr].scOrients.push({ label: scOrient.toString(), value: scOrient });
-        //     }
-        // },
         setMinMaxValues(reqIdStr: string, minMaxValues: Record<string, { min: number; max: number }>):void {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].minMaxValues = minMaxValues;
@@ -382,14 +335,5 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].showYDataMenu;
         },
-        // getSpotOptions(reqIdStr: string): SrListNumberItem[] {
-        //     this.ensureState(reqIdStr);
-        //     //console.log('getSpotOptions reqIdStr:',reqIdStr, ' spotOptions:',this.stateByReqId[reqIdStr].spotOptions);
-        //     return this.stateByReqId[reqIdStr].spotOptions;
-        // },
-        // findSpotOption(reqIdStr: string, spot: number): SrListNumberItem | undefined {
-        //     const spotOptions = this.getSpotOptions(reqIdStr);
-        //     return spotOptions.find(option => option.value === spot);
-        // },
     },
 });

@@ -32,8 +32,8 @@ export const spotsOptions = [
   ] as SrListNumberItem[];
 
 export const scOrientOptions = [
-    {label:'0',value:0}, 
-    {label:'1',value:1}
+    {label:'Backward',value:0}, 
+    {label:'Forward',value:1}
   ] as SrListNumberItem[];
 
   export const pairOptions = [

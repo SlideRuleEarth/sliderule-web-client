@@ -24,6 +24,7 @@ export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComp
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export const selectedSpotReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
+export const selectedScOrientsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export interface SrScatterSeriesData{
   series: {
     name: string;
@@ -135,7 +136,20 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                     globalChartStore.setSpots(values);
                 },
             });
-        }       
+        }
+        if (!(reqId in selectedScOrientsReactive)) {
+            selectedScOrientsReactive[reqId] = computed({
+                get: (): number[] => {
+                    const value = globalChartStore.getScOrients();
+                    //console.log(`selectedScOrientsReactive[${reqId}] get:`, value);
+                    return value;
+                },
+                set: (values: number[]): void => {
+                    //console.log(`selectedScOrientsReactive[${reqId}] set:`, values);
+                    globalChartStore.setScOrients(values);
+                },
+            });
+        }
 
     });
 }
