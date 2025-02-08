@@ -41,9 +41,9 @@ import Checkbox from 'primevue/checkbox';
 import Fieldset from 'primevue/fieldset';
 import { selectedSpotReactive } from '@/utils/plotUtils';
 import { computed } from 'vue';
-import { useChartStore } from '@/stores/chartStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 
-const chartStore = useChartStore();
+const globalChartStore = useGlobalChartStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -55,10 +55,7 @@ const props = withDefaults(
     }
 );
 
-
-
-
-const computedSelectedSpots = computed(() => chartStore.getSpots(props.reqIdStr));
+const computedSelectedSpots = computed(() => globalChartStore.getSpots());
 </script>
     
 <style scoped>

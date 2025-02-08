@@ -1,4 +1,4 @@
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { type SrListNumberItem } from '@/types/SrTypes';
 export interface SrScatterOptionsParms {
   reqIdStr: string;
   fileName: string;
@@ -38,7 +38,7 @@ export const scOrientOptions = [
 
   export const pairOptions = [
     {label:'0',value:0}, 
-    {label:'0',value:1}
+    {label:'1',value:1}
   ]
 
   export function getBeamsAndTracksWithGts(gts:SrListNumberItem[]) {

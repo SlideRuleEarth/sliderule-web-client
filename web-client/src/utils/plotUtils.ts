@@ -1,4 +1,5 @@
-import { useChartStore, type SrListNumberItem } from "@/stores/chartStore";
+import { useChartStore } from "@/stores/chartStore";
+import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
 import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
@@ -15,7 +16,6 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useColorMapStore }  from "@/stores/colorMapStore";
 import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
-import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -23,7 +23,6 @@ export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableCo
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
-export const selectedTrackReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export const selectedSpotReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export interface SrScatterSeriesData{
   series: {
@@ -79,6 +78,7 @@ export function initializeColorEncoding(reqId:number){
 export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
     const chartStore = useChartStore();
+    const globalChartStore = useGlobalChartStore();
     reqIds.forEach((reqId) => {
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({
@@ -113,39 +113,26 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
         if (!(reqId in selectedCycleReactive)) {
             selectedCycleReactive[reqId] = computed({
                 get: (): number[] => {
-                    const value = chartStore.getCycles(reqId);
+                    const value = globalChartStore.getCycles();
                     //console.log(`selectedCycleReactive[${reqId}] get:`, value);
                     return value;
                 },
                 set: (values: number[]): void => {
                     //console.log(`selectedCycleReactive[${reqId}] set:`, values);
-                    chartStore.setCycles(reqId, values);
-                },
-            });
-        }
-        if (!(reqId in selectedTrackReactive)) {
-            selectedTrackReactive[reqId] = computed({
-                get: (): number[] => {
-                    const value = chartStore.getTracks(reqId);
-                    //console.log(`selectedTrackReactive[${reqId}] get:`, value);
-                    return value;
-                },
-                set: (values: number[]): void => {
-                    //console.log(`selectedTrackReactive[${reqId}] set:`, values);
-                    chartStore.setTracks(reqId, values);
+                    globalChartStore.setCycles(values);
                 },
             });
         }
         if (!(reqId in selectedSpotReactive)) {
             selectedSpotReactive[reqId] = computed({
                 get: (): number[] => {
-                    const value = chartStore.getSpots(reqId);
+                    const value = globalChartStore.getSpots();
                     //console.log(`selectedSpotReactive[${reqId}] get:`, value);
                     return value;
                 },
                 set: (values: number[]): void => {
                     //console.log(`selectedSpotReactive[${reqId}] set:`, values);
-                    chartStore.setSpots(reqId, values);
+                    globalChartStore.setSpots(values);
                 },
             });
         }       
@@ -589,14 +576,15 @@ export async function initChartStore() {
 
 export async function getScatterOptions(req_id:number): Promise<any> {
     const chartStore = useChartStore();
+    const globalChartStore = useGlobalChartStore();
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const rgt = chartStore.getRgt(reqIdStr);
-    const cycles = chartStore.getCycles(reqIdStr);
-    const spots = chartStore.getSpots(reqIdStr);
+    const rgt = globalChartStore.getRgt();
+    const cycles = useGlobalChartStore().getCycles();
+    const spots = globalChartStore.getSpots();
     // Get the CSS variable value dynamically
     const primaryButtonColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--p-button-text-primary-color')
@@ -1027,7 +1015,7 @@ export const updateScatterOptionsOnly = async (msg:string) => {
 
 export async function getPhotonOverlayRunContext(pendingCycle:number): Promise<SrRunContext> {
     const recTreeStore = useRecTreeStore();
-    const chartStore = useChartStore();
+    const globalChartStore = useGlobalChartStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const requestsStore = useRequestsStore();
 
@@ -1037,10 +1025,9 @@ export async function getPhotonOverlayRunContext(pendingCycle:number): Promise<S
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
         trackFilter: {
-            rgt: chartStore.getRgt(reqIdStr),
+            rgt: globalChartStore.getRgt(),
             cycle: pendingCycle,
-            track: chartStore.getTracks(reqIdStr)[0],
-            beam: ((chartStore.stateByReqId[reqIdStr].beams.length>0) ? chartStore.getBeamValues(reqIdStr)[0] : -1),
+            // : globalChartStore.getTracks(),
         }
     };
     if(atlChartFilterStore.getShowPhotonCloud()){
@@ -1048,12 +1035,6 @@ export async function getPhotonOverlayRunContext(pendingCycle:number): Promise<S
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){ // Use the cached request
             runContext.reqId = reqId;
-            const childReqIdStr = reqId.toString();
-            chartStore.setRgt(childReqIdStr,chartStore.getRgt(reqIdStr));
-            chartStore.setCycles(childReqIdStr,chartStore.getCycles(reqIdStr));
-            chartStore.setTracks(childReqIdStr,chartStore.getTracks(reqIdStr));
-            chartStore.setSelectedBeamOptions(childReqIdStr,chartStore.getSelectedBeamOptions(reqIdStr));
-            //console.log('findCachedRec reqId found:', reqId);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
             requestsStore.setSvrMsg('');
@@ -1065,11 +1046,10 @@ export async function getPhotonOverlayRunContext(pendingCycle:number): Promise<S
 async function updatePlot(msg:string){
     console.log('updatePlot called for:',msg);
     const recTreeStore = useRecTreeStore();
-    const chartStore = useChartStore();
-    const reqIdStr = recTreeStore.selectedReqIdStr;
-    if( (chartStore.getRgt(reqIdStr) >= 0) &&
-        (chartStore.getCycles(reqIdStr).length > 0) &&
-        (chartStore.getSpots(reqIdStr).length > 0)
+    const globalChartStore = useGlobalChartStore();
+    if( (globalChartStore.getRgt() >= 0) &&
+        (useGlobalChartStore().getCycles().length > 0) &&
+        (globalChartStore.getSpots().length > 0)
     ){
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
@@ -1077,9 +1057,9 @@ async function updatePlot(msg:string){
         await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
     } else {
         console.warn('Need Rgt, Cycle, and Spot values selected');
-        console.warn('Rgt:', chartStore.getRgt(reqIdStr));
-        console.warn('Cycle:', chartStore.getCycles(reqIdStr));
-        console.warn('Spot:', chartStore.getSpots(reqIdStr));
+        console.warn('Rgt:', globalChartStore.getRgt());
+        console.warn('Cycle:', useGlobalChartStore().getCycles());
+        console.warn('Spot:', globalChartStore.getSpots());
     }
 }
 let updatePlotTimeoutId: number | undefined;
@@ -1140,7 +1120,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
 }
 
 export async function updateWhereClauseAndXData(req_id: number) {
-    //console.log('updateWhereClauseAndXData req_id:', req_id);
+    console.log('updateWhereClauseAndXData req_id:', req_id);
     const reqIdStr = req_id.toString();
     if (req_id <= 0) {
         console.warn(`updateWhereClauseAndXData Invalid request ID:${req_id}`);
@@ -1151,13 +1131,14 @@ export async function updateWhereClauseAndXData(req_id: number) {
         //console.log('updateWhereClauseAndXData req_id:', req_id);
         const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
+        const globalChartStore = useGlobalChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
         
         const whereClause = createWhereClause(
             useRecTreeStore().findApiForReqId(req_id),
-            chartStore.getSpots(reqIdStr),
-            chartStore.getRgt(reqIdStr),
-            chartStore.getCycles(reqIdStr),
+            globalChartStore.getSpots(),
+            globalChartStore.getRgt(),
+            useGlobalChartStore().getCycles(),
         );
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);

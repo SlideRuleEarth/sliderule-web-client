@@ -10,9 +10,10 @@ import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import { useChartStore, type SrListNumberItem } from '@/stores/chartStore';
+import { useChartStore} from '@/stores/chartStore';
+import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { updateWhereClauseAndXData } from './plotUtils';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { clicked } from '@/utils/SrMapUtils'
 
 interface SummaryRowData {
@@ -260,7 +261,6 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
         updateAllFilterOptions(reqId);
-        updateWhereClauseAndXData(reqId);
         await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
@@ -325,8 +325,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 firstRec = (rows[0]);
-                const cycleOptions = await getAllCycleOptionsForRgt(useRecTreeStore().selectedReqId, firstRec.rgt);
-                useChartStore().setCycleOptions(req_id.toString(), cycleOptions);
+                const cycleOptions = await getAllCycleOptions(useRecTreeStore().selectedReqId);
+                useGlobalChartStore().setCycleOptions(cycleOptions);
                 clicked(firstRec);
                 numDataItemsUsed += rows.length;
                 useMapStore().setCurrentRows(numDataItemsUsed);
@@ -387,12 +387,12 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         // Step 2: Retrieve the filename and func using req_id
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
-        let queryStr = `SELECT * FROM '${filename}'`;
-        const chartStore = useChartStore();
-        const rgt = chartStore.getRgt(reqIdStr);
-        const cycles = chartStore.getCycles(reqIdStr); 
+        let queryStr = '';
+        const globalChartStore = useGlobalChartStore();
+        const rgt = globalChartStore.getRgt();
+        const cycles = globalChartStore.getCycles(); 
+        const spots = globalChartStore.getSpots();
         if(func.includes('atl06')){
-            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -405,7 +405,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
         } else if(func.includes('atl03vp')){
-            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -414,7 +413,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND spot IN (${spots.join(', ')})
                         `
         } else if(func.includes('atl08')){
-            const spots = chartStore.getSpots(reqIdStr);
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
@@ -579,18 +577,18 @@ export async function getPairs(req_id: number): Promise<number[]> {
     return pairs;
 }
 
-export async function updatePairOptions(req_id: number): Promise<number[]> {
-    let pairs = [] as number[];
-    try{
-        pairs = await getPairs(req_id);
-        useAtlChartFilterStore().setPairOptionsWithNumbers(pairs);   
-    } catch (error) {
-        console.error('getPairs Error:', error);
-        throw error;
-    }
-    //console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
-    return pairs;
-}
+// export async function updatePairOptions(req_id: number): Promise<number[]> {
+//     let pairs = [] as number[];
+//     try{
+//         pairs = await getPairs(req_id);
+//         useAtlChartFilterStore().setPairOptionsWithNumbers(pairs);   
+//     } catch (error) {
+//         console.error('getPairs Error:', error);
+//         throw error;
+//     }
+//     //console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
+//     return pairs;
+// }
 
 export async function getTracks(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
@@ -621,17 +619,6 @@ export async function getTracks(req_id: number): Promise<number[]> {
     return tracks;
 }
 
-export async function updateTrackOptions(req_id: number): Promise<number[]> {
-    let tracks = [] as number[];
-    try{
-        tracks = await getTracks(req_id);
-        useAtlChartFilterStore().setTrackOptionsWithNumbers(tracks);   
-    } catch (error) {
-        console.error('getTracks Error:', error);
-        throw error;
-    }
-    return tracks;
-}
 export async function getScOrient(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
@@ -657,18 +644,6 @@ export async function getScOrient(req_id: number): Promise<number[]> {
     } finally {
         const endTime = performance.now(); // End time
         //console.log(`SrDuckDbUtils.getScOrient() took ${endTime - startTime} milliseconds.`);
-    }
-    return scOrients;
-}
-
-export async function updateScOrientOptions(req_id: number): Promise<number[]> {
-    let scOrients = [] as number[];
-    try{
-        scOrients = await getScOrient(req_id);
-        useAtlChartFilterStore().setScOrientOptionsWithNumbers(scOrients);   
-    } catch (error) {
-        console.error('getScOrient Error:', error);
-        throw error;
     }
     return scOrients;
 }
@@ -709,7 +684,7 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
     return cycles;
 }
 
-export async function getAllCycleOptionsForRgt(req_id: number,rgt:number): Promise<SrListNumberItem[]> {
+export async function getAllCycleOptionsByRgtsAndSpots(req_id: number,rgts:number[],spots:number[]): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
@@ -717,7 +692,7 @@ export async function getAllCycleOptionsForRgt(req_id: number,rgt:number): Promi
     await duckDbClient.insertOpfsParquet(fileName);
     const cycles = [] as SrListNumberItem[];
     try{
-        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' GROUP BY cycle ORDER BY cycle ASC;`;
+        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' WHERE (rgt IN (${rgts.join(',')}) AND spot IN (${spots.join(',')})) GROUP BY cycle ORDER BY cycle ASC;`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
@@ -745,29 +720,15 @@ export async function getAllCycleOptionsForRgt(req_id: number,rgt:number): Promi
     return cycles;
 }
 
-
 export async function updateAllFilterOptions(req_id: number): Promise<void> {
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
     try{
-        const atlChartFilterStore = useAtlChartFilterStore();
-        const chartStore = useChartStore();
+        const globalChartStore = useGlobalChartStore();
         const rgts = await getAllRgtOptions(req_id);
-        chartStore.setRgtOptions(reqIdStr,rgts);
-        const cycleOptions = await getAllCycleOptions(req_id);
-        console.log('updateAllFilterOptions cycleOptions:', cycleOptions, 'size:', cycleOptions.length); 
-        console.log('updateAllFilterOptions cycleOptions:', chartStore.getCycleOptions(reqIdStr));
-        console.log('updateAllFilterOptions cycleOptions[0]:', cycleOptions[0],cycleOptions[0].value);
-        const opts = await getAllCycleOptionsForRgt(req_id,rgts[0]);
-        chartStore.setCycleOptions(reqIdStr, opts);
-        if(useRecTreeStore().findApiForReqId(req_id)==='atl03sp'){
-            const pairs = await updatePairOptions(req_id);
-            atlChartFilterStore.setPairOptionsWithNumbers(pairs);
-            const tracks = await updateTrackOptions(req_id);
-            atlChartFilterStore.setTrackOptionsWithNumbers(tracks);
-            const sc_orients = await updateScOrientOptions(req_id);
-            atlChartFilterStore.setScOrientOptionsWithNumbers(sc_orients);
-        }
+        globalChartStore.setRgtOptions(rgts);
+        const cycles = await getAllCycleOptions(req_id);
+        globalChartStore.setCycleOptions(cycles);
     } catch (error) {
         console.error('updateAllFilterOptions Error:', error);
         throw error;

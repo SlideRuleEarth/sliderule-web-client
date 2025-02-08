@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { type SrListNumberItem } from '@/types/SrTypes';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
 
@@ -11,10 +11,6 @@ import VChart from "vue-echarts";
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
     debugCnt: 0 as number,
-    tracksOptions: tracksOptions as SrListNumberItem[],
-    spotsOptions: [{label:'1',value:1},{label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},{label:'6',value:6}] as SrListNumberItem[],
-    pairOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
-    scOrientOptions: [{ label: '0', value: 0 }, { label: '1', value: 1 }] as SrListNumberItem[],
     isLoading: false as boolean,
     chartDataRef: ref<number[][]>([]),
     largeData: false as boolean,
@@ -31,15 +27,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
 
   },
   actions: {
-    setTrackOptions(trackOptions: SrListNumberItem[]) {
-      this.tracksOptions = trackOptions;
-    },
-    getTrackOptions():SrListNumberItem[] {
-      return this.tracksOptions;
-    },
-    setTrackOptionsWithNumbers(tracks: number[]) {
-      this.setTrackOptions(tracks.map(track => ({ label: track.toString(), value: track })));
-    },
     incrementDebugCnt() {
       return ++this.debugCnt;
     },
@@ -48,21 +35,6 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     setDebugCnt(cnt: number) {
       this.debugCnt = cnt;
-    },
-    setPairOptions(pairs: SrListNumberItem[]) {
-      this.pairOptions = pairs;
-    },
-    setPairOptionsWithNumbers(pairs: number[]) {
-      this.pairOptions = pairs.map(pair => ({ label: pair.toString(), value: pair }));
-    },
-    setScOrientOptions(scOrientOptions: SrListNumberItem[]) {
-      this.scOrientOptions = scOrientOptions;
-    },
-    getScOrientOptions() {
-      return this.scOrientOptions;
-    },
-    setScOrientOptionsWithNumbers(scOrientOptions: number[]) {
-      this.scOrientOptions = scOrientOptions.map(option => ({ label: option.toString(), value: option }));
     },
     setIsLoading() {
       //console.log('atlChartFilterStore.setIsLoading()');
@@ -132,11 +104,5 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     getShowPhotonCloud() {
         return this.showPhotonCloud;
     },
-    // getSelectedReqIdMenuItem() : SrMenuNumberItem {
-    //   return this.selectedReqIdMenuItem;
-    // },
-    // setSelectedReqIdMenuItem(selectedReqIdMenuItem: SrMenuNumberItem) {
-    //   this.selectedReqIdMenuItem = selectedReqIdMenuItem;
-    // },
 }
 });

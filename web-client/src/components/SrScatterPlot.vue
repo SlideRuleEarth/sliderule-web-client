@@ -10,7 +10,7 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize, updateWhereClauseAndXData } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import SrRunControl from "./SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -23,7 +23,8 @@ import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import SrBeamPattern from "./SrBeamPattern.vue";
-import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtsAndSpots, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { useGlobalChartStore } from "@/stores/globalChartStore";
 
 const props = defineProps({
     startingReqId: {
@@ -34,6 +35,7 @@ const props = defineProps({
 
 const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
+const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const colorMapStore = useColorMapStore();
 const recTreeStore = useRecTreeStore();
@@ -45,7 +47,15 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const computedCycleOptions = computed(() => {
-    return chartStore.getCycleOptions(recTreeStore.selectedReqIdStr);
+    return globalChartStore.getCycleOptions();
+});
+
+const computedFilteredInCycleOptions = computed(() => {
+    return globalChartStore.getFilteredCycleOptions();
+});
+
+const allowedCycleValues = computed(() => {
+    return new Set(computedFilteredInCycleOptions.value.map(option => option.value));
 });
 
 const computedDataKey = computed(() => {
@@ -111,7 +121,7 @@ async function getDataForCycle(cycle:number):Promise<void> {
     const parentReqIdStr = runContext.parentReqId.toString();
     if(runContext.reqId <= 0){
         //console.log('getDataForCycle runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
-        await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,chartStore.getRgt(parentReqIdStr),cycle);
+        await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,globalChartStore.getRgt(),cycle);
         await processRunSlideRuleClicked(runContext);
         console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
         if(runContext.reqId <= 0){ // request was successfully processed
@@ -125,10 +135,7 @@ async function getDataForCycle(cycle:number):Promise<void> {
     await initSymbolSize(runContext.reqId);
     initializeColorEncoding(runContext.reqId);
     await prepareDbForReqId(runContext.reqId);
-    chartStore.setTracks(thisReqIdStr, chartStore.getTracks(parentReqIdStr));
-    chartStore.setSelectedBeamOptions(thisReqIdStr, chartStore.getSelectedBeamOptions(parentReqIdStr));
-    chartStore.setRgt(thisReqIdStr, chartStore.getRgt(parentReqIdStr));
-    chartStore.appendToSelectedCycleOptions(thisReqIdStr, cycle);
+    globalChartStore.appendToSelectedCycleOptions(cycle);
     atlChartFilterStore.appendToSelectedOverlayedReqIds(runContext.reqId);
 }
 
@@ -136,7 +143,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     console.log('SrScatterPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
-            chartStore.getCycles(recTreeStore.selectedReqIdStr).forEach(async (cycle) => {
+            globalChartStore.getCycles().forEach(async (cycle) => {
                 await getDataForCycle(cycle);
             });
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
@@ -171,12 +178,12 @@ watch(
     // If reqId is undefined, null, or empty, return default values
     if (!reqId || reqId <= 0) {
         return {
-            scOrients: [],
-            rgts: [],
-            cycles: [],
-            spots: [],
-            tracks: [],
-            pairs: [],
+            scOrients: globalChartStore.getScOrients(),
+            rgt: globalChartStore.getRgt(),
+            cycles: globalChartStore.getCycles(),
+            spots: globalChartStore.getSpots(),
+            tracks: globalChartStore.getTracks(),
+            pairs: globalChartStore.getSelectedPairOptions(),
             ydata: [],
             solidColor: null,
         };
@@ -184,22 +191,32 @@ watch(
 
     // Otherwise, fetch the real values
     return {
-        scOrients: chartStore.getScOrients(reqIdStr),
-        rgt: chartStore.getRgt(reqIdStr),
-        cycles: chartStore.getCycles(reqIdStr),
-        spots: chartStore.getSelectedSpotOptions(reqIdStr),
-        tracks: chartStore.getTracks(reqIdStr),
-        pairs: chartStore.getPairs(reqIdStr),
+        scOrients: globalChartStore.getScOrients(),
+        rgt: globalChartStore.getRgt(),
+        cycles: globalChartStore.getCycles(),
+        spots: globalChartStore.getSpots(),
+        tracks: globalChartStore.getTracks(),
+        pairs: globalChartStore.getSelectedPairOptions(),
         ydata: chartStore.getSelectedYData(reqIdStr),
         solidColor: chartStore.getSolidSymbolColor(reqIdStr),
     };
   },
   async (newValues, oldValues) => {
+    if(newValues.spots != oldValues.spots){
+        const filteredCycleOptions = await getAllCycleOptionsByRgtsAndSpots(recTreeStore.selectedReqId,[newValues.rgt],newValues.spots)
+        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+    }
+
+    let needPlotUpdate = false;
     if (!loadingComponent.value) {
+         // if we have selected Y data and anything changes update the plot
         if(newValues.ydata.length > 0){
-            await callPlotUpdateDebounced('watch selected Y data changed');
+            needPlotUpdate = true;
         } else {
             console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
+        }       
+        if(needPlotUpdate){
+            await callPlotUpdateDebounced('from watch selected Y data changed');
         }
     } else {
       console.warn(
@@ -255,12 +272,13 @@ function handleCycleValueChange(value) {
                     :multiple="true"
                     :metaKeySelection="true"
                     :options="computedCycleOptions"
+                    :optionDisabled="(option) => !allowedCycleValues.has(option.value)"
                     @change="handleCycleValueChange"
                 >
                     <template #header>
                         <div class="p-listbox-header">
                             <div class="sr-listbox-header-title">
-                                <span>Cycles</span>
+                                <span>Cycles {{ allowedCycleValues.size }}/{{ computedCycleOptions.length }}</span>
                             </div>
                         </div>
                     </template>

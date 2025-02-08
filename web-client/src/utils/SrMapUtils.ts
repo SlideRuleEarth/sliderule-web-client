@@ -30,11 +30,11 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary,getAllCycleOptionsForRgt } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { useChartStore } from '@/stores/chartStore';
-import { clearPlot,updateWhereClauseAndXData  } from '@/utils/plotUtils';
+import { clearPlot } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
@@ -42,7 +42,7 @@ import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -317,59 +317,6 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-// export function updateWhereClause(reqIdStr:string){
-//     const cs = useChartStore();
-//     const reqId = parseInt(reqIdStr);
-//     const func = useRecTreeStore().findApiForReqId(reqId);
-//     //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
-//     if(func==='atl03sp'){
-//         let atl03spWhereClause = `
-//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
-//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
-//             AND track IN (${cs.getTracks(reqIdStr).join(", ")}) 
-//         `;
-//         if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
-//             atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
-//         } else {
-//             console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
-//         }
-//         if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
-//             atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
-//         } else {
-//             console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
-//         }
-//         //cs.setWhereClause(reqIdStr,atl03spWhereClause);
-        
-//         //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
-//     } else if(func === 'atl03vp'){
-//         const atl03vpWhereClause = `
-//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
-//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
-//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
-//         `;
-//         //cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-//         //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
-//     } else if (func.includes('atl06')){ // all atl06
-//         const atl06WhereClause = `
-//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
-//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
-//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
-//         `;
-//         //cs.setWhereClause(reqIdStr,atl06WhereClause);
-//         //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
-//     } else if (func === 'atl08p'){
-//         const atl08pWhereClause = `
-//             WHERE rgt IN (${cs.getRgts(reqIdStr).join(', ')}) 
-//             AND cycle IN (${cs.getCycles(reqIdStr).join(', ')})
-//             AND spot IN (${cs.getSpots(reqIdStr).join(", ")}) 
-//         `;
-//         //cs.setWhereClause(reqIdStr,atl08pWhereClause);
-//         //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
-//     } else {
-//         console.error('updateWhereClause Unknown func?:',func);
-//     }
-// }
-
 export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
     hideTooltip();
@@ -381,32 +328,33 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     const cs = useChartStore();
+    const gcs = useGlobalChartStore();
     if(d.track !== undefined){ // for atl03
-        cs.setTrackWithNumber(reqIdStr, d.track);
-        cs.setBeamsForTracks(reqIdStr, cs.getTracks(reqIdStr));
+        gcs.setTracks([d.track]); // set to this one track
+        gcs.setBeamsForTracks(gcs.getTracks());
     }
     if(d.gt !== undefined){ // for atl06
-        cs.setBeamsAndTracksWithGts(reqIdStr, [{label:d.gt.toString(), value:d.gt}]);
+        gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
-        cs.setScOrientWithNumber(reqIdStr, d.sc_orient);
+        gcs.setScOrients([d.sc_orient]);
     }
     if(d.pair !== undefined){
-        cs.setPairWithNumber(reqIdStr, d.pair);
+        gcs.setPairs([d.pair]);
     }
     if(d.spot !== undefined){
-        cs.setSpotWithNumber(reqIdStr, d.spot);
+        gcs.setSpots([d.spot]);
     }
     if((d.gt !== undefined) && (d.spot !== undefined)){
-        cs.setScOrientWithNumber(reqIdStr, getScOrientFromSpotGt(d.spot,d.gt));
+        gcs.setScOrients([getScOrientFromSpotGt(d.spot,d.gt)]);
     }
     if(d.rgt !== undefined){
-        cs.setRgt(reqIdStr, d.rgt);
+        gcs.setRgt(d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        cs.setCycles(reqIdStr, [d.cycle]);
+        useGlobalChartStore().setCycles( [d.cycle]);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
@@ -420,12 +368,10 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked: pair',cs.getPairValues(reqIdStr));
     if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
-            cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
+            gcs.setSpots([getSpotNumber(d.sc_orient,d.track,d.pair)]);
+            gcs.setBeams([getGroundTrack(d.sc_orient,d.track,d.pair)]);
         }
     }
-    //updateWhereClause(reqIdStr);
-    updateWhereClauseAndXData(useRecTreeStore().selectedReqId);
     //console.log('Clicked: spot',cs.getSpots(reqIdStr))
     //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
     console.log('clicked:',d,'chartStore:',cs);

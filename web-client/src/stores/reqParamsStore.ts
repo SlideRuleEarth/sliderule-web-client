@@ -4,7 +4,7 @@ import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.v
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { type SrListNumberItem } from '@/types/SrTypes';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
@@ -234,7 +234,7 @@ const createReqParamsStore = (id: string) =>
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
             this.setUseRgt(true);
-            //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
+            //TBD maybe when svr params is fixed it will include rgt. so use that instead of this
             this.setRgt(rgt);
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);

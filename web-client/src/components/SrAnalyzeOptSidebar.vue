@@ -27,7 +27,7 @@ import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import { useDebugStore } from '@/stores/debugStore';
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
@@ -35,6 +35,7 @@ const mapStore = useMapStore();
 const deckStore = useDeckStore();
 const colorMapStore = useElevationColorMapStore();
 const recTreeStore = useRecTreeStore();
+const globalChartStore = useGlobalChartStore();
 
 const spotPatternDetailsStr = "Each ground track is \
 numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
@@ -75,7 +76,7 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgt:${chartStore.getRgt(recTreeStore.selectedReqIdStr)} track:${chartStore.getTracks(recTreeStore.selectedReqIdStr)} beam:${chartStore.getBeamLabels(recTreeStore.selectedReqIdStr)} cycle:${chartStore.getCycles(recTreeStore.selectedReqIdStr)}`;
+    return `rgt:${globalChartStore.getRgt()} track:${globalChartStore.getTracks()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
 });
 
 onMounted(async () => {
@@ -85,28 +86,28 @@ onMounted(async () => {
 });
 
 const onSpotSelection = async() => {
-    const spots = chartStore.getSelectedSpotOptions(recTreeStore.selectedReqIdStr);
+    const spots = globalChartStore.getSpots();
     //console.log('onSpotSelection spots:', spots);
     spots.forEach((spot) => {
-        const d = getDetailsFromSpotNumber(spot.value);
+        const d = getDetailsFromSpotNumber(spot);
 
         if(d[0].sc_orient >= 0){
-            chartStore.appendScOrientWithNumber(recTreeStore.selectedReqIdStr,d[0].sc_orient);
+            globalChartStore.appendScOrient(d[0].sc_orient);
         }
         if(d[0].track > 0){
-            chartStore.appendTrackWithNumber(recTreeStore.selectedReqIdStr,d[0].track);
+            globalChartStore.appendTrack(d[0].track);
         }
         if(d[0].pair >= 0){
-            chartStore.appendPairWithNumber(recTreeStore.selectedReqIdStr,d[0].pair);
+            globalChartStore.appendPair(d[0].pair);
         }
         if(d[1].sc_orient >= 0){
-            chartStore.appendScOrientWithNumber(recTreeStore.selectedReqIdStr,d[1].sc_orient);
+            globalChartStore.appendScOrient(d[1].sc_orient);
         }
         if(d[1].track > 0){
-            chartStore.appendTrackWithNumber(recTreeStore.selectedReqIdStr,d[1].track);
+            globalChartStore.appendTrack(d[1].track);
         }
         if(d[1].pair >= 0){
-            chartStore.appendPairWithNumber(recTreeStore.selectedReqIdStr,d[1].pair);
+            globalChartStore.appendPair(d[1].pair);
         }
         
     });

@@ -141,7 +141,7 @@ export function getSqlForSpots(spots:number[]){
 
 export function createWhereClause(func:string, spots:number[],rgt:number,cycles:number[]){
     //console.log('createWhereClause: func:', func);
-    //console.log('createWhereClause: spots:', spots);
+    console.log('createWhereClause: spots:', spots);
     //console.log('createWhereClause: rgts:', rgts);
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
@@ -150,15 +150,21 @@ export function createWhereClause(func:string, spots:number[],rgt:number,cycles:
             whereStr = 'WHERE ';
             if( rgt >= 0){
                 whereStr = whereStr + `rgt IN (${rgt})`;
+            } else {
+                console.error('createWhereClause: rgt is empty for func:', func);
             }
             if (cycles.length > 0) {
                 if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+            } else {
+                console.error('createWhereClause: cycles is empty for func:', func);
             }
             if (spots.length > 0) {
                 whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+            } else {
+                console.error('createWhereClause: spots is empty for func:', func);
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
