@@ -263,7 +263,6 @@ function handleCycleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
-                <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                 <Listbox 
                     class="sr-select-cycle"
                     v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
@@ -283,6 +282,7 @@ function handleCycleValueChange(value) {
                         </div>
                     </template>
                 </Listbox>
+                <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
              </div>
         </div> 
         <div class="sr-scatter-plot-cntrl">

@@ -1,9 +1,11 @@
 <template>
     <div class="checkbox-container">
-        <Panel header="Spots" :toggleable="true" :collapsed="false">
+        <Panel header="Spots" :toggleable="true" :collapsed="true">
             <div class="sr-spots-panel" v-if="computedHasScForward">
                 <div class="sr-spots-panel-hdr">
-                    <h5>Forward</h5>
+                    <div class="sr-spots-title">
+                        <p class="sr-p">Forward</p>
+                    </div>
                     <!-- Row 1: Spots 6, 4, 2 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
@@ -37,9 +39,12 @@
                     </div>
                 </div>
             </div>
-            <div class="sr-spots-panel" v-if="computedHasScForward">
-                <div class="sr-spots-panel-hdr">
-                    <h5>Backward</h5>
+            <Divider></Divider>
+            <div class="sr-spots-backward-panel" v-if="computedHasScForward">
+                <div class="sr-spots-backward-panel-hdr">
+                    <div class="sr-spots-title">
+                        <p class="sr-p">Backward</p>
+                    </div>
                     <!-- Row 1: Spots 1, 3, 5 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
@@ -84,6 +89,7 @@
 <script setup lang="ts">
 import Checkbox from 'primevue/checkbox';
 import Panel from 'primevue/panel';
+import Divider from 'primevue/divider';
 import { selectedSpotReactive } from '@/utils/plotUtils';
 import { computed } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -106,25 +112,101 @@ const computedHasScBackward = computed(() => globalChartStore.hasScBackward());
     
 <style scoped>
 .checkbox-container {
-    padding: 1rem;
+    padding: 0rem;
+    margin: 0.125rem;
 }
 
 .checkbox-row {
     display: flex;
-    gap: 1rem; /* Equivalent to gap-4 */
-    margin-bottom: 0.75rem; /* Equivalent to mb-3 */
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem; 
+    font-size: smaller;
+    margin-top: 0.125rem; 
 }
 
 .checkbox-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem; /* Adds space between the checkbox and label */
+    justify-content: center;
+    row-gap: 0.5rem; 
+    column-gap: 0.25rem;
 }
 .sr-spots-panel {
-    margin-bottom: 1rem;
+    margin-bottom: 0.125rem;
 }
 .sr-spots-panel-hdr {
-    padding: 1rem;
+    padding: 0.125rem;
+}
+.sr-spots-panel-hdr {
+    padding-top: 0rem;
+    padding-bottom: 0rem;
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+
+}
+.sr-spots-backward-panel {
+    padding-top: 0rem;
+    padding-bottom: 0rem;
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+    margin-top: 0rem;
+}
+.sr-spots-backward-panel-hdr {
+    padding-top: 0rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+
+}
+.sr-p{
+    margin: 0.25rem;
+    font-size: small;
+    color: var(--color-text);
+}
+.sr-spots-title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
+    font-size: small;
     border-bottom: 1px solid var(--color-border);
 }
+:deep(.p-panel-content) {
+    padding: 0.125rem;
+    margin: 0.125rem;
+}
+:deep(.p-divider-horizontal){
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    padding: 0.125rem;
+}
+
+:deep(.p-checkbox.p-checkbox-sm) .p-checkbox-box {
+    display: flex;
+    /* width: 1rem;
+    height: 1rem; */
+    align-items: center;
+    justify-content: center;
+}
+
+/* :deep(.p-checkbox.p-checkbox-sm) .p-checkbox-icon {
+    font-size: 0.5rem;
+
+} */
+/* :deep(.p-checkbox-input) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin:0rem;
+    padding:0rem;
+}
+:deep(.p-checkbox-box){
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin:0rem;
+    padding:0rem;
+} */
 </style>
