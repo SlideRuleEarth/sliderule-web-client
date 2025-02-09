@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
+import OverlayBadge from 'primevue/overlaybadge';
 import Menu from 'primevue/menu';
 import { ref, computed,onMounted } from 'vue';
 const build_env = import.meta.env.VITE_BUILD_ENV;
@@ -96,12 +97,17 @@ const formattedVersion = computed(() => {
     if (typeof build_env === 'string') {
         const version = getVersionString(build_env);
         const formattedVersion = isThisClean(build_env) ? version : `${version}*`;
+        console.log('formattedVersion:', formattedVersion);
         return formattedVersion
     } else {
         return 'v?.?.?';
     }
 });
 
+
+const buttonBadge = computed(() => {
+    return isThisClean(build_env) ? '' : 'Beta';
+});
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);
 
 const mobileMenuItems = [
@@ -165,9 +171,14 @@ onMounted(() => {
             <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
             <span class = "sr-title">SlideRule</span>
             <Button
+                type="button"
+                :label=formattedVersion
                 class="p-button-rounded p-button-text desktop-only"
-                @click="handleVersionButtonClick">
-                {{ formattedVersion }}
+                :badge=buttonBadge
+                badgeSeverity="danger"
+                @click="handleVersionButtonClick"
+            >
+                
             </Button>
         </div>
         <div class="right-content">
