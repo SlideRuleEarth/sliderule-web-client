@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { beamsOptions, tracksOptions } from '@/utils/parmUtils';
+import { gtsOptions, tracksOptions } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/types/SrTypes';
 import { ref } from 'vue';
 import VChart from "vue-echarts";

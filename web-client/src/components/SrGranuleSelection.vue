@@ -6,7 +6,7 @@ import SrCalendar from './SrCalendar.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrListbox from './SrListbox.vue';
-import { tracksOptions,beamsOptions,getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { tracksOptions,gtsOptions,getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/types/SrTypes';
 
 const reqParamsStore = useReqParamsStore();
@@ -65,7 +65,7 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
                 v-model="reqParamsStore.beams"
                 :getSelectedMenuItem="reqParamsStore.getBeams"
                 :setSelectedMenuItem="reqParamsStore.setBeams"
-                :menuOptions="beamsOptions" 
+                :menuOptions="gtsOptions" 
                 tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
                 @update:modelValue="BeamsSelection"
             />

@@ -15,7 +15,7 @@ import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
-import { getSpotNumber,getGroundTrack } from './spotUtils';
+import { getSpotNumber,getGroundTrack,getScOrientFromSpotAndGt } from './spotUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -333,11 +333,14 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         gcs.setTracks([d.track]); // set to this one track
         gcs.setBeamsForTracks(gcs.getTracks());
     }
-    if(d.gt !== undefined){ // for atl06
-        gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
-    }
+    // if(d.gt !== undefined){ // for atl06
+    //     gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
+    // }
     if(d.sc_orient !== undefined){
         gcs.setScOrients([d.sc_orient]);
+    } else{
+      const scos = getScOrientFromSpotAndGt(d.spot,d.gt); 
+        gcs.setScOrients([scos]); 
     }
     if(d.pair !== undefined){
         gcs.setPairs([d.pair]);
@@ -345,8 +348,13 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     if(d.spot !== undefined){
         gcs.setSpots([d.spot]);
     }
+    if(d.gt !== undefined){
+        gcs.setGts([d.gt]);
+        console.log('Clicked: gts',gcs.getGts());
+    }
     if((d.gt !== undefined) && (d.spot !== undefined)){
         gcs.setScOrients([getScOrientFromSpotGt(d.spot,d.gt)]);
+        console.log('Clicked: sc_orient',gcs.getScOrients());
     }
     if(d.rgt !== undefined){
         gcs.setRgt(d.rgt);
@@ -369,7 +377,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             gcs.setSpots([getSpotNumber(d.sc_orient,d.track,d.pair)]);
-            gcs.setBeams([getGroundTrack(d.sc_orient,d.track,d.pair)]);
+            gcs.setGts([getGroundTrack(d.sc_orient,d.track,d.pair)]);
         }
     }
     //console.log('Clicked: spot',cs.getSpots(reqIdStr))

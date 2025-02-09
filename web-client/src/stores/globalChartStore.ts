@@ -1,10 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
-import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { beamsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
-import { get, set } from 'lodash';
-import { number } from 'echarts';
+//import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -18,7 +16,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const filteredSpotOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const selectedTrackOptions = ref<number[]>([]);
     const filteredTrackOptions = ref<number[]>([]);// subset for selected
-    const selectedBeamOptions = ref<SrListNumberItem[]>([]);
+    const selectedGtOptions = ref<SrListNumberItem[]>([]);
     const filteredBeamOptions = ref<SrListNumberItem[]>([]);// subset for selected
     const selectedPairOptions = ref<SrListNumberItem[]>([]);
     const filteredPairOptions = ref<SrListNumberItem[]>([]);// subset for selected
@@ -177,48 +175,48 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         filteredTrackOptions.value = tracks;
     }
 
-    function setBeams(beams: number[]) {
+    function setGts(beams: number[]) {
         if (!Array.isArray(beams)) {
-            console.error('setBeams received invalid beams:', beams);
-            selectedBeamOptions.value = [];
+            console.error('setGts received invalid beams:', beams);
+            selectedGtOptions.value = [];
             return;
         }
-        selectedBeamOptions.value = beams.map(beam => {
-            return beamsOptions.find(option => option.value === beam) || { label: beam.toString(), value: beam };
+        selectedGtOptions.value = beams.map(beam => {
+            return gtsOptions.find(option => option.value === beam) || { label: beam.toString(), value: beam };
         });
     }
 
-    function getBeams(): number[] {
-        if (!Array.isArray(selectedBeamOptions.value)) {
-            console.error(`getBeams: selectedBeamOptions is not an array`, selectedBeamOptions.value);
+    function getGts(): number[] {
+        if (!Array.isArray(selectedGtOptions.value)) {
+            console.error(`getBeams: selectedGtOptions is not an array`, selectedGtOptions.value);
             return [];
         }
-        return selectedBeamOptions.value.map(beam => beam.value);
+        return selectedGtOptions.value.map(beam => beam.value);
     }
 
 
-    function getBeamsOptions(): SrListNumberItem[] {
-        return beamsOptions;
+    function getGtsOptions(): SrListNumberItem[] {
+        return gtsOptions;
     }
 
-    function appendToSelectedBeamOptions(beam: SrListNumberItem) {
-        const beamExists = selectedBeamOptions.value.some(b => b.value === beam.value);
+    function appendToSelectedGtOptions(beam: SrListNumberItem) {
+        const beamExists = selectedGtOptions.value.some(b => b.value === beam.value);
         if (!beamExists) {
-            selectedBeamOptions.value.push(beam);
+            selectedGtOptions.value.push(beam);
         }
     }
 
-    function setSelectedBeamOptions(beamOptions: SrListNumberItem[]) {
+    function setSelectedGtOptions(beamOptions: SrListNumberItem[]) {
         if (!Array.isArray(beamOptions)) {
-            console.error('setSelectedBeamOptions received invalid beamOptions:', beamOptions);
-            selectedBeamOptions.value = [];
+            console.error('setSelectedGtOptions received invalid beamOptions:', beamOptions);
+            selectedGtOptions.value = [];
             return;
         }
-        selectedBeamOptions.value = beamOptions;
+        selectedGtOptions.value = beamOptions;
     }
 
-    function getSelectedBeamOptions(): SrListNumberItem[] {
-        return selectedBeamOptions.value;
+    function getSelectedGtOptions(): SrListNumberItem[] {
+        return selectedGtOptions.value;
     }
 
     function getFilteredBeamOptions(): SrListNumberItem[] {
@@ -230,15 +228,15 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     }
 
     function getBeamLabels(): string[] {
-        return selectedBeamOptions.value.map(beam => beam.label);
+        return selectedGtOptions.value.map(beam => beam.label);
     }
 
-    function setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
-        const parms = getBeamsAndTracksWithGts(gts);
-        const trkList = parms.tracks.map(track => track.value);
-        setSelectedBeamOptions(parms.beams);
-        setTracks(trkList);
-    }
+    // function setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
+    //     const parms = getBeamsAndTracksWithGts(gts);
+    //     const trkList = parms.tracks.map(track => track.value);
+    //     setSelectedGtOptions(parms.beams);
+    //     setTracks(trkList);
+    // }
 
     function setTracksForBeams(input_beams: SrListNumberItem[]) {    
         const tracks = input_beams
@@ -250,9 +248,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setBeamsForTracks(input_tracks: number[]) {
         const beams = input_tracks
-            .map(track => beamsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
+            .map(track => gtsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
             .filter((beam): beam is SrListNumberItem => beam !== undefined);
-        setSelectedBeamOptions(beams);
+        setSelectedGtOptions(beams);
     }
 
     function setPairs(pairs: number[]) {
@@ -311,10 +309,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     }
 
     function getScOrients(): number[] {
-        if (!Array.isArray(selectedScOrientOptions.value)) {
-            console.error(`getScOrients: selectedScOrientOptions is not an array`, selectedScOrientOptions.value);
-            return [];
-        }
         return selectedScOrientOptions.value.map(scOrient => scOrient.value);
     }
     function hasScForward(): boolean {
@@ -376,16 +370,16 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getFilteredTrackOptions,
         setFilteredTrackOptions,
         appendTrack,
-        getBeamsOptions,
-        getBeams,
-        setBeams,
+        getGts,
+        setGts,
+        getGtsOptions,
         getBeamLabels,
-        appendToSelectedBeamOptions,
-        getSelectedBeamOptions,
-        setSelectedBeamOptions,
+        appendToSelectedGtOptions,
+        getSelectedGtOptions,
+        setSelectedGtOptions,
         getFilteredBeamOptions,
         setFilteredBeamOptions,
-        setBeamsAndTracksWithGts,
+        //setBeamsAndTracksWithGts,
         setTracksForBeams,
         setBeamsForTracks,
         setPairs,

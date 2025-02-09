@@ -23,7 +23,7 @@ import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import SrBeamPattern from "./SrBeamPattern.vue";
-import { getAllCycleOptionsByRgtsAndSpots, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtsSpotsAndGts, getAllCycleOptionsByRgtsAndSpots, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 
 const props = defineProps({
@@ -182,6 +182,7 @@ watch(
             rgt: globalChartStore.getRgt(),
             cycles: globalChartStore.getCycles(),
             spots: globalChartStore.getSpots(),
+            gts: globalChartStore.getGts(),
             tracks: globalChartStore.getTracks(),
             pairs: globalChartStore.getSelectedPairOptions(),
             ydata: [],
@@ -195,6 +196,7 @@ watch(
         rgt: globalChartStore.getRgt(),
         cycles: globalChartStore.getCycles(),
         spots: globalChartStore.getSpots(),
+        gts: globalChartStore.getGts(),
         tracks: globalChartStore.getTracks(),
         pairs: globalChartStore.getSelectedPairOptions(),
         ydata: chartStore.getSelectedYData(reqIdStr),
@@ -202,11 +204,12 @@ watch(
     };
   },
   async (newValues, oldValues) => {
-    if(newValues.spots != oldValues.spots){
-        const filteredCycleOptions = await getAllCycleOptionsByRgtsAndSpots(recTreeStore.selectedReqId,[newValues.rgt],newValues.spots)
+    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
+        const gtsValues = newValues.gts.map((gts) => gts);
+        const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId,[newValues.rgt],newValues.spots,gtsValues)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+        console.log('SrScatterPlot watch selected Rgts,Spots,Gts changed:', newValues.rgt, newValues.spots,gtsValues);
     }
-
     let needPlotUpdate = false;
     if (!loadingComponent.value) {
          // if we have selected Y data and anything changes update the plot

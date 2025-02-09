@@ -1,6 +1,6 @@
 <template>
     <div class="checkbox-container">
-        <Panel header="Spots" :toggleable="true" :collapsed="true">
+        <Panel header="Spots" :toggleable="true" :collapsed="false">
             <div class="sr-spots-panel" v-if="computedHasScForward">
                 <div class="sr-spots-panel-hdr">
                     <div class="sr-spots-title">
@@ -40,7 +40,7 @@
                 </div>
             </div>
             <Divider></Divider>
-            <div class="sr-spots-backward-panel" v-if="computedHasScForward">
+            <div class="sr-spots-backward-panel" v-if="computedHasScBackward">
                 <div class="sr-spots-backward-panel-hdr">
                     <div class="sr-spots-title">
                         <p class="sr-p">Backward</p>
@@ -83,6 +83,13 @@
     <div v-if="!computedHasScForward && !computedHasScBackward">
         <p>No SC_Orient set?</p>
     </div>
+    <!-- <div v-if="computedHasScForward">
+        <p>Forward</p>
+    </div>
+    <div v-if="computedHasScBackward">
+        <p>Backward</p>
+    </div> -->
+   
 </template>
 
   

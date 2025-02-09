@@ -13,7 +13,7 @@ export const tracksOptions = [
     { label: '3' , value: 3 }
   ] as SrListNumberItem[];
 
-export const beamsOptions = [
+export const gtsOptions = [
     {label:'gt1l',value:10}, 
     {label:'gt1r',value:20}, 
     {label:'gt2l',value:30}, 
@@ -43,7 +43,7 @@ export const scOrientOptions = [
 
   export function getBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
     const beams = [] as SrListNumberItem[];
-    for (const beam of beamsOptions) {
+    for (const beam of gtsOptions) {
       for(const gt of gts){
         if (beam.value === gt.value) {
           beams.push(beam);
