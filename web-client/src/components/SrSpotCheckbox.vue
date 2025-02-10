@@ -16,7 +16,7 @@
   </template>
   
   <script setup lang="ts">
-  import { computed, defineProps, defineEmits } from 'vue'
+  import { computed } from 'vue'
   
   interface SingleDigitCheckboxProps {
     /** The digit to show inside the checkbox. */

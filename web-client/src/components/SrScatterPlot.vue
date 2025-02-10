@@ -275,6 +275,7 @@ function handleValueChange(value) {
                     :transparentBackground="false" 
                 />
                 <div class="sr-select-boxes">
+                    <div class="sr-select-box">
                     <Listbox 
                         class="sr-select-lists"
                         v-model="selectedRgtsReactive[recTreeStore.selectedReqIdStr]" 
@@ -293,6 +294,8 @@ function handleValueChange(value) {
                             </div>
                         </template>
                     </Listbox>
+                    </div>
+                    <div class="sr-select-box">
                     <Listbox 
                         class="sr-select-lists"
                         v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
@@ -303,15 +306,23 @@ function handleValueChange(value) {
                         :options="computedCycleOptions"
                         @change="handleValueChange"
                     >
-                        <template #header>
+                        <!-- <template #header>
                             <div class="p-listbox-header">
                                 <div class="sr-listbox-header-title">
                                     <span>Cycles {{ allowedCycleValues.size }}/{{ computedCycleOptions.length }}</span>
                                 </div>
                             </div>
-                        </template>
+                        </template> -->
+                        <template #header>
+                            <div class="p-listbox-header">
+                                <div class="sr-listbox-header-title">
+                                    <span>Cycles</span>
+                                </div>
+                            </div>
+                        </template>                        
                     </Listbox>
                     </div>
+                </div>
                 <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
              </div>
         </div> 
@@ -421,8 +432,8 @@ function handleValueChange(value) {
 .sr-select-lists {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content:center;
+    align-items:flex-start;
     margin: 0.5rem;
     padding: 0.5rem;
     width: auto;
@@ -432,7 +443,7 @@ function handleValueChange(value) {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     margin: 0.5rem;
     padding: 0.5rem;
     width: auto;
@@ -460,6 +471,7 @@ function handleValueChange(value) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 0.25rem;
 }
 
 :deep(.p-listbox-header) {

@@ -28,7 +28,7 @@
 import Listbox from 'primevue/listbox';
 import { watch, onMounted, computed } from 'vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-import { SrListNumberItem } from '@/stores/chartStore';
+import { SrListNumberItem } from '@/types/SrTypes';
 
 const props = defineProps({
     label: {

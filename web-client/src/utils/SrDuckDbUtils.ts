@@ -665,9 +665,6 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
             SELECT 
                 cycle,
                 ANY_VALUE(time) AS time,  -- We only need any single time
-                group_concat(DISTINCT rgt, ',') AS all_rgts,
-                group_concat(DISTINCT spot, ',') AS all_spots,
-                group_concat(DISTINCT gt, ',') AS all_gts
             FROM '${fileName}'
             GROUP BY cycle
             ORDER BY cycle ASC;
@@ -692,11 +689,7 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
                 });
 
                 // Build a label for each cycle
-                // Example: "Cycle 5 (01/31/2025) | RGTs: 10,12 | Spots: 2,4 | GTs: 100,200"
-                const newLabel = `Cycle ${row.cycle} (${timeStr}) | `
-                               + `RGTs: ${row.all_rgts ?? ''} | `
-                               + `Spots: ${row.all_spots ?? ''} | `
-                               + `GTs: ${row.all_gts ?? ''}`;
+                const newLabel = `${row.cycle}: ${timeStr}`;
 
                 cycles.push({
                     label: newLabel,
