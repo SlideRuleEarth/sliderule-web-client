@@ -7,7 +7,7 @@
             <p class="sr-highlighted-track-details">
                 {{ highlightedTrackDetails }}
             </p>
-            <Panel header="Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
+            <Fieldset legend="Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
                     <div class="sr-select-boxes">
                         <div class="sr-select-box">
@@ -41,7 +41,7 @@
                     </div>
                     <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                 </div>
-            </Panel>
+            </Fieldset>
         </template>                    
     </Card>
 </template>
@@ -55,7 +55,7 @@ import { selectedRgtsReactive,selectedCycleReactive } from "@/utils/plotUtils";
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from './SrBeamPattern.vue';
-import Panel  from 'primevue/panel';
+import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
 
 const recTreeStore = useRecTreeStore();
@@ -124,6 +124,18 @@ function handleValueChange(value) {
     color: var(--color-text);
     background-color: var(--color-bg);
     border-radius: 0.25rem;
+}
+
+.sr-filter-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: fit-content;
+    min-width: 30rem;
 }
 
 .sr-select-lists {

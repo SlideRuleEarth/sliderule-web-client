@@ -120,6 +120,7 @@ onMounted(() => {
     width: fit-content;
     min-width: 30rem;
 }
+
 .sr-select-Ydata-options {
     display: flex;
     flex-direction: column;

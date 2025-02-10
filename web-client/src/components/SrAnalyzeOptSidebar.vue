@@ -307,51 +307,53 @@ const exportButtonClick = async () => {
 
                 </div>
             </div>
-            <div class="sr-pnts-colormap">
-                <div class="sr-analysis-max-pnts">
-                    <SrSliderInput
-                        v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                        label="Max Num Elevation Pnts"
-                        :min="10000"
-                        :max="5000000"
-                        :defaultValue="100000"
-                        :decimalPlaces=0
-                        tooltipText="Maximum number of points to display"
-                    />
+            <div class="sr-sidebar-analysis-opt">
+                <div class="sr-pnts-colormap">
+                    <div class="sr-analysis-max-pnts">
+                        <SrSliderInput
+                            v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+                            label="Max Num Elevation Pnts"
+                            :min="10000"
+                            :max="5000000"
+                            :defaultValue="100000"
+                            :decimalPlaces=0
+                            tooltipText="Maximum number of points to display"
+                        />
+                    </div>
+                    <div class="sr-analysis-color-map">
+                        <SrMenuInput 
+                            label="Color Map" 
+                            :menuOptions="getColorMapOptions()" 
+                            v-model="selectedElevationColorMap"
+                            tooltipText="Color Map for elevation plot"
+                        /> 
+                    </div>  
                 </div>
-                <div class="sr-analysis-color-map">
-                    <SrMenuInput 
-                        label="Color Map" 
-                        :menuOptions="getColorMapOptions()" 
-                        v-model="selectedElevationColorMap"
-                        tooltipText="Color Map for elevation plot"
-                    /> 
-                </div>  
-            </div>
-            <div class="sr-analysis-rec-parms">
-                <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
-            </div>
-            <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
-                <SrFilterCntrl></SrFilterCntrl>
-            </div>
-            <div class="sr-scatterplot-cfg-container">
-                <!-- SrScatterPlotConfig for the main req_id -->
-                <div class="sr-scatterplot-cfg">
-                    <SrScatterPlotConfig
-                        v-if="mapStore.mapInitialized" 
-                        :reqId="recTreeStore.selectedReqId"
-                    />
+                <div class="sr-analysis-rec-parms">
+                    <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
                 </div>
+                <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
+                    <SrFilterCntrl></SrFilterCntrl>
+                </div>
+                <div class="sr-scatterplot-cfg-container">
+                    <!-- SrScatterPlotConfig for the main req_id -->
+                    <div class="sr-scatterplot-cfg">
+                        <SrScatterPlotConfig
+                            v-if="mapStore.mapInitialized" 
+                            :reqId="recTreeStore.selectedReqId"
+                        />
+                    </div>
 
-                <!-- SrScatterPlotConfig for each overlayed req_id -->
-                <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
-                    <SrScatterPlotConfig
-                        v-if="mapStore.mapInitialized" 
-                        :reqId="overlayedReqId"
-                        :isOverlay="true" 
-                    />
-                </div>
-            </div>        
+                    <!-- SrScatterPlotConfig for each overlayed req_id -->
+                    <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
+                        <SrScatterPlotConfig
+                            v-if="mapStore.mapInitialized" 
+                            :reqId="overlayedReqId"
+                            :isOverlay="true" 
+                        />
+                    </div>
+                </div> 
+            </div>       
         </div>
     </div>
 </template>
@@ -359,13 +361,13 @@ const exportButtonClick = async () => {
     
 
 
-    :deep(.sr-analysis-opt-sidebar) {
+    .sr-analysis-opt-sidebar {
         display: flex;
         flex-direction: column;
         width: auto;
         overflow: auto; 
     }
-    :deep(.sr-analysis-opt-sidebar-container) {
+    .sr-analysis-opt-sidebar-container {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -403,11 +405,21 @@ const exportButtonClick = async () => {
         margin-top: 1.0rem;
         font-size: medium;
     }
-    :deep(.sr-export-button) {
-        margin: 1rem;
 
+    .sr-export-button {
+        margin: 1rem;
         width:10rem;
     }
+
+    .sr-sidebar-analysis-opt {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        margin-top: 1.0rem;
+    }
+
     .sr-filter-cntrl-container {
         display: flex;
         flex-direction: column;
