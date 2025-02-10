@@ -47,7 +47,9 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const computedRgtOptions = computed(() => {
-    return globalChartStore.getRgtOptions();
+    const rgtOptions= globalChartStore.getRgtOptions();
+    console.log('SrScatterPlot computedRgtOptions:',rgtOptions);
+    return rgtOptions;
 });
 
 const computedCycleOptions = computed(() => {
@@ -276,6 +278,8 @@ function handleValueChange(value) {
                     <Listbox 
                         class="sr-select-lists"
                         v-model="selectedRgtsReactive[recTreeStore.selectedReqIdStr]" 
+                        optionLabel="label"
+                        optionValue="value"
                         :multiple="true"
                         :metaKeySelection="true"
                         :options="computedRgtOptions"

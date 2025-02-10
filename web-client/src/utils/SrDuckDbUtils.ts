@@ -517,12 +517,12 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
 
 export interface SrScatterChartData { value: number[] };
 
-export async function getAllRgtOptions(req_id: number): Promise<number[]> {
+export async function getAllRgtOptions(req_id: number): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
-    const rgts = [] as number[];
+    const rgtOptions = [] as SrListNumberItem[];
     try{
         const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
@@ -530,7 +530,7 @@ export async function getAllRgtOptions(req_id: number): Promise<number[]> {
             for (const row of rowChunk) {
                 if (row) {
                     //console.log('getRgt row:', row);
-                    rgts.push(row.rgt);
+                    rgtOptions.push({ label: row.rgt.toString(), value: row.rgt });
                 } else {
                     console.warn('getRgts fetchData rowData is null');
                 }
@@ -543,7 +543,7 @@ export async function getAllRgtOptions(req_id: number): Promise<number[]> {
         const endTime = performance.now(); // End time
         //console.log(`SrDuckDbUtils.getRgts() took ${endTime - startTime} milliseconds.`);
     }
-    return rgts;
+    return rgtOptions;
 }
 
 export async function getPairs(req_id: number): Promise<number[]> {
@@ -849,7 +849,6 @@ export async function getAllCycleOptionsByRgtsSpotsAndGts(
 
 export async function updateAllFilterOptions(req_id: number): Promise<void> {
     const startTime = performance.now(); // Start time
-    const reqIdStr = req_id.toString();
     try{
         const globalChartStore = useGlobalChartStore();
         const rgts = await getAllRgtOptions(req_id);
@@ -861,7 +860,7 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.updateAllFilterOptions() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.updateAllFilterOptions() took ${endTime - startTime} milliseconds.`);
     }
 }
 export interface FetchScatterDataOptions {

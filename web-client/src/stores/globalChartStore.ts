@@ -4,14 +4,15 @@ import type { SrListNumberItem } from '@/types/SrTypes';
 //import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
+import { find } from 'lodash';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const cycleOptions = ref<SrListNumberItem[]>([]);
     const selectedCycleOptions = ref<SrListNumberItem[]>([]);
     const filteredCycleOptions = ref<SrListNumberItem[]>([]);// subset for selected 
-    const rgtOptions = ref<number[]>([]);
-    const selectedRgtsOption = ref<number[]>([]);
-    const filteredRgtOptions = ref<number[]>([]);// subset for selected 
+    const rgtOptions = ref<SrListNumberItem[]>([]);
+    const selectedRgtOptions = ref<SrListNumberItem[]>([]);
+    const filteredRgtOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const selectedSpotOptions = ref<SrListNumberItem[]>([]);
     const filteredSpotOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const selectedTrackOptions = ref<number[]>([]);
@@ -84,27 +85,64 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         filteredCycleOptions.value = cycleOptions;
     }
     
-    function setRgtOptions(newRgtOptions: number[]) {
+    function setRgtOptions(newRgtOptions: SrListNumberItem[]) {
         rgtOptions.value = newRgtOptions;  
     }
     
-    function getRgtOptions(): number[] {
+    function getRgtOptions(): SrListNumberItem[] {
         return rgtOptions.value;
     }
 
+    function findRgtOption(rgt: number): SrListNumberItem | undefined {
+        return rgtOptions.value.find(option => option.value === rgt);
+    }
+
     function setRgts(rgtOptions: number[]) {
-        selectedRgtsOption.value = rgtOptions;
+        if(!Array.isArray(rgtOptions)) {    
+            console.error('setRgts received invalid rgts:', rgtOptions);
+            selectedRgtOptions.value = [];
+            return;
+        }
+        const updatedRgtOptions = rgtOptions.map(rgt => {
+            return findRgtOption(rgt) || { label: rgt.toString(), value: rgt };
+        });
+        setSelectedRgtOptions(updatedRgtOptions);
+        console.log('setRgts rgts:', rgtOptions, ' selectedRgtOptions:', selectedRgtOptions.value);
     }
 
     function getRgts(): number[] {
-        return selectedRgtsOption.value;
+        if(!Array.isArray(selectedRgtOptions.value)) {
+            console.error(`getRgts: selectedRgtOptions is not an array`, selectedRgtOptions.value);
+            return [];
+        }
+        return selectedRgtOptions.value.map(rgt => rgt.value);
     }
 
-    function getFilteredRgtOptions(): number[] {
+    function setSelectedRgtOptions(rgtOptions: SrListNumberItem[]) {
+        if (!Array.isArray(rgtOptions)) {
+            console.error('setSelectedRgtOptions received invalid rgtOptions:', rgtOptions);
+            selectedRgtOptions.value = [];
+            return;
+        }
+        selectedRgtOptions.value = rgtOptions;
+    }
+
+    function getSelectedRgtOptions(): SrListNumberItem[] {
+        return selectedRgtOptions.value;
+    }
+
+    function appendToSelectedRgtOptions(rgt: number) {
+        const rgtExists = selectedRgtOptions.value.some(r => r.value === rgt);
+        if (!rgtExists) {
+            selectedRgtOptions.value.push({ label: rgt.toString(), value: rgt });   
+        }
+    }
+
+    function getFilteredRgtOptions(): SrListNumberItem[] {
         return filteredRgtOptions.value;
     }
 
-    function setFilteredRgtOptions(rgtOptions: number[]) {
+    function setFilteredRgtOptions(rgtOptions: SrListNumberItem[]) {
         filteredRgtOptions.value = rgtOptions;
     }
 
@@ -356,6 +394,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getRgtOptions,
         setRgts,
         getRgts,
+        getSelectedRgtOptions,
+        setSelectedRgtOptions,
+        appendToSelectedRgtOptions,
         getFilteredRgtOptions,
         setFilteredRgtOptions,
         getSpotsOptions,

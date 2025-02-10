@@ -16,6 +16,7 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useColorMapStore }  from "@/stores/colorMapStore";
 import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
+import type { SrListNumberItem } from "@/types/SrTypes";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -155,11 +156,11 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
             selectedRgtsReactive[reqId] = computed({
                 get: (): number[] => {
                     const values = globalChartStore.getRgts();
-                    //console.log(`selectedRgtsReactive[${reqId}] get:`, value);
+                    console.log(`selectedRgtsReactive[${reqId}] get:`, values);
                     return values;
                 },
                 set: (values: number[]): void => {
-                    //console.log(`selectedRgtsReactive[${reqId}] set:`, values);
+                    console.log(`selectedRgtsReactive[${reqId}] set:`, values);
                     globalChartStore.setRgts(values);
                 },
             });
