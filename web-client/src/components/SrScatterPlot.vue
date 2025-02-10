@@ -18,11 +18,8 @@ import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-import { selectedRgtsReactive,selectedCycleReactive } from "@/utils/plotUtils";
-import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import SrBeamPattern from "./SrBeamPattern.vue";
 import { getAllCycleOptionsByRgtsSpotsAndGts, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 
@@ -274,57 +271,7 @@ function handleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
-                <div class="sr-select-boxes">
-                    <div class="sr-select-box">
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedRgtsReactive[recTreeStore.selectedReqIdStr]" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="true"
-                        :metaKeySelection="true"
-                        :options="computedRgtOptions"
-                        @change="handleValueChange"
-                    >
-                        <template #header>
-                            <div class="p-listbox-header">
-                                <div class="sr-listbox-header-title">
-                                    <span>Rgts</span>
-                                </div>
-                            </div>
-                        </template>
-                    </Listbox>
-                    </div>
-                    <div class="sr-select-box">
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="true"
-                        :metaKeySelection="true"
-                        :options="computedCycleOptions"
-                        @change="handleValueChange"
-                    >
-                        <!-- <template #header>
-                            <div class="p-listbox-header">
-                                <div class="sr-listbox-header-title">
-                                    <span>Cycles {{ allowedCycleValues.size }}/{{ computedCycleOptions.length }}</span>
-                                </div>
-                            </div>
-                        </template> -->
-                        <template #header>
-                            <div class="p-listbox-header">
-                                <div class="sr-listbox-header-title">
-                                    <span>Cycles</span>
-                                </div>
-                            </div>
-                        </template>                        
-                    </Listbox>
-                    </div>
-                </div>
-                <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
-             </div>
+            </div>
         </div> 
         <div class="sr-scatter-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -477,6 +424,7 @@ function handleValueChange(value) {
 :deep(.p-listbox-header) {
     padding: 0.125rem;
     margin: 0.125rem;
+    text-align: center;
 }
 
 
@@ -528,17 +476,7 @@ function handleValueChange(value) {
     color:black;
 }
 
-.sr-photon-cloud {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: left;
-  margin: 0.5rem;
-  padding: 1rem;
-  overflow-y: auto;
-  overflow-x: auto;
-  width: auto;
-}
+
 .sr-select-y-data {
     width: 100%;
     margin: 0.25rem;

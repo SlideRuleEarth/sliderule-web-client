@@ -140,9 +140,6 @@
         justify-content: center;
         gap: 0.5rem;
     }
-    .sr-card-title-center {
-        text-align: center;
-    }
 
     button.p-button.p-component.sr-run-abort-button.abort-mode {
         color: #000000;

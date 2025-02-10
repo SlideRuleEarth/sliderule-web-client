@@ -4,7 +4,6 @@ import type { SrListNumberItem } from '@/types/SrTypes';
 //import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
-import { find } from 'lodash';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const cycleOptions = ref<SrListNumberItem[]>([]);
@@ -327,6 +326,11 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     function getScOrients(): number[] {
         return selectedScOrientOptions.value.map(scOrient => scOrient.value);
     }
+
+    function getScOrientsLabels(): string[] {
+        return selectedScOrientOptions.value.map(scOrient => scOrient.label);
+    }
+
     function hasScForward(): boolean {
         return selectedScOrientOptions.value.some(scOrient => scOrient.value === SC_FORWARD);
     }
@@ -412,6 +416,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         appendScOrient,
         setFilteredScOrientOptions,
         getFilteredScOrientOptions,
+        getScOrientsLabels,
         hasScForward,
         hasScBackward,
     };

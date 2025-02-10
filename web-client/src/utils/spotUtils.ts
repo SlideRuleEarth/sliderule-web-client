@@ -187,7 +187,7 @@ export function createWhereClause(func:string, spots:number[],rgts:number[],cycl
         if ((rgts.length > 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if( rgts.length > 0){
-                whereStr = whereStr + `rgts IN (${rgts.join(', ')})`;
+                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
             } else {
                 console.error('createWhereClause: rgt is empty for func:', func);
             }

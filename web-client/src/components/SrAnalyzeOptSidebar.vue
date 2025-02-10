@@ -24,7 +24,7 @@ import { useChartStore } from '@/stores/chartStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
-import { useDebugStore } from '@/stores/debugStore';
+import SrFilterCntrl from './SrFilterCntrl.vue';
 import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -76,7 +76,7 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgt:${globalChartStore.getRgts()} tracks:${globalChartStore.getTracks()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
+    return `rgt:${globalChartStore.getRgts()} spots:${globalChartStore.getSpots()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
 });
 
 onMounted(async () => {
@@ -331,18 +331,8 @@ const exportButtonClick = async () => {
             <div class="sr-analysis-rec-parms">
                 <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
             </div>
-            <div class="sr-photon-cloud" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
-                <Card>
-                    <template #title>
-                        <div class="sr-card-title-center">Highlighted Track</div>
-                    </template>
-                    <template #content>
-                        <p class="m-0">
-                            {{ highlightedTrackDetails }}
-                        </p>
-                    </template>                    
-                </Card>
-
+            <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
+                <SrFilterCntrl></SrFilterCntrl>
             </div>
             <div class="sr-scatterplot-cfg-container">
                 <!-- SrScatterPlotConfig for the main req_id -->
@@ -418,12 +408,13 @@ const exportButtonClick = async () => {
 
         width:10rem;
     }
-    .sr-photon-cloud {
+    .sr-filter-cntrl-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
     }
+
     .sr-pnts-colormap {
         display: flex;
         flex-direction: column;
