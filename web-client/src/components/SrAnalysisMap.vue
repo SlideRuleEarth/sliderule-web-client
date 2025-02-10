@@ -9,7 +9,7 @@
     import 'ol/ol.css'; 
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
-    import SrLegendControl from './SrLegendControl.vue';
+    import SrLegendControl from '@/components/SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useChartStore } from "@/stores/chartStore";

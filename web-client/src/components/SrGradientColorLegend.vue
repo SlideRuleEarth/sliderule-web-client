@@ -17,7 +17,7 @@
                     tooltipText="Gradient Color Map for scatter plot"
                 />
             </div>
-            <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
+            <SrPlotLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
         <Button label="Restore Defaults" @click="gradientDefaultsRestored" />
 
@@ -32,7 +32,7 @@ import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
 import Button from 'primevue/button';
-import SrLegendBox from './SrLegendBox.vue';
+import SrPlotLegendBox from './SrPlotLegendBox.vue';
 
 // Define props with TypeScript types
 const props = withDefaults(

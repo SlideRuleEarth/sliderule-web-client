@@ -18,7 +18,7 @@ import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-import SrLegendBox from "./SrLegendBox.vue";
+import SrPlotLegendBox from "./SrPlotLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { getAllCycleOptionsByRgtsSpotsAndGts, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
@@ -265,7 +265,7 @@ function handleValueChange(value) {
                 }" 
             />
             <div class="sr-cycles-legend-panel">
-                <SrLegendBox
+                <SrPlotLegendBox
                     v-if = "(computedDataKey!='solid')"
                     :reqIdStr="recTreeStore.selectedReqIdStr" 
                     :data_key="computedDataKey" 
