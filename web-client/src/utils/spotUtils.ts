@@ -177,22 +177,22 @@ export function getSqlForSpots(spots:number[]){
     return sqls.join(' OR ');
 }
 
-export function createWhereClause(func:string, spots:number[],rgt:number,cycles:number[]){
+export function createWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
     //console.log('createWhereClause: func:', func);
     console.log('createWhereClause: spots:', spots);
     //console.log('createWhereClause: rgts:', rgts);
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
-        if ((rgt >= 0) || (cycles.length > 0)) {
+        if ((rgts.length > 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if( rgt >= 0){
-                whereStr = whereStr + `rgt IN (${rgt})`;
+            if( rgts.length > 0){
+                whereStr = whereStr + `rgts IN (${rgts.join(', ')})`;
             } else {
                 console.error('createWhereClause: rgt is empty for func:', func);
             }
             if (cycles.length > 0) {
-                if( rgt >= 0){
+                if( rgts.length > 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
@@ -206,13 +206,13 @@ export function createWhereClause(func:string, spots:number[],rgt:number,cycles:
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
-        if ((rgt >= 0) || (cycles.length > 0)) {
+        if ((rgts.length > 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if( rgt >= 0){
-                whereStr = whereStr + `rgt IN (${rgt})`;
+            if( rgts.length > 0){
+                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
             }
             if (cycles.length > 0) {
-                if( rgt >= 0){
+                if( rgts.length > 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;

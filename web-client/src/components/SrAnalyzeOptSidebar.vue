@@ -76,7 +76,7 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgt:${globalChartStore.getRgt()} track:${globalChartStore.getTracks()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
+    return `rgt:${globalChartStore.getRgts()} tracks:${globalChartStore.getTracks()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
 });
 
 onMounted(async () => {

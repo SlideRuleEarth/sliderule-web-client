@@ -357,7 +357,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.log('Clicked: sc_orient',gcs.getScOrients());
     }
     if(d.rgt !== undefined){
-        gcs.setRgt(d.rgt);
+        gcs.setRgts([d.rgt]);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }

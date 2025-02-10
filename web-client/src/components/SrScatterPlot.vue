@@ -18,12 +18,12 @@ import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-import { selectedCycleReactive } from "@/utils/plotUtils";
+import { selectedRgtsReactive,selectedCycleReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrLegendBox from "./SrLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import SrBeamPattern from "./SrBeamPattern.vue";
-import { getAllCycleOptionsByRgtsSpotsAndGts, getAllCycleOptionsByRgtsAndSpots, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtsSpotsAndGts, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 
 const props = defineProps({
@@ -45,6 +45,10 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
+
+const computedRgtOptions = computed(() => {
+    return globalChartStore.getRgtOptions();
+});
 
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
@@ -115,13 +119,13 @@ const messageClass = computed(() => {
   };
 });
 
-async function getDataForCycle(cycle:number):Promise<void> {
-    console.log('SrScatterPlot getDataForCycle:', cycle);
-    const runContext = await getPhotonOverlayRunContext(cycle);
+async function getDataForRgtCycle(rgt:number,cycle:number):Promise<void> {
+    console.log('SrScatterPlot getDataForRgtCycle rgt:',rgt,'cycle:', cycle);
+    const runContext = await getPhotonOverlayRunContext(rgt,cycle);
     const parentReqIdStr = runContext.parentReqId.toString();
     if(runContext.reqId <= 0){
-        //console.log('getDataForCycle runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
-        await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,globalChartStore.getRgt(),cycle);
+        //console.log('getDataForRgtCycle runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter); 
+        await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId,rgt,cycle);
         await processRunSlideRuleClicked(runContext);
         console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
         if(runContext.reqId <= 0){ // request was successfully processed
@@ -143,8 +147,10 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     console.log('SrScatterPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
-            globalChartStore.getCycles().forEach(async (cycle) => {
-                await getDataForCycle(cycle);
+            globalChartStore.getRgts().forEach(async (rgt) => {
+                globalChartStore.getCycles().forEach(async (cycle) => {
+                    await getDataForRgtCycle(rgt,cycle);
+                });
             });
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
@@ -179,7 +185,7 @@ watch(
     if (!reqId || reqId <= 0) {
         return {
             scOrients: globalChartStore.getScOrients(),
-            rgt: globalChartStore.getRgt(),
+            rgts: globalChartStore.getRgts(),
             cycles: globalChartStore.getCycles(),
             spots: globalChartStore.getSpots(),
             gts: globalChartStore.getGts(),
@@ -193,7 +199,7 @@ watch(
     // Otherwise, fetch the real values
     return {
         scOrients: globalChartStore.getScOrients(),
-        rgt: globalChartStore.getRgt(),
+        rgts: globalChartStore.getRgts(),
         cycles: globalChartStore.getCycles(),
         spots: globalChartStore.getSpots(),
         gts: globalChartStore.getGts(),
@@ -204,11 +210,11 @@ watch(
     };
   },
   async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
+    if((newValues.spots != oldValues.spots) || (newValues.rgts != oldValues.rgts) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId,[newValues.rgt],newValues.spots,gtsValues)
+        const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId,newValues.rgts,newValues.spots,gtsValues)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrScatterPlot watch selected Rgts,Spots,Gts changed:', newValues.rgt, newValues.spots,gtsValues);
+        console.log('SrScatterPlot watch selected Rgts,Spots,Gts changed:', newValues.rgts, newValues.spots,gtsValues);
     }
     let needPlotUpdate = false;
     if (!loadingComponent.value) {
@@ -230,8 +236,8 @@ watch(
   { deep: true }
 );
 
-function handleCycleValueChange(value) {
-    console.log('SrScatterPlot handleCycleValueChange:', value);
+function handleValueChange(value) {
+    console.log('SrScatterPlot handleValueChange:', value);
     atlChartFilterStore.setSelectedOverlayedReqIds([]);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
@@ -239,7 +245,7 @@ function handleCycleValueChange(value) {
     } else {
         console.warn('reqId is undefined');
     }
-    console.log('SrScatterPlot handleCycleValueChange:', value);
+    console.log('SrScatterPlot handleValueChange:', value);
 }
 
 </script>
@@ -266,25 +272,42 @@ function handleCycleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
-                <Listbox 
-                    class="sr-select-cycle"
-                    v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
-                    optionLabel="label"
-                    optionValue="value"
-                    :multiple="true"
-                    :metaKeySelection="true"
-                    :options="computedCycleOptions"
-                    :optionDisabled="(option) => !allowedCycleValues.has(option.value)"
-                    @change="handleCycleValueChange"
-                >
-                    <template #header>
-                        <div class="p-listbox-header">
-                            <div class="sr-listbox-header-title">
-                                <span>Cycles {{ allowedCycleValues.size }}/{{ computedCycleOptions.length }}</span>
+                <div class="sr-select-boxes">
+                    <Listbox 
+                        class="sr-select-lists"
+                        v-model="selectedRgtsReactive[recTreeStore.selectedReqIdStr]" 
+                        :multiple="true"
+                        :metaKeySelection="true"
+                        :options="computedRgtOptions"
+                        @change="handleValueChange"
+                    >
+                        <template #header>
+                            <div class="p-listbox-header">
+                                <div class="sr-listbox-header-title">
+                                    <span>Rgts</span>
+                                </div>
                             </div>
-                        </div>
-                    </template>
-                </Listbox>
+                        </template>
+                    </Listbox>
+                    <Listbox 
+                        class="sr-select-lists"
+                        v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
+                        optionLabel="label"
+                        optionValue="value"
+                        :multiple="true"
+                        :metaKeySelection="true"
+                        :options="computedCycleOptions"
+                        @change="handleValueChange"
+                    >
+                        <template #header>
+                            <div class="p-listbox-header">
+                                <div class="sr-listbox-header-title">
+                                    <span>Cycles {{ allowedCycleValues.size }}/{{ computedCycleOptions.length }}</span>
+                                </div>
+                            </div>
+                        </template>
+                    </Listbox>
+                    </div>
                 <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
              </div>
         </div> 
@@ -391,6 +414,26 @@ function handleCycleValueChange(value) {
     padding: 0.5rem;
     width: auto;
 }
+.sr-select-lists {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
+    max-width: 10rem;
+}
+.sr-select-boxes {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
+}
+
 :deep(.sr-listbox-header-title) {
     display: flex;
     flex-direction: row;
@@ -418,6 +461,32 @@ function handleCycleValueChange(value) {
 :deep(.p-listbox-header) {
     padding: 0.125rem;
     margin: 0.125rem;
+}
+
+
+
+:deep(.p-listbox-list-wrapper) {
+  /* A fixed width or max-width is usually necessary to force scrolling */
+  max-width: 20rem;       
+  /* or use width: 300px; if you prefer a fixed width */
+
+  overflow-x: auto;       /* enable horizontal scrolling */
+  white-space: nowrap;    /* prevent list items from wrapping to the next line */
+}
+
+/* Ensure list items stay side-by-side horizontally */
+:deep(.p-listbox-list) {
+  display: inline-flex;    /* horizontally place <li> elements in a row */
+  flex-wrap: nowrap;       /* no wrapping */
+  padding: 0;              /* optional, just to reduce default padding */
+  margin: 0;               /* optional, just to reduce default margin */
+}
+
+:deep(.p-listbox-item) {
+  /* Each item should not flex to fill the container, so prevent auto stretching: */
+  flex: 0 0 auto; 
+  /* Or use: display: inline-block; */
+  white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
 }
 
 .sr-run-control{

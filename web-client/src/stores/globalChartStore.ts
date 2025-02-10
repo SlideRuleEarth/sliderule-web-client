@@ -10,7 +10,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const selectedCycleOptions = ref<SrListNumberItem[]>([]);
     const filteredCycleOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const rgtOptions = ref<number[]>([]);
-    const selectedRgtOption = ref<number>(-1);//Only one RGT can be selected
+    const selectedRgtsOption = ref<number[]>([]);
     const filteredRgtOptions = ref<number[]>([]);// subset for selected 
     const selectedSpotOptions = ref<SrListNumberItem[]>([]);
     const filteredSpotOptions = ref<SrListNumberItem[]>([]);// subset for selected 
@@ -92,12 +92,12 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return rgtOptions.value;
     }
 
-    function setRgt(rgtOption: number) {
-        selectedRgtOption.value = rgtOption;
+    function setRgts(rgtOptions: number[]) {
+        selectedRgtsOption.value = rgtOptions;
     }
 
-    function getRgt(): number {
-        return selectedRgtOption.value;
+    function getRgts(): number[] {
+        return selectedRgtsOption.value;
     }
 
     function getFilteredRgtOptions(): number[] {
@@ -354,8 +354,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setFilteredCycleOptions,
         setRgtOptions,
         getRgtOptions,
-        setRgt,
-        getRgt,
+        setRgts,
+        getRgts,
         getFilteredRgtOptions,
         setFilteredRgtOptions,
         getSpotsOptions,

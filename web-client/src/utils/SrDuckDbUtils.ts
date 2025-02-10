@@ -4,7 +4,6 @@ import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useMapStore } from '@/stores/mapStore';
 import { SrMutex } from './SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -389,14 +388,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const func = await indexedDb.getFunc(req_id);
         let queryStr = '';
         const globalChartStore = useGlobalChartStore();
-        const rgt = globalChartStore.getRgt();
+        const rgts = globalChartStore.getRgts();
         const cycles = globalChartStore.getCycles(); 
         const spots = globalChartStore.getSpots();
         if(func.includes('atl06')){
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgt}) 
+                        WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -408,7 +407,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgt}) 
+                        WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -416,7 +415,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgt}) 
+                        WHERE rgt IN (${rgts.join(', ')}) 
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -653,107 +652,197 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
 
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
+
+    // Make the parquet file available to DuckDB
     await duckDbClient.insertOpfsParquet(fileName);
+
     const cycles = [] as SrListNumberItem[];
-    try{
-        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' GROUP BY cycle ORDER BY cycle ASC;`;
+
+    try {
+        // Query: get one row per cycle with a single representative time
+        // plus all distinct rgts, spots, and gts.
+        const query = `
+            SELECT 
+                cycle,
+                ANY_VALUE(time) AS time,  -- We only need any single time
+                group_concat(DISTINCT rgt, ',') AS all_rgts,
+                group_concat(DISTINCT spot, ',') AS all_spots,
+                group_concat(DISTINCT gt, ',') AS all_gts
+            FROM '${fileName}'
+            GROUP BY cycle
+            ORDER BY cycle ASC;
+        `;
+
+        // Run the query
         const queryResult: QueryResult = await duckDbClient.query(query);
+
+        // Process the returned rows
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
-                if (row) {
-                    //console.log('getCycle row:', row);
-                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                    });
-                    const newLabel = `${row.cycle}: ${timeStr}`;
-                    cycles.push({label:newLabel, value:row.cycle});
-                } else {
-                    console.warn('getCycles fetchData rowData is null');
+                if (!row) {
+                    console.warn('getAllCycleOptions rowData is null or undefined');
+                    continue;
                 }
+                
+                // Convert time to a locale-based string (e.g. MM/DD/YYYY)
+                const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+
+                // Build a label for each cycle
+                // Example: "Cycle 5 (01/31/2025) | RGTs: 10,12 | Spots: 2,4 | GTs: 100,200"
+                const newLabel = `Cycle ${row.cycle} (${timeStr}) | `
+                               + `RGTs: ${row.all_rgts ?? ''} | `
+                               + `Spots: ${row.all_spots ?? ''} | `
+                               + `GTs: ${row.all_gts ?? ''}`;
+
+                cycles.push({
+                    label: newLabel,
+                    value: row.cycle
+                });
             }
-        } 
+        }
     } catch (error) {
         console.error('getAllCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getAllCycleOptions() took ${endTime - startTime} milliseconds.`,cycles);
+        console.log(`getAllCycleOptions took ${endTime - startTime} ms.`, cycles);
     }
+
     return cycles;
 }
 
-export async function getAllCycleOptionsByRgtsAndSpots(req_id: number,rgts:number[],spots:number[]): Promise<SrListNumberItem[]> {
+
+// export async function getAllCycleOptionsByRgtsAndSpots(req_id: number,rgts:number[],spots:number[]): Promise<SrListNumberItem[]> {
+//     const startTime = performance.now(); // Start time
+
+//     const fileName = await indexedDb.getFilename(req_id);
+//     const duckDbClient = await createDuckDbClient();
+//     await duckDbClient.insertOpfsParquet(fileName);
+//     const cycles = [] as SrListNumberItem[];
+//     try{
+//         const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' WHERE (rgt IN (${rgts.join(',')}) AND spot IN (${spots.join(',')})) GROUP BY cycle ORDER BY cycle ASC;`;
+//         const queryResult: QueryResult = await duckDbClient.query(query);
+//         for await (const rowChunk of queryResult.readRows()) {
+//             for (const row of rowChunk) {
+//                 if (row) {
+//                     //console.log('getCycle row:', row);
+//                     const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+//                         year: 'numeric',
+//                         month: '2-digit',
+//                         day: '2-digit'
+//                     });
+//                     const newLabel = `${row.cycle}: ${timeStr}`;
+//                     cycles.push({label:newLabel, value:row.cycle});
+//                 } else {
+//                     console.warn('getAllCycleOptionsByRgtsAndSpots fetchData rowData is null');
+//                 }
+//             }
+//         } 
+//     } catch (error) {
+//         console.error('getAllCycleOptionsByRgtsAndSpots Error:', error);
+//         throw error;
+//     } finally {
+//         const endTime = performance.now(); // End time
+//         console.log(`getAllCycleOptionsByRgtsAndSpotstook ${endTime - startTime} milliseconds.`,' req_id:',req_id, ' cycles:',cycles, ' rgts:',rgts, ' spots:',spots);
+//     }
+//     return cycles;
+// }
+
+export async function getAllCycleOptionsByRgtsSpotsAndGts(
+    req_id: number,
+    rgts: number[],
+    spots: number[],
+    gts: number[]
+): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
-    const cycles = [] as SrListNumberItem[];
-    try{
-        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' WHERE (rgt IN (${rgts.join(',')}) AND spot IN (${spots.join(',')})) GROUP BY cycle ORDER BY cycle ASC;`;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-        for await (const rowChunk of queryResult.readRows()) {
-            for (const row of rowChunk) {
-                if (row) {
-                    //console.log('getCycle row:', row);
-                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                    });
-                    const newLabel = `${row.cycle}: ${timeStr}`;
-                    cycles.push({label:newLabel, value:row.cycle});
-                } else {
-                    console.warn('getAllCycleOptionsByRgtsAndSpots fetchData rowData is null');
-                }
-            }
-        } 
-    } catch (error) {
-        console.error('getAllCycleOptionsByRgtsAndSpots Error:', error);
-        throw error;
-    } finally {
-        const endTime = performance.now(); // End time
-        console.log(`getAllCycleOptionsByRgtsAndSpotstook ${endTime - startTime} milliseconds.`,' req_id:',req_id, ' cycles:',cycles, ' rgts:',rgts, ' spots:',spots);
+    const cycles: SrListNumberItem[] = [];
+
+    try {
+    // Build the WHERE clause dynamically
+    const whereClauses: string[] = [];
+    if (rgts.length > 0) {
+        whereClauses.push(`rgt IN (${rgts.join(',')})`);
     }
-    return cycles;
-}
+    if (spots.length > 0) {
+        whereClauses.push(`spot IN (${spots.join(',')})`);
+    }
+    if (gts.length > 0) {
+        whereClauses.push(`gt IN (${gts.join(',')})`);
+    }
 
-export async function getAllCycleOptionsByRgtsSpotsAndGts(req_id: number,rgts:number[],spots:number[],gts:number[]): Promise<SrListNumberItem[]> {
-    const startTime = performance.now(); // Start time
+    const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(' AND ')}`
+        : '';
 
-    const fileName = await indexedDb.getFilename(req_id);
-    const duckDbClient = await createDuckDbClient();
-    await duckDbClient.insertOpfsParquet(fileName);
-    const cycles = [] as SrListNumberItem[];
-    try{
-        const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' WHERE (rgt IN (${rgts.join(',')}) AND spot IN (${spots.join(',')}) AND gt IN (${gts.join(',')})) GROUP BY cycle ORDER BY cycle ASC;`;
-        const queryResult: QueryResult = await duckDbClient.query(query);
-        for await (const rowChunk of queryResult.readRows()) {
-            for (const row of rowChunk) {
-                if (row) {
-                    //console.log('getCycle row:', row);
+    const query = `
+        SELECT 
+        cycle, 
+        ANY_VALUE(time) AS time 
+        FROM '${fileName}'
+        ${whereClause}
+        GROUP BY cycle 
+        ORDER BY cycle ASC;
+    `;
+
+    const queryResult: QueryResult = await duckDbClient.query(query);
+
+    for await (const rowChunk of queryResult.readRows()) {
+        for (const row of rowChunk) {
+            if (row) {
                     const timeStr = new Date(row.time).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                    });
-                    const newLabel = `${row.cycle}: ${timeStr}`;
-                    cycles.push({label:newLabel, value:row.cycle});
-                } else {
-                    console.warn('getAllCycleOptionsByRgtsSpotsAndGts fetchData rowData is null');
-                }
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                const newLabel = `${row.cycle}: ${timeStr}`;
+                cycles.push({ label: newLabel, value: row.cycle });
+            } else {
+                console.warn(
+                    'getAllCycleOptionsByRgtsSpotsAndGts fetchData rowData is null'
+                );
             }
-        } 
-        console.log('getAllCycleOptionsByRgtsSpotsAndGts req_id:',req_id, 'cycles:',cycles, ' rgts:',rgts, ' spots:',spots, ' gts:',gts);
+        }
+    }
+
+    console.log(
+        'getAllCycleOptionsByRgtsSpotsAndGts req_id:',
+        req_id,
+        'cycles:',
+        cycles,
+        'rgts:',
+        rgts,
+        'spots:',
+        spots,
+        'gts:',
+        gts
+    );
 
     } catch (error) {
         console.error('getAllCycleOptionsByRgtsSpotsAndGts Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`getAllCycleOptionsByRgtsAndSpotstook ${endTime - startTime} milliseconds.`,' req_id:',req_id, ' cycles:',cycles, ' rgts:',rgts, ' gts:',gts);
+        console.log(
+            `getAllCycleOptionsByRgtsSpotsAndGts took ${endTime - startTime} milliseconds.`,
+            ' req_id:',
+            req_id,
+            ' cycles:',
+            cycles,
+            ' rgts:',
+            rgts,
+            ' spots:',
+            spots,
+            ' gts:',
+            gts
+        );
     }
     return cycles;
 }

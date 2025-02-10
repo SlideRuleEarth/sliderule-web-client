@@ -1,4 +1,17 @@
 <template>
+    <div v-if="!computedHasScForward && !computedHasScBackward">
+        <p>No SC_Orient set?</p>
+    </div>
+    <div class="sr-sc-orient-panel">
+        <div class="checkbox-item">
+            <Checkbox :inputId="'sc_orient' + SC_BACKWARD" v-model="selectedScOrientsReactive[props.reqIdStr]" :value="SC_BACKWARD" size="small"/>
+            <label :for="'sc_orient' + SC_BACKWARD">Backward</label>
+        </div>
+        <div class="checkbox-item">
+            <Checkbox :inputId="'sc_orient' + SC_FORWARD" v-model="selectedScOrientsReactive[props.reqIdStr]" :value="SC_FORWARD" size="small"/>
+            <label :for="'sc_orient' + SC_FORWARD">Forward</label>
+        </div>
+    </div>
     <div class="checkbox-container">
         <Panel header="Spots" :toggleable="true" :collapsed="false">
             <div class="sr-spots-panel" v-if="computedHasScForward">
@@ -79,17 +92,7 @@
                 </div>
             </div>
         </Panel>
-    </div>
-    <div v-if="!computedHasScForward && !computedHasScBackward">
-        <p>No SC_Orient set?</p>
-    </div>
-    <!-- <div v-if="computedHasScForward">
-        <p>Forward</p>
-    </div>
-    <div v-if="computedHasScBackward">
-        <p>Backward</p>
-    </div> -->
-   
+    </div>   
 </template>
 
   
@@ -98,8 +101,10 @@ import Checkbox from 'primevue/checkbox';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
 import { selectedSpotReactive } from '@/utils/plotUtils';
+import { selectedScOrientsReactive } from '@/utils/plotUtils';
 import { computed } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
 
 const globalChartStore = useGlobalChartStore();
 
@@ -179,6 +184,15 @@ const computedHasScBackward = computed(() => globalChartStore.hasScBackward());
     padding: 0.25rem;
     font-size: small;
     border-bottom: 1px solid var(--color-border);
+}
+.sr-sc-orient-panel {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem; 
+    font-size: smaller;
+    margin-top: 0.125rem; 
 }
 :deep(.p-panel-content) {
     padding: 0.125rem;
