@@ -13,8 +13,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const rgtOptions = ref<SrListNumberItem[]>([]);
     const selectedRgtOptions = ref<SrListNumberItem[]>([]);
     const filteredRgtOptions = ref<SrListNumberItem[]>([]);// subset for selected 
-    const selectedSpotOptions = ref<SrListNumberItem[]>([]);
-    const filteredSpotOptions = ref<SrListNumberItem[]>([]);// subset for selected 
+    const selectedSpots = ref<number[]>([]);
     const selectedTrackOptions = ref<number[]>([]);
     const filteredTrackOptions = ref<number[]>([]);// subset for selected
     const selectedGtOptions = ref<SrListNumberItem[]>([]);
@@ -146,42 +145,21 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         filteredRgtOptions.value = rgtOptions;
     }
 
-    function appendToSelectedSpotOptions(spot: SrListNumberItem) {
-        const spotExists = selectedSpotOptions.value.some(s => s.value === spot.value);
-        if (!spotExists) {
-            selectedSpotOptions.value.push(spot);
-        }
-    }
-
-    function getSpotsOptions(): SrListNumberItem[] {
-        return spotsOptions;
-    }
-
-    function getFilteredSpotOptions(): SrListNumberItem[] {
-        return filteredSpotOptions.value;
-    }
-
-    function setFilteredSpotOptions(spotsOptions: SrListNumberItem[]) {
-        filteredSpotOptions.value = spotsOptions;
-    }
-
     function setSpots(spots: number[]) {
         if (!Array.isArray(spots)) {
             console.error('setSpots received invalid spots:', spots);
-            selectedSpotOptions.value = [];
+            selectedSpots.value = [];
             return;
         }
-        selectedSpotOptions.value = spots.map(spot => {
-            return spotsOptions.find(option => option.value === spot) || { label: spot.toString(), value: spot };
-        });
+        selectedSpots.value = spots;
     }
 
     function getSpots(): number[] {
-        if (!Array.isArray(selectedSpotOptions.value)) {
-            console.error(`getSpots: selectedSpotOptions is not an array`, selectedSpotOptions.value);
+        if (!Array.isArray(selectedSpots.value)) {
+            console.error(`getSpots: selectedSpots is not an array`, selectedSpots.value);
             return [];
         }
-        return selectedSpotOptions.value.map(spot => spot.value);
+        return selectedSpots.value;
     }
 
     function setTracks(tracks: number[]) {
@@ -399,12 +377,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         appendToSelectedRgtOptions,
         getFilteredRgtOptions,
         setFilteredRgtOptions,
-        getSpotsOptions,
+        selectedSpots,
         getSpots,
         setSpots,
-        appendToSelectedSpotOptions,
-        getFilteredSpotOptions,
-        setFilteredSpotOptions,
         getTracksOptions,
         getTracks,
         setTracks,

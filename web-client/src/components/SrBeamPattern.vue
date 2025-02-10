@@ -13,7 +13,9 @@
         </div>
     </div>
     <div class="checkbox-container">
-        <Panel header="Spots" :toggleable="true" :collapsed="false">
+        <Panel header="Spots/Beams" :toggleable="true" :collapsed="false">
+            <!-- props.reqIdStr:{{ props.reqIdStr }}
+            cmp:{{ selectedScOrientsReactive[props.reqIdStr] }} -->
             <div class="sr-spots-panel" v-if="computedHasScForward">
                 <div class="sr-spots-panel-hdr">
                     <div class="sr-spots-title">
@@ -22,38 +24,56 @@
                     <!-- Row 1: Spots 6, 4, 2 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 6" v-model="selectedSpotReactive[props.reqIdStr]" :value="6" size="small"/>
-                            <label :for="'spot' + 6">6</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="6"
+                                label="GT1L" 
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 4" v-model="selectedSpotReactive[props.reqIdStr]" :value="4" size="small"/>
-                            <label :for="'spot' + 4">4</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="4"
+                                label="GT2L"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 2" v-model="selectedSpotReactive[props.reqIdStr]" :value="2" size="small"/>
-                            <label :for="'spot' + 2">2</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="2"
+                                label="GT3L"
+                            />
                         </div>
                     </div>
                     
                     <!-- Row 2: Spots 5, 3, 1 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 5" v-model="selectedSpotReactive[props.reqIdStr]" :value="5" size="small"/>
-                            <label :for="'spot' + 5">5</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="5"
+                                label="GT1R"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 3" v-model="selectedSpotReactive[props.reqIdStr]" :value="3" size="small"/>
-                            <label :for="'spot' + 3">3</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="3"
+                                label="GT2R"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 1" v-model="selectedSpotReactive[props.reqIdStr]" :value="1" size="small"/>
-                            <label :for="'spot' + 1">1</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="1"
+                                label="GT3R"
+                            />
                         </div>
                     </div>
                 </div>
             </div>
             <Divider></Divider>
-            <div class="sr-spots-backward-panel" v-if="computedHasScBackward">
+            <div class="sr-spots-panel" v-if="computedHasScBackward">
                 <div class="sr-spots-backward-panel-hdr">
                     <div class="sr-spots-title">
                         <p class="sr-p">Backward</p>
@@ -61,32 +81,50 @@
                     <!-- Row 1: Spots 1, 3, 5 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 1" v-model="selectedSpotReactive[props.reqIdStr]" :value="1" size="small"/>
-                            <label :for="'spot' + 1">1</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="1"
+                                label="GT1L"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 3" v-model="selectedSpotReactive[props.reqIdStr]" :value="3" size="small"/>
-                            <label :for="'spot' + 3">3</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="3"
+                                label="GT2L"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 5" v-model="selectedSpotReactive[props.reqIdStr]" :value="5" size="small"/>
-                            <label :for="'spot' + 5">5</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="5"
+                                label="GT3L"
+                            />
                         </div>
                     </div>
 
                     <!-- Row 2: Spots 2, 4, 6 -->
                     <div class="checkbox-row">
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 2" v-model="selectedSpotReactive[props.reqIdStr]" :value="2" size="small"/>
-                            <label :for="'spot' + 2">2</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="2" 
+                                label="GT1R"
+                                />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 4" v-model="selectedSpotReactive[props.reqIdStr]" :value="4" size="small"/>
-                            <label :for="'spot' + 4">4</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="4"
+                                label="GT2R"
+                            />
                         </div>
                         <div class="checkbox-item">
-                            <Checkbox :inputId="'spot' + 6" v-model="selectedSpotReactive[props.reqIdStr]" :value="6" size="small"/>
-                            <label :for="'spot' + 6">6</label>
+                            <SrSpotCheckbox 
+                                v-model="globalChartStore.selectedSpots" 
+                                :digit="6"
+                                label="GT3R"
+                            />
                         </div>
                     </div>
                 </div>
@@ -97,10 +135,10 @@
 
   
 <script setup lang="ts">
-import Checkbox from 'primevue/checkbox';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
-import { selectedSpotReactive } from '@/utils/plotUtils';
+import Checkbox from 'primevue/checkbox';
+import SrSpotCheckbox from '@/components/SrSpotCheckbox.vue';
 import { selectedScOrientsReactive } from '@/utils/plotUtils';
 import { computed } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -192,12 +230,13 @@ const computedHasScBackward = computed(() => globalChartStore.hasScBackward());
     align-items: center;
     gap: 0.5rem; 
     font-size: smaller;
-    margin-top: 0.125rem; 
+    margin-top: 0.125rem;
+    margin-bottom: 0.125rem; 
 }
-:deep(.p-panel-content) {
+/* :deep(.p-panel-content) {
     padding: 0.125rem;
     margin: 0.125rem;
-}
+} */
 :deep(.p-divider-horizontal){
     margin-top: 1rem;
     margin-bottom: 0.25rem;

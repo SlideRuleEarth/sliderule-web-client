@@ -25,7 +25,7 @@ export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComp
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export const selectedRgtsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
-export const selectedSpotReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
+export const selectedSpotsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export const selectedScOrientsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
 export interface SrScatterSeriesData{
   series: {
@@ -126,15 +126,15 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 },
             });
         }
-        if (!(reqId in selectedSpotReactive)) {
-            selectedSpotReactive[reqId] = computed({
+        if (!(reqId in selectedSpotsReactive)) {
+            selectedSpotsReactive[reqId] = computed({
                 get: (): number[] => {
-                    const value = globalChartStore.getSpots();
-                    //console.log(`selectedSpotReactive[${reqId}] get:`, value);
-                    return value;
+                    const values = globalChartStore.getSpots();
+                    //console.log(`selectedSpotsReactive[${reqId}] get:`, value);
+                    return values;
                 },
                 set: (values: number[]): void => {
-                    //console.log(`selectedSpotReactive[${reqId}] set:`, values);
+                    //console.log(`selectedSpotsReactive[${reqId}] set:`, values);
                     globalChartStore.setSpots(values);
                 },
             });
