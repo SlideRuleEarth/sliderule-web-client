@@ -24,6 +24,8 @@ import { getAllCycleOptionsByRgtsSpotsAndGts, prepareDbForReqId } from "@/utils/
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
+import { selectedCycleReactive } from "@/utils/plotUtils";
+import Listbox from 'primevue/listbox';
 
 const props = defineProps({
     startingReqId: {
@@ -290,14 +292,30 @@ function handleValueChange(value) {
                 }" 
             />
             <div class="sr-cycles-legend-panel">
-                <SrPlotLegendBox
-                    v-if = "(computedDataKey!='solid')"
-                    :reqIdStr="recTreeStore.selectedReqIdStr" 
-                    :data_key="computedDataKey" 
-                    :transparentBackground="false" 
-                />
-                <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
-                <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
+                <div class="sr-select-box">
+                    <p class="sr-select-box-hdr">Cycles</p>
+                    <Listbox 
+                        class="sr-select-lists"
+                        v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
+                        optionLabel="label"
+                        optionValue="value"
+                        :multiple="true"
+                        :metaKeySelection="true"
+                        :options="computedCycleOptions"
+                        @change="handleValueChange"
+                    >
+                    </Listbox>
+                </div>
+                <div class="sr-legends-panel">
+                    <SrPlotLegendBox
+                        v-if = "(computedDataKey!='solid')"
+                        :reqIdStr="recTreeStore.selectedReqIdStr" 
+                        :data_key="computedDataKey" 
+                        :transparentBackground="false" 
+                    />
+                    <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
+                    <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
+                </div>
             </div>
         </div> 
         <div class="sr-scatter-plot-cntrl">
@@ -397,7 +415,7 @@ function handleValueChange(value) {
 .sr-cycles-legend-panel{
     display: flex;
     flex-direction: column;
-    justify-content:flex-start;
+    justify-content:space-between;
     align-items:center;
     margin: 0.5rem;
     padding: 0.5rem;
@@ -422,7 +440,15 @@ function handleValueChange(value) {
     padding: 0.5rem;
     width: auto;
 }
-
+.sr-select-box-hdr{
+    display: flex;
+    justify-content:center;
+    align-items:center;
+    margin: 0.25rem;
+    padding: 0.25rem;
+    width: auto;
+    max-width: 10rem;
+}
 :deep(.sr-listbox-header-title) {
     display: flex;
     flex-direction: row;
