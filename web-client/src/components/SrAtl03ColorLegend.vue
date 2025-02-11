@@ -22,7 +22,7 @@
             header="Manage ATL03 Cnf Colors"
             @hide="onDialogHide"
         >
-            <SrAtl03CnfColors
+            <SrAtl03CnfColorSelection
                 @selectionChanged="atl03CnfColorChanged"
                 @defaultsChanged="atl03CnfColorChanged"
             />
@@ -35,7 +35,7 @@
 import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
+import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import { getColorForAtl03CnfValue } from '@/utils/colorUtils';

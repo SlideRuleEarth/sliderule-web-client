@@ -22,13 +22,13 @@
     </div>
     <div class="sr-select-color-map-panel">
         <div class="sr-select-atl03-colors">
-            <SrAtl03CnfColors 
+            <SrAtl03CnfColorSelection 
                 @selectionChanged="atl03CnfColorChanged"
                 @defaultsChanged="atl03CnfColorChanged"
             />
         </div>  
         <div class="sr-select-atl08-colors">
-            <SrAtl08ClassColors 
+            <SrAtl08ClassColorSelection 
                 @selectionChanged="atl08ClassColorChanged"
                 @defaultsChanged="atl08ClassColorChanged"
             />
@@ -42,8 +42,8 @@ import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
-import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
-import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
+import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
+import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
 
 
 interface AtColorChangeEvent {

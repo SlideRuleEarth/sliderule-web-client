@@ -23,7 +23,7 @@
             header="Manage Atl08 Class Colors"
             @hide="onDialogHide"
         >
-            <SrAtl08ClassColors
+            <SrAtl08ClassColorSelection
                 @selectionChanged="atl08ClassColorChanged"
                 @defaultsChanged="atl08ClassColorChanged"
             />
@@ -36,7 +36,7 @@
 import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
+import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import { getColorForAtl08ClassValue } from '@/utils/colorUtils';

@@ -38,7 +38,7 @@ const restoreDefaultAtl08ClassColorMap = () => {
 };
 
 const onMounted = () => {
-    console.log('SrAtl08ClassColors mounted');
+    console.log('SrAtl08ClassColorSelection mounted');
 };
 </script>
 
