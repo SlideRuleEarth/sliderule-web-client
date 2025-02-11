@@ -14,6 +14,7 @@ import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { clicked } from '@/utils/SrMapUtils'
+import { createWhereClause } from './spotUtils';
 
 interface SummaryRowData {
     minLat: number;
@@ -747,9 +748,6 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
 
 export async function getAllCycleOptionsByRgtsSpotsAndGts(
     req_id: number,
-    rgts: number[],
-    spots: number[],
-    gts: number[]
 ): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
 
@@ -757,66 +755,50 @@ export async function getAllCycleOptionsByRgtsSpotsAndGts(
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
     const cycles: SrListNumberItem[] = [];
-
+    let whereClause = '';
     try {
-    // Build the WHERE clause dynamically
-    const whereClauses: string[] = [];
-    if (rgts.length > 0) {
-        whereClauses.push(`rgt IN (${rgts.join(',')})`);
-    }
-    if (spots.length > 0) {
-        whereClauses.push(`spot IN (${spots.join(',')})`);
-    }
-    if (gts.length > 0) {
-        whereClauses.push(`gt IN (${gts.join(',')})`);
-    }
+        // Build the WHERE clause dynamically
+        
+        whereClause = createWhereClause(req_id);
 
-    const whereClause = whereClauses.length > 0
-        ? `WHERE ${whereClauses.join(' AND ')}`
-        : '';
+        const query = `
+            SELECT 
+            cycle, 
+            ANY_VALUE(time) AS time 
+            FROM '${fileName}'
+            ${whereClause}
+            GROUP BY cycle 
+            ORDER BY cycle ASC;
+        `;
 
-    const query = `
-        SELECT 
-        cycle, 
-        ANY_VALUE(time) AS time 
-        FROM '${fileName}'
-        ${whereClause}
-        GROUP BY cycle 
-        ORDER BY cycle ASC;
-    `;
+        const queryResult: QueryResult = await duckDbClient.query(query);
 
-    const queryResult: QueryResult = await duckDbClient.query(query);
-
-    for await (const rowChunk of queryResult.readRows()) {
-        for (const row of rowChunk) {
-            if (row) {
-                    const timeStr = new Date(row.time).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                });
-                const newLabel = `${row.cycle}: ${timeStr}`;
-                cycles.push({ label: newLabel, value: row.cycle });
-            } else {
-                console.warn(
-                    'getAllCycleOptionsByRgtsSpotsAndGts fetchData rowData is null'
-                );
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                if (row) {
+                        const timeStr = new Date(row.time).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    const newLabel = `${row.cycle}: ${timeStr}`;
+                    cycles.push({ label: newLabel, value: row.cycle });
+                } else {
+                    console.warn(
+                        'getAllCycleOptionsByRgtsSpotsAndGts fetchData rowData is null'
+                    );
+                }
             }
         }
-    }
 
-    console.log(
-        'getAllCycleOptionsByRgtsSpotsAndGts req_id:',
-        req_id,
-        'cycles:',
-        cycles,
-        'rgts:',
-        rgts,
-        'spots:',
-        spots,
-        'gts:',
-        gts
-    );
+        console.log(
+            'getAllCycleOptionsByRgtsSpotsAndGts req_id:',
+            req_id,
+            'cycles:',
+            cycles,
+            'whereClause:',
+            whereClause
+        );
 
     } catch (error) {
         console.error('getAllCycleOptionsByRgtsSpotsAndGts Error:', error);
@@ -829,12 +811,8 @@ export async function getAllCycleOptionsByRgtsSpotsAndGts(
             req_id,
             ' cycles:',
             cycles,
-            ' rgts:',
-            rgts,
-            ' spots:',
-            spots,
-            ' gts:',
-            gts
+            'whereClause:',
+            whereClause
         );
     }
     return cycles;
