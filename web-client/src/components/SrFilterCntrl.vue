@@ -7,7 +7,7 @@
             <p class="sr-highlighted-track-details">
                 {{ highlightedTrackDetails }}
             </p>
-            <Fieldset legend="Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
+            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
                     <div class="sr-select-boxes">
                         <div class="sr-select-box">

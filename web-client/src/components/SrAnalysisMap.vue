@@ -105,12 +105,6 @@
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
-    // watch (() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-    //     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    //     console.log('Selected Color Map:', elevationColorMapStore.selectedElevationColorMap);
-    //     await updateAnalysisMapView("New elevationColorMap");
-    // });
-
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -306,16 +300,21 @@
 
 :deep(.sr-record-selector-control) {
     margin-top:0.25rem;
-    margin-left: 0.25rem;
-    font-size:smaller;
+    margin-left: 0.35rem;
 }
 
-:deep(.sr-select-menu-default) {
-    padding: 0rem; 
-    font-size: small;
-    width: 8rem; 
-    height: 2.25rem; 
+/* :deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-label) {
+    font-size: smaller;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.95);
 }
+
+
+:deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-dropdown) {
+    font-size: smaller;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.95);
+} */
 
 :deep(.sr-ol-map) {
     min-width: 15rem; 
@@ -377,17 +376,25 @@
     border-radius: var(--p-border-radius);
 }
 
-:deep(.sr-col-menu-sel-control .sr-menu-control) {
-    font-size: small;
-    color: var(--p-primary-color);
-}
 
-:deep(.sr-select-menu-default) {
+:deep(.sr-col-menu-sel-control .sr-select-menu-default) {
     font-size: small;
-    width: 4rem; 
+    width: 5rem; 
+    margin:0rem;
+    padding: 0rem;
     height: 1.75rem;
     color: black; 
     background-color: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.sr-menu-input-wrapper){
+    margin:0rem;
+    padding: 0rem;
+}
+
+:deep(.sr-select-menu-item){
+    margin:0rem;
+    padding: 0rem;
 }
 
 .sr-isLoadingEl {
