@@ -168,18 +168,16 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
     });
 }
 
-
 function createDiscreteColorFunction(
     getColorFunction: (value: number) => string,
-    ndx_name:string
-) 
-{
+    ndx_name: string
+){
     const colorCache: Record<number, string> = {};
-    let ndx:number = -1;
-    return (params:any) => {
-        //console.log('createDiscreteColorFunction1 ndx:',ndx,' params:',params);
-        if(ndx<0){
-            ndx = useColorMapStore().getDataOrderNdx[ndx_name]
+    let ndx: number = -1;
+
+    const colorFunction = (params: any) => {
+        if (ndx < 0) {
+            ndx = useColorMapStore().getDataOrderNdx[ndx_name];
         }
         const value = params.data[ndx];
         if (colorCache[value] === undefined) {
@@ -187,17 +185,22 @@ function createDiscreteColorFunction(
         }
         return colorCache[value];
     };
-}
 
+    // Function to clear the cache
+    colorFunction.resetCache = () => {
+        Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
+        ndx = -1; // Reset index so it is recalculated
+        console.log(`Cache for ${ndx_name} reset.`);
+    };
+
+    return colorFunction;
+}
 
 
 const getAtl03CnfColorCached = createDiscreteColorFunction(
     getColorForAtl03CnfValue,
     'atl03_cnf'
 );
-
-
-
 
 const getAtl08ClassColorCached = createDiscreteColorFunction(
     getColorForAtl08ClassValue,
@@ -215,7 +218,13 @@ function getColorUsingAtl08_class(params: any): string {
     return getAtl08ClassColorCached(params);
 }
 
+export function resetAtl03CnfColorCaches() {
+    getAtl03CnfColorCached.resetCache();
+}
 
+export function resetAlt08ClassColorCaches() {
+    getAtl08ClassColorCached.resetCache();
+}
 interface GetSeriesParams {
     reqIdStr: string;
     fileName: string;

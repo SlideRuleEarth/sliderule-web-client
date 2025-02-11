@@ -128,8 +128,11 @@ export const useChartStore = defineStore('chartStore', {
             this.stateByReqId[reqIdStr].querySql = sql;
         },
         getQuerySql(reqIdStr: string): string {
-            this.ensureState(reqIdStr);
-            return this.stateByReqId[reqIdStr].querySql;
+            if(this.ensureState(reqIdStr)){
+                return this.stateByReqId[reqIdStr].querySql;
+            } else {
+                return '';
+            }
         },
         setWhereClause(reqIdStr: string, whereClause: string) {
             this.ensureState(reqIdStr);

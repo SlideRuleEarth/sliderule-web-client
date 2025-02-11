@@ -39,6 +39,7 @@
                     <SrAtl03ColorLegend 
                         v-if="shouldDisplayAtl03ColorLegend" 
                         @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+                        @atl03-cnf-color-changed="handleAtl03CnfColorChanged"
                     />
                     <SrAtl08ColorLegend 
                         v-if="shouldDisplayAtl08ColorLegend"
@@ -108,7 +109,7 @@ import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
 import { computed, onMounted } from 'vue';
-import { callPlotUpdateDebounced } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,resetAlt08ClassColorCaches,resetAtl03CnfColorCaches } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
 import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
@@ -257,6 +258,11 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     await callPlotUpdateDebounced('from handleColorEncodeSelectionChange');
 };
 
+const handleAtl03CnfColorChanged = async () => {
+    console.log('handleAtl03CnfColorChanged');
+    resetAtl03CnfColorCaches();
+    await callPlotUpdateDebounced('from handleAtl03CnfColorChanged');
+};
 
 </script>
   
