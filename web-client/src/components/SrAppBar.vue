@@ -106,7 +106,7 @@ const formattedVersion = computed(() => {
 
 
 const buttonBadge = computed(() => {
-    return isThisClean(build_env) ? '' : 'Beta';
+    return isThisClean(build_env) ? '' : 'Unstable test version';
 });
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);
 

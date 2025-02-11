@@ -10,6 +10,15 @@
                 :decimalPlaces=0
                 tooltipText="Chunk size to Query from parquet file"
         />
+        <SrSliderInput
+            v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+            label="Max Num Elevation Pnts"
+            :min="10000"
+            :max="5000000"
+            :defaultValue="100000"
+            :decimalPlaces=0
+            tooltipText="Maximum number of points to display"
+        />
         <SrToggleButton 
             :value="reqParamsStore.useChecksum"
             :getValue="reqParamsStore.getUseChecksum"

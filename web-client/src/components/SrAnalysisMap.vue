@@ -12,7 +12,6 @@
     import SrLegendControl from '@/components/SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
@@ -25,7 +24,9 @@
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
-
+    import SrColMapSelControl from "./SrColMapSelControl.vue";
+    import { useElevationColorMapStore } from "@/stores/elevationColorMapStore";
+   
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -41,7 +42,7 @@
     const mapRef = ref<{ map: OLMap }>();
     const legendRef = ref<any>();
     const mapStore = useMapStore();
-    const chartStore = useChartStore();
+    const elevationColorMapStore = useElevationColorMapStore();
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const controls = ref([]);
@@ -104,6 +105,12 @@
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
+    // watch (() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
+    //     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
+    //     console.log('Selected Color Map:', elevationColorMapStore.selectedElevationColorMap);
+    //     await updateAnalysisMapView("New elevationColorMap");
+    // });
+
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -126,6 +133,16 @@
             analysisMap.addControl(legendControl);
         } else {
             console.warn("analysisMap is null will be set in onMounted");
+        }
+    };
+
+    const handleColMapSelControlCreated = (colMapSelControl: any) => {
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
+            console.log("adding colMapSelControl");
+            analysisMap.addControl(colMapSelControl);
+        } else {
+            console.error("Error:analysisMap is null");
         }
     };
 
@@ -197,6 +214,7 @@
             />
 
             <MapControls.OlScalelineControl />
+
             <SrLegendControl 
                 @legend-control-created="handleLegendControlCreated"
                 :reqIdStr="recTreeStore.selectedReqIdStr"
@@ -207,6 +225,11 @@
                 class="sr-record-selector-control" 
                 @record-selector-control-created="handleRecordSelectorControlCreated" 
             />
+            <SrColMapSelControl
+                class="sr-col-menu-sel-control"
+                @col-map-sel-control-created="handleColMapSelControlCreated"
+            >
+            </SrColMapSelControl>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
@@ -342,8 +365,29 @@
 
 :deep(.sr-legend-control){
   background: rgba(255, 255, 255, 0.25);
-  bottom: 0.5rem;
-  right: 2.5rem;
+  bottom: 0.25rem;
+  right: 3.5rem;
+}
+
+
+:deep(.sr-col-menu-sel-control){
+    top: auto;
+    bottom: 0.25rem;
+    right: 15.5rem;
+    border-radius: var(--p-border-radius);
+}
+
+:deep(.sr-col-menu-sel-control .sr-menu-control) {
+    font-size: small;
+    color: var(--p-primary-color);
+}
+
+:deep(.sr-select-menu-default) {
+    font-size: small;
+    width: 4rem; 
+    height: 1.75rem;
+    color: black; 
+    background-color: rgba(255, 255, 255, 0.5);
 }
 
 .sr-isLoadingEl {

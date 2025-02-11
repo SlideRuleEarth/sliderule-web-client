@@ -25,15 +25,13 @@ import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import SrFilterCntrl from './SrFilterCntrl.vue';
-import Card from 'primevue/card';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
-const chartStore = useChartStore();
 const mapStore = useMapStore();
 const deckStore = useDeckStore();
-const colorMapStore = useElevationColorMapStore();
+const elevationColorMapStore = useElevationColorMapStore();
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
 
@@ -208,15 +206,20 @@ async function processNewReqId() {
 
 watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    colorMapStore.setElevationColorMap(newColorMap.value);
-    colorMapStore.updateElevationColorMapValues();
+    elevationColorMapStore.setElevationColorMap(newColorMap.value);
+    elevationColorMapStore.updateElevationColorMapValues();
     //console.log('Color Map:', colorMapStore.getElevationColorMap());
     try{
-        await debouncedUpdateElevationMap();
+        //await debouncedUpdateElevationMap();
     } catch (error) {
         console.warn('ElevationColorMap Failed debouncedUpdateElevationMap:', error);
         toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
     }
+}, { deep: true });
+
+watch(() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
+    console.log('ElevationColorMapStore changed from:', oldColorMap ,' to:', newColorMap);
+    await debouncedUpdateElevationMap();
 }, { deep: true });
 
 watch(() => recTreeStore.selectedReqId,async (newValue, oldValue) => {
@@ -308,27 +311,6 @@ const exportButtonClick = async () => {
                 </div>
             </div>
             <div class="sr-sidebar-analysis-opt">
-                <div class="sr-pnts-colormap">
-                    <div class="sr-analysis-max-pnts">
-                        <SrSliderInput
-                            v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-                            label="Max Num Elevation Pnts"
-                            :min="10000"
-                            :max="5000000"
-                            :defaultValue="100000"
-                            :decimalPlaces=0
-                            tooltipText="Maximum number of points to display"
-                        />
-                    </div>
-                    <div class="sr-analysis-color-map">
-                        <SrMenuInput 
-                            label="Color Map" 
-                            :menuOptions="getColorMapOptions()" 
-                            v-model="selectedElevationColorMap"
-                            tooltipText="Color Map for elevation plot"
-                        /> 
-                    </div>  
-                </div>
                 <div class="sr-analysis-rec-parms">
                     <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
                 </div>
