@@ -1,6 +1,8 @@
 
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
-
+import { useChartStore } from '@/stores/chartStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -177,10 +179,17 @@ export function getSqlForSpots(spots:number[]){
     return sqls.join(' OR ');
 }
 
-export function createWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
-    //console.log('createWhereClause: func:', func);
-    console.log('createWhereClause: spots:', spots);
-    //console.log('createWhereClause: rgts:', rgts);
+export function createWhereClause(reqId:number){
+    const globalChartStore = useGlobalChartStore();
+    const func = useRecTreeStore().findApiForReqId(reqId);
+    const spots = globalChartStore.getSpots();
+    const rgts = globalChartStore.getRgts();
+    const cycles = globalChartStore.getCycles();
+    const pairs = globalChartStore.getPairs();
+    const sc_orients = globalChartStore.getScOrients();
+    const tracks = globalChartStore.getTracks();
+    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgts:', rgts, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients);
+    
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
@@ -199,10 +208,20 @@ export function createWhereClause(func:string, spots:number[],rgts:number[],cycl
             } else {
                 console.error('createWhereClause: cycles is empty for func:', func);
             }
-            if (spots.length > 0) {
-                whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+            if (pairs.length > 0) {
+                whereStr += ` AND pair IN (${pairs.join(", ")})`;
             } else {
-                console.error('createWhereClause: spots is empty for func:', func);
+                console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
+            }
+            if (sc_orients.length > 0) {
+                whereStr += ` AND sc_orient IN (${sc_orients.join(", ")})`;
+            } else {
+                console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
+            }
+            if (tracks.length > 0) {
+                whereStr += ` AND track IN (${tracks.join(", ")})`;
+            } else {
+                console.warn('updateWhereClause atl03sp: tracks is undefined or empty');
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {

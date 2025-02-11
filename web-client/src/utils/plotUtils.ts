@@ -16,7 +16,6 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useColorMapStore }  from "@/stores/colorMapStore";
 import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
-import type { SrListNumberItem } from "@/types/SrTypes";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -1037,18 +1036,18 @@ const refreshScatterPlot = async (msg:string) => {
     }
 };
 
-export const updateScatterOptionsOnly = async (msg:string) => {
-    //console.log(`updateScatterOptionsOnly ${msg}`);
-    const recTreeStore = useRecTreeStore();
-    const plotRef = useAtlChartFilterStore().getPlotRef();
-    if (plotRef && plotRef.chart) {
-        clearPlot();
-        await getScatterOptionsFor(recTreeStore.selectedReqId);
-        await updateScatterPlot(msg);
-    } else {
-        console.error(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
-    }
-}
+// export const updateScatterOptionsOnly = async (msg:string) => {
+//     //console.log(`updateScatterOptionsOnly ${msg}`);
+//     const recTreeStore = useRecTreeStore();
+//     const plotRef = useAtlChartFilterStore().getPlotRef();
+//     if (plotRef && plotRef.chart) {
+//         clearPlot();
+//         await getScatterOptionsFor(recTreeStore.selectedReqId);
+//         await updateScatterPlot(msg);
+//     } else {
+//         console.error(`Ignoring updateScatterOptionsOnly with no plot to update, plotRef is undefined.`);
+//     }
+// }
 
 export async function getPhotonOverlayRunContext(pendingRgt:number,pendingCycle:number): Promise<SrRunContext> {
     const recTreeStore = useRecTreeStore();
@@ -1168,15 +1167,9 @@ export async function updateWhereClauseAndXData(req_id: number) {
         //console.log('updateWhereClauseAndXData req_id:', req_id);
         const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
-        const globalChartStore = useGlobalChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
         
-        const whereClause = createWhereClause(
-            useRecTreeStore().findApiForReqId(req_id),
-            globalChartStore.getSpots(),
-            globalChartStore.getRgts(),
-            useGlobalChartStore().getCycles(),
-        );
+        const whereClause = createWhereClause(req_id);
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
         } else {

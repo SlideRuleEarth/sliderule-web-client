@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
-//import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
 
@@ -246,12 +246,12 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return selectedGtOptions.value.map(beam => beam.label);
     }
 
-    // function setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
-    //     const parms = getBeamsAndTracksWithGts(gts);
-    //     const trkList = parms.tracks.map(track => track.value);
-    //     setSelectedGtOptions(parms.beams);
-    //     setTracks(trkList);
-    // }
+    function setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
+        const parms = getBeamsAndTracksWithGts(gts);
+        const trkList = parms.tracks.map(track => track.value);
+        setSelectedGtOptions(parms.beams);
+        setTracks(trkList);
+    }
 
     function setTracksForBeams(input_beams: SrListNumberItem[]) {    
         const tracks = input_beams
@@ -281,6 +281,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getSelectedPairOptions(): SrListNumberItem[] {
         return selectedPairOptions.value;
+    }
+
+    function getPairs(): number[] {
+        return selectedPairOptions.value.map(pair => pair.value);
     }
 
     function getFilteredPairOptions(): SrListNumberItem[] {
@@ -399,7 +403,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setSelectedGtOptions,
         getFilteredBeamOptions,
         setFilteredBeamOptions,
-        //setBeamsAndTracksWithGts,
+        setBeamsAndTracksWithGts,
         setTracksForBeams,
         setBeamsForTracks,
         setPairs,
@@ -408,6 +412,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setFilteredPairOptions,
         setSelectedPairOptions,
         appendPair,
+        getPairs,
         setScOrients,
         getScOrients,
         getScOrientOptions,

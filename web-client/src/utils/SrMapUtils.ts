@@ -333,9 +333,9 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         gcs.setTracks([d.track]); // set to this one track
         gcs.setBeamsForTracks(gcs.getTracks());
     }
-    // if(d.gt !== undefined){ // for atl06
-    //     gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
-    // }
+    if(d.gt !== undefined){ // for atl06
+        gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
+    }
     if(d.sc_orient !== undefined){
         gcs.setScOrients([d.sc_orient]);
     } else{
