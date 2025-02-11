@@ -45,6 +45,24 @@ async function getReqParamStore(reqId:number):Promise<ReturnType<typeof useReqPa
     }
 }
 
+function formatBigIntWithCommas(value: any): string {
+    return value.toString().replace(/n$/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function formatBytes(bytes: bigint | number, decimals = 2): string {
+    if (typeof bytes === "bigint") {
+        bytes = Number(bytes); // Convert BigInt to Number if safe
+    }
+    if (bytes === 0) return "0 Bytes";
+    if (isNaN(bytes)) return "Invalid Size";
+
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return `${(bytes / Math.pow(k, i)).toFixed(decimals)} ${sizes[i]}`;
+}
+
 async function startFetchToFileWorker(reqId:number):Promise<Worker> {
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
 
@@ -74,16 +92,6 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     switch(workerMsg.status){
         case 'success':
             console.log('handleWorkerMsg success:',workerMsg.msg);
-            numBytes = await db.getNumBytes(workerMsg.req_id);
-            const summary = await db.getWorkerSummary(workerMsg.req_id);
-            if(numBytes > 0){
-                successMsg = `Record ${workerMsg.req_id} created with ${summary?.numPoints.toLocaleString()} points (${numBytes.toLocaleString()} bytes).
-                Click on another track to plot the elevation of that track.`;
-                useSrToastStore().success('Success',successMsg,15000); // 15 seconds
-            } else {
-                successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
-                useSrToastStore().warn('No data found',successMsg);
-            }
            break;
         case 'started':
             console.log('handleWorkerMsg started');
@@ -158,6 +166,16 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
                     if(rc?.parentReqId && rc.parentReqId > 0){
                         await useRecTreeStore().updateRecMenu('opfs_ready');// update the tree menu but not the selected node
+                        numBytes = await db.getNumBytes(workerMsg.req_id);
+                        const summary = await readOrCacheSummary(workerMsg.req_id);
+                        if(numBytes > 0){
+                            successMsg = `Record ${workerMsg.req_id} created with ${formatBigIntWithCommas(summary?.numPoints ?? 0n)} points\n size:${formatBytes(numBytes)}.\nClick on another track to plot the elevation of that track.`;
+                            useSrToastStore().success('Success',successMsg,15000); // 15 seconds
+                        } else {
+                            successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
+                            useSrToastStore().warn('No data found',successMsg);
+                        }
+                        console.log('handleWorkerMsg opfs_ready succesMsg:',successMsg);
                     } else {
                         const newReqId = await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id); // update the tree menu and use this as selected node
                         if(newReqId != workerMsg.req_id){
