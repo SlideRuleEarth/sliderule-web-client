@@ -11,7 +11,7 @@ import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
 import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
-import SrRunControl from "./SrRunControl.vue";
+import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useMapStore } from "@/stores/mapStore";
@@ -22,6 +22,8 @@ import SrPlotLegendBox from "./SrPlotLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { getAllCycleOptionsByRgtsSpotsAndGts, prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
+import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
+import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 
 const props = defineProps({
     startingReqId: {
@@ -60,6 +62,29 @@ const computedFilteredInCycleOptions = computed(() => {
 const allowedCycleValues = computed(() => {
     return new Set(computedFilteredInCycleOptions.value.map(option => option.value));
 });
+
+const shouldDisplayAtl03Colors = computed(() => {
+    let shouldDisplay = false;
+    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+        if(reqIdStr){
+            shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf';
+        }
+    }
+    return shouldDisplay;
+});
+const shouldDisplayAtl08Colors = computed(() => {
+    let shouldDisplay = false;
+    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+        if(reqIdStr){
+            shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
+        }
+    }
+    return shouldDisplay;
+});
+
+
 
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
@@ -271,6 +296,8 @@ function handleValueChange(value) {
                     :data_key="computedDataKey" 
                     :transparentBackground="false" 
                 />
+                <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
+                <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
             </div>
         </div> 
         <div class="sr-scatter-plot-cntrl">
@@ -370,7 +397,7 @@ function handleValueChange(value) {
 .sr-cycles-legend-panel{
     display: flex;
     flex-direction: column;
-    justify-content:space-between;
+    justify-content:flex-start;
     align-items:center;
     margin: 0.5rem;
     padding: 0.5rem;

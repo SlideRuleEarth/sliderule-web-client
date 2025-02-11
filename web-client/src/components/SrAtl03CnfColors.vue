@@ -1,38 +1,29 @@
 <template>
     <div class="sr-legend">
-        <SrAtl03CnfColors/>
-        <Button label="Manage Atl03 Cnf Colors" @click="showDialog = true" size="small" />
-  
-        <Dialog
-            v-model:visible="showDialog"
-            :modal="true"
-            :draggable="false"
-            :resizable="false"
-            header="Manage ATL03 Cnf Colors"
-            @hide="onDialogHide"
+        <Fieldset
+            class="sr-legend-box"
+            legend="Atl03 Cnf Colors"
+            :toggleable="false"
+            :collapsed="false" 
         >
-            <SrAtl03CnfColorSelection
-                @selectionChanged="atl03CnfColorChanged"
-                @defaultsChanged="atl03CnfColorChanged"
-            />
-        </Dialog>
+            <div v-for="option in atl03CnfOptions" :key="option.value" class="legend-item">
+                <div class="color-box" :style="{ backgroundColor: getColorForAtl03CnfValue(option.value) }"></div>
+                <div class="label">{{ formatLabel(option.label) }} ({{ option.value }})</div>
+            </div>
+        </Fieldset>  
     </div>
 </template>
   
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
-import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
+import { onMounted, computed } from 'vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import SrAtl03CnfColors from '@/components/SrAtl03CnfColors.vue';
+import Fieldset from 'primevue/fieldset';
+import { getColorForAtl03CnfValue } from '@/utils/colorUtils';
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
 const colorMapStore = useColorMapStore();
 
-// Dialog visibility state
-const showDialog = ref(false);
 
 onMounted(async () => {
     if (!colorMapStore.isInitialized) {
@@ -46,16 +37,7 @@ const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
 const formatLabel = (label: string): string => {
     return label.replace(/^atl03_/, '').replace(/_/g, ' ');
 };
-    
-// Emitted when a color changes
-const atl03CnfColorChanged = (event: { label: string; color: string }) => {
-    emit('atl03CnfColorChanged', event);
-};
 
-function onDialogHide() {
-    // If you need to do something on close of the popup, do it here.
-    // e.g., reload color map, etc.
-}
 </script>
   
 <style scoped>
