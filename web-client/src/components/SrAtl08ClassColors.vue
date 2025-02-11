@@ -4,12 +4,12 @@
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
         <div class="sr-menu-container" v-for="(classValue, index) in colorMapStore.atl08ClassOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: colorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
+            <div class="color-preview" :style="{ backgroundColor: getColorForAtl08ClassValue(classValue.value) }"></div>
             <SrMenu
                 :label="`${classValue.label} (${classValue.value})`"
                 :menuOptions="colorMapStore.getNamedColorPalette()"
                 :setSelectedMenuItem="(color: string) => colorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-                :getSelectedMenuItem="() => colorMapStore.getColorForAtl08ClassValue(classValue.value)"
+                :getSelectedMenuItem="() => getColorForAtl08ClassValue(classValue.value)"
                 @update:modelValue="handleSelectionChanged(classValue.label, $event)"
             />
         </div>
@@ -21,6 +21,7 @@ import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
+import { getColorForAtl08ClassValue } from '@/utils/colorUtils';
 
 const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);

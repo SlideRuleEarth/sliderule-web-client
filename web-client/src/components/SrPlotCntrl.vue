@@ -43,7 +43,8 @@
                     />
                     <SrAtl08ColorLegend 
                         v-if="shouldDisplayAtl08ColorLegend"
-                        @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
+                        @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot" 
+                        @atl08-class-color-changed="handleAtl08ClassColorChanged" 
                     />
                     <SrGradientColorLegend 
                         v-if="shouldDisplayGradientColorLegend"
@@ -262,6 +263,12 @@ const handleAtl03CnfColorChanged = async () => {
     console.log('handleAtl03CnfColorChanged');
     resetAtl03CnfColorCaches();
     await callPlotUpdateDebounced('from handleAtl03CnfColorChanged');
+};
+
+const handleAtl08ClassColorChanged = async () => {
+    console.log('handleAtl08ClassColorChanged');
+    resetAlt08ClassColorCaches();
+    await callPlotUpdateDebounced('from handleAtl08ClassColorChanged');
 };
 
 </script>
