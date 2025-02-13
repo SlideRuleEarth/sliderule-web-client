@@ -708,43 +708,6 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
     return cycles;
 }
 
-
-// export async function getAllCycleOptionsByRgtsAndSpots(req_id: number,rgts:number[],spots:number[]): Promise<SrListNumberItem[]> {
-//     const startTime = performance.now(); // Start time
-
-//     const fileName = await indexedDb.getFilename(req_id);
-//     const duckDbClient = await createDuckDbClient();
-//     await duckDbClient.insertOpfsParquet(fileName);
-//     const cycles = [] as SrListNumberItem[];
-//     try{
-//         const query = `SELECT cycle, ANY_VALUE(time) AS time FROM '${fileName}' WHERE (rgt IN (${rgts.join(',')}) AND spot IN (${spots.join(',')})) GROUP BY cycle ORDER BY cycle ASC;`;
-//         const queryResult: QueryResult = await duckDbClient.query(query);
-//         for await (const rowChunk of queryResult.readRows()) {
-//             for (const row of rowChunk) {
-//                 if (row) {
-//                     //console.log('getCycle row:', row);
-//                     const timeStr = new Date(row.time).toLocaleDateString(undefined, {
-//                         year: 'numeric',
-//                         month: '2-digit',
-//                         day: '2-digit'
-//                     });
-//                     const newLabel = `${row.cycle}: ${timeStr}`;
-//                     cycles.push({label:newLabel, value:row.cycle});
-//                 } else {
-//                     console.warn('getAllCycleOptionsByRgtsAndSpots fetchData rowData is null');
-//                 }
-//             }
-//         } 
-//     } catch (error) {
-//         console.error('getAllCycleOptionsByRgtsAndSpots Error:', error);
-//         throw error;
-//     } finally {
-//         const endTime = performance.now(); // End time
-//         console.log(`getAllCycleOptionsByRgtsAndSpotstook ${endTime - startTime} milliseconds.`,' req_id:',req_id, ' cycles:',cycles, ' rgts:',rgts, ' spots:',spots);
-//     }
-//     return cycles;
-// }
-
 export async function getAllCycleOptionsByRgtsSpotsAndGts(
     req_id: number,
 ): Promise<SrListNumberItem[]> {
