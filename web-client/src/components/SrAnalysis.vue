@@ -74,13 +74,20 @@
     });
 
     const shouldDisplayShell = computed(() => {
-    return (
-        activeIndex.value === '2' && // Only show on tab 2
-        chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
-    );
+        return (
+            activeIndex.value === '2' && // Only show on tab 2
+            chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
+        );
     });
 
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
     });
 </script>
+
+<style scoped>
+:deep(.p-tab){
+    font-size: smaller;
+    padding: 0.5rem 2rem;
+}
+</style>

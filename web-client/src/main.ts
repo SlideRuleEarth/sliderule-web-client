@@ -39,7 +39,7 @@ const SrPreset = definePreset(Lara, {
           950: '{blue.950}'
       },
       borderRadius: '0.25rem',
-      fontFamily: '"Roboto", sans-serif;'
+      fontFamily: '"Roboto", sans-serif'
   },
   components: {
     toast: {
@@ -60,7 +60,19 @@ const SrPreset = definePreset(Lara, {
           }
         },
       }
-    }
+    },
+    // primvue: {
+    //   tabs: {
+    //     tab: {
+    //       background: {
+    //         color: {
+    //           dark: 'red',
+    //           light: 'red'
+    //         }
+    //       }
+    //     },
+    //   }
+    // }
   }
 });
 const pinia = createPinia();
