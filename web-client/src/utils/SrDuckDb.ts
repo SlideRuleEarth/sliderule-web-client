@@ -333,7 +333,7 @@ export class DuckDBClient {
       const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
       const file = await fileHandle.getFile();
   
-      console.log('insertOpfsParquet file.size:', file.size);
+      console.log('insertOpfsParquet file:',file,'file.size:', file.size);
       if (file.size === 0) {
         console.warn(`insertOpfsParquet empty file?: ${name}`);
       }

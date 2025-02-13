@@ -5,11 +5,11 @@
     import ProgressSpinner from 'primevue/progressspinner';
     import { useMapStore } from '@/stores/mapStore';
     import { useRequestsStore } from "@/stores/requestsStore";
-    import { useReqParamsStore } from '@/stores/reqParamsStore';
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
     import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
+    import { useSrToastStore } from "@/stores/srToastStore";
 
     const props = defineProps({
         includeAdvToggle: {
@@ -22,8 +22,8 @@
         },
     });
 
+    const srToastStore = useSrToastStore();
     const requestsStore = useRequestsStore();
-    const reqParamsStore = useReqParamsStore();
     const mapStore = useMapStore();
     const tooltipRef = ref();
     const computedShowRunButton = computed(() => {
@@ -57,7 +57,12 @@
         } else {
             console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
             if(props.includeAdvToggle){
-                processRunSlideRuleClicked();
+                try{
+                    await processRunSlideRuleClicked();
+                } catch (error) {
+                    console.error('Error in processRunSlideRuleClicked:',error);
+                    srToastStore.error(`There was a software error:${error}`);
+                }
             } else {
                 console.error('SrRunControl clicked for Overlay Photon Cloud?');
             }

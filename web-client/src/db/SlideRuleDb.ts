@@ -53,25 +53,25 @@ export interface Atl03Color {
 export interface SrTrkFilter {
     rgt: number;
     cycle: number;
-    track?: number;   // now optional
-    beam?: number;    // now optional
+    track: number;
+    beam: number;
 }
 
 export interface SrRunContext {
     reqId: number;
-    parentReqId: number;
-    trackFilter: SrTrkFilter;
+    parentReqId : number;
+    trackFilter : SrTrkFilter;
 }
 
-// Flatten the fields we want to index. Note `track?` and `beam?` optional
+// Extends SrRunContext and also has a numeric ID for Dexie
 export interface SrRunContextRecord extends SrRunContext {
-    id?: number;
-    rgt: number;
-    cycle: number;
-    track?: number;
-    beam?: number;
+    id?: number; // Dexie will auto-increment this
+    // ...but also flatten out the fields we want to index:
+    rgt: number;           
+    cycle: number;        
+    track: number;        
+    beam: number;         
 }
-
 
 
 export interface SrPlotConfig {
@@ -127,15 +127,13 @@ export class SlideRuleDexie extends Dexie {
 
     constructor() {
         super('SlideRuleDataBase');
-        // Bump version from 7 to 8
-        this.version(8).stores({
-            requests: '++req_id',
+        this.version(9).stores({
+            requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id',
             colors: '&color',
             atl03CnfColors: 'number',
             atl08ClassColors: 'number',
-            // Add a second compound index [parentReqId+rgt+cycle]
-            // so that if beam or track are undefined, we can still do a fast lookup.
+            //find runContexts by (parentReqId + rgt + cycle + beam) in one go, define a compound index:
             runContexts: `
                 ++id, 
                 &reqId, 
@@ -144,10 +142,8 @@ export class SlideRuleDexie extends Dexie {
                 cycle, 
                 beam, 
                 track, 
-                [parentReqId+rgt+cycle+beam], 
-                [parentReqId+rgt+cycle]
-            `,
-            plotConfig: 'id'
+                [parentReqId+rgt+cycle+beam]`,
+            plotConfig: 'id',  // single record table
         });
 
         this._initializeDefaultColors();
@@ -1063,46 +1059,22 @@ export class SlideRuleDexie extends Dexie {
 
     async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
-            const { parentReqId, trackFilter } = runContext;
-            const { rgt, cycle, beam, track } = trackFilter;
-    
-            // If `beam` or `track` are NOT defined, do a simpler 3-part lookup:
-            const doRgtCycleOnly = (beam === undefined || beam === null) 
-                                  && (track === undefined || track === null);
-    
-            if (doRgtCycleOnly) {
-                // 1) Use [parentReqId+rgt+cycle] index
-                const found = await this.runContexts
-                    .where('[parentReqId+rgt+cycle]')
-                    .equals([parentReqId, rgt, cycle])
-                    .toArray();
-                if (found.length === 0) return undefined;
-                if (found.length > 1) {
-                    console.warn('findCachedRec: multiple matches (rgt+cycle only)', { runContext, found });
-                }
-                return found[0].reqId;
-    
-            } else {
-                // 2) Use [parentReqId+rgt+cycle+beam] index
-                //    (and optionally compare track if that matters for your app)
-                const found = await this.runContexts
-                    .where('[parentReqId+rgt+cycle+beam]')
-                    .equals([parentReqId, rgt, cycle, beam ?? 0])
-                    .filter(rec => 
-                        // If track is given, also match track; if track is undefined, allow any
-                        (track === undefined || rec.track === track)
-                    )
-                    .toArray();
-    
-                if (found.length === 0) return undefined;
-                if (found.length > 1) {
-                    console.warn('findCachedRec: multiple matches (rgt+cycle+beam)', { runContext, found });
-                }
-                return found[0].reqId;
+            const found = await this.runContexts
+                .where('[parentReqId+rgt+cycle+beam]')
+                .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
+                .toArray();
+          
+            //console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
+            if (found.length <= 0) {
+                console.log(`No matching record found for run context:`, runContext);
+                return undefined;
             }
-    
+            if (found.length > 1) {
+                console.warn(`Multiple matching records found for run context:`, runContext);
+            }
+            return found[0].reqId;
         } catch (error) {
-            console.error('findCachedRec: error searching runContexts', error);
+            console.error(`Failed to find matching record for run context:`, error);
             throw error;
         }
     }

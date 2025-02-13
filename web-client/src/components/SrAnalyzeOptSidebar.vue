@@ -74,7 +74,7 @@ const computedInitializing = computed(() => {
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgt:${globalChartStore.getRgts()} spots:${globalChartStore.getSpots()} beam:${globalChartStore.getBeamLabels()} cycle:${globalChartStore.getCycles()}`;
+    return `rgt:${globalChartStore.getRgts()} spots:${globalChartStore.getSpots()} beam:${globalChartStore.getGtLabels()} cycle:${globalChartStore.getCycles()}`;
 });
 
 onMounted(async () => {
@@ -83,58 +83,6 @@ onMounted(async () => {
     await processNewReqId();
 });
 
-const onSpotSelection = async() => {
-    const spots = globalChartStore.getSpots();
-    //console.log('onSpotSelection spots:', spots);
-    spots.forEach((spot) => {
-        const d = getDetailsFromSpotNumber(spot);
-
-        if(d[0].sc_orient >= 0){
-            globalChartStore.appendScOrient(d[0].sc_orient);
-        }
-        if(d[0].track > 0){
-            globalChartStore.appendTrack(d[0].track);
-        }
-        if(d[0].pair >= 0){
-            globalChartStore.appendPair(d[0].pair);
-        }
-        if(d[1].sc_orient >= 0){
-            globalChartStore.appendScOrient(d[1].sc_orient);
-        }
-        if(d[1].track > 0){
-            globalChartStore.appendTrack(d[1].track);
-        }
-        if(d[1].pair >= 0){
-            globalChartStore.appendPair(d[1].pair);
-        }
-        
-    });
-};
-
-const BeamSelection = () => {
-    console.log('BeamSelection:');
-    //debouncedOnSelection("BeamSelection");
-};
-
-const CyclesSelection = () => {
-    //console.log('CyclesSelection:');
-};
-
-const RgtsSelection = () => {
-    //console.log('RgtsSelection:');
-};
-
-const scOrientsSelection = () => {
-    console.log('scOrientsSelection:');
-};
-
-const pairsSelection = () => {
-    console.log('pairsSelection:');
-};
-
-const tracksSelection = () => {
-    console.log('tracksSelection:');
-};
 
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
@@ -157,10 +105,6 @@ const updateElevationMap = async (req_id: number) => {
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
     }
     try {
-        //console.log('pushing selectedReqId:', req_id);
-        // if(firstRec){
-        //     clicked(firstRec); // preset filters using the first row
-        // }
         await router.push(`/analyze/${recTreeStore.selectedReqId}`);
         console.log('Successfully navigated to analyze:', recTreeStore.selectedReqId);
     } catch (error) {

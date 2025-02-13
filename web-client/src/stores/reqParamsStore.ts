@@ -3,13 +3,14 @@ import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
-import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/types/SrTypes';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
+import { useGlobalChartStore } from './globalChartStore';
 
 interface YapcConfig {
   version: number;
@@ -204,43 +205,43 @@ const createReqParamsStore = (id: string) =>
         enableSurfaceElevation: false,
     }),
     actions: {
-        async initForScatterPlotOverlay(parentReqId: number) {
-          // set all the things that are static for Photon Cloud overlays
-          console.log('initForScatterPlotOverlay parentReqId:', parentReqId);
-          this.setMissionValue("ICESat-2");
-          this.setIceSat2API("atl03sp");
-          this.setEnableGranuleSelection(true);
-          const poly = await db.getSvrReqPoly(parentReqId);
-          if(poly){
-              this.setPoly(poly);
-              this.setConvexHull(convexHull(poly));
-              this.setAreaOfConvexHull(calculatePolygonArea(poly));
-          } else {
-              console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
-          }
-          this.setSrt([-1]);
-          this.signalConfidenceNumber = [0,1,2,3,4];
-          this.enableAtl08Classification = true;
-          this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
-          this.enableYAPC = true;
-          this.YAPCVersion = '0';
-        },
-        async presetForScatterPlotOverlay(parentReqId: number,rgt:number,cycle:number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
+        async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine
-            console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
+            //console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
             // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
+            this.setMissionValue("ICESat-2");
+            this.setIceSat2API("atl03sp");
+            this.setEnableGranuleSelection(true);//tracks and beams
+            this.setUseRgt(true);
+            this.setUseCycle(true);
+            const poly = await db.getSvrReqPoly(parentReqId);
+            if(poly){
+                this.setPoly(poly);
+                this.setConvexHull(convexHull(poly));
+                this.setAreaOfConvexHull(calculatePolygonArea(poly));
+            } else {
+                console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
+            }
+            this.setSrt([-1]);
+            this.signalConfidenceNumber = [0,1,2,3,4];
+            this.enableAtl08Classification = true;
+            this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+            this.enableYAPC = true;
+            this.YAPCVersion = '0';
             this.setUseRgt(true);
             //TBD maybe when svr params is fixed it will include rgt. so use that instead of this
-            this.setRgt(rgt);
+            this.setSelectedTrackOptions(useGlobalChartStore().getSelectedTrackOptions());
+            this.setSelectedGtOptions(useGlobalChartStore().getSelectedGtOptions());
+            this.setRgt(useGlobalChartStore().getRgts()[0]);
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
-            this.setCycle(cycle);
+            this.setCycle(useGlobalChartStore().getCycles()[0]);
 
-            // console.log('beams:', useAtlChartFilterStore().getBeams());
+            // console.log('beams:', useAtlChartFilterStore().getGts());
             // console.log('rgts:', useAtlChartFilterStore().getRgts());
             // console.log('cycles:', useAtlChartFilterStore().getCycles());
             // console.log('pairs:', useAtlChartFilterStore().getPairs());
@@ -567,25 +568,22 @@ const createReqParamsStore = (id: string) =>
         setGpsToUTCOffset(gpsToUTCOffset:number) {
           this.gpsToUTCOffset = gpsToUTCOffset;
         },
-        setBeams(beams: SrListNumberItem[]) {
-          this.beams = beams;
+        setSelectedGtOptions(gts: SrListNumberItem[]) {
+          this.beams = gts; // in the req it is called beams
         },
-        getBeams(): SrListNumberItem[] {
-          return this.beams;
+        getSelectedGtOptions(): SrListNumberItem[] {
+          return this.beams; // in the req it is called beams
         },
-        getBeamValues(): number[] { 
-          return this.beams.map(beam => beam.value);
+        setGtsAndTracksWithGts(gts:SrListNumberItem[]) {
+          //console.log('setGtsAndTracksWithGts:', gts);
+          const parms = getGtsAndTracksWithGts(gts);
+          this.setSelectedGtOptions(parms.gts);
+          this.setSelectedTrackOptions(parms.tracks);
         },
-        setBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
-          console.log('setBeamsAndTracksWithGts:', gts);
-          const parms = getBeamsAndTracksWithGts(gts);
-          this.setBeams(parms.beams);
-          this.setTracks(parms.tracks);
-        },
-        setTracks(tracks: SrListNumberItem[]) {
+        setSelectedTrackOptions(tracks: SrListNumberItem[]) {
           this.tracks = tracks;
         },
-        getTracks() {
+        getSelectedTrackOptions() {
           return this.tracks;
         },
         setSelectAllTracks(selectAllTracks:boolean) {

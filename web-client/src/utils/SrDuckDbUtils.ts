@@ -15,6 +15,9 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { clicked } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
+import { addOverlaysToScatterPlot } from './plotUtils';
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+
 
 interface SummaryRowData {
     minLat: number;
@@ -129,7 +132,10 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
             }
         }
         chartStore.setSelectedYData(reqIdStr,heightFieldname);
-
+        console.log('setElevationDataOptionsFromFieldNames yData:', chartStore.getSelectedYData(reqIdStr)); 
+        if(useAtlChartFilterStore().getSelectedOverlayedReqIds().includes(reqId)){ 
+            await addOverlaysToScatterPlot('from setElevationDataOptionsFromFieldNames');
+        }
         //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
@@ -253,10 +259,10 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
 }
 
 export async function prepareDbForReqId(reqId: number): Promise<void> {
-    //console.log(`prepareDbForReqId for ${reqId}`);
     const startTime = performance.now(); // Start time
     try{
         const fileName = await indexedDb.getFilename(reqId);
+        console.log(`prepareDbForReqId for ${reqId} fileName:${fileName}`);
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
@@ -351,10 +357,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         if(summary?.extHMean){
             useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
             updateElLayerWithObject(name,rows as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
-            await prepareDbForReqId(req_id);
         } else {
             console.error('duckDbReadAndUpdateElevationData summary is undefined');
         }
+        await prepareDbForReqId(req_id);
 
     } catch (error) {
         console.error('duckDbReadAndUpdateElevationData error:', error);

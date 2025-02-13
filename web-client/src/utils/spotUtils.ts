@@ -1,6 +1,5 @@
 
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
-import { useChartStore } from '@/stores/chartStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 const SPOT_1 = 1;

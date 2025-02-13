@@ -43,6 +43,7 @@ import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -331,10 +332,10 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     const gcs = useGlobalChartStore();
     if(d.track !== undefined){ // for atl03
         gcs.setTracks([d.track]); // set to this one track
-        gcs.setBeamsForTracks(gcs.getTracks());
+        gcs.setGtsForTracks(gcs.getTracks());
     }
     if(d.gt !== undefined){ // for atl06
-        gcs.setBeamsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
+        gcs.setGtsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
     }
     if(d.sc_orient !== undefined){
         gcs.setScOrients([d.sc_orient]);
@@ -368,21 +369,23 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     }
     // for atl03
     const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-    //console.log('Clicked: func',func);
-    //console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
-    //console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
-    //console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
-    //console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
-    //console.log('Clicked: pair',cs.getPairValues(reqIdStr));
     if(func.includes('atl03')){
         if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
             gcs.setSpots([getSpotNumber(d.sc_orient,d.track,d.pair)]);
-            gcs.setGts([getGroundTrack(d.sc_orient,d.track,d.pair)]);
         }
     }
-    //console.log('Clicked: spot',cs.getSpots(reqIdStr))
-    //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
-    console.log('clicked:',d,'chartStore:',cs);
+    if(d.gt){
+        const parms = gcs.setGtsAndTracksWithGts( [{label:d.gt.toString(), value:d.gt}]);
+    }
+    console.log('Clicked: func',func);
+    console.log('Clicked: pair',gcs.getPairs());
+    console.log('Clicked: rgts',gcs.getRgts())
+    console.log('Clicked: cycles',gcs.getCycles())
+    console.log('Clicked: tracks',gcs.getTracks())
+    console.log('Clicked: sc_orient',gcs.getScOrients())
+    console.log('Clicked: spot',gcs.getSpots())
+    console.log('Clicked: gt',gcs.getGts())
+    console.log('clicked:',d);
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {

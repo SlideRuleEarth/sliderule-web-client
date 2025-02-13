@@ -61,16 +61,12 @@ import Card from 'primevue/card';
 const recTreeStore = useRecTreeStore();
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
-const atlChartFilterStore = useAtlChartFilterStore();
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgts: ${globalChartStore.getRgts()} spots: ${globalChartStore.getSpots()} beams: ${globalChartStore.getBeamLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${globalChartStore.getScOrientsLabels()}`;
+    return `rgts: ${globalChartStore.getRgts()} spots: ${globalChartStore.getSpots()} beams: ${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${globalChartStore.getScOrientsLabels()}`;
 });
 
-const computedDataKey = computed(() => {
-    return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
-});
 
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
@@ -84,7 +80,6 @@ const computedRgtOptions = computed(() => {
 
 function handleValueChange(value) {
     console.log('SrFilterCntrl handleValueChange:', value);
-    atlChartFilterStore.setSelectedOverlayedReqIds([]);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
         //callPlotUpdateDebounced('from handleModelValueChange');

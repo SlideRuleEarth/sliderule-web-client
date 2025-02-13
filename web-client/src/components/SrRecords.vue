@@ -25,11 +25,11 @@ const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
 
 
-const onEditComplete = (data: Record<string, any>, field: string, event: Event) => {
+const onEditComplete = async (data: Record<string, any>, field: string, event: Event) => {
     const inputElement = event.target as HTMLInputElement;
     const newValue = inputElement.value.trim();
     //data[field] = newValue; // Update the specific field with the new value
-    db.updateRequestRecord({req_id: data.req_id, description: data.description}, false);
+    await db.updateRequestRecord({req_id: data.req_id, description: data.description}, false);
     console.log('Edit completed:', field, 'New Value:', newValue, 'Data:', data);
 };
 const analyze = async (id:number) => {

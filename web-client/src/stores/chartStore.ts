@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/types/SrTypes';
 export interface SrMenuItem {

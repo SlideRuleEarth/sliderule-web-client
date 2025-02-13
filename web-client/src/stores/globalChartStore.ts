@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
-import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
 
@@ -13,10 +13,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const selectedRgtOptions = ref<SrListNumberItem[]>([]);
     const filteredRgtOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const selectedSpots = ref<number[]>([]);
-    const selectedTrackOptions = ref<number[]>([]);
-    const filteredTrackOptions = ref<number[]>([]);// subset for selected
+    const selectedTrackOptions = ref<SrListNumberItem[]>([]);
     const selectedGtOptions = ref<SrListNumberItem[]>([]);
-    const filteredBeamOptions = ref<SrListNumberItem[]>([]);// subset for selected
     const selectedPairOptions = ref<SrListNumberItem[]>([]);
     const filteredPairOptions = ref<SrListNumberItem[]>([]);// subset for selected
     const selectedScOrientOptions = ref<SrListNumberItem[]>([]);
@@ -167,7 +165,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             selectedTrackOptions.value = [];
             return;
         }
-        selectedTrackOptions.value = tracks;
+        const updatedTrackOptions = tracks.map(track => {
+            return tracksOptions.find(option => option.value === track) || { label: track.toString(), value: track };
+        });
     }
 
     function getTracksOptions(): SrListNumberItem[] {
@@ -175,29 +175,25 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     }
 
     function getTracks() : number[] {
+        if(!Array.isArray(selectedTrackOptions.value)) {
+            console.error(`getTracks: selectedTrackOptions is not an array`, selectedTrackOptions.value);
+            return [];
+        }
+        return selectedTrackOptions.value.map(track => track.value);
+    }
+
+    function getSelectedTrackOptions():SrListNumberItem[] {
         return selectedTrackOptions.value;
     }
 
-    function appendTrack(track: number) {
-        selectedTrackOptions.value.push(track);
-    }
-
-    function getFilteredTrackOptions(): number[] {
-        return filteredTrackOptions.value;
-    }
-
-    function setFilteredTrackOptions(tracks: number[]) {
-        filteredTrackOptions.value = tracks;
-    }
-
-    function setGts(beams: number[]) {
-        if (!Array.isArray(beams)) {
-            console.error('setGts received invalid beams:', beams);
+    function setGts(gts: number[]) {
+        if (!Array.isArray(gts)) {
+            console.error('setGts received invalid gts:', gts);
             selectedGtOptions.value = [];
             return;
         }
-        selectedGtOptions.value = beams.map(beam => {
-            return gtsOptions.find(option => option.value === beam) || { label: beam.toString(), value: beam };
+        selectedGtOptions.value = gts.map(gt => {
+            return gtsOptions.find(option => option.value === gt) || { label: gt.toString(), value: gt };
         });
     }
 
@@ -206,7 +202,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             console.error(`getBeams: selectedGtOptions is not an array`, selectedGtOptions.value);
             return [];
         }
-        return selectedGtOptions.value.map(beam => beam.value);
+        return selectedGtOptions.value.map(gt => gt.value);
     }
 
 
@@ -214,58 +210,50 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return gtsOptions;
     }
 
-    function appendToSelectedGtOptions(beam: SrListNumberItem) {
-        const beamExists = selectedGtOptions.value.some(b => b.value === beam.value);
+    function appendToSelectedGtOptions(gt: SrListNumberItem) {
+        const beamExists = selectedGtOptions.value.some(b => b.value === gt.value);
         if (!beamExists) {
-            selectedGtOptions.value.push(beam);
+            selectedGtOptions.value.push(gt);
         }
     }
 
-    function setSelectedGtOptions(beamOptions: SrListNumberItem[]) {
-        if (!Array.isArray(beamOptions)) {
-            console.error('setSelectedGtOptions received invalid beamOptions:', beamOptions);
+    function setSelectedGtOptions(gtOptions: SrListNumberItem[]) {
+        if (!Array.isArray(gtOptions)) {
+            console.error('setSelectedGtOptions received invalid gtOptions:', gtOptions);
             selectedGtOptions.value = [];
             return;
         }
-        selectedGtOptions.value = beamOptions;
+        selectedGtOptions.value = gtOptions;
     }
 
     function getSelectedGtOptions(): SrListNumberItem[] {
         return selectedGtOptions.value;
     }
 
-    function getFilteredBeamOptions(): SrListNumberItem[] {
-        return filteredBeamOptions.value;
+    function getGtLabels(): string[] {
+        return selectedGtOptions.value.map(gt => gt.label);
     }
 
-    function setFilteredBeamOptions(beamOptions: SrListNumberItem[]) {
-        filteredBeamOptions.value = beamOptions;
-    }
-
-    function getBeamLabels(): string[] {
-        return selectedGtOptions.value.map(beam => beam.label);
-    }
-
-    function setBeamsAndTracksWithGts(gts: SrListNumberItem[]) {
-        const parms = getBeamsAndTracksWithGts(gts);
+    function setGtsAndTracksWithGts(gts: SrListNumberItem[]) {
+        const parms = getGtsAndTracksWithGts(gts);
         const trkList = parms.tracks.map(track => track.value);
-        setSelectedGtOptions(parms.beams);
+        setSelectedGtOptions(parms.gts);
         setTracks(trkList);
     }
 
-    function setTracksForBeams(input_beams: SrListNumberItem[]) {    
-        const tracks = input_beams
-            .map(beam => tracksOptions.find(track => Number(beam.label.charAt(2)) === track.value))
+    function setTracksForGts(input_gts: SrListNumberItem[]) {    
+        const tracks = input_gts
+            .map(gt => tracksOptions.find(track => Number(gt.label.charAt(2)) === track.value))
             .filter((track): track is SrListNumberItem => track !== undefined);
         const trkList = tracks.map(track => track.value);
         setTracks(trkList);
     }
 
-    function setBeamsForTracks(input_tracks: number[]) {
-        const beams = input_tracks
+    function setGtsForTracks(input_tracks: number[]) {
+        const gts = input_tracks
             .map(track => gtsOptions.find(option => Number(track) === Number(option.label.charAt(2))))
-            .filter((beam): beam is SrListNumberItem => beam !== undefined);
-        setSelectedGtOptions(beams);
+            .filter((gt): gt is SrListNumberItem => gt !== undefined);
+        setSelectedGtOptions(gts);
     }
 
     function setPairs(pairs: number[]) {
@@ -391,21 +379,17 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getTracksOptions,
         getTracks,
         setTracks,
-        getFilteredTrackOptions,
-        setFilteredTrackOptions,
-        appendTrack,
         getGts,
         setGts,
         getGtsOptions,
-        getBeamLabels,
+        getGtLabels,
         appendToSelectedGtOptions,
         getSelectedGtOptions,
         setSelectedGtOptions,
-        getFilteredBeamOptions,
-        setFilteredBeamOptions,
-        setBeamsAndTracksWithGts,
-        setTracksForBeams,
-        setBeamsForTracks,
+        setGtsAndTracksWithGts,
+        setTracksForGts,
+        setGtsForTracks,
+        getSelectedTrackOptions,
         setPairs,
         getSelectedPairOptions,
         getFilteredPairOptions,

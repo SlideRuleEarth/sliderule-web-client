@@ -16,7 +16,7 @@ import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
-import { callPlotUpdateDebounced } from '@/utils/plotUtils';
+import { callPlotUpdateDebounced,updateWhereClauseAndXData } from '@/utils/plotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const consoleStore = useSrSvrConsoleStore();
@@ -31,14 +31,14 @@ let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null;
 
-async function getReqParamStore(reqId:number):Promise<ReturnType<typeof useReqParamsStore>> {
+async function getReqParamStore(reqId:number):Promise<ReturnType<typeof useReqParamsStore> | undefined> {
     const rc = await db.getRunContext(reqId)
     if(rc){
         if(rc.parentReqId && rc.parentReqId > 0){
             return useAutoReqParamsStore();
         } else {
-            console.warn('getReqParamStore using useReqParamsStore for reqId:',reqId,' invalid rc?:',rc);
-            return useReqParamsStore();
+            console.error('getReqParamStore using useReqParamsStore for reqId:',reqId,' invalid rc?:',rc);
+            return undefined;
         }
     } else {
         return useReqParamsStore();
@@ -67,7 +67,9 @@ async function startFetchToFileWorker(reqId:number):Promise<Worker> {
     worker =  new Worker(new URL('../workers/fetchToFile', import.meta.url), { type: 'module' }); // new URL must be inline? per documentation: https://vitejs.dev/guide/features.html#web-workers
 
     const reqParamsStore = await getReqParamStore(reqId);
-
+    if(!reqParamsStore){
+        throw new Error('startFetchToFileWorker reqParamsStore was undefined');
+    }
     const timeoutDuration = reqParamsStore.getWorkerThreadTimeout(); 
     console.log('startFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
     workerTimeoutHandle = setTimeout(async () => {
@@ -190,10 +192,11 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 try {
                     console.log('handleWorkerMsg opfs_ready rc:',rc);
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
+                        updateWhereClauseAndXData(workerMsg.req_id);
                         await readOrCacheSummary(workerMsg.req_id);
                         await prepareDbForReqId(workerMsg.req_id);
-                        atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                         await callPlotUpdateDebounced('Overlayed Photon Cloud');
+                        atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
                         router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue
@@ -264,7 +267,11 @@ async function cleanUpWorker(reqId:number){
     mapStore.setIsLoading(false); // controls spinning progress
     mapStore.setIsAborting(false);
     const reqParamsStore = await getReqParamStore(reqId);
-    reqParamsStore.using_worker = false;
+    if(reqParamsStore){
+        reqParamsStore.using_worker = false;
+    } else {
+        console.error('cleanUpWorker reqParamsStore was undefined');
+    }
     console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
 }
 
@@ -338,7 +345,6 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
-    let runContext = rc as SrRunContext;
     if(!checkAreaOfConvexHullError()){
         return;
     }
@@ -365,6 +371,9 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 await db.addSrRunContext(rc);
             }
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
+            if(!reqParamsStore){
+                throw new Error('runSlideRuleClicked reqParamsStore was undefined');
+            }
             if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
                 console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
                 if (rc === null) {
@@ -392,6 +401,9 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.log('runSlideRuleClicked IceSat2API:', reqParamsStore.getIceSat2API());
                     srReqRec.func = reqParamsStore.getIceSat2API();
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+                    const fileName = srReqRec.parameters?.parms?.output?.path;
+                    srReqRec.file = fileName;
+                    //console.log('runSlideRuleClicked will create fileName:', fileName, srReqRec);
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
@@ -408,10 +420,14 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.log('runSlideRuleClicked GediAPI:', reqParamsStore.getGediAPI());
                     srReqRec.func = reqParamsStore.getGediAPI();
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
-                    srReqRec.start_time = new Date();
-                    srReqRec.end_time = new Date();
-                    requestsStore.setConsoleMsg('running...');
-                    runFetchToFileWorker(srReqRec);
+                    const fileName = srReqRec.parameters?.parms?.output?.path;
+                    srReqRec.file = fileName;
+                    console.log('runSlideRuleClicked will create fileName:', fileName, srReqRec);
+                    if (srViewKey.value) {
+                        srReqRec.start_time = new Date();
+                        srReqRec.end_time = new Date();
+                        runFetchToFileWorker(srReqRec);
+                    }
                 } else {
                     console.error('runSlideRuleClicked GediAPI was undefined');
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
