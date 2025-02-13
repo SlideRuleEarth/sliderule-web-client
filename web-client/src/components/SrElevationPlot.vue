@@ -302,9 +302,9 @@ function handleValueChange(value) {
 
 </script>
 <template>
-    <div class="sr-scatter-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
-    <div class="sr-scatter-plot-container" v-else>
-        <div class="sr-scatter-plot-content">
+    <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
+    <div class="sr-elevation-plot-container" v-else>
+        <div class="sr-elevation-plot-content">
             <v-chart  ref="plotRef" 
                 class="scatter-chart" 
                 :manual-update="true"
@@ -317,34 +317,18 @@ function handleValueChange(value) {
                     zlevel:100
                 }" 
             />
-            <div class="sr-cycles-legend-panel">
-                <div class="sr-select-box">
-                    <p class="sr-select-box-hdr">Cycles</p>
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="true"
-                        :metaKeySelection="true"
-                        :options="computedCycleOptions"
-                        @change="handleValueChange"
-                    >
-                    </Listbox>
-                </div>
-                <div class="sr-legends-panel">
-                    <SrPlotLegendBox
-                        v-if = "(computedDataKey!='solid')"
-                        :reqIdStr="recTreeStore.selectedReqIdStr" 
-                        :data_key="computedDataKey" 
-                        :transparentBackground="false" 
-                    />
-                    <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
-                    <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
-                </div>
+            <div class="sr-legends-panel">
+                <SrPlotLegendBox
+                    v-if = "(computedDataKey!='solid')"
+                    :reqIdStr="recTreeStore.selectedReqIdStr" 
+                    :data_key="computedDataKey" 
+                    :transparentBackground="false" 
+                />
+                <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
+                <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
             </div>
         </div> 
-        <div class="sr-scatter-plot-cntrl">
+        <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
@@ -397,7 +381,7 @@ function handleValueChange(value) {
 
 <style scoped>
 
-.sr-scatter-plot-container {
+.sr-elevation-plot-container {
   display: block;
 }
 
@@ -406,7 +390,7 @@ function handleValueChange(value) {
   margin: 0.5rem;
 }
 
-.sr-scatter-plot {
+.sr-elevation-plot {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -416,7 +400,7 @@ function handleValueChange(value) {
   overflow-x: auto;
 }
 
-.sr-scatter-plot-cntrl {
+.sr-elevation-plot-cntrl {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -427,7 +411,7 @@ function handleValueChange(value) {
   overflow-x: auto;
   width: auto;
 }
-.sr-scatter-plot-content {
+.sr-elevation-plot-content {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -439,21 +423,14 @@ function handleValueChange(value) {
   height: 100%;
   width: auto;
 }
-.sr-legend-panel{
+
+.sr-legends-panel{
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items:center;
+    justify-content:flex-start;
+    align-items: center
 }
-.sr-cycles-legend-panel{
-    display: flex;
-    flex-direction: column;
-    justify-content:space-between;
-    align-items:center;
-    margin: 0.5rem;
-    padding: 0.5rem;
-    width: auto;
-}
+
 .sr-select-lists {
     display: flex;
     flex-direction: column;
@@ -562,12 +539,6 @@ function handleValueChange(value) {
     color:black;
 }
 
-
-.sr-select-y-data {
-    width: 100%;
-    margin: 0.25rem;
-}
-
 .sr-multiselect-container {
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
@@ -619,82 +590,6 @@ fieldset {
     gap: 0.5rem; /* Add spacing between elements */
     width: auto; /* Let the container size itself based on the content */
     padding: 0.5rem; /* Optional: Add some padding for spacing */
-}
-.sr-y-data-label {
-    margin: 0;
-    font-size: small;
-}
-
-.sr-color-selection-panel{
-    display: flex;
-    flex-direction: row;
-    justify-content: left;
-    align-items: center;
-}
-
-.color-preview {
-    width: 1rem;
-    height: 1rem;
-    margin: 0.5rem;
-    border: 1px solid var(--p-border-color);
-    border-radius: 2px;
-}
-
-.sr-select-col-encode-data,
-.sr-select-y-data {
-    width: 100%;
-    margin: 0.25rem;
-}
-
-.sr-select-color-key {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-select-color-map {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-select-symbol-size {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-overlayed-reqs-ss {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-scatter-checkbox-slider {
-  display: flex;
-  flex-direction: row;
-  justify-content: left;
-  align-items:center;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-sql-stmnt-display-parms {
-  display: flex;
-  flex-direction: column;
-  justify-content: left;
-  align-items: left;
-  margin-top: 0rem;
-  overflow-y: auto;
-  overflow-x: auto;
 }
 
 .loading-indicator {

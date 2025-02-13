@@ -439,10 +439,10 @@ function handleValueChange(value) {
   height: 100%;
   width: auto;
 }
-.sr-legend-panel{
+.sr-legends-panel{
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items:center;
 }
 .sr-cycles-legend-panel{
@@ -562,12 +562,6 @@ function handleValueChange(value) {
     color:black;
 }
 
-
-.sr-select-y-data {
-    width: 100%;
-    margin: 0.25rem;
-}
-
 .sr-multiselect-container {
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
@@ -609,92 +603,6 @@ fieldset {
         flex: 1 1 100%; /* Take up full width on small screens */
         margin: 0.5rem 0;
     }
-}
-
-.sr-ydata-menu {
-    display: inline-flex; /* Allow the container to shrink-wrap its content */
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start; /* Align content to the left */
-    gap: 0.5rem; /* Add spacing between elements */
-    width: auto; /* Let the container size itself based on the content */
-    padding: 0.5rem; /* Optional: Add some padding for spacing */
-}
-.sr-y-data-label {
-    margin: 0;
-    font-size: small;
-}
-
-.sr-color-selection-panel{
-    display: flex;
-    flex-direction: row;
-    justify-content: left;
-    align-items: center;
-}
-
-.color-preview {
-    width: 1rem;
-    height: 1rem;
-    margin: 0.5rem;
-    border: 1px solid var(--p-border-color);
-    border-radius: 2px;
-}
-
-.sr-select-col-encode-data,
-.sr-select-y-data {
-    width: 100%;
-    margin: 0.25rem;
-}
-
-.sr-select-color-key {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-select-color-map {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-select-symbol-size {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-overlayed-reqs-ss {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-scatter-checkbox-slider {
-  display: flex;
-  flex-direction: row;
-  justify-content: left;
-  align-items:center;
-  margin: 1rem;
-  border: 0.5rem;
-}
-
-.sr-sql-stmnt-display-parms {
-  display: flex;
-  flex-direction: column;
-  justify-content: left;
-  align-items: left;
-  margin-top: 0rem;
-  overflow-y: auto;
-  overflow-x: auto;
 }
 
 .loading-indicator {
