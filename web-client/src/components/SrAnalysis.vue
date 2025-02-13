@@ -10,8 +10,8 @@
 
             <TabPanels>
                 <TabPanel value="0">
-                    <!-- Only render SrScatterPlot if active tab is '0' AND your other condition is met -->
-                    <SrScatterPlot 
+                    <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
+                    <SrElevationPlot 
                         v-if="shouldDisplayScatterPlot" 
                         :startingReqId="reqId"
                     />
@@ -39,7 +39,7 @@
     import Tab from 'primevue/tab';
     import TabPanels from 'primevue/tabpanels';
     import TabPanel from 'primevue/tabpanel';
-    import SrScatterPlot from '@/components/SrScatterPlot.vue';
+    import SrElevationPlot from '@/components/SrElevationPlot.vue';
     import SrDuckDbShell from '@/components/SrDuckDbShell.vue';
     import { useRecTreeStore } from '@/stores/recTreeStore';
     import { useChartStore } from '@/stores/chartStore';

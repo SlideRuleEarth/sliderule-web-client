@@ -116,8 +116,8 @@ const photonCloudBtnTooltip = computed(() => {
 
 onMounted(async () => {
     try {
-        //console.log('SrScatterPlot onMounted');
-        console.log('SrScatterPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        //console.log('SrElevationPlot onMounted');
+        console.log('SrElevationPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 
         colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
@@ -133,7 +133,7 @@ onMounted(async () => {
         } else {
             console.warn('reqId is undefined');
         }        
-        //console.log('SrScatterPlot onMounted completed');
+        //console.log('SrElevationPlot onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
@@ -142,23 +142,23 @@ onMounted(async () => {
 });
 
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
-    console.log('SrScatterPlot watch reqId changed:', newReqId);
+    console.log('SrElevationPlot watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         // this is just to preset certain values that the user never changes
         await useAutoReqParamsStore().presetForScatterPlotOverlay(newReqId);
-        await callPlotUpdateDebounced('from SrScatterPlot watch recTreeStore.selectedReqId');
+        await callPlotUpdateDebounced('from SrElevationPlot watch recTreeStore.selectedReqId');
     }
 });
 
 watch(() => plotRef.value, async (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
-        console.warn('SrScatterPlot watch plotRef changed:', newPlotRef);
+        console.warn('SrElevationPlot watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
-            await callPlotUpdateDebounced('from SrScatterPlot watch plotRef.value');
+            await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
         } else {
-            console.warn('SrScatterPlot watch plotRef.value - no Y data selected');
+            console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
     }
 });
@@ -172,7 +172,7 @@ const messageClass = computed(() => {
 });
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
-    console.log('SrScatterPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
+    console.log('SrElevationPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
@@ -180,14 +180,14 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext); // worker is started here
-                console.log('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+                console.log('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
                     initializeColorEncoding(runContext.reqId);
                 } else { // request was successfully processed
-                    console.error('SrScatterPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                    console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
                 await initSymbolSize(runContext.reqId);
@@ -198,12 +198,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
         } else {
-            console.log('SrScatterPlot handlePhotonCloudChange - showPhotonCloud FALSE');
+            console.log('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
         }
     } else {
-        console.warn(`SrScatterPlot Skipped handlePhotonCloudChange - Loading component is still active`);
+        console.warn(`SrElevationPlot Skipped handlePhotonCloudChange - Loading component is still active`);
     }
 });
 
@@ -238,12 +238,12 @@ watch(() => {
         const gtsValues = newValues.gts.map((gts) => gts);
         const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrScatterPlot watch selected filter stuff Rgts,Spots,Gts... changed:', newValues.rgts, newValues.spots,gtsValues);
+        console.log('SrElevationPlot watch selected filter stuff Rgts,Spots,Gts... changed:', newValues.rgts, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);
     }
     if (!loadingComponent.value) {
         // if we have selected Y data and anything changes update the plot
-        await callPlotUpdateDebounced('SrScatterPlot watch filter parms changed');
+        await callPlotUpdateDebounced('SrElevationPlot watch filter parms changed');
     } else {
         console.warn(
             `Skipped updateThePlot for watch filter parms - Loading component is still active`
@@ -291,13 +291,13 @@ watch(() => {
 );
 
 function handleValueChange(value) {
-    console.log('SrScatterPlot handleValueChange:', value);
+    console.log('SrElevationPlot handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
     } else {
         console.warn('reqId is undefined');
     }
-    console.log('SrScatterPlot handleValueChange:', value);
+    console.log('SrElevationPlot handleValueChange:', value);
 }
 
 </script>

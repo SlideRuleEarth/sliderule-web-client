@@ -19,7 +19,7 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
-import SrScatterPlotConfig from "@/components/SrScatterPlotConfig.vue";
+import SrPlotConfig from "@/components/SrPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
@@ -262,17 +262,17 @@ const exportButtonClick = async () => {
                     <SrFilterCntrl></SrFilterCntrl>
                 </div>
                 <div class="sr-scatterplot-cfg-container">
-                    <!-- SrScatterPlotConfig for the main req_id -->
+                    <!-- SrPlotConfig for the main req_id -->
                     <div class="sr-scatterplot-cfg">
-                        <SrScatterPlotConfig
+                        <SrPlotConfig
                             v-if="mapStore.mapInitialized" 
                             :reqId="recTreeStore.selectedReqId"
                         />
                     </div>
 
-                    <!-- SrScatterPlotConfig for each overlayed req_id -->
+                    <!-- SrPlotConfig for each overlayed req_id -->
                     <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
-                        <SrScatterPlotConfig
+                        <SrPlotConfig
                             v-if="mapStore.mapInitialized" 
                             :reqId="overlayedReqId"
                             :isOverlay="true" 
