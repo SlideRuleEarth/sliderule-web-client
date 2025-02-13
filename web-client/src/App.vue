@@ -82,6 +82,8 @@ const detectBrowserAndOS = () => {
     deviceStore.setBrowser('Opera');
   else deviceStore.setBrowser('Unknown Browser');
 
+  // Check for WebGL support
+  deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
 };
 
 onMounted(async () => {

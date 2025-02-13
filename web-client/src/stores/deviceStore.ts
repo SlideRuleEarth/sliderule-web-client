@@ -8,6 +8,7 @@ export const useDeviceStore = defineStore({
     userAgent: '',
     language: '',
     online: false,
+    webGLSupported: false,
   }),
   actions: {
     getBrowser() {
@@ -39,6 +40,12 @@ export const useDeviceStore = defineStore({
     },
     setOnlineStatus(online: boolean) {
       this.online = online;
+    },
+    getWebGLSupported() {
+      return this.webGLSupported;
+    },
+    setWebGLSupported(webGLSupported: boolean) {
+      this.webGLSupported = webGLSupported;
     },
   },
 });

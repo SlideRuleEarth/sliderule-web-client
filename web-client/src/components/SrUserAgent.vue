@@ -13,5 +13,6 @@ const deviceStore = useDeviceStore();
     <p><strong>Operating System:</strong> {{ deviceStore.getOS() }}</p>
     <p><strong>User Agent:</strong> {{ deviceStore.getUserAgent() }}</p>
     <p><strong>Language:</strong> {{ deviceStore.getLanguage() }}</p>
+    <p><strong>WebGL:</strong> {{ deviceStore.getWebGLSupported() ? 'Supported': 'Not Supported' }}</p>
   </div>
 </template>
