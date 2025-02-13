@@ -196,7 +196,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         } catch (error) {
             console.error(`updateRecMenu ${logMsg} Failed to updateRecMenu:`, error);
         }
-        console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
+        //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
         return selectedReqId.value? selectedReqId.value : 0;
     };   
     return {

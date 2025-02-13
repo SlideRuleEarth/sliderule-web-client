@@ -74,7 +74,7 @@ const computedCycleOptions = computed(() => {
 
 const computedRgtOptions = computed(() => {
     const rgtOptions= globalChartStore.getRgtOptions();
-    console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
+    //console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
     return rgtOptions;
 });
 

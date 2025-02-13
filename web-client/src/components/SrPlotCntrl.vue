@@ -165,7 +165,7 @@ const shouldDisplayGradientColorLegend = computed(() => {
             }
         }
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayGradientColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayGradientColorLegend:', should);
     return should;
 });
 
@@ -181,7 +181,7 @@ const shouldDisplayAtl03ColorLegend = computed(() => {
     if(func.includes('atl03') && selectedColorEncodeData === 'atl03_cnf'){
         should = true;
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl03ColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl03ColorLegend:', should);
     return should;
 });
 
@@ -192,7 +192,7 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
     if(func.includes('atl03') && selectedColorEncodeData === 'atl08_class'){
         should = true;
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
     return should;
 });
 

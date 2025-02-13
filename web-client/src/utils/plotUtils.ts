@@ -1003,12 +1003,12 @@ async function appendSeries(reqId: number): Promise<void> {
   
 export const addOverlaysToScatterPlot = async (msg:string) => {
     const startTime = performance.now();
-    //console.log(`addOverlaysToScatterPlot for: ${msg}`);
+    console.log(`addOverlaysToScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
-        //console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
+        console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
         reqIds.forEach(async reqId => { 
             if(reqId > 0){
                 await updateWhereClauseAndXData(reqId);
@@ -1031,6 +1031,7 @@ const refreshScatterPlot = async (msg:string) => {
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef && plotRef.chart) {
         await initScatterPlotWith(recTreeStore.selectedReqId);
+        await addOverlaysToScatterPlot(msg);
     } else {
         console.error(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
     }

@@ -192,8 +192,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             } else { // we already have the data
                 await initSymbolSize(runContext.reqId);
                 initializeColorEncoding(runContext.reqId);
+                await prepareDbForReqId(runContext.reqId);            
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
-                prepareDbForReqId(runContext.reqId);            
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);

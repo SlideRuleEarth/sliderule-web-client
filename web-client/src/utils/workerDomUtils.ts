@@ -195,8 +195,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         updateWhereClauseAndXData(workerMsg.req_id);
                         await readOrCacheSummary(workerMsg.req_id);
                         await prepareDbForReqId(workerMsg.req_id);
-                        await callPlotUpdateDebounced('Overlayed Photon Cloud');
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
+                        await callPlotUpdateDebounced(`opfs_ready ${workerMsg.req_id}`);
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
                         router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue

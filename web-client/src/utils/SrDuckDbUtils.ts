@@ -15,9 +15,6 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { clicked } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
-import { addOverlaysToScatterPlot } from './plotUtils';
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-
 
 interface SummaryRowData {
     minLat: number;
@@ -132,11 +129,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
             }
         }
         chartStore.setSelectedYData(reqIdStr,heightFieldname);
-        console.log('setElevationDataOptionsFromFieldNames yData:', chartStore.getSelectedYData(reqIdStr)); 
-        if(useAtlChartFilterStore().getSelectedOverlayedReqIds().includes(reqId)){ 
-            await addOverlaysToScatterPlot('from setElevationDataOptionsFromFieldNames');
-        }
-        //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
+        console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
     }

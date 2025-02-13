@@ -2,7 +2,7 @@
     <div class="card">
     <Tabs value="0">
         <TabList>
-            <Tab value="0">Scatter Plot</Tab>
+            <Tab value="0">Elevation Plot</Tab>
             <Tab value="1">Table</Tab>
         </TabList>
         <TabPanels>

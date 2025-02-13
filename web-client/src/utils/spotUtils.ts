@@ -187,7 +187,6 @@ export function createWhereClause(reqId:number){
     const pairs = globalChartStore.getPairs();
     const sc_orients = globalChartStore.getScOrients();
     const tracks = globalChartStore.getTracks();
-    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgts:', rgts, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients);
     
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
@@ -207,20 +206,10 @@ export function createWhereClause(reqId:number){
             } else {
                 console.error('createWhereClause: cycles is empty for func:', func);
             }
-            if (pairs.length > 0) {
-                whereStr += ` AND pair IN (${pairs.join(", ")})`;
-            } else {
-                console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
-            }
-            if (sc_orients.length > 0) {
-                whereStr += ` AND sc_orient IN (${sc_orients.join(", ")})`;
-            } else {
-                console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
-            }
-            if (tracks.length > 0) {
-                whereStr += ` AND track IN (${tracks.join(", ")})`;
-            } else {
-                console.warn('updateWhereClause atl03sp: tracks is undefined or empty');
+            if (spots.length > 0) {
+                if (spots.length > 0) {
+                    whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+                }
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
@@ -242,6 +231,6 @@ export function createWhereClause(reqId:number){
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    //console.log('createWhereClause: whereStr:', whereStr);
+    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgts:', rgts, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
     return whereStr;
 }
