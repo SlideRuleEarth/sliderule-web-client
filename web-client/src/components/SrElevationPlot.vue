@@ -46,7 +46,8 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-
+const fontSize = ref<number>(16); // Default font size in pixels
+const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 const dialogStyle = ref<{
     position: string;
     top: string;
@@ -54,27 +55,45 @@ const dialogStyle = ref<{
     transform?: string; // Optional property
 }>({
     position: "absolute",
-    top: "0rem",
-    left: "0rem",
+    top: "0px",
+    left: "0px",
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
-
 
 const updateDialogPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (chartWrapper) {
     const rect = chartWrapper.getBoundingClientRect();
+
+    // Convert rem to pixels (1rem = 16px by default)
+    const bottomOffset = 7 * fontSize.value; // 3rem from the bottom
+    const rightOffset = 16 * fontSize.value; // 10rem from the right
+
+    const top = `${rect.top + window.scrollY + rect.height - bottomOffset}px`; 
+    const left = `${rect.left + window.scrollX + rect.width - rightOffset}px`; 
+
+    console.log('SrElevationPlot updateDialogPosition:', {
+      fontSize: fontSize.value,
+      bottomOffset,
+      rightOffset,
+      top,
+      left,
+      rect
+    });
+
     dialogStyle.value = {
       position: "absolute",
-      top: `${rect.top + window.scrollY + rect.height / 2}px`, // Center within chart-wrapper
-      left: `${rect.left + window.scrollX + rect.width / 2}px`,
-      transform: "translate(-50%, -50%)" // Optional, helps center initially
+      top: top, 
+      left: left, 
+      transform: "none" // Remove centering transformation
     };
-    console.log('SrElevationPlot updateDialogPosition:', dialogStyle.value);
   } else {
     console.warn('SrElevationPlot updateDialogPosition - chartWrapper is null');
   }
 };
+
+
+
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
 });
@@ -144,20 +163,6 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
-// const handleDragStart = () => {
-//   console.log("Dialog drag started.");
-//   // Stop auto-positioning so it doesn't override user drag
-//   dialogStyle.value = { ...dialogStyle.value };
-// };
-
-// const handleDragEnd = (event) => {
-//   console.log("Dialog drag ended.");
-//   dialogStyle.value = {
-//     position: "absolute",
-//     top: `${event.clientY}px`,
-//     left: `${event.clientX}px`
-//   };
-// };
 const handleDragStart = (event: PointerEvent) => {
     console.log("Dialog drag started.");
     dialogStyle.value.transform = undefined; // Remove transform to prevent snapping back
@@ -182,13 +187,20 @@ const handleDragEnd = (event: PointerEvent) => {
     if (target && target.releasePointerCapture) {
         target.releasePointerCapture(event.pointerId);
     }
+    console.log('handleDragEnd updateDialogPosition dialogStyle:', dialogStyle.value);
 };
 
 
 onMounted(async () => {
     try {
-        //console.log('SrElevationPlot onMounted');
-        console.log('SrElevationPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        console.log('SrElevationPlot onMounted initial webGLSupported:',webGLSupported.value);
+        webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
+        console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        // Get the computed style of the document's root element
+        // Extract the font size from the computed style
+        fontSize.value = 16;
+        // Log the font size to the console
+        console.log(`onMounted Current root fontSize: ${fontSize.value} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
         shouldDisplayGradient.value = true;
         colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
@@ -369,16 +381,6 @@ watch(() => {
   },
   { deep: true }
 );
-
-function handleValueChange(value) {
-    console.log('SrElevationPlot handleValueChange:', value);
-    const reqId = recTreeStore.selectedReqIdStr;
-    if (reqId) {
-    } else {
-        console.warn('reqId is undefined');
-    }
-    console.log('SrElevationPlot handleValueChange:', value);
-}
 
 </script>
 <template>
