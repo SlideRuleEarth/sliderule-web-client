@@ -46,13 +46,18 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-
-const dialogStyle = ref({
+    const dialogStyle = ref<{
+    position: string;
+    top: string;
+    left: string;
+    transform?: string; // Optional property
+}>({
     position: "absolute",
-    top: "10rem",
-    left: "50rem",
-    //transform: "translate(-50%, -50%)",
+    top: "0rem",
+    left: "0rem",
+    transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
+
 
 const updateDialogPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -62,7 +67,7 @@ const updateDialogPosition = () => {
       position: "absolute",
       top: `${rect.top + window.scrollY + rect.height / 2}px`, // Center within chart-wrapper
       left: `${rect.left + window.scrollX + rect.width / 2}px`,
-      //transform: "translate(-50%, -50%)"
+      transform: "translate(-50%, -50%)" // Optional, helps center initially
     };
     console.log('SrElevationPlot updateDialogPosition:', dialogStyle.value);
   } else {
