@@ -69,6 +69,12 @@ watch(
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  border: 1px solid transparent; /* Initially transparent */
+  transition: border 0.3s ease-in-out; /* Smooth transition effect */
+}
+
+.sr-legend-box:hover {
+  border: 1px solid var(--p-primary-color); /* Show border on hover */
 }
 
 .sr-color-map-gradient {

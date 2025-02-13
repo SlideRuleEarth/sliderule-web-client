@@ -24,9 +24,7 @@ import { getAllCycleOptionsByRgtsSpotsAndGts,prepareDbForReqId } from "@/utils/S
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
-import { selectedCycleReactive } from "@/utils/plotUtils";
-import Listbox from 'primevue/listbox';
-
+import Dialog from 'primevue/dialog';
 
 
 const props = defineProps({
@@ -59,6 +57,7 @@ const computedFilteredInCycleOptions = computed(() => {
     return globalChartStore.getFilteredCycleOptions();
 });
 
+
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
     if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId) === 'atl03sp'){
@@ -90,6 +89,10 @@ const shouldDisplayAtl08Colors = computed(() => {
 
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
+});
+
+const shouldDisplayGradient = computed(() => {
+    return (computedDataKey.value!='solid');
 });
 
 const filterGood = computed(() => {
@@ -305,28 +308,64 @@ function handleValueChange(value) {
     <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
     <div class="sr-elevation-plot-container" v-else>
         <div class="sr-elevation-plot-content">
-            <v-chart  ref="plotRef" 
-                class="scatter-chart" 
-                :manual-update="true"
-                :autoresize="{throttle:500}" 
-                :loading="atlChartFilterStore.isLoading" 
-                :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
-                }" 
-            />
-            <div class="sr-legends-panel">
-                <SrPlotLegendBox
-                    v-if = "(computedDataKey!='solid')"
-                    :reqIdStr="recTreeStore.selectedReqIdStr" 
-                    :data_key="computedDataKey" 
-                    :transparentBackground="false" 
+            <div class="chart-wrapper">
+                <v-chart  ref="plotRef" 
+                    class="scatter-chart" 
+                    :manual-update="true"
+                    :autoresize="{throttle:500}" 
+                    :loading="atlChartFilterStore.isLoading" 
+                    :loadingOptions="{
+                        text:'Data Loading', 
+                        fontSize:20, 
+                        showSpinner: true, 
+                        zlevel:100
+                    }" 
                 />
-                <SrAlt08Colors  v-if="shouldDisplayAtl08Colors"/>
-                <SrAtl03CnfColors v-if="shouldDisplayAtl03Colors" />
-            </div>
+                <Dialog
+                    v-model:visible="shouldDisplayGradient"
+                    :closable="false"
+                    :draggable="true"
+                    :modal="false"
+                    class="sr-floating-dialog"
+                    appendTo="self"
+                >
+                    <template #header>
+                        <SrPlotLegendBox
+                            class="chart-overlay"
+                            v-if = shouldDisplayGradient
+                            :reqIdStr="recTreeStore.selectedReqIdStr" 
+                            :data_key="computedDataKey" 
+                            :transparentBackground="true" 
+                        />
+                    </template>
+                </Dialog>
+                <Dialog
+                    class="sr-floating-dialog"
+                    v-model:visible="shouldDisplayAtl08Colors"
+                    :closable="false"
+                    :draggable="true"
+                    :modal="false"
+                    appendTo="self" 
+                    >
+                    <SrAlt08Colors  
+                        class="chart-overlay"
+                        v-if="shouldDisplayAtl08Colors"
+                    />
+                </Dialog>
+                <Dialog
+                    class="sr-floating-dialog"
+                    v-model:visible="shouldDisplayAtl03Colors"
+                    :closable="false"
+                    :draggable="true"
+                    :modal="false"
+                    appendTo="self" 
+                >                    
+                    <SrAtl03CnfColors 
+                        class="chart-overlay"
+                        v-if="shouldDisplayAtl03Colors" 
+                    />
+                </Dialog>
+            </div>  
         </div> 
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -368,7 +407,7 @@ function handleValueChange(value) {
                 </div>
                 <div class="sr-multiselect-col-req">
                     <SrReqDisplay
-                    v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
+                        v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
                         checkboxLabel='Show Photon Cloud Req Params'
                         :isForPhotonCloud="true"
                         :tooltipText="'The params that will be used for the Photon Cloud overlay'"
@@ -385,9 +424,32 @@ function handleValueChange(value) {
   display: block;
 }
 
-.scatter-chart{
-  height: 60vh;
-  margin: 0.5rem;
+.chart-wrapper {
+  position: relative; /* Allows absolutely-positioned children to overlay */
+  width: 100%;
+  height: 60vh; /* or whatever size you want */
+  margin: 0rem;
+  padding: 0rem;
+}
+
+:deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
+    background-color: transparent;
+    color: var(--p-text-color);
+    border-radius: var(--p-border-radius);
+    margin: 0rem;
+    border-width: 0px;
+    border-color: transparent;
+}
+
+:deep(.p-dialog-mask .p-dialog-content){
+    margin: 0rem;
+    padding: 0rem;
+}
+
+:deep(.p-dialog-mask .p-dialog-header){
+    margin: 0rem;
+    padding: 0rem;
+
 }
 
 .sr-elevation-plot {
@@ -489,8 +551,6 @@ function handleValueChange(value) {
     margin: 0.125rem;
     text-align: center;
 }
-
-
 
 :deep(.p-listbox-list-wrapper) {
   /* A fixed width or max-width is usually necessary to force scrolling */
@@ -614,11 +674,17 @@ fieldset {
 }
 
 .scatter-chart {
-  margin-bottom: 0.5rem;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
-  max-height: 50rem;
-  max-width: 80rem;
+    height: 60vh;
+    width: 100%;  margin-bottom: 0.5rem;
+    margin-left: 0rem;
+    margin-right: 0rem;
+    margin-top: 0rem;
+    margin-bottom: 0rem;
+    padding: 0rem;
+    max-height: 50rem;
+    max-width: 80rem;
 }
+
+
 
 </style>

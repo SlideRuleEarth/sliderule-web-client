@@ -90,4 +90,13 @@
     font-size: smaller;
     padding: 0.5rem 2rem;
 }
+
+:deep(.p-tabpanels) {
+    margin: 0;
+    padding-top: 0.5rem;
+    padding-right: 0rem;
+    padding-bottom: 0rem;
+    padding-left: 0rem;
+}
+
 </style>
