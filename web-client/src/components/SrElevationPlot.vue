@@ -42,11 +42,14 @@ const colorMapStore = useColorMapStore();
 const recTreeStore = useRecTreeStore();
 const loadingComponent = ref(true);
 
-
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
+
+const dialogStyle = ref({
+  transform: "translate(200px, -300px)", // Start at (0,0) inside `.chart-wrapper`
+});
 
 
 const computedCycleOptions = computed(() => {
@@ -91,9 +94,10 @@ const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
-const shouldDisplayGradient = computed(() => {
-    return (computedDataKey.value!='solid');
-});
+// const shouldDisplayGradient = computed(() => {
+//     return (computedDataKey.value!='solid');
+// });
+const shouldDisplayGradient = ref(false);
 
 const filterGood = computed(() => {
     return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgts().length === 1) && (globalChartStore.getSpots().length === 1));
@@ -117,11 +121,15 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
+const handleDragStart = () => {
+  dialogStyle.value.transform = ""; // Remove the forced position when dragging starts
+};
+
 onMounted(async () => {
     try {
         //console.log('SrElevationPlot onMounted');
         console.log('SrElevationPlot onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
-
+        shouldDisplayGradient.value = true;
         colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
@@ -328,6 +336,8 @@ function handleValueChange(value) {
                     :modal="false"
                     class="sr-floating-dialog"
                     appendTo="self"
+                    :style="dialogStyle"
+                    @mousedown="handleDragStart"
                 >
                     <template #header>
                         <SrPlotLegendBox
