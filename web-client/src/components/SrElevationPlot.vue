@@ -46,7 +46,8 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
-    const dialogStyle = ref<{
+
+const dialogStyle = ref<{
     position: string;
     top: string;
     left: string;
@@ -143,20 +144,46 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
-const handleDragStart = () => {
-  console.log("Dialog drag started.");
-  // Stop auto-positioning so it doesn't override user drag
-  dialogStyle.value = { ...dialogStyle.value };
+// const handleDragStart = () => {
+//   console.log("Dialog drag started.");
+//   // Stop auto-positioning so it doesn't override user drag
+//   dialogStyle.value = { ...dialogStyle.value };
+// };
+
+// const handleDragEnd = (event) => {
+//   console.log("Dialog drag ended.");
+//   dialogStyle.value = {
+//     position: "absolute",
+//     top: `${event.clientY}px`,
+//     left: `${event.clientX}px`
+//   };
+// };
+const handleDragStart = (event: PointerEvent) => {
+    console.log("Dialog drag started.");
+    dialogStyle.value.transform = undefined; // Remove transform to prevent snapping back
+
+    const target = event.target as HTMLElement; // Explicitly cast to HTMLElement
+    if (target && target.setPointerCapture) {
+        target.setPointerCapture(event.pointerId);
+    }
 };
 
-const handleDragEnd = (event) => {
-  console.log("Dialog drag ended.");
-  dialogStyle.value = {
-    position: "absolute",
-    top: `${event.clientY}px`,
-    left: `${event.clientX}px`
-  };
+const handleDragMove = (event: PointerEvent) => {
+    if (event.buttons === 1) { // Ensure left button is pressed
+        dialogStyle.value.top = `${event.clientY}px`;
+        dialogStyle.value.left = `${event.clientX}px`;
+    }
 };
+
+const handleDragEnd = (event: PointerEvent) => {
+    console.log("Dialog drag ended.");
+
+    const target = event.target as HTMLElement; // Explicitly cast to HTMLElement
+    if (target && target.releasePointerCapture) {
+        target.releasePointerCapture(event.pointerId);
+    }
+};
+
 
 onMounted(async () => {
     try {
@@ -379,8 +406,9 @@ function handleValueChange(value) {
                     class="sr-floating-dialog"
                     appendTo="self"
                     :style="dialogStyle"
-                    @mousedown="handleDragStart"
-                    @mouseup="handleDragEnd"
+                    @pointerdown="handleDragStart"
+                    @pointermove="handleDragMove"
+                    @pointerup="handleDragEnd"
                 >
                     <template #header>
                         <SrPlotLegendBox
