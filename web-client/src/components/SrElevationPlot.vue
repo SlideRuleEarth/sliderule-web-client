@@ -5,7 +5,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, ref, computed } from "vue";
+import { provide, watch, onMounted, onUnmounted, nextTick, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
@@ -48,10 +48,27 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const dialogStyle = ref({
-  transform: "translate(200px, -300px)", // Start at (0,0) inside `.chart-wrapper`
+    position: "absolute",
+    top: "10rem",
+    left: "50rem",
+    //transform: "translate(-50%, -50%)",
 });
 
-
+const updateDialogPosition = () => {
+  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (chartWrapper) {
+    const rect = chartWrapper.getBoundingClientRect();
+    dialogStyle.value = {
+      position: "absolute",
+      top: `${rect.top + window.scrollY + rect.height / 2}px`, // Center within chart-wrapper
+      left: `${rect.left + window.scrollX + rect.width / 2}px`,
+      //transform: "translate(-50%, -50%)"
+    };
+    console.log('SrElevationPlot updateDialogPosition:', dialogStyle.value);
+  } else {
+    console.warn('SrElevationPlot updateDialogPosition - chartWrapper is null');
+  }
+};
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
 });
@@ -122,7 +139,18 @@ const photonCloudBtnTooltip = computed(() => {
 });
 
 const handleDragStart = () => {
-  dialogStyle.value.transform = ""; // Remove the forced position when dragging starts
+  console.log("Dialog drag started.");
+  // Stop auto-positioning so it doesn't override user drag
+  dialogStyle.value = { ...dialogStyle.value };
+};
+
+const handleDragEnd = (event) => {
+  console.log("Dialog drag ended.");
+  dialogStyle.value = {
+    position: "absolute",
+    top: `${event.clientY}px`,
+    left: `${event.clientX}px`
+  };
 };
 
 onMounted(async () => {
@@ -144,12 +172,20 @@ onMounted(async () => {
         } else {
             console.warn('reqId is undefined');
         }        
+        //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
+        await nextTick(); // Ensures Vue has completed the DOM rendering
+        updateDialogPosition();
+        window.addEventListener("resize", updateDialogPosition);
         //console.log('SrElevationPlot onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
         loadingComponent.value = false;
     }
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", updateDialogPosition);
 });
 
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
@@ -171,6 +207,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
+        nextTick(updateDialogPosition); // Ensure DOM updates before repositioning
     }
 });
 
@@ -338,6 +375,7 @@ function handleValueChange(value) {
                     appendTo="self"
                     :style="dialogStyle"
                     @mousedown="handleDragStart"
+                    @mouseup="handleDragEnd"
                 >
                     <template #header>
                         <SrPlotLegendBox
@@ -443,6 +481,10 @@ function handleValueChange(value) {
 }
 
 :deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
+    position:absolute;
+    top:50%;
+    left:50%;
+    /* transform: translate(-50%, -50%); */
     background-color: transparent;
     color: var(--p-text-color);
     border-radius: var(--p-border-radius);
