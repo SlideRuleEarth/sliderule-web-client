@@ -1,7 +1,7 @@
 <template>
-    <div class="sr-legend">
+    <div class="sr-legend-box">
         <Fieldset
-            class="sr-legend-box"
+            class="sr-lb-fieldset"
             legend="ATL08 Class Colors"
             :toggleable="false"
             :collapsed="false" 
@@ -43,52 +43,73 @@ const formatLabel = (label: string): string => {
 </script>
   
   <style scoped>
-  .sr-legend {
+  .sr-legend-box {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    color: var(--p-primary-color);
+    border-radius: var(--p-border-radius);
+    border: 1px solid transparent; /* Initially transparent */
+    transition: border 0.3s ease-in-out; /* Smooth transition effect */
+    min-width: 10rem;
   }
   
+  .sr-legend-box:hover {
+    border: 1px solid var(--p-primary-color); /* Show border on hover */
+  }
+
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-  }
-  
-  .color-box {
-    width: 20px;
-    height: 20px;
-    border: 1px solid #000;
-  }
-  
-  .label {
-    font-size: 14px;
-  }
+    gap: 0.375rem; /* 6px equivalent */
+    white-space: nowrap; /* Keep text on a single line */
+    overflow: hidden; /* Hide overflowing text */
+    text-overflow: ellipsis; /* Add ellipsis for truncated text */
+}
 
-  .sr-legend-box {
+.color-box {
+  width: 1rem; /* 16px equivalent */
+  height: 1rem;
+  border: 0.0625rem solid #000; /* 1px equivalent */
+}
+
+.label {
+  font-size:smaller;
+  line-height: 1.2; /* Adjust line height */
+  color: var(--p-primary-color);
+}
+
+.sr-lb-fieldset {
     padding: 0.2rem; /* 3.2px equivalent */
-    margin-top: 1rem;
+    background-color: rgba(0, 0, 0, 0.2); /* Black with 50% transparency */
     border-radius: var(--p-border-radius);
     position: relative; /* Enable positioning for the legend */
 }
 
 /* Custom Fieldset legend style */
-:deep(.sr-legend-box .p-fieldset-legend) {
+:deep(.sr-lb-fieldset .p-fieldset-legend) {
+    white-space: nowrap;
     font-size: small;
     font-weight: normal;
-    color: white;
+    color: var(--p-primary-color);
     padding: 0.2rem;
     text-align: center;
     position: absolute;
     top: 0.5rem;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: black;
+    background: transparent;
     border-radius: 0.25rem;
+    border-color: transparent;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     z-index: 1;
-    padding: 0 0.5rem;
+    margin: 0.5rem;
+    padding-left: 0.5rem; 
+    padding-right:0.5rem; 
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }
+
 :deep(.p-fieldset-content-container) {
     padding-top: 1.5rem; /* Adjust padding to prevent overlap with the legend */
 }

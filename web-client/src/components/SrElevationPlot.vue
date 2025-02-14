@@ -76,6 +76,19 @@ const atl03CnfDialogStyle = ref<{
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
 
+
+const atl08DialogStyle = ref<{
+    position: string;
+    top: string;
+    left: string;
+    transform?: string; // Optional property
+}>({
+    position: "absolute",
+    top: "0px",
+    left: "0px",
+    transform: "translate(-50%, -50%)" // Initially set, removed on drag
+});
+
 // const updateDialogPosition = () => {
 //   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 //   if (chartWrapper) {
@@ -217,6 +230,12 @@ const initOverlayLegendPosition = () => {
     });
 
     atl03CnfDialogStyle.value = {
+      position: "absolute",
+      top: top, 
+      left: left, 
+      transform: "none" // Remove centering transformation
+    };
+    atl08DialogStyle.value = {
       position: "absolute",
       top: top, 
       left: left, 
@@ -540,6 +559,7 @@ watch(chartWrapperRef, (newValue) => {
                     :modal="false"
                     class="sr-floating-dialog"
                     appendTo="self" 
+                    :style="atl08DialogStyle"
                     >
                     <template #header>
                         <SrAlt08Colors  
