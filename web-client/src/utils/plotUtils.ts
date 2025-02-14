@@ -639,7 +639,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         if(seriesData.length !== 0){
             options = {
                 title: {
-                    text: `Highlighted Track`,
+                    text: globalChartStore.titleOfElevationPlot,
                     left: "center"
                 },
                 tooltip: {

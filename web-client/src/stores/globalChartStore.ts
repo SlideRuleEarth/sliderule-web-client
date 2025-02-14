@@ -19,7 +19,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const filteredPairOptions = ref<SrListNumberItem[]>([]);// subset for selected
     const selectedScOrientOptions = ref<SrListNumberItem[]>([]);
     const filteredScOrientOptions = ref<SrListNumberItem[]>([]);// subset for selected
-
+    const scrollX = ref<number>(0);
+    const scrollY = ref<number>(0);
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -408,5 +409,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getScOrientsLabels,
         hasScForward,
         hasScBackward,
+        scrollX,
+        scrollY,
+        titleOfElevationPlot: ref('Highlighted Track'),
     };
 });

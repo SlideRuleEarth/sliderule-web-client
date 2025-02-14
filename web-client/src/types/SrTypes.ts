@@ -92,3 +92,4 @@ export interface Region {
     label: string;
     value: number;
 }
+export type AppendToType =  HTMLElement | "body" | "self" | undefined; 

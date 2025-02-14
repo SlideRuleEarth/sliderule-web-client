@@ -62,13 +62,13 @@ watch(
 
 <style scoped>
 .sr-legend-box {
-  color: var(--p-primary-color);
-  padding: 0.3125rem;
-  border-radius: var(--p-border-radius);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  flex-direction: column;
+  padding: 0.3125rem;
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
   border: 1px solid transparent; /* Initially transparent */
   transition: border 0.3s ease-in-out; /* Smooth transition effect */
 }

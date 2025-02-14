@@ -25,8 +25,10 @@ import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import Dialog from 'primevue/dialog';
+import { AppendToType } from "@/types/SrTypes";
 
 
+let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -46,9 +48,23 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
+const chartWrapperRef = ref<AppendToType>(undefined);
 const fontSize = ref<number>(16); // Default font size in pixels
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
-const dialogStyle = ref<{
+const gradientDialogStyle = ref<{
+    position: string;
+    top: string;
+    left: string;
+    transform?: string; // Optional property
+}>({
+    position: "absolute",
+    top: "0px",
+    left: "0px",
+    transform: "translate(-50%, -50%)" // Initially set, removed on drag
+});
+;
+
+const atl03CnfDialogStyle = ref<{
     position: string;
     top: string;
     left: string;
@@ -60,38 +76,157 @@ const dialogStyle = ref<{
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
 
-const updateDialogPosition = () => {
+// const updateDialogPosition = () => {
+//   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+//   if (chartWrapper) {
+//     const rect = chartWrapper.getBoundingClientRect();
+//     globalChartStore.scrollX = window.scrollX;
+//     globalChartStore.scrollY = window.scrollY;
+//     const windowX = globalChartStore.scrollX;
+//     const windowY = globalChartStore.scrollY;
+//     // Convert rem to pixels (1rem = 16px by default)
+//     const bottomOffset = 7 * fontSize.value; // n rem from the bottom
+//     const rightOffset = 16 * fontSize.value; // 1n rem from the right
+
+//     const top = `${rect.top + windowY + rect.height - bottomOffset}px`; 
+//     const left = `${rect.left + windowX + rect.width - rightOffset}px`; 
+
+//     console.log('SrElevationPlot updateDialogPosition:', {
+//         windowX,
+//         windowY,
+//         fontSize: fontSize.value,
+//         bottomOffset,
+//         rightOffset,
+//         top,
+//         left,
+//         rect
+//     });
+
+//     gradientDialogStyle.value = {
+//       position: "absolute",
+//       top: top, 
+//       left: left, 
+//       transform: "none" // Remove centering transformation
+//     };
+//   } else {
+//     console.warn('SrElevationPlot updateDialogPosition - chartWrapper is null');
+//   }
+// };
+
+const initGradientPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (chartWrapper) {
     const rect = chartWrapper.getBoundingClientRect();
-
+    const rect_left = rect.left;
+    const rect_top = rect.top;
+    const rect_right = rect.right;
+    const rect_bottom = rect.bottom;
+    globalChartStore.scrollX = window.scrollX;
+    globalChartStore.scrollY = window.scrollY;
+    const windowScrollX = globalChartStore.scrollX;
+    const windowScrollY = globalChartStore.scrollY;
     // Convert rem to pixels (1rem = 16px by default)
-    const bottomOffset = 7 * fontSize.value; // 3rem from the bottom
-    const rightOffset = 16 * fontSize.value; // 10rem from the right
+    const middleHorizontalOffset = rect.width / 2; // n rem from the left
+    const middleX = rect.left + middleHorizontalOffset;
+    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * fontSize.value;
+    const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
+    const spaceSize = rect.right - endOfTitle; 
+    const centerOfLegend = endOfTitle + (spaceSize/2);
+    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
+    const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
+    const left = `${leftLegendOffset}px`; 
 
-    const top = `${rect.top + window.scrollY + rect.height - bottomOffset}px`; 
-    const left = `${rect.left + window.scrollX + rect.width - rightOffset}px`; 
+    const topOffset = 0.25 * fontSize.value; // n rem from the top
+    const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot updateDialogPosition:', {
-      fontSize: fontSize.value,
-      bottomOffset,
-      rightOffset,
-      top,
-      left,
-      rect
+    console.log('SrElevationPlot initGradientPosition:', {
+        windowScrollX,
+        windowScrollY,
+        fontSize: fontSize.value,
+        topOffset,
+        endOfTitle,
+        middleHorizontalOffset,
+        middleX,
+        leftLegendOffset,        
+        assumedTitleWidth,
+        spaceSize,
+        centerOfLegend,    
+        top,
+        left,
+        rect_top,
+        rect_left,
+        rect_right,
+        rect_bottom
     });
 
-    dialogStyle.value = {
+    gradientDialogStyle.value = {
       position: "absolute",
       top: top, 
       left: left, 
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot updateDialogPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initGradientPosition - chartWrapper is null');
   }
+  
 };
 
+const initOverlayLegendPosition = () => {
+  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (chartWrapper) {
+    const rect = chartWrapper.getBoundingClientRect();
+    const rect_left = rect.left;
+    const rect_top = rect.top;
+    const rect_right = rect.right;
+    const rect_bottom = rect.bottom;
+    globalChartStore.scrollX = window.scrollX;
+    globalChartStore.scrollY = window.scrollY;
+    const windowScrollX = globalChartStore.scrollX;
+    const windowScrollY = globalChartStore.scrollY;
+    // Convert rem to pixels (1rem = 16px by default)
+    const middleHorizontalOffset = rect.width / 2; // n rem from the left
+    const middleX = rect.left + middleHorizontalOffset;
+    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * fontSize.value;
+    const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
+    const spaceSize = rect.right - endOfTitle; 
+    const centerOfLegend = endOfTitle + (spaceSize/2);
+    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
+    const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
+    const left = `${leftLegendOffset}px`; 
+    const assumedLegendHeight = 20 * fontSize.value; // 10 rows
+    const topOffset = rect_bottom - assumedLegendHeight;
+    const top = `${topOffset}px`; 
+
+    console.log('SrElevationPlot initOverlayLegendPosition:', {
+        windowScrollX,
+        windowScrollY,
+        fontSize: fontSize.value,
+        topOffset,
+        endOfTitle,
+        middleHorizontalOffset,
+        middleX,
+        leftLegendOffset,
+        assumedTitleWidth,
+        centerOfLegend,    
+        top,
+        left,
+        rect_top,
+        rect_left,
+        rect_right,
+        rect_bottom
+    });
+
+    atl03CnfDialogStyle.value = {
+      position: "absolute",
+      top: top, 
+      left: left, 
+      transform: "none" // Remove centering transformation
+    };
+  } else {
+    console.warn('SrElevationPlot initOverlayLegendPosition - chartWrapper is null');
+  }
+  
+};
 
 
 const computedCycleOptions = computed(() => {
@@ -163,39 +298,11 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
-const handleDragStart = (event: PointerEvent) => {
-    console.log("Dialog drag started.");
-    dialogStyle.value.transform = undefined; // Remove transform to prevent snapping back
-
-    const target = event.target as HTMLElement; // Explicitly cast to HTMLElement
-    if (target && target.setPointerCapture) {
-        target.setPointerCapture(event.pointerId);
-    }
-};
-
-const handleDragMove = (event: PointerEvent) => {
-    if (event.buttons === 1) { // Ensure left button is pressed
-        dialogStyle.value.top = `${event.clientY}px`;
-        dialogStyle.value.left = `${event.clientX}px`;
-    }
-};
-
-const handleDragEnd = (event: PointerEvent) => {
-    console.log("Dialog drag ended.");
-
-    const target = event.target as HTMLElement; // Explicitly cast to HTMLElement
-    if (target && target.releasePointerCapture) {
-        target.releasePointerCapture(event.pointerId);
-    }
-    console.log('handleDragEnd updateDialogPosition dialogStyle:', dialogStyle.value);
-};
-
-
 onMounted(async () => {
     try {
-        console.log('SrElevationPlot onMounted initial webGLSupported:',webGLSupported.value);
+        console.log('SrElevationPlot onMounted initial chartWrapper:',chartWrapper);
         webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
-        console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        //console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
         // Get the computed style of the document's root element
         // Extract the font size from the computed style
         fontSize.value = 16;
@@ -218,8 +325,8 @@ onMounted(async () => {
         }        
         //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
         await nextTick(); // Ensures Vue has completed the DOM rendering
-        updateDialogPosition();
-        window.addEventListener("resize", updateDialogPosition);
+        initGradientPosition();
+        initOverlayLegendPosition();
         //console.log('SrElevationPlot onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
@@ -229,7 +336,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", updateDialogPosition);
+    console.log('SrElevationPlot onUnmounted');
 });
 
 watch(() => recTreeStore.selectedReqId, async (newReqId) => {
@@ -251,7 +358,8 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
-        nextTick(updateDialogPosition); // Ensure DOM updates before repositioning
+        nextTick(initGradientPosition); // Ensure DOM updates before repositioning
+        nextTick(initOverlayLegendPosition); // Ensure DOM updates before repositioning
     }
 });
 
@@ -382,12 +490,17 @@ watch(() => {
   { deep: true }
 );
 
+watch(chartWrapperRef, (newValue) => {
+    console.log("chartWrapperRef updated:", newValue);
+    chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+});
+
 </script>
 <template>
     <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
     <div class="sr-elevation-plot-container" v-else>
         <div class="sr-elevation-plot-content">
-            <div class="chart-wrapper">
+            <div ref="chartWrapperRef" class="chart-wrapper">
                 <v-chart  ref="plotRef" 
                     class="scatter-chart" 
                     :manual-update="true"
@@ -401,16 +514,14 @@ watch(() => {
                     }" 
                 />
                 <Dialog
+                    v-if="(chartWrapper !== null)"
                     v-model:visible="shouldDisplayGradient"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
                     class="sr-floating-dialog"
-                    appendTo="self"
-                    :style="dialogStyle"
-                    @pointerdown="handleDragStart"
-                    @pointermove="handleDragMove"
-                    @pointerup="handleDragEnd"
+                    :appendTo="chartWrapper"
+                    :style="gradientDialogStyle"
                 >
                     <template #header>
                         <SrPlotLegendBox
@@ -423,30 +534,35 @@ watch(() => {
                     </template>
                 </Dialog>
                 <Dialog
-                    class="sr-floating-dialog"
                     v-model:visible="shouldDisplayAtl08Colors"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
+                    class="sr-floating-dialog"
                     appendTo="self" 
                     >
-                    <SrAlt08Colors  
-                        class="chart-overlay"
-                        v-if="shouldDisplayAtl08Colors"
-                    />
+                    <template #header>
+                        <SrAlt08Colors  
+                            class="chart-overlay"
+                            v-if="shouldDisplayAtl08Colors"
+                        />
+                    </template> 
                 </Dialog>
                 <Dialog
-                    class="sr-floating-dialog"
                     v-model:visible="shouldDisplayAtl03Colors"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
-                    appendTo="self" 
-                >                    
-                    <SrAtl03CnfColors 
-                        class="chart-overlay"
-                        v-if="shouldDisplayAtl03Colors" 
-                    />
+                    class="sr-floating-dialog"
+                    appendTo="self"
+                    :style="atl03CnfDialogStyle" 
+                >
+                    <template #header>
+                        <SrAtl03CnfColors 
+                            class="chart-overlay"
+                            v-if="shouldDisplayAtl03Colors" 
+                        />
+                    </template>
                 </Dialog>
             </div>  
         </div> 
@@ -474,6 +590,10 @@ watch(() => {
                 {{globalChartStore.getCycles().length}}
                 {{globalChartStore.getRgts().length }}
                 {{globalChartStore.getSpots().length }}
+            </div> -->
+            <!-- <div>
+                {{  globalChartStore.scrollX}}
+                {{  globalChartStore.scrollY}}
             </div> -->
             <div class="sr-multiselect-container">
 
