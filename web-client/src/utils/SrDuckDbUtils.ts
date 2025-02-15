@@ -501,6 +501,8 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
             const serverReqResult =  await duckDbClient.getServerReqFromMetaData(fileName);
             if(serverReqResult){
                 serverReq = serverReqResult;
+            } else {
+                console.warn('duckDbLoadOpfsParquetFile serverReqResult is null');
             }
         } catch (error) {
             console.error('Error dumping parquet metadata:', error);
