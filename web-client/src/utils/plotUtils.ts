@@ -280,7 +280,7 @@ async function getGenericSeries({
         //console.log(`${functionName} ${reqIdStr}: chartData:`, chartData);
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
-        //console.log(`${functionName}: minMaxValues:`, minMaxValues);
+        //console.log(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
@@ -340,13 +340,13 @@ async function getGenericSeries({
             const totalPoints = data.length;
             chartStore.setNumOfPlottedPnts(reqIdStr, totalPoints);
         } else {
-            console.warn(`${functionName} ${reqIdStr} : selected Y data "${ySelectedName}" not found in provided Y array.`);
+            console.warn(`getGenericSeries ${functionName} ${reqIdStr} : selected Y data "${ySelectedName}" not found in provided Y array.`);
         }
     } catch (error) {
-        console.error(`${functionName} ${reqIdStr} Error:`, error);
+        console.error(`getGenericSeries ${functionName} ${reqIdStr} Error:`, error);
     } finally {
         const endTime = performance.now();
-        console.log(`${functionName} ${reqIdStr} took ${endTime - startTime} milliseconds.`);
+        console.log(`getGenericSeries ${functionName} ${reqIdStr} took ${endTime - startTime} milliseconds.`);
     }
 
     return yItems;
@@ -780,8 +780,6 @@ const initScatterPlotWith = async (reqId: number) => {
     const endTime = performance.now();
     console.log(`initScatterPlotWith ${reqId} took ${endTime - startTime} milliseconds.`);
 };
-
-
 
 // This removes the defaulted values of unused toolbox, visualMap, timeline, and calendar options from the options object
 function removeUnusedOptions(options:any):any { 

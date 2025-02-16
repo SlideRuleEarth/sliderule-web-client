@@ -864,7 +864,7 @@ export async function fetchScatterData(
     if (!y.includes('time')) {
         y = [...y, 'time'];
     }
-    // Ensure cycle is in the y array
+    // Ensure 'cycle' is in the y array
     if (!y.includes('cycle')) {
         y = [...y, 'cycle'];
     }
@@ -877,9 +877,6 @@ export async function fetchScatterData(
     } = options;
 
     const startTime = performance.now();
-    //console.log('fetchScatterData (single array) reqIdStr:', reqIdStr, 'fileName:', fileName);
-
-    // We'll store everything under a single key = reqIdStr
     const chartData: Record<string, SrScatterChartDataArray> = {
         [reqIdStr]: { data: [] }
     };
@@ -888,42 +885,76 @@ export async function fetchScatterData(
     const minMaxValues: Record<string, { min: number; max: number }> = {};
     let normalizedMinMaxValues: Record<string, { min: number; max: number }> = {};
     let dataOrderNdx: Record<string, number> = {};
-    let orderNdx=0;
+    let orderNdx = 0;
 
     try {
+        // Make sure the file is registered with DuckDB
         await duckDbClient.insertOpfsParquet(fileName);
+
+        // 1. Build an additional clause to exclude NaNs in each y column.
+        //    If you also want to exclude NaNs in x, just add x as well.
+        //    e.g. y = [...y, x] or make a separate check for x.
+        // Only apply NOT isnan(...) to columns that are not "time"
+        const yNanClause = y
+            .filter((col) => col !== 'time')
+            .map((col) => `NOT isnan(${col})`)
+            .join(' AND ');
+
+        // 2. Merge it with the existing whereClause (if any).
+        //    If whereClause doesn’t start with “WHERE”, we need to prepend it properly.
+        //    If it’s empty, we just use “WHERE <nanClause>”.
+        //    If it already has “WHERE”, we append “AND <nanClause>”.
+        let finalWhereClause = '';
+        if (!whereClause || !whereClause.trim()) {
+            finalWhereClause = `WHERE ${yNanClause}`;
+        } else {
+            // Strip off a leading "WHERE" if present, because we’re going to add our own
+            const sanitizedExistingClause = whereClause.replace(/^WHERE\s+/i, '');
+            finalWhereClause = `WHERE ${sanitizedExistingClause} AND ${yNanClause}`;
+        }
+
         /**
-         * 1. Compute min/max for x and each of the y columns.
+         * 3. Compute min/max for x and each of the y columns (NaNs already excluded by finalWhereClause).
          */
         const minMaxQuery = `
-            SELECT 
+            SELECT
                 MIN(${x}) as min_x,
                 MAX(${x}) as max_x,
-                ${y.map(
-                    (yName) => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`
-                ).join(', ')},
-                ${extraSelectColumns.map(
-                    (colName) => `MIN(${colName}) as min_${colName}, MAX(${colName}) as max_${colName}`
-                ).join(', ')}
+                ${y
+                    .map(
+                        (yName) => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`
+                    )
+                    .join(', ')},
+                ${extraSelectColumns
+                    .map(
+                        (colName) =>
+                            `MIN(${colName}) as min_${colName}, MAX(${colName}) as max_${colName}`
+                    )
+                    .join(', ')}
             FROM '${fileName}'
-                ${whereClause}`;
+            ${finalWhereClause}
+        `;
 
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
+        console.log('fetchScatterData minMaxQuery:', minMaxQuery);
+        console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
+
         for await (const rowChunk of queryResultMinMax.readRows()) {
             for (const row of rowChunk) {
                 if (!row) {
                     console.warn('fetchScatterData: rowData is null in min/max query');
                     continue;
                 }
-        
+
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
+                    // Example usage: set min/max in the store
                     useChartStore().setMinX(reqIdStr, 0);
                     useChartStore().setMaxX(reqIdStr, row.max_x - row.min_x);
                 }
-        
-                // Populate minMaxValues, but exclude NaN values
+
+                // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
                 if (!isNaN(row.min_x) && !isNaN(row.max_x)) {
                     minMaxValues['x'] = { min: row.min_x, max: row.max_x };
                 }
@@ -931,29 +962,27 @@ export async function fetchScatterData(
                 y.forEach((yName) => {
                     const minY = row[`min_${yName}`];
                     const maxY = row[`max_${yName}`];
-        
                     if (!isNaN(minY) && !isNaN(maxY)) {
                         minMaxValues[yName] = { min: minY, max: maxY };
                     }
                 });
-        
+
                 extraSelectColumns.forEach((colName) => {
                     const minCol = row[`min_${colName}`];
                     const maxCol = row[`max_${colName}`];
-        
                     if (!isNaN(minCol) && !isNaN(maxCol)) {
                         minMaxValues[colName] = { min: minCol, max: maxCol };
                     }
                 });
             }
         }
-        
+
         /**
-         * 2. Build the main query to fetch rows for x, all y columns, plus extras.
+         * 4. Build the main query to fetch rows for x, all y columns, plus extras.
+         *    Use the same finalWhereClause so NaNs in y columns are excluded.
          */
         const allColumns = [x, ...y, ...extraSelectColumns].join(', ');
-        // be cognizent of spaces and line breaks in the query
-        let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${whereClause}`;
+        let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`;
 
         useChartStore().setQuerySql(reqIdStr, mainQuery);
 
@@ -962,7 +991,7 @@ export async function fetchScatterData(
         );
 
         /**
-         * 3. For each row, produce an array: [ xVal, yVal1, yVal2, ..., extras ]
+         * 5. For each row, produce an array [ xVal, yVal1, yVal2, ..., extras ]
          *    and push it into chartData[reqIdStr].data
          */
         for await (const rowChunk of queryResultMain.readRows()) {
@@ -971,29 +1000,29 @@ export async function fetchScatterData(
                     console.warn('fetchScatterData: rowData is null in main query');
                     continue;
                 }
-        
+
                 let rowValues: number[] = [];
-        
+
                 if (transformRow) {
-                    // If user provided a custom transformation, use that.
-                    // The callback can return an array in the shape [x, y1, y2, ..., extras].
-                    [rowValues,orderNdx] = transformRow(row, x, y, minMaxValues,dataOrderNdx,orderNdx);
+                    [rowValues, orderNdx] = transformRow(
+                        row,
+                        x,
+                        y,
+                        minMaxValues,
+                        dataOrderNdx,
+                        orderNdx
+                    );
                 } else {
                     // Default transformation:
-                    //
-                    // 1) The first entry is xVal (normalized if `normalizeX` is true).
-                    // 2) Then each y value.
-                    // 3) Then any extras if you like.
                     const xVal = normalizeX ? row[x] - minMaxValues['x'].min : row[x];
                     rowValues = [xVal];
-        
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
-        
+
                     y.forEach((yName) => {
                         rowValues.push(row[yName]);
                         orderNdx = setDataOrder(dataOrderNdx, yName, orderNdx);
                     });
-        
+
                     if (extraSelectColumns.length > 0) {
                         extraSelectColumns.forEach((colName) => {
                             rowValues.push(row[colName]);
@@ -1001,20 +1030,20 @@ export async function fetchScatterData(
                         });
                     }
                 }
-        
-                // **Exclude rows that contain NaN values**
+
+                // Double-check: exclude row if anything is NaN, but this should now be rare
+                // since we already filter them out in SQL.
                 if (rowValues.some((val) => isNaN(val))) {
                     console.warn('Skipping row due to NaN values:', rowValues);
                     continue;
                 }
-        
+
                 chartData[reqIdStr].data.push(rowValues);
             }
         }
-        
+
         /**
-         * 4. If we are normalizing X, adjust min=0 and max=(max-min).
-         *    Otherwise, keep original min/max as-is.
+         * 6. If we are normalizing X, adjust min=0 and max=(max-min).
          */
         normalizedMinMaxValues = { ...minMaxValues };
         if (normalizeX) {
@@ -1024,10 +1053,10 @@ export async function fetchScatterData(
             };
         }
 
-        // Optionally set an axis legend
         useChartStore().setXLegend(reqIdStr, `${x} (normalized) - Meters`);
-        //console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
+
         return { chartData, minMaxValues, normalizedMinMaxValues, dataOrderNdx };
+
     } catch (error) {
         console.error('fetchScatterData Error:', error);
         return { chartData: {}, minMaxValues: {}, normalizedMinMaxValues: {}, dataOrderNdx: {} };
