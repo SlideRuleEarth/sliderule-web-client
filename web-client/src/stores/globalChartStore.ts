@@ -29,6 +29,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return cycleOptions.value;
     }
 
+    function getCycleOptionsValues(): number[] {
+        return cycleOptions.value.map(cycle => cycle.value);
+    }
+
     function findCycleOption(cycle: number): SrListNumberItem | undefined {
         return cycleOptions.value.find(option => option.value === cycle);
     }
@@ -356,6 +360,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     return {
         getCycleOptions,
+        getCycleOptionsValues,
         setCycleOptions,
         findCycleOption,
         setCycles,

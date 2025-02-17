@@ -128,7 +128,8 @@ onMounted(async () => {
         if (reqId > 0) {
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            // set this so if the user looks at it, it will be there
+            const reqIdStr = reqId.toString();
+            globalChartStore.setCycles(globalChartStore.getCycleOptionsValues());
             await useAutoReqParamsStore().presetForScatterPlotOverlay(reqId);
         } else {
             console.warn('reqId is undefined');
@@ -345,7 +346,7 @@ function handleValueChange(value) {
             </div>
         </div> 
         <div class="sr-time-series-cntrl">
-            <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
+            <!-- <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                 <ToggleButton 
@@ -362,7 +363,7 @@ function handleValueChange(value) {
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
                 />
-            </div>
+            </div> -->
             <!-- <div>
                 {{ !useMapStore().getIsLoading()}}
                 {{globalChartStore.getCycles().length}}
@@ -377,7 +378,7 @@ function handleValueChange(value) {
                         :reqId="recTreeStore.selectedReqId" 
                     />
                 </div>
-                <div class="sr-multiselect-col">
+                <!-- <div class="sr-multiselect-col">
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">
                         <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
@@ -389,7 +390,7 @@ function handleValueChange(value) {
                         :isForPhotonCloud="true"
                         :tooltipText="'The params that will be used for the Photon Cloud overlay'"
                     />
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
