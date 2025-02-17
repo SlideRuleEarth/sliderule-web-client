@@ -194,7 +194,7 @@
                 console.error("ragBox.on boxend Error:map is null");
             }
             //console.log(`polyCoords:${mapStore.polyCoords}`);
-            checkAreaOfConvexHullWarning(); 
+            checkAreaOfConvexHullWarning(reqParamsStore.getCurAPI()); 
             } else {
             console.error("dragBox.on boxend Error:geometry is null?");
             }
@@ -300,7 +300,7 @@
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
                         drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), false, false, tag );
                         reqParamsStore.poly = thisConvexHull;
-                        checkAreaOfConvexHullWarning(); 
+                        checkAreaOfConvexHullWarning(reqParamsStore.getCurAPI()); 
                     } else {
                         console.error("Error:convexHull is null");
                     }

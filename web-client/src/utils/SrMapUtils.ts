@@ -43,7 +43,8 @@ import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import { useAreaThresholdsStore } from '@/stores/areaThresholds';
+
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -672,11 +673,11 @@ export function swapLongLatToLatLong(coordString: string): string {
     return `${lat.toFixed(4)}, ${long.toFixed(4)}`;
 }
 
-export function checkAreaOfConvexHullWarning(): boolean {
-    const limit = useReqParamsStore().getAreaWarningThreshold()
-    //console.log('checkAreaOfConvexHullWarning area:',limit);
+export function checkAreaOfConvexHullWarning(api:string): boolean {
+    const limit = useAreaThresholdsStore().getAreaWarningThreshold(api)
+    console.log('checkAreaOfConvexHullWarning area:',api,limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useReqParamsStore().getAreaWarningThreshold()} km²).`;
+        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(useReqParamsStore().getCurAPI())} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().warn('Warn',msg);
         } else {
@@ -687,11 +688,11 @@ export function checkAreaOfConvexHullWarning(): boolean {
     return true;
 }
 
-export function checkAreaOfConvexHullError(): boolean {
-    const limit = useReqParamsStore().getAreaErrorThreshold()
-    //console.log('checkAreaOfConvexHullError area:',limit);
+export function checkAreaOfConvexHullError(api:string): boolean {
+    const limit = useAreaThresholdsStore().getAreaErrorThreshold(api)
+    console.log('checkAreaOfConvexHullError area:',api,limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
+        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(useReqParamsStore().getCurAPI())} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().error('Error',msg);
         } else {

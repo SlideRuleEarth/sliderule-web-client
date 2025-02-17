@@ -39,8 +39,8 @@ const createReqParamsStore = (id: string) =>
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         areaOfConvexHull: 0.0 as number, // in square kilometers
-        areaWarningThreshold: 1000.0 as number, // in square kilometers
-        areaErrorThreshold: 10000.0 as number, // in square kilometers
+        //areaWarningThreshold: 1000.0 as number, // in square kilometers
+        //areaErrorThreshold: 10000.0 as number, // in square kilometers
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks: [] as SrListNumberItem[],
@@ -809,18 +809,18 @@ const createReqParamsStore = (id: string) =>
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
         },
-        getAreaWarningThreshold(): number {
-          return this.areaWarningThreshold;
-        },
-        setAreaWarningThreshold(value:number) { 
-          this.areaWarningThreshold = value;
-        },
-        getAreaErrorThreshold(): number {
-          return this.areaErrorThreshold;
-        },
-        setAreaErrorThreshold(value:number) { 
-          this.areaErrorThreshold = value;
-        },
+        // getAreaWarningThreshold(): number {
+        //   return this.areaWarningThreshold;
+        // },
+        // setAreaWarningThreshold(value:number) { 
+        //   this.areaWarningThreshold = value;
+        // },
+        // getAreaErrorThreshold(): number {
+        //   return this.areaErrorThreshold;
+        // },
+        // setAreaErrorThreshold(value:number) { 
+        //   this.areaErrorThreshold = value;
+        // },
         getEnableAtl08Classification(): boolean {
           return this.enableAtl08Classification;
         },
