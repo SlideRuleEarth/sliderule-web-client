@@ -30,12 +30,10 @@ interface SummaryRowData {
 const srMutex = new SrMutex();
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
-        if (useSrParquetCfgStore().getParquetReader().name === 'duckDb') {
-            const height_fieldname = getHFieldName(req_id);
-            return await _duckDbReadOrCacheSummary(req_id,height_fieldname);    
-        } else {
-            throw new Error('readOrCacheSummary unknown reader');
-        }
+        const height_fieldname = getHFieldName(req_id);
+        const summary = await _duckDbReadOrCacheSummary(req_id,height_fieldname);
+        //console.log('readOrCacheSummary req_id:', req_id,'hfn:',height_fieldname, ' summary.extHMean:', summary?.extHMean);
+        return summary;
     } catch (error) {
         console.error('readOrCacheSummary error:',error);
         throw error;
@@ -136,10 +134,12 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
 }
 
 async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
+    const startTime = performance.now(); // Start time
+    let summary: SrRequestSummary | undefined = undefined;
     const unlock = await srMutex.lock();
     try {
         const filename = await indexedDb.getFilename(req_id);
-        const summary = await indexedDb.getWorkerSummary(req_id);
+        summary = await indexedDb.getWorkerSummary(req_id);
         //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
 
         if (summary && summary.extLatLon && summary.extHMean) {
@@ -155,25 +155,24 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
             try {
                 await duckDbClient.insertOpfsParquet(filename);
                 //console.log('_duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
-
                 const results = await duckDbClient.query(`
                     SELECT
-                        MIN(latitude) as minLat,
-                        MAX(latitude) as maxLat,
-                        MIN(longitude) as minLon,
-                        MAX(longitude) as maxLon,
-                        MIN(${duckDbClient.escape(height_fieldname)}) as minHMean,
-                        MAX(${duckDbClient.escape(height_fieldname)}) as maxHMean,
-                        PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc10HMean,
-                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) AS perc90HMean,
-                        COUNT(*) as numPoints
-                        FROM
-                        '${filename}'
+                        MIN(latitude) FILTER (WHERE NOT isnan(latitude)) AS minLat,
+                        MAX(latitude) FILTER (WHERE NOT isnan(latitude)) AS maxLat,
+                        MIN(longitude) FILTER (WHERE NOT isnan(longitude)) AS minLon,
+                        MAX(longitude) FILTER (WHERE NOT isnan(longitude)) AS maxLon,
+                        MIN(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS minHMean,
+                        MAX(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS maxHMean,
+                        PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) 
+                            FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS perc10HMean,
+                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) 
+                            FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS perc90HMean,
+                        COUNT(*) AS numPoints
+                    FROM '${filename}'
                 `);
-
+                //console.log('_duckDbReadOrCacheSummary results:', results);
                 // Collect rows from the async generator in chunks
                 const rows: SummaryRowData[] = [];
-                //console.log('_duckDbReadOrCacheSummary results:', results);
                 for await (const chunk of results.readRows()) {
                     for (const row of chunk) {
                         const typedRow: SummaryRowData = {
@@ -187,6 +186,7 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
                             highHMean: row.perc90HMean,
                             numPoints: row.numPoints
                         };
+                        //console.log('_duckDbReadOrCacheSummary results:', typedRow);
                         rows.push(typedRow);
                     }
                 }
@@ -203,9 +203,10 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
                     localExtHMean.lowHMean = row.lowHMean;
                     localExtHMean.highHMean = row.highHMean;
                     numPoints = row.numPoints;
-                    await indexedDb.addNewSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    summary = { req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints };
+                    await indexedDb.addNewSummary(summary);
                     await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints});
-                    useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints });
+                    useCurReqSumStore().setSummary(summary);
                     if(numPoints <= 0){
                         console.warn('No points returned: numPoints is zero');
                     }
@@ -224,6 +225,8 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
         throw error;
     } finally {
         unlock();
+        const endTime = performance.now(); // End time
+        console.log(`_duckDbReadOrCacheSummary for ${req_id} took ${endTime - startTime} milliseconds.`,);
     }
 }
 
