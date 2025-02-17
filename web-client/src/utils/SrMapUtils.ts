@@ -44,6 +44,8 @@ import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -320,6 +322,7 @@ export interface ElevationDataItem {
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
+    useAnalysisTabStore().setFirstRec(useRecTreeStore().selectedReqIdStr,d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
@@ -386,6 +389,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked: spot',gcs.getSpots())
     console.log('Clicked: gt',gcs.getGts())
     console.log('clicked:',d);
+
 }
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {

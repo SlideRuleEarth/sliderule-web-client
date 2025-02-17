@@ -26,6 +26,8 @@ import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
+import { useAnalysisTabStore } from "@/stores/analysisTabStore";
+import { clicked } from "@/utils/SrMapUtils";
 
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -42,6 +44,7 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const colorMapStore = useColorMapStore();
 const recTreeStore = useRecTreeStore();
+const analysisTabStore = useAnalysisTabStore();
 const loadingComponent = ref(true);
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -328,6 +331,13 @@ onMounted(async () => {
         // Log the font size to the console
         console.log(`onMounted Current root fontSize: ${fontSize.value} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
         shouldDisplayGradient.value = true;
+        const currentFirstRec = analysisTabStore.getFirstRec(useRecTreeStore().selectedReqIdStr);
+        if(currentFirstRec){
+            //console.log('SrElevationPlot onMounted currentFirstRec:', currentFirstRec);
+            clicked(currentFirstRec);
+        } else {
+            //console.warn('SrElevationPlot onMounted currentFirstRec is null');
+        }
         colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');

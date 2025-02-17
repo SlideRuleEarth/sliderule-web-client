@@ -1,10 +1,11 @@
+import { type ElevationDataItem } from '@/utils/SrMapUtils';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
     const tabLabels: string[] = ['Elevation Plot', 'Time Series', 'Table'];
     const activeTab = ref<string>('0'); // Store activeTab as a string
-
+    const firstRec = ref<Record<string, ElevationDataItem | null>>({});
     // Getter: Get the active tab index as a string
     const getActiveTab = computed<string>(() => activeTab.value);
 
@@ -30,11 +31,21 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         return tabLabels[numericIndex] ?? null;
     };
 
+    const setFirstRec = (reqIdStr:string, rec: ElevationDataItem): void => {   
+        firstRec.value[reqIdStr] = rec;
+    };
+
+    const getFirstRec = (reqIdStr:string): ElevationDataItem | null => {
+        return firstRec.value[reqIdStr] ?? null;
+    };
+
     return {
         activeTab,
         getActiveTab,
         setActiveTab,
         getActiveTabLabel,
         getTabLabelByIndex,
+        setFirstRec,
+        getFirstRec,
     };
 });
