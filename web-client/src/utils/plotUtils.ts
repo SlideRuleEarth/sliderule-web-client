@@ -22,10 +22,54 @@ export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedR
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const selectedCycleReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
-export const selectedRgtsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
-export const selectedSpotsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
-export const selectedScOrientsReactive = reactive<{ [key: string]: WritableComputedRef<number[]> }>({});
+
+export const selectedCyclesReactive = computed({
+    get: (): number[] => {
+        const value = useGlobalChartStore().getCycles();
+        //console.log(`selectedCyclesReactive[${reqId}] get:`, value);
+        return value;
+    },
+    set: (values: number[]): void => {
+        //console.log(`selectedCyclesReactive[${reqId}] set:`, values);
+        useGlobalChartStore().setCycles(values);
+    },
+});
+
+export const selectedRgtReactive = computed({
+    get: (): number => {
+        const value = useGlobalChartStore().getRgt();
+        //console.log(`selectedRgtsReactive[${reqId}] get:`, value);
+        return value ? value : 0;
+    },
+    set: (value: number): void => {
+        //console.log(`selectedRgtsReactive[${reqId}] set:`, values);
+        useGlobalChartStore().setRgt(value);
+    },
+});
+
+export const selectedSpotsReactive = computed({
+    get: (): number[] => {
+        const value = useGlobalChartStore().getSpots();
+        //console.log(`selectedSpotsReactive[${reqId}] get:`, value);
+        return value;
+    },
+    set: (values: number[]): void => {
+        //console.log(`selectedSpotsReactive[${reqId}] set:`, values);
+        useGlobalChartStore().setSpots(values);
+    },
+});
+
+export const selectedScOrientsReactive = computed({
+    get: (): number[] => {
+        const value = useGlobalChartStore().getScOrients();
+        //console.log(`selectedScOrientsReactive[${reqId}] get:`, value);
+        return value;
+    },
+    set: (values: number[]): void => {
+        //console.log(`selectedScOrientsReactive[${reqId}] set:`, values);
+        useGlobalChartStore().setScOrients(values);
+    },
+});
 export interface SrScatterSeriesData{
   series: {
     name: string;
@@ -110,58 +154,6 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
             showYDataMenuReactive[reqId] = computed({
                 get: () => chartStore.getShowYDataMenu(reqId),
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
-            });
-        } 
-        if (!(reqId in selectedCycleReactive)) {
-            selectedCycleReactive[reqId] = computed({
-                get: (): number[] => {
-                    const value = globalChartStore.getCycles();
-                    //console.log(`selectedCycleReactive[${reqId}] get:`, value);
-                    return value;
-                },
-                set: (values: number[]): void => {
-                    //console.log(`selectedCycleReactive[${reqId}] set:`, values);
-                    globalChartStore.setCycles(values);
-                },
-            });
-        }
-        if (!(reqId in selectedSpotsReactive)) {
-            selectedSpotsReactive[reqId] = computed({
-                get: (): number[] => {
-                    const values = globalChartStore.getSpots();
-                    //console.log(`selectedSpotsReactive[${reqId}] get:`, value);
-                    return values;
-                },
-                set: (values: number[]): void => {
-                    //console.log(`selectedSpotsReactive[${reqId}] set:`, values);
-                    globalChartStore.setSpots(values);
-                },
-            });
-        }
-        if (!(reqId in selectedScOrientsReactive)) {
-            selectedScOrientsReactive[reqId] = computed({
-                get: (): number[] => {
-                    const value = globalChartStore.getScOrients();
-                    //console.log(`selectedScOrientsReactive[${reqId}] get:`, value);
-                    return value;
-                },
-                set: (values: number[]): void => {
-                    //console.log(`selectedScOrientsReactive[${reqId}] set:`, values);
-                    globalChartStore.setScOrients(values);
-                },
-            });
-        }
-        if(!(reqId in selectedRgtsReactive)){
-            selectedRgtsReactive[reqId] = computed({
-                get: (): number[] => {
-                    const values = globalChartStore.getRgts();
-                    console.log(`selectedRgtsReactive[${reqId}] get:`, values);
-                    return values;
-                },
-                set: (values: number[]): void => {
-                    console.log(`selectedRgtsReactive[${reqId}] set:`, values);
-                    globalChartStore.setRgts(values);
-                },
             });
         }
     });
@@ -618,7 +610,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const fileName = chartStore.getFile(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const rgts = globalChartStore.getRgts();
+    const rgt = globalChartStore.getRgt();
     const cycles = useGlobalChartStore().getCycles();
     const spots = globalChartStore.getSpots();
     // Get the CSS variable value dynamically
@@ -630,7 +622,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     try{
         let seriesData = [] as SrScatterSeriesData[];
         if(fileName){
-            if(spots.length>0 && rgts.length>=0 && cycles.length>0){
+            if(spots.length>0 && rgt>0 && cycles.length>0){
                 seriesData = await getSeriesFor(reqIdStr);
             } else {
                 console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
@@ -1046,7 +1038,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
         trackFilter: {
-            rgt: (globalChartStore.getRgts().length === 1) ? globalChartStore.getRgts()[0]: -1,
+            rgt: (globalChartStore.getRgt()>=0) ? globalChartStore.getRgt(): -1,
             cycle: (globalChartStore.getCycles().length === 1) ? globalChartStore.getCycles()[0]: -1,
             track: (globalChartStore.getTracks().length === 1) ? globalChartStore.getTracks()[0]: -1,
             beam: (globalChartStore.getGts().length === 1) ? globalChartStore.getGts()[0]: -1,
@@ -1071,7 +1063,7 @@ async function updatePlotAndSelectedTrackMapLayer(msg:string){
     console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();
-    if( (globalChartStore.getRgts().length >= 0) &&
+    if( (globalChartStore.getRgt() >= 0) &&
         (globalChartStore.getCycles().length > 0) &&
         (globalChartStore.getSpots().length > 0)
     ){
@@ -1081,7 +1073,7 @@ async function updatePlotAndSelectedTrackMapLayer(msg:string){
         await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
     } else {
         console.warn('Need Rgts, Cycles, and Spots values selected');
-        console.warn('Rgts:', globalChartStore.getRgts());
+        console.warn('Rgt:', globalChartStore.getRgt());
         console.warn('Cycles:', globalChartStore.getCycles());
         console.warn('Spots:', globalChartStore.getSpots());
     }

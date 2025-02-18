@@ -182,7 +182,7 @@ export function createWhereClause(reqId:number){
     const globalChartStore = useGlobalChartStore();
     const func = useRecTreeStore().findApiForReqId(reqId);
     const spots = globalChartStore.getSpots();
-    const rgts = globalChartStore.getRgts();
+    const rgt = globalChartStore.getRgt();
     const cycles = globalChartStore.getCycles();
     const pairs = globalChartStore.getPairs();
     const sc_orients = globalChartStore.getScOrients();
@@ -191,15 +191,15 @@ export function createWhereClause(reqId:number){
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
-        if ((rgts.length > 0) || (cycles.length > 0)) {
+        if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if( rgts.length > 0){
-                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+            if( rgt >= 0){
+                whereStr = whereStr + `rgt = ${rgt}`;
             } else {
                 console.error('createWhereClause: rgt is empty for func:', func);
             }
             if (cycles.length > 0) {
-                if( rgts.length > 0){
+                if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
@@ -213,13 +213,13 @@ export function createWhereClause(reqId:number){
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
-        if ((rgts.length > 0) || (cycles.length > 0)) {
+        if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if( rgts.length > 0){
-                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+            if( rgt >= 0){
+                whereStr = whereStr + `rgt = ${rgt}`;
             }
             if (cycles.length > 0) {
-                if( rgts.length > 0){
+                if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
@@ -231,6 +231,6 @@ export function createWhereClause(reqId:number){
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgts:', rgts, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
+    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
     return whereStr;
 }

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
-import SrMenuInput from '@/components/SrMenuInput.vue';
 import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
-import SrSliderInput from '@/components/SrSliderInput.vue';
 import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
 import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
@@ -11,10 +9,7 @@ import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
-import { getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { debounce } from "lodash";
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import { getColorMapOptions } from '@/utils/colorUtils';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -72,10 +67,6 @@ const computedInitializing = computed(() => {
     return !isMounted.value || loading.value || recTreeStore.reqIdMenuItems.length === 0;
 });
 
-
-const highlightedTrackDetails = computed(() => {
-    return `rgt:${globalChartStore.getRgts()} spots:${globalChartStore.getSpots()} beam:${globalChartStore.getGtLabels()} cycle:${globalChartStore.getCycles()}`;
-});
 
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
@@ -183,9 +174,6 @@ const getCnt = computed(() => {
     return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())));
 });
 
-const tooltipTextStr = computed(() => {
-    return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
-});
 
 const exportButtonClick = async () => {
     let req_id = recTreeStore.selectedReqId;
@@ -258,7 +246,7 @@ const exportButtonClick = async () => {
                 <div class="sr-analysis-rec-parms">
                     <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
                 </div>
-                <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03') && (!atlChartFilterStore.isLoading)">
+                <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03')">
                     <SrFilterCntrl></SrFilterCntrl>
                 </div>
                 <div class="sr-scatterplot-cfg-container">

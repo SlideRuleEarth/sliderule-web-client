@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { use } from "echarts/core"; 
-import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
@@ -10,23 +9,17 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
-import SrRunControl from "@/components/SrRunControl.vue";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
-import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
-import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrPlotLegendBox from "./SrPlotLegendBox.vue";
-import SrReqDisplay from "./SrReqDisplay.vue";
 import { getAllCycleOptionsByRgtsSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
-import { selectedCycleReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
-
 
 
 const props = defineProps({
@@ -44,7 +37,6 @@ const colorMapStore = useColorMapStore();
 const recTreeStore = useRecTreeStore();
 const loadingComponent = ref(true);
 
-
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
 provide(THEME_KEY, "dark");
@@ -53,10 +45,6 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
-});
-
-const computedFilteredInCycleOptions = computed(() => {
-    return globalChartStore.getFilteredCycleOptions();
 });
 
 const shouldDisplayAtl03Colors = computed(() => {
@@ -92,28 +80,6 @@ const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
-const filterGood = computed(() => {
-    return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgts().length === 1) && (globalChartStore.getSpots().length === 1));
-});
-
-const enableThePhotonCloud = computed(() => {
-    return (!useMapStore().getIsLoading() && filterGood.value);
-}); 
-
-const photonCloudBtnTooltip = computed(() => {
-    if(!filterGood.value){
-        return 'Photon Cloud is disabled due to multiple Cycles, Rgts, Spots, or Gts';
-    } else {
-        if(useMapStore().getIsLoading()){
-            return 'Photon Cloud is disabled while record is loading';
-        } else {
-            //return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
-            return '';
-        }
-    }
-
-});
-
 onMounted(async () => {
     try {
         //console.log('SrTimeSeries onMounted');
@@ -128,9 +94,8 @@ onMounted(async () => {
         if (reqId > 0) {
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            const reqIdStr = reqId.toString();
             globalChartStore.setCycles(globalChartStore.getCycleOptionsValues());
-            await useAutoReqParamsStore().presetForScatterPlotOverlay(reqId);
+            console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
             console.warn('reqId is undefined');
         }        
@@ -146,7 +111,6 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     console.log('SrTimeSeries watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         // this is just to preset certain values that the user never changes
-        await useAutoReqParamsStore().presetForScatterPlotOverlay(newReqId);
         await callPlotUpdateDebounced('from SrTimeSeries watch recTreeStore.selectedReqId');
     }
 });
@@ -164,14 +128,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
-const messageClass = computed(() => {
-  return {
-    'message': true,
-    'message-red': !atlChartFilterStore.getIsWarning(),
-    'message-yellow': atlChartFilterStore.getIsWarning()
-  };
-});
-
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
     console.log('SrTimeSeries showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
     if(!loadingComponent.value){
@@ -179,7 +135,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const runContext = await getPhotonOverlayRunContext();
             if(runContext.reqId <= 0){ // need to fetch the data
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
-                await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext); // worker is started here
                 console.log('SrTimeSeries handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
                 if(runContext.reqId > 0){
@@ -215,7 +170,7 @@ watch(() => {
     if (!reqId || reqId <= 0) {
         return {
             scOrients: globalChartStore.getScOrients(),
-            rgts: globalChartStore.getRgts(),
+            rgt: globalChartStore.getRgt(),
             cycles: globalChartStore.getCycles(),
             spots: globalChartStore.getSpots(),
             gts: globalChartStore.getGts(),
@@ -227,7 +182,7 @@ watch(() => {
     // Otherwise, fetch the real values
     return {
         scOrients: globalChartStore.getScOrients(),
-        rgts: globalChartStore.getRgts(),
+        rgt: globalChartStore.getRgt(),
         cycles: globalChartStore.getCycles(),
         spots: globalChartStore.getSpots(),
         gts: globalChartStore.getGts(),
@@ -235,11 +190,11 @@ watch(() => {
         pairs: globalChartStore.getSelectedPairOptions(),
     };
 }, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgts != oldValues.rgts) || (newValues.gts != oldValues.gts)){
+    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
         const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrTimeSeries watch selected filter stuff Rgts,Spots,Gts... changed:', newValues.rgts, newValues.spots,gtsValues);
+        console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);
     }
     if (!loadingComponent.value) {
@@ -323,12 +278,25 @@ function handleValueChange(value) {
                     <p class="sr-select-box-hdr">Cycles</p>
                     <Listbox 
                         class="sr-select-lists"
-                        v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
+                        v-model="selectedCyclesReactive" 
                         optionLabel="label"
                         optionValue="value"
                         :multiple="true"
                         :metaKeySelection="true"
                         :options="computedCycleOptions"
+                        @change="handleValueChange"
+                    >
+                    </Listbox>
+                </div>
+                <div class="sr-select-box">
+                    <p class="sr-select-box-hdr">Rgts</p>
+                    <Listbox 
+                        class="sr-select-lists"
+                        v-model="selectedRgtReactive" 
+                        optionLabel="label"
+                        optionValue="value"
+                        :multiple="false"
+                        :options="globalChartStore.rgtOptions"
                         @change="handleValueChange"
                     >
                     </Listbox>

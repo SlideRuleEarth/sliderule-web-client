@@ -361,7 +361,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.log('Clicked: sc_orient',gcs.getScOrients());
     }
     if(d.rgt !== undefined){
-        gcs.setRgts([d.rgt]);
+        gcs.setRgt(d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
@@ -382,7 +382,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     }
     console.log('Clicked: func',func);
     console.log('Clicked: pair',gcs.getPairs());
-    console.log('Clicked: rgts',gcs.getRgts())
+    console.log('Clicked: rgt',gcs.getRgt())
     console.log('Clicked: cycles',gcs.getCycles())
     console.log('Clicked: tracks',gcs.getTracks())
     console.log('Clicked: sc_orient',gcs.getScOrients())

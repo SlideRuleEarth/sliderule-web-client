@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
-import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
+import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD } from '@/sliderule/icesat2';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -10,8 +10,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const selectedCycleOptions = ref<SrListNumberItem[]>([]);
     const filteredCycleOptions = ref<SrListNumberItem[]>([]);// subset for selected 
     const rgtOptions = ref<SrListNumberItem[]>([]);
-    const selectedRgtOptions = ref<SrListNumberItem[]>([]);
-    const filteredRgtOptions = ref<SrListNumberItem[]>([]);// subset for selected 
+    const selectedRgtOption = ref<SrListNumberItem>();
     const selectedSpots = ref<number[]>([]);
     const selectedTrackOptions = ref<SrListNumberItem[]>([]);
     const selectedGtOptions = ref<SrListNumberItem[]>([]);
@@ -71,13 +70,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return selectedCycleOptions.value;
     }
 
-    function appendToSelectedCycleOptions(cycle: number) {
-        const cycleExists = selectedCycleOptions.value.some(c => c.value === cycle);
-        if (!cycleExists) {
-            selectedCycleOptions.value.push({ label: cycle.toString(), value: cycle });
-        }
-    }
-
     function getFilteredCycleOptions(): SrListNumberItem[] {
         return filteredCycleOptions.value;
     }
@@ -98,53 +90,15 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return rgtOptions.value.find(option => option.value === rgt);
     }
 
-    function setRgts(rgtOptions: number[]) {
-        if(!Array.isArray(rgtOptions)) {    
-            console.error('setRgts received invalid rgts:', rgtOptions);
-            selectedRgtOptions.value = [];
-            return;
-        }
-        const updatedRgtOptions = rgtOptions.map(rgt => {
-            return findRgtOption(rgt) || { label: rgt.toString(), value: rgt };
-        });
-        setSelectedRgtOptions(updatedRgtOptions);
-        console.log('setRgts rgts:', rgtOptions, ' selectedRgtOptions:', selectedRgtOptions.value);
+    function setRgt(rgtOption: number) {
+        selectedRgtOption.value = findRgtOption(rgtOption) || { label: rgtOption.toString(), value: rgtOption };        
+        console.log('setRgts rgts:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
     }
 
-    function getRgts(): number[] {
-        if(!Array.isArray(selectedRgtOptions.value)) {
-            console.error(`getRgts: selectedRgtOptions is not an array`, selectedRgtOptions.value);
-            return [];
-        }
-        return selectedRgtOptions.value.map(rgt => rgt.value);
-    }
-
-    function setSelectedRgtOptions(rgtOptions: SrListNumberItem[]) {
-        if (!Array.isArray(rgtOptions)) {
-            console.error('setSelectedRgtOptions received invalid rgtOptions:', rgtOptions);
-            selectedRgtOptions.value = [];
-            return;
-        }
-        selectedRgtOptions.value = rgtOptions;
-    }
-
-    function getSelectedRgtOptions(): SrListNumberItem[] {
-        return selectedRgtOptions.value;
-    }
-
-    function appendToSelectedRgtOptions(rgt: number) {
-        const rgtExists = selectedRgtOptions.value.some(r => r.value === rgt);
-        if (!rgtExists) {
-            selectedRgtOptions.value.push({ label: rgt.toString(), value: rgt });   
-        }
-    }
-
-    function getFilteredRgtOptions(): SrListNumberItem[] {
-        return filteredRgtOptions.value;
-    }
-
-    function setFilteredRgtOptions(rgtOptions: SrListNumberItem[]) {
-        filteredRgtOptions.value = rgtOptions;
+    function getRgt(): number  {
+        const rgtOption = selectedRgtOption?.value;
+        console.log('getRgt rgtOption:', rgtOption, ' selectedRgtOptions:', selectedRgtOption.value);
+        return rgtOption ? rgtOption.value : -1;
     }
 
     function setSpots(spots: number[]) {
@@ -363,22 +317,20 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getCycleOptionsValues,
         setCycleOptions,
         findCycleOption,
+        cycleOptions,
         setCycles,
         getCycles,
         setSelectedCycleOptions,
         getSelectedCycleOptions,
-        appendToSelectedCycleOptions,
+        selectedCycleOptions,
         getFilteredCycleOptions,
         setFilteredCycleOptions,
         setRgtOptions,
         getRgtOptions,
-        setRgts,
-        getRgts,
-        getSelectedRgtOptions,
-        setSelectedRgtOptions,
-        appendToSelectedRgtOptions,
-        getFilteredRgtOptions,
-        setFilteredRgtOptions,
+        rgtOptions,
+        setRgt,
+        getRgt,
+        selectedRgtOption,
         selectedSpots,
         getSpots,
         setSpots,
@@ -408,6 +360,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getScOrientOptions,
         getSelectedScOrientOptions,
         setSelectedScOrientOptions,
+        selectedScOrientOptions,
         appendScOrient,
         setFilteredScOrientOptions,
         getFilteredScOrientOptions,

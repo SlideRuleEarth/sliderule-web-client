@@ -299,7 +299,7 @@ const computedDataKey = computed(() => {
 const shouldDisplayGradient = ref(false);
 
 const filterGood = computed(() => {
-    return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgts().length === 1) && (globalChartStore.getSpots().length === 1));
+    return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgt()>=0) && (globalChartStore.getSpots().length === 1));
 });
 
 const enableThePhotonCloud = computed(() => {
@@ -443,7 +443,7 @@ watch(() => {
     if (!reqId || reqId <= 0) {
         return {
             scOrients: globalChartStore.getScOrients(),
-            rgts: globalChartStore.getRgts(),
+            rgt: globalChartStore.getRgt(),
             cycles: globalChartStore.getCycles(),
             spots: globalChartStore.getSpots(),
             gts: globalChartStore.getGts(),
@@ -455,7 +455,7 @@ watch(() => {
     // Otherwise, fetch the real values
     return {
         scOrients: globalChartStore.getScOrients(),
-        rgts: globalChartStore.getRgts(),
+        rgt: globalChartStore.getRgt(),
         cycles: globalChartStore.getCycles(),
         spots: globalChartStore.getSpots(),
         gts: globalChartStore.getGts(),
@@ -463,11 +463,11 @@ watch(() => {
         pairs: globalChartStore.getSelectedPairOptions(),
     };
 }, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgts != oldValues.rgts) || (newValues.gts != oldValues.gts)){
+    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
         const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrElevationPlot watch selected filter stuff Rgts,Spots,Gts... changed:', newValues.rgts, newValues.spots,gtsValues);
+        console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);
     }
     if (!loadingComponent.value) {

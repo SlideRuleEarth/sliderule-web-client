@@ -14,11 +14,10 @@
                             <p class="sr-select-box-hdr">Rgts</p>
                             <Listbox 
                                 class="sr-select-lists"
-                                v-model="selectedRgtsReactive[recTreeStore.selectedReqIdStr]" 
+                                v-model="selectedRgtReactive" 
                                 optionLabel="label"
                                 optionValue="value"
-                                :multiple="true"
-                                :metaKeySelection="true"
+                                :multiple="false"
                                 :options="computedRgtOptions"
                                 @change="handleValueChange"
                             >
@@ -28,7 +27,7 @@
                             <p class="sr-select-box-hdr">Cycles</p>
                             <Listbox 
                                 class="sr-select-lists"
-                                v-model="selectedCycleReactive[recTreeStore.selectedReqIdStr]" 
+                                v-model="selectedCyclesReactive" 
                                 optionLabel="label"
                                 optionValue="value"
                                 :multiple="true"
@@ -49,22 +48,19 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { useChartStore } from '@/stores/chartStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { selectedRgtsReactive,selectedCycleReactive } from "@/utils/plotUtils";
-import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
+import { selectedRgtReactive,selectedCyclesReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from './SrBeamPattern.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
 
 const recTreeStore = useRecTreeStore();
-const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 
 
 const highlightedTrackDetails = computed(() => {
-    return `rgts: ${globalChartStore.getRgts()} spots: ${globalChartStore.getSpots()} beams: ${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${globalChartStore.getScOrientsLabels()}`;
+    return `rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} beams: ${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${globalChartStore.getScOrientsLabels()}`;
 });
 
 

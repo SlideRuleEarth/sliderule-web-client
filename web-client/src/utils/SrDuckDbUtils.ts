@@ -327,8 +327,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 firstRec = (rows[0]);
-                const cycleOptions = await getAllCycleOptions(useRecTreeStore().selectedReqId);
-                useGlobalChartStore().setCycleOptions(cycleOptions);
+                const retObj = await getAllCycleOptions(useRecTreeStore().selectedReqId);
+                useGlobalChartStore().setCycleOptions(retObj.cycleOptions);
                 clicked(firstRec);
                 numDataItemsUsed += rows.length;
                 useMapStore().setCurrentRows(numDataItemsUsed);
@@ -391,14 +391,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const func = await indexedDb.getFunc(req_id);
         let queryStr = '';
         const globalChartStore = useGlobalChartStore();
-        const rgts = globalChartStore.getRgts();
+        const rgt = globalChartStore.getRgt();
         const cycles = globalChartStore.getCycles(); 
         const spots = globalChartStore.getSpots();
         if(func.includes('atl06')){
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt = ${rgt}
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -410,7 +410,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt = ${rgt}
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -418,7 +418,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
                         SELECT * FROM '${filename}' 
-                        WHERE rgt IN (${rgts.join(', ')}) 
+                        WHERE rgt = ${rgt}
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
                         `
@@ -652,7 +652,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
     return scOrients;
 }
 
-export async function getAllCycleOptions(req_id: number): Promise<SrListNumberItem[]> {
+export async function getAllCycleOptions(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
@@ -661,7 +661,8 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
     // Make the parquet file available to DuckDB
     await duckDbClient.insertOpfsParquet(fileName);
 
-    const cycles = [] as SrListNumberItem[];
+    const cycleOptions = [] as SrListNumberItem[];
+    const cycles = [] as number[];
 
     try {
         // Query: get one row per cycle with a single representative time
@@ -696,10 +697,11 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
                 // Build a label for each cycle
                 const newLabel = `${row.cycle}: ${timeStr}`;
 
-                cycles.push({
+                cycleOptions.push({
                     label: newLabel,
                     value: row.cycle
                 });
+                cycles.push(row.cycle);
             }
         }
     } catch (error) {
@@ -710,7 +712,7 @@ export async function getAllCycleOptions(req_id: number): Promise<SrListNumberIt
         console.log(`getAllCycleOptions took ${endTime - startTime} ms.`, cycles);
     }
 
-    return cycles;
+    return {cycles, cycleOptions};
 }
 
 export async function getAllCycleOptionsByRgtsSpotsAndGts(
@@ -791,8 +793,8 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         const globalChartStore = useGlobalChartStore();
         const rgts = await getAllRgtOptions(req_id);
         globalChartStore.setRgtOptions(rgts);
-        const cycles = await getAllCycleOptions(req_id);
-        globalChartStore.setCycleOptions(cycles);
+        const retObj = await getAllCycleOptions(req_id);
+        globalChartStore.setCycles(retObj.cycles);
     } catch (error) {
         console.error('updateAllFilterOptions Error:', error);
         throw error;
