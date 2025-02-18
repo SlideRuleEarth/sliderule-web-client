@@ -5,6 +5,7 @@
         <div class="sr-ss-number-container">
             <InputNumber 
                 v-model="symbolSize"
+                size="small"
                 :min="1"
                 :max="10"
                 :step="1"

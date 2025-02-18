@@ -9,6 +9,7 @@
             <div class="sr-cntrls-panel" >
                 <SrMenu 
                     label="Color Map" 
+                    labelFontSize="small"
                     v-model="colorMapStore.selectedGradientColorMapName"
                     :menuOptions="srColorMapNames" 
                     :getSelectedMenuItem="colorMapStore.getSelectedGradientColorMapName"
@@ -98,12 +99,9 @@ const gradientDefaultsRestored = () => {
     font-size: 0.75rem;
     padding-right: 0.25rem;
 }
-.sr-cntrls-panel {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 0.5rem;
+
+:deep(.sr-select-menu-default) {
+    background-color: transparent;
 }
 
 
@@ -118,6 +116,14 @@ const gradientDefaultsRestored = () => {
     align-self: center;
     margin-top: 0.5rem;
     font-size: small;
+}
+
+.sr-controls-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.5rem;
 }
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {
