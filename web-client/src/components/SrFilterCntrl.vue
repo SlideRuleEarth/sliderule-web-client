@@ -58,11 +58,13 @@ import Card from 'primevue/card';
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
 
-
-const highlightedTrackDetails = computed(() => {
-    return `rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} beams: ${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${globalChartStore.getScOrientsLabels()}`;
+const computedScOrientLabels = computed(() => {
+    return globalChartStore.getScOrientsLabels();
 });
 
+const highlightedTrackDetails = computed(() => {
+    return `rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} beams:${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${computedScOrientLabels.value}`;
+});
 
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();

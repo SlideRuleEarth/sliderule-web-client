@@ -292,10 +292,10 @@ const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
-// const shouldDisplayGradient = computed(() => {
-//     return (computedDataKey.value!='solid');
-// });
-const shouldDisplayGradient = ref(false);
+const shouldDisplayGradient = computed(() => {
+    return ((computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03')));
+});
+
 
 const filterGood = computed(() => {
     return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgt()>=0) && (globalChartStore.getSpots().length === 1));
@@ -328,7 +328,7 @@ onMounted(async () => {
         // Extract the font size from the computed style
         // Log the font size to the console
         console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
-        shouldDisplayGradient.value = true;
+
         const currentFirstRec = analysisTabStore.getFirstRec(useRecTreeStore().selectedReqIdStr);
         if(currentFirstRec){
             //console.log('SrElevationPlot onMounted currentFirstRec:', currentFirstRec);

@@ -234,3 +234,87 @@ export function createWhereClause(reqId:number){
     console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
     return whereStr;
 }
+
+export function getGtLabelsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
+    const labels = [];
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT1L');
+    } 
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT3R');
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT1R');
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT3L');
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT2L');
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT2R');
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT2R');
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT2L');
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT3L');
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT1R');
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT3R');
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT1L');
+    }
+
+    return labels;
+}
+
+export function getGtsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
+    const gts = [];
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT1L);
+    } 
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT3R);
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT1R);
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT3L);
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT2L);
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT2R);
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT2R);
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT2L);
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT3L);
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT1R);
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT3R);
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT1L);
+    }
+    console.log('getGtsForSpotsAndScOrients: spots:', spots, 'sc_orients:', sc_orients, 'gts:', gts);
+    return gts;
+}

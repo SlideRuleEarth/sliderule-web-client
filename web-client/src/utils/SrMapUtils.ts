@@ -15,7 +15,7 @@ import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
 import { getScOrientFromSpotGt } from '@/utils/parmUtils';
-import { getSpotNumber,getGroundTrack,getScOrientFromSpotAndGt } from './spotUtils';
+import { getSpotNumber,getGtsForSpotsAndScOrients,getScOrientFromSpotAndGt } from './spotUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -366,7 +366,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        useGlobalChartStore().setCycles( [d.cycle]);
+        gcs.setCycles( [d.cycle]);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
@@ -379,6 +379,9 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     }
     if(d.gt){
         const parms = gcs.setGtsAndTracksWithGts( [{label:d.gt.toString(), value:d.gt}]);
+    } else {
+        const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
+        gcs.setGts(gts);
     }
     console.log('Clicked: func',func);
     console.log('Clicked: pair',gcs.getPairs());

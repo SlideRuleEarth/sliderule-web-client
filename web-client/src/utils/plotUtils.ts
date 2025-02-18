@@ -47,29 +47,6 @@ export const selectedRgtReactive = computed({
     },
 });
 
-export const selectedSpotsReactive = computed({
-    get: (): number[] => {
-        const value = useGlobalChartStore().getSpots();
-        //console.log(`selectedSpotsReactive[${reqId}] get:`, value);
-        return value;
-    },
-    set: (values: number[]): void => {
-        //console.log(`selectedSpotsReactive[${reqId}] set:`, values);
-        useGlobalChartStore().setSpots(values);
-    },
-});
-
-export const selectedScOrientsReactive = computed({
-    get: (): number[] => {
-        const value = useGlobalChartStore().getScOrients();
-        //console.log(`selectedScOrientsReactive[${reqId}] get:`, value);
-        return value;
-    },
-    set: (values: number[]): void => {
-        //console.log(`selectedScOrientsReactive[${reqId}] set:`, values);
-        useGlobalChartStore().setScOrients(values);
-    },
-});
 export interface SrScatterSeriesData{
   series: {
     name: string;

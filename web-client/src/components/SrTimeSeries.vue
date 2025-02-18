@@ -4,7 +4,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, ref, computed } from "vue";
+import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
@@ -15,10 +15,8 @@ import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import SrPlotLegendBox from "./SrPlotLegendBox.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
-import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
-import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
@@ -115,38 +113,8 @@ const initGradientPosition = () => {
   
 };
 
-
 const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
-});
-
-const shouldDisplayAtl03Colors = computed(() => {
-    let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId) === 'atl03sp'){
-        shouldDisplay = true;
-    } else {
-        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-            if(reqIdStr){
-                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl03_cnf';
-            }
-        }
-    }
-    return shouldDisplay;
-});
-const shouldDisplayAtl08Colors = computed(() => {
-    let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl08')){
-        shouldDisplay = true;
-    } else {
-        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-            if(reqIdStr){
-                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
-            }
-        }
-    }
-    return shouldDisplay;
 });
 
 const computedDataKey = computed(() => {
@@ -155,7 +123,7 @@ const computedDataKey = computed(() => {
 
 onMounted(async () => {
     try {
-        //console.log('SrTimeSeries onMounted');
+        console.log('SrTimeSeries onMounted',props.startingReqId);
         console.log('SrTimeSeries onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 
         colorMapStore.initializeColorMapStore();
@@ -167,12 +135,15 @@ onMounted(async () => {
         if (reqId > 0) {
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            globalChartStore.setCycles(globalChartStore.getCycleOptionsValues());
+            const retObj = await getAllCycleOptions(reqId);
+            globalChartStore.setCycles(retObj.cycles); // force select all 
             console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
-            console.warn('reqId is undefined');
+            console.error('reqId is undefined');
         }        
         shouldDisplayGradient.value = true;
+        await nextTick(); // Ensures Vue has completed the DOM rendering
+        initGradientPosition();
         //console.log('SrTimeSeries onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
@@ -534,8 +505,6 @@ watch(chartWrapperRef, (newValue) => {
     text-align: center;
 }
 
-
-
 :deep(.p-listbox-list-wrapper) {
   /* A fixed width or max-width is usually necessary to force scrolling */
   max-width: 20rem;       
@@ -560,27 +529,29 @@ watch(chartWrapperRef, (newValue) => {
   white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
 }
 
-.sr-run-control{
-    display: flex;
-    flex-direction: row;
-    justify-content: left;
-    align-items: left;
-    overflow-y: auto;
-    overflow-x: auto;
-    width: auto;
-    min-width: 10rem;
+
+:deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
+    position:absolute;
+    top:50%;
+    left:50%;
+    /* transform: translate(-50%, -50%); */
+    background-color: transparent;
+    color: var(--p-text-color);
+    border-radius: var(--p-border-radius);
+    margin: 0rem;
+    border-width: 0px;
+    border-color: transparent;
 }
 
-.sr-show-hide-button {
-    height: 3rem;
-    border-radius: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    min-width: 8rem;
-    background-color:var(--p-button-text-primary-color);
-    color:black;
+:deep(.p-dialog-mask .p-dialog-content){
+    margin: 0rem;
+    padding: 0rem;
+}
+
+:deep(.p-dialog-mask .p-dialog-header){
+    margin: 0rem;
+    padding: 0rem;
+
 }
 
 .sr-multiselect-container {

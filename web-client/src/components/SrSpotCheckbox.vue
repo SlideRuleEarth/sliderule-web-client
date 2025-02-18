@@ -17,7 +17,7 @@
   
   <script setup lang="ts">
   import { computed } from 'vue'
-  
+
   interface SingleDigitCheckboxProps {
     /** The digit to show inside the checkbox. */
     digit: number;
@@ -51,7 +51,6 @@
       } else if (!checked && newValue.includes(props.digit)) {
         newValue = newValue.filter(num => num !== props.digit)
       }
-  
       emit('update:modelValue', newValue)
     },
   })

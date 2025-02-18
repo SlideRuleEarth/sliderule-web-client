@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
-import { SC_FORWARD } from '@/sliderule/icesat2';
+import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const fontSize = ref<number>(16); // Default font size in pixels
@@ -17,10 +17,11 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const selectedGtOptions = ref<SrListNumberItem[]>([]);
     const selectedPairOptions = ref<SrListNumberItem[]>([]);
     const filteredPairOptions = ref<SrListNumberItem[]>([]);// subset for selected
-    const selectedScOrientOptions = ref<SrListNumberItem[]>([]);
-    const filteredScOrientOptions = ref<SrListNumberItem[]>([]);// subset for selected
     const scrollX = ref<number>(0);
     const scrollY = ref<number>(0);
+    const hasScForward = ref<boolean>(false);
+    const hasScBackward = ref<boolean>(false);
+
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -47,7 +48,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return findCycleOption(cycle) || { label: cycle.toString(), value: cycle };
         });
         setSelectedCycleOptions(updatedCycleOptions);
-        console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
+        //console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getCycles(): number[] {
@@ -93,12 +94,12 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setRgt(rgtOption: number) {
         selectedRgtOption.value = findRgtOption(rgtOption) || { label: rgtOption.toString(), value: rgtOption };        
-        console.log('setRgts rgts:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
+        //console.log('setRgts rgts:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
     }
 
     function getRgt(): number  {
         const rgtOption = selectedRgtOption?.value;
-        console.log('getRgt rgtOption:', rgtOption, ' selectedRgtOptions:', selectedRgtOption.value);
+        //console.log('getRgt rgtOption:', rgtOption, ' selectedRgtOptions:', selectedRgtOption.value);
         return rgtOption ? rgtOption.value : -1;
     }
 
@@ -155,16 +156,16 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selectedGtOptions.value = gts.map(gt => {
             return gtsOptions.find(option => option.value === gt) || { label: gt.toString(), value: gt };
         });
+        console.log('setGts gts:', gts, ' selectedGtOptions:', selectedGtOptions.value);    
     }
 
     function getGts(): number[] {
         if (!Array.isArray(selectedGtOptions.value)) {
-            console.error(`getBeams: selectedGtOptions is not an array`, selectedGtOptions.value);
+            console.error(`getGts: selectedGtOptions is not an array`, selectedGtOptions.value);
             return [];
         }
         return selectedGtOptions.value.map(gt => gt.value);
     }
-
 
     function getGtsOptions(): SrListNumberItem[] {
         return gtsOptions;
@@ -256,62 +257,32 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selectedPairOptions.value.push({ label: pair.toString(), value: pair });
     }
 
-    function getScOrientOptions(): SrListNumberItem[] {
-        return scOrientOptions;
-    }
-
-    function getSelectedScOrientOptions(): SrListNumberItem[] {
-        return selectedScOrientOptions.value;
-    }
-
     function setScOrients(scOrients:number[]) {
-        if (!Array.isArray(scOrients)) {
-            console.error('setSelectedScOrientOptions received invalid scOrients:', scOrients);
-            selectedScOrientOptions.value = [];
-            return;
-        }
-        selectedScOrientOptions.value = scOrients.map(scOrient => {
-            return scOrientOptions.find(option => option.value === scOrient) || { label: scOrient.toString(), value: scOrient };
-        });
+        hasScForward.value = scOrients.includes(SC_FORWARD);
+        hasScBackward.value = scOrients.includes(SC_BACKWARD);
     }
 
     function getScOrients(): number[] {
-        return selectedScOrientOptions.value.map(scOrient => scOrient.value);
+        const scOrients = [];    
+        if (hasScForward.value) {
+            scOrients.push(SC_FORWARD);
+        }
+        if (hasScBackward.value) {
+            scOrients.push(SC_BACKWARD);
+        }
+        return scOrients;
     }
 
     function getScOrientsLabels(): string[] {
-        return selectedScOrientOptions.value.map(scOrient => scOrient.label);
-    }
-
-    function hasScForward(): boolean {
-        return selectedScOrientOptions.value.some(scOrient => scOrient.value === SC_FORWARD);
-    }
-
-    function hasScBackward(): boolean {
-        return selectedScOrientOptions.value.some(scOrient => scOrient.value !== SC_FORWARD);
-    }
-
-    function setSelectedScOrientOptions(scOrientOptions: SrListNumberItem[]) {
-        if (!Array.isArray(scOrientOptions)) {
-            console.error('setSelectedScOrientOptions received invalid scOrientOptions:', scOrientOptions);
-            selectedScOrientOptions.value = [];
-            return;
+        const scOrientLabels = [];
+        if (hasScForward.value) {
+            scOrientLabels.push('Forward');
         }
-        selectedScOrientOptions.value = scOrientOptions;
+        if (hasScBackward.value) {
+            scOrientLabels.push('Backward');
+        }
+        return scOrientLabels;        
     }
-
-    function appendScOrient(scOrient: number) {
-        selectedScOrientOptions.value.push({ label: scOrient.toString(), value: scOrient });
-    }
-
-    function setFilteredScOrientOptions(scOrientOptions: SrListNumberItem[]) {
-        filteredScOrientOptions.value = scOrientOptions;
-    }
-
-    function getFilteredScOrientOptions(): SrListNumberItem[] {
-        return filteredScOrientOptions.value;
-    }
-
 
     return {
         fontSize,
@@ -359,13 +330,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getPairs,
         setScOrients,
         getScOrients,
-        getScOrientOptions,
-        getSelectedScOrientOptions,
-        setSelectedScOrientOptions,
-        selectedScOrientOptions,
-        appendScOrient,
-        setFilteredScOrientOptions,
-        getFilteredScOrientOptions,
         getScOrientsLabels,
         hasScForward,
         hasScBackward,

@@ -127,7 +127,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
             }
         }
         chartStore.setSelectedYData(reqIdStr,heightFieldname);
-        console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
+        //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
     }
@@ -258,7 +258,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     const startTime = performance.now(); // Start time
     try{
         const fileName = await indexedDb.getFilename(reqId);
-        console.log(`prepareDbForReqId for ${reqId} fileName:${fileName}`);
+        //console.log(`prepareDbForReqId for ${reqId} fileName:${fileName}`);
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
@@ -545,7 +545,7 @@ export async function getAllRgtOptions(req_id: number): Promise<SrListNumberItem
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getRgt() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.getRgt() took ${endTime - startTime} milliseconds.`);
     }
     return rgtOptions;
 }
@@ -759,14 +759,14 @@ export async function getAllCycleOptionsByRgtSpotsAndGts(
             }
         }
 
-        console.log(
-            'getAllCycleOptionsByRgtSpotsAndGts req_id:',
-            req_id,
-            'cycles:',
-            cycles,
-            'whereClause:',
-            whereClause
-        );
+        // console.log(
+        //     'getAllCycleOptionsByRgtSpotsAndGts req_id:',
+        //     req_id,
+        //     'cycles:',
+        //     cycles,
+        //     'whereClause:',
+        //     whereClause
+        // );
 
     } catch (error) {
         console.error('getAllCycleOptionsByRgtSpotsAndGts Error:', error);
@@ -793,7 +793,7 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         const rgts = await getAllRgtOptions(req_id);
         globalChartStore.setRgtOptions(rgts);
         const retObj = await getAllCycleOptions(req_id);
-        globalChartStore.setCycles(retObj.cycles);
+        globalChartStore.setCycleOptions(retObj.cycleOptions);
     } catch (error) {
         console.error('updateAllFilterOptions Error:', error);
         throw error;
@@ -940,8 +940,8 @@ export async function fetchScatterData(
         `;
 
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
-        console.log('fetchScatterData minMaxQuery:', minMaxQuery);
-        console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
+        //console.log('fetchScatterData minMaxQuery:', minMaxQuery);
+        //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
             for (const row of rowChunk) {

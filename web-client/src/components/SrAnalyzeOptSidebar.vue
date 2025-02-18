@@ -246,7 +246,7 @@ const exportButtonClick = async () => {
                 <div class="sr-analysis-rec-parms">
                     <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
                 </div>
-                <div class="sr-filter-cntrl-container" v-if="!recTreeStore.selectedApi?.includes('atl03')">
+                <div class="sr-filter-cntrl-container">
                     <SrFilterCntrl></SrFilterCntrl>
                 </div>
                 <div class="sr-scatterplot-cfg-container">

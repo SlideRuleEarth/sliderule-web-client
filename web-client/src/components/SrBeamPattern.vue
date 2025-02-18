@@ -1,21 +1,19 @@
 <template>
-    <div v-if="!computedHasScForward && !computedHasScBackward">
+    <div v-if="!computedHasScForward&& !computedHasScBackward">
         <p>No SC_Orient set?</p>
     </div>
     <div class="sr-sc-orient-panel">
         <div class="checkbox-item">
-            <Checkbox :inputId="'sc_orient' + SC_BACKWARD" v-model="selectedScOrientsReactive[props.reqIdStr]" :value="SC_BACKWARD" size="small"/>
+            <Checkbox binary :inputId="'sc_orient' + SC_BACKWARD" v-model="globalChartStore.hasScBackward" size="small"/>
             <label :for="'sc_orient' + SC_BACKWARD">Backward</label>
         </div>
         <div class="checkbox-item">
-            <Checkbox :inputId="'sc_orient' + SC_FORWARD" v-model="selectedScOrientsReactive[props.reqIdStr]" :value="SC_FORWARD" size="small"/>
+            <Checkbox binary :inputId="'sc_orient' + SC_FORWARD" v-model="globalChartStore.hasScForward" size="small"/>
             <label :for="'sc_orient' + SC_FORWARD">Forward</label>
         </div>
     </div>
     <div class="checkbox-container">
         <Panel header="Spots/Beams" :toggleable="true" :collapsed="false">
-            <!-- props.reqIdStr:{{ props.reqIdStr }}
-            cmp:{{ selectedScOrientsReactive[props.reqIdStr] }} -->
             <div class="sr-spots-panel" v-if="computedHasScForward">
                 <div class="sr-spots-panel-hdr">
                     <div class="sr-spots-title">
@@ -27,7 +25,7 @@
                             <SrSpotCheckbox 
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="6"
-                                label="GT1L" 
+                                label="GT1L"
                             />
                         </div>
                         <div class="checkbox-item">
@@ -139,10 +137,10 @@ import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
 import Checkbox from 'primevue/checkbox';
 import SrSpotCheckbox from '@/components/SrSpotCheckbox.vue';
-import { selectedScOrientsReactive } from '@/utils/plotUtils';
-import { computed } from 'vue';
+import { computed,watch } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
+import { getGtsForSpotsAndScOrients } from '@/utils/spotUtils';
 
 const globalChartStore = useGlobalChartStore();
 
@@ -155,9 +153,23 @@ const props = withDefaults(
         reqIdStr: '0',
     }
 );
+const computedHasScForward = computed(() => {
+    return globalChartStore.hasScForward;
+});
+const computedHasScBackward = computed(() => {
+    return globalChartStore.hasScBackward;
+});
 
-const computedHasScForward = computed(() => globalChartStore.hasScForward());
-const computedHasScBackward = computed(() => globalChartStore.hasScBackward());   
+const handleValueChange = (e: any) => {
+    console.log('handleValueChange', e);
+    console.log('globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients() );
+    const gts = getGtsForSpotsAndScOrients(globalChartStore.selectedSpots, globalChartStore.getScOrients());
+    globalChartStore.setGts(gts);
+};
+
+watch(() => globalChartStore.selectedSpots, handleValueChange);
+
+
 </script>
     
 <style scoped>
