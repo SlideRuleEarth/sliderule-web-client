@@ -68,12 +68,14 @@ watch(
   align-items: center;
   padding: 0.3125rem;
   color: var(--p-primary-color);
+  background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px solid transparent; /* Initially transparent */
   transition: border 0.3s ease-in-out; /* Smooth transition effect */
 }
 
 .sr-legend-box:hover {
+  background-color: transparent;
   border: 1px solid var(--p-primary-color); /* Show border on hover */
 }
 

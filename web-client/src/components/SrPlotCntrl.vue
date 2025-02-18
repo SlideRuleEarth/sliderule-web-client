@@ -173,9 +173,8 @@ const shouldDisplayGradientColorLegend = computed(() => {
 });
 
 const gradientLabel = computed(() => {
-    return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} Colors`;
+    return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} colors`;
 });
-
 
 const shouldDisplayAtl03ColorLegend = computed(() => {
     const func = recTreeStore.findApiForReqId(props.reqId);

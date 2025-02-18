@@ -19,7 +19,7 @@
             </div>
             <SrPlotLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
-        <Button label="Restore Defaults" @click="gradientDefaultsRestored" />
+        <Button class="sr-legend-restore-btn" size="small" label="Restore Defaults" @click="gradientDefaultsRestored" />
 
     </div>
 </template>
@@ -114,6 +114,11 @@ const gradientDefaultsRestored = () => {
     position: relative; /* Enable positioning for the legend */
 }
 
+.sr-legend-restore-btn {
+    align-self: center;
+    margin-top: 0.5rem;
+    font-size: small;
+}
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {
     font-size: small;
@@ -134,6 +139,7 @@ const gradientDefaultsRestored = () => {
 
 :deep(.p-fieldset-content-container) {
     padding-top: 1.5rem; /* Adjust padding to prevent overlap with the legend */
+    margin:0.5rem;
 }
 </style>
   

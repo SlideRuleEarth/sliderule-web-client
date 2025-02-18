@@ -249,16 +249,6 @@ const initOverlayLegendPosition = () => {
   
 };
 
-
-const computedCycleOptions = computed(() => {
-    return globalChartStore.getCycleOptions();
-});
-
-const computedFilteredInCycleOptions = computed(() => {
-    return globalChartStore.getFilteredCycleOptions();
-});
-
-
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
     if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId) === 'atl03sp'){

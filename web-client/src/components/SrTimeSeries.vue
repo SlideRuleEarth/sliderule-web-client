@@ -81,7 +81,7 @@ const initGradientPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initGradientPosition:', {
+    console.log('SrScatterPlot initGradientPosition:', {
         windowScrollX,
         windowScrollY,
         fontSize: globalChartStore.fontSize,
@@ -108,7 +108,7 @@ const initGradientPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initGradientPosition - chartWrapper is null');
+    console.warn('SrScatterPlot initGradientPosition - chartWrapper is null');
   }
   
 };
@@ -170,6 +170,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
         }
+        nextTick(initGradientPosition); // Ensure DOM updates before repositioning
     }
 });
 
@@ -310,18 +311,20 @@ watch(chartWrapperRef, (newValue) => {
     <div class="sr-time-series-container" v-if="loadingComponent"><span>Loading...</span></div>
     <div class="sr-time-series-container" v-else>
         <div class="sr-time-series-content">
-            <v-chart  ref="plotRef" 
-                class="time-series-chart" 
-                :manual-update="true"
-                :autoresize="{throttle:500}" 
-                :loading="atlChartFilterStore.isLoading" 
-                :loadingOptions="{
-                    text:'Data Loading', 
-                    fontSize:20, 
-                    showSpinner: true, 
-                    zlevel:100
-                }" 
-            />
+            <div ref="chartWrapperRef" class="chart-wrapper">
+                <v-chart  ref="plotRef" 
+                    class="time-series-chart" 
+                    :manual-update="true"
+                    :autoresize="{throttle:500}" 
+                    :loading="atlChartFilterStore.isLoading" 
+                    :loadingOptions="{
+                        text:'Data Loading', 
+                        fontSize:20, 
+                        showSpinner: true, 
+                        zlevel:100
+                    }" 
+                />
+            </div>
             <div class="sr-cycles-legend-panel">
                 <div class="sr-select-box">
                     <p class="sr-select-box-hdr">Cycles</p>
@@ -351,6 +354,7 @@ watch(chartWrapperRef, (newValue) => {
                     </Listbox>
                 </div>
                 <div class="sr-legends-panel">
+                    {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }}
                     <Dialog
                         v-if="(chartWrapper !== null)"
                         v-model:visible="shouldDisplayGradient"
@@ -363,6 +367,7 @@ watch(chartWrapperRef, (newValue) => {
                     >
                         <template #header>
                             <SrPlotLegendBox
+                                class="chart-overlay"
                                 v-if = "(computedDataKey!='solid')"
                                 :reqIdStr="recTreeStore.selectedReqIdStr" 
                                 :data_key="computedDataKey" 
@@ -391,6 +396,14 @@ watch(chartWrapperRef, (newValue) => {
 
 .sr-time-series-container {
   display: block;
+}
+
+.chart-wrapper {
+  position: relative; /* Allows absolutely-positioned children to overlay */
+  width: 100%;
+  height: 60vh; /* or whatever size you want */
+  margin: 0rem;
+  padding: 0rem;
 }
 
 .time-series-chart{
@@ -551,8 +564,9 @@ watch(chartWrapperRef, (newValue) => {
 :deep(.p-dialog-mask .p-dialog-header){
     margin: 0rem;
     padding: 0rem;
-
 }
+
+
 
 .sr-multiselect-container {
     display: flex;
