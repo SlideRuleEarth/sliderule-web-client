@@ -6,6 +6,7 @@ import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils
 import { SC_FORWARD } from '@/sliderule/icesat2';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
+    const fontSize = ref<number>(16); // Default font size in pixels
     const cycleOptions = ref<SrListNumberItem[]>([]);
     const selectedCycleOptions = ref<SrListNumberItem[]>([]);
     const filteredCycleOptions = ref<SrListNumberItem[]>([]);// subset for selected 
@@ -313,6 +314,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
 
     return {
+        fontSize,
         getCycleOptions,
         getCycleOptionsValues,
         setCycleOptions,

@@ -236,13 +236,13 @@ const createReqParamsStore = (id: string) =>
             //TBD maybe when svr params is fixed it will include rgt. so use that instead of this
             this.setSelectedTrackOptions(useGlobalChartStore().getSelectedTrackOptions());
             this.setSelectedGtOptions(useGlobalChartStore().getSelectedGtOptions());
-            this.setRgt(useGlobalChartStore().getRgts()[0]);
+            this.setRgt(useGlobalChartStore().getRgt());
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
             this.setCycle(useGlobalChartStore().getCycles()[0]);
 
             // console.log('beams:', useAtlChartFilterStore().getGts());
-            // console.log('rgts:', useAtlChartFilterStore().getRgts());
+            // console.log('rgt:', useAtlChartFilterStore().getRgt());
             // console.log('cycles:', useAtlChartFilterStore().getCycles());
             // console.log('pairs:', useAtlChartFilterStore().getPairs());
             // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());

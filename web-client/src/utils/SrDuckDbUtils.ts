@@ -534,10 +534,9 @@ export async function getAllRgtOptions(req_id: number): Promise<SrListNumberItem
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (row) {
-                    //console.log('getRgt row:', row);
                     rgtOptions.push({ label: row.rgt.toString(), value: row.rgt });
                 } else {
-                    console.warn('getRgts fetchData rowData is null');
+                    console.warn('getRgt fetchData rowData is null');
                 }
             }
         } 
@@ -546,7 +545,7 @@ export async function getAllRgtOptions(req_id: number): Promise<SrListNumberItem
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getRgts() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getRgt() took ${endTime - startTime} milliseconds.`);
     }
     return rgtOptions;
 }
@@ -715,7 +714,7 @@ export async function getAllCycleOptions(req_id: number): Promise<{ cycles: numb
     return {cycles, cycleOptions};
 }
 
-export async function getAllCycleOptionsByRgtsSpotsAndGts(
+export async function getAllCycleOptionsByRgtSpotsAndGts(
     req_id: number,
 ): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
@@ -754,14 +753,14 @@ export async function getAllCycleOptionsByRgtsSpotsAndGts(
                     cycles.push({ label: newLabel, value: row.cycle });
                 } else {
                     console.warn(
-                        'getAllCycleOptionsByRgtsSpotsAndGts fetchData rowData is null'
+                        'getAllCycleOptionsByRgtSpotsAndGts fetchData rowData is null'
                     );
                 }
             }
         }
 
         console.log(
-            'getAllCycleOptionsByRgtsSpotsAndGts req_id:',
+            'getAllCycleOptionsByRgtSpotsAndGts req_id:',
             req_id,
             'cycles:',
             cycles,
@@ -770,12 +769,12 @@ export async function getAllCycleOptionsByRgtsSpotsAndGts(
         );
 
     } catch (error) {
-        console.error('getAllCycleOptionsByRgtsSpotsAndGts Error:', error);
+        console.error('getAllCycleOptionsByRgtSpotsAndGts Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
         console.log(
-            `getAllCycleOptionsByRgtsSpotsAndGts took ${endTime - startTime} milliseconds.`,
+            `getAllCycleOptionsByRgtSpotsAndGts took ${endTime - startTime} milliseconds.`,
             ' req_id:',
             req_id,
             ' cycles:',

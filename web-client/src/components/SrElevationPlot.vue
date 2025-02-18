@@ -20,7 +20,7 @@ import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrPlotLegendBox from "./SrPlotLegendBox.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import { getAllCycleOptionsByRgtsSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAlt08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
@@ -52,7 +52,6 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
-const fontSize = ref<number>(16); // Default font size in pixels
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 const gradientDialogStyle = ref<{
     position: string;
@@ -65,7 +64,7 @@ const gradientDialogStyle = ref<{
     left: "0px",
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
-;
+
 
 const atl03CnfDialogStyle = ref<{
     position: string;
@@ -101,8 +100,8 @@ const atl08DialogStyle = ref<{
 //     const windowX = globalChartStore.scrollX;
 //     const windowY = globalChartStore.scrollY;
 //     // Convert rem to pixels (1rem = 16px by default)
-//     const bottomOffset = 7 * fontSize.value; // n rem from the bottom
-//     const rightOffset = 16 * fontSize.value; // 1n rem from the right
+//     const bottomOffset = 7 * globalChartStore.fontSize.value; // n rem from the bottom
+//     const rightOffset = 16 * globalChartStore.fontSize.value; // 1n rem from the right
 
 //     const top = `${rect.top + windowY + rect.height - bottomOffset}px`; 
 //     const left = `${rect.left + windowX + rect.width - rightOffset}px`; 
@@ -110,7 +109,7 @@ const atl08DialogStyle = ref<{
 //     console.log('SrElevationPlot updateDialogPosition:', {
 //         windowX,
 //         windowY,
-//         fontSize: fontSize.value,
+//         globalChartStore.fontSize: globalChartStore.fontSize.value,
 //         bottomOffset,
 //         rightOffset,
 //         top,
@@ -144,7 +143,7 @@ const initGradientPosition = () => {
     // Convert rem to pixels (1rem = 16px by default)
     const middleHorizontalOffset = rect.width / 2; // n rem from the left
     const middleX = rect.left + middleHorizontalOffset;
-    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * fontSize.value;
+    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
     const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
     const spaceSize = rect.right - endOfTitle; 
     const centerOfLegend = endOfTitle + (spaceSize/2);
@@ -152,13 +151,13 @@ const initGradientPosition = () => {
     const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
     const left = `${leftLegendOffset}px`; 
 
-    const topOffset = 0.25 * fontSize.value; // n rem from the top
+    const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
     console.log('SrElevationPlot initGradientPosition:', {
         windowScrollX,
         windowScrollY,
-        fontSize: fontSize.value,
+        fontSize: globalChartStore.fontSize,
         topOffset,
         endOfTitle,
         middleHorizontalOffset,
@@ -202,21 +201,21 @@ const initOverlayLegendPosition = () => {
     // Convert rem to pixels (1rem = 16px by default)
     const middleHorizontalOffset = rect.width / 2; // n rem from the left
     const middleX = rect.left + middleHorizontalOffset;
-    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * fontSize.value;
+    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
     const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
     const spaceSize = rect.right - endOfTitle; 
     const centerOfLegend = endOfTitle + (spaceSize/2);
     const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
     const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
     const left = `${leftLegendOffset}px`; 
-    const assumedLegendHeight = 20 * fontSize.value; // 10 rows
+    const assumedLegendHeight = 20 * globalChartStore.fontSize; // 10 rows
     const topOffset = rect_bottom - assumedLegendHeight;
     const top = `${topOffset}px`; 
 
     console.log('SrElevationPlot initOverlayLegendPosition:', {
         windowScrollX,
         windowScrollY,
-        fontSize: fontSize.value,
+        fontSize: globalChartStore.fontSize,
         topOffset,
         endOfTitle,
         middleHorizontalOffset,
@@ -327,9 +326,8 @@ onMounted(async () => {
         //console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
         // Get the computed style of the document's root element
         // Extract the font size from the computed style
-        fontSize.value = 16;
         // Log the font size to the console
-        console.log(`onMounted Current root fontSize: ${fontSize.value} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
+        console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
         shouldDisplayGradient.value = true;
         const currentFirstRec = analysisTabStore.getFirstRec(useRecTreeStore().selectedReqIdStr);
         if(currentFirstRec){
@@ -465,7 +463,7 @@ watch(() => {
 }, async (newValues, oldValues) => {
     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtsSpotsAndGts(recTreeStore.selectedReqId)
+        const filteredCycleOptions = await getAllCycleOptionsByRgtSpotsAndGts(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
         console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);
@@ -615,16 +613,6 @@ watch(chartWrapperRef, (newValue) => {
                     buttonLabel="Photon Cloud"
                 />
             </div>
-            <!-- <div>
-                {{ !useMapStore().getIsLoading()}}
-                {{globalChartStore.getCycles().length}}
-                {{globalChartStore.getRgts().length }}
-                {{globalChartStore.getSpots().length }}
-            </div> -->
-            <!-- <div>
-                {{  globalChartStore.scrollX}}
-                {{  globalChartStore.scrollY}}
-            </div> -->
             <div class="sr-multiselect-container">
 
                 <div class= "sr-multiselect-col">
