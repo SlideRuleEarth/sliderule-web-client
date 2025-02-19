@@ -10,13 +10,13 @@ const SPOT_5 = 5;
 const SPOT_6 = 6;
 const INVALID_SPOT = -1;
 
-const GT1L = 10;
-const GT1R = 20;
-const GT2L = 30;
-const GT2R = 40;
-const GT3L = 50;
-const GT3R = 60;
-const INVALID_GT = -1;
+export const GT1L = 10;
+export const GT1R = 20;
+export const GT2L = 30;
+export const GT2R = 40;
+export const GT3L = 50;
+export const GT3R = 60;
+export const INVALID_GT = -1;
 
 const SC_UNKNOWN = -1;
 

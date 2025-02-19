@@ -5,11 +5,11 @@
     <div class="sr-sc-orient-panel">
         <div class="checkbox-item">
             <Checkbox binary :inputId="'sc_orient' + SC_BACKWARD" v-model="globalChartStore.hasScBackward" size="small"/>
-            <label :for="'sc_orient' + SC_BACKWARD">Backward</label>
+            <label :for="'sc_orient' + SC_BACKWARD">{{ `Backward(${SC_BACKWARD})` }}</label>
         </div>
         <div class="checkbox-item">
             <Checkbox binary :inputId="'sc_orient' + SC_FORWARD" v-model="globalChartStore.hasScForward" size="small"/>
-            <label :for="'sc_orient' + SC_FORWARD">Forward</label>
+            <label :for="'sc_orient' + SC_FORWARD">{{`Forward:(${SC_FORWARD})`}}</label>
         </div>
     </div>
     <div class="checkbox-container">
@@ -26,6 +26,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="6"
                                 label="GT1L"
+                                :tooltipText=GT1L_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -33,6 +34,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="4"
                                 label="GT2L"
+                                :tooltipText=GT2L_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -40,6 +42,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="2"
                                 label="GT3L"
+                                :tooltipText=GT3L_tooltip
                             />
                         </div>
                     </div>
@@ -51,6 +54,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="5"
                                 label="GT1R"
+                                :tooltipText=GT1R_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -58,6 +62,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="3"
                                 label="GT2R"
+                                :tooltipText=GT2R_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -65,6 +70,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="1"
                                 label="GT3R"
+                                :tooltipText=GT3R_tooltip
                             />
                         </div>
                     </div>
@@ -83,6 +89,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="1"
                                 label="GT1L"
+                                :tooltipText=GT1L_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -90,6 +97,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="3"
                                 label="GT2L"
+                                :tooltipText=GT2L_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -97,6 +105,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="5"
                                 label="GT3L"
+                                :tooltipText=GT3L_tooltip
                             />
                         </div>
                     </div>
@@ -108,13 +117,15 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="2" 
                                 label="GT1R"
-                                />
+                                :tooltipText=GT1R_tooltip
+                            />
                         </div>
                         <div class="checkbox-item">
                             <SrSpotCheckbox 
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="4"
                                 label="GT2R"
+                                :tooltipText=GT2R_tooltip
                             />
                         </div>
                         <div class="checkbox-item">
@@ -122,6 +133,7 @@
                                 v-model="globalChartStore.selectedSpots" 
                                 :digit="6"
                                 label="GT3R"
+                                :tooltipText=GT3R_tooltip
                             />
                         </div>
                     </div>
@@ -141,9 +153,15 @@ import { computed,watch } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
 import { getGtsForSpotsAndScOrients,getDetailsFromSpotNumber } from '@/utils/spotUtils';
-
+import { GT1L,GT1R,GT2L,GT2R,GT3L,GT3R } from '@/utils/spotUtils';
 const globalChartStore = useGlobalChartStore();
 
+const GT1L_tooltip = `Ground Track 1 Left - ${GT1L}`;
+const GT1R_tooltip = `Ground Track 1 Right - ${GT1R}`;
+const GT2L_tooltip = `Ground Track 2 Left - ${GT2L}`;
+const GT2R_tooltip = `Ground Track 2 Right - ${GT2R}`;
+const GT3L_tooltip = `Ground Track 3 Left - ${GT3L}`;
+const GT3R_tooltip = `Ground Track 3 Right - ${GT3R}`;
 // Define props with TypeScript types
 const props = withDefaults(
     defineProps<{
@@ -305,22 +323,4 @@ watch(() => globalChartStore.hasScForward, handleValueChange);
     justify-content: center;
 }
 
-/* :deep(.p-checkbox.p-checkbox-sm) .p-checkbox-icon {
-    font-size: 0.5rem;
-
-} */
-/* :deep(.p-checkbox-input) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin:0rem;
-    padding:0rem;
-}
-:deep(.p-checkbox-box){
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin:0rem;
-    padding:0rem;
-} */
 </style>

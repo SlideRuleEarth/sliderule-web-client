@@ -1,5 +1,5 @@
 <template>
-    <label class="custom-checkbox">
+    <label class="custom-checkbox" :title="props.tooltipText">
       <!-- The native checkbox is hidden but still used to handle "checked" state -->
       <input type="checkbox" v-model="isChecked" />
   
@@ -28,6 +28,7 @@
      * the checkbox is considered "checked".
      */
     modelValue: number[];
+    tooltipText: string;
   }
   
   const props = defineProps<SingleDigitCheckboxProps>()
