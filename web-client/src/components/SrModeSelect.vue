@@ -65,8 +65,8 @@ const buttonClass = computed(() => (mode: string) => [
 <style scoped>
 .sr-mode-box {
     display: flex;
-    justify-content: left;
-    align-items: left;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .sr-segment-control {

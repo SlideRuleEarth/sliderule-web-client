@@ -1,67 +1,81 @@
 <template>
     <div class="duckdb-shell">
         <h2 class="sr-header">Sql Playground</h2>
+        <div class="sr-query-panel">
+            <div>
+                <!-- Query Input -->
+                <Message class="sr-onmap-msg" severity="info" closable size="small">
+                    <p>Parquet file: {{ computedFileLabel }}</p>
+                </Message>
+                <Textarea
+                    class="sr-duckdb-textarea"
+                    :style="{ resize: 'both', overflow: 'auto' }"
+                    v-model="query"
+                    placeholder="Enter SQL query"
+                    size="large"
+                    rows="5"
+                    cols="50"
+                ></Textarea>
+            </div>
+            <div class="sr-btn-msg-panel">
+                <div class="sr-query-buttons">
+                    <!-- Run Button -->
+                    <Button 
+                        :disabled="isLoading" 
+                        @click="executeQuery" size="small"
+                    >
+                        {{ isLoading ? "Running..." : "Run Sql Query" }}
+                    </Button>
+                    <Button 
+                        v-if="rows.length > 0" 
+                        @click="exportToCSV"
+                        style="margin-left: 1rem;"
+                        size="small"
+                        >
+                        Export CSV
+                    </Button>
+                </div>
+                <div class="sr-query-msg-panel">
+                    <!-- Error Display -->
+                    <p class="sr-query-msg sr-error" v-if="error" >
+                        {{ error }}
+                    </p>
 
-        <div>
-            <!-- Query Input -->
-            <Textarea
-                class="sr-duckdb-textarea"
-                :style="{ resize: 'both', overflow: 'auto' }"
-                v-model="query"
-                placeholder="Enter SQL query"
-                size="large"
-                rows="5"
-                cols="50"
-            ></Textarea>
+                    <!-- Info Display -->
+                    <p class="sr-query-msg sr-info" v-if="info" >
+                        {{ info }}
+                    </p>
+                </div>
+                <FloatLabel variant="on">
+                    <InputNumber class="sr-limit" v-model="limit" inputId="integeronly" fluid />
+                    <label for="integeronly">Limit</label>
+                </FloatLabel>
+            </div>
         </div>
-        <div>
-            <!-- Run Button -->
-            <Button :disabled="isLoading" @click="executeQuery">
-                {{ isLoading ? "Running..." : "Run" }}
-            </Button>
-            <Button 
+        <div class="sr-results-panel">
+            <!-- Results DataTable -->
+            <DataTable 
                 v-if="rows.length > 0" 
-                @click="exportToCSV"
-                style="margin-left: 1rem;"
-                >
-                Export CSV
-            </Button>
-
-            <!-- Error Display -->
-            <p v-if="error" class="error">
-                {{ error }}
-            </p>
-
-            <!-- Info Display -->
-            <p v-if="info" class="info">
-                {{ info }}
-            </p>
-
-
+                :value="rows"
+                scrollable
+                scrollHeight="400px"
+                scrollDirection="both" 
+                style="margin-top: 1rem; width: 50rem;"
+            >
+                <Column
+                    v-for="col in columns"
+                    sortable
+                    :key="col"
+                    :field="col"
+                    :header="col"
+                />
+            </DataTable>
         </div>
-
-        <!-- Results DataTable -->
-        <DataTable 
-            v-if="rows.length > 0" 
-            :value="rows"
-            scrollable
-            scrollHeight="400px"
-            scrollDirection="both" 
-            style="margin-top: 1rem; width: 50rem;"
-        >
-            <Column
-                v-for="col in columns"
-                sortable
-                :key="col"
-                :field="col"
-                :header="col"
-            />
-        </DataTable>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { createDuckDbClient, DuckDBClient, QueryResult } from '@/utils/SrDuckDb';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useChartStore } from '@/stores/chartStore';
@@ -71,6 +85,9 @@ import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import FloatLabel from 'primevue/floatlabel';
+import InputNumber from 'primevue/inputnumber';
+import { Message } from 'primevue';
 import { useRequestsStore } from '@/stores/requestsStore';
 const requestsStore = useRequestsStore();
 
@@ -83,6 +100,16 @@ const columns = ref<string[]>([]);
 const error = ref<string | null>(null);
 const info = ref<string | null>(null);
 const isLoading = ref(false);
+const computedFileLabel = computed(() => `${chartStore.getFile(recTreeStore.selectedReqIdStr)}`);
+const limit = ref(1000);
+const computedLimitClause = computed(() => (limit.value > 0 ? `LIMIT ${limit.value}` : ''));
+const computedStartingInfoText = computed(() => {
+    if(limit.value > 0){
+        return `running query adding ${computedLimitClause} ...`;
+    } else {
+        return 'running query ...';
+    }
+});
 
 let duckDbClient: DuckDBClient | null = null;
 
@@ -138,7 +165,7 @@ onMounted(async () => {
         requestsStore.displayHelpfulPlotAdvice("click Run to generate a table of the selected track data");
         requestsStore.displayHelpfulPlotAdvice("You can query the table with any valid SQL statement");
         console.log('SrDuckDbShell onMounted: DuckDB client initialized ');
-        info.value = 'Enter a SQL query and click Run if it Snaps reload the page and narrow the query or add a LIMIT e.g. LIMIT 1000';
+        info.value = 'Enter a SQL query and click "Run Sql Query"\nIf it "Snaps" reload the page and narrow the query and/or use LIMIT';
     } catch (err: any) {
         error.value = `Failed to initialize DuckDB: ${err?.message ?? err}`;
         console.error(err);
@@ -153,12 +180,13 @@ async function executeQuery() {
     }
     isLoading.value = true;
     error.value = '';
-    info.value = 'running query ...';
+    info.value = computedStartingInfoText.value;
     rows.value = [];
     columns.value = [];
     let numChunks = 0;
+    const finalQuery = `${query.value} ${computedLimitClause.value}`;
     try {
-        const result: QueryResult = await duckDbClient.query(query.value);
+        const result: QueryResult = await duckDbClient.query(finalQuery);
         const allRows: Array<Record<string, any>> = [];
         for await (const batch of result.readRows()) {
             numChunks++;
@@ -184,7 +212,9 @@ async function executeQuery() {
 <style scoped>
 .sr-header {
     margin-bottom: 0.25rem;
+    margin-top:0rem;
 }
+
 .duckdb-shell {
     display: flex;
     flex-direction: column;
@@ -195,11 +225,91 @@ async function executeQuery() {
     width: 100%;
     margin: 1rem auto;
 }
-.sr-duckdb-textarea :deep(.p-inputtextarea) {
-    font-family: monospace;
+
+.sr-btn-msg-panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
 }
-.error {
+
+.sr-query-msg-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #2c2c2c;
+    gap: 0.5rem;
+    width: 100%;
+    border-radius: var(--p-border-radius);
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.sr-query-msg {
+    display: block;
+    font-size: x-small;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.sr-onmap-msg {
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+    font-size: x-small;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    height: 2rem;
+}
+
+.sr-results-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.sr-query-buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+
+}
+
+:deep(.sr-duckdb-textarea) {
+    font-family: monospace;
+    font-size: smaller;
+    width: 100%;
+}
+
+.sr-query-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background-color: transparent;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+.sr-limit {
+    width: fit-content;
+}
+.sr-error {
     color: red;
     white-space: pre-wrap;
 }
+
+.sr-info {
+    white-space: pre-wrap;
+}
+
 </style>
