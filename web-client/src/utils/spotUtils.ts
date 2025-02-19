@@ -126,7 +126,7 @@ export function getDetailsFromSpotNumber(spot:number) {
             details[1].pair = 0;
             break;
         default:
-            console.warn('getSpotGtFromSpotNumber: INVALID spot:', spot);
+            console.warn('getDetailsFromSpotNumber: INVALID spot:', spot);
             break;
     }
     return details;

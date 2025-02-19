@@ -31,6 +31,13 @@
             <p v-if="error" class="error">
                 {{ error }}
             </p>
+
+            <!-- Info Display -->
+            <p v-if="info" class="info">
+                {{ info }}
+            </p>
+
+
         </div>
 
         <!-- Results DataTable -->
@@ -74,6 +81,7 @@ const query = ref('');
 const rows = ref<Array<Record<string, any>>>([]);
 const columns = ref<string[]>([]);
 const error = ref<string | null>(null);
+const info = ref<string | null>(null);
 const isLoading = ref(false);
 
 let duckDbClient: DuckDBClient | null = null;
@@ -130,6 +138,7 @@ onMounted(async () => {
         requestsStore.displayHelpfulPlotAdvice("click Run to generate a table of the selected track data");
         requestsStore.displayHelpfulPlotAdvice("You can query the table with any valid SQL statement");
         console.log('SrDuckDbShell onMounted: DuckDB client initialized ');
+        info.value = 'Enter a SQL query and click Run if it Snaps reload the page and narrow the query or add a LIMIT e.g. LIMIT 1000';
     } catch (err: any) {
         error.value = `Failed to initialize DuckDB: ${err?.message ?? err}`;
         console.error(err);
@@ -137,26 +146,37 @@ onMounted(async () => {
 });
 
 async function executeQuery() {
-    if (!duckDbClient) return;
+    if (!duckDbClient){
+        console.error('DuckDB client not initialized');
+        error.value = 'DuckDB client not initialized?';
+        return;
+    }
     isLoading.value = true;
-    error.value = null;
+    error.value = '';
+    info.value = 'running query ...';
     rows.value = [];
     columns.value = [];
-
+    let numChunks = 0;
     try {
         const result: QueryResult = await duckDbClient.query(query.value);
         const allRows: Array<Record<string, any>> = [];
         for await (const batch of result.readRows()) {
+            numChunks++;
             allRows.push(...batch);
         }
 
         rows.value = allRows;
         columns.value = result.schema.map((col) => col.name);
+        if(numChunks === 0){
+            error.value = 'No results found';
+        }
     } catch (err: any) {
         error.value = `Query error: ${err?.message ?? err}`;
         console.error(err);
     } finally {
         isLoading.value = false;
+        console.log(`Query executed in ${numChunks} chunks`);
+        info.value= `There are ${rows.value.length} rows in the result`;
     }
 }
 </script>

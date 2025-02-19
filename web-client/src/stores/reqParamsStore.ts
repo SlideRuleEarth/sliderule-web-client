@@ -574,12 +574,6 @@ const createReqParamsStore = (id: string) =>
         getSelectedGtOptions(): SrListNumberItem[] {
           return this.beams; // in the req it is called beams
         },
-        setGtsAndTracksWithGts(gts:SrListNumberItem[]) {
-          //console.log('setGtsAndTracksWithGts:', gts);
-          const parms = getGtsAndTracksWithGts(gts);
-          this.setSelectedGtOptions(parms.gts);
-          this.setSelectedTrackOptions(parms.tracks);
-        },
         setSelectedTrackOptions(tracks: SrListNumberItem[]) {
           this.tracks = tracks;
         },

@@ -246,7 +246,7 @@ async function getGenericSeries({
 
     try {
         const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions);
-        //console.log(`${functionName} ${reqIdStr}: chartData:`, chartData);
+        //console.log(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
         // e.g. choose minMax based on minMaxProperty
         const minMaxValues = rest[minMaxProperty] || {};
         //console.log(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
@@ -381,7 +381,6 @@ export async function getSeriesForAtl03sp(
     } else if(cedk === 'atl08_class'){
         thisColorFunction = getColorUsingAtl08_class;
     }
-
 
     return getGenericSeries({
         reqIdStr,
@@ -764,6 +763,7 @@ function removeUnusedOptions(options:any):any {
 
 async function appendSeries(reqId: number): Promise<void> {
     try {
+        //console.log(`appendSeries(${reqId})`);
         const reqIdStr = reqId.toString();
         const plotRef = useAtlChartFilterStore().getPlotRef();
         if (!plotRef?.chart) {
@@ -782,14 +782,15 @@ async function appendSeries(reqId: number): Promise<void> {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
-
+        //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
         // Define the fields that should share a single axis
         const heightFields = ['height', 'h_mean', 'h_mean_canopy'];
 
         // Separate series into "height" group and "non-height" group
         const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));
         const nonHeightSeriesData = seriesData.filter(d => !heightFields.includes(d.series.name));
-
+        //console.log(`appendSeries(${reqIdStr}): heightSeriesData:`, heightSeriesData);
+        //console.log(`appendSeries(${reqIdStr}): nonHeightSeriesData:`, nonHeightSeriesData);
         let updatedSeries = [
             ...(Array.isArray(filteredOptions.series) ? filteredOptions.series : []),
         ];
@@ -878,22 +879,22 @@ async function appendSeries(reqId: number): Promise<void> {
 
         // For non-height data, each one gets its own axis as a new axis
         const mappedNonHeightSeries = nonHeightSeriesData.map(d => {
-        const nonHeightAxisIndex = updatedYAxis.length;
-        updatedYAxis.push({
-            type: 'value',
-            name: d.series.name,
-            min: d.min,
-            max: d.max,
-            scale: true,
-            axisLabel: {
-            formatter: (value: number) => value.toFixed(1),
-            },
-        });
-        return {
-            ...d.series,
-            type: 'scatter',
-            yAxisIndex: nonHeightAxisIndex,
-        };
+            const nonHeightAxisIndex = updatedYAxis.length;
+            updatedYAxis.push({
+                type: 'value',
+                name: d.series.name,
+                min: d.min,
+                max: d.max,
+                scale: true,
+                axisLabel: {
+                    formatter: (value: number) => value.toFixed(1),
+                },
+            });
+            return {
+                ...d.series,
+                type: 'scatter',
+                yAxisIndex: nonHeightAxisIndex,
+            };
         });
         updatedSeries = updatedSeries.concat(mappedNonHeightSeries);
 
@@ -905,49 +906,49 @@ async function appendSeries(reqId: number): Promise<void> {
         let updatedLegend: LegendComponentOption[] = [];
 
         if (Array.isArray(existingLegend) && existingLegend.length > 0) {
-        // If the chart uses an array of legend configs, clone them:
-        updatedLegend = existingLegend.map(legendObj => {
-            // Convert legendObj.data to an array or fallback to empty array
-            const legendData = Array.isArray(legendObj.data) ? [...legendObj.data] : [];
+            // If the chart uses an array of legend configs, clone them:
+            updatedLegend = existingLegend.map(legendObj => {
+                // Convert legendObj.data to an array or fallback to empty array
+                const legendData = Array.isArray(legendObj.data) ? [...legendObj.data] : [];
+
+                // Gather all new series names
+                const newSeriesNames = updatedSeries
+                    .map(s => s.name)
+                    .filter(name => !!name && !legendData.includes(name as string));
+
+                const mergedLegendData = legendData.concat(newSeriesNames);
+                return {
+                    ...legendObj,
+                    data: mergedLegendData,
+                };
+            });
+        } else if (existingLegend && !Array.isArray(existingLegend)) {
+            // If it's a single legend object
+            const legendData = Array.isArray(existingLegend.data)
+                ? [...existingLegend.data]
+                : [];
 
             // Gather all new series names
             const newSeriesNames = updatedSeries
-            .map(s => s.name)
-            .filter(name => !!name && !legendData.includes(name as string));
+                .map(s => s.name)
+                .filter(name => !!name && !legendData.includes(name as string));
 
             const mergedLegendData = legendData.concat(newSeriesNames);
-            return {
-            ...legendObj,
-            data: mergedLegendData,
-            };
-        });
-        } else if (existingLegend && !Array.isArray(existingLegend)) {
-        // If it's a single legend object
-        const legendData = Array.isArray(existingLegend.data)
-            ? [...existingLegend.data]
-            : [];
-
-        // Gather all new series names
-        const newSeriesNames = updatedSeries
-            .map(s => s.name)
-            .filter(name => !!name && !legendData.includes(name as string));
-
-        const mergedLegendData = legendData.concat(newSeriesNames);
-        updatedLegend = [
-            {
-            ...existingLegend,
-            data: mergedLegendData,
-            },
-        ];
+            updatedLegend = [
+                {
+                    ...existingLegend,
+                    data: mergedLegendData,
+                },
+            ];
         } else {
-        // If no legend config exists, create one
-        const newSeriesNames = updatedSeries.map(s => s.name).filter(Boolean) as string[];
-        updatedLegend = [
-            {
-            data: newSeriesNames,
-            left: 'left',
-            },
-        ];
+            // If no legend config exists, create one
+            const newSeriesNames = updatedSeries.map(s => s.name).filter(Boolean) as string[];
+            updatedLegend = [
+                {
+                    data: newSeriesNames,
+                    left: 'left',
+                },
+            ];
         }
 
         // -----------------------------
@@ -1044,6 +1045,7 @@ async function updatePlotAndSelectedTrackMapLayer(msg:string){
         (globalChartStore.getCycles().length > 0) &&
         (globalChartStore.getSpots().length > 0)
     ){
+        //TBD  Can these be done in parallel?
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
@@ -1059,7 +1061,7 @@ let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
-    console.log("callPlotUpdateDebounced called for:", msg);
+    //console.log("callPlotUpdateDebounced called:", msg);
     const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');

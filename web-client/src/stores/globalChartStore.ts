@@ -4,6 +4,7 @@ import type { SrListNumberItem } from '@/types/SrTypes';
 import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
+import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const fontSize = ref<number>(16); // Default font size in pixels
@@ -195,11 +196,14 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return selectedGtOptions.value.map(gt => gt.label);
     }
 
-    function setGtsAndTracksWithGts(gts: SrListNumberItem[]) {
-        const parms = getGtsAndTracksWithGts(gts);
-        const trkList = parms.tracks.map(track => track.value);
-        setSelectedGtOptions(parms.gts);
-        setTracks(trkList);
+    function setFilterWithSpotAndGt(spot:number,gt:number):void {
+        const sc_orient = getScOrientFromSpotAndGt(spot,gt);
+        setScOrients([sc_orient]);
+        const details = getDetailsFromSpotNumber(spot);
+        setSpots([spot]);
+        setGts([gt]);
+        setTracks([details[sc_orient].track]);
+        setPairs([details[sc_orient].pair]);
     }
 
     function setTracksForGts(input_gts: SrListNumberItem[]) {    
@@ -317,7 +321,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         appendToSelectedGtOptions,
         getSelectedGtOptions,
         setSelectedGtOptions,
-        setGtsAndTracksWithGts,
+        setFilterWithSpotAndGt,
         setTracksForGts,
         setGtsForTracks,
         getSelectedTrackOptions,

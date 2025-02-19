@@ -187,6 +187,9 @@ export class DuckDBClient {
         schema,
         async *readRows(chunkSize = 10000) { // Default chunk size set to 100
           const rows = tbl.toArray().map((r) => Object.fromEntries(r));
+          if(rows.length === 0) {
+            console.warn('SrDuckDb No Chunks? readRows rows.length:', rows.length);
+          }
           for (let i = 0; i < rows.length; i += chunkSize) {
             yield rows.slice(i, i + chunkSize);
           }

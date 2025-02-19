@@ -14,8 +14,7 @@ import { unByKey } from 'ol/Observable';
 import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
-import { getScOrientFromSpotGt } from '@/utils/parmUtils';
-import { getSpotNumber,getGtsForSpotsAndScOrients,getScOrientFromSpotAndGt } from './spotUtils';
+import { getSpotNumber,getGtsForSpotsAndScOrients } from '@/utils/spotUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
@@ -331,34 +330,29 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
-    const cs = useChartStore();
     const gcs = useGlobalChartStore();
     if(d.track !== undefined){ // for atl03
         gcs.setTracks([d.track]); // set to this one track
         gcs.setGtsForTracks(gcs.getTracks());
     }
-    if(d.gt !== undefined){ // for atl06
-        gcs.setGtsAndTracksWithGts([{label:d.gt.toString(), value:d.gt}]);
+    if((d.gt !== undefined) && (d.spot !== undefined)){ // for atl06 or atl08
+        gcs.setFilterWithSpotAndGt(d.spot,d.gt);
+    } else { // atl03
+        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+            const spot = getSpotNumber(d.sc_orient,d.track,d.pair);
+            gcs.setSpots([spot]);
+            const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
+            gcs.setGts(gts);
+        } else {
+            console.error('d.spot or d.gt is undefined when sc_orient and spot are undefined?'); // should always be defined
+        }
     }
+
     if(d.sc_orient !== undefined){
         gcs.setScOrients([d.sc_orient]);
-    } else{
-      const scos = getScOrientFromSpotAndGt(d.spot,d.gt); 
-        gcs.setScOrients([scos]); 
     }
     if(d.pair !== undefined){
         gcs.setPairs([d.pair]);
-    }
-    if(d.spot !== undefined){
-        gcs.setSpots([d.spot]);
-    }
-    if(d.gt !== undefined){
-        gcs.setGts([d.gt]);
-        console.log('Clicked: gts',gcs.getGts());
-    }
-    if((d.gt !== undefined) && (d.spot !== undefined)){
-        gcs.setScOrients([getScOrientFromSpotGt(d.spot,d.gt)]);
-        console.log('Clicked: sc_orient',gcs.getScOrients());
     }
     if(d.rgt !== undefined){
         gcs.setRgt(d.rgt);
@@ -372,17 +366,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     }
     // for atl03
     const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-    if(func.includes('atl03')){
-        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            gcs.setSpots([getSpotNumber(d.sc_orient,d.track,d.pair)]);
-        }
-    }
-    if(d.gt){
-        const parms = gcs.setGtsAndTracksWithGts( [{label:d.gt.toString(), value:d.gt}]);
-    } else {
-        const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
-        gcs.setGts(gts);
-    }
+   
     console.log('Clicked: func',func);
     console.log('Clicked: pair',gcs.getPairs());
     console.log('Clicked: rgt',gcs.getRgt())
