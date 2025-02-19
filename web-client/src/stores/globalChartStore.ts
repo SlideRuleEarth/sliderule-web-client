@@ -130,6 +130,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         const updatedTrackOptions = tracks.map(track => {
             return tracksOptions.find(option => option.value === track) || { label: track.toString(), value: track };
         });
+        selectedTrackOptions.value = updatedTrackOptions;
+        //console.log('setTracks tracks:', tracks, ' selectedTrackOptions:', selectedTrackOptions.value);
     }
 
     function getTracksOptions(): SrListNumberItem[] {

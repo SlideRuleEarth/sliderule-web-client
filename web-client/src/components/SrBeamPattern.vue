@@ -140,7 +140,7 @@ import SrSpotCheckbox from '@/components/SrSpotCheckbox.vue';
 import { computed,watch } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
-import { getGtsForSpotsAndScOrients } from '@/utils/spotUtils';
+import { getGtsForSpotsAndScOrients,getDetailsFromSpotNumber } from '@/utils/spotUtils';
 
 const globalChartStore = useGlobalChartStore();
 
@@ -165,9 +165,51 @@ const handleValueChange = (e: any) => {
     console.log('globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients() );
     const gts = getGtsForSpotsAndScOrients(globalChartStore.selectedSpots, globalChartStore.getScOrients());
     globalChartStore.setGts(gts);
+    let currentTracks = [] as number[];
+    let currentPairs = [] as number[];
+    globalChartStore.setTracks(currentTracks);
+    globalChartStore.setPairs(currentPairs);
+    globalChartStore.selectedSpots.forEach((spot) => {
+        if(globalChartStore.hasScForward){
+            const details = getDetailsFromSpotNumber(spot);
+            console.log('spot:', spot, `Forward details[${SC_FORWARD}]:`, details[SC_FORWARD]);
+            currentTracks = globalChartStore.getTracks();
+            currentTracks.push(details[SC_FORWARD].track);
+            const exists = currentTracks.includes(details[SC_FORWARD].track);
+            if(!exists){
+                currentTracks.push(details[SC_FORWARD].track);
+                globalChartStore.setTracks(currentTracks);
+            }
+            currentPairs = globalChartStore.getPairs();
+            const existsPair = currentPairs.includes(details[SC_FORWARD].pair);
+            if(!existsPair){
+                currentPairs.push(details[SC_FORWARD].pair);
+                globalChartStore.setPairs(currentPairs);
+            }
+        }
+        if(globalChartStore.hasScBackward){
+            const details = getDetailsFromSpotNumber(spot);
+            console.log('spot:', spot, `Backward details[${SC_BACKWARD}]:`, details[SC_BACKWARD]);
+            currentTracks = globalChartStore.getTracks();
+            const exists = currentTracks.includes(details[SC_BACKWARD].track);
+            if(!exists){
+                currentTracks.push(details[SC_BACKWARD].track);
+                globalChartStore.setTracks(currentTracks);
+            }
+            currentPairs = globalChartStore.getPairs();
+            const existsPair = currentPairs.includes(details[SC_BACKWARD].pair);
+            if(!existsPair){
+                currentPairs.push(details[SC_BACKWARD].pair);
+                globalChartStore.setPairs(currentPairs);
+            }
+        }            
+    });
+
 };
 
 watch(() => globalChartStore.selectedSpots, handleValueChange);
+watch(() => globalChartStore.hasScBackward, handleValueChange);
+watch(() => globalChartStore.hasScForward, handleValueChange);
 
 
 </script>

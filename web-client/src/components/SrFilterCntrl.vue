@@ -63,7 +63,7 @@ const computedScOrientLabels = computed(() => {
 });
 
 const highlightedTrackDetails = computed(() => {
-    return `rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} beams:${globalChartStore.getGtLabels()} cycles: ${globalChartStore.getCycles()} sc_orients: ${computedScOrientLabels.value}`;
+    return `cycles: ${globalChartStore.getCycles()} rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} sc_orients: ${computedScOrientLabels.value} beams:${globalChartStore.getGtLabels()} tracks:${globalChartStore.getTracks()} pairs:${globalChartStore.getPairs()}`;
 });
 
 const computedCycleOptions = computed(() => {
