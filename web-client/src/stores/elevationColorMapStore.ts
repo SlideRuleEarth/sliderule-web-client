@@ -21,7 +21,7 @@ export const useElevationColorMapStore = defineStore('elevationColorMap', {
             return this.numShadesForElevation;
         },
         getNumOfElevationShadesOptions() {
-            return [{name:'1024', value:'1024'},{name:'512', value:'512'},{name:'256', value:'256'}];
+            return [{name:'256', value:'256'},{name:'512', value:'512'},{name:'1024', value:'1024'}];
         },
         updateElevationColorMapValues()
         {

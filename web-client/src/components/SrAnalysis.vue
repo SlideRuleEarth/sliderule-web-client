@@ -82,6 +82,7 @@
 
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
+        analysisTabStore.setActiveTab('0');
     });
 </script>
 
