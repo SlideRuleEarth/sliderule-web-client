@@ -890,7 +890,8 @@ fieldset {
 
 .scatter-chart {
     height: 60vh;
-    width: 100%;  margin-bottom: 0.5rem;
+    width: 100%;  
+    margin-bottom: 0.5rem;
     margin-left: 0rem;
     margin-right: 0rem;
     margin-top: 0rem;

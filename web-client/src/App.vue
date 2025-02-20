@@ -157,7 +157,7 @@ const handleVersionButtonClick = () => {
         @record-button-click="recordButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
-		@settings-button-click="settingsButtonClick"
+		    @settings-button-click="settingsButtonClick"
         @version-button-click="handleVersionButtonClick"
       />
     </header>

@@ -44,11 +44,13 @@ const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
 const shouldDisplayGradient = ref(false);
 const gradientDialogStyle = ref<{
+    backgroundColor: string;
     position: string;
     top: string;
     left: string;
     transform?: string; // Optional property
 }>({
+    backgroundColor: 'rgba(255, 255, 255, 0)',
     position: "absolute",
     top: "0px",
     left: "0px",
@@ -102,10 +104,11 @@ const initGradientPosition = () => {
     });
 
     gradientDialogStyle.value = {
-      position: "absolute",
-      top: top, 
-      left: left, 
-      transform: "none" // Remove centering transformation
+        backgroundColor: 'rgba(255, 255, 255, 0)',
+        position: "absolute",
+        top: top, 
+        left: left, 
+        transform: "none" // Remove centering transformation
     };
   } else {
     console.warn('SrScatterPlot initGradientPosition - chartWrapper is null');
@@ -406,6 +409,29 @@ watch(chartWrapperRef, (newValue) => {
   padding: 0rem;
 }
 
+:deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
+    position:absolute;
+    top:50%;
+    left:50%;
+    /* transform: translate(-50%, -50%); */
+    background-color: 'rgba(255, 255, 255, 0)';
+    color: var(--p-text-color);
+    border-radius: var(--p-border-radius);
+    margin: 0rem;
+    border-width: 0px;
+    border-color: transparent;
+}
+
+:deep(.p-dialog-mask .p-dialog-content){
+    margin: 0rem;
+    padding: 0rem;
+}
+
+:deep(.p-dialog-mask .p-dialog-header){
+    margin: 0rem;
+    padding: 0rem;
+}
+
 .time-series-chart{
   height: 60vh;
   margin: 0.5rem;
@@ -541,32 +567,6 @@ watch(chartWrapperRef, (newValue) => {
   /* Or use: display: inline-block; */
   white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
 }
-
-
-:deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
-    position:absolute;
-    top:50%;
-    left:50%;
-    /* transform: translate(-50%, -50%); */
-    background-color: transparent;
-    color: var(--p-text-color);
-    border-radius: var(--p-border-radius);
-    margin: 0rem;
-    border-width: 0px;
-    border-color: transparent;
-}
-
-:deep(.p-dialog-mask .p-dialog-content){
-    margin: 0rem;
-    padding: 0rem;
-}
-
-:deep(.p-dialog-mask .p-dialog-header){
-    margin: 0rem;
-    padding: 0rem;
-}
-
-
 
 .sr-multiselect-container {
     display: flex;
