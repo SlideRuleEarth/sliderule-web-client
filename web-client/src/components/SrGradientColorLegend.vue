@@ -10,10 +10,10 @@
                 <SrMenu 
                     label="Color Map" 
                     labelFontSize="small"
-                    v-model="colorMapStore.selectedGradientColorMapName"
+                    v-model="gradientColorMapStore.selectedGradientColorMapName"
                     :menuOptions="srColorMapNames" 
-                    :getSelectedMenuItem="colorMapStore.getSelectedGradientColorMapName"
-                    :setSelectedMenuItem="colorMapStore.setSelectedGradientColorMapName"
+                    :getSelectedMenuItem="gradientColorMapStore.getSelectedGradientColorMapName"
+                    :setSelectedMenuItem="gradientColorMapStore.setSelectedGradientColorMapName"
                     @update:modelValue="gradientColorMapChanged"
                     tooltipText="Gradient Color Map for scatter plot"
                 />
@@ -29,11 +29,11 @@
 
 import { onMounted } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
-import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
 import Button from 'primevue/button';
 import SrPlotLegendBox from './SrPlotLegendBox.vue';
+import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -50,25 +50,20 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
-const colorMapStore = useColorMapStore();
-
-  
+const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
-    colorMapStore.updateGradientColorMapValues();
-    //console.log('Mounted SrGradientColorCntrl colors:', colorMapStore.getGradientColorMap());
+    console.log('Mounted SrGradientColorLegend');
+    //console.log('Mounted SrGradientColorCntrl colors:', gradientColorMapStore.getGradientColorMap());
 });
 
 const gradientColorMapChanged = () => {
-    colorMapStore.updateGradientColorMapValues();
+    gradientColorMapStore.updateGradientColorMapValues();
     emit('gradient-color-map-changed');
 };
 
 const gradientDefaultsRestored = () => {
-    colorMapStore.restoreDefaultGradientColorMap();
+    gradientColorMapStore.restoreDefaultGradientColorMap();
     emit('restore-gradient-color-defaults-click');
 };
 

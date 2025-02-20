@@ -32,21 +32,21 @@ export interface SrRGBColor {
     b: number;
 }
 
-export const getColorForAtl03CnfValue = (value:number) => { // value is the atl03_cnf value -2 to 4
-    const ndx = value + 2;
-    if(ndx < 0 || ndx > 6){
-        return 'White'; // Return White for invalid values
-    }
-    const c = useColorMapStore().atl03CnfColorMap[ndx];
-    return c;
-};
+// export const getColorForAtl03CnfValue = (value:number) => { // value is the atl03_cnf value -2 to 4
+//     const ndx = value + 2;
+//     if(ndx < 0 || ndx > 6){
+//         return 'White'; // Return White for invalid values
+//     }
+//     const c = useColorMapStore().atl03CnfColorMap[ndx];
+//     return c;
+// };
 
-export const getColorForAtl08ClassValue = (value:number) => { // value is the atl08_class value 0 to 4
-    const ndx = value;
-    if(ndx < 0 || ndx > 4){
-        console.error('getRGBColorForAtl08ClassValue invalid value:',value);
-        return 'White'; // Return White for invalid values
-    }
-    const c = useColorMapStore().atl08ClassColorMap[ndx];
-    return c;
-};
+// export const getColorForAtl08ClassValue = (value:number) => { // value is the atl08_class value 0 to 4
+//     const ndx = value;
+//     if(ndx < 0 || ndx > 4){
+//         console.error('getRGBColorForAtl08ClassValue invalid value:',value);
+//         return 'White'; // Return White for invalid values
+//     }
+//     const c = useColorMapStore().atl08ClassColorMap[ndx];
+//     return c;
+// };

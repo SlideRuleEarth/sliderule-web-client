@@ -129,7 +129,6 @@ onMounted(async () => {
         console.log('SrTimeSeries onMounted',props.startingReqId);
         console.log('SrTimeSeries onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 
-        colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;

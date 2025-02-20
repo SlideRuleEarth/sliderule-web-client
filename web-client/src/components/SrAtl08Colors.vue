@@ -7,7 +7,7 @@
             :collapsed="false" 
         >
             <div  v-for="option in atl08ClassOptions"  :key="option.value" class="legend-item" >
-                <div  class="color-box"  :style="{ backgroundColor: getColorForAtl08ClassValue(option.value) }" ></div>
+                <div  class="color-box"  :style="{ backgroundColor: atl08ClassColorMapStore.getColorForAtl08ClassValue(option.value) }" ></div>
                 <div class="label"> {{ formatLabel(option.label) }} ({{ option.value }}) </div>
             </div>
         </Fieldset>
@@ -17,21 +17,23 @@
 <script setup lang="ts">
 
 import { onMounted, computed } from 'vue';
-import { useColorMapStore } from '@/stores/colorMapStore';
+import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import Fieldset from 'primevue/fieldset';
-import { getColorForAtl08ClassValue } from '@/utils/colorUtils';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
-
-const colorMapStore = useColorMapStore();
-
-onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
     }
 });
+const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqIdStr);
 
-const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
+onMounted(async () => {
+
+});
+
+const atl08ClassOptions = computed(() => atl08ClassColorMapStore.atl08ClassOptions);
 
 
 // Function to format the label

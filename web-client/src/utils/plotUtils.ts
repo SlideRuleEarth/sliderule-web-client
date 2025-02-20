@@ -15,8 +15,9 @@ import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useColorMapStore }  from "@/stores/colorMapStore";
-import { getColorForAtl03CnfValue,getColorForAtl08ClassValue } from '@/utils/colorUtils';
-
+import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
+import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
+import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -136,63 +137,66 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
     });
 }
 
-function createDiscreteColorFunction(
-    getColorFunction: (value: number) => string,
-    ndx_name: string
-){
-    const colorCache: Record<number, string> = {};
-    let ndx: number = -1;
+// function createDiscreteColorFunction(
+//     getColorFunction: (value: number) => string,
+//     ndx_name: string
+// ){
+//     const colorCache: Record<number, string> = {};
+//     let ndx: number = -1;
 
-    const colorFunction = (params: any) => {
-        if (ndx < 0) {
-            ndx = useColorMapStore().getDataOrderNdx[ndx_name];
-        }
-        const value = params.data[ndx];
-        if (colorCache[value] === undefined) {
-            colorCache[value] = getColorFunction(value);
-        }
-        return colorCache[value];
-    };
+//     const colorFunction = (params: any) => {
+//         if (ndx < 0) {
+//             const cms = useGradientColorMapStore(reqIdStr);
+//             ndx = cms.getDataOrderNdx[ndx_name];
+//         }
+//         const value = params.data[ndx];
+//         if (colorCache[value] === undefined) {
+//             colorCache[value] = getColorFunction(value);
+//         }
+//         return colorCache[value];
+//     };
 
-    // Function to clear the cache
-    colorFunction.resetCache = () => {
-        Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
-        ndx = -1; // Reset index so it is recalculated
-        console.log(`Cache for ${ndx_name} reset.`);
-    };
+//     // Function to clear the cache
+//     colorFunction.resetCache = () => {
+//         Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
+//         ndx = -1; // Reset index so it is recalculated
+//         console.log(`Cache for ${ndx_name} reset.`);
+//     };
 
-    return colorFunction;
-}
+//     return colorFunction;
+// }
 
 
-const getAtl03CnfColorCached = createDiscreteColorFunction(
-    getColorForAtl03CnfValue,
-    'atl03_cnf'
-);
+// const getAtl03CnfColorCached = createDiscreteColorFunction(
+//     getColorForAtl03CnfValue,
+//     'atl03_cnf'
+// );
 
-const getAtl08ClassColorCached = createDiscreteColorFunction(
-    getColorForAtl08ClassValue,
-    'atl08_class'
-);
+// const getAtl08ClassColorCached = createDiscreteColorFunction(
+//     getColorForAtl08ClassValue,
+//     'atl08_class'
+// );
 
 //const getColorUsingGradient = colorMapStore.createGradientColorFunction('yapc_score',0,255);
 
-function getColorUsingAtl03_cnf(params: any): string {
-    return getAtl03CnfColorCached(params);
-}
+// function getColorUsingAtl03_cnf(params: any): string {
+//     return getAtl03CnfColorCached(params);
+// }
 
 
-function getColorUsingAtl08_class(params: any): string {
-    return getAtl08ClassColorCached(params);
-}
+// function getColorUsingAtl08_class(params: any): string {
+//     return getAtl08ClassColorCached(params);
+// }
 
-export function resetAtl03CnfColorCaches() {
-    getAtl03CnfColorCached.resetCache();
-}
+// export function resetAtl03CnfColorCaches() {
+//     getAtl03CnfColorCached.resetCache();
+// }
 
-export function resetAlt08ClassColorCaches() {
-    getAtl08ClassColorCached.resetCache();
-}
+// export function resetAlt08ClassColorCaches() {
+//     getAtl08ClassColorCached.resetCache();
+// }
+
+
 interface GetSeriesParams {
     reqIdStr: string;
     fileName: string;
@@ -253,8 +257,10 @@ async function getGenericSeries({
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
-        const colorMapStore = useColorMapStore();
-        colorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
+        const gradientColorMapStore = useGradientColorMapStore(reqIdStr);
+        gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
+        useAtl03CnfColorMapStore(reqIdStr).setDataOrderNdx(rest['dataOrderNdx'] || {});
+        useAtl08ClassColorMapStore(reqIdStr).setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName} ${reqIdStr}: chartData or minMax is empty, skipping processing.`);
             return yItems;
@@ -269,7 +275,7 @@ async function getGenericSeries({
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
                 const minValue = chartStore.getMinValue(reqIdStr, cedk);
                 const maxValue = chartStore.getMaxValue(reqIdStr, cedk);
-                thisColorFunction = colorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
+                thisColorFunction = gradientColorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
             }
             colorFunction = thisColorFunction;
         }
@@ -278,7 +284,7 @@ async function getGenericSeries({
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
         if (y.includes(ySelectedName)) {
-            const yIndex =  useColorMapStore().getDataOrderNdx[ySelectedName];
+            const yIndex =  gradientColorMapStore.getDataOrderNdx()[ySelectedName];
             const data = chartData[reqIdStr].data; // get raw number[][] data
             const min = minMaxValues[ySelectedName]?.min ?? null;
             const max = minMaxValues[ySelectedName]?.max ?? null;
@@ -289,7 +295,7 @@ async function getGenericSeries({
                     name: ySelectedName,
                     type: 'scatter',
                     data: data,
-                    dimensions:[...useColorMapStore().getDimensions], 
+                    dimensions:[...gradientColorMapStore.getDimensions()], 
                     encode: { x: 0, y: yIndex },
                     itemStyle: { color: colorFunction },
                     z: zValue,
@@ -329,6 +335,8 @@ export async function getSeriesForAtl03sp(
 ): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
     const chartStore = useChartStore();
+    const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr);
+    const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr);
     const fetchOptions: FetchScatterDataOptions = {
         normalizeX: false,
         extraSelectColumns: ['segment_dist'],
@@ -377,11 +385,14 @@ export async function getSeriesForAtl03sp(
     const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){
-        thisColorFunction = getColorUsingAtl03_cnf;
+        thisColorFunction = atl03CnfColorMapStore.cachedColorFunction;
+        // test the color function
+        console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+        //const c1 = thisColorFunction({data:[-2]});
     } else if(cedk === 'atl08_class'){
-        thisColorFunction = getColorUsingAtl08_class;
+        thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class;
     }
-
+    console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);   
     return getGenericSeries({
         reqIdStr,
         fileName,
@@ -775,7 +786,7 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-        //console.log(`appendSeries(${reqIdStr}): existing filteredOptions:`, filteredOptions);
+        console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
         if (!seriesData.length) {

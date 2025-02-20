@@ -3,13 +3,13 @@
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
-        <div class="sr-menu-container" v-for="(classValue, index) in colorMapStore.atl08ClassOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: getColorForAtl08ClassValue(classValue.value) }"></div>
+        <div class="sr-menu-container" v-for="(classValue, index) in atl08ClassColorMapStore.atl08ClassOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
             <SrMenu
                 :label="`${classValue.label} (${classValue.value})`"
                 :menuOptions="colorMapStore.getNamedColorPalette()"
-                :setSelectedMenuItem="(color: string) => colorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-                :getSelectedMenuItem="() => getColorForAtl08ClassValue(classValue.value)"
+                :setSelectedMenuItem="(color: string) => atl08ClassColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
+                :getSelectedMenuItem="() => atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value)"
                 @update:modelValue="handleSelectionChanged(classValue.label, $event)"
             />
         </div>
@@ -20,9 +20,18 @@
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
+import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import { getColorForAtl08ClassValue } from '@/utils/colorUtils';
+import { onMounted } from 'vue';
 
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
+
+const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqIdStr);
 const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
@@ -33,13 +42,14 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl08ClassColorMap = () => {
-    colorMapStore.restoreDefaultAtl08ClassColorMap();
+    atl08ClassColorMapStore.restoreDefaultAtl08ClassColorMap();
     emit('defaultsChanged', {});
 };
 
-const onMounted = () => {
+onMounted( () => {
     console.log('SrAtl08ClassColorSelection mounted');
-};
+});
+
 </script>
 
 <style scoped>

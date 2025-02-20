@@ -1,6 +1,8 @@
 <template>
     <div class="sr-legend">
-        <SrAtl08Colors/>
+        <SrAtl08Colors 
+            reqIdStr="reqIdStr"
+        />
         <div class="sr-restore-defaults">
             <Button label="Manage Atl08 Class Colors" @click="showDialog = true" size="small" />
         </div>
@@ -14,6 +16,7 @@
             @hide="onDialogHide"
         >
             <SrAtl08ClassColorSelection
+                :reqIdStr="reqIdStr"
                 @selectionChanged="atl08ClassColorChanged"
                 @defaultsChanged="atl08ClassColorChanged"
             />
@@ -31,25 +34,26 @@ import { useColorMapStore } from '@/stores/colorMapStore';
 import SrAtl08Colors from '@/components/SrAtl08Colors.vue';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
-
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
 const colorMapStore = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
+
 });
 
-const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
-
-
-// Function to format the label
-const formatLabel = (label: string): string => {
-  return label.replace(/^atl08_/, '').replace(/_/g, ' ');
-};
+// const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
+// // Function to format the label
+// const formatLabel = (label: string): string => {
+//   return label.replace(/^atl08_/, '').replace(/_/g, ' ');
+// };
 
 // Emitted when a color changes
 const atl08ClassColorChanged = (event: { label: string; color: string }) => {
