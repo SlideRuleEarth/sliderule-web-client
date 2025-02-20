@@ -374,7 +374,7 @@ watch(chartWrapperRef, (newValue) => {
                                 v-if = "(computedDataKey!='solid')"
                                 :reqIdStr="recTreeStore.selectedReqIdStr" 
                                 :data_key="computedDataKey" 
-                                :transparentBackground="false" 
+                                :transparentBackground="true" 
                             />
                         </template>
                     </Dialog>
