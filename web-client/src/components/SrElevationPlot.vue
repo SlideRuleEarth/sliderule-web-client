@@ -22,6 +22,7 @@ import SrReqDisplay from "./SrReqDisplay.vue";
 import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
+import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { useAnalysisTabStore } from "@/stores/analysisTabStore";
@@ -62,6 +63,18 @@ const gradientDialogStyle = ref<{
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
 
+
+const overlayGradientDialogStyle = ref<{
+    position: string;
+    top: string;
+    left: string;
+    transform?: string; // Optional property
+}>({
+    position: "absolute",
+    top: "0px",
+    left: "0px",
+    transform: "translate(-50%, -50%)" // Initially set, removed on drag
+});
 
 const atl03CnfDialogStyle = ref<{
     position: string;
@@ -183,6 +196,65 @@ const initGradientPosition = () => {
   
 };
 
+
+const initOverlayGradientPosition = () => {
+  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (chartWrapper) {
+    const rect = chartWrapper.getBoundingClientRect();
+    const rect_left = rect.left;
+    const rect_top = rect.top;
+    const rect_right = rect.right;
+    const rect_bottom = rect.bottom;
+    globalChartStore.scrollX = window.scrollX;
+    globalChartStore.scrollY = window.scrollY;
+    const windowScrollX = globalChartStore.scrollX;
+    const windowScrollY = globalChartStore.scrollY;
+    // Convert rem to pixels (1rem = 16px by default)
+    const middleHorizontalOffset = rect.width / 2; // n rem from the left
+    const middleX = rect.left + middleHorizontalOffset;
+    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
+    const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
+    const spaceSize = rect.right - endOfTitle; 
+    const centerOfLegend = endOfTitle + (spaceSize/2);
+    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
+    const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
+    const left = `${leftLegendOffset}px`; 
+
+    const topOffset = 5 * globalChartStore.fontSize; // n rem from the top
+    const top = `${rect.top + topOffset}px`; 
+
+    console.log('SrElevationPlot initOverlayGradientPosition:', {
+        windowScrollX,
+        windowScrollY,
+        fontSize: globalChartStore.fontSize,
+        topOffset,
+        endOfTitle,
+        middleHorizontalOffset,
+        middleX,
+        leftLegendOffset,        
+        assumedTitleWidth,
+        spaceSize,
+        centerOfLegend,    
+        top,
+        left,
+        rect_top,
+        rect_left,
+        rect_right,
+        rect_bottom
+    });
+
+    overlayGradientDialogStyle.value = {
+      position: "absolute",
+      top: top, 
+      left: left, 
+      transform: "none" // Remove centering transformation
+    };
+  } else {
+    console.warn('SrElevationPlot initOverlayGradientPosition - chartWrapper is null');
+  }
+  
+};
+
 const initOverlayLegendPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (chartWrapper) {
@@ -262,16 +334,12 @@ const shouldDisplayAtl03Colors = computed(() => {
 });
 const shouldDisplayAtl08Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl08')){
-        shouldDisplay = true;
-    } else {
-        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-            if(reqIdStr){
-                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
-            }
+    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+        if(reqIdStr){
+            shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
         }
-    }
+    }   
     return shouldDisplay;
 });
 
@@ -279,10 +347,34 @@ const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
-const shouldDisplayGradient = computed(() => {
-    return ((computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03')));
+const shouldDisplayMainGradient = computed(() => {
+    let shouldDisplay = false;
+    if((computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
+        shouldDisplay = true;
+    }
+    return shouldDisplay;
 });
 
+const overlayReqIdStr = computed(() => {
+    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+        return atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+    }
+    return '';
+});
+
+const computedOverlayDataKey = computed(() => {
+    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+        if(reqIdStr){
+            return chartStore.getSelectedColorEncodeData(reqIdStr);
+        }
+    }
+    return '';
+});
+
+const shouldDisplayOverlayGradient =computed(() => {
+    return (computedOverlayDataKey.value!='atl03_cnf') && (computedOverlayDataKey.value!='atl08_class');
+});
 
 const filterGood = computed(() => {
     return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgt()>=0) && (globalChartStore.getSpots().length === 1));
@@ -339,6 +431,7 @@ onMounted(async () => {
         //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
         await nextTick(); // Ensures Vue has completed the DOM rendering
         initGradientPosition();
+        initOverlayGradientPosition();
         initOverlayLegendPosition();
         //console.log('SrElevationPlot onMounted completed');
     } catch (error) {
@@ -372,6 +465,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
         nextTick(initGradientPosition); // Ensure DOM updates before repositioning
+        nextTick(initOverlayGradientPosition); // Ensure DOM updates before repositioning
         nextTick(initOverlayLegendPosition); // Ensure DOM updates before repositioning
     }
 });
@@ -528,7 +622,7 @@ watch(chartWrapperRef, (newValue) => {
                 />
                 <Dialog
                     v-if="(chartWrapper !== null)"
-                    v-model:visible="shouldDisplayGradient"
+                    v-model:visible="shouldDisplayMainGradient"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
@@ -539,14 +633,34 @@ watch(chartWrapperRef, (newValue) => {
                     <template #header>
                         <SrPlotLegendBox
                             class="chart-overlay"
-                            v-if = shouldDisplayGradient
+                            v-if = shouldDisplayMainGradient
                             :reqIdStr="recTreeStore.selectedReqIdStr" 
                             :data_key="computedDataKey" 
                             :transparentBackground="true" 
                         />
                     </template>
                 </Dialog>
-                <!-- <Dialog
+                <Dialog
+                    v-if="(chartWrapper !== null)"
+                    v-model:visible="shouldDisplayOverlayGradient"
+                    :closable="false"
+                    :draggable="true"
+                    :modal="false"
+                    class="sr-floating-dialog"
+                    :appendTo="chartWrapper"
+                    :style="overlayGradientDialogStyle"
+                >
+                    <template #header>
+                        <SrPlotLegendBox
+                            class="chart-overlay"
+                            v-if = shouldDisplayOverlayGradient
+                            :reqIdStr="overlayReqIdStr" 
+                            :data_key="computedOverlayDataKey" 
+                            :transparentBackground="true" 
+                        />
+                    </template>
+                </Dialog>
+                <Dialog
                     v-model:visible="shouldDisplayAtl08Colors"
                     :closable="false"
                     :draggable="true"
@@ -556,13 +670,13 @@ watch(chartWrapperRef, (newValue) => {
                     :style="atl08DialogStyle"
                     >
                     <template #header>
-                        <SrAlt08Colors  
+                        <SrAtl08Colors  
                             :reqIdStr="recTreeStore.selectedReqIdStr" 
                             class="chart-overlay"
                             v-if="shouldDisplayAtl08Colors"
                         />
                     </template> 
-                </Dialog> -->
+                </Dialog>
                 <Dialog
                     v-model:visible="shouldDisplayAtl03Colors"
                     :closable="false"

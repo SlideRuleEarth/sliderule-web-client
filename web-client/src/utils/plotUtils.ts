@@ -387,12 +387,12 @@ export async function getSeriesForAtl03sp(
     if(cedk === 'atl03_cnf'){
         thisColorFunction = atl03CnfColorMapStore.cachedColorFunction;
         // test the color function
-        console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+        //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
         //const c1 = thisColorFunction({data:[-2]});
     } else if(cedk === 'atl08_class'){
         thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class;
     }
-    console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);   
+    //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);   
     return getGenericSeries({
         reqIdStr,
         fileName,
@@ -786,7 +786,7 @@ async function appendSeries(reqId: number): Promise<void> {
         // Retrieve existing options from the chart
         const existingOptions = chart.getOption() as EChartsOption;
         const filteredOptions = removeUnusedOptions(existingOptions);
-        console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
+        //console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr);
         if (!seriesData.length) {
@@ -982,12 +982,12 @@ async function appendSeries(reqId: number): Promise<void> {
   
 export const addOverlaysToScatterPlot = async (msg:string) => {
     const startTime = performance.now();
-    console.log(`addOverlaysToScatterPlot for: ${msg}`);
+    //console.log(`addOverlaysToScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
     const plotRef = useAtlChartFilterStore().getPlotRef();
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
-        console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
+        //console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
         reqIds.forEach(async reqId => { 
             if(reqId > 0){
                 await updateWhereClauseAndXData(reqId);
@@ -1004,7 +1004,7 @@ export const addOverlaysToScatterPlot = async (msg:string) => {
 }
 
 const refreshScatterPlot = async (msg:string) => {
-    console.log(`refreshScatterPlot ${msg}`);
+    //console.log(`refreshScatterPlot ${msg}`);
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -1038,7 +1038,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){ // Use the cached request
             runContext.reqId = reqId;
-            console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
+            //console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
@@ -1049,7 +1049,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 }
 
 async function updatePlotAndSelectedTrackMapLayer(msg:string){
-    console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
+    //console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();
     if( (globalChartStore.getRgt() >= 0) &&
@@ -1125,7 +1125,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
 }
 
 export async function updateWhereClauseAndXData(req_id: number) {
-    console.log('updateWhereClauseAndXData req_id:', req_id);
+    //console.log('updateWhereClauseAndXData req_id:', req_id);
     const reqIdStr = req_id.toString();
     if (req_id <= 0) {
         console.warn(`updateWhereClauseAndXData Invalid request ID:${req_id}`);
