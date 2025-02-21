@@ -185,18 +185,18 @@
             const geometry = boxFeature.getGeometry();
             //console.log("geometry:",geometry);
             if(geometry){
-            //console.log("geometry.getType():",geometry.getType());
-            // Get the coordinates of the polygon shaped as a rectangle
-            mapStore.polyCoords = geometry.getCoordinates();
-            if(mapRef.value?.map){
-                enableTagDisplay(mapRef.value?.map,vectorSource);
+                //console.log("geometry.getType():",geometry.getType());
+                // Get the coordinates of the polygon shaped as a rectangle
+                mapStore.polyCoords = geometry.getCoordinates();
+                if(mapRef.value?.map){
+                    enableTagDisplay(mapRef.value?.map,vectorSource);
+                } else {
+                    console.error("ragBox.on boxend Error:map is null");
+                }
+                //console.log(`polyCoords:${mapStore.polyCoords}`);
+                checkAreaOfConvexHullWarning(); 
             } else {
-                console.error("ragBox.on boxend Error:map is null");
-            }
-            //console.log(`polyCoords:${mapStore.polyCoords}`);
-            checkAreaOfConvexHullWarning(); 
-            } else {
-            console.error("dragBox.on boxend Error:geometry is null?");
+                console.error("dragBox.on boxend Error:geometry is null?");
             }
         } else {
             console.error("dragBox.on boxend Error:vectorSource is null?");
