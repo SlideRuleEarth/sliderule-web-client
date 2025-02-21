@@ -26,7 +26,7 @@
     flex-basis: 25%;
     flex-direction: column;
     align-items: center;
-    min-width: 30rem; /* Default for larger screens */
+    min-width: 23rem; /* Default for larger screens */
     margin-right: 1rem;
     margin-left: 1rem;
     overflow-x: auto;

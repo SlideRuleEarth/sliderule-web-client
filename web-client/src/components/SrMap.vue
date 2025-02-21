@@ -723,7 +723,7 @@
     min-height: 15rem; 
     border-radius: var(--p-border-radius); 
     width: 70vw; 
-    height: 90vh; 
+    height: 88vh; 
     overflow: hidden; 
 }
 

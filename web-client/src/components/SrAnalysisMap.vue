@@ -195,7 +195,7 @@
             :loadTilesWhileAnimating="true"
             :loadTilesWhileInteracting="true"
             :controls="controls"
-            class="sr-ol-map"
+            class="sr-ol-analysis-map"
         >
 
             <MapControls.OlZoomControl  />
@@ -314,7 +314,7 @@
     background-color: rgba(255, 255, 255, 0.95);
 } */
 
-:deep(.sr-ol-map) {
+:deep(.sr-ol-analysis-map) {
     min-width: 15rem; 
     min-height: 15rem; 
     border-radius: var(--p-border-radius); 
