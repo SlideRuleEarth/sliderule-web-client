@@ -373,7 +373,9 @@ const computedOverlayDataKey = computed(() => {
 });
 
 const shouldDisplayOverlayGradient =computed(() => {
-    return (computedOverlayDataKey.value!='atl03_cnf') && (computedOverlayDataKey.value!='atl08_class');
+    return (atlChartFilterStore.selectedOverlayedReqIds.length > 0) &&
+            (computedOverlayDataKey.value!='atl03_cnf') && 
+            (computedOverlayDataKey.value!='atl08_class');
 });
 
 const filterGood = computed(() => {
