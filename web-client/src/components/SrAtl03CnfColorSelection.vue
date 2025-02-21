@@ -1,5 +1,5 @@
 <template>
-    <Fieldset legend="Atl03 Confidence Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
+    <Fieldset v-if="atl03CnfColorMapStore" legend="Atl03 Confidence Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl03CnfColorMap" />
         </div>
@@ -14,10 +14,13 @@
             />
         </div>
     </Fieldset>
+    <div v-else>
+        Loading atl03CnfColorMap...
+    </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
@@ -32,11 +35,12 @@ const props = defineProps({
 });
 
 const colorMapStore = useColorMapStore();
-const atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqIdStr);
+let atl03CnfColorMapStore = ref<any>(null);
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
 // Initialize the store
 onMounted(async () => {
+    atl03CnfColorMapStore.value = await useAtl03CnfColorMapStore(props.reqIdStr);
 });
 
 // Handle menu selection changes
@@ -45,8 +49,12 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl03CnfColorMap = () => {
-    atl03CnfColorMapStore.restoreDefaultAtl03CnfColorMap();
-    emit('defaultsChanged', {});
+    if(atl03CnfColorMapStore.value){
+        atl03CnfColorMapStore.value.restoreDefaultAtl03CnfColorMap();
+        emit('defaultsChanged', {});
+    } else {
+        console.error('atl03CnfColorMapStore is not initialized');
+    }
 };
 </script>
 

@@ -111,11 +111,10 @@ import Fieldset  from 'primevue/fieldset';
 import Chip from 'primevue/chip';
 import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
@@ -137,13 +136,11 @@ const props = withDefaults(
         isOverlay: false,
     }
 );
-
+let atl03CnfColorMapStore: any;
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
-const gradientColorMapStore = useGradientColorMapStore(props.reqId.toString());
-const atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqId.toString());
-const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqId.toString());
+const atl08ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
 const analysisTabStore = useAnalysisTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
@@ -214,7 +211,9 @@ const shouldDisplayColorEncode = computed(() => {
     }
 });
 
-onMounted(() => {
+onMounted(async () => {
+    atl03CnfColorMapStore = await useAtl03CnfColorMapStore(props.reqId.toString());
+    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
     console.log('computedFunc:', computedFunc.value);
@@ -231,7 +230,7 @@ async function restoreAtl03DefaultColorsAndUpdatePlot() {
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl08DefaultColorsAndUpdatePlot');
-    await atl08ClassColorMapStore.restoreDefaultAtl08ClassColorMap();
+    await atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
 
@@ -286,7 +285,7 @@ const handleAtl03CnfColorChanged = async () => {
 
 const handleAtl08ClassColorChanged = async () => {
     console.log('handleAtl08ClassColorChanged');
-    atl08ClassColorMapStore.resetAtl08ClassColorCaches();
+    atl08ClassColorMapStore.value?.resetAtl08ClassColorCaches();
     await callPlotUpdateDebounced('from handleAtl08ClassColorChanged');
 };
 

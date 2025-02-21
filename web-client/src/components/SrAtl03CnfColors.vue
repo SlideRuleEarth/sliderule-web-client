@@ -1,5 +1,5 @@
 <template>
-    <div class="sr-legend-box">
+    <div class="sr-legend-box" v-if="atl03CnfColorMapStore">
         <Fieldset
             class="sr-lb-fieldset"
             legend="Atl03 Cnf Colors"
@@ -12,10 +12,13 @@
             </div>
         </Fieldset>  
     </div>
+    <div v-else>
+        Loading atl03CnfColorMap...
+    </div>
 </template>
   
 <script setup lang="ts">
-import { onMounted, computed, watch } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import Fieldset from 'primevue/fieldset';
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
 
@@ -27,18 +30,19 @@ const props = defineProps({
     }
 });
 
-const atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqIdStr);
+const atl03CnfColorMapStore = ref<any>(null);
 
 onMounted(async () => {
     // Any initialization logic can go here
+    atl03CnfColorMapStore.value = await useAtl03CnfColorMapStore(props.reqIdStr);
 });
 
 // Reactive options computed from the store
-const atl03CnfOptions = computed(() => atl03CnfColorMapStore.atl03CnfOptions);
+const atl03CnfOptions = computed(() => atl03CnfColorMapStore.value.atl03CnfOptions);
 
 // Watch for changes in the color map and trigger reactivity
 watch(
-    () => atl03CnfColorMapStore.atl03CnfColorMap, 
+    () => atl03CnfColorMapStore.value?.atl03CnfColorMap, 
     (newMap, oldMap) => {
         // Emit an event or trigger any logic when the color map changes
         emit('atl03CnfColorChanged', newMap);

@@ -1,5 +1,5 @@
 <template>
-    <div class="sr-legend">
+    <div class="sr-legend" v-if="gradientColorMapStore">
         <Fieldset
             class="sr-legend-box"
             :legend='props.label'
@@ -21,13 +21,13 @@
             <SrPlotLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
         <Button class="sr-legend-restore-btn" size="small" label="Restore Defaults" @click="gradientDefaultsRestored" />
-
     </div>
+    <div v-else>Loading gradient color map...</div>
 </template>
   
 <script setup lang="ts">
 
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
@@ -50,23 +50,25 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
-const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
+
+// Initialize the store without awaiting directly
+const gradientColorMapStore = ref<any>(null);
 
 onMounted(async () => {
-    console.log('Mounted SrGradientColorLegend');
-    //console.log('Mounted SrGradientColorCntrl colors:', gradientColorMapStore.getGradientColorMap());
+    // Await the asynchronous store initialization after mounting
+    gradientColorMapStore.value = await useGradientColorMapStore(props.req_id.toString());
+    console.log('Mounted SrGradientColorLegend with store:', gradientColorMapStore.value);
 });
 
 const gradientColorMapChanged = () => {
-    gradientColorMapStore.updateGradientColorMapValues();
+    gradientColorMapStore.value?.updateGradientColorMapValues();
     emit('gradient-color-map-changed');
 };
 
 const gradientDefaultsRestored = () => {
-    gradientColorMapStore.restoreDefaultGradientColorMap();
+    gradientColorMapStore.value?.restoreDefaultGradientColorMap();
     emit('restore-gradient-color-defaults-click');
 };
-
 
 </script>
   

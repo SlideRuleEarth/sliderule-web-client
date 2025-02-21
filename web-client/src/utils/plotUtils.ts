@@ -14,7 +14,6 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
-import { useColorMapStore }  from "@/stores/colorMapStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
@@ -257,10 +256,12 @@ async function getGenericSeries({
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
-        const gradientColorMapStore = useGradientColorMapStore(reqIdStr);
+        const gradientColorMapStore = await useGradientColorMapStore(reqIdStr);
         gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
-        useAtl03CnfColorMapStore(reqIdStr).setDataOrderNdx(rest['dataOrderNdx'] || {});
-        useAtl08ClassColorMapStore(reqIdStr).setDataOrderNdx(rest['dataOrderNdx'] || {});
+        const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
+        atl03CnfColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
+        const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr);
+        atl08ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName} ${reqIdStr}: chartData or minMax is empty, skipping processing.`);
             return yItems;
@@ -335,8 +336,8 @@ export async function getSeriesForAtl03sp(
 ): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
     const chartStore = useChartStore();
-    const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr);
-    const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr);
+    const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
+    const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr);
     const fetchOptions: FetchScatterDataOptions = {
         normalizeX: false,
         extraSelectColumns: ['segment_dist'],
@@ -473,7 +474,7 @@ export function clearPlot() {
     if (plotRef) {
         if(plotRef.chart){
             plotRef.chart.clear();
-            //console.log('clearPlot: plotRef.chart cleared');
+            console.log('clearPlot: plotRef.chart cleared');
         } else {
             console.warn('clearPlot: plotRef.chart is undefined');
         }

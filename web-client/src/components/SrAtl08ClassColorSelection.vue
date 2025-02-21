@@ -1,5 +1,5 @@
 <template>
-    <Fieldset legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
+    <Fieldset v-if="atl08ClassColorMapStore" legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
@@ -14,6 +14,9 @@
             />
         </div>
     </Fieldset>
+    <div v-else>
+        Loading atl08ClassColorMap...
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -22,7 +25,7 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 
 const props = defineProps({
     reqIdStr: {
@@ -31,7 +34,7 @@ const props = defineProps({
     }
 });
 
-const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqIdStr);
+const atl08ClassColorMapStore = ref<any>(null);
 const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
@@ -42,12 +45,13 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl08ClassColorMap = () => {
-    atl08ClassColorMapStore.restoreDefaultAtl08ClassColorMap();
+    atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     emit('defaultsChanged', {});
 };
 
-onMounted( () => {
+onMounted( async () => {
     console.log('SrAtl08ClassColorSelection mounted');
+    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr);
 });
 
 </script>

@@ -1,15 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
-import { debug } from 'console';
-import { reset } from 'ol/transform';
-import { at } from 'lodash';
+
 
 /**
  * Factory function to create a unique store instance per reqId
  */
-export function useAtl03CnfColorMapStore(reqIdStr: string) {
-    return defineStore(`atl03CnfStore-${reqIdStr}`, () => {
+export async function useAtl03CnfColorMapStore(reqIdStr: string) {
+    const store = defineStore(`atl03CnfStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
         let debugCnt = 0;
         let dataOrderNdx = {} as Record<string, number>;
@@ -30,8 +28,6 @@ export function useAtl03CnfColorMapStore(reqIdStr: string) {
             isInitialized.value = true;
             atl03CnfColorMap.value = await db.getAllAtl03CnfColors();
         }
-
-        initializeColorMapStore();
 
         function getDimensions(): string[] {
             return Object.keys(dataOrderNdx).sort((a, b) => {
@@ -113,6 +109,9 @@ export function useAtl03CnfColorMapStore(reqIdStr: string) {
             resetColorCache,
             atl03CnfOptions,
             atl03CnfColorMap,
+            initializeColorMapStore,
         };
     })();
+    await store.initializeColorMapStore();
+    return store;
 }

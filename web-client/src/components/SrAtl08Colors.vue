@@ -16,7 +16,7 @@
   
 <script setup lang="ts">
 
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import Fieldset from 'primevue/fieldset';
 
@@ -27,13 +27,13 @@ const props = defineProps({
         required: true
     }
 });
-const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqIdStr);
+const atl08ClassColorMapStore = ref<any>(null);
 
 onMounted(async () => {
-
+    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr);
 });
 
-const atl08ClassOptions = computed(() => atl08ClassColorMapStore.atl08ClassOptions);
+const atl08ClassOptions = computed(() => atl08ClassColorMapStore.value?.atl08ClassOptions);
 
 
 // Function to format the label

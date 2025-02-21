@@ -2,12 +2,11 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
 
-
 /**
  * Factory function to create a unique store instance per reqId
  */
-export function useAtl08ClassColorMapStore(reqIdStr: string) {
-    return defineStore(`atl08ClassStore-${reqIdStr}`, () => {
+export async function useAtl08ClassColorMapStore(reqIdStr: string) {
+    const store = defineStore(`atl08ClassStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
         const dataOrderNdx =  ref<Record<string, number>>({});
         const atl08ClassColorMap = ref([] as string[]);
@@ -23,8 +22,7 @@ export function useAtl08ClassColorMapStore(reqIdStr: string) {
             isInitialized.value = true;
             atl08ClassColorMap.value = await db.getAllAtl08ClassColors();
         }
-        
-        initializeColorMapStore();
+
 
         function getDimensions(): string[] {
             return Object.keys(dataOrderNdx.value).sort((a, b) => {
@@ -118,6 +116,11 @@ export function useAtl08ClassColorMapStore(reqIdStr: string) {
             setColorForAtl08ClassValue,
             getColorForAtl08ClassValue,
             atl08ClassOptions,
+            initializeColorMapStore,
         };
     })();
+
+    await store.initializeColorMapStore();
+    return store;
+
 }
