@@ -256,7 +256,7 @@ async function getGenericSeries({
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
-        const gradientColorMapStore = await useGradientColorMapStore(reqIdStr);
+        const gradientColorMapStore = useGradientColorMapStore(reqIdStr);
         gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
         atl03CnfColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});

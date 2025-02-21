@@ -34,6 +34,7 @@ import SrMenu from './SrMenu.vue';
 import Button from 'primevue/button';
 import SrPlotLegendBox from './SrPlotLegendBox.vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { use } from 'echarts';
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -52,21 +53,20 @@ const props = withDefaults(
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
 
 // Initialize the store without awaiting directly
-const gradientColorMapStore = ref<any>(null);
+const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
 
 onMounted(async () => {
     // Await the asynchronous store initialization after mounting
-    gradientColorMapStore.value = await useGradientColorMapStore(props.req_id.toString());
-    console.log('Mounted SrGradientColorLegend with store:', gradientColorMapStore.value);
+    console.log('Mounted SrGradientColorLegend with store:', gradientColorMapStore);
 });
 
 const gradientColorMapChanged = () => {
-    gradientColorMapStore.value?.updateGradientColorMapValues();
+    gradientColorMapStore.updateGradientColorMapValues();
     emit('gradient-color-map-changed');
 };
 
-const gradientDefaultsRestored = () => {
-    gradientColorMapStore.value?.restoreDefaultGradientColorMap();
+const gradientDefaultsRestored = async () => {
+    await gradientColorMapStore.restoreDefaultGradientColorMap();
     emit('restore-gradient-color-defaults-click');
 };
 

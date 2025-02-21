@@ -2,12 +2,11 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
 import colormap  from 'colormap';
-import { init } from '@/sliderule/core';
 
 /**
  * Factory function to create a unique store instance per reqId
  */
-export async function useGradientColorMapStore(reqIdStr: string) {
+export function useGradientColorMapStore(reqIdStr: string) {
     const store = defineStore(`gradientColorMapStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
         const selectedGradientColorMapName = ref('viridis');
@@ -15,33 +14,30 @@ export async function useGradientColorMapStore(reqIdStr: string) {
         const gradientColorMap = ref<string[]>([]);
         let dataOrderNdx = {} as Record<string, number>;
         let debugCnt = 0;
-        async function initializeColorMapStore() {
-            //console.log('gradientColorMapStore initializeColorMapStore isInitialized:',isInitialized.value);
+        function initializeColorMapStore() {
+            console.log('gradientColorMapStore initializeColorMapStore isInitialized:',isInitialized.value);
             isInitialized.value = true;
-            const plotConfig = await db.getPlotConfig();
-            if(plotConfig){
-                selectedGradientColorMapName.value = plotConfig.defaultGradientColorMapName;
-                numShadesForGradient.value = plotConfig.defaultGradientNumShades;
-            }
-            await updateGradientColorMapValues();
+            updateGradientColorMapValues();
         }
         function setSelectedGradientColorMapName(gradientColorMap: string):void {
             //console.log('setSelectedGradientColorMapName:',gradientColorMap);
             selectedGradientColorMapName.value = gradientColorMap;
+            updateGradientColorMapValues();
         }
 
         function getSelectedGradientColorMapName():string {
-            //console.log('getSelectedGradientColorMapName:',selectedGradientColorMapName.value);
+            console.log('getSelectedGradientColorMapName:',selectedGradientColorMapName.value);
             return selectedGradientColorMapName.value;
         }
 
         function setNumShadesForGradient(numShades: number) {
-            //console.log('setNumShadesForGradient:',numShades);
+            console.log('setNumShadesForGradient:',numShades);
             numShadesForGradient.value = Math.max(numShades, 10); //at least 10 shades
+            updateGradientColorMapValues();
         }
 
         function getNumShadesForGradient():number {
-            //console.log('getNumShadesForGradient:',numShadesForGradient.value);
+            console.log('getNumShadesForGradient:',numShadesForGradient.value);
             return numShadesForGradient.value;
         }
 
@@ -62,11 +58,11 @@ export async function useGradientColorMapStore(reqIdStr: string) {
               console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
               throw error;
             }
-            //console.log(`updateGradientColorMapValues ${reqIdStr}:`,gradientColorMap.value);
+            console.log(`updateGradientColorMapValues ${reqIdStr}:`,selectedGradientColorMapName.value,numShadesForGradient.value);
         }
 
         function getGradientColorMap():string[] {
-            //console.log(`updateGradientColorMapValues ${reqIdStr}:`,gradientColorMap.value);
+            //console.log(`getGradientColorMap ${reqIdStr}:`,gradientColorMap.value);
             return gradientColorMap.value;
         }
 
@@ -131,7 +127,7 @@ export async function useGradientColorMapStore(reqIdStr: string) {
                 selectedGradientColorMapName.value = plotConfig.defaultGradientColorMapName;
                 numShadesForGradient.value = plotConfig.defaultGradientNumShades;
             } else {
-                console.error(`updateGradientColorMapValues ${reqIdStr}: restoreDefaultGradientColorMap no plotConfig`);
+                console.error(`getGradientColorMap ${reqIdStr}: restoreDefaultGradientColorMap no plotConfig`);
             }
         }
 
@@ -163,6 +159,6 @@ export async function useGradientColorMapStore(reqIdStr: string) {
             initializeColorMapStore,
         };
     })();
-    await store.initializeColorMapStore();
+    store.initializeColorMapStore();
     return store;
 }
