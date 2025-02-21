@@ -549,7 +549,7 @@ watch(chartWrapperRef, (newValue) => {
                         />
                     </template>
                 </Dialog>
-                <Dialog
+                <!-- <Dialog
                     v-model:visible="shouldDisplayAtl08Colors"
                     :closable="false"
                     :draggable="true"
@@ -565,7 +565,7 @@ watch(chartWrapperRef, (newValue) => {
                             v-if="shouldDisplayAtl08Colors"
                         />
                     </template> 
-                </Dialog>
+                </Dialog> -->
                 <Dialog
                     v-model:visible="shouldDisplayAtl03Colors"
                     :closable="false"
