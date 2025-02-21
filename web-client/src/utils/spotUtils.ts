@@ -231,7 +231,7 @@ export function createWhereClause(reqId:number){
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
+    //console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
     return whereStr;
 }
 
@@ -315,6 +315,6 @@ export function getGtsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
     if(spots.includes(SPOT_6) && sc_orients.includes(SC_FORWARD)){
         gts.push(GT1L);
     }
-    console.log('getGtsForSpotsAndScOrients: spots:', spots, 'sc_orients:', sc_orients, 'gts:', gts);
+    //console.log('getGtsForSpotsAndScOrients: spots:', spots, 'sc_orients:', sc_orients, 'gts:', gts);
     return gts;
 }

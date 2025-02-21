@@ -57,13 +57,13 @@ export function useAtl03CnfColorMapStore(reqIdStr: string) {
             const value = params.data[ndx];//grab the atl03_cnf value from the data array using the dataOrderNdx
             if (colorCache[value] === undefined) {
                 colorCache[value] = getColorForAtl03CnfValue(value);
-                if(debugCnt<10){
-                    console.log('cachedColorFunction :','ndx:',ndx,'value:',value,'colorCache:',colorCache);
-                }
+                // if(debugCnt<10){
+                //     console.log('cachedColorFunction :','ndx:',ndx,'value:',value,'colorCache:',colorCache);
+                // }
             }
-            if(debugCnt++<10){
-                console.log('cachedColorFunction params:',params,'ndx:',ndx,'value:',value,'colorCache:',colorCache);
-            }
+            // if(debugCnt++<10){
+            //     console.log('cachedColorFunction params:',params,'ndx:',ndx,'value:',value,'colorCache:',colorCache);
+            // }
             return colorCache[value];
         };
 
@@ -95,7 +95,7 @@ export function useAtl03CnfColorMapStore(reqIdStr: string) {
         }
 
         function resetColorCache() {
-            debugCnt = 0;
+            //debugCnt = 0;
             Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
             ndx = -1; // Reset index so it is recalculated
             console.log(`Cache for atl03_cnf reset.`);

@@ -104,7 +104,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
-                console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                //console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
                 //console.trace('Call stack for getMinValue()');
                 return 0;
             }
@@ -114,7 +114,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
-                console.log('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                //console.log('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
                 return 0;
             }
         },

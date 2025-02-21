@@ -864,7 +864,7 @@ export async function fetchScatterData(
     normalizedMinMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
 }> {
-    console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
+    //console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
     // Ensure 'time' is in the y array
     if (!y.includes('time')) {
         y = [...y, 'time'];
@@ -998,10 +998,10 @@ export async function fetchScatterData(
          * 5. For each row, produce an array [ xVal, yVal1, yVal2, ..., extras ]
          *    and push it into chartData[reqIdStr].data
          */
-        console.log('fetchScatterData mainQuery:', mainQuery);
+        //console.log('fetchScatterData mainQuery:', mainQuery);
         for await (const rowChunk of queryResultMain.readRows()) {
-            console.log('fetchScatterData rowChunk:', rowChunk);
-            console.log('fetchScatterData transformRow:', transformRow);
+            //console.log('fetchScatterData rowChunk:', rowChunk);
+            //console.log('fetchScatterData transformRow:', transformRow);
             for (const row of rowChunk) {
                 if (!row) {
                     console.warn('fetchScatterData: rowData is null in main query');
@@ -1061,10 +1061,10 @@ export async function fetchScatterData(
         }
 
         useChartStore().setXLegend(reqIdStr, `${x} (normalized) - Meters`);
-        console.log('fetchScatterData chartData:', chartData);
-        console.log('fetchScatterData minMaxValues:', minMaxValues);
-        console.log('fetchScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
-        console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
+        //console.log('fetchScatterData chartData:', chartData);
+        //console.log('fetchScatterData minMaxValues:', minMaxValues);
+        //console.log('fetchScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
+        //console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
         return { chartData, minMaxValues, normalizedMinMaxValues, dataOrderNdx };
 
     } catch (error) {
