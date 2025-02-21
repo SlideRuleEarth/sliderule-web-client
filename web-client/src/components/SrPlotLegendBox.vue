@@ -1,5 +1,5 @@
 <template>
-  <div
+  <div v-if=(computedDisplayGradient)
     class="sr-legend-box"
     :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }"
   >
@@ -39,6 +39,10 @@ const props = withDefaults(
 
 const chartStore = useChartStore();
 const gradientColorMapStore = useGradientColorMapStore(props.reqIdStr);
+
+const computedDisplayGradient = computed(() => {
+  return (  chartStore.getMinValue(props.reqIdStr, props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr, props.data_key) !== null);
+});
 
 const emit = defineEmits(['legendbox-created', 'picked-changed']);
 const gradientStyle = computed(() => {

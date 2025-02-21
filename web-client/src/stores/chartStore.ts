@@ -101,7 +101,7 @@ export const useChartStore = defineStore('chartStore', {
         },
         getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            if(this.stateByReqId[reqIdStr].minMaxValues[key]){
+            if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
                 //console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
@@ -111,7 +111,7 @@ export const useChartStore = defineStore('chartStore', {
         },
         getMaxValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
-            if(this.stateByReqId[reqIdStr].minMaxValues[key]){
+            if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
                 //console.log('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
