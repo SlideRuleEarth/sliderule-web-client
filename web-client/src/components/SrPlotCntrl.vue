@@ -37,12 +37,14 @@
                     </OverlayBadge>
                 </div>
                 <div class="sr-legend-panel">
-                    <SrAtl03ColorLegend 
+                    <SrAtl03ColorLegend
+                        reqIdStr="reqIdStr" 
                         v-if="shouldDisplayAtl03ColorLegend" 
                         @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
                         @atl03-cnf-color-changed="handleAtl03CnfColorChanged"
                     />
                     <SrAtl08ColorLegend 
+                        reqIdStr="reqIdStr"
                         v-if="shouldDisplayAtl08ColorLegend"
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot" 
                         @atl08-class-color-changed="handleAtl08ClassColorChanged" 
@@ -109,9 +111,12 @@ import Fieldset  from 'primevue/fieldset';
 import Chip from 'primevue/chip';
 import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
+import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
+import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
 import { computed, onMounted } from 'vue';
-import { callPlotUpdateDebounced,resetAlt08ClassColorCaches,resetAtl03CnfColorCaches } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
 import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
@@ -136,6 +141,9 @@ const props = withDefaults(
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
+const gradientColorMapStore = useGradientColorMapStore(props.reqId.toString());
+const atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqId.toString());
+const atl08ClassColorMapStore = useAtl08ClassColorMapStore(props.reqId.toString());
 const recTreeStore = useRecTreeStore();
 const analysisTabStore = useAnalysisTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
@@ -217,13 +225,13 @@ onMounted(() => {
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl03DefaultColorsAndUpdatePlot');
-    await colorMapStore.restoreDefaultAtl03CnfColorMap();
+    await atl03CnfColorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl08DefaultColorsAndUpdatePlot');
-    await colorMapStore.restoreDefaultAtl08ClassColorMap();
+    await atl08ClassColorMapStore.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
 
@@ -272,13 +280,13 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
 
 const handleAtl03CnfColorChanged = async () => {
     console.log('handleAtl03CnfColorChanged');
-    resetAtl03CnfColorCaches();
+    atl03CnfColorMapStore.resetColorCache();
     await callPlotUpdateDebounced('from handleAtl03CnfColorChanged');
 };
 
 const handleAtl08ClassColorChanged = async () => {
     console.log('handleAtl08ClassColorChanged');
-    resetAlt08ClassColorCaches();
+    atl08ClassColorMapStore.resetAtl08ClassColorCaches();
     await callPlotUpdateDebounced('from handleAtl08ClassColorChanged');
 };
 

@@ -20,20 +20,6 @@
             </div>
         </Fieldset>
     </div>
-    <div class="sr-select-color-map-panel">
-        <div class="sr-select-atl03-colors">
-            <SrAtl03CnfColorSelection 
-                @selectionChanged="atl03CnfColorChanged"
-                @defaultsChanged="atl03CnfColorChanged"
-            />
-        </div>  
-        <div class="sr-select-atl08-colors">
-            <SrAtl08ClassColorSelection 
-                @selectionChanged="atl08ClassColorChanged"
-                @defaultsChanged="atl08ClassColorChanged"
-            />
-        </div>
-    </div>
 </template>
 
 <script setup lang="ts">
@@ -92,7 +78,6 @@ const srColorTable = ref([
 ]);
 
 onMounted(() => {
-    colorMapStore.initializeColorMapStore();
     srColorTable.value[1] = colorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
     console.log('Mounted SrColorPalette colors:', srColorTable.value);
 });

@@ -1,6 +1,8 @@
 <template>
     <div class="sr-legend">
-        <SrAtl03CnfColors/>
+        <SrAtl03CnfColors 
+            reqIdStr="reqIdStr"
+        />
         <Button label="Manage Atl03 Cnf Colors" @click="showDialog = true" size="small" />
   
         <Dialog
@@ -12,6 +14,7 @@
             @hide="onDialogHide"
         >
             <SrAtl03CnfColorSelection
+                :reqIdStr="reqIdStr"
                 @selectionChanged="atl03CnfColorChanged"
                 @defaultsChanged="atl03CnfColorChanged"
             />
@@ -21,12 +24,19 @@
   
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import SrAtl03CnfColors from '@/components/SrAtl03CnfColors.vue';
+
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
 const colorMapStore = useColorMapStore();
@@ -35,17 +45,14 @@ const colorMapStore = useColorMapStore();
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
 });
 
-const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
+// const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
 
 
-const formatLabel = (label: string): string => {
-    return label.replace(/^atl03_/, '').replace(/_/g, ' ');
-};
+// const formatLabel = (label: string): string => {
+//     return label.replace(/^atl03_/, '').replace(/_/g, ' ');
+// };
     
 // Emitted when a color changes
 const atl03CnfColorChanged = (event: { label: string; color: string }) => {

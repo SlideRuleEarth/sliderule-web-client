@@ -21,10 +21,7 @@
 import { onMounted } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
-import { useColorMapStore } from '@/stores/colorMapStore';
-
-const chartStore = useChartStore();
-const colorMapStore = useColorMapStore();
+import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 
 // Props definition
 const props = withDefaults(
@@ -40,22 +37,25 @@ const props = withDefaults(
   }
 );
 
+const chartStore = useChartStore();
+const gradientColorMapStore = useGradientColorMapStore(props.reqIdStr);
+
 const emit = defineEmits(['legendbox-created', 'picked-changed']);
 const gradientStyle = computed(() => {
-  const style = colorMapStore.getColorGradientStyle();
+  const style = gradientColorMapStore.getColorGradientStyle();
   return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
 });
 
 onMounted(() => {
-  colorMapStore.updateGradientColorMapValues();
+  gradientColorMapStore.updateGradientColorMapValues();
   emit('legendbox-created');
 });
 
 // Watch for changes in the elevation color map or the number of shades to update the gradient
 watch(
-  () => [colorMapStore.selectedGradientColorMapName, colorMapStore.numShadesForGradient],
+  () => [gradientColorMapStore.selectedGradientColorMapName, gradientColorMapStore.numShadesForGradient],
   () => {
-    colorMapStore.updateGradientColorMapValues();
+    gradientColorMapStore.updateGradientColorMapValues();
   }
 );
 </script>

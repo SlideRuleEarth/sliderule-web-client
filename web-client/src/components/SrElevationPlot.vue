@@ -326,7 +326,6 @@ onMounted(async () => {
         } else {
             //console.warn('SrElevationPlot onMounted currentFirstRec is null');
         }
-        colorMapStore.initializeColorMapStore();
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
@@ -550,7 +549,7 @@ watch(chartWrapperRef, (newValue) => {
                         />
                     </template>
                 </Dialog>
-                <Dialog
+                <!-- <Dialog
                     v-model:visible="shouldDisplayAtl08Colors"
                     :closable="false"
                     :draggable="true"
@@ -561,11 +560,12 @@ watch(chartWrapperRef, (newValue) => {
                     >
                     <template #header>
                         <SrAlt08Colors  
+                            :reqIdStr="recTreeStore.selectedReqIdStr" 
                             class="chart-overlay"
                             v-if="shouldDisplayAtl08Colors"
                         />
                     </template> 
-                </Dialog>
+                </Dialog> -->
                 <Dialog
                     v-model:visible="shouldDisplayAtl03Colors"
                     :closable="false"
@@ -576,7 +576,8 @@ watch(chartWrapperRef, (newValue) => {
                     :style="atl03CnfDialogStyle" 
                 >
                     <template #header>
-                        <SrAtl03CnfColors 
+                        <SrAtl03CnfColors
+                            :reqIdStr="recTreeStore.selectedReqIdStr" 
                             class="chart-overlay"
                             v-if="shouldDisplayAtl03Colors" 
                         />

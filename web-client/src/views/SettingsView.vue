@@ -10,6 +10,7 @@ import SrSysConfig from '@/components/SrSysConfig.vue';
 import SrStorageUsage from '@/components/SrStorageUsage.vue';
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue';
 import Card from 'primevue/card';
+import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue';
 
 </script>
 
@@ -44,6 +45,7 @@ import Card from 'primevue/card';
                 <AccordionHeader>Advanced</AccordionHeader>
                 <AccordionContent>
                     <SrAdvOptPanel />
+                    <SrPlotCfgEdit />
                 </AccordionContent>
             </AccordionPanel>
 

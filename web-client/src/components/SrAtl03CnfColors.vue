@@ -7,7 +7,7 @@
             :collapsed="false" 
         >
             <div v-for="option in atl03CnfOptions" :key="option.value" class="legend-item">
-                <div class="color-box" :style="{ backgroundColor: getColorForAtl03CnfValue(option.value) }"></div>
+                <div class="color-box" :style="{ backgroundColor: atl03CnfColorMapStore.getColorForAtl03CnfValue(option.value) }"></div>
                 <div class="label">{{ formatLabel(option.label) }} ({{ option.value }})</div>
             </div>
         </Fieldset>  
@@ -15,29 +15,42 @@
 </template>
   
 <script setup lang="ts">
-
-import { onMounted, computed } from 'vue';
-import { useColorMapStore } from '@/stores/colorMapStore';
+import { onMounted, computed, watch } from 'vue';
 import Fieldset from 'primevue/fieldset';
-import { getColorForAtl03CnfValue } from '@/utils/colorUtils';
+import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
-const colorMapStore = useColorMapStore();
-
-
-onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
     }
 });
 
-const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
+const atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqIdStr);
 
+onMounted(async () => {
+    // Any initialization logic can go here
+});
 
+// Reactive options computed from the store
+const atl03CnfOptions = computed(() => atl03CnfColorMapStore.atl03CnfOptions);
+
+// Watch for changes in the color map and trigger reactivity
+watch(
+    () => atl03CnfColorMapStore.atl03CnfColorMap, 
+    (newMap, oldMap) => {
+        // Emit an event or trigger any logic when the color map changes
+        emit('atl03CnfColorChanged', newMap);
+        console.log('SrAtl03CnfColors Color map changed:', newMap);
+    },
+    { deep: true } // Deep watch for changes inside the object
+);
+
+// Formatting labels for better readability
 const formatLabel = (label: string): string => {
     return label.replace(/^atl03_/, '').replace(/_/g, ' ');
 };
-
 </script>
   
 <style scoped>
