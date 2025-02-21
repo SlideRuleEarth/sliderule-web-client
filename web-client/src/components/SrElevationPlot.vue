@@ -64,19 +64,7 @@ const gradientDialogStyle = ref<{
 });
 
 
-const overlayGradientDialogStyle = ref<{
-    position: string;
-    top: string;
-    left: string;
-    transform?: string; // Optional property
-}>({
-    position: "absolute",
-    top: "0px",
-    left: "0px",
-    transform: "translate(-50%, -50%)" // Initially set, removed on drag
-});
-
-const atl03CnfDialogStyle = ref<{
+const overlayLegendDialogStyle = ref<{
     position: string;
     top: string;
     left: string;
@@ -89,17 +77,6 @@ const atl03CnfDialogStyle = ref<{
 });
 
 
-const atl08DialogStyle = ref<{
-    position: string;
-    top: string;
-    left: string;
-    transform?: string; // Optional property
-}>({
-    position: "absolute",
-    top: "0px",
-    left: "0px",
-    transform: "translate(-50%, -50%)" // Initially set, removed on drag
-});
 
 // const updateDialogPosition = () => {
 //   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -138,7 +115,7 @@ const atl08DialogStyle = ref<{
 //   }
 // };
 
-const initGradientPosition = () => {
+const initMainLegendPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (chartWrapper) {
     const rect = chartWrapper.getBoundingClientRect();
@@ -164,7 +141,7 @@ const initGradientPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initGradientPosition:', {
+    console.log('SrElevationPlot initMainLegendPosition:', {
         windowScrollX,
         windowScrollY,
         fontSize: globalChartStore.fontSize,
@@ -191,69 +168,11 @@ const initGradientPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initGradientPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initMainLegendPosition - chartWrapper is null');
   }
   
 };
 
-
-const initOverlayGradientPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
-    const rect_left = rect.left;
-    const rect_top = rect.top;
-    const rect_right = rect.right;
-    const rect_bottom = rect.bottom;
-    globalChartStore.scrollX = window.scrollX;
-    globalChartStore.scrollY = window.scrollY;
-    const windowScrollX = globalChartStore.scrollX;
-    const windowScrollY = globalChartStore.scrollY;
-    // Convert rem to pixels (1rem = 16px by default)
-    const middleHorizontalOffset = rect.width / 2; // n rem from the left
-    const middleX = rect.left + middleHorizontalOffset;
-    const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
-    const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
-    const spaceSize = rect.right - endOfTitle; 
-    const centerOfLegend = endOfTitle + (spaceSize/2);
-    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
-    const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
-    const left = `${leftLegendOffset}px`; 
-
-    const topOffset = 5 * globalChartStore.fontSize; // n rem from the top
-    const top = `${rect.top + topOffset}px`; 
-
-    console.log('SrElevationPlot initOverlayGradientPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
-
-    overlayGradientDialogStyle.value = {
-      position: "absolute",
-      top: top, 
-      left: left, 
-      transform: "none" // Remove centering transformation
-    };
-  } else {
-    console.warn('SrElevationPlot initOverlayGradientPosition - chartWrapper is null');
-  }
-  
-};
 
 const initOverlayLegendPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -277,9 +196,9 @@ const initOverlayLegendPosition = () => {
     const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
     const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
     const left = `${leftLegendOffset}px`; 
-    const assumedLegendHeight = 20 * globalChartStore.fontSize; // 10 rows
-    const topOffset = rect_bottom - assumedLegendHeight;
-    const top = `${topOffset}px`; 
+
+    const topOffset = 3 * globalChartStore.fontSize; // n rem from the top
+    const top = `${rect.top + topOffset}px`; 
 
     console.log('SrElevationPlot initOverlayLegendPosition:', {
         windowScrollX,
@@ -289,8 +208,9 @@ const initOverlayLegendPosition = () => {
         endOfTitle,
         middleHorizontalOffset,
         middleX,
-        leftLegendOffset,
+        leftLegendOffset,        
         assumedTitleWidth,
+        spaceSize,
         centerOfLegend,    
         top,
         left,
@@ -300,13 +220,7 @@ const initOverlayLegendPosition = () => {
         rect_bottom
     });
 
-    atl03CnfDialogStyle.value = {
-      position: "absolute",
-      top: top, 
-      left: left, 
-      transform: "none" // Remove centering transformation
-    };
-    atl08DialogStyle.value = {
+    overlayLegendDialogStyle.value = {
       position: "absolute",
       top: top, 
       left: left, 
@@ -317,6 +231,7 @@ const initOverlayLegendPosition = () => {
   }
   
 };
+
 
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
@@ -432,8 +347,7 @@ onMounted(async () => {
         }        
         //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
         await nextTick(); // Ensures Vue has completed the DOM rendering
-        initGradientPosition();
-        initOverlayGradientPosition();
+        initMainLegendPosition();
         initOverlayLegendPosition();
         //console.log('SrElevationPlot onMounted completed');
     } catch (error) {
@@ -466,8 +380,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
-        nextTick(initGradientPosition); // Ensure DOM updates before repositioning
-        nextTick(initOverlayGradientPosition); // Ensure DOM updates before repositioning
+        nextTick(initMainLegendPosition); // Ensure DOM updates before repositioning
         nextTick(initOverlayLegendPosition); // Ensure DOM updates before repositioning
     }
 });
@@ -650,7 +563,7 @@ watch(chartWrapperRef, (newValue) => {
                     :modal="false"
                     class="sr-floating-dialog"
                     :appendTo="chartWrapper"
-                    :style="overlayGradientDialogStyle"
+                    :style="overlayLegendDialogStyle"
                 >
                     <template #header>
                         <SrPlotLegendBox
@@ -669,7 +582,7 @@ watch(chartWrapperRef, (newValue) => {
                     :modal="false"
                     class="sr-floating-dialog"
                     appendTo="self" 
-                    :style="atl08DialogStyle"
+                    :style="overlayLegendDialogStyle"
                     >
                     <template #header>
                         <SrAtl08Colors  
@@ -686,7 +599,7 @@ watch(chartWrapperRef, (newValue) => {
                     :modal="false"
                     class="sr-floating-dialog"
                     appendTo="self"
-                    :style="atl03CnfDialogStyle" 
+                    :style="overlayLegendDialogStyle" 
                 >
                     <template #header>
                         <SrAtl03CnfColors
