@@ -315,6 +315,46 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
+const enableTouchDragging = () =>{
+    const dialogs = document.querySelectorAll('.sr-floating-dialog');
+
+    dialogs.forEach((dialogElement) => {
+        const dialog = dialogElement as HTMLElement; // Cast to HTMLElement for style access
+        let startX = 0;
+        let startY = 0;
+        let initialLeft = 0;
+        let initialTop = 0;
+
+        const onTouchStart = (e: TouchEvent) => {
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            const rect = dialog.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            document.addEventListener('touchmove', onTouchMove);
+            document.addEventListener('touchend', onTouchEnd);
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+
+            dialog.style.left = `${initialLeft + dx}px`;
+            dialog.style.top = `${initialTop + dy}px`;
+        };
+
+        const onTouchEnd = () => {
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+        };
+
+        dialog.addEventListener('touchstart', onTouchStart);
+  });
+}
+
 onMounted(async () => {
     try {
         console.log('SrElevationPlot onMounted initial chartWrapper:',chartWrapper);
@@ -350,6 +390,9 @@ onMounted(async () => {
         initMainLegendPosition();
         initOverlayLegendPosition();
         //console.log('SrElevationPlot onMounted completed');
+
+        enableTouchDragging();
+        requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
@@ -928,6 +971,12 @@ fieldset {
     max-width: 80rem;
 }
 
+/* Allow dragging on touch devices */
+:deep(.p-dialog) {
+  touch-action: none; /* Disable default gestures to allow dragging */
+  -webkit-user-drag: none;
+  user-select: none;
+}
 
 
 </style>

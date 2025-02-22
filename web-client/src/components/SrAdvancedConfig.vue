@@ -49,14 +49,14 @@
                 v-model="selectedNumOfElevationShades"
                 tooltipText="Number of shades for elevation plot"
         />
-        <SrSliderInput
-            v-model="requestsStore.helpfulReqAdviceCnt"
-            label="Give Helpful Advice when # Requests < this"
-            :min="1"
-            :max="999999"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl06 Scatter Plot"
-        />
+        <FloatLabel variant="in">
+            <label for="ThresholdForHelpfulAdvice">Threshold for Helpful Advice</label>
+            <InputNumber
+                v-model="requestsStore.helpfulReqAdviceCnt" 
+                inputId="ThresholdForHelpfulAdvice"
+            >
+            </InputNumber>
+        </FloatLabel>   
         <SrCheckbox
             v-model="debugStore.useMetersForMousePosition"
             label="Use Meters for mouse position"
@@ -78,6 +78,7 @@
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
+    import InputNumber from 'primevue/inputnumber';
 
 
     const debugStore = useDebugStore();
