@@ -17,11 +17,14 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
+
+
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+
 
 export const selectedCyclesReactive = computed({
     get: (): number[] => {
@@ -44,6 +47,18 @@ export const selectedRgtReactive = computed({
     set: (value: number): void => {
         //console.log(`selectedRgtsReactive[${reqId}] set:`, values);
         useGlobalChartStore().setRgt(value);
+    },
+});
+
+export const filterModeReactive = computed({
+    get: (): string => {
+        const value = useGlobalChartStore().getFilterMode();
+        //console.log(`filterModeReactive[${reqId}] get:`, value);
+        return value;
+    },
+    set: (value: string): void => {
+        //console.log(`filterModeReactive[${reqId}] set:`, values);
+        useGlobalChartStore().setFilterMode(value);
     },
 });
 

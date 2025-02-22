@@ -365,7 +365,7 @@ onMounted(async () => {
         // Log the font size to the console
         console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
 
-        const currentFirstRec = analysisTabStore.getFirstRec(useRecTreeStore().selectedReqIdStr);
+        const currentFirstRec = globalChartStore.getSelectedElevationRec();
         if(currentFirstRec){
             //console.log('SrElevationPlot onMounted currentFirstRec:', currentFirstRec);
             clicked(currentFirstRec);
