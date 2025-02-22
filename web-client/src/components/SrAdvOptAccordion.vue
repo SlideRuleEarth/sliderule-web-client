@@ -5,22 +5,17 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
-import SrColorPalette from './SrColorPalette.vue';
-import SrClearCache from './SrClearCache.vue';
 
 const SrYAPC = defineAsyncComponent(() => import('./SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('./SrAtl03Cnf.vue'));
 const SrAtl08Cnf = defineAsyncComponent(() => import('./SrAtl08Cnf.vue'));
-const SrSysConfig = defineAsyncComponent(() => import('./SrSysConfig.vue'));
 const SrExtents = defineAsyncComponent(() => import('./SrExtents.vue'));
 const SrAncillaryFields = defineAsyncComponent(() => import('./SrAncillaryFields.vue'));
 const SrSurfaceElevation = defineAsyncComponent(() => import('./SrSurfaceElevation.vue'));
-const SrStorageUsage = defineAsyncComponent(() => import('./SrStorageUsage.vue'));
 const SrGranuleSelection = defineAsyncComponent(() => import('./SrGranuleSelection.vue'));
 const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
 const SrGenUserOptions = defineAsyncComponent(() => import('./SrGenUserOptions.vue'));
 const SrVegDensity = defineAsyncComponent(() => import('./SrVegDensity.vue'));
-const SrAdvOptPanel = defineAsyncComponent(() => import('./SrAdvOptPanel.vue'));
 const SrGedi = defineAsyncComponent(() => import('./SrGedi.vue'));
 const SrRaster = defineAsyncComponent(() => import('./SrRaster.vue'));
 
@@ -115,31 +110,6 @@ const isExpanded = (panelIndex: number) => {
                     <AccordionHeader>Raster Sampling</AccordionHeader>
                     <AccordionContent v-if="isExpanded(9)">
                         <SrRaster />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="10">
-                    <AccordionHeader>System Configuration</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(10)">
-                        <SrSysConfig />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="11">
-                    <AccordionHeader>Storage Usage</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(11)">
-                        <SrStorageUsage />
-                        <SrClearCache />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="12">
-                    <AccordionHeader>Advanced</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(12)">
-                        <SrAdvOptPanel />
-                    </AccordionContent>
-                </AccordionPanel>
-                <AccordionPanel value="13">
-                    <AccordionHeader>Color Defaults</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(13)">
-                        <SrColorPalette />
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>

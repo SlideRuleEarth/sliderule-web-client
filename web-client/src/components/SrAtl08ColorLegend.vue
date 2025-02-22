@@ -1,16 +1,8 @@
 <template>
     <div class="sr-legend">
-        <Fieldset
-            class="sr-legend-box"
-            legend="ATL08 Class Colors"
-            :toggleable="false"
-            :collapsed="false" 
-        >
-            <div  v-for="option in atl08ClassOptions"  :key="option.value" class="legend-item" >
-                <div  class="color-box"  :style="{ backgroundColor: getColorForAtl08ClassValue(option.value) }" ></div>
-                <div class="label"> {{ formatLabel(option.label) }} ({{ option.value }}) </div>
-            </div>
-        </Fieldset>
+        <SrAtl08Colors 
+            reqIdStr="reqIdStr"
+        />
         <div class="sr-restore-defaults">
             <Button label="Manage Atl08 Class Colors" @click="showDialog = true" size="small" />
         </div>
@@ -23,7 +15,8 @@
             header="Manage Atl08 Class Colors"
             @hide="onDialogHide"
         >
-            <SrAtl08ClassColors
+            <SrAtl08ClassColorSelection
+                :reqIdStr="reqIdStr"
                 @selectionChanged="atl08ClassColorChanged"
                 @defaultsChanged="atl08ClassColorChanged"
             />
@@ -36,31 +29,31 @@
 import { ref, onMounted, computed } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import SrAtl08ClassColors from './SrAtl08ClassColors.vue';
+import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import Fieldset from 'primevue/fieldset';
-import { getColorForAtl08ClassValue } from '@/utils/colorUtils';
+import SrAtl08Colors from '@/components/SrAtl08Colors.vue';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
-
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
 const colorMapStore = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
+
 });
 
-const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
-
-
-// Function to format the label
-const formatLabel = (label: string): string => {
-  return label.replace(/^atl08_/, '').replace(/_/g, ' ');
-};
+// const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
+// // Function to format the label
+// const formatLabel = (label: string): string => {
+//   return label.replace(/^atl08_/, '').replace(/_/g, ' ');
+// };
 
 // Emitted when a color changes
 const atl08ClassColorChanged = (event: { label: string; color: string }) => {

@@ -2,7 +2,6 @@ import { useMapStore } from '@/stores/mapStore';
 import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { PointCloudLayer } from '@deck.gl/layers';
-import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -15,13 +14,11 @@ import { unByKey } from 'ol/Observable';
 import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
 import { Style, Fill, Stroke } from 'ol/style';
-import { getScOrientFromSpotGt } from '@/utils/parmUtils';
-import { getSpotNumber,getGroundTrack } from './spotUtils';
+import { getSpotNumber,getGtsForSpotsAndScOrients } from '@/utils/spotUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { useColorMapStore } from '@/stores/colorMapStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 import { srViews } from "@/composables/SrViews";
@@ -44,6 +41,10 @@ import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -318,62 +319,9 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-export function updateWhereClause(reqIdStr:string){
-    const cs = useChartStore();
-    const reqId = parseInt(reqIdStr);
-    const func = useRecTreeStore().findApiForReqId(reqId);
-    //console.log("updateWhereClause func:",func,'reqIdStr:',reqIdStr);
-    if(func==='atl03sp'){
-        let atl03spWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND track IN (${cs.getTrackValues(reqIdStr).join(", ")}) 
-        `;
-        if ((cs.getPairValues(reqIdStr) !== undefined) && (cs.getPairValues(reqIdStr).length > 0)) {
-            atl03spWhereClause += ` AND pair IN (${cs.getPairValues(reqIdStr).join(", ")})`;
-        } else {
-            console.warn('updateWhereClause atl03sp: pairs is undefined or empty');
-        }
-        if ((cs.getScOrientValues(reqIdStr) !== undefined)  && (cs.getScOrientValues(reqIdStr).length > 0)) {
-            atl03spWhereClause += ` AND sc_orient IN (${cs.getScOrientValues(reqIdStr).join(", ")})`;
-        } else {
-            console.warn('updateWhereClause atl03sp: sc_orient is undefined or empty');
-        }
-        cs.setWhereClause(reqIdStr,atl03spWhereClause);
-        
-        //console.log('updateWhereClause atl03sp',cs.getWhereClause(reqIdStr))
-    } else if(func === 'atl03vp'){
-        const atl03vpWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl03vpWhereClause);
-        //console.log('whereClause atl06sp',cs.getWhereClause(reqIdStr))
-    } else if (func.includes('atl06')){ // all atl06
-        const atl06WhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl06WhereClause);
-        //console.log('whereClause atl06',cs.getWhereClause(reqIdStr))
-    } else if (func === 'atl08p'){
-        const atl08pWhereClause = `
-            WHERE rgt IN (${cs.getRgtValues(reqIdStr).join(', ')}) 
-            AND cycle IN (${cs.getCycleValues(reqIdStr).join(', ')})
-            AND spot IN (${cs.getSpotValues(reqIdStr).join(", ")}) 
-        `;
-        cs.setWhereClause(reqIdStr,atl08pWhereClause);
-        //console.log('whereClause atl08p',cs.getWhereClause(reqIdStr))
-    } else {
-        console.error('updateWhereClause Unknown func?:',func);
-    }
-
-}
-
 export async function clicked(d:ElevationDataItem): Promise<void> {
     //console.log('Clicked data:',d);
+    useAnalysisTabStore().setFirstRec(useRecTreeStore().selectedReqIdStr,d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
@@ -382,53 +330,52 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
-    const cs = useChartStore();
+    const gcs = useGlobalChartStore();
     if(d.track !== undefined){ // for atl03
-        cs.setTrackWithNumber(reqIdStr, d.track);
-        cs.setBeamsForTracks(reqIdStr, cs.getTracks(reqIdStr));
+        gcs.setTracks([d.track]); // set to this one track
+        gcs.setGtsForTracks(gcs.getTracks());
     }
-    if(d.gt !== undefined){ // for atl06
-        cs.setBeamsAndTracksWithGts(reqIdStr, [{label:d.gt.toString(), value:d.gt}]);
+    if((d.gt !== undefined) && (d.spot !== undefined)){ // for atl06 or atl08
+        gcs.setFilterWithSpotAndGt(d.spot,d.gt);
+    } else { // atl03
+        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+            const spot = getSpotNumber(d.sc_orient,d.track,d.pair);
+            gcs.setSpots([spot]);
+            const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
+            gcs.setGts(gts);
+        } else {
+            console.error('d.spot or d.gt is undefined when sc_orient and spot are undefined?'); // should always be defined
+        }
     }
+
     if(d.sc_orient !== undefined){
-        cs.setScOrientWithNumber(reqIdStr, d.sc_orient);
+        gcs.setScOrients([d.sc_orient]);
     }
     if(d.pair !== undefined){
-        cs.setPairWithNumber(reqIdStr, d.pair);
-    }
-    if(d.spot !== undefined){
-        cs.setSpotWithNumber(reqIdStr, d.spot);
-    }
-    if((d.gt !== undefined) && (d.spot !== undefined)){
-        cs.setScOrientWithNumber(reqIdStr, getScOrientFromSpotGt(d.spot,d.gt));
+        gcs.setPairs([d.pair]);
     }
     if(d.rgt !== undefined){
-        cs.setRgtWithNumber(reqIdStr, d.rgt);
+        gcs.setRgt(d.rgt);
     } else {
         console.error('d.rgt is undefined'); // should always be defined
     }
     if(d.cycle !== undefined){
-        cs.setCycleWithNumber(reqIdStr, d.cycle);
+        gcs.setCycles( [d.cycle]);
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
     // for atl03
     const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-    //console.log('Clicked: func',func);
-    //console.log('Clicked: rgts',cs.getRgtValues(reqIdStr))
-    //console.log('Clicked: cycles',cs.getCycleValues(reqIdStr))
-    //console.log('Clicked: tracks',cs.getTrackValues(reqIdStr))
-    //console.log('Clicked: sc_orient',cs.getScOrientValues(reqIdStr))
-    //console.log('Clicked: pair',cs.getPairValues(reqIdStr));
-    if(func.includes('atl03')){
-        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            cs.setSpotWithNumber(reqIdStr, getSpotNumber(d.sc_orient,d.track,d.pair));
-            cs.setBeamWithNumber(reqIdStr, getGroundTrack(d.sc_orient,d.track,d.pair));
-        }
-    }
-    updateWhereClause(reqIdStr);
-    //console.log('Clicked: spot',cs.getSpotValues(reqIdStr))
-    //console.log('Clicked: beam',cs.getBeamValues(reqIdStr))
+   
+    console.log('Clicked: func',func);
+    console.log('Clicked: pair',gcs.getPairs());
+    console.log('Clicked: rgt',gcs.getRgt())
+    console.log('Clicked: cycles',gcs.getCycles())
+    console.log('Clicked: tracks',gcs.getTracks())
+    console.log('Clicked: sc_orient',gcs.getScOrients())
+    console.log('Clicked: spot',gcs.getSpots())
+    console.log('Clicked: gt',gcs.getGts())
+    console.log('clicked:',d);
 
 }
 
@@ -979,18 +926,22 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
 export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
     //const startTime = performance.now(); // Start time
     try{
-        const poly:SrRegion = await db.getSvrReqPoly(reqId);
-        const rc = await db.getRunContext(reqId);
-        if(poly.length > 0){
-            if(!rc?.trackFilter){
-                if(map){
+        if(map){
+            const poly:SrRegion = await db.getSvrReqPoly(reqId);
+            const rc = await db.getRunContext(reqId);
+            if(poly.length > 0){
+                if(rc){
+                    if(rc?.parentReqId<=0){
+                        renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
+                    }
+                } else {
                     renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
                 }
             } else {
-                //console.log('renderSvrReqPoly: ignoring because trackFilter is set for reqId:',reqId);
+                console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
             }
         } else {
-            console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+            console.error('renderSvrReqPoly Error: map is null');
         }
     } catch (error) {
         console.error('renderSvrReqPoly Error:',error);

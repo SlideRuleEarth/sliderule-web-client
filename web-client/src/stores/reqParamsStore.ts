@@ -3,14 +3,15 @@ import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
 import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
-import { getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import { type SrListNumberItem } from '@/types/SrTypes';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
-import { useChartStore } from '@/stores/chartStore';
+import { useGlobalChartStore } from './globalChartStore';
+import { useAreaThresholdsStore } from './areaThresholds';
 
 interface YapcConfig {
   version: number;
@@ -39,8 +40,8 @@ const createReqParamsStore = (id: string) =>
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         areaOfConvexHull: 0.0 as number, // in square kilometers
-        areaWarningThreshold: 1000.0 as number, // in square kilometers
-        areaErrorThreshold: 10000.0 as number, // in square kilometers
+        // areaWarningThreshold: 1000.0 as number, // in square kilometers
+        // areaErrorThreshold: 10000.0 as number, // in square kilometers
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks: [] as SrListNumberItem[],
@@ -205,46 +206,49 @@ const createReqParamsStore = (id: string) =>
         enableSurfaceElevation: false,
     }),
     actions: {
-        async presetForScatterPlotOverlay(req_id: number) {
-            console.log('presetForScatterPlotOverlay req_id:', req_id);
-            this.setMissionValue("ICESat-2");
-            this.setIceSat2API("atl03sp");
-            this.setEnableGranuleSelection(true);
-            this.setUseRgt(true);
-            this.setUseCycle(true);
+        async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
+            // set things the user may have changed in this routine
+            //console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
             // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
             // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
-            const poly = await db.getSvrReqPoly(req_id);
+            this.setMissionValue("ICESat-2");
+            this.setIceSat2API("atl03sp");
+            this.setEnableGranuleSelection(true);//tracks and beams
+            this.setUseRgt(true);
+            this.setUseCycle(true);
+            const poly = await db.getSvrReqPoly(parentReqId);
             if(poly){
                 this.setPoly(poly);
                 this.setConvexHull(convexHull(poly));
                 this.setAreaOfConvexHull(calculatePolygonArea(poly));
             } else {
-                console.error('presetForScatterPlotOverlay: no poly for req_id:', req_id);
+                console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
             }
-
-
-            // console.log('beams:', useAtlChartFilterStore().getBeams());
-            // console.log('rgts:', useAtlChartFilterStore().getRgts());
-            // console.log('cycles:', useAtlChartFilterStore().getCycles());
-            // console.log('pairs:', useAtlChartFilterStore().getPairs());
-            // console.log('spots:', useAtlChartFilterStore().getSpots());
-            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
-
-            const reqIdStr = req_id.toString();
-            this.setTracks(useChartStore().getTracks(reqIdStr));
-            this.setBeams(useChartStore().getBeams(reqIdStr));
-            this.setRgt(useChartStore().getRgtValues(reqIdStr)[0]);
-            this.setCycle(useChartStore().getCycleValues(reqIdStr)[0]);
             this.setSrt([-1]);
             this.signalConfidenceNumber = [0,1,2,3,4];
             this.enableAtl08Classification = true;
             this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
             this.enableYAPC = true;
             this.YAPCVersion = '0';
+            this.setUseRgt(true);
+            //TBD maybe when svr params is fixed it will include rgt. so use that instead of this
+            this.setSelectedTrackOptions(useGlobalChartStore().getSelectedTrackOptions());
+            this.setSelectedGtOptions(useGlobalChartStore().getSelectedGtOptions());
+            this.setRgt(useGlobalChartStore().getRgt());
+            this.setEnableGranuleSelection(true);
+            this.setUseCycle(true);
+            this.setCycle(useGlobalChartStore().getCycles()[0]);
+
+            // console.log('beams:', useAtlChartFilterStore().getGts());
+            // console.log('rgt:', useAtlChartFilterStore().getRgt());
+            // console.log('cycles:', useAtlChartFilterStore().getCycles());
+            // console.log('pairs:', useAtlChartFilterStore().getPairs());
+            // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());
+            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
+
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
@@ -285,7 +289,7 @@ const createReqParamsStore = (id: string) =>
               if(req_id > 0) {
                 reqIdStr = `${req_id}`;
               }
-              path = `${this.getFunc()}_${reqIdStr}_SVR_TMP_${new Date().toISOString()
+              path = `${this.getFunc()}_${reqIdStr}_${new Date().toISOString()
                 .replace(/:/g, '_')
                 .replace(/\./g, '_')
                 .replace(/T/g, '_')
@@ -565,25 +569,16 @@ const createReqParamsStore = (id: string) =>
         setGpsToUTCOffset(gpsToUTCOffset:number) {
           this.gpsToUTCOffset = gpsToUTCOffset;
         },
-        setBeams(beams: SrListNumberItem[]) {
-          this.beams = beams;
+        setSelectedGtOptions(gts: SrListNumberItem[]) {
+          this.beams = gts; // in the req it is called beams
         },
-        getBeams(): SrListNumberItem[] {
-          return this.beams;
+        getSelectedGtOptions(): SrListNumberItem[] {
+          return this.beams; // in the req it is called beams
         },
-        getBeamValues(): number[] { 
-          return this.beams.map(beam => beam.value);
-        },
-        setBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
-          console.log('setBeamsAndTracksWithGts:', gts);
-          const parms = getBeamsAndTracksWithGts(gts);
-          this.setBeams(parms.beams);
-          this.setTracks(parms.tracks);
-        },
-        setTracks(tracks: SrListNumberItem[]) {
+        setSelectedTrackOptions(tracks: SrListNumberItem[]) {
           this.tracks = tracks;
         },
-        getTracks() {
+        getSelectedTrackOptions() {
           return this.tracks;
         },
         setSelectAllTracks(selectAllTracks:boolean) {
@@ -810,16 +805,10 @@ const createReqParamsStore = (id: string) =>
           this.areaOfConvexHull = value;
         },
         getAreaWarningThreshold(): number {
-          return this.areaWarningThreshold;
-        },
-        setAreaWarningThreshold(value:number) { 
-          this.areaWarningThreshold = value;
+          return useAreaThresholdsStore().getAreaWarningThreshold(this.getFunc());
         },
         getAreaErrorThreshold(): number {
-          return this.areaErrorThreshold;
-        },
-        setAreaErrorThreshold(value:number) { 
-          this.areaErrorThreshold = value;
+          return useAreaThresholdsStore().getAreaErrorThreshold(this.getFunc());
         },
         getEnableAtl08Classification(): boolean {
           return this.enableAtl08Classification;

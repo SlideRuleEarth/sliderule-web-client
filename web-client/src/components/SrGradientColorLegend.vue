@@ -1,5 +1,5 @@
 <template>
-    <div class="sr-legend">
+    <div class="sr-legend" v-if="gradientColorMapStore">
         <Fieldset
             class="sr-legend-box"
             :legend='props.label'
@@ -9,30 +9,32 @@
             <div class="sr-cntrls-panel" >
                 <SrMenu 
                     label="Color Map" 
-                    v-model="colorMapStore.selectedGradientColorMapName"
+                    labelFontSize="small"
+                    v-model="gradientColorMapStore.selectedGradientColorMapName"
                     :menuOptions="srColorMapNames" 
-                    :getSelectedMenuItem="colorMapStore.getSelectedGradientColorMapName"
-                    :setSelectedMenuItem="colorMapStore.setSelectedGradientColorMapName"
+                    :getSelectedMenuItem="gradientColorMapStore.getSelectedGradientColorMapName"
+                    :setSelectedMenuItem="gradientColorMapStore.setSelectedGradientColorMapName"
                     @update:modelValue="gradientColorMapChanged"
                     tooltipText="Gradient Color Map for scatter plot"
                 />
             </div>
-            <SrLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
+            <SrPlotLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
-        <Button label="Restore Defaults" @click="gradientDefaultsRestored" />
-
+        <Button class="sr-legend-restore-btn" size="small" label="Restore Defaults" @click="gradientDefaultsRestored" />
     </div>
+    <div v-else>Loading gradient color map...</div>
 </template>
   
 <script setup lang="ts">
 
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
-import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
 import Button from 'primevue/button';
-import SrLegendBox from './SrLegendBox.vue';
+import SrPlotLegendBox from './SrPlotLegendBox.vue';
+import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { use } from 'echarts';
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -49,28 +51,24 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
-const colorMapStore = useColorMapStore();
 
-  
+// Initialize the store without awaiting directly
+const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
-    colorMapStore.updateGradientColorMapValues();
-    //console.log('Mounted SrGradientColorCntrl colors:', colorMapStore.getGradientColorMap());
+    // Await the asynchronous store initialization after mounting
+    console.log('Mounted SrGradientColorLegend with store:', gradientColorMapStore);
 });
 
 const gradientColorMapChanged = () => {
-    colorMapStore.updateGradientColorMapValues();
+    gradientColorMapStore.updateGradientColorMapValues();
     emit('gradient-color-map-changed');
 };
 
-const gradientDefaultsRestored = () => {
-    colorMapStore.restoreDefaultGradientColorMap();
+const gradientDefaultsRestored = async () => {
+    await gradientColorMapStore.restoreDefaultGradientColorMap();
     emit('restore-gradient-color-defaults-click');
 };
-
 
 </script>
   
@@ -98,12 +96,9 @@ const gradientDefaultsRestored = () => {
     font-size: 0.75rem;
     padding-right: 0.25rem;
 }
-.sr-cntrls-panel {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 0.5rem;
+
+:deep(.sr-select-menu-default) {
+    background-color: transparent;
 }
 
 
@@ -114,6 +109,19 @@ const gradientDefaultsRestored = () => {
     position: relative; /* Enable positioning for the legend */
 }
 
+.sr-legend-restore-btn {
+    align-self: center;
+    margin-top: 0.5rem;
+    font-size: small;
+}
+
+.sr-controls-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {
     font-size: small;
@@ -134,6 +142,7 @@ const gradientDefaultsRestored = () => {
 
 :deep(.p-fieldset-content-container) {
     padding-top: 1.5rem; /* Adjust padding to prevent overlap with the legend */
+    margin:0.5rem;
 }
 </style>
   

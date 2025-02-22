@@ -1,6 +1,11 @@
 <template>
     <Fieldset :legend="computedLabel">
         <div>
+            <div class="sr-num-of-pnts" v-if="props.isOverlay">
+               <Chip>Photon Cloud</Chip>
+            </div>
+            <div class="sr-num-of-pnts">
+            </div>
             <div class="sr-ydata-menu" v-if="showYDataMenuReactive[reqIdStr]">
                 <label class="sr-y-data-label":for="`srYdataItems-overlayed-${reqIdStr}`">Y Data</label> 
                 <Select 
@@ -17,7 +22,9 @@
             <div class="sr-ydata-menu">
                 <div>
                     <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Point Color</label>
+                    <OverlayBadge  v-if="shouldDisplayColorEncode" :value="computedNumOfPnts" size="small">
                     <Select
+                        v-if="shouldDisplayColorEncode"
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
                         :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
@@ -27,15 +34,20 @@
                         size="small"
                     >
                     </Select>
+                    </OverlayBadge>
                 </div>
                 <div class="sr-legend-panel">
-                    <SrAtl03ColorLegend 
+                    <SrAtl03ColorLegend
+                        reqIdStr="reqIdStr" 
                         v-if="shouldDisplayAtl03ColorLegend" 
                         @restore-atl03-color-defaults-click="restoreAtl03DefaultColorsAndUpdatePlot" 
+                        @atl03-cnf-color-changed="handleAtl03CnfColorChanged"
                     />
                     <SrAtl08ColorLegend 
+                        reqIdStr="reqIdStr"
                         v-if="shouldDisplayAtl08ColorLegend"
-                        @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot"  
+                        @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot" 
+                        @atl08-class-color-changed="handleAtl08ClassColorChanged" 
                     />
                     <SrGradientColorLegend 
                         v-if="shouldDisplayGradientColorLegend"
@@ -85,6 +97,9 @@
                 :tooltipText="sqlStmntToolTipText"
             />
         </div>
+        <div class="sr-npnts">
+            <p>  {{ computedNumOfPnts }} Points</p>
+        </div>
     </Fieldset>
 </template>
   
@@ -93,9 +108,13 @@ import { useChartStore } from '@/stores/chartStore';
 import SrSymbolSize from '@/components/SrSymbolSize.vue';
 import Select  from 'primevue/select';
 import Fieldset  from 'primevue/fieldset';
+import Chip from 'primevue/chip';
+import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
+import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
+import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
@@ -104,6 +123,7 @@ import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { SelectChangeEvent } from 'primevue/select';
+import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 
 
 const props = withDefaults(
@@ -116,11 +136,13 @@ const props = withDefaults(
         isOverlay: false,
     }
 );
-
+let atl03CnfColorMapStore: any;
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
+const atl08ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
+const analysisTabStore = useAnalysisTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
 const computedFunc = computed(() => recTreeStore.findApiForReqId(props.reqId));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
@@ -129,11 +151,10 @@ const computedSolidSymbolColor = computed(() => {
 });
 const computedLabel = computed(() => {
     let label = `${props.reqId} - ${computedFunc.value}`;
-    if(computedFunc.value.includes('atl03')){
-        label = label+` - Photon Cloud `;
-    }
-    label = label +  ` (${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))} pnts)`;
     return `${label}`;
+});
+const computedNumOfPnts = computed(() => {
+    return `${numberFormatter.format(chartStore.getNumOfPlottedPnts(reqIdStr.value))}`
 });
 
 
@@ -152,14 +173,13 @@ const shouldDisplayGradientColorLegend = computed(() => {
             }
         }
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayGradientColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayGradientColorLegend:', should);
     return should;
 });
 
 const gradientLabel = computed(() => {
-    return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} Colors`;
+    return `${chartStore.getSelectedColorEncodeData(reqIdStr.value)} colors`;
 });
-
 
 const shouldDisplayAtl03ColorLegend = computed(() => {
     const func = recTreeStore.findApiForReqId(props.reqId);
@@ -168,7 +188,7 @@ const shouldDisplayAtl03ColorLegend = computed(() => {
     if(func.includes('atl03') && selectedColorEncodeData === 'atl03_cnf'){
         should = true;
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl03ColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl03ColorLegend:', should);
     return should;
 });
 
@@ -179,27 +199,38 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
     if(func.includes('atl03') && selectedColorEncodeData === 'atl08_class'){
         should = true;
     }
-    console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
     return should;
 });
 
+const shouldDisplayColorEncode = computed(() => {
+    if(analysisTabStore.getActiveTabLabel !== 'Time Series'){
+        return true;
+    } else {
+        return false;
+    }
+});
 
-
-onMounted(() => {
+onMounted(async () => {
+    atl03CnfColorMapStore = await useAtl03CnfColorMapStore(props.reqId.toString());
+    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
     console.log('computedFunc:', computedFunc.value);
+    if(!shouldDisplayColorEncode.value){
+        chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
+    }
 });
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl03DefaultColorsAndUpdatePlot');
-    await colorMapStore.restoreDefaultAtl03CnfColorMap();
+    await atl03CnfColorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
     console.log('restoreAtl08DefaultColorsAndUpdatePlot');
-    await colorMapStore.restoreDefaultAtl08ClassColorMap();
+    await atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
 
@@ -246,6 +277,17 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     await callPlotUpdateDebounced('from handleColorEncodeSelectionChange');
 };
 
+const handleAtl03CnfColorChanged = async () => {
+    console.log('handleAtl03CnfColorChanged');
+    atl03CnfColorMapStore.resetColorCache();
+    await callPlotUpdateDebounced('from handleAtl03CnfColorChanged');
+};
+
+const handleAtl08ClassColorChanged = async () => {
+    console.log('handleAtl08ClassColorChanged');
+    atl08ClassColorMapStore.value?.resetAtl08ClassColorCaches();
+    await callPlotUpdateDebounced('from handleAtl08ClassColorChanged');
+};
 
 </script>
   
@@ -258,6 +300,16 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     align-items: flex-start; /* Align content to the left */
     width: auto; /* Let the container size itself based on the content */
     padding: 0.5rem; /* Optional: Add some padding for spacing */
+}
+.sr-num-of-pnts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    font-size: large;
+    font-weight: bold;
+    margin-bottom: 0rem;
+    padding: 0rem; /* Optional: Add some padding for spacing */
 }
 
 .sr-y-data-label {
@@ -330,6 +382,12 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     border: 1px solid var(--p-border-color);
     border-radius: 2px;
     margin-left:0.25rem;
+}
+:deep(.p-fieldset-legend) {
+    white-space: pre-line; /* This allows \n to work as a line break */
+}
+.sr-npnts {
+    font-size: small;
 }
 </style>
   

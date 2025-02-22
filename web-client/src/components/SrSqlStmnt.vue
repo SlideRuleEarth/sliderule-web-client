@@ -4,6 +4,7 @@
             <div class="sr-sql-stmnt-display-panel-header"> 
                 <SrCheckbox
                     v-model="showSqlStmnt"
+                    @update:modelValue="handleShowSqlStmnt"
                     :label=props.label
                     :insensitive=props.insensitive
                     :tooltipText=props.tooltipText
@@ -23,6 +24,7 @@
     import { ref,onMounted,computed } from "vue";
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { useChartStore } from "@/stores/chartStore";
+    import { updateWhereClauseAndXData } from "@/utils/plotUtils";
 
     const props = withDefaults(
         defineProps<{
@@ -45,7 +47,7 @@
         }
     );
 
-const computedReqIdStr = computed(() => {
+    const computedReqIdStr = computed(() => {
         return props.reqId.toString();
     });
 
@@ -60,7 +62,11 @@ const computedReqIdStr = computed(() => {
         }
         return sqlStmnt;
     }); 
-
+    async function handleShowSqlStmnt(newValue: boolean) {
+        if(newValue) {
+            await updateWhereClauseAndXData(props.reqId);
+        }
+    }
     onMounted(async () => {
         //console.log('SrSqlStmnt onMounted: computedSqlStmnt:',computedSqlStmnt.value);
     });

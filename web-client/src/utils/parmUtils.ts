@@ -1,4 +1,4 @@
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { type SrListNumberItem } from '@/types/SrTypes';
 export interface SrScatterOptionsParms {
   reqIdStr: string;
   fileName: string;
@@ -13,7 +13,7 @@ export const tracksOptions = [
     { label: '3' , value: 3 }
   ] as SrListNumberItem[];
 
-export const beamsOptions = [
+export const gtsOptions = [
     {label:'gt1l',value:10}, 
     {label:'gt1r',value:20}, 
     {label:'gt2l',value:30}, 
@@ -32,21 +32,21 @@ export const spotsOptions = [
   ] as SrListNumberItem[];
 
 export const scOrientOptions = [
-    {label:'0',value:0}, 
-    {label:'1',value:1}
+    {label:'Backward',value:0}, 
+    {label:'Forward',value:1}
   ] as SrListNumberItem[];
 
   export const pairOptions = [
     {label:'0',value:0}, 
-    {label:'0',value:1}
+    {label:'1',value:1}
   ]
 
-  export function getBeamsAndTracksWithGts(gts:SrListNumberItem[]) {
-    const beams = [] as SrListNumberItem[];
-    for (const beam of beamsOptions) {
-      for(const gt of gts){
+  export function getGtsAndTracksWithGts(input_gts:SrListNumberItem[]): {gts: SrListNumberItem[], tracks: SrListNumberItem[]} {
+    let gts = [] as SrListNumberItem[];
+    for (const beam of gtsOptions) {
+      for(const gt of input_gts){
         if (beam.value === gt.value) {
-          beams.push(beam);
+          gts.push(beam);
           break;
         }
       }
@@ -55,17 +55,17 @@ export const scOrientOptions = [
     const tracks = [] as SrListNumberItem[];
     //console.log('tracksOptions:',tracksOptions,' beams:',beams);
     for(const track of tracksOptions){
-      for (const beam of beams) {
+      for (const beam of input_gts) {
         if(Number(beam.label.charAt(2)) === track.value){
             tracks.push(track);
             break;
         }
       }
     }
-    //console.log('getBeamsAndTracksWithGts gts:',gts);
-    //console.log('getBeamsAndTracksWithGts beams:',beams);
-    //console.log('getBeamsAndTracksWithGts tracks:',tracks);
-    return {beams, tracks};
+    //console.log('getGtsAndTracksWithGts gts:',gts);
+    //console.log('getGtsAndTracksWithGts beams:',beams);
+    //console.log('getGtsAndTracksWithGts tracks:',tracks);
+    return {gts, tracks};
   }
 
   export function findParam(obj: any, key: string): any | undefined {

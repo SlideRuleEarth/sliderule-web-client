@@ -127,20 +127,28 @@ export class SlideRuleDexie extends Dexie {
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(5).stores({
+        this.version(9).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
-            summary: '++db_id, &req_id', 
+            summary: '++db_id, &req_id',
             colors: '&color',
             atl03CnfColors: 'number',
-            atl08ClassColors: 'number', 
+            atl08ClassColors: 'number',
             //find runContexts by (parentReqId + rgt + cycle + beam) in one go, define a compound index:
-            runContexts: '++id, &reqId, parentReqId, rgt, cycle, beam, track, [parentReqId+rgt+cycle+beam]',
+            runContexts: `
+                ++id, 
+                &reqId, 
+                parentReqId, 
+                rgt, 
+                cycle, 
+                beam, 
+                track, 
+                [parentReqId+rgt+cycle+beam]`,
             plotConfig: 'id',  // single record table
         });
+
         this._initializeDefaultColors();
-        this._initializePlotConfig(); // <-- Add initialization call
+        this._initializePlotConfig();
         this._useMiddleware();
-        //console.log("Database initialized.");
     }
     // Method to initialize default colors
     private async _initializeDefaultColors(): Promise<void> {
@@ -1070,6 +1078,7 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
+    
 
     async addSrRunContext(runContext: SrRunContext): Promise<void> {
         try {

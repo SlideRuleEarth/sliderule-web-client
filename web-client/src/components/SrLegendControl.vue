@@ -1,5 +1,5 @@
 <template>
-  <SrLegendBox 
+  <SrMapLegendBox 
     ref="legendBox"
     :reqIdStr="props.reqIdStr"
     :data_key="props.data_key"
@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue';
 import { Control } from 'ol/control';
-import SrLegendBox from './SrLegendBox.vue';
+import SrMapLegendBox from '@/components/SrMapLegendBox.vue';
 
 // Props definition
 const props = withDefaults(
@@ -24,7 +24,7 @@ const props = withDefaults(
 );
 const emit = defineEmits(['legend-control-created']);
 
-const legendBox = ref<InstanceType<typeof SrLegendBox> | null>(null);
+const legendBox = ref<InstanceType<typeof SrMapLegendBox> | null>(null);
 
 onMounted(async () => {
   // Ensure DOM updates are completed
@@ -34,7 +34,7 @@ onMounted(async () => {
   element.className = 'sr-legend-control ol-unselectable ol-control';
 
   if (legendBox.value?.$el) {
-    // Append the rendered SrLegendBox element to the custom control
+    // Append the rendered SrMapLegendBox element to the custom control
     element.appendChild(legendBox.value.$el);
   } else {
     console.error('Error: legendBox is null or $el is undefined');

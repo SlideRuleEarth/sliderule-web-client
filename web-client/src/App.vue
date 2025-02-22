@@ -82,6 +82,8 @@ const detectBrowserAndOS = () => {
     deviceStore.setBrowser('Opera');
   else deviceStore.setBrowser('Unknown Browser');
 
+  // Check for WebGL support
+  deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
 };
 
 onMounted(async () => {
@@ -127,7 +129,11 @@ const analysisButtonClick = async () => {
         console.error(`Failed analysisButtonClick`, error);
         throw error;
     }
-  };
+};
+
+const settingsButtonClick = () => {
+  router.push('/settings');
+};
 
 const aboutButtonClick = () => {
   //router.push('/about');
@@ -151,6 +157,7 @@ const handleVersionButtonClick = () => {
         @record-button-click="recordButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
+		    @settings-button-click="settingsButtonClick"
         @version-button-click="handleVersionButtonClick"
       />
     </header>

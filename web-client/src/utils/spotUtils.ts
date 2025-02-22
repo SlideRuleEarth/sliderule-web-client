@@ -1,4 +1,7 @@
 
+import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -7,13 +10,15 @@ const SPOT_5 = 5;
 const SPOT_6 = 6;
 const INVALID_SPOT = -1;
 
-const GT1L = 10;
-const GT1R = 20;
-const GT2L = 30;
-const GT2R = 40;
-const GT3L = 50;
-const GT3R = 60;
-const INVALID_GT = -1;
+export const GT1L = 10;
+export const GT1R = 20;
+export const GT2L = 30;
+export const GT2R = 40;
+export const GT3L = 50;
+export const GT3R = 60;
+export const INVALID_GT = -1;
+
+const SC_UNKNOWN = -1;
 
 export function getSpotNumber(sc_orient:number, track:number, pair:number) {
     //const num_combinations = 18; // 3(number of s/c orientations) * 3(number of tracks) * 2(number of pairs)
@@ -121,10 +126,44 @@ export function getDetailsFromSpotNumber(spot:number) {
             details[1].pair = 0;
             break;
         default:
-            console.warn('getSpotGtFromSpotNumber: INVALID spot:', spot);
+            console.warn('getDetailsFromSpotNumber: INVALID spot:', spot);
             break;
     }
     return details;
+}
+
+export function getScOrientFromSpotAndGt(spot:number, gt:number){
+    const d = getDetailsFromSpotNumber(spot);
+    let sc_orient = SC_UNKNOWN;
+    if (gt == GT1L && spot == SPOT_1){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT1L && spot == SPOT_6){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT2L && spot == SPOT_3){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT2L && spot == SPOT_4){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT3L && spot == SPOT_5){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT3L && spot == SPOT_2){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT1R && spot == SPOT_2){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT1R && spot == SPOT_5){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT2R && spot == SPOT_4){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT2R && spot == SPOT_3){
+        sc_orient = SC_FORWARD;
+    } else if (gt == GT3R && spot == SPOT_6){
+        sc_orient = SC_BACKWARD;
+    } else if (gt == GT3R && spot == SPOT_1){
+        sc_orient = SC_FORWARD;
+    } else {
+        console.warn('getScOrientFromSpotAndGt: INVALID spot:', spot, 'gt:', gt);
+    }
+
+    return sc_orient;
 }
 
 export function getSqlForSpot(spot:number){
@@ -134,51 +173,53 @@ export function getSqlForSpot(spot:number){
     return sqlStr;
 }
 
-// export function getSqlForGroundTrack(gt:number){
-//     const {sc_orient, spot, pair} = getDetailsFromGroundTrack(gt);
-//     return '(sc_orient = ' + sc_orient + ' AND spot = ' + spot + ' AND pair = ' + pair + ')';
-// }
-
 export function getSqlForSpots(spots:number[]){
     const sqls = spots.map(spot => getSqlForSpot(spot));
     return sqls.join(' OR ');
 }
 
-// export function getSqlForGroundTracks(gts:number[]){
-//     const sqls = gts.map(gt => getSqlForGroundTrack(gt));
-//     return '(' + sqls.join(' OR ') + ')';
-// }
-
-export function createWhereClause(func:string, spots:number[],rgts:number[],cycles:number[]){
-    //console.log('createWhereClause: func:', func);
-    //console.log('createWhereClause: spots:', spots);
-    //console.log('createWhereClause: rgts:', rgts);
+export function createWhereClause(reqId:number){
+    const globalChartStore = useGlobalChartStore();
+    const func = useRecTreeStore().findApiForReqId(reqId);
+    const spots = globalChartStore.getSpots();
+    const rgt = globalChartStore.getRgt();
+    const cycles = globalChartStore.getCycles();
+    const pairs = globalChartStore.getPairs();
+    const sc_orients = globalChartStore.getScOrients();
+    const tracks = globalChartStore.getTracks();
+    
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
-        if ((rgts.length > 0) || (cycles.length > 0)) {
+        if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if (rgts.length > 0) {
-                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+            if( rgt >= 0){
+                whereStr = whereStr + `rgt = ${rgt}`;
+            } else {
+                console.error('createWhereClause: rgt is empty for func:', func);
             }
             if (cycles.length > 0) {
-                if (rgts.length > 0) {
+                if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+            } else {
+                console.error('createWhereClause: cycles is empty for func:', func);
             }
             if (spots.length > 0) {
-                whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+                if (spots.length > 0) {
+                    whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
+                }
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
-        if ((rgts.length > 0) || (cycles.length > 0)) {
+        if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
-            if (rgts.length > 0) {
-                whereStr = whereStr + `rgt IN (${rgts.join(', ')})`;
+            if( rgt >= 0){
+                whereStr = whereStr + `rgt = ${rgt}`;
             }
             if (cycles.length > 0) {
-                if (rgts.length > 0) {
+                if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
                 whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
@@ -190,6 +231,90 @@ export function createWhereClause(func:string, spots:number[],rgts:number[],cycl
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    //console.log('createWhereClause: whereStr:', whereStr);
+    //console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
     return whereStr;
+}
+
+export function getGtLabelsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
+    const labels = [];
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT1L');
+    } 
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT3R');
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT1R');
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT3L');
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT2L');
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT2R');
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT2R');
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT2L');
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT3L');
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT1R');
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_BACKWARD)){
+        labels.push('GT3R');
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_FORWARD)){
+        labels.push('GT1L');
+    }
+
+    return labels;
+}
+
+export function getGtsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
+    const gts = [];
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT1L);
+    } 
+    if(spots.includes(SPOT_1) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT3R);
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT1R);
+    }
+    if(spots.includes(SPOT_2) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT3L);
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT2L);
+    }
+    if(spots.includes(SPOT_3) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT2R);
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT2R);
+    }
+    if(spots.includes(SPOT_4) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT2L);
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT3L);
+    }
+    if(spots.includes(SPOT_5) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT1R);
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_BACKWARD)){
+        gts.push(GT3R);
+    }
+    if(spots.includes(SPOT_6) && sc_orients.includes(SC_FORWARD)){
+        gts.push(GT1L);
+    }
+    //console.log('getGtsForSpotsAndScOrients: spots:', spots, 'sc_orients:', sc_orients, 'gts:', gts);
+    return gts;
 }

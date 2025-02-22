@@ -1,7 +1,7 @@
 
 ---
 
-# Web Client for [SlideRule Earth](https://www.slideruleearth.io)
+# Web Client for [SlideRule Earth](https://slideruleearth.io)
 
 [![License: University of Washington](https://img.shields.io/badge/OpenSource-UniveristyofWashington-blue)](LICENSE)  
 This repository contains the web client for [SlideRule Earth](https://www.slideruleearth.io), built on top of the secure static site architecture derived from [Amazon CloudFront Secure Static Site](https://github.com/aws-samples/amazon-cloudfront-secure-static-site) v0.11.

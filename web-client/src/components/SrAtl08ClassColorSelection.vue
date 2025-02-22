@@ -1,27 +1,40 @@
 <template>
-    <Fieldset legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
+    <Fieldset v-if="atl08ClassColorMapStore" legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
             <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
         </div>
-        <div class="sr-menu-container" v-for="(classValue, index) in colorMapStore.atl08ClassOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: colorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
+        <div class="sr-menu-container" v-for="(classValue, index) in atl08ClassColorMapStore.atl08ClassOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
             <SrMenu
                 :label="`${classValue.label} (${classValue.value})`"
                 :menuOptions="colorMapStore.getNamedColorPalette()"
-                :setSelectedMenuItem="(color: string) => colorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-                :getSelectedMenuItem="() => colorMapStore.getColorForAtl08ClassValue(classValue.value)"
+                :setSelectedMenuItem="(color: string) => atl08ClassColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
+                :getSelectedMenuItem="() => atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value)"
                 @update:modelValue="handleSelectionChanged(classValue.label, $event)"
             />
         </div>
     </Fieldset>
+    <div v-else>
+        Loading atl08ClassColorMap...
+    </div>
 </template>
 
 <script setup lang="ts">
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
+import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
+import { onMounted, ref } from 'vue';
 
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
+
+const atl08ClassColorMapStore = ref<any>(null);
 const colorMapStore = useColorMapStore();
 const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
 
@@ -32,13 +45,15 @@ const handleSelectionChanged = (label: string, color: string) => {
 };
 
 const restoreDefaultAtl08ClassColorMap = () => {
-    colorMapStore.restoreDefaultAtl08ClassColorMap();
+    atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     emit('defaultsChanged', {});
 };
 
-const onMounted = () => {
-    console.log('SrAtl08ClassColors mounted');
-};
+onMounted( async () => {
+    console.log('SrAtl08ClassColorSelection mounted');
+    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr);
+});
+
 </script>
 
 <style scoped>

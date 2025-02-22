@@ -6,8 +6,8 @@ import SrCalendar from './SrCalendar.vue';
 import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
 import SrListbox from './SrListbox.vue';
-import { tracksOptions,beamsOptions,getBeamsAndTracksWithGts } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/stores/chartStore';
+import { tracksOptions,gtsOptions,getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import { type SrListNumberItem } from '@/types/SrTypes';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -23,12 +23,11 @@ const TracksSelection = (tracks:SrListNumberItem[]) => {
     console.log('TracksSelection:',tracks);
 }
 
-const BeamsSelection = (gts:SrListNumberItem[]) => {
-    console.log('BeamsSelection:',gts);
-    const tracks = getBeamsAndTracksWithGts(gts).tracks;
-    const trackItems = tracks.map((item) => ({label: item.value.toString(), value: item.value}));
-    reqParamsStore.setTracks(trackItems);
-    console.log('BeamsSelection gts:',gts, ' => tracks:',reqParamsStore.tracks, ' beams:',reqParamsStore.beams);
+const GtsSelection = (gts:SrListNumberItem[]) => {
+    console.log('GtsSelection:',gts);
+    const parms = getGtsAndTracksWithGts(gts);
+    reqParamsStore.setSelectedTrackOptions(parms.tracks);
+    console.log('GtsSelection gts:',gts, ' => tracks:',reqParamsStore.tracks, ' beams:',reqParamsStore.beams);
 }
 
 </script>
@@ -53,8 +52,8 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
                 :insensitive="!reqParamsStore.enableGranuleSelection"
                 label="Track(s)" 
                 v-model="reqParamsStore.tracks"
-                :getSelectedMenuItem="reqParamsStore.getTracks"
-                :setSelectedMenuItem="reqParamsStore.setTracks"
+                :getSelectedMenuItem="reqParamsStore.getSelectedTrackOptions"
+                :setSelectedMenuItem="reqParamsStore.setSelectedTrackOptions"
                 :menuOptions="tracksOptions" 
                 tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
                 @update:modelValue="TracksSelection"
@@ -63,11 +62,11 @@ const BeamsSelection = (gts:SrListNumberItem[]) => {
                 :insensitive="!reqParamsStore.enableGranuleSelection"
                 label="Beam(s)" 
                 v-model="reqParamsStore.beams"
-                :getSelectedMenuItem="reqParamsStore.getBeams"
-                :setSelectedMenuItem="reqParamsStore.setBeams"
-                :menuOptions="beamsOptions" 
+                :getSelectedMenuItem="reqParamsStore.getSelectedGtOptions"
+                :setSelectedMenuItem="reqParamsStore.setSelectedGtOptions"
+                :menuOptions="gtsOptions" 
                 tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
-                @update:modelValue="BeamsSelection"
+                @update:modelValue="GtsSelection"
             />
         </div> 
         <SrSwitchedSliderInput

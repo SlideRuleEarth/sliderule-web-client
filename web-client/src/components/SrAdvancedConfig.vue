@@ -10,6 +10,15 @@
                 :decimalPlaces=0
                 tooltipText="Chunk size to Query from parquet file"
         />
+        <SrSliderInput
+            v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
+            label="Max Num Elevation Pnts"
+            :min="10000"
+            :max="5000000"
+            :defaultValue="100000"
+            :decimalPlaces=0
+            tooltipText="Maximum number of points to display"
+        />
         <SrToggleButton 
             :value="reqParamsStore.useChecksum"
             :getValue="reqParamsStore.getUseChecksum"
@@ -40,14 +49,14 @@
                 v-model="selectedNumOfElevationShades"
                 tooltipText="Number of shades for elevation plot"
         />
-        <SrSliderInput
-            v-model="requestsStore.helpfulReqAdviceCnt"
-            label="Give Helpful Advice when # Requests < this"
-            :min="1"
-            :max="30"
-            :decimalPlaces=0
-            tooltipText="Symbol size for Atl06 Scatter Plot"
-        />
+        <FloatLabel variant="in">
+            <label for="ThresholdForHelpfulAdvice">Threshold for Helpful Advice</label>
+            <InputNumber
+                v-model="requestsStore.helpfulReqAdviceCnt" 
+                inputId="ThresholdForHelpfulAdvice"
+            >
+            </InputNumber>
+        </FloatLabel>   
         <SrCheckbox
             v-model="debugStore.useMetersForMousePosition"
             label="Use Meters for mouse position"
@@ -69,6 +78,7 @@
     import { useRequestsStore } from '@/stores/requestsStore';
     import { ref } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
+    import InputNumber from 'primevue/inputnumber';
 
 
     const debugStore = useDebugStore();

@@ -9,10 +9,9 @@
     import 'ol/ol.css'; 
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
-    import SrLegendControl from './SrLegendControl.vue';
+    import SrLegendControl from '@/components/SrLegendControl.vue';
     import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
-    import { useChartStore } from "@/stores/chartStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls } from "vue3-openlayers";
     import { db } from "@/db/SlideRuleDb";
@@ -25,7 +24,8 @@
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
-
+    import SrColMapSelControl from "./SrColMapSelControl.vue";
+   
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -41,7 +41,6 @@
     const mapRef = ref<{ map: OLMap }>();
     const legendRef = ref<any>();
     const mapStore = useMapStore();
-    const chartStore = useChartStore();
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const controls = ref([]);
@@ -129,6 +128,16 @@
         }
     };
 
+    const handleColMapSelControlCreated = (colMapSelControl: any) => {
+        const analysisMap = mapRef.value?.map;
+        if(analysisMap){
+            console.log("adding colMapSelControl");
+            analysisMap.addControl(colMapSelControl);
+        } else {
+            console.error("Error:analysisMap is null");
+        }
+    };
+
     function handleRecordSelectorControlCreated(recordSelectorControl: any) {
         //console.log("handleRecordSelectorControlCreated");
         const analysisMap = mapRef.value?.map;
@@ -186,7 +195,7 @@
             :loadTilesWhileAnimating="true"
             :loadTilesWhileInteracting="true"
             :controls="controls"
-            class="sr-ol-map"
+            class="sr-ol-analysis-map"
         >
 
             <MapControls.OlZoomControl  />
@@ -197,6 +206,7 @@
             />
 
             <MapControls.OlScalelineControl />
+
             <SrLegendControl 
                 @legend-control-created="handleLegendControlCreated"
                 :reqIdStr="recTreeStore.selectedReqIdStr"
@@ -207,6 +217,11 @@
                 class="sr-record-selector-control" 
                 @record-selector-control-created="handleRecordSelectorControlCreated" 
             />
+            <SrColMapSelControl
+                class="sr-col-menu-sel-control"
+                @col-map-sel-control-created="handleColMapSelControlCreated"
+            >
+            </SrColMapSelControl>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
@@ -283,18 +298,23 @@
 
 :deep(.sr-record-selector-control) {
     margin-top:0.25rem;
-    margin-left: 0.25rem;
-    font-size:smaller;
+    margin-left: 0.35rem;
 }
 
-:deep(.sr-select-menu-default) {
-    padding: 0rem; 
-    font-size: small;
-    width: 8rem; 
-    height: 2.25rem; 
+/* :deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-label) {
+    font-size: smaller;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.95);
 }
 
-:deep(.sr-ol-map) {
+
+:deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-dropdown) {
+    font-size: smaller;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.95);
+} */
+
+:deep(.sr-ol-analysis-map) {
     min-width: 15rem; 
     min-height: 15rem; 
     border-radius: var(--p-border-radius); 
@@ -342,8 +362,37 @@
 
 :deep(.sr-legend-control){
   background: rgba(255, 255, 255, 0.25);
-  bottom: 0.5rem;
-  right: 2.5rem;
+  bottom: 0.25rem;
+  right: 3.5rem;
+}
+
+
+:deep(.sr-col-menu-sel-control){
+    top: auto;
+    bottom: 0.25rem;
+    right: 15.5rem;
+    border-radius: var(--p-border-radius);
+}
+
+
+:deep(.sr-col-menu-sel-control .sr-select-menu-default) {
+    font-size: small;
+    width: 5rem; 
+    margin:0rem;
+    padding: 0rem;
+    height: 1.75rem;
+    color: black; 
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.sr-menu-input-wrapper){
+    margin:0rem;
+    padding: 0rem;
+}
+
+:deep(.sr-select-menu-item){
+    margin:0rem;
+    padding: 0rem;
 }
 
 .sr-isLoadingEl {

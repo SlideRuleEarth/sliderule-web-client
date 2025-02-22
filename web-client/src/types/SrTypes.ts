@@ -88,3 +88,8 @@ export interface Region {
     api?: string;
     [key: string]: any; // For additional properties
   }
+  export interface SrListNumberItem {
+    label: string;
+    value: number;
+}
+export type AppendToType =  HTMLElement | "body" | "self" | undefined; 

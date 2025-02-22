@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { updateFilename } from '@/utils/SrParquetUtils';
-import { duckDbLoadOpfsParquetFile,duckDbReadOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { getHFieldNameForFuncStr } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore'; 
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -36,7 +36,7 @@ const upload_progress = ref(0);
 
 
 const customUploader = async (event:any) => {
-    console.log('Import Parquet File customUploader event:',event);
+    //console.log('customUploader Import Parquet File customUploader event:',event);
      try {
         // Step 1: Open file picker dialog for the user to select a file
         const file = event.files[0];
@@ -51,14 +51,6 @@ const customUploader = async (event:any) => {
             const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
             srReqRec.file = newFilename;
             srReqRec.func = func;
-            if(srReqRec.func === 'atl06'){
-                srReqRec.func = 'atl06p'; // backward compatibility
-                console.warn('Updating func to atl06p');
-            }
-            if(srReqRec.func === 'atl03'){
-                srReqRec.func = 'atl03sp'; // backward compatibility
-                console.warn('Updating func to atl03sp');
-            }
             srReqRec.status = 'imported';
             srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
             await db.updateRequestRecord(srReqRec);
@@ -69,22 +61,21 @@ const customUploader = async (event:any) => {
             const writableStream = await opfsFileHandle.createWritable();
             await writableStream.write(file);
             await writableStream.close();
-            const heightFieldname = getHFieldNameForFuncStr(srReqRec.func);
-
-            await duckDbReadOrCacheSummary(srReqRec.req_id, heightFieldname);
+            const opfsFile = await opfsFileHandle.getFile();
+            srReqRec.num_bytes  = opfsFile.size;
+            const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
+            srReqRec.svr_parms = svr_parms_str;
+            console.log('customUploader srReqRec:', srReqRec);
+            await db.updateRequestRecord(srReqRec); 
+            // console.log('Updated srReqRec:', srReqRec);
+            // console.log('svr_parms:', svr_parms);
+            await recTreeStore.updateRecMenu('From customUploader',srReqRec.req_id);// update the menu to include new item
+            await readOrCacheSummary(srReqRec.req_id);
             const summary = await db.getWorkerSummary(srReqRec.req_id);
             console.log('Summary:', summary);
             if(summary){
-                const opfsFile = await opfsFileHandle.getFile();
-                srReqRec.num_bytes  = opfsFile.size;
                 srReqRec.cnt = summary.numPoints;
-                const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
-                srReqRec.svr_parms = svr_parms_str;
-                //console.log('srReqRec:', srReqRec);
                 await db.updateRequestRecord(srReqRec); 
-                // console.log('Updated srReqRec:', srReqRec);
-                // console.log('svr_parms:', svr_parms);
-                recTreeStore.loadTreeData();// update the menu to include new item
                 const msg = `File imported and copied to OPFS successfully!`;
                 console.log(msg);
                 alert(msg);

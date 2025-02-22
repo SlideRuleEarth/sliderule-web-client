@@ -24,9 +24,9 @@ const router = createRouter({
       component: () => import('@/views/AboutView.vue')
     },
     {
-      path: '/popular',
-      name: 'popular',
-      component: () => import('@/views/PopularView.vue')
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue')
     },
     {
       path: '/record',

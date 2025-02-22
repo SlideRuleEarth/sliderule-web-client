@@ -1,17 +1,8 @@
 <template>
     <div class="sr-legend">
-        <Fieldset
-            class="sr-legend-box"
-            legend="Atl03 Cnf Colors"
-            :toggleable="false"
-            :collapsed="false" 
-        >
-            <div v-for="option in atl03CnfOptions" :key="option.value" class="legend-item">
-                <div class="color-box" :style="{ backgroundColor: getColorForAtl03CnfValue(option.value) }"></div>
-                <div class="label">{{ formatLabel(option.label) }} ({{ option.value }})</div>
-            </div>
-        </Fieldset>
-
+        <SrAtl03CnfColors 
+            reqIdStr="reqIdStr"
+        />
         <Button label="Manage Atl03 Cnf Colors" @click="showDialog = true" size="small" />
   
         <Dialog
@@ -22,7 +13,8 @@
             header="Manage ATL03 Cnf Colors"
             @hide="onDialogHide"
         >
-            <SrAtl03CnfColors
+            <SrAtl03CnfColorSelection
+                :reqIdStr="reqIdStr"
                 @selectionChanged="atl03CnfColorChanged"
                 @defaultsChanged="atl03CnfColorChanged"
             />
@@ -32,13 +24,19 @@
   
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import SrAtl03CnfColors from './SrAtl03CnfColors.vue';
+import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
 import { useColorMapStore } from '@/stores/colorMapStore';
-import Fieldset from 'primevue/fieldset';
-import { getColorForAtl03CnfValue } from '@/utils/colorUtils';
+import SrAtl03CnfColors from '@/components/SrAtl03CnfColors.vue';
+
+const props = defineProps({
+    reqIdStr: {
+        type: String,
+        required: true
+    }
+});
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
 const colorMapStore = useColorMapStore();
@@ -47,17 +45,14 @@ const colorMapStore = useColorMapStore();
 const showDialog = ref(false);
 
 onMounted(async () => {
-    if (!colorMapStore.isInitialized) {
-        await colorMapStore.initializeColorMapStore();
-    }
 });
 
-const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
+// const atl03CnfOptions = computed(() => colorMapStore.atl03CnfOptions);
 
 
-const formatLabel = (label: string): string => {
-    return label.replace(/^atl03_/, '').replace(/_/g, ' ');
-};
+// const formatLabel = (label: string): string => {
+//     return label.replace(/^atl03_/, '').replace(/_/g, ' ');
+// };
     
 // Emitted when a color changes
 const atl03CnfColorChanged = (event: { label: string; color: string }) => {
