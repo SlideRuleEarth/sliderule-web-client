@@ -89,6 +89,7 @@ const updateElevationMap = async (req_id: number) => {
         const rec = await duckDbReadAndUpdateElevationData(req_id);
         if(rec){
             globalChartStore.setSelectedElevationRec(rec);
+            clicked(rec);
         }
         mapStore.setIsLoading(false);
         mapStore.setMapInitialized(true);

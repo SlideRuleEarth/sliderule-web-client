@@ -5,7 +5,6 @@ import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
-import { clicked } from '@/utils/SrMapUtils';
 import { type SrRadioItem } from '@/types/SrTypes';
 
 
@@ -303,32 +302,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     }
 
     async function setFilterMode(thisFilterMode:string) {
-
-        switch (thisFilterMode) {
-            case 'SpotMode':
-                console.log('Applying Spot Mode filter');
-                const rec = getSelectedElevationRec();
-                const saveCycles = getCycles();
-                if (rec) {
-                    await clicked(rec);
-                }
-                setCycles(saveCycles);
-                break;
-            // case FilterMode.TrackMode:
-            //   console.log('Applying Track Mode filter');
-            //   break;
-            case 'RgtMode':
-                console.log('Applying RGT Mode filter');
-                selectedSpots.value = [1,2,3,4,5,6];
-                hasScForward.value = true;
-                hasScBackward.value = true;
-              break;
-            // case FilterMode.AllRgts:
-            //   console.log('Applying All RGTs filter');
-            //   break;
-            default:
-                console.log('Unknown filter mode');
-          }
           filterMode.value = thisFilterMode;
     }
 
