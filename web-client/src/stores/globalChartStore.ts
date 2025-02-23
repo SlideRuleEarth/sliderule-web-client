@@ -26,9 +26,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
     const filterModeOptions = ref<SrRadioItem[]>([
-        { name: 'SpotMode', key: 'S' },
+        { name: 'SpotMode', key: 'SpotMode' },
         //{ name: 'TrackMode', key: 'TrackMode' },
-        { name: 'RgtMode', key: 'R' },
+        { name: 'RgtMode', key: 'RgtMode' },
         //{ name: 'UseAll', key: 'UseAll' },
     ]);
     const filterMode = ref<string>('SpotMode');

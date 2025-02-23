@@ -50,17 +50,6 @@ export const selectedRgtReactive = computed({
     },
 });
 
-export const filterModeReactive = computed({
-    get: (): string => {
-        const value = useGlobalChartStore().getFilterMode();
-        //console.log(`filterModeReactive[${reqId}] get:`, value);
-        return value;
-    },
-    set: (value: string): void => {
-        //console.log(`filterModeReactive[${reqId}] set:`, values);
-        useGlobalChartStore().setFilterMode(value);
-    },
-});
 
 export interface SrScatterSeriesData{
   series: {

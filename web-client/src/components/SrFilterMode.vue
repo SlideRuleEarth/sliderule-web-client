@@ -1,20 +1,37 @@
 <template>
     <div class="sr-filter-modes">
-        <div v-for="filterMode in globalChartStore.filterModeOptions" :key="filterMode.key" class="sr-filter-mode-item">
-            <RadioButton v-model="filterModeReactive" :inputId="filterMode.key" name="dynamic" :value="filterMode.name" size="small" />
-            <label :for="filterMode.key">{{ filterMode.name }}</label>
-        </div>
+      <div v-for="filterMode in globalChartStore.filterModeOptions" :key="filterMode.key" class="sr-filter-mode-item">
+        <RadioButton
+          v-model="globalChartStore.filterMode"
+          :inputId="filterMode.key"
+          name="dynamic"
+          :value="filterMode.key"
+          size="small"
+        />
+        <label :for="filterMode.key">{{ filterMode.name }}</label>
+      </div>
     </div>
-</template>
+  </template>
+  
   
 <script setup lang="ts">
+    import { onMounted,watch } from 'vue';
     import RadioButton from 'primevue/radiobutton';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
-    import { filterModeReactive } from '@/utils/plotUtils';
     const globalChartStore = useGlobalChartStore();
 
-  // Access the global store
-  
+    onMounted(() => {
+        console.log('SrFilterMode component mounted');
+        globalChartStore.setFilterMode('SpotMode');
+    });
+
+    watch(
+        () => globalChartStore.filterMode,
+        (newValue) => {
+            console.log(`Filter mode changed to: ${newValue}`);
+        }
+    );
+
   
 </script>
 <style scoped>
