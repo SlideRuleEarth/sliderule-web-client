@@ -1,7 +1,4 @@
 import { defineStore } from 'pinia';
-import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
-import { gtsOptions, tracksOptions, spotsOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/types/SrTypes';
 export interface SrMenuItem {
     name: string;
     value: string;

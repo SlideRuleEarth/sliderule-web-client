@@ -6,20 +6,17 @@ import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } 
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
-import { useColorMapStore } from "@/stores/colorMapStore";
 import { useChartStore } from "@/stores/chartStore";
-import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
-import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
-import { initDataBindingsToChartStore } from '@/utils/plotUtils';
+import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import SrPlotLegendBox from "./SrPlotLegendBox.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
+import SrFilterMode from "./SrFilterMode.vue";
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -29,11 +26,9 @@ const props = defineProps({
     }
 });
 
-const requestsStore = useRequestsStore();
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
-const colorMapStore = useColorMapStore();
 const recTreeStore = useRecTreeStore();
 const loadingComponent = ref(true);
 
@@ -127,7 +122,6 @@ const computedDataKey = computed(() => {
 onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
-        console.log('SrTimeSeries onMounted',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
 
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
@@ -139,18 +133,19 @@ onMounted(async () => {
             initializeColorEncoding(reqId);
             const retObj = await getAllCycleOptions(reqId);
             globalChartStore.setCycles(retObj.cycles); // force select all 
+            globalChartStore.setFilterMode(SrFilterMode.RgtMode);
             console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
-            console.error('reqId is undefined');
+            console.error('SrTimeSeries reqId is undefined');
         }        
         shouldDisplayGradient.value = true;
         await nextTick(); // Ensures Vue has completed the DOM rendering
         initGradientPosition();
-        //console.log('SrTimeSeries onMounted completed');
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
         loadingComponent.value = false;
+        console.log('SrTimeSeries onMounted completed');
     }
 });
 
@@ -173,41 +168,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
             console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
         }
         nextTick(initGradientPosition); // Ensure DOM updates before repositioning
-    }
-});
-
-watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
-    console.log('SrTimeSeries showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
-    if(!loadingComponent.value){
-        if(newShowPhotonCloud){
-            const runContext = await getPhotonOverlayRunContext();
-            if(runContext.reqId <= 0){ // need to fetch the data
-                //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
-                await processRunSlideRuleClicked(runContext); // worker is started here
-                console.log('SrTimeSeries handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
-                if(runContext.reqId > 0){
-                    const thisReqIdStr = runContext.reqId.toString();
-                    initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-                    await initSymbolSize(runContext.reqId);
-                    initializeColorEncoding(runContext.reqId);
-                } else { // request was successfully processed
-                    console.error('SrTimeSeries handlePhotonCloudChange - processRunSlideRuleClicked failed');
-                }
-            } else { // we already have the data
-                await initSymbolSize(runContext.reqId);
-                initializeColorEncoding(runContext.reqId);
-                await prepareDbForReqId(runContext.reqId);            
-                await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
-            }
-            const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
-            requestsStore.setConsoleMsg(msg);
-        } else {
-            console.log('SrTimeSeries handlePhotonCloudChange - showPhotonCloud FALSE');
-            atlChartFilterStore.setSelectedOverlayedReqIds([]);
-            await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
-        }
-    } else {
-        console.warn(`SrTimeSeries Skipped handlePhotonCloudChange - Loading component is still active`);
     }
 });
 
@@ -328,6 +288,9 @@ watch(chartWrapperRef, (newValue) => {
                 />
             </div>
             <div class="sr-cycles-legend-panel">
+                <div>
+                    <SrFilterMode />
+                </div>
                 <div class="sr-select-box">
                     <p class="sr-select-box-hdr">Cycles</p>
                     <Listbox 
@@ -356,7 +319,7 @@ watch(chartWrapperRef, (newValue) => {
                     </Listbox>
                 </div>
                 <div class="sr-legends-panel">
-                    {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }}
+                    <!-- {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }} -->
                     <Dialog
                         v-if="(chartWrapper !== null)"
                         v-model:visible="shouldDisplayGradient"
