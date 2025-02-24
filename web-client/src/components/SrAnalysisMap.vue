@@ -18,14 +18,17 @@
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
-    import { updateMapView,dumpMapLayers } from "@/utils/SrMapUtils";
+    import { updateMapView, dumpMapLayers, renderSvrReqPoly } from "@/utils/SrMapUtils";
     import SrRecSelectControl from "./SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrColMapSelControl from "./SrColMapSelControl.vue";
-   
+    import { useSrToastStore } from "@/stores/srToastStore";
+    import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
+    import { Vector as VectorSource } from 'ol/source';
+    import VectorLayer from "ol/layer/Vector";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -44,6 +47,13 @@
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const controls = ref([]);
+
+
+    const recordsVectorSource = new VectorSource({wrapX: false});
+    const recordsLayer = new VectorLayer({
+        source: recordsVectorSource,
+    });
+
 
     const handleEvent = (event: any) => {
         console.log(event);
@@ -105,13 +115,14 @@
 
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
+        recordsLayer.set('name', 'Records Layer'); // for empty requests need to draw poly in this layer
+        recordsLayer.set('title', 'Records Layer');
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
-
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
@@ -156,8 +167,24 @@
 
         try {
             if(map){
-                await updateMapView(map, srViewName, reason);
-                zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
+                await updateMapView(map, srViewName, reason, false, props.selectedReqId);
+                const summary = await readOrCacheSummary(props.selectedReqId);
+                console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
+                const numPointsStr = summary.numPoints; // it is a string BIG INT!
+                const numPoints = parseInt(String(numPointsStr));
+                if(numPoints > 0){
+                    zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
+                } else {
+                    console.warn(`Warn: No points for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                    useSrToastStore().warn('There are no data points in this region', 'Click Request then increase the area of the polygon',10000);
+                    map.addLayer(recordsLayer);
+                    //dumpMapLayers(map,'SrAnalysisMap');
+                    const poly = renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
+                    //const extent = getSrRegionExtents(poly);
+                    //const center = getApproxCenterUsingBounds(extent);
+                    //useMapStore().setCenterToRestore(center);
+
+                }
                 initDeck(map);
             } else {
                 console.error("SrMap Error:map is null");

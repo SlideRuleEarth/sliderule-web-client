@@ -78,16 +78,29 @@ export const useRequestsStore = defineStore('requests', {
         throw new Error(errorMsg);
       } 
     },
-    async deleteReq(reqId: number): Promise<void>{
+    async deleteReq(reqId: number): Promise<boolean>{
+      let deleted=true;
       try {
         await db.deleteRequest(reqId);
-        await db.deleteRequestSummary(reqId);
-        console.log('SrRequestRecord deleted successfully');
       } catch (error) {
         console.error('Error deleting request:', error);
-        throw error;
+        deleted=false;
       }
-    
+      try{
+        await db.deleteRequestSummary(reqId);
+        console.log(`reqId:${reqId} deleted successfully`);
+      } catch (error) {
+        console.error(`Error with deleteRequestSummary when deleting reqId:${reqId}`, error);
+        deleted=false;
+      }
+      try {
+        await db.removeRunContext(reqId);
+
+      } catch (error) {
+        console.error(`Error with removeRunContext when deleting reqId:${reqId}`, error);
+        deleted=false;
+      }
+      return deleted;
     },
     async deleteAllReqs(): Promise<void>{
       try {
