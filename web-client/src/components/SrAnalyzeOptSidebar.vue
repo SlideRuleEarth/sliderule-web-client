@@ -18,7 +18,6 @@ import SrPlotConfig from "@/components/SrPlotConfig.vue";
 import { useChartStore } from '@/stores/chartStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
-import type { ElevationDataItem } from '@/utils/SrMapUtils';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -77,7 +76,6 @@ onMounted(async () => {
 
 const updateElevationMap = async (req_id: number) => {
     console.log('updateElevationMap req_id:', req_id);
-    let firstRec = null as ElevationDataItem | null;
     //const reqIdStr = req_id.toString();
     if(req_id <= 0){
         console.warn(`updateElevationMap Invalid request ID:${req_id}`);
@@ -88,7 +86,11 @@ const updateElevationMap = async (req_id: number) => {
         deckStore.deleteSelectedLayer();
         //updateFilter([req_id]); // query to set all options for all 
         mapStore.setIsLoading(true);
-        firstRec = await duckDbReadAndUpdateElevationData(req_id);
+        const rec = await duckDbReadAndUpdateElevationData(req_id);
+        if(rec){
+            globalChartStore.setSelectedElevationRec(rec);
+            clicked(rec);
+        }
         mapStore.setIsLoading(false);
         mapStore.setMapInitialized(true);
     } catch (error) {

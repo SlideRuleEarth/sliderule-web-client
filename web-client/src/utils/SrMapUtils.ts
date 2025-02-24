@@ -320,8 +320,8 @@ export interface ElevationDataItem {
 }
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
-    //console.log('Clicked data:',d);
-    useAnalysisTabStore().setFirstRec(useRecTreeStore().selectedReqIdStr,d);
+    console.log('Clicked data:',d);
+    useGlobalChartStore().setSelectedElevationRec(d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();

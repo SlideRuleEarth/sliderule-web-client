@@ -17,11 +17,14 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
+
+
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+
 
 export const selectedCyclesReactive = computed({
     get: (): number[] => {
@@ -46,6 +49,7 @@ export const selectedRgtReactive = computed({
         useGlobalChartStore().setRgt(value);
     },
 });
+
 
 export interface SrScatterSeriesData{
   series: {

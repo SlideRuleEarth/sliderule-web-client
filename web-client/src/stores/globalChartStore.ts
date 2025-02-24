@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { SrListNumberItem } from '@/types/SrTypes';
-import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
+import type { ElevationDataItem } from '@/utils/SrMapUtils';
+import { type SrRadioItem } from '@/types/SrTypes';
+
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const fontSize = ref<number>(16); // Default font size in pixels
@@ -22,6 +24,15 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const scrollY = ref<number>(0);
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
+    const filterModeOptions = ref<SrRadioItem[]>([
+        { name: 'SpotMode', key: 'SpotMode' },
+        //{ name: 'TrackMode', key: 'TrackMode' },
+        { name: 'RgtMode', key: 'RgtMode' },
+        //{ name: 'UseAll', key: 'UseAll' },
+    ]);
+    const filterMode = ref<string>('SpotMode');
+    const selectedElevationRec = ref<ElevationDataItem | null>({});
+
 
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
@@ -290,6 +301,22 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return scOrientLabels;        
     }
 
+    async function setFilterMode(thisFilterMode:string) {
+          filterMode.value = thisFilterMode;
+    }
+
+    function getFilterMode():string {
+        return filterMode.value;
+    }
+
+    const setSelectedElevationRec = (rec: ElevationDataItem): void => {   
+        selectedElevationRec.value = rec;
+    };
+
+    const getSelectedElevationRec = (): ElevationDataItem | null => {
+        return selectedElevationRec.value ?? null;
+    };
+
     return {
         fontSize,
         getCycleOptions,
@@ -342,5 +369,11 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         scrollX,
         scrollY,
         titleOfElevationPlot: ref('Highlighted Track'),
+        setFilterMode,
+        getFilterMode,
+        filterMode,
+        filterModeOptions,
+        setSelectedElevationRec,
+        getSelectedElevationRec,
     };
 });

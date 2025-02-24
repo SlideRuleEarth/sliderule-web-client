@@ -93,3 +93,10 @@ export interface Region {
     value: number;
 }
 export type AppendToType =  HTMLElement | "body" | "self" | undefined; 
+
+export interface SrRadioItem {
+  name: string;
+  key: string;
+}
+
+
