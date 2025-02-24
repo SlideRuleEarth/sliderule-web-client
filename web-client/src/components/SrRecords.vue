@@ -74,37 +74,63 @@ async function calculateCS(req_id:number) {
     }
 };
 
-const deleteReq = async (id:number) => {
+async function deleteRequest(id:number){
+    let deleted = true;
     try {
-        console.log('deleteReq:', id);
-        await db.removeRunContext(id);
         const fn = await db.getFilename(id);
-        await deleteOpfsFile(fn);
-        requestsStore.deleteReq(id);
-        console.log('deleteReq Record deleted successfully for id:', id);
+        console.log('deleteRequest:', id, 'fileName:', fn);
+        deleted = await deleteOpfsFile(fn);
     } catch (error) {
-        console.error(`deleteReq Failed to delete record for id:${id}`, error);
-        throw error;
+        console.error(`deleteRequest Failed to delete file for id:${id}`, error);
+        deleted = false;
     }
+    try {
+        deleted = await requestsStore.deleteReq(id);
+        console.log('deleteRequest Record deleted successfully for id:', id);
+        await recTreeStore.loadTreeData();
+        recTreeStore.initToFirstRecord();
+    } catch (error) {
+        console.error(`deleteRequest Failed to delete record for id:${id}`, error);
+        deleted = false;
+    }
+    if (deleted) {
+        toast.add({ severity: 'success', summary: 'Record Deleted', detail: `Record ${id} deleted successfully`, life: srToastStore.getLife() });
+    } else {
+        toast.add({ severity: 'error', summary: 'Record Deletion Failed', detail: `Failed to delete record ${id}`, life: srToastStore.getLife() });
+    }
+    console.log('deleteRequest:', id, 'deleted:', deleted);
+    return deleted;
 };
 
 const deleteReqAndChildren = async (id:number) => {
-    const userConfirmed = window.confirm('Are you sure you want to delete this record and all its overlayed children?');
-    if (userConfirmed) {
-        const children = await db.runContexts
+    const children = await db.runContexts
             .where('parentReqId')
             .equals(id)
             .toArray();
+    const listOfChildIds = children.map(child => child.reqId);
+    let msg = `Are you sure you want to delete this record ${id}`;
+    if(children.length > 0) {
+        msg = `Are you sure you want to delete this record ${id} and all its children:${listOfChildIds}`;
+    }
+    const userConfirmed = window.confirm(msg);
+    let deleteSuccessful = true;
+    if (userConfirmed) {
         if (children.length > 0) {
             for (const child of children) {
                 console.log('Deleting child:', child, ' of parent:', id);
-                await deleteReq(child.reqId);
+                deleteSuccessful = deleteSuccessful && (await deleteRequest(child.reqId));
             }
         }
-        deleteReq(id);
+        deleteSuccessful = deleteSuccessful && (await deleteRequest(id));
     } else {
-        console.log('deleteReq Deletion cancelled');
+        console.log('deleteReqAndChildren Deletion cancelled');
+        toast.add({ severity: 'warn', summary: 'Deletion Cancled', detail: `Record ${id} was NOT deleted`, life: srToastStore.getLife() });
+        return false;
     }
+    if (!deleteSuccessful) {
+        toast.add({ severity: 'error', summary: 'Record Deletion Failed', detail: `Failed to delete record ${id}`, life: srToastStore.getLife() });
+    }
+    console.log('deleteReqAndChildren:', id, 'deleted:', deleteSuccessful);
 }
 
 const exportFile = async (req_id:number) => {

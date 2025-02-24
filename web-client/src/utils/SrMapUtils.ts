@@ -39,11 +39,9 @@ import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
-import type { SrRegion } from '@/sliderule/icesat2';
+import type { SrRegion,SrLatLon } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
@@ -866,11 +864,11 @@ export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
     }
 }
 
-export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[],color:string, reqId:number=0, layerName:string='Drawing Layer'): void {
+export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[],color:string, reqId:number=0, layerName:string='Drawing Layer',forceZoom:boolean=false): void {
     // 1. Find your vector layer
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
     if (!vectorLayer) {
-      console.error('renderRequestPolygon: "Records Layer" not found');
+      console.error(`renderRequestPolygon: ${layerName} not found`);
       return;
     }
     // 2. Get the source
@@ -919,23 +917,29 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
             console.log('renderRequestPolygon: zooming to new polygon');
             map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
         }
+    } else {
+        if(forceZoom){
+            console.log('renderRequestPolygon: zooming to new polygon');
+            map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20,20,20,20] });
+        }
     }
-    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon, 'color',color, 'reqId:',reqId, 'layerName:',layerName);
+    //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon, 'color',color, 'reqId:',reqId, 'layerName:',layerName, 'forceZoom:',forceZoom);
 }
 
-export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
-    //const startTime = performance.now(); // Start time
+export async function renderSvrReqPoly(map:OLMap,reqId:number,layerName:string='Records Layer',forceZoom:boolean=false): Promise<SrRegion> {
+    const startTime = performance.now(); // Start time
+    let poly:SrRegion = [];
     try{
         if(map){
-            const poly:SrRegion = await db.getSvrReqPoly(reqId);
+            poly = await db.getSvrReqPoly(reqId);
             const rc = await db.getRunContext(reqId);
             if(poly.length > 0){
                 if(rc){
                     if(rc?.parentReqId<=0){
-                        renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
+                        renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
                     }
                 } else {
-                    renderRequestPolygon(map, poly, 'blue', reqId, 'Records Layer');
+                    renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
                 }
             } else {
                 console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
@@ -946,14 +950,16 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number): Promise<void> {
     } catch (error) {
         console.error('renderSvrReqPoly Error:',error);
     }
-    //const endTime = performance.now(); // End time
-    //console.log(`renderSvrReqPoly took ${endTime - startTime} milliseconds.`);
+    const endTime = performance.now(); // End time
+    //console.log(`renderSvrReqPoly forceZoom:${forceZoom} took ${endTime - startTime} milliseconds.`);
+    return poly;
 }
 
 export async function updateMapView(map:OLMap, 
                                     srViewKey:string, 
                                     reason:string, 
-                                    restore:boolean=false
+                                    restore:boolean=false,
+                                    reqId:number=0 // for saving state
 ): Promise<void> {
     // This function is generic and shared between the two maps
     try {

@@ -83,16 +83,18 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         //console.log('Request:', request);
-        deckStore.deleteSelectedLayer();
-        //updateFilter([req_id]); // query to set all options for all 
+        const parms = await duckDbReadAndUpdateElevationData(req_id);
+        const rec = parms.rec;
+        const numRows = parms.numRows;
         mapStore.setIsLoading(true);
-        const rec = await duckDbReadAndUpdateElevationData(req_id);
-        if(rec){
+        if(rec && numRows > 0){
+            deckStore.deleteSelectedLayer();
+            //updateFilter([req_id]); // query to set all options for all 
             globalChartStore.setSelectedElevationRec(rec);
             clicked(rec);
+            mapStore.setMapInitialized(true);
         }
         mapStore.setIsLoading(false);
-        mapStore.setMapInitialized(true);
     } catch (error) {
         console.warn('Failed to update selected request:', error);
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
