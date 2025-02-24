@@ -218,7 +218,7 @@ export class SlideRuleDexie extends Dexie {
                 defaultAtl03spSymbolSize: 1,
                 defaultAtl03vpSymbolSize: 3,
                 defaultGradientColorMapName: 'viridis',
-                defaultGradientNumShades: 256
+                defaultGradientNumShades: 512,
             });
 
             console.warn('plotConfig table restored to default values.');

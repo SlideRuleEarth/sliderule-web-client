@@ -4,7 +4,7 @@ import colormap  from 'colormap';
 export const useElevationColorMapStore = defineStore('elevationColorMap', {
     state: () => ({
         selectedElevationColorMap: 'viridis' as string,
-        numShadesForElevation: 256 as number,
+        numShadesForElevation: 512 as number,
         elevationColorMap: [] as[number, number, number, number][],
     }),
     actions: {
