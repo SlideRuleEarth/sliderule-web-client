@@ -14,6 +14,7 @@ interface ChartState {
     yDataOptions: string[];
     selectedYData: string;
     selectedColorEncodeData: string;
+    savedColorEncodeData: string;
     xDataForChart: string;
     ndxOfElevationDataOptionsForHeight: number;
     description: string;
@@ -71,6 +72,7 @@ export const useChartStore = defineStore('chartStore', {
                     selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
                     symbolSize: 3,
                     symbolColorEncoding: 'unset',
+                    savedColorEncodeData: 'unset',
                     solidSymbolColor: 'red',
                     selectAllTracks: true,
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
@@ -156,6 +158,14 @@ export const useChartStore = defineStore('chartStore', {
         getSymbolColorEncoding(reqIdStr: string) {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].symbolColorEncoding;
+        },
+        setSavedColorEncodeData(reqIdStr: string, savedColorEncodeData: string) {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].savedColorEncodeData = savedColorEncodeData;
+        },
+        getSavedColorEncodeData(reqIdStr: string) {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].savedColorEncodeData;
         },
         setSolidSymbolColor(reqIdStr: string, symbolColor: string): void {
             this.ensureState(reqIdStr);

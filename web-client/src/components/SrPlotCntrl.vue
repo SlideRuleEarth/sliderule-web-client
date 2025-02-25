@@ -49,7 +49,7 @@
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot" 
                         @atl08-class-color-changed="handleAtl08ClassColorChanged" 
                     />
-                    <SrGradientColorLegend 
+                    <SrGradientLegendCntrl 
                         v-if="shouldDisplayGradientColorLegend"
                         :label="gradientLabel"
                         :req_id="props.reqId"
@@ -118,7 +118,7 @@ import { computed, onMounted, ref } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
-import SrGradientColorLegend from '@/components/SrGradientColorLegend.vue';
+import SrGradientLegendCntrl from '@/components/SrGradientLegendCntrl.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';

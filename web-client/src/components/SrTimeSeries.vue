@@ -10,7 +10,7 @@ import { useChartStore } from "@/stores/chartStore";
 import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
-import SrPlotLegendBox from "./SrPlotLegendBox.vue";
+import SrGradientLegend from "./SrGradientLegend.vue";
 import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import Listbox from 'primevue/listbox';
@@ -331,7 +331,7 @@ watch(chartWrapperRef, (newValue) => {
                         :style="gradientDialogStyle"
                     >
                         <template #header>
-                            <SrPlotLegendBox
+                            <SrGradientLegend
                                 class="chart-overlay"
                                 v-if = "(computedDataKey!='solid')"
                                 :reqIdStr="recTreeStore.selectedReqIdStr" 
