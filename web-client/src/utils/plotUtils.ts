@@ -800,7 +800,7 @@ async function appendSeries(reqId: number): Promise<void> {
         }
         //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
         // Define the fields that should share a single axis
-        const heightFields = ['height', 'h_mean', 'h_mean_canopy'];
+        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li'];
 
         // Separate series into "height" group and "non-height" group
         const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));
