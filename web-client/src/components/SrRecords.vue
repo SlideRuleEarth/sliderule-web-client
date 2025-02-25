@@ -16,6 +16,7 @@ import SrCustomTooltip from './SrCustomTooltip.vue';
 import { useToast } from "primevue/usetoast";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
+import Tree from 'primevue/tree';
 
 const requestsStore = useRequestsStore();
 const isReqParmCodeFmt = ref(true);
@@ -24,6 +25,46 @@ const toast = useToast();
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
 
+const selectedRow = ref<any>(null);
+const firstRowIndex = ref(0);
+
+// For star toggling:
+function toggleStarAndHighlight(req: any) {
+    requestsStore.toggleStar(req.req_id);
+    selectAndHighlight(req.req_id);
+}
+
+function selectAndHighlight(reqId: number) {
+    console.log('selectAndHighlight:', reqId);
+    const idx = requestsStore.reqs.findIndex(r => r.req_id === reqId);
+    if (idx === -1) {
+        console.warn(`Request ID ${reqId} not found in table data`);
+        return;
+    }
+    // 1) highlight by setting selectedRow to the actual row object
+    selectedRow.value = requestsStore.reqs[idx];
+
+    // 2) compute the page where the record belongs
+    const pageSize = 3; // match <DataTable :rows="3"> above
+    firstRowIndex.value = Math.floor(idx / pageSize) * pageSize;
+}
+
+function onNodeSelect(event: any) {
+    console.log('onNodeSelect:', event.node);
+}
+
+function onTreeSelectionChange(event: any) {
+    // 1) tell recTreeStore which node is selected
+    recTreeStore.setSelectedValue(event.value);
+
+    // 2) get the actual `req_id` from the recTreeStore
+    const chosenReqId = recTreeStore.selectedReqId;
+    console.log('onTreeSelectionChange:', event.value, 'chosenReqId:', chosenReqId);
+    if (chosenReqId) {
+        // 3) highlight and page the data table
+        selectAndHighlight(chosenReqId);
+    }
+}
 
 const onEditComplete = async (data: Record<string, any>, field: string, event: Event) => {
     const inputElement = event.target as HTMLInputElement;
@@ -183,6 +224,7 @@ onMounted(async () => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
     requestsStore.fetchReqs();
+    await recTreeStore.loadTreeData();
     //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
 });
 
@@ -196,168 +238,183 @@ const tooltipRef = ref();
 
 <template>
     <div class="sr-records-container">
-        <DataTable 
-            :value="requestsStore.reqs" 
-            tableStyle="min-width:100% width:100%;" 
-            table-layout="auto"
-            size="small" 
-            :resizableColumns="true"
-            columnResizeMode="expand"
-            scrollable 
-            scrollHeight="flex"
-            :paginator="true"
-            :rows="3"
-            :rowsPerPageOptions="[3,5,10,20]"
-            editMode="cell"
-        >
-            <Column field="Star" header="">
-                <template #body="slotProps">
-                    <i 
-                      :class="[slotProps.data.star ? 'pi pi-star-fill' : 'pi pi-star' ]"
-                      @click="() => requestsStore.toggleStar(slotProps.data.req_id)"
-                    ></i>
+        <!-- Tree Menu for hierarchical requests -->
+        <div class="sr-tree-container">
+            <Tree
+                :value="recTreeStore.treeData"      
+                :selectionKeys="recTreeStore.selectedValue"
+                selectionMode="single"
+                @nodeSelect="onNodeSelect" 
+            />
+        </div>
+
+        <div class="sr-table-container">
+            <DataTable 
+                :value="requestsStore.reqs" 
+                dataKey="req_id"
+                v-model:election="selectedRow"
+                v-model:first="firstRowIndex"
+                tableStyle="min-width:100% width:100%;" 
+                table-layout="auto"
+                size="small" 
+                :resizableColumns="true"
+                columnResizeMode="expand"
+                scrollable 
+                scrollHeight="flex"
+                :paginator="true"
+                :rows="3"
+                :rowsPerPageOptions="[3,5,10,20]"
+                editMode="cell"
+            >
+                <Column field="Star" header="">
+                    <template #body="slotProps">
+                        <i 
+                        :class="[slotProps.data.star ? 'pi pi-star-fill' : 'pi pi-star' ]"
+                        @click="() => toggleStarAndHighlight(slotProps.data.req_id)"
+                        ></i>
+                    </template>
+                </Column>
+                <Column field="req_id" header="ID"></Column>
+                <Column field="status" header="Status"> 
+                    <template #body="slotProps">
+                        <span
+                            @mouseover="tooltipRef.showTooltip($event, slotProps.data.status_details)"
+                            @mouseleave="tooltipRef.hideTooltip"
+                        >
+                            {{ slotProps.data.status }}
+                        </span>
                 </template>
-            </Column>
-            <Column field="req_id" header="ID"></Column>
-            <Column field="status" header="Status"> 
-                <template #body="slotProps">
-                    <span
-                        @mouseover="tooltipRef.showTooltip($event, slotProps.data.status_details)"
+                </Column>
+                <Column field="func" header="Function"></Column>
+                <Column field="description" header="Description" :editable="true" style="width: 5rem; max-width: 10rem;">
+                    <template #header>
+                        <i 
+                        class="pi pi-pencil"
+                        @mouseover="tooltipRef.showTooltip($event, 'Editable Description')"
                         @mouseleave="tooltipRef.hideTooltip"
-                    >
-                        {{ slotProps.data.status }}
-                    </span>
-               </template>
-            </Column>
-            <Column field="func" header="Function"></Column>
-            <Column field="description" header="Description" :editable="true" style="width: 5rem; max-width: 10rem;">
-                <template #header>
-                    <i 
-                      class="pi pi-pencil"
-                      @mouseover="tooltipRef.showTooltip($event, 'Editable Description')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-                <template #editor="{ data }">
-                    <div class = "sr-descr-style">
-                    <InputText
-                        v-model="data.description"
-                        class="p-inputtext p-component"
-                        @keydown.enter="(event) => onEditComplete(data, 'description', event)"
-                        @blur="(event) => onEditComplete(data, 'description', event)"
-                    />
-                    </div>
-                </template>
-                <template #body="slotProps">
-                    <div class="sr-descr-style">
-                        {{ slotProps.data.description }}
-                    </div>
-                </template>
-            </Column>
-            <Column field="srViewName" header="View"></Column>
-            <Column field="parameters" header="Req Parms" class="sr-par-fmt">
-                <template #header>
-                    <i 
-                      class="pi pi-code sr-toggle-icon"
-                      @click="isReqParmCodeFmt = !isReqParmCodeFmt"
-                      @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    > </i>
-                </template> 
-                <template #body="slotProps">
-                    <div class="sr-col-par-style" >
-                        <span v-if="isReqParmCodeFmt"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
-                        <span v-else>{{slotProps.data.parameters}}</span>
-                    </div>
-                </template>
-            </Column>
-            <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
-                <template #header>
-                    <i 
-                      class="pi pi-code sr-toggle-icon"
-                      @click="isSvrParmCodeFmt = !isSvrParmCodeFmt"
-                      @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    > </i>
-                </template> 
-                <template #body="slotProps">
-                    <div class="sr-col-par-style" >
-                        <span v-if="isSvrParmCodeFmt"><pre><code>{{slotProps.data.svr_parms}}</code></pre></span>
-                        <span v-else>{{slotProps.data.svr_parms}}</span>
-                    </div>
-                </template>
-            </Column>
-            <Column field="cnt" header="Count">
-                <template #body="slotProps">
-                    {{ new Intl.NumberFormat().format(parseInt(String(slotProps.data.cnt)))  }}
-                </template>
-            </Column>
-            <Column field="num_bytes" header="Size">
-                <template #body="slotProps">
-                    {{ formatBytes(slotProps.data.num_bytes) }}
-                </template>
-            </Column>
-            <Column field="elapsed_time" header="Elapsed Time"></Column>
-            <Column field="Actions" header="Analyze" class="sr-analyze">
-                <template #body="slotProps">
-                    <i 
-                      class="pi pi-chart-line"
-                      v-if="((slotProps.data.status == 'success') || (slotProps.data.status == 'imported'))"
-                      @click="analyze(slotProps.data.req_id)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Analyze')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-            </Column>
-            <Column field="Actions" header="" class="sr-src-code">
-                <template #body="slotProps">
-                    <i 
-                      class="pi pi-calculator sr-calculator-icon"
-                      v-if="findParam(slotProps.data.parameters, 'with_checksum')"
-                      @click="calculateCS(slotProps.data.req_id)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Verify Checksum')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-            </Column>
-            <Column field="Actions" header="" class="sr-delete">
-                <template #header>
-                    <i 
-                      class="pi pi-trash"
-                      @click="confirmDeleteAllReqs()"
-                      @mouseover="tooltipRef.showTooltip($event, 'Delete ALL Requests')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-                <template #body="slotProps">
-                    <i 
-                      class="pi pi-trash"
-                      @click="deleteReqAndChildren(slotProps.data.req_id)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Delete this request and any of its children')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-            </Column>
-            <Column field="Actions" header="" class="sr-export">
-                <template #header>
-                    <div 
-                        class="sr-file-import"
-                        @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
+                        ></i>
+                    </template>
+                    <template #editor="{ data }">
+                        <div class = "sr-descr-style">
+                        <InputText
+                            v-model="data.description"
+                            class="p-inputtext p-component"
+                            @keydown.enter="(event) => onEditComplete(data, 'description', event)"
+                            @blur="(event) => onEditComplete(data, 'description', event)"
+                        />
+                        </div>
+                    </template>
+                    <template #body="slotProps">
+                        <div class="sr-descr-style">
+                            {{ slotProps.data.description }}
+                        </div>
+                    </template>
+                </Column>
+                <Column field="srViewName" header="View"></Column>
+                <Column field="parameters" header="Req Parms" class="sr-par-fmt">
+                    <template #header>
+                        <i 
+                        class="pi pi-code sr-toggle-icon"
+                        @click="isReqParmCodeFmt = !isReqParmCodeFmt"
+                        @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
                         @mouseleave="tooltipRef.hideTooltip"
-                    >
-                        <SrImportParquetFile />
-                    </div>
-                </template>
-                <template #body="slotProps">
-                    <i 
-                      class="pi pi-file-export sr-file-export-icon"
-                      @click="exportFile(slotProps.data.req_id)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Export File')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-            </Column>
-        </DataTable>
+                        > </i>
+                    </template> 
+                    <template #body="slotProps">
+                        <div class="sr-col-par-style" >
+                            <span v-if="isReqParmCodeFmt"><pre><code>{{slotProps.data.parameters}}</code></pre></span>
+                            <span v-else>{{slotProps.data.parameters}}</span>
+                        </div>
+                    </template>
+                </Column>
+                <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
+                    <template #header>
+                        <i 
+                        class="pi pi-code sr-toggle-icon"
+                        @click="isSvrParmCodeFmt = !isSvrParmCodeFmt"
+                        @mouseover="tooltipRef.showTooltip($event, 'Toggle Code Format')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        > </i>
+                    </template> 
+                    <template #body="slotProps">
+                        <div class="sr-col-par-style" >
+                            <span v-if="isSvrParmCodeFmt"><pre><code>{{slotProps.data.svr_parms}}</code></pre></span>
+                            <span v-else>{{slotProps.data.svr_parms}}</span>
+                        </div>
+                    </template>
+                </Column>
+                <Column field="cnt" header="Count">
+                    <template #body="slotProps">
+                        {{ new Intl.NumberFormat().format(parseInt(String(slotProps.data.cnt)))  }}
+                    </template>
+                </Column>
+                <Column field="num_bytes" header="Size">
+                    <template #body="slotProps">
+                        {{ formatBytes(slotProps.data.num_bytes) }}
+                    </template>
+                </Column>
+                <Column field="elapsed_time" header="Elapsed Time"></Column>
+                <Column field="Actions" header="Analyze" class="sr-analyze">
+                    <template #body="slotProps">
+                        <i 
+                        class="pi pi-chart-line"
+                        v-if="((slotProps.data.status == 'success') || (slotProps.data.status == 'imported'))"
+                        @click="analyze(slotProps.data.req_id)"
+                        @mouseover="tooltipRef.showTooltip($event, 'Analyze')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        ></i>
+                    </template>
+                </Column>
+                <Column field="Actions" header="" class="sr-src-code">
+                    <template #body="slotProps">
+                        <i 
+                        class="pi pi-calculator sr-calculator-icon"
+                        v-if="findParam(slotProps.data.parameters, 'with_checksum')"
+                        @click="calculateCS(slotProps.data.req_id)"
+                        @mouseover="tooltipRef.showTooltip($event, 'Verify Checksum')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        ></i>
+                    </template>
+                </Column>
+                <Column field="Actions" header="" class="sr-delete">
+                    <template #header>
+                        <i 
+                        class="pi pi-trash"
+                        @click="confirmDeleteAllReqs()"
+                        @mouseover="tooltipRef.showTooltip($event, 'Delete ALL Requests')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        ></i>
+                    </template>
+                    <template #body="slotProps">
+                        <i 
+                        class="pi pi-trash"
+                        @click="deleteReqAndChildren(slotProps.data.req_id)"
+                        @mouseover="tooltipRef.showTooltip($event, 'Delete this request and any of its children')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        ></i>
+                    </template>
+                </Column>
+                <Column field="Actions" header="" class="sr-export">
+                    <template #header>
+                        <div 
+                            class="sr-file-import"
+                            @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
+                            @mouseleave="tooltipRef.hideTooltip"
+                        >
+                            <SrImportParquetFile />
+                        </div>
+                    </template>
+                    <template #body="slotProps">
+                        <i 
+                        class="pi pi-file-export sr-file-export-icon"
+                        @click="exportFile(slotProps.data.req_id)"
+                        @mouseover="tooltipRef.showTooltip($event, 'Export File')"
+                        @mouseleave="tooltipRef.hideTooltip"
+                        ></i>
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
         <SrCustomTooltip ref="tooltipRef"/>
 
         <!-- Display an error message if there is an error -->
@@ -375,6 +432,19 @@ const tooltipRef = ref();
     margin: 1.5rem;
     overflow-x: auto; /* Enable horizontal scrolling */
     overflow-y: hidden; /* Prevent vertical overflow unless needed */
+}
+
+.sr-tree-container {
+    width: 20%;
+    float: left;
+    padding: 1rem;
+    margin: 0.5rem;
+}
+.sr-table-container {
+    width: 75%;
+    float: right;
+    padding: 1rem;
+    margin: 0.5rem;
 }
 
 .sr-analyze {
