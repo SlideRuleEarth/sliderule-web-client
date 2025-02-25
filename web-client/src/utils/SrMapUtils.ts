@@ -42,7 +42,7 @@ import Geometry from 'ol/geom/Geometry';
 import type { SrRegion,SrLatLon } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-
+import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -362,7 +362,22 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
-    // for atl03
+    const analysisTabStore = useAnalysisTabStore();
+    if(analysisTabStore && analysisTabStore.activeTabLabel){
+        if (analysisTabStore.activeTabLabel === 'Time Series'){
+            switch (useGlobalChartStore().filterMode) {
+                case 'RgtMode':
+                    console.log('Applying RGT Mode filter');
+                    useGlobalChartStore().setSpots([1,2,3,4,5,6]);
+                    useGlobalChartStore().hasScForward = true;
+                    useGlobalChartStore().hasScBackward = true;
+                    break;
+            default:
+                    console.log('Unknown filter mode');
+            }
+            useGlobalChartStore().setSelectedCycleOptions(useGlobalChartStore().getCycleOptions());
+        }
+    }
     const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
    
     console.log('Clicked: func',func);

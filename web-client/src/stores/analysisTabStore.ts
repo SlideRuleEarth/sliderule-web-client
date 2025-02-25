@@ -19,7 +19,7 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
     };
 
     // Get label of the active tab
-    const getActiveTabLabel = computed<string | null>(() => {
+    const activeTabLabel = computed<string | null>(() => {
         const index = parseInt(activeTab.value, 10);
         return tabLabels[index] ?? null; // Return null if index is out of bounds
     });
@@ -35,7 +35,7 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         activeTab,
         getActiveTab,
         setActiveTab,
-        getActiveTabLabel,
+        activeTabLabel,
         getTabLabelByIndex,
     };
 });

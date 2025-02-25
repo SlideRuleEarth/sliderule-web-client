@@ -204,7 +204,7 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
 });
 
 const shouldDisplayColorEncode = computed(() => {
-    if(analysisTabStore.getActiveTabLabel !== 'Time Series'){
+    if(analysisTabStore.activeTabLabel !== 'Time Series'){
         return true;
     } else {
         return false;
