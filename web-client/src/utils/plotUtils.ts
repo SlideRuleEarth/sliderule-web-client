@@ -534,6 +534,65 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     return seriesData;
 }
 
+export async function initChartStoreFor(reqId:number) : Promise<boolean>{
+    const chartStore = useChartStore();
+    const recTreeStore = useRecTreeStore();
+    const reqIdStr = reqId.toString();
+    let status = true;
+    if (reqId <= 0) {
+        console.warn('Invalid request ID:', reqId);
+        return false;
+    }
+
+    try {
+
+        initSymbolSize(reqId);
+        initializeColorEncoding(reqId);
+        const request = await indexedDb.getRequest(reqId);
+
+        if (!request) {
+            console.error(`No request found for reqId: ${reqIdStr}`, request);
+            return false;
+        }
+
+        const { file, func, description, num_bytes, cnt } = request;
+
+        if (file) {
+            chartStore.setFile(reqIdStr, file);
+
+        } else {
+            console.error(`No file found for reqId: ${reqIdStr}`, request);
+            status = false;
+        }
+
+        if (description) {
+            chartStore.setDescription(reqIdStr, description);
+        } // No warning needed for missing description.
+
+        if (num_bytes) {
+            chartStore.setSize(reqIdStr, num_bytes);
+        } else {
+            if(num_bytes===undefined){
+                console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
+                status = false;
+            }
+        }
+
+        if (cnt) {
+            chartStore.setRecCnt(reqIdStr, cnt);
+        } else {
+            if(cnt===undefined){
+                console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+                status = false;
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing reqId: ${reqIdStr}`, error);
+        status = false;
+    }
+    return status;
+}
+
 export async function initChartStore() {
     const startTime = performance.now(); // Start time
     const recTreeStore = useRecTreeStore();
@@ -541,52 +600,9 @@ export async function initChartStore() {
     for (const reqIdItem of recTreeStore.reqIdMenuItems) {
         const reqIdStr = reqIdItem.value.toString();
         const reqId = Number(reqIdItem.value);
-
-        if (reqId <= 0) {
-            console.warn('Invalid request ID:', reqId);
-            continue;
-        }
-
-        try {
-
-            initSymbolSize(reqId);
-            initializeColorEncoding(reqId);
-            const request = await indexedDb.getRequest(reqId);
-
-            if (!request) {
-                console.error(`No request found for reqId: ${reqIdStr}`, request);
-                continue;
-            }
-
-            const { file, func, description, num_bytes, cnt } = request;
-
-            if (file) {
-                chartStore.setFile(reqIdStr, file);
-            } else {
-                console.error(`No file found for reqId: ${reqIdStr}`, request);
-            }
-
-            if (description) {
-                chartStore.setDescription(reqIdStr, description);
-            } // No warning needed for missing description.
-
-            if (num_bytes) {
-                chartStore.setSize(reqIdStr, num_bytes);
-            } else {
-                if(num_bytes===undefined){
-                    console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
-                }
-            }
-
-            if (cnt) {
-                chartStore.setRecCnt(reqIdStr, cnt);
-            } else {
-                if(cnt===undefined){
-                    console.error(`No cnt found for reqId: ${reqIdStr}`, request);
-                }
-            }
-        } catch (error) {
-            console.error(`Error processing reqId: ${reqIdStr}`, error);
+        const status = await initChartStoreFor(reqId);
+        if(!status){
+            console.error(`initChartStoreFor ${reqId} failed`);
         }
     }
     const endTime = performance.now(); // End time

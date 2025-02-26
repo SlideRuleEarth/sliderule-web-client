@@ -82,11 +82,6 @@ watch(
   border: 1px solid var(--p-primary-color); /* Show border on hover */
 }
 
-.sr-color-map-gradient {
-  border: 1px solid #ccc; /* Optional styling for better visibility */
-  margin-top: 5px; /* Optional spacing */
-}
-
 .sr-legend-minmax {
   display: flex;
   justify-content: space-between;

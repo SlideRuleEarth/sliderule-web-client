@@ -18,7 +18,7 @@
                     tooltipText="Gradient Color Map for scatter plot"
                 />
             </div>
-            <SrPlotLegendBox :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
+            <SrGradientLegend :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
         <Button class="sr-legend-restore-btn" size="small" label="Restore Defaults" @click="gradientDefaultsRestored" />
     </div>
@@ -32,7 +32,7 @@ import { srColorMapNames } from '@/utils/colorUtils';
 import Fieldset from 'primevue/fieldset';
 import SrMenu from './SrMenu.vue';
 import Button from 'primevue/button';
-import SrPlotLegendBox from './SrPlotLegendBox.vue';
+import SrGradientLegend from './SrGradientLegend.vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { use } from 'echarts';
 
@@ -57,7 +57,7 @@ const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
 
 onMounted(async () => {
     // Await the asynchronous store initialization after mounting
-    console.log('Mounted SrGradientColorLegend with store:', gradientColorMapStore);
+    console.log('Mounted SrGradientLegendCntrl with store:', gradientColorMapStore);
 });
 
 const gradientColorMapChanged = () => {

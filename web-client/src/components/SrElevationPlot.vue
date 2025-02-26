@@ -17,7 +17,8 @@ import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-import SrPlotLegendBox from "./SrPlotLegendBox.vue";
+import SrGradientLegend from "./SrGradientLegend.vue";
+import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
@@ -51,7 +52,7 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
-const gradientDialogStyle = ref<{
+const mainLegendDialogStyle = ref<{
     position: string;
     top: string;
     left: string;
@@ -75,45 +76,6 @@ const overlayLegendDialogStyle = ref<{
     left: "0px",
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
-
-
-
-// const updateDialogPosition = () => {
-//   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-//   if (chartWrapper) {
-//     const rect = chartWrapper.getBoundingClientRect();
-//     globalChartStore.scrollX = window.scrollX;
-//     globalChartStore.scrollY = window.scrollY;
-//     const windowX = globalChartStore.scrollX;
-//     const windowY = globalChartStore.scrollY;
-//     // Convert rem to pixels (1rem = 16px by default)
-//     const bottomOffset = 7 * globalChartStore.fontSize.value; // n rem from the bottom
-//     const rightOffset = 16 * globalChartStore.fontSize.value; // 1n rem from the right
-
-//     const top = `${rect.top + windowY + rect.height - bottomOffset}px`; 
-//     const left = `${rect.left + windowX + rect.width - rightOffset}px`; 
-
-//     console.log('SrElevationPlot updateDialogPosition:', {
-//         windowX,
-//         windowY,
-//         globalChartStore.fontSize: globalChartStore.fontSize.value,
-//         bottomOffset,
-//         rightOffset,
-//         top,
-//         left,
-//         rect
-//     });
-
-//     gradientDialogStyle.value = {
-//       position: "absolute",
-//       top: top, 
-//       left: left, 
-//       transform: "none" // Remove centering transformation
-//     };
-//   } else {
-//     console.warn('SrElevationPlot updateDialogPosition - chartWrapper is null');
-//   }
-// };
 
 const initMainLegendPosition = () => {
   const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -161,7 +123,7 @@ const initMainLegendPosition = () => {
         rect_bottom
     });
 
-    gradientDialogStyle.value = {
+    mainLegendDialogStyle.value = {
       position: "absolute",
       top: top, 
       left: left, 
@@ -268,6 +230,10 @@ const shouldDisplayMainGradient = computed(() => {
         shouldDisplay = true;
     }
     return shouldDisplay;
+});
+
+const shouldDisplayMainSolidColorLegend = computed(() => {
+    return (computedDataKey.value === 'solid');
 });
 
 const overlayReqIdStr = computed(() => {
@@ -434,6 +400,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
+            const parentReqIdStr = runContext.parentReqId.toString();
             if(runContext.reqId <= 0){ // need to fetch the data
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
@@ -443,20 +410,35 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     await initSymbolSize(runContext.reqId);
+                    chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
+                    chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     initializeColorEncoding(runContext.reqId);
-                } else { // request was successfully processed
+                } else { 
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
                 await initSymbolSize(runContext.reqId);
                 initializeColorEncoding(runContext.reqId);
+                const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr);
+                //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
+                chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
+                chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
         } else {
-            console.log('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
+            //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
+            const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr);
+            //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
+
+            if(sced && (sced != 'unset')){
+                //console.log('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
+                chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, sced);
+                chartStore.setSavedColorEncodeData(recTreeStore.selectedReqIdStr, 'unset');
+            }
+            //console.log('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
         }
@@ -579,10 +561,10 @@ watch(chartWrapperRef, (newValue) => {
                     :modal="false"
                     class="sr-floating-dialog"
                     :appendTo="chartWrapper"
-                    :style="gradientDialogStyle"
+                    :style="mainLegendDialogStyle"
                 >
                     <template #header>
-                        <SrPlotLegendBox
+                        <SrGradientLegend
                             class="chart-overlay"
                             v-if = shouldDisplayMainGradient
                             :reqIdStr="recTreeStore.selectedReqIdStr" 
@@ -591,6 +573,27 @@ watch(chartWrapperRef, (newValue) => {
                         />
                     </template>
                 </Dialog>
+                <Dialog
+                    v-if="(chartWrapper !== null)"
+                    v-model:visible="shouldDisplayMainSolidColorLegend"
+                    :closable="false"
+                    :draggable="true"
+                    :modal="false"
+                    class="sr-floating-dialog"
+                    :appendTo="chartWrapper"
+                    :style="mainLegendDialogStyle"
+                >
+                    <template #header>
+                        <SrSolidColorLegend
+                            class="chart-overlay"
+                            v-if = shouldDisplayMainSolidColorLegend
+                            :reqIdStr="recTreeStore.selectedReqIdStr" 
+                            :data_key="computedDataKey" 
+                            :transparentBackground="true" 
+                        />
+                    </template>
+                </Dialog>
+
                 <Dialog
                     v-if="(chartWrapper !== null)"
                     v-model:visible="shouldDisplayOverlayGradient"
@@ -602,7 +605,7 @@ watch(chartWrapperRef, (newValue) => {
                     :style="overlayLegendDialogStyle"
                 >
                     <template #header>
-                        <SrPlotLegendBox
+                        <SrGradientLegend
                             class="chart-overlay"
                             v-if = shouldDisplayOverlayGradient
                             :reqIdStr="overlayReqIdStr" 
