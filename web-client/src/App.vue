@@ -9,7 +9,7 @@ import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useDeviceStore } from '@/stores/deviceStore';
-
+import { initChartStore } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 
 const srToastStore = useSrToastStore();
@@ -88,6 +88,7 @@ const detectBrowserAndOS = () => {
 
 onMounted(async () => {
     const reqId = await recTreeStore.updateRecMenu('from App');
+    initChartStore();
     if((reqId <= 0) && (recTreeStore.allReqIds.length > 0)){
         recTreeStore.initToFirstRecord();
     } 

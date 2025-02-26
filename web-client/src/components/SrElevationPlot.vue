@@ -413,7 +413,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     initializeColorEncoding(runContext.reqId);
-                } else { // request was successfully processed
+                } else { 
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
