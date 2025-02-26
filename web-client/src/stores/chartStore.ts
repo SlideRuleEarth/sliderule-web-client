@@ -237,12 +237,12 @@ export const useChartStore = defineStore('chartStore', {
         getSelectedColorEncodeData(reqIdStr: string): string {
             this.ensureState(reqIdStr);
             const selectedColorEncodeData = this.stateByReqId[reqIdStr].selectedColorEncodeData;
-            console.log('getSelectedColorEncodeData reqIdStr:',reqIdStr, ' selectedColorEncodeData:',selectedColorEncodeData);
+            //console.log('getSelectedColorEncodeData reqIdStr:',reqIdStr, ' selectedColorEncodeData:',selectedColorEncodeData);
             return selectedColorEncodeData;
         },
         setSelectedColorEncodeData(reqIdStr: string, newVal: string) {
             this.ensureState(reqIdStr);
-            console.log('setSelectedColorEncodeData reqIdStr:',reqIdStr, ' newVal:',newVal);
+            //console.log('setSelectedColorEncodeData reqIdStr:',reqIdStr, ' newVal:',newVal);
             this.stateByReqId[reqIdStr].selectedColorEncodeData = newVal;
         },    
         getXDataForChart(reqIdStr: string) {
