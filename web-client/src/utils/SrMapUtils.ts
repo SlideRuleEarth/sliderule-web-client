@@ -1,7 +1,7 @@
 import { useMapStore } from '@/stores/mapStore';
 import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-import { PointCloudLayer } from '@deck.gl/layers';
+import { PointCloudLayer,ScatterplotLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -392,9 +392,10 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
 
 }
 
-function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
-    //console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
-    return new PointCloudLayer({
+function createHighlightLayer(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): ScatterplotLayer {
+    //console.log('createHighlightLayer elevationData:',elevationData,'projName:',projName);
+    const startTime = performance.now();
+    const newLayer = new ScatterplotLayer({
         id: name,
         data: elevationData,
         getPosition: (d) => {
@@ -405,28 +406,49 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], col
         //     return new Float64Array(coords); // Use Float64Array for higher precision
         // },
         getNormal: [0, 0, 1],
-        getColor: () => {
-             return color;
+        getRadius: useDeckStore().getPointSize()+1,
+        radiusUnits: 'pixels',
+        //radiusScale: 1.5,
+        getFillColor:  (d:any) => {
+            let c; 
+            try{
+                const h = d[heightFieldName];
+                c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
+                //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
+                if(c){
+                    c[3] = 255; // Set the alpha channel to (255 isfully opaque)
+                }
+            } catch (error) {
+                console.error('Error getting color:',c,' error:',error);
+            }
+            if((c === undefined) || (c === null)){
+                c = [255, 255, 255, 255] as [number,number,number,number];// flag illegal points with white
+            }   
+            return c;
         },
-        pointSize: useDeckStore().getPointSize(),
-        onDragStart: () => {
-            //console.log('onDragStart');
-            document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
-          },
-        onDragEnd: () => {
-            //console.log('onDragEnd');
-            document.body.style.cursor = 'default'; // Revert to default when dragging ends
-        },
+        getLineColor: [255, 0, 0, 255], // red
+        stroked: true,
+        strokeWidthMinPixels: 2,
+        pickable: true, // Enable picking
+        onHover: onHoverHandler,
+        parameters: {
+            depthTest: false, // Prevents occlusion by other layers
+        }
     });
+    const endTime = performance.now();
+    console.log(`createHighlightLayer took ${endTime - startTime} milliseconds. endTime:`,endTime);
+    return newLayer;
 }
 
-export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], projName:string): void{
+export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
     //console.log('updateSelectedLayerWithObject startTime:',startTime);
     try{
-        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255],projName);
-        useDeckStore().replaceOrAddLayer(layer,SELECTED_LAYER_NAME);
-        useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+        const hlayer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,extHMean,heightFieldName,projName);
+        useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME);
+        const theseLayers = useDeckStore().getLayers();
+        console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
+        useDeckStore().getDeckInstance().setProps({layers:theseLayers});
     } catch (error) {
         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
     } finally {
@@ -507,7 +529,7 @@ function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean:
             }   
             return c;
         },
-        pointSize: 3,
+        pointSize: useDeckStore().getPointSize(),
         pickable: true, // Enable picking
         getCursor: () => 'default',
         parameters: {

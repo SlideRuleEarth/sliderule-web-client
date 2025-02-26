@@ -441,8 +441,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         try{
             // Execute the query
             //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
-            const sample_fraction = await computeSamplingRate(req_id);
-            const result = await duckDbClient.queryChunkSampled(queryStr,sample_fraction);
+            const result = await duckDbClient.queryChunkSampled(queryStr); // no sampling for selected
             //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
             for await (const rowChunk of result.readRows()) {
                 //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
@@ -466,7 +465,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         if(numRows> 0){
             const srViewName = await indexedDb.getSrViewName(req_id);
             const projName = srViews.value[srViewName].projectionName;
-            updateSelectedLayerWithObject(rowChunks as ElevationDataItem[], projName);
+            const height_fieldname = getHFieldName(req_id);
+            const summary = await readOrCacheSummary(req_id);
+            if(summary?.extHMean){
+                useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
+                updateSelectedLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
+            } else {
+                console.error('duckDbReadAndUpdateSelectedLayer summary is undefined');
+            }
         } else {
             console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
         }
