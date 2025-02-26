@@ -406,9 +406,9 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], ext
         //     return new Float64Array(coords); // Use Float64Array for higher precision
         // },
         getNormal: [0, 0, 1],
-        getRadius: useDeckStore().getPointSize()+1,
+        getRadius: useDeckStore().getPointSize(),
         radiusUnits: 'pixels',
-        //radiusScale: 1.5,
+        radiusScale: 1.0,
         getFillColor:  (d:any) => {
             let c; 
             try{
@@ -427,8 +427,10 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], ext
             return c;
         },
         getLineColor: [255, 0, 0, 255], // red
+        getLineWidth: 3,
+        lineWidthMinPixels:1,
         stroked: true,
-        strokeWidthMinPixels: 2,
+        strokeWidthMinPixels: 1,
         pickable: true, // Enable picking
         onHover: onHoverHandler,
         parameters: {
