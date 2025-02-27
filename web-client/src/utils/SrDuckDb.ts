@@ -205,6 +205,7 @@ export class DuckDBClient {
 
 
   async getTotalRowCount(query: string): Promise<number> {
+    const startTime = performance.now(); // Start time
     const conn = await this._db!.connect();
     try {
       const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
@@ -220,6 +221,9 @@ export class DuckDBClient {
       throw error;
     } finally {
       await conn.close();
+      const endTime = performance.now(); // End time
+      const duration = endTime - startTime; // Duration in milliseconds
+      console.log(`getTotalRowCount took ${duration} milliseconds.`);
     }
   }
   

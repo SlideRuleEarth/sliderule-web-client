@@ -29,17 +29,16 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary, duckDbGetColsForPickedPoint } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
-import { useChartStore } from '@/stores/chartStore';
 import { clearPlot } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
-import type { SrRegion,SrLatLon } from '@/sliderule/icesat2';
+import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useAnalysisTabStore } from '@/stores/analysisTabStore';
@@ -254,8 +253,12 @@ function formatElObject(obj: { [key: string]: any }): string {
             formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
             // console.log('canopy_h_metrics formattedValue:', formattedValue);
         } else if (typeof value === 'number') {
-          // Format other numbers to 5 significant figures
           formattedValue = parseFloat(value.toPrecision(10));
+          if (Number.isInteger(formattedValue)) {
+            formattedValue = formattedValue.toFixed(0); // Format as integer
+          } else {
+            formattedValue = formattedValue.toFixed(3); // Format as float with 3 decimal places
+          }
         } else {
           formattedValue = value;
         }
@@ -317,15 +320,54 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
+export async function filterByAtc(){
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
+    const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
+    const gcs = useGlobalChartStore();
+    if(!api.includes('atl03')){
+        if(gcs.use_y_atc_filter){
+            const y_atc_filtered_Cols = await duckDbGetColsForPickedPoint(useRecTreeStore().selectedReqId,['spot','cycle','gt']);
+            console.log('Clicked: y_atc_filtered_Cols:',y_atc_filtered_Cols);
+            if (y_atc_filtered_Cols) {
+                // Store previous values
+                const prevSpots = gcs.getSpots();  // Assuming getSpots() exists
+                const prevCycles = gcs.getCycles(); // Assuming getCycles() exists
+                const prevGts = gcs.getGts(); // Assuming getGts() exists
+                console.log('Clicked: prevSpots:',prevSpots);
+                console.log('Clicked: prevCycles:',prevCycles);
+                console.log('Clicked: prevGts:',prevGts);
+                // Map new values
+                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.map((spot) => spot);
+                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.map((cycle) => cycle);
+                const y_atc_filtered_gts = y_atc_filtered_Cols.gt.map((gt) => gt);
+            
+                // Check for changes
+                const spotsChanged = JSON.stringify(prevSpots) !== JSON.stringify(y_atc_filtered_spots);
+                const cyclesChanged = JSON.stringify(prevCycles) !== JSON.stringify(y_atc_filtered_cycles);
+                const gtsChanged = JSON.stringify(prevGts) !== JSON.stringify(y_atc_filtered_gts);
+            
+                // Log changes
+                if (spotsChanged) console.log("Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
+                if (cyclesChanged) console.log("Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
+                if (gtsChanged) console.log("GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
+            
+                // Set new values
+                gcs.setSpots(y_atc_filtered_spots);
+                gcs.setCycles(y_atc_filtered_cycles);
+                gcs.setGts(y_atc_filtered_gts);
+            }
+        }
+    }
+
+}
+
 export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked data:',d);
-    useGlobalChartStore().setSelectedElevationRec(d);
+    const globalChartStore = useGlobalChartStore();
+    globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
-    
-    const reqIdStr = useRecTreeStore().selectedReqIdStr;
-    //useAtlChartFilterStore().setIsLoading();
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     const gcs = useGlobalChartStore();
@@ -365,22 +407,21 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     const analysisTabStore = useAnalysisTabStore();
     if(analysisTabStore && analysisTabStore.activeTabLabel){
         if (analysisTabStore.activeTabLabel === 'Time Series'){
-            switch (useGlobalChartStore().filterMode) {
-                case 'RgtMode':
-                    console.log('Applying RGT Mode filter');
-                    useGlobalChartStore().setSpots([1,2,3,4,5,6]);
-                    useGlobalChartStore().hasScForward = true;
-                    useGlobalChartStore().hasScBackward = true;
-                    break;
-            default:
-                    console.log('Unknown filter mode');
-            }
-            useGlobalChartStore().setSelectedCycleOptions(useGlobalChartStore().getCycleOptions());
+            // switch (globalChartStore.filterMode) {
+            //     case 'RgtMode':
+            //         console.log('Applying RGT Mode filter');
+            //         globalChartStore.setSpots([1,2,3,4,5,6]);
+            //         globalChartStore.hasScForward = true;
+            //         globalChartStore.hasScBackward = true;
+            //         break;
+            // default:
+            //         console.log('Unknown filter mode');
+            // }
+            //globalChartStore.setSelectedCycleOptions(globalChartStore.getCycleOptions());
         }
     }
-    const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-   
-    console.log('Clicked: func',func);
+    gcs.selected_y_atc = d.y_atc;
+    await filterByAtc();
     console.log('Clicked: pair',gcs.getPairs());
     console.log('Clicked: rgt',gcs.getRgt())
     console.log('Clicked: cycles',gcs.getCycles())

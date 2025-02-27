@@ -27,7 +27,7 @@ import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { useAnalysisTabStore } from "@/stores/analysisTabStore";
-import { clicked } from "@/utils/SrMapUtils";
+import { clicked,filterByAtc } from "@/utils/SrMapUtils";
 
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;

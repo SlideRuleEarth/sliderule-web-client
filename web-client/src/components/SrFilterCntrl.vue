@@ -4,13 +4,15 @@
             <div class="sr-card-title-center">Highlighted Track</div>
         </template>
         <template #content>
-            <p class="sr-highlighted-track-details">
-                {{ highlightedTrackDetails }}
-            </p>
+            <div class="sr-highlighted-track-details">
+                <p class = "sr-highlighted-track-details-1"> {{ highlightedTrackDetails1 }} </p>
+                <p class = "sr-highlighted-track-details-2"> {{ highlightedTrackDetails2 }} </p>
+            </div>
             <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
                     <div class="sr-select-boxes">
-                        <div class="sr-select-box">
+                        <div class="sr-rgt-y-atc">
+                            <div class="sr-select-box">
                             <p class="sr-select-box-hdr">Rgts</p>
                             <Listbox 
                                 class="sr-select-lists"
@@ -22,6 +24,10 @@
                                 @change="handleValueChange"
                             >
                             </Listbox>
+                            </div>
+                            <div class="sr-y-atc-box">
+                                <SrYatcFilterCntrl />
+                            </div>
                         </div>
                         <div class="sr-select-box">
                             <p class="sr-select-box-hdr">Cycles</p>
@@ -52,6 +58,7 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { selectedRgtReactive,selectedCyclesReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from './SrBeamPattern.vue';
+import SrYatcFilterCntrl from './SrYatcFilterCntrl.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
 
@@ -62,8 +69,16 @@ const computedScOrientLabels = computed(() => {
     return globalChartStore.getScOrientsLabels();
 });
 
-const highlightedTrackDetails = computed(() => {
-    return `cycles: ${globalChartStore.getCycles()} rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} sc_orients: ${computedScOrientLabels.value} beams:${globalChartStore.getGtLabels()} tracks:${globalChartStore.getTracks()} pairs:${globalChartStore.getPairs()}`;
+const computed_use_y_atc_label = computed(() => {
+    return globalChartStore.use_y_atc_filter? 'uses y_atc filter' : '';
+});
+
+const highlightedTrackDetails1 = computed(() => {
+    return `cycles: ${globalChartStore.getCycles()} rgt: ${globalChartStore.getRgt()} spots: ${globalChartStore.getSpots()} beams:${globalChartStore.getGtLabels()} tracks:${globalChartStore.getTracks()} pairs:${globalChartStore.getPairs()}`
+});
+
+const highlightedTrackDetails2 = computed(() => {
+    return `sc_orients: ${computedScOrientLabels.value}  ${computed_use_y_atc_label.value}`;
 });
 
 const computedCycleOptions = computed(() => {
@@ -108,10 +123,9 @@ function handleValueChange(value) {
 
 .sr-highlighted-track-details {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin: 0.5rem;
-    padding: 0.5rem;
     width: auto;
     font-size: small;
     color: var(--color-text);
@@ -119,6 +133,19 @@ function handleValueChange(value) {
     border-radius: 0.25rem;
 }
 
+.sr-highlighted-track-details-1 {
+    margin-block-start: 0rem;
+    margin-block-end: 0.125rem;
+    font-size: small;
+}
+.sr-highlighted-track-details-2 {
+    margin-block-start: 0rem;
+    margin-block-end: 0.25rem;
+}
+
+.sr-filter-panel {
+    min-width: 26rem;
+}
 .sr-filter-option {
     display: flex;
     flex-direction: column;
@@ -161,6 +188,13 @@ function handleValueChange(value) {
     padding: 0.25rem;
     width: auto;
     max-width: 10rem;
+}
+
+.sr-y-atc-box{
+    display: flex;
+    flex-direction: column;
+    justify-content:center;
+    align-items:center;
 }
 
 .sr-select-box-hdr{

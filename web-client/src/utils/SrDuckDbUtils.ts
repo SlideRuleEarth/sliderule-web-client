@@ -273,6 +273,103 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     }
 }
 
+export const duckDbGetColsForPickedPoint = async (
+        req_id: number,
+        cols: string[]
+    ): Promise<Record<string, any[]> | undefined> => {
+    if (!req_id) {
+        console.error(`duckDbGetColsForPickedPoint ${cols} Bad req_id: ${req_id}`);
+        return;
+    }
+  
+    const startTime = performance.now();
+    let numRows = 0;
+    const rowChunks: ElevationDataItem[] = [];
+  
+    try {
+        if (await indexedDb.getStatus(req_id) === 'error') {
+            console.error(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} status is error, SKIPPING!`);
+            return;
+        }
+  
+        // 1. Initialize DuckDB client
+        const duckDbClient = await createDuckDbClient();
+    
+        // 2. Retrieve the filename/func
+        const filename = await indexedDb.getFilename(req_id);
+        const globalChartStore = useGlobalChartStore();
+        const rgt = globalChartStore.getRgt();
+        const selected_y_atc = globalChartStore.selected_y_atc;
+        const y_atc_margin = globalChartStore.y_atc_margin;
+    
+        // 3. Build the query with (or without) DISTINCT
+        //    If you want distinct *row combinations*, keep DISTINCT:
+        //       SELECT DISTINCT col1, col2 FROM ...
+        //    Or remove DISTINCT to see all matching rows:
+        //       SELECT col1, col2 FROM ...
+        //
+        // Example removing DISTINCT:
+        const columnStr = cols.join(', ');
+        const queryStr = `
+            SELECT DISTINCT ${columnStr}
+            FROM read_parquet('${filename}')
+            WHERE rgt = ${rgt}
+            AND y_atc BETWEEN (${selected_y_atc} - ${y_atc_margin})
+                            AND (${selected_y_atc} + ${y_atc_margin})
+        `;
+    
+        // 4. Register the Parquet
+        await duckDbClient.insertOpfsParquet(filename);
+    
+        // 5. Execute the query
+        const result = await duckDbClient.queryChunkSampled(queryStr);
+        for await (const rowChunk of result.readRows()) {
+            if (rowChunk.length > 0) {
+            numRows += rowChunk.length;
+            rowChunks.push(...rowChunk);
+            }
+        }
+    
+    } catch (error) {
+        console.error(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} error:`, error);
+        throw error;
+    } finally {
+        if (numRows > 0) {
+            console.log(`duckDbGetColsForPickedPoint columns: ${cols}`, rowChunks);
+        } else {
+            console.warn(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} no data items processed`);
+        }
+        
+        // ──────────────────────────────────────────
+        // Transform row-based data → column-based data
+        // ──────────────────────────────────────────
+        if (numRows === 0) {
+            return undefined;
+        }
+    
+        // Create an object that will store an array for each column
+        const dataByColumn: Record<string, Set<any>> = {};
+        cols.forEach((col) => (dataByColumn[col] = new Set()));
+        
+        // Populate these sets
+        for (const row of rowChunks) {
+            for (const col of cols) {
+            dataByColumn[col].add(row[col]);
+            }
+        }
+        
+        // Convert sets back to arrays
+        const uniqueDataByColumn: Record<string, any[]> = {};
+        for (const col of cols) {
+            uniqueDataByColumn[col] = Array.from(dataByColumn[col]);
+        }
+        
+        const endTime = performance.now();
+        console.log(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} retrieved ${numRows} rows in ${endTime - startTime} ms.`);
+        return uniqueDataByColumn;
+    }
+};
+
 export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<ElevationDataItem|null> => {
     //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     let firstRec = null;
@@ -303,6 +400,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
 
         // Step 3: Register the Parquet file with DuckDB
         await duckDbClient.insertOpfsParquet(filename);
+
         // Step 4: Execute a SQL query to retrieve the elevation data
 
         
@@ -313,7 +411,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         try{
             const sample_fraction = await computeSamplingRate(req_id);
             // Execute the query
-            const result = await duckDbClient.queryChunkSampled(`SELECT * FROM '${filename}'`,  sample_fraction);
+            const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${filename}')`,  sample_fraction);
             if(result.totalRows){
                 //console.log('duckDbReadAndUpdateElevationData totalRows:', result.totalRows);
                 useMapStore().setTotalRows(result.totalRows);
@@ -336,8 +434,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
                         useSrToastStore().warn('No Data Processed','No data items processed. Not Data returned for this region and request parameters.');
                     } else {
                         //console.log('duckDbReadAndUpdateElevationData numRows:', numRows);
-                        const retObj = await getAllCycleOptions(useRecTreeStore().selectedReqId);
-                        useGlobalChartStore().setCycleOptions(retObj.cycleOptions);
                         clicked(firstRec);
                     }
                 }
@@ -398,34 +494,22 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const rgt = globalChartStore.getRgt();
         const cycles = globalChartStore.getCycles(); 
         const spots = globalChartStore.getSpots();
-        if(func.includes('atl06')){
+        const selected_y_atc = globalChartStore.selected_y_atc;
+        const y_atc_margin = globalChartStore.y_atc_margin;
+        if(func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')){
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
-                        SELECT * FROM '${filename}' 
+                        SELECT * FROM read_parquet('${filename}') 
                         WHERE rgt = ${rgt}
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
+                        AND y_atc BETWEEN (${selected_y_atc} - ${y_atc_margin})
+                        AND (${selected_y_atc} + ${y_atc_margin})
                         `
         } else if(func === 'atl03sp'){
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
-        } else if(func.includes('atl03vp')){
-            //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
-            queryStr = `
-                        SELECT * FROM '${filename}' 
-                        WHERE rgt = ${rgt}
-                        AND cycle IN (${cycles.join(', ')})
-                        AND spot IN (${spots.join(', ')})
-                        `
-        } else if(func.includes('atl08')){
-            //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
-            queryStr = `
-                        SELECT * FROM '${filename}' 
-                        WHERE rgt = ${rgt}
-                        AND cycle IN (${cycles.join(', ')})
-                        AND spot IN (${spots.join(', ')})
-                        `
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
         }
