@@ -20,15 +20,18 @@ import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrGradientLegend from "./SrGradientLegend.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { getAllFilteredCycleOptions,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
+import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { useAnalysisTabStore } from "@/stores/analysisTabStore";
 import { clicked,filterByAtc } from "@/utils/SrMapUtils";
+import Tooltip from 'primevue/tooltip';
 
+const tooltipRef = ref();
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -269,7 +272,7 @@ const enableThePhotonCloud = computed(() => {
 
 const photonCloudBtnTooltip = computed(() => {
     if(!filterGood.value){
-        return 'Photon Cloud is disabled due to multiple Cycles, Rgts, Spots, or Gts';
+        return 'Photon Cloud is disabled due to:\n multiple Cycles, Rgts, Spots, or Gts.\nClick on a track to enable this.';
     } else {
         if(useMapStore().getIsLoading()){
             return 'Photon Cloud is disabled while record is loading';
@@ -476,7 +479,7 @@ watch(() => {
 }, async (newValues, oldValues) => {
     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtSpotsAndGts(recTreeStore.selectedReqId)
+        const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
         console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);
@@ -653,7 +656,13 @@ watch(chartWrapperRef, (newValue) => {
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
+            <SrCustomTooltip ref="tooltipRef"/>
+            <div 
+                class="sr-run-control" 
+                v-if="!recTreeStore.selectedApi?.includes('atl03')"
+                @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
+                @mouseleave="tooltipRef.hideTooltip"
+            >
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
@@ -662,7 +671,6 @@ watch(chartWrapperRef, (newValue) => {
                     :disabled="!enableThePhotonCloud"
                     size="small" 
                     rounded
-                    v-tooltip.top="photonCloudBtnTooltip"
                 />
                 <SrRunControl 
                     :includeAdvToggle="false"

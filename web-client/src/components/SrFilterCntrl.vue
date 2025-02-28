@@ -13,17 +13,17 @@
                     <div class="sr-select-boxes">
                         <div class="sr-rgt-y-atc">
                             <div class="sr-select-box">
-                            <p class="sr-select-box-hdr">Rgts</p>
-                            <Listbox 
-                                class="sr-select-lists"
-                                v-model="selectedRgtReactive" 
-                                optionLabel="label"
-                                optionValue="value"
-                                :multiple="false"
-                                :options="computedRgtOptions"
-                                @change="handleValueChange"
-                            >
-                            </Listbox>
+                                <p class="sr-select-box-hdr">Rgts</p>
+                                <Listbox 
+                                    class="sr-select-lists"
+                                    v-model="selectedRgtReactive" 
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    :multiple="false"
+                                    :options="computedRgtOptions"
+                                    @change="handleValueChange"
+                                >
+                                </Listbox>
                             </div>
                             <div class="sr-y-atc-box">
                                 <SrYatcFilterCntrl />
@@ -42,6 +42,18 @@
                                 @change="handleValueChange"
                             >
                             </Listbox>
+                            <div class = "sr-cycles-btn-panel">
+                                <Button class="sr-select-all-btn"
+                                    label="Reset" 
+                                    @click="resetCycles"
+                                    size="small"
+                                ></Button>
+                                <Button class="sr-select-all-btn"
+                                    label="All" 
+                                    @click="setAllCycles"
+                                    size="small"
+                                ></Button>
+                            </div>
                         </div>
                     </div>
                     <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
@@ -56,11 +68,13 @@ import { computed } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { selectedRgtReactive,selectedCyclesReactive } from "@/utils/plotUtils";
+import { getAllCycleOptions, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from './SrBeamPattern.vue';
 import SrYatcFilterCntrl from './SrYatcFilterCntrl.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
+import Button from 'primevue/button';
 
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
@@ -95,11 +109,23 @@ function handleValueChange(value) {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        //callPlotUpdateDebounced('from handleModelValueChange');
+        globalChartStore.use_y_atc_filter = false;
+        globalChartStore.selected_y_atc = undefined;
     } else {
         console.warn('reqId is undefined');
     }
     console.log('SrFilterCntrl handleValueChange:', value);
+}
+
+async function resetCycles() {
+    const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+    globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
+}
+
+async function setAllCycles() {
+    const retObj = await getAllCycleOptions(recTreeStore.selectedReqId)
+    console.log('setAllCycles allCycleOptions:',retObj.cycleOptions);
+    globalChartStore.setSelectedCycleOptions(retObj.cycleOptions);
 }
 
 </script>
@@ -113,6 +139,19 @@ function handleValueChange(value) {
     margin: 0.5rem;
     padding: 0.5rem;
     width: auto;
+}
+
+.sr-cycles-btn-panel{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.sr-select-all-btn{
+    margin-left: 0.5rem;
+    font-size: smaller;
+    white-space: nowrap;
 }
 
 .sr-card-title-center {

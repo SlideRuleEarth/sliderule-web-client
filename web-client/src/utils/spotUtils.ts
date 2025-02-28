@@ -184,10 +184,13 @@ export function createWhereClause(reqId:number){
     const spots = globalChartStore.getSpots();
     const rgt = globalChartStore.getRgt();
     const cycles = globalChartStore.getCycles();
-    const pairs = globalChartStore.getPairs();
-    const sc_orients = globalChartStore.getScOrients();
-    const tracks = globalChartStore.getTracks();
-    
+    // const pairs = globalChartStore.getPairs();
+    // const sc_orients = globalChartStore.getScOrients();
+    // const tracks = globalChartStore.getTracks();
+    const use_y_atc_filter = globalChartStore.use_y_atc_filter;
+    const selected_y_atc = globalChartStore.selected_y_atc;
+    const y_atc_margin = globalChartStore.y_atc_margin;
+
     //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
@@ -211,6 +214,9 @@ export function createWhereClause(reqId:number){
                     whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
                 }
             }
+            if(use_y_atc_filter){
+                whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
+            }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
         if ((rgt >= 0) || (cycles.length > 0)) {
@@ -226,6 +232,9 @@ export function createWhereClause(reqId:number){
             }
             if (spots.length > 0) {
                 whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
+            }
+            if(use_y_atc_filter){
+                whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
             }
         }
     } else {

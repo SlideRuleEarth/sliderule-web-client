@@ -1069,7 +1069,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     return runContext;
 }
 
-async function updatePlotAndSelectedTrackMapLayer(msg:string){
+export async function updatePlotAndSelectedTrackMapLayer(msg:string){
     //console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();

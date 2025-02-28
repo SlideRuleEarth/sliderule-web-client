@@ -494,6 +494,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const rgt = globalChartStore.getRgt();
         const cycles = globalChartStore.getCycles(); 
         const spots = globalChartStore.getSpots();
+        const use_y_atc_filter = globalChartStore.use_y_atc_filter;
         const selected_y_atc = globalChartStore.selected_y_atc;
         const y_atc_margin = globalChartStore.y_atc_margin;
         if(func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')){
@@ -503,9 +504,13 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         WHERE rgt = ${rgt}
                         AND cycle IN (${cycles.join(', ')})
                         AND spot IN (${spots.join(', ')})
+                        `
+            if(use_y_atc_filter){
+                queryStr += `
                         AND y_atc BETWEEN (${selected_y_atc} - ${y_atc_margin})
                         AND (${selected_y_atc} + ${y_atc_margin})
                         `
+            }
         } else if(func === 'atl03sp'){
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
             queryStr = `SELECT * FROM '${filename}' `;
@@ -809,7 +814,7 @@ export async function getAllCycleOptions(req_id: number): Promise<{ cycles: numb
     return {cycles, cycleOptions};
 }
 
-export async function getAllCycleOptionsByRgtSpotsAndGts(
+export async function getAllFilteredCycleOptions(
     req_id: number,
 ): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
@@ -819,6 +824,7 @@ export async function getAllCycleOptionsByRgtSpotsAndGts(
     await duckDbClient.insertOpfsParquet(fileName);
     const cycles: SrListNumberItem[] = [];
     let whereClause = '';
+    
     try {
         // Build the WHERE clause dynamically
         
@@ -848,14 +854,14 @@ export async function getAllCycleOptionsByRgtSpotsAndGts(
                     cycles.push({ label: newLabel, value: row.cycle });
                 } else {
                     console.warn(
-                        'getAllCycleOptionsByRgtSpotsAndGts fetchData rowData is null'
+                        'getAllFilteredCycleOptions fetchData rowData is null'
                     );
                 }
             }
         }
 
         // console.log(
-        //     'getAllCycleOptionsByRgtSpotsAndGts req_id:',
+        //     'getAllFilteredCycleOptions req_id:',
         //     req_id,
         //     'cycles:',
         //     cycles,
@@ -864,12 +870,12 @@ export async function getAllCycleOptionsByRgtSpotsAndGts(
         // );
 
     } catch (error) {
-        console.error('getAllCycleOptionsByRgtSpotsAndGts Error:', error);
+        console.error('getAllFilteredCycleOptions Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
         console.log(
-            `getAllCycleOptionsByRgtSpotsAndGts took ${endTime - startTime} milliseconds.`,
+            `getAllFilteredCycleOptions took ${endTime - startTime} milliseconds.`,
             ' req_id:',
             req_id,
             ' cycles:',

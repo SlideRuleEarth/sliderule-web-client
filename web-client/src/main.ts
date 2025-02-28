@@ -6,7 +6,6 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
-import Tooltip from 'primevue/tooltip';
 import { definePreset } from '@primevue/themes';
 
 import Menubar from 'primevue/menubar';
@@ -94,7 +93,6 @@ app.use(pinia);
 app.use(OpenLayersMap, vue3_openlayer_options );
 app.directive('ripple', Ripple);
 app.directive('styleclass', StyleClass);
-app.directive('tooltip', Tooltip);
 app.use(PrimeVue, {
     theme: {
       preset: SrPreset,

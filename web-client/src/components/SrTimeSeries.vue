@@ -11,7 +11,7 @@ import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,select
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import SrGradientLegend from "./SrGradientLegend.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
+import { getAllFilteredCycleOptions,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
@@ -200,7 +200,7 @@ watch(() => {
 }, async (newValues, oldValues) => {
     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
         const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtSpotsAndGts(recTreeStore.selectedReqId)
+        const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
         console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
         atlChartFilterStore.setShowPhotonCloud(false);

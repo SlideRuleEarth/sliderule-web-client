@@ -371,6 +371,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     const gcs = useGlobalChartStore();
+
     if(d.track !== undefined){ // for atl03
         gcs.setTracks([d.track]); // set to this one track
         gcs.setGtsForTracks(gcs.getTracks());
@@ -404,22 +405,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
-    const analysisTabStore = useAnalysisTabStore();
-    if(analysisTabStore && analysisTabStore.activeTabLabel){
-        if (analysisTabStore.activeTabLabel === 'Time Series'){
-            // switch (globalChartStore.filterMode) {
-            //     case 'RgtMode':
-            //         console.log('Applying RGT Mode filter');
-            //         globalChartStore.setSpots([1,2,3,4,5,6]);
-            //         globalChartStore.hasScForward = true;
-            //         globalChartStore.hasScBackward = true;
-            //         break;
-            // default:
-            //         console.log('Unknown filter mode');
-            // }
-            //globalChartStore.setSelectedCycleOptions(globalChartStore.getCycleOptions());
-        }
-    }
+    gcs.use_y_atc_filter = true;
     gcs.selected_y_atc = d.y_atc;
     await filterByAtc();
     console.log('Clicked: pair',gcs.getPairs());

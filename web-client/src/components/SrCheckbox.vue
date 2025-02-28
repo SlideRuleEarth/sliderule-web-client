@@ -100,7 +100,7 @@
   });
   
   const emitChange = () => {
-    console.log(`SrCheckbox: ${props.label}: ${localChecked.value}`);
+    //console.log(`SrCheckbox: ${props.label}: ${localChecked.value}`);
   };
   </script>
   

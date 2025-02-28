@@ -3,12 +3,18 @@
 </template>
   
   <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, onMounted } from 'vue';
+  import { getCharacterWidth } from '@/utils/fontUtils';
   
   const visible = ref(false);
   const text = ref('');
   const tooltipStyle = ref({});
-  
+  const maxToolTipWidth = 15; // in rem
+  const maxToolTipWidthPx = maxToolTipWidth * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  onMounted(() => {
+
+  });
+
   // Define the functions that will control tooltip visibility and position
   const showTooltip = (event: MouseEvent, content: string) => {
     text.value = content;
@@ -17,8 +23,11 @@
     const { clientX: x, clientY: y } = event;
     const tooltipOffset = 10; // distance from the cursor
     // Estimate tooltip width based on the number of characters
-    const averageCharWidth = 8; // Adjust this based on your font size
+    const averageCharWidth = getComputedStyle(document.documentElement).fontSize 
+    //console.log('averageCharWidth:',averageCharWidth);
+    //console.log('maxToolTipWidthPx:',maxToolTipWidthPx);
     const tooltipWidth = content.length * averageCharWidth;
+    
     const tooltipHeight = 10; // estimated or actual height of your tooltip
 
     // Get the window's dimensions
@@ -65,8 +74,8 @@
     color: #fff;
     padding: 5px;
     border-radius: 4px;
-    white-space: nowrap;
     z-index: 1000;
+    max-width: 15rem;
   }
   </style>
   
