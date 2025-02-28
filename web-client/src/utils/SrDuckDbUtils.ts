@@ -44,13 +44,13 @@ export async function getDefaultElOptions(reqId:number) : Promise<string[]>{
     try{
         const funcStr = useRecTreeStore().findApiForReqId(reqId);
         if (funcStr === 'atl06p') {
-            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final'];
+            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','cycle'];
         } else if (funcStr === 'atl06sp') {
-            return ['h_li'];
+            return ['h_li','cycle'];
         } else if (funcStr=== 'atl03vp'){
             return ['segment_ph_cnt'];
         } else if (funcStr=== 'atl03sp'){
-            return ['height','yapc_score','atl03_cnf','atl08_class'];
+            return ['height','yapc_score','atl03_cnf','atl08_class','cycle'];
         } else if (funcStr==='atl08p'){
             return ['h_mean_canopy'];
         } else if (funcStr===('gedi02ap')) {
@@ -497,6 +497,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const use_y_atc_filter = globalChartStore.use_y_atc_filter;
         const selected_y_atc = globalChartStore.selected_y_atc;
         const y_atc_margin = globalChartStore.y_atc_margin;
+        const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
+        const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+
         if(func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')){
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `
@@ -507,8 +510,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         `
             if(use_y_atc_filter){
                 queryStr += `
-                        AND y_atc BETWEEN (${selected_y_atc} - ${y_atc_margin})
-                        AND (${selected_y_atc} + ${y_atc_margin})
+                        AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}
                         `
             }
         } else if(func === 'atl03sp'){

@@ -1,5 +1,9 @@
 <template>
-    <div class="sr-y-atc-panel" >
+    <SrCustomTooltip ref="tooltipRef"/>
+    <div class="sr-y-atc-panel" 
+        @mouseover="tooltipRef.showTooltip($event, toolTipStr)"
+        @mouseleave="tooltipRef.hideTooltip"
+    >
         <div class="sr-checkbox-item">
             <label>y_atc</label>
             <Checkbox 
@@ -14,11 +18,13 @@
             v-model="globalChartStore.y_atc_margin"
             class="sr-yatc-number"
             size="small"
-            :min="5.0"
+            :minFractionDigits="1"
+            :min="0.1"
             :max="9999"
             :step="0.1"
             showButtons
-            :disabled="computedDisabled"  
+            :disabled="computedDisabled" 
+            @update:modelValue="handleModelValueChange"
         ></InputNumber>
 
         <div class="sr-yatc-min-selected-max">
@@ -33,28 +39,32 @@
 import Checkbox from 'primevue/checkbox';
 import FloatLabel from 'primevue/floatlabel';
 import InputNumber from 'primevue/inputnumber';
+import { filterByAtc } from "@/utils/SrMapUtils";
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 
 const globalChartStore = useGlobalChartStore();
+const tooltipRef = ref();
 
 const computedDisabled = computed(() => {
     return globalChartStore.selected_y_atc === undefined;
 });
 
-const computed_tooltip = computed(() => {
-    const ttstr = globalChartStore.selected_y_atc === undefined? 'Click on a track to enable this, it is used to filter out off pointed tracks' : 'Used to filter out off pointed tracks';
-    console.log('computed_tooltip:',ttstr);
+const toolTipStr = computed(() => {
+    const ttstr = globalChartStore.selected_y_atc === undefined? 'Click on a track to enable this, it is used to filter out off pointed tracks from different cycles' : 'Used to filter out off pointed tracks from different cycles';
+    console.log('toolTipStr:',ttstr);
     return ttstr;
 });
 
-function handleModelValueChange(value: boolean) {
+async function handleModelValueChange(value: boolean) {
     console.log('SrYatcFilterCntrl handleValueChange:', value);
     if(!value) {
         globalChartStore.selected_y_atc = undefined;
     }
-    updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
+    await filterByAtc();
+    await updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
 }
 
 </script>

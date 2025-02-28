@@ -82,18 +82,18 @@ const updateElevationMap = async (req_id: number) => {
         return;
     }
     try {
-        //console.log('Request:', request);
-        const parms = await duckDbReadAndUpdateElevationData(req_id);
-        const rec = parms.rec;
-        const numRows = parms.numRows;
         mapStore.setIsLoading(true);
-        if(rec && numRows > 0){
-            deckStore.deleteSelectedLayer();
-            //updateFilter([req_id]); // query to set all options for all 
-            globalChartStore.setSelectedElevationRec(rec);
-            clicked(rec);
-            mapStore.setMapInitialized(true);
-        }
+        const parms = await duckDbReadAndUpdateElevationData(req_id);
+        mapStore.setMapInitialized(true);
+        // const rec = parms.rec;
+        // const numRows = parms.numRows;
+        // console.log(`updateElevationMap: ${req_id} parms:`, parms, 'rec:', rec);
+        // if(rec && numRows > 0){
+        //     deckStore.deleteSelectedLayer();
+        //     //updateFilter([req_id]); // query to set all options for all 
+        //     globalChartStore.setSelectedElevationRec(rec);
+        //     clicked(rec);
+        // }
         mapStore.setIsLoading(false);
     } catch (error) {
         console.warn('Failed to update selected request:', error);

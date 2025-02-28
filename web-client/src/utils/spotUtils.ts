@@ -234,7 +234,9 @@ export function createWhereClause(reqId:number){
                 whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
             }
             if(use_y_atc_filter){
-                whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
+                const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
+                const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+                whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;
             }
         }
     } else {

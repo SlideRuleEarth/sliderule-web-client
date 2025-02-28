@@ -28,8 +28,7 @@ import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { useAnalysisTabStore } from "@/stores/analysisTabStore";
-import { clicked,filterByAtc } from "@/utils/SrMapUtils";
-import Tooltip from 'primevue/tooltip';
+//import { clicked,filterByAtc } from "@/utils/SrMapUtils";
 
 const tooltipRef = ref();
 

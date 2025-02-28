@@ -215,7 +215,9 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
+
 function formatElObject(obj: { [key: string]: any }): string {
+    console.log('formatElObject obj:', obj);
     const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
     const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
   
@@ -266,7 +268,7 @@ function formatElObject(obj: { [key: string]: any }): string {
         return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
       })
       .join('<br>'); // Use <br> for line breaks in HTML
-  }
+}
   
   
 interface TooltipParams {
@@ -327,15 +329,15 @@ export async function filterByAtc(){
     if(!api.includes('atl03')){
         if(gcs.use_y_atc_filter){
             const y_atc_filtered_Cols = await duckDbGetColsForPickedPoint(useRecTreeStore().selectedReqId,['spot','cycle','gt']);
-            console.log('Clicked: y_atc_filtered_Cols:',y_atc_filtered_Cols);
+            console.log('filterByAtc: y_atc_filtered_Cols:',y_atc_filtered_Cols);
             if (y_atc_filtered_Cols) {
                 // Store previous values
-                const prevSpots = gcs.getSpots();  // Assuming getSpots() exists
-                const prevCycles = gcs.getCycles(); // Assuming getCycles() exists
-                const prevGts = gcs.getGts(); // Assuming getGts() exists
-                console.log('Clicked: prevSpots:',prevSpots);
-                console.log('Clicked: prevCycles:',prevCycles);
-                console.log('Clicked: prevGts:',prevGts);
+                const prevSpots = gcs.getSpots(); 
+                const prevCycles = gcs.getCycles(); 
+                const prevGts = gcs.getGts(); 
+                console.log('filterByAtc: prevSpots:',prevSpots);
+                console.log('filterByAtc: prevCycles:',prevCycles);
+                console.log('filterByAtc: prevGts:',prevGts);
                 // Map new values
                 const y_atc_filtered_spots = y_atc_filtered_Cols.spot.map((spot) => spot);
                 const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.map((cycle) => cycle);
@@ -347,9 +349,9 @@ export async function filterByAtc(){
                 const gtsChanged = JSON.stringify(prevGts) !== JSON.stringify(y_atc_filtered_gts);
             
                 // Log changes
-                if (spotsChanged) console.log("Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
-                if (cyclesChanged) console.log("Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
-                if (gtsChanged) console.log("GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
+                if (spotsChanged) console.log("filterByAtc Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
+                if (cyclesChanged) console.log("filterByAtc Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
+                if (gtsChanged) console.log("filterByAtc GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
             
                 // Set new values
                 gcs.setSpots(y_atc_filtered_spots);

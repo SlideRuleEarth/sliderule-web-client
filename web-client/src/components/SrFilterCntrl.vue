@@ -8,7 +8,7 @@
                 <p class = "sr-highlighted-track-details-1"> {{ highlightedTrackDetails1 }} </p>
                 <p class = "sr-highlighted-track-details-2"> {{ highlightedTrackDetails2 }} </p>
             </div>
-            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="false">
+            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
                     <div class="sr-select-boxes">
                         <div class="sr-rgt-y-atc">
@@ -30,7 +30,7 @@
                        </div>
                         <div class="sr-select-box">
                             <div class="sr-header">
-                                <p class="sr-select-box-hdr">Cycles</p>
+                                <p class="sr-select-box-hdr">Cycles({{ globalChartStore.selectedCycleOptions.length }})</p>
                             </div>
                             <Listbox 
                                 class="sr-select-lists"
@@ -62,7 +62,7 @@
                             <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                         </div>
                         <div>
-                            <SrYatcFilterCntrl />
+                            <SrYatcFilterCntrl  />
                         </div>
                     </div>
                  </div>
@@ -310,4 +310,8 @@ async function setAllCycles() {
     margin: 0.125rem;
 }
 
+:deep(.p-listbox .p-listbox-list .p-listbox-option.p-listbox-option-selected){
+    color: var(--p-primary-color);
+    font-weight: bold;
+}
 </style>
