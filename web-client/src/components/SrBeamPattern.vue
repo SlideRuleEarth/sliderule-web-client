@@ -1,146 +1,148 @@
 <template>
-    <div v-if="!computedHasScForward&& !computedHasScBackward">
-        <p>No SC_Orient set?</p>
-    </div>
-    <div class="sr-sc-orient-panel">
-        <div class="checkbox-item">
-            <Checkbox binary :inputId="'sc_orient' + SC_BACKWARD" v-model="globalChartStore.hasScBackward" size="small"/>
-            <label :for="'sc_orient' + SC_BACKWARD">{{ `Backward(${SC_BACKWARD})` }}</label>
+    <div class="sr-beam-panel" >
+        <div v-if="!computedHasScForward&& !computedHasScBackward">
+            <p>No SC_Orient set?</p>
         </div>
-        <div class="checkbox-item">
-            <Checkbox binary :inputId="'sc_orient' + SC_FORWARD" v-model="globalChartStore.hasScForward" size="small"/>
-            <label :for="'sc_orient' + SC_FORWARD">{{`Forward:(${SC_FORWARD})`}}</label>
+        <div class="sr-sc-orient-panel">
+            <div class="checkbox-item">
+                <Checkbox binary :inputId="'sc_orient' + SC_BACKWARD" v-model="globalChartStore.hasScBackward" size="small"/>
+                <label :for="'sc_orient' + SC_BACKWARD">{{ `Backward(${SC_BACKWARD})` }}</label>
+            </div>
+            <div class="checkbox-item">
+                <Checkbox binary :inputId="'sc_orient' + SC_FORWARD" v-model="globalChartStore.hasScForward" size="small"/>
+                <label :for="'sc_orient' + SC_FORWARD">{{`Forward:(${SC_FORWARD})`}}</label>
+            </div>
         </div>
-    </div>
-    <div class="checkbox-container">
-        <Panel header="Spots/Beams" :toggleable="true" :collapsed="false">
-            <div class="sr-spots-panel" v-if="computedHasScForward">
-                <div class="sr-spots-panel-hdr">
-                    <div class="sr-spots-title">
-                        <p class="sr-p">Forward</p>
-                    </div>
-                    <!-- Row 1: Spots 6, 4, 2 -->
-                    <div class="checkbox-row">
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="6"
-                                label="GT1L"
-                                :tooltipText=GT1L_tooltip
-                            />
+        <div class="checkbox-container">
+            <Panel header="Spots/Beams" :toggleable="true" :collapsed="false">
+                <div class="sr-spots-panel" v-if="computedHasScForward">
+                    <div class="sr-spots-panel-hdr">
+                        <div class="sr-spots-title">
+                            <p class="sr-p">Forward</p>
                         </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="4"
-                                label="GT2L"
-                                :tooltipText=GT2L_tooltip
-                            />
+                        <!-- Row 1: Spots 6, 4, 2 -->
+                        <div class="checkbox-row">
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="6"
+                                    label="GT1L"
+                                    :tooltipText=GT1L_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="4"
+                                    label="GT2L"
+                                    :tooltipText=GT2L_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="2"
+                                    label="GT3L"
+                                    :tooltipText=GT3L_tooltip
+                                />
+                            </div>
                         </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="2"
-                                label="GT3L"
-                                :tooltipText=GT3L_tooltip
-                            />
-                        </div>
-                    </div>
-                    
-                    <!-- Row 2: Spots 5, 3, 1 -->
-                    <div class="checkbox-row">
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="5"
-                                label="GT1R"
-                                :tooltipText=GT1R_tooltip
-                            />
-                        </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="3"
-                                label="GT2R"
-                                :tooltipText=GT2R_tooltip
-                            />
-                        </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="1"
-                                label="GT3R"
-                                :tooltipText=GT3R_tooltip
-                            />
+                        
+                        <!-- Row 2: Spots 5, 3, 1 -->
+                        <div class="checkbox-row">
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="5"
+                                    label="GT1R"
+                                    :tooltipText=GT1R_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="3"
+                                    label="GT2R"
+                                    :tooltipText=GT2R_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="1"
+                                    label="GT3R"
+                                    :tooltipText=GT3R_tooltip
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <Divider></Divider>
-            <div class="sr-spots-panel" v-if="computedHasScBackward">
-                <div class="sr-spots-backward-panel-hdr">
-                    <div class="sr-spots-title">
-                        <p class="sr-p">Backward</p>
-                    </div>
-                    <!-- Row 1: Spots 1, 3, 5 -->
-                    <div class="checkbox-row">
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="1"
-                                label="GT1L"
-                                :tooltipText=GT1L_tooltip
-                            />
+                <Divider></Divider>
+                <div class="sr-spots-panel" v-if="computedHasScBackward">
+                    <div class="sr-spots-backward-panel-hdr">
+                        <div class="sr-spots-title">
+                            <p class="sr-p">Backward</p>
                         </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="3"
-                                label="GT2L"
-                                :tooltipText=GT2L_tooltip
-                            />
+                        <!-- Row 1: Spots 1, 3, 5 -->
+                        <div class="checkbox-row">
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="1"
+                                    label="GT1L"
+                                    :tooltipText=GT1L_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="3"
+                                    label="GT2L"
+                                    :tooltipText=GT2L_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="5"
+                                    label="GT3L"
+                                    :tooltipText=GT3L_tooltip
+                                />
+                            </div>
                         </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="5"
-                                label="GT3L"
-                                :tooltipText=GT3L_tooltip
-                            />
-                        </div>
-                    </div>
 
-                    <!-- Row 2: Spots 2, 4, 6 -->
-                    <div class="checkbox-row">
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="2" 
-                                label="GT1R"
-                                :tooltipText=GT1R_tooltip
-                            />
-                        </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="4"
-                                label="GT2R"
-                                :tooltipText=GT2R_tooltip
-                            />
-                        </div>
-                        <div class="checkbox-item">
-                            <SrSpotCheckbox 
-                                v-model="globalChartStore.selectedSpots" 
-                                :digit="6"
-                                label="GT3R"
-                                :tooltipText=GT3R_tooltip
-                            />
+                        <!-- Row 2: Spots 2, 4, 6 -->
+                        <div class="checkbox-row">
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="2" 
+                                    label="GT1R"
+                                    :tooltipText=GT1R_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="4"
+                                    label="GT2R"
+                                    :tooltipText=GT2R_tooltip
+                                />
+                            </div>
+                            <div class="checkbox-item">
+                                <SrSpotCheckbox 
+                                    v-model="globalChartStore.selectedSpots" 
+                                    :digit="6"
+                                    label="GT3R"
+                                    :tooltipText=GT3R_tooltip
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </Panel>
-    </div>   
+            </Panel>
+        </div>
+    </div>
 </template>
 
   
@@ -233,6 +235,21 @@ watch(() => globalChartStore.hasScForward, handleValueChange);
 </script>
     
 <style scoped>
+
+
+.sr-beam-panel{
+    display: flex;
+    flex-direction: column;
+    justify-content:center;
+    align-items:center;
+    margin: 0.25rem;
+    padding: 0.25rem;
+    width: auto;
+    white-space: nowrap; /* Prevents text from wrapping */
+    overflow: hidden; /* Hides overflow */
+    text-overflow: ellipsis; /* Adds an ellipsis if the text overflows */
+}
+
 .checkbox-container {
     padding: 0rem;
     margin: 0.125rem;

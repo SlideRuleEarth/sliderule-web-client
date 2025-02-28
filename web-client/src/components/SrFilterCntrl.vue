@@ -8,12 +8,14 @@
                 <p class = "sr-highlighted-track-details-1"> {{ highlightedTrackDetails1 }} </p>
                 <p class = "sr-highlighted-track-details-2"> {{ highlightedTrackDetails2 }} </p>
             </div>
-            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
+            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="false">
                 <div class="sr-cycles-legend-panel">
                     <div class="sr-select-boxes">
                         <div class="sr-rgt-y-atc">
                             <div class="sr-select-box">
-                                <p class="sr-select-box-hdr">Rgts</p>
+                                <div class="sr-header">
+                                    <p class="sr-select-box-hdr">Rgts</p>
+                                </div>
                                 <Listbox 
                                     class="sr-select-lists"
                                     v-model="selectedRgtReactive" 
@@ -25,12 +27,11 @@
                                 >
                                 </Listbox>
                             </div>
-                            <div class="sr-y-atc-box">
-                                <SrYatcFilterCntrl />
-                            </div>
-                        </div>
+                       </div>
                         <div class="sr-select-box">
-                            <p class="sr-select-box-hdr">Cycles</p>
+                            <div class="sr-header">
+                                <p class="sr-select-box-hdr">Cycles</p>
+                            </div>
                             <Listbox 
                                 class="sr-select-lists"
                                 v-model="selectedCyclesReactive" 
@@ -56,8 +57,15 @@
                             </div>
                         </div>
                     </div>
-                    <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
-                </div>
+                    <div class="sr-beam-y-atc">
+                        <div>
+                            <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
+                        </div>
+                        <div>
+                            <SrYatcFilterCntrl />
+                        </div>
+                    </div>
+                 </div>
             </Fieldset>
         </template>                    
     </Card>
@@ -136,8 +144,8 @@ async function setAllCycles() {
     flex-direction: column;
     justify-content:space-between;
     align-items:center;
-    margin: 0.5rem;
-    padding: 0.5rem;
+    margin: 0rem;
+    padding: 0rem;
     width: auto;
 }
 
@@ -148,6 +156,24 @@ async function setAllCycles() {
     width: 100%;
 }
 
+.sr-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    font-size: small;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.sr-beam-y-atc {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    width: auto;
+    margin-top:0.5rem;
+}
 .sr-select-all-btn{
     margin-left: 0.5rem;
     font-size: smaller;
@@ -211,10 +237,8 @@ async function setAllCycles() {
 .sr-select-boxes {
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-around;
     align-items: flex-start;
-    margin: 0.5rem;
-    padding: 0.5rem;
     width: auto;
 }
 
@@ -229,10 +253,10 @@ async function setAllCycles() {
     max-width: 10rem;
 }
 
-.sr-y-atc-box{
+.sr-y-atc-boxs{
     display: flex;
     flex-direction: column;
-    justify-content:center;
+    justify-content:flex-start;
     align-items:center;
 }
 
@@ -240,11 +264,11 @@ async function setAllCycles() {
     display: flex;
     justify-content:center;
     align-items:center;
-    margin: 0.25rem;
-    padding: 0.25rem;
+    margin: 0.125rem;
+    padding: 0.125rem;
     width: auto;
     max-width: 10rem;
-    font-size: small;
+    font-size:medium;
     font-weight: bold;
     color: var(--color-text);
     background-color: var(--color-bg);
