@@ -28,34 +28,7 @@
                                 </Listbox>
                             </div>
                        </div>
-                        <div class="sr-select-box">
-                            <div class="sr-header">
-                                <p class="sr-select-box-hdr">Cycles({{ globalChartStore.selectedCycleOptions.length }})</p>
-                            </div>
-                            <Listbox 
-                                class="sr-select-lists"
-                                v-model="selectedCyclesReactive" 
-                                optionLabel="label"
-                                optionValue="value"
-                                :multiple="true"
-                                :metaKeySelection="true"
-                                :options="computedCycleOptions"
-                                @change="handleValueChange"
-                            >
-                            </Listbox>
-                            <div class = "sr-cycles-btn-panel">
-                                <Button class="sr-select-all-btn"
-                                    label="Reset" 
-                                    @click="resetCycles"
-                                    size="small"
-                                ></Button>
-                                <Button class="sr-select-all-btn"
-                                    label="All" 
-                                    @click="setAllCycles"
-                                    size="small"
-                                ></Button>
-                            </div>
-                        </div>
+                        <SrCycleSelect />
                     </div>
                     <div class="sr-beam-y-atc">
                         <div>
@@ -78,8 +51,9 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { selectedRgtReactive,selectedCyclesReactive } from "@/utils/plotUtils";
 import { getAllCycleOptions, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
 import Listbox from 'primevue/listbox';
-import SrBeamPattern from './SrBeamPattern.vue';
-import SrYatcFilterCntrl from './SrYatcFilterCntrl.vue';
+import SrBeamPattern from '@/components/SrBeamPattern.vue';
+import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
+import SrCycleSelect from '@/components/SrCycleSelect.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -103,10 +77,6 @@ const highlightedTrackDetails2 = computed(() => {
     return `sc_orients: ${computedScOrientLabels.value}  ${computed_use_y_atc_label.value}`;
 });
 
-const computedCycleOptions = computed(() => {
-    return globalChartStore.getCycleOptions();
-});
-
 const computedRgtOptions = computed(() => {
     const rgtOptions= globalChartStore.getRgtOptions();
     //console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
@@ -123,17 +93,6 @@ function handleValueChange(value) {
         console.warn('reqId is undefined');
     }
     console.log('SrFilterCntrl handleValueChange:', value);
-}
-
-async function resetCycles() {
-    const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
-    globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
-}
-
-async function setAllCycles() {
-    const retObj = await getAllCycleOptions(recTreeStore.selectedReqId)
-    console.log('setAllCycles allCycleOptions:',retObj.cycleOptions);
-    globalChartStore.setSelectedCycleOptions(retObj.cycleOptions);
 }
 
 </script>

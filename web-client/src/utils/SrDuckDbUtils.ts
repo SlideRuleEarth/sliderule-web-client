@@ -862,15 +862,6 @@ export async function getAllFilteredCycleOptions(
             }
         }
 
-        // console.log(
-        //     'getAllFilteredCycleOptions req_id:',
-        //     req_id,
-        //     'cycles:',
-        //     cycles,
-        //     'whereClause:',
-        //     whereClause
-        // );
-
     } catch (error) {
         console.error('getAllFilteredCycleOptions Error:', error);
         throw error;

@@ -165,6 +165,7 @@ export class DuckDBClient {
 
   // Method to execute queries
   async query(query: string, params?: any): Promise<QueryResult> {
+    console.log('SrDuckDb query:', query);
     const { Table } = await import('apache-arrow');
     const conn = await this._db!.connect();
     let tbl: Table<any>;
@@ -233,6 +234,7 @@ export class DuckDBClient {
     random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
     params?: any
   ): Promise<QueryChunkResult> {
+    console.log('SrDuckDb queryChunkSampled query:', query);
     const conn = await this._db!.connect();
     let tbl: Table<any>;
     const chunkSize = useSrParquetCfgStore().getMaxNumPntsToDisplay(); // Default chunk size set to 100

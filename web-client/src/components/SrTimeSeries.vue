@@ -9,14 +9,15 @@ import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
-import SrPlotCntrl from "./SrPlotCntrl.vue";
-import SrGradientLegend from "./SrGradientLegend.vue";
+import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
+import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { getAllFilteredCycleOptions,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import SrFilterMode from "./SrFilterMode.vue";
+import SrFilterMode from "@/components/SrFilterMode.vue";
+import SrCycleSelect from "@/components/SrCycleSelect.vue";
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -131,10 +132,7 @@ onMounted(async () => {
         if (reqId > 0) {
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            const retObj = await getAllCycleOptions(reqId);
-            globalChartStore.setCycles(retObj.cycles); // force select all 
-            globalChartStore.setFilterMode(SrFilterMode.RgtMode);
-            console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
+             console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
             console.error('SrTimeSeries reqId is undefined');
         }        
@@ -288,23 +286,7 @@ watch(chartWrapperRef, (newValue) => {
                 />
             </div>
             <div class="sr-cycles-legend-panel">
-                <div>
-                    <SrFilterMode />
-                </div>
-                <div class="sr-select-box">
-                    <p class="sr-select-box-hdr">Cycles</p>
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedCyclesReactive" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="true"
-                        :metaKeySelection="true"
-                        :options="computedCycleOptions"
-                        @change="handleValueChange"
-                    >
-                    </Listbox>
-                </div>
+                <SrCycleSelect />
                 <div class="sr-select-box">
                     <p class="sr-select-box-hdr">Rgts</p>
                     <Listbox 
