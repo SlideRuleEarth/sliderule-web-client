@@ -17,6 +17,7 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
+import { formatKeyValuePair } from '@/utils/formatUtils';
 
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
@@ -487,13 +488,29 @@ export function clearPlot() {
     }
 }
 
-const formatTooltip = (params: any) => {
-    //console.log('formatTooltip params:', params );
-    const paramsData = params.data;
-    const paramsDim = params.dimensionNames as any[];
-    let ndx = 0;
-    return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
-};
+// const formatTooltip = (params: any) => {
+//     //console.log('formatTooltip params:', params );
+//     const paramsData = params.data;
+//     const paramsDim = params.dimensionNames as any[];
+//     let ndx = 0;
+//     return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
+// };
+
+// formatTooltip.ts
+
+
+export function formatTooltip(params: any) {
+  const paramsData = params.data;
+  const paramsDim = params.dimensionNames as string[];
+  let ndx = 0;
+
+  return paramsDim
+    .map((dim) => {
+      const val = paramsData[ndx++];
+      return formatKeyValuePair(dim, val);
+    })
+    .join('<br>');
+}
 
 async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();

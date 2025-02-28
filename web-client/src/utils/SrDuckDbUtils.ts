@@ -44,13 +44,13 @@ export async function getDefaultElOptions(reqId:number) : Promise<string[]>{
     try{
         const funcStr = useRecTreeStore().findApiForReqId(reqId);
         if (funcStr === 'atl06p') {
-            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','cycle'];
+            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
         } else if (funcStr === 'atl06sp') {
-            return ['h_li','cycle'];
+            return ['h_li','y_atc','cycle'];
         } else if (funcStr=== 'atl03vp'){
             return ['segment_ph_cnt'];
         } else if (funcStr=== 'atl03sp'){
-            return ['height','yapc_score','atl03_cnf','atl08_class','cycle'];
+            return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
         } else if (funcStr==='atl08p'){
             return ['h_mean_canopy'];
         } else if (funcStr===('gedi02ap')) {

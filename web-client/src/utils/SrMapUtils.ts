@@ -42,6 +42,7 @@ import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { formatKeyValuePair } from '@/utils/formatUtils';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -216,58 +217,67 @@ export function disableTagDisplay(): void {
     }
 }
 
-function formatElObject(obj: { [key: string]: any }): string {
-    console.log('formatElObject obj:', obj);
-    const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
-    const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
+// function formatElObject(obj: { [key: string]: any }): string {
+//     console.log('formatElObject obj:', obj);
+//     const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
+//     const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
   
-    return Object.entries(obj)
-      .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
-      .map(([key, value]) => {
-        let formattedValue;
-        //console.log('key:',key,'type of value:',typeof value,'value:',value);
-        if (key === 'time' && typeof value === 'number') {
-          // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
-          let adjustedTime = value - gpsToATLASOffset;
-          // Step 2: Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
-          adjustedTime += gpsToUnixOffset;
-          // Step 3: Adjust for UTC by subtracting the GPS-UTC offset
-          adjustedTime -= useReqParamsStore().getGpsToUTCOffset();
+//     return Object.entries(obj)
+//       .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
+//       .map(([key, value]) => {
+//         let formattedValue;
+//         //console.log('key:',key,'type of value:',typeof value,'value:',value);
+//         if (key === 'time' && typeof value === 'number') {
+//           // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
+//           let adjustedTime = value - gpsToATLASOffset;
+//           // Step 2: Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
+//           adjustedTime += gpsToUnixOffset;
+//           // Step 3: Adjust for UTC by subtracting the GPS-UTC offset
+//           adjustedTime -= useReqParamsStore().getGpsToUTCOffset();
   
-          const date = new Date(adjustedTime); // Convert seconds to milliseconds
-          formattedValue = date.toISOString(); // Format as ISO string in UTC
-        } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
-            const arr = (value as any).toArray(); // Safely call toArray if available
-            const formattedPairs = [...arr]
-                .reduce((pairs: number[][], num: number, index: number) => {
-                    if (index % 3 === 0) {
-                        // Start a new pair
-                        pairs.push([num]);
-                    } else {
-                        // Add to the last pair
-                        pairs[pairs.length - 1].push(num);
-                    }
-                    return pairs;
-                }, []) // Initialize as an array of arrays
-                .map((pair: number[]) => pair.map((num: number) => num.toFixed(5)).join(', ')) // Format each pair
-                .join('<br>'); // Join pairs with line breaks
+//           const date = new Date(adjustedTime); // Convert seconds to milliseconds
+//           formattedValue = date.toISOString(); // Format as ISO string in UTC
+//         } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
+//             const arr = (value as any).toArray(); // Safely call toArray if available
+//             const formattedPairs = [...arr]
+//                 .reduce((pairs: number[][], num: number, index: number) => {
+//                     if (index % 3 === 0) {
+//                         // Start a new pair
+//                         pairs.push([num]);
+//                     } else {
+//                         // Add to the last pair
+//                         pairs[pairs.length - 1].push(num);
+//                     }
+//                     return pairs;
+//                 }, []) // Initialize as an array of arrays
+//                 .map((pair: number[]) => pair.map((num: number) => num.toFixed(5)).join(', ')) // Format each pair
+//                 .join('<br>'); // Join pairs with line breaks
         
-            formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
-            // console.log('canopy_h_metrics formattedValue:', formattedValue);
-        } else if (typeof value === 'number') {
-          formattedValue = parseFloat(value.toPrecision(10));
-          if (Number.isInteger(formattedValue)) {
-            formattedValue = formattedValue.toFixed(0); // Format as integer
-          } else {
-            formattedValue = formattedValue.toFixed(3); // Format as float with 3 decimal places
-          }
-        } else {
-          formattedValue = value;
-        }
+//             formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
+//             // console.log('canopy_h_metrics formattedValue:', formattedValue);
+//         } else if (typeof value === 'number') {
+//           formattedValue = parseFloat(value.toPrecision(10));
+//           if (Number.isInteger(formattedValue)) {
+//             formattedValue = formattedValue.toFixed(0); // Format as integer
+//           } else {
+//             formattedValue = formattedValue.toFixed(3); // Format as float with 3 decimal places
+//           }
+//         } else {
+//           formattedValue = value;
+//         }
   
-        return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
-      })
-      .join('<br>'); // Use <br> for line breaks in HTML
+//         return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
+//       })
+//       .join('<br>'); // Use <br> for line breaks in HTML
+// }
+
+
+export function formatElObject(obj: { [key: string]: any }): string {
+    // Exclude 'extent_id' and format everything else
+    return Object.entries(obj)
+        .filter(([key]) => key !== 'extent_id')
+        .map(([key, value]) => formatKeyValuePair(key, value))
+        .join('<br>');
 }
   
   
