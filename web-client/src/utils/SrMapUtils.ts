@@ -332,37 +332,44 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-export async function filterByAtc(){
+function isInvalid(value: any): boolean {
+    return value === null || value === undefined || Number.isNaN(value);
+}
+
+export async function filterByAtc() {
     const reqIdStr = useRecTreeStore().selectedReqIdStr;
     const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     const gcs = useGlobalChartStore();
-    if(!api.includes('atl03')){
-        if(gcs.use_y_atc_filter){
-            const y_atc_filtered_Cols = await duckDbGetColsForPickedPoint(useRecTreeStore().selectedReqId,['spot','cycle','gt']);
-            console.log('filterByAtc: y_atc_filtered_Cols:',y_atc_filtered_Cols);
+
+    if (!api.includes('atl03')) {
+        if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
+            const y_atc_filtered_Cols = await duckDbGetColsForPickedPoint(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
+            console.log('filterByAtc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
+
             if (y_atc_filtered_Cols) {
                 // Store previous values
                 const prevSpots = gcs.getSpots(); 
                 const prevCycles = gcs.getCycles(); 
                 const prevGts = gcs.getGts(); 
-                console.log('filterByAtc: prevSpots:',prevSpots);
-                console.log('filterByAtc: prevCycles:',prevCycles);
-                console.log('filterByAtc: prevGts:',prevGts);
-                // Map new values
-                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.map((spot) => spot);
-                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.map((cycle) => cycle);
-                const y_atc_filtered_gts = y_atc_filtered_Cols.gt.map((gt) => gt);
-            
+                console.log('filterByAtc: prevSpots:', prevSpots);
+                console.log('filterByAtc: prevCycles:', prevCycles);
+                console.log('filterByAtc: prevGts:', prevGts);
+
+                // Map new values, filtering out invalid entries
+                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.filter(spot => !isInvalid(spot));
+                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.filter(cycle => !isInvalid(cycle));
+                const y_atc_filtered_gts = y_atc_filtered_Cols.gt.filter(gt => !isInvalid(gt));
+
                 // Check for changes
                 const spotsChanged = JSON.stringify(prevSpots) !== JSON.stringify(y_atc_filtered_spots);
                 const cyclesChanged = JSON.stringify(prevCycles) !== JSON.stringify(y_atc_filtered_cycles);
                 const gtsChanged = JSON.stringify(prevGts) !== JSON.stringify(y_atc_filtered_gts);
-            
+
                 // Log changes
                 if (spotsChanged) console.log("filterByAtc Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
                 if (cyclesChanged) console.log("filterByAtc Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
                 if (gtsChanged) console.log("filterByAtc GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
-            
+
                 // Set new values
                 gcs.setSpots(y_atc_filtered_spots);
                 gcs.setCycles(y_atc_filtered_cycles);
@@ -370,8 +377,8 @@ export async function filterByAtc(){
             }
         }
     }
-
 }
+
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('Clicked data:',d);

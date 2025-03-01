@@ -19,9 +19,9 @@
             class="sr-yatc-number"
             size="small"
             :minFractionDigits="1"
-            :min="0.1"
+            :min="0.001"
             :max="9999"
-            :step="0.1"
+            :step="0.001"
             showButtons
             :disabled="computedDisabled" 
             @update:modelValue="handleModelValueChange"
@@ -58,10 +58,11 @@ const toolTipStr = computed(() => {
     return ttstr;
 });
 
-async function handleModelValueChange(value: boolean) {
+async function handleModelValueChange(value: number) {
     console.log('SrYatcFilterCntrl handleValueChange:', value);
     if(!value) {
-        globalChartStore.selected_y_atc = undefined;
+        //globalChartStore.selected_y_atc = undefined;
+        console.log('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
     await filterByAtc();
     await updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
