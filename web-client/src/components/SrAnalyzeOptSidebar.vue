@@ -1,27 +1,16 @@
 <script setup lang="ts">
-import { onMounted,ref,watch,computed } from 'vue';
+import { onMounted,ref,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
-//import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-//import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
-import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
-import { useDeckStore } from '@/stores/deckStore';
-//import { debounce } from "lodash";
-import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { useToast } from 'primevue/usetoast';
-import { useSrToastStore } from "@/stores/srToastStore";
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrPlotConfig from "@/components/SrPlotConfig.vue";
-import { useChartStore } from '@/stores/chartStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { useGlobalChartStore } from '@/stores/globalChartStore';
-//import { processNewReqId } from "@/utils/SrMapUtils";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
