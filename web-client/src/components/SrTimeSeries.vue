@@ -125,12 +125,16 @@ onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
 
+        globalChartStore.use_y_atc_filter = true;
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
+            const filteredCycleOptions = await getAllFilteredCycleOptions(useRecTreeStore().selectedReqId);
+            globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+            globalChartStore.setCycleOptions(filteredCycleOptions);
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
              console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());

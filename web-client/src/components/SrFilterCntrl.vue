@@ -35,7 +35,7 @@
                             <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                         </div>
                         <div>
-                            <SrYatcFilterCntrl  />
+                            <SrYatcFilterCntrl v-if="showYatc"/>
                         </div>
                     </div>
                  </div>
@@ -48,18 +48,18 @@
 import { computed } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { selectedRgtReactive,selectedCyclesReactive } from "@/utils/plotUtils";
-import { getAllCycleOptions, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
+import { selectedRgtReactive } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from '@/components/SrBeamPattern.vue';
 import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
 import SrCycleSelect from '@/components/SrCycleSelect.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
-import Button from 'primevue/button';
+import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
+const analysisTabStore = useAnalysisTabStore();
 
 const computedScOrientLabels = computed(() => {
     return globalChartStore.getScOrientsLabels();
@@ -81,6 +81,10 @@ const computedRgtOptions = computed(() => {
     const rgtOptions= globalChartStore.getRgtOptions();
     //console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
     return rgtOptions;
+});
+
+const showYatc = computed(() => {
+    return analysisTabStore.isActiveTabTimeSeries;
 });
 
 function handleValueChange(value) {

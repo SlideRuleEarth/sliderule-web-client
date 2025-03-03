@@ -11,7 +11,7 @@
                 v-model="globalChartStore.use_y_atc_filter" 
                 size="small"
                 @update:model-value="handleModelValueChange"
-                :disabled="computedDisabled"  
+                :disabled="!y_atc_is_selected"  
             />
         </div>
         <InputNumber 
@@ -23,21 +23,19 @@
             :max="9999"
             :step="0.001"
             showButtons
-            :disabled="computedDisabled" 
+            :disabled="!computedUseYAtcFilter" 
             @update:modelValue="handleModelValueChange"
         ></InputNumber>
-
-        <div class="sr-yatc-min-selected-max" v-if="globalChartStore.selected_y_atc !== undefined">
-            <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(2) }}</span>
-            <span>y_atc_min: {{ (globalChartStore.selected_y_atc+globalChartStore.y_atc_margin).toFixed(2) }}</span>
-            <span>y_atc_max: {{ (globalChartStore.selected_y_atc-globalChartStore.y_atc_margin).toFixed(2) }}</span>    
+        <div class="sr-yatc-min-selected-max" v-if="(y_atc_is_selected)">
+            <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(3) }}</span>
+            <span>y_atc_min: {{ computedMaxYAtc.toFixed(3) }}</span>
+            <span>y_atc_max: {{ computedMinYAtc.toFixed(3) }}</span>    
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import Checkbox from 'primevue/checkbox';
-import FloatLabel from 'primevue/floatlabel';
 import InputNumber from 'primevue/inputnumber';
 import { filterByAtc } from "@/utils/SrMapUtils";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
@@ -48,8 +46,26 @@ import { ref, computed } from 'vue';
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
 
-const computedDisabled = computed(() => {
-    return globalChartStore.selected_y_atc === undefined;
+const y_atc_is_selected = computed(() => {
+    return ((globalChartStore.selected_y_atc != undefined) && (globalChartStore.selected_y_atc != null) && (!isNaN(globalChartStore.selected_y_atc)));
+});
+
+const computedUseYAtcFilter = computed(() => {
+    return (y_atc_is_selected && globalChartStore.use_y_atc_filter);
+});
+
+const computedMaxYAtc = computed(() => {
+    if(globalChartStore.selected_y_atc === undefined) {
+        return 0;
+    }
+    return globalChartStore.selected_y_atc + globalChartStore.y_atc_margin;
+});
+
+const computedMinYAtc = computed(() => {
+    if(globalChartStore.selected_y_atc === undefined) {
+        return 0;
+    }
+    return globalChartStore.selected_y_atc - globalChartStore.y_atc_margin;
 });
 
 const toolTipStr = computed(() => {
@@ -96,8 +112,8 @@ async function handleModelValueChange(value: number) {
 .sr-yatc-min-selected-max{
     display: flex;
     flex-direction: column;
-    justify-content:center;
-    align-items:center;
+    justify-content: center;
+    align-items:flex-end;
     margin: 0.25rem;
     padding: 0.25rem;
     width: auto;

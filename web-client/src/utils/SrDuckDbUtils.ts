@@ -486,7 +486,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
             console.error('duckDbReadAndUpdateSelectedLayer req_id:', req_id, ' status is error SKIPPING!');
             return;
         }
-
+        useMapStore().setIsLoading(true);
         //useAtlChartFilterStore().setReqId(req_id);
         // Step 1: Initialize the DuckDB client
         const duckDbClient = await createDuckDbClient();
@@ -582,6 +582,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         console.error('duckDbReadAndUpdateSelectedLayer error:', error);
         throw error;
     } finally {
+        useMapStore().setIsLoading(false);
         const endTime = performance.now(); // End time
         console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
     }

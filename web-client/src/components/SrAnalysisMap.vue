@@ -195,10 +195,10 @@
                     //useMapStore().setCenterToRestore(center);
 
                 }
-                if(reason === "onMounted"){
-                    initDeck(map);
-                }
-                await processNewReqId();
+                // if(reason === "onMounted"){
+                //     initDeck(map);
+                // }
+                await processNewReqId(map);
 
             } else {
                 console.error("SrMap Error:map is null");
@@ -271,18 +271,24 @@
             />
         </div>
     </div>
-    <div>
-        <SrCheckbox 
-            class="sr-show-hide-tooltip"
-            :defaultValue="true"
-            label="Show map tooltip"
-            labelFontSize="small"
-            tooltipText="Show or hide the elevation when hovering mouse over a track"
-            v-model="mapStore.showTheTooltip"
-            :disabled="useMapStore().isLoading"
-            size="small" 
-        />            
-    </div>
+    <div class="sr-analysis-map-footer">
+        <div>
+            <SrCheckbox 
+                class="sr-show-hide-tooltip"
+                :defaultValue="true"
+                label="Show map tooltip"
+                labelFontSize="small"
+                tooltipText="Show or hide the elevation when hovering mouse over a track"
+                v-model="mapStore.showTheTooltip"
+                :disabled="useMapStore().isLoading"
+                size="small" 
+            />
+        </div>
+        <div class="sr-spinner">
+            <ProgressSpinner class="sr-spinner" animationDuration=".75s" style="width: 2rem; height: 2rem;" strokeWidth="8" fill="var(--p-primary-300)" v-if="mapStore.isLoading"/>
+        </div>
+</div>
+
 </div>
 
 </template>
@@ -314,6 +320,29 @@
     font-weight: bold;
     padding: 0.5rem;
     margin-bottom: 0.5rem;
+}
+.sr-analysis-map-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;    /* Center the checkbox horizontally */
+  position: relative;         /* Needed for absolute positioning of spinner */
+  width: 100%;
+  height: 2rem;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0.5rem;
+}
+
+/* Absolutely position the spinner on the right */
+.sr-analysis-map-footer .sr-spinner {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .sr-show-hide-tooltip {

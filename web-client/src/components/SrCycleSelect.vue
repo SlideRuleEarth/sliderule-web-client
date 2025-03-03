@@ -17,8 +17,8 @@
         </Listbox>
         <div class = "sr-cycles-btn-panel">
             <Button class="sr-select-all-btn"
-                label="Reset" 
-                @click="resetCycles"
+                label="Filter" 
+                @click="filterCycles"
                 size="small"
             ></Button>
             <Button class="sr-select-all-btn"
@@ -47,7 +47,7 @@ const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
 });
 
-async function resetCycles() {
+async function filterCycles() {
     const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
     globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
 }

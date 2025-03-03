@@ -383,7 +383,6 @@ export async function filterByAtc() {
 
 export async function processSelectedElData(d:ElevationDataItem): Promise<void> {
 
-
     const globalChartStore = useGlobalChartStore();
     globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
@@ -426,13 +425,16 @@ export async function processSelectedElData(d:ElevationDataItem): Promise<void> 
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
+    gcs.selected_y_atc = d.y_atc;
+    console.log('processSelectedElData: selected_y_atc:',gcs.selected_y_atc);
+    console.log(`processSelectedElData: ${useAnalysisTabStore().activeTabLabel}`);
     if(useAnalysisTabStore().activeTabLabel == 'Time Series'){
-        console.log('processSelectedElData: Time Series using y_atc....');
         gcs.use_y_atc_filter = true;
-        gcs.selected_y_atc = d.y_atc;
         await filterByAtc();
         const filteredCycleOptions = await getAllFilteredCycleOptions(useRecTreeStore().selectedReqId);
         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+    } else {
+        gcs.use_y_atc_filter = false;
     }
     console.log('processSelectedElData: pair',gcs.getPairs());
     console.log('processSelectedElData: rgt',gcs.getRgt())
@@ -1255,9 +1257,12 @@ const updateElevationMap = async (req_id: number) => {
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
 };
 
-export async function processNewReqId() {
+export async function processNewReqId(map:OLMap): Promise<void> {
     const startTime = performance.now(); // Start time
+    initDeck(map);
+ 
     const mapStore = useMapStore();
+ 
     const atlChartFilterStore = useAtlChartFilterStore();
     const recTreeStore = useRecTreeStore();
     try {

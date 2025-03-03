@@ -30,6 +30,9 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         return tabLabels[numericIndex] ?? null;
     };
 
+    const isActiveTabTimeSeries = computed(() => {
+        return activeTab.value === '1';
+    });
 
     return {
         activeTab,
@@ -37,5 +40,6 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         setActiveTab,
         activeTabLabel,
         getTabLabelByIndex,
+        isActiveTabTimeSeries,
     };
 });
