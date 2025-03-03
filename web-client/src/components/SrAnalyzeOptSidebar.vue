@@ -25,31 +25,9 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
-const deckStore = useDeckStore();
-const elevationColorMapStore = useElevationColorMapStore();
 const recTreeStore = useRecTreeStore();
-const globalChartStore = useGlobalChartStore();
 
-const spotPatternDetailsStr = "Each ground track is \
-numbered according to the laser spot number that generates it, with ground track 1L (GT1L) on the \
-far left and ground track 3R (GT3R) on the far right. Left/right spots within each pair are \
-approximately 90 m apart in the across-track direction and 2.5 km in the along-track \
-direction. Higher level ATLAS/ICESat-2 data products (ATL03 and above) are organized by ground \
-track, with ground tracks 1L and 1R forming pair one, ground tracks 2L and 2R forming pair two, \
-and ground tracks 3L and 3R forming pair three. Each pair also has a Pair Track—an imaginary \
-line halfway between the actual location of the left and right beams. Pair tracks are \
-approximately 3 km apart in the across-track direction. \
-The beams within each pair have different transmit energies—so-called weak and strong beams—\
-with an energy ratio between them of approximately 1:4. The mapping between the strong and \
-weak beams of ATLAS, and their relative position on the ground, depends on the orientation (yaw) \
-of the ICESat-2 observatory, which is changed approximately twice per year to maximize solar \
-illumination of the solar panels. The forward orientation corresponds to ATLAS traveling along the \
-+x coordinate in the ATLAS instrument reference frame. In this orientation, the \
-weak beams lead the strong beams and a weak beam is on the left edge of the beam pattern. In \
-the backward orientation, ATLAS travels along the -x coordinate, in the instrument reference frame, \
-with the strong beams leading the weak beams and a strong beam on the left edge of the beam \
-pattern."
-const spotPatternBriefStr = "fields related to spots and beams patterns";
+
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -57,14 +35,11 @@ const props = defineProps({
     }
 });
 const tooltipRef = ref();
-//const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
-const loading = ref(true);
-const toast = useToast();
-const srToastStore = useSrToastStore();
+const loadingThisSFC = ref(true);
 const isMounted = ref(false);
 
 const computedInitializing = computed(() => {
-    return !isMounted.value || loading.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
+    return !isMounted.value || loadingThisSFC.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
 });
 
 
@@ -72,43 +47,8 @@ onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
     // await processNewReqId();
-    loading.value = false;
+    loadingThisSFC.value = false;
     isMounted.value = true;
-});
-
-// watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-//     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
-//     elevationColorMapStore.setElevationColorMap(newColorMap.value);
-//     elevationColorMapStore.updateElevationColorMapValues();
-//     //console.log('Color Map:', colorMapStore.getElevationColorMap());
-//     try{
-//         //await debouncedUpdateElevationMap();
-//     } catch (error) {
-//         console.warn('ElevationColorMap Failed debouncedUpdateElevationMap:', error);
-//         toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
-//     }
-// }, { deep: true });
-
-// watch(() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-//     console.log('ElevationColorMapStore changed from:', oldColorMap ,' to:', newColorMap);
-//     await debouncedUpdateElevationMap();
-// }, { deep: true });
-
-// watch(() => recTreeStore.selectedReqId,async (newValue, oldValue) => {
-//     console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
-//     // Perform any additional actions on change
-//     if(newValue > 0 && (newValue !== oldValue)){
-//         await processNewReqId();
-//     } else {
-//         console.warn(`recTreeStore.selectedReqId is <= 0 or unchanged: ${newValue}`);
-//     }
-//   }
-// );
-const getSize = computed(() => {
-    return formatBytes(useChartStore().getSize());
-});
-const getCnt = computed(() => {
-    return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())));
 });
 
 
@@ -152,11 +92,11 @@ const exportButtonClick = async () => {
 <template>
     <div class="sr-analysis-opt-sidebar">
         <SrCustomTooltip ref="tooltipRef"/>
-        <div class="sr-analysis-opt-sidebar-container" v-if="computedInitializing">Loading...</div>
+        <div class="sr-analysis-opt-sidebar-container" v-if="loadingThisSFC">Loading...</div>
         <div class="sr-analysis-opt-sidebar-container" v-else>
             <div class="sr-map-descr">
                 <div class="sr-analysis-opt-sidebar-map" ID="AnalysisMapDiv">
-                    <div v-if="loading">Loading...{{ recTreeStore.selectedApi }}</div>
+                    <div v-if="computedInitializing">Loading...{{ recTreeStore.selectedApi }}</div>
                     <SrAnalysisMap 
                         v-else-if="(recTreeStore.selectedReqId > 0)"
                         :selectedReqId="recTreeStore.selectedReqId"

@@ -195,9 +195,6 @@
                     //useMapStore().setCenterToRestore(center);
 
                 }
-                // if(reason === "onMounted"){
-                //     initDeck(map);
-                // }
                 await processNewReqId(map);
 
             } else {
