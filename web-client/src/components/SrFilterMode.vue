@@ -18,7 +18,7 @@
     import { onMounted,watch } from 'vue';
     import RadioButton from 'primevue/radiobutton';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
-    import { clicked } from '@/utils/SrMapUtils';
+    //import { clicked } from '@/utils/SrMapUtils';
 
 
     const globalChartStore = useGlobalChartStore();
@@ -28,43 +28,43 @@
         globalChartStore.setFilterMode('SpotMode');
     });
 
-    const updateFilterForMode = async () => {
-        console.log('updateFilterForMode called');
-        switch (globalChartStore.filterMode) {
-            case 'SpotMode':
-                console.log('Applying Spot Mode filter');
-                const rec = globalChartStore.getSelectedElevationRec();
-                const saveCycles = globalChartStore.getCycles();
-                if (rec) {
-                    await clicked(rec);
-                }
-                globalChartStore.setCycles(saveCycles);
-                break;
-                // case FilterMode.TrackMode:
-                //   console.log('Applying Track Mode filter');
-                //   break;
-            case 'RgtMode':
-                console.log('Applying RGT Mode filter');
-                globalChartStore.setSpots([1,2,3,4,5,6]);
-                globalChartStore.hasScForward = true;
-                globalChartStore.hasScBackward = true;
-                globalChartStore.setSelectedCycleOptions(globalChartStore.getCycleOptions());
-                break;
-                // case FilterMode.AllRgts:
-                //   console.log('Applying All RGTs filter');
-                //   break;
-            default:
-                console.log('Unknown filter mode');
-          }
-    };
+    // const updateFilterForMode = async () => {
+    //     console.log('updateFilterForMode called');
+    //     switch (globalChartStore.filterMode) {
+    //         case 'SpotMode':
+    //             console.log('Applying Spot Mode filter');
+    //             const rec = globalChartStore.getSelectedElevationRec();
+    //             const saveCycles = globalChartStore.getCycles();
+    //             if (rec) {
+    //                 await clicked(rec);
+    //             }
+    //             globalChartStore.setCycles(saveCycles);
+    //             break;
+    //             // case FilterMode.TrackMode:
+    //             //   console.log('Applying Track Mode filter');
+    //             //   break;
+    //         case 'RgtMode':
+    //             console.log('Applying RGT Mode filter');
+    //             globalChartStore.setSpots([1,2,3,4,5,6]);
+    //             globalChartStore.hasScForward = true;
+    //             globalChartStore.hasScBackward = true;
+    //             globalChartStore.setSelectedCycleOptions(globalChartStore.getCycleOptions());
+    //             break;
+    //             // case FilterMode.AllRgts:
+    //             //   console.log('Applying All RGTs filter');
+    //             //   break;
+    //         default:
+    //             console.log('Unknown filter mode');
+    //       }
+    // };
 
-    watch(
-        () => globalChartStore.filterMode,
-        (newValue) => {
-            console.log(`SrFilterMode watch Filter mode changed to: ${newValue}`);
-            updateFilterForMode();
-      }
-    );
+    // watch(
+    //     () => globalChartStore.filterMode,
+    //     (newValue) => {
+    //         console.log(`SrFilterMode watch Filter mode changed to: ${newValue}`);
+    //         updateFilterForMode();
+    //   }
+    // );
 
   
 </script>

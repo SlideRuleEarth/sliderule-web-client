@@ -29,6 +29,7 @@
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
+    import { processNewReqId } from "@/utils/SrMapUtils";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -90,7 +91,7 @@
 
     // Watch for changes on reqId
     watch( () => props.selectedReqId, async (newReqId, oldReqId) => {
-        const msg = `props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
+        const msg = `watch props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
@@ -104,12 +105,12 @@
 
     // Watch for changes on parquetReader
     watch(() => useSrParquetCfgStore().parquetReader, async (newReader, oldReader) => {
-        console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
+        console.log(`watch parquet reader changed from ${oldReader} to ${newReader}`);
         await updateAnalysisMapView("New parquetReader");
     });
 
     watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
-        console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
+        console.log(`watch maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
@@ -123,6 +124,11 @@
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
+        const map = mapRef.value?.map;
+        if(!map){
+            console.error("Error: map is null");
+            return;
+        }
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
@@ -169,6 +175,10 @@
             if(map){
                 await updateMapView(map, srViewName, reason, false, props.selectedReqId);
                 const summary = await readOrCacheSummary(props.selectedReqId);
+                if(!summary){
+                    console.error(`Error: No summary for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                    return;
+                }
                 console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
                 const numPointsStr = summary.numPoints; // it is a string BIG INT!
                 const numPoints = parseInt(String(numPointsStr));
@@ -185,7 +195,11 @@
                     //useMapStore().setCenterToRestore(center);
 
                 }
-                initDeck(map);
+                if(reason === "onMounted"){
+                    initDeck(map);
+                }
+                await processNewReqId();
+
             } else {
                 console.error("SrMap Error:map is null");
             }

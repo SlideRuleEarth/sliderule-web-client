@@ -55,7 +55,7 @@
             console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
             processAbortClicked();
         } else {
-            console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
+            console.log(`Run button pressed for ${props.buttonLabel} calling processRunSlideRuleClicked`);
             if(props.includeAdvToggle){
                 try{
                     await processRunSlideRuleClicked();

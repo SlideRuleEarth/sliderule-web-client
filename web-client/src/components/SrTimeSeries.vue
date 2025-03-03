@@ -18,6 +18,7 @@ import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import SrFilterMode from "@/components/SrFilterMode.vue";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
+import SrYatcFilterCntrl from "@/components/SrYatcFilterCntrl.vue";
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -169,49 +170,49 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
+// watch(() => {
+//     const reqId = recTreeStore.selectedReqId;
 
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            scOrients: globalChartStore.getScOrients(),
-            rgt: globalChartStore.getRgt(),
-            cycles: globalChartStore.getCycles(),
-            spots: globalChartStore.getSpots(),
-            gts: globalChartStore.getGts(),
-            tracks: globalChartStore.getTracks(),
-            pairs: globalChartStore.getSelectedPairOptions(),
-        };
-    }
+//     // If reqId is undefined, null, or empty, return default values
+//     if (!reqId || reqId <= 0) {
+//         return {
+//             scOrients: globalChartStore.getScOrients(),
+//             rgt: globalChartStore.getRgt(),
+//             cycles: globalChartStore.getCycles(),
+//             spots: globalChartStore.getSpots(),
+//             gts: globalChartStore.getGts(),
+//             tracks: globalChartStore.getTracks(),
+//             pairs: globalChartStore.getSelectedPairOptions(),
+//         };
+//     }
 
-    // Otherwise, fetch the real values
-    return {
-        scOrients: globalChartStore.getScOrients(),
-        rgt: globalChartStore.getRgt(),
-        cycles: globalChartStore.getCycles(),
-        spots: globalChartStore.getSpots(),
-        gts: globalChartStore.getGts(),
-        tracks: globalChartStore.getTracks(),
-        pairs: globalChartStore.getSelectedPairOptions(),
-    };
-}, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
-        const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
-        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
-        atlChartFilterStore.setShowPhotonCloud(false);
-    }
-    if (!loadingComponent.value) {
-        // if we have selected Y data and anything changes update the plot
-        await callPlotUpdateDebounced('SrTimeSeries watch filter parms changed');
-    } else {
-        console.warn(
-            `Skipped updateThePlot for watch filter parms - Loading component is still active`
-        );
-    }
-});
+//     // Otherwise, fetch the real values
+//     return {
+//         scOrients: globalChartStore.getScOrients(),
+//         rgt: globalChartStore.getRgt(),
+//         cycles: globalChartStore.getCycles(),
+//         spots: globalChartStore.getSpots(),
+//         gts: globalChartStore.getGts(),
+//         tracks: globalChartStore.getTracks(),
+//         pairs: globalChartStore.getSelectedPairOptions(),
+//     };
+// }, async (newValues, oldValues) => {
+//     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
+//         const gtsValues = newValues.gts.map((gts) => gts);
+//         const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+//         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+//         console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
+//         atlChartFilterStore.setShowPhotonCloud(false);
+//     }
+//     if (!loadingComponent.value) {
+//         // if we have selected Y data and anything changes update the plot
+//         await callPlotUpdateDebounced('SrTimeSeries watch filter parms changed');
+//     } else {
+//         console.warn(
+//             `Skipped updateThePlot for watch filter parms - Loading component is still active`
+//         );
+//     }
+// });
 
 watch(() => {
     const reqId = recTreeStore.selectedReqId;
@@ -287,19 +288,6 @@ watch(chartWrapperRef, (newValue) => {
             </div>
             <div class="sr-cycles-legend-panel">
                 <SrCycleSelect />
-                <div class="sr-select-box">
-                    <p class="sr-select-box-hdr">Rgts</p>
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedRgtReactive" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="false"
-                        :options="globalChartStore.rgtOptions"
-                        @change="handleValueChange"
-                    >
-                    </Listbox>
-                </div>
                 <div class="sr-legends-panel">
                     <!-- {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }} -->
                     <Dialog

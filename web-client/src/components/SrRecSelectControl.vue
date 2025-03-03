@@ -4,6 +4,7 @@ import { Control } from 'ol/control';
 import { useChartStore } from "@/stores/chartStore";
 import { computed } from "vue";
 import { formatBytes } from '@/utils/SrParquetUtils';
+import { processNewReqId } from "@/utils/SrMapUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import TreeSelect from 'primevue/treeselect';
 
@@ -46,6 +47,7 @@ async function updateRecordSelector(event: Event) {
     if(reqId>0){
         if (recTreeStore.selectedNodeKey) {
             console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
+            await processNewReqId();
         } else {
             console.error('Failed to update selected request:', reqId);
         }

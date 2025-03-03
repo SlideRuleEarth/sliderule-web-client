@@ -28,7 +28,6 @@ import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { useAnalysisTabStore } from "@/stores/analysisTabStore";
-//import { clicked,filterByAtc } from "@/utils/SrMapUtils";
 
 const tooltipRef = ref();
 
@@ -46,6 +45,7 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const analysisTabStore = useAnalysisTabStore();
+const mapStore = useMapStore();
 const loadingComponent = ref(true);
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -449,93 +449,92 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     }
 });
 
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
+// watch(() => {
+//     const reqId = recTreeStore.selectedReqId;
+//     // If reqId is undefined, null, or empty, return default values
+//     if (!reqId || reqId <= 0) {
+//         return {
+//             scOrients: globalChartStore.getScOrients(),
+//             rgt: globalChartStore.getRgt(),
+//             cycles: globalChartStore.getCycles(),
+//             spots: globalChartStore.getSpots(),
+//             gts: globalChartStore.getGts(),
+//             tracks: globalChartStore.getTracks(),
+//             pairs: globalChartStore.getSelectedPairOptions(),
+//         };
+//     }
+//     // Otherwise, fetch the real values
+//     return {
+//         scOrients: globalChartStore.getScOrients(),
+//         rgt: globalChartStore.getRgt(),
+//         cycles: globalChartStore.getCycles(),
+//         spots: globalChartStore.getSpots(),
+//         gts: globalChartStore.getGts(),
+//         tracks: globalChartStore.getTracks(),
+//         pairs: globalChartStore.getSelectedPairOptions(),
+//     };
+// }, async (newValues, oldValues) => {
 
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            scOrients: globalChartStore.getScOrients(),
-            rgt: globalChartStore.getRgt(),
-            cycles: globalChartStore.getCycles(),
-            spots: globalChartStore.getSpots(),
-            gts: globalChartStore.getGts(),
-            tracks: globalChartStore.getTracks(),
-            pairs: globalChartStore.getSelectedPairOptions(),
-        };
-    }
+//     if(mapStore.getMapInitialized() && (newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
+//         const gtsValues = newValues.gts.map((gts) => gts);
+//         const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+//         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+//         console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
+//         atlChartFilterStore.setShowPhotonCloud(false);
+//     }
+//     if (mapStore.getMapInitialized() && !loadingComponent.value) {
+//         // if we have selected Y data and anything changes update the plot
+//         await callPlotUpdateDebounced('SrElevationPlot watch filter parms changed');
+//     } else {
+//         console.warn(
+//             `Skipped updateThePlot for watch filter parms - Loading component is still active`
+//         );
+//     }
+// });
 
-    // Otherwise, fetch the real values
-    return {
-        scOrients: globalChartStore.getScOrients(),
-        rgt: globalChartStore.getRgt(),
-        cycles: globalChartStore.getCycles(),
-        spots: globalChartStore.getSpots(),
-        gts: globalChartStore.getGts(),
-        tracks: globalChartStore.getTracks(),
-        pairs: globalChartStore.getSelectedPairOptions(),
-    };
-}, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
-        const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
-        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
-        atlChartFilterStore.setShowPhotonCloud(false);
-    }
-    if (!loadingComponent.value) {
-        // if we have selected Y data and anything changes update the plot
-        await callPlotUpdateDebounced('SrElevationPlot watch filter parms changed');
-    } else {
-        console.warn(
-            `Skipped updateThePlot for watch filter parms - Loading component is still active`
-        );
-    }
-});
+// watch(() => {
+//     const reqId = recTreeStore.selectedReqId;
+//     const reqIdStr = recTreeStore.selectedReqIdStr;
 
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
-    const reqIdStr = recTreeStore.selectedReqIdStr;
+//     // If reqId is undefined, null, or empty, return default values
+//     if (!reqId || reqId <= 0) {
+//         return {
+//             ydata: [],
+//             solidColor: null,
+//         };
+//     }
 
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            ydata: [],
-            solidColor: null,
-        };
-    }
+//     // Otherwise, fetch the real values
+//     return {
+//         ydata: chartStore.getSelectedYData(reqIdStr),
+//         solidColor: chartStore.getSolidSymbolColor(reqIdStr),
+//     };
+//   },
+//   async (newValues, oldValues) => {
+//     let needPlotUpdate = false;
+//     if (!loadingComponent.value) {
+//          // if we have selected Y data and anything changes update the plot
+//         if(newValues.ydata.length > 0){
+//             needPlotUpdate = true;
+//         } else {
+//             console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
+//         }       
+//         if(needPlotUpdate){
+//             await callPlotUpdateDebounced('from watch selected Y data changed');
+//         }
+//     } else {
+//       console.warn(
+//         `Skipped updateThePlot for watch multiple properties - Loading component is still active`
+//       );
+//     }
+//   },
+//   { deep: true }
+// );
 
-    // Otherwise, fetch the real values
-    return {
-        ydata: chartStore.getSelectedYData(reqIdStr),
-        solidColor: chartStore.getSolidSymbolColor(reqIdStr),
-    };
-  },
-  async (newValues, oldValues) => {
-    let needPlotUpdate = false;
-    if (!loadingComponent.value) {
-         // if we have selected Y data and anything changes update the plot
-        if(newValues.ydata.length > 0){
-            needPlotUpdate = true;
-        } else {
-            console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
-        }       
-        if(needPlotUpdate){
-            await callPlotUpdateDebounced('from watch selected Y data changed');
-        }
-    } else {
-      console.warn(
-        `Skipped updateThePlot for watch multiple properties - Loading component is still active`
-      );
-    }
-  },
-  { deep: true }
-);
-
-watch(chartWrapperRef, (newValue) => {
-    console.log("chartWrapperRef updated:", newValue);
-    chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-});
+// watch(chartWrapperRef, (newValue) => {
+//     console.log("chartWrapperRef updated:", newValue);
+//     chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+// });
 
 </script>
 <template>

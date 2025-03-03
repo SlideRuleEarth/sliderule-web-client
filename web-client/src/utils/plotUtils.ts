@@ -18,6 +18,7 @@ import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
+import { useDeckStore } from "@/stores/deckStore";
 
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
@@ -1087,7 +1088,8 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 }
 
 export async function updatePlotAndSelectedTrackMapLayer(msg:string){
-    //console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
+    const startTime = performance.now(); // Start time
+    console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();
     if( (globalChartStore.getRgt() >= 0) &&
@@ -1098,19 +1100,38 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        const startTime1 = performance.now(); // Start time
+        const deckStore = useDeckStore();
+        // if(deckStore.deleteSelectedLayer()){
+        //     deckStore.updatePropsWithLayers();//redraw without selected
+        //     const endTime = performance.now(); // End time
+        //     console.log(`updatePlotAndSelectedTrackMapLayer redraw without selected took ${endTime - startTime1} milliseconds.`);
+        // }
         await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
+        try {
+            const intermediateTime = performance.now(); // Intermediate time
+            console.log(`updateElevationMap intermediate time: ${intermediateTime - startTime} milliseconds.`);
+            useDeckStore().updatePropsWithLayers(); // causes the draw for all layers
+            const intermediateTime2 = performance.now(); // Intermediate time
+            console.log(`updatePlotAndSelectedTrackMapLayer updatePropsWithLayers took ${intermediateTime2 - intermediateTime} milliseconds.`);
+        } catch (error) {
+            console.error('updatePlotAndSelectedTrackMapLayer Error:', error);
+        }
+        
     } else {
         console.warn('Need Rgts, Cycles, and Spots values selected');
         console.warn('Rgt:', globalChartStore.getRgt());
         console.warn('Cycles:', globalChartStore.getCycles());
         console.warn('Spots:', globalChartStore.getSpots());
     }
+    const endTime = performance.now(); // End time
+    console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
 }
 let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
-    //console.log("callPlotUpdateDebounced called:", msg);
+    console.log("callPlotUpdateDebounced called:", msg);
     const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');
@@ -1125,9 +1146,9 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
         pendingResolves.push(resolve);
         updatePlotTimeoutId = window.setTimeout(async () => {
         await updatePlotAndSelectedTrackMapLayer(msg);
-            // Resolve all pending promises, since updatePlotAndSelectedTrackMapLayer is now complete
-            pendingResolves.forEach(res => res());
-            pendingResolves = [];
+        // Resolve all pending promises, since updatePlotAndSelectedTrackMapLayer is now complete
+        pendingResolves.forEach(res => res());
+        pendingResolves = [];
         }, 500);
     });
 }

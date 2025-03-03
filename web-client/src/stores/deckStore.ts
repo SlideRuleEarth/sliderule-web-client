@@ -31,15 +31,30 @@ export const useDeckStore = defineStore('deck', {
             const now = performance.now();
             console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
         },
-        replaceOrAddLayer(layer:any,name:string): boolean {
-            for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === name) {
-                    this.pointCloudLayers[i] = layer;
-                    return true;
-                }
+        replaceOrAddLayer(layer: any, name: string): boolean {
+          // 1) Replace if found
+          let found = false;
+          for (let i = 0; i < this.pointCloudLayers.length; i++) {
+            if (this.pointCloudLayers[i].id === name) {
+              this.pointCloudLayers[i] = layer;
+              found = true;
+              break;
             }
+          }
+          // 2) Otherwise add
+          if (!found) {
             this.pointCloudLayers.push(layer);
-            return false;
+          }
+        
+          // 3) Always ensure the highlight layer is last in the array
+          const idx = this.pointCloudLayers.findIndex(l => l.id === SELECTED_LAYER_NAME);
+          if (idx !== -1) {
+            const [highlightLayer] = this.pointCloudLayers.splice(idx, 1);
+            // push it so it's guaranteed at the end
+            this.pointCloudLayers.push(highlightLayer);
+          }
+        
+          return found;
         },
         deleteLayer(layerId:string) {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
@@ -77,5 +92,10 @@ export const useDeckStore = defineStore('deck', {
         getIsDragging(): boolean {
             return this.isDragging;
         },
+        updatePropsWithLayers(){ // this causes it to be drawn
+            const theLayers = this.getLayers();
+            console.log('updatePropsWithLayers:',theLayers);
+            this.deckInstance.setProps({layers:theLayers});
+        }
     }
 });

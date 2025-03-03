@@ -27,7 +27,7 @@
             @update:modelValue="handleModelValueChange"
         ></InputNumber>
 
-        <div class="sr-yatc-min-selected-max">
+        <div class="sr-yatc-min-selected-max" v-if="globalChartStore.selected_y_atc !== undefined">
             <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(2) }}</span>
             <span>y_atc_min: {{ (globalChartStore.selected_y_atc+globalChartStore.y_atc_margin).toFixed(2) }}</span>
             <span>y_atc_max: {{ (globalChartStore.selected_y_atc-globalChartStore.y_atc_margin).toFixed(2) }}</span>    

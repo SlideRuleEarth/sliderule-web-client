@@ -646,6 +646,7 @@ export class SlideRuleDexie extends Dexie {
         return parts.length > 0 ? parts.join(', ') : '0 secs';
     }
     async getFilename(reqId: number): Promise<string> {
+        const startTime = performance.now(); // Start time
         try {
             const request = await this.requests.get(reqId);
             if (!request) {
@@ -656,7 +657,11 @@ export class SlideRuleDexie extends Dexie {
         } catch (error) {
             console.error(`Failed to get filename for req_id ${reqId}:`, error);
             throw error;
+        } finally {
+            const endTime = performance.now(); // End time
+            console.log(`SlideRuleDb.getFilename took ${endTime - startTime} milliseconds.`);
         }
+
     }
     async getFunc(req_id:number): Promise<string> {
         try {

@@ -33,7 +33,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const filterMode = ref<string>('SpotMode');
     const selectedElevationRec = ref<ElevationDataItem | null>({});
     const use_y_atc_filter = ref<boolean>(true);
-    const selected_y_atc = ref<number>(0.0);
+    const selected_y_atc = ref<number|undefined>(undefined);
     const y_atc_margin = ref<number>(5.0);
 
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
