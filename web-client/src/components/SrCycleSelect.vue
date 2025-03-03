@@ -74,6 +74,33 @@ function handleValueChange(value) {
 </script>
 
 <style scoped>
+
+.sr-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    font-size: small;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+
+.sr-select-box-hdr{
+    display: flex;
+    justify-content:center;
+    align-items:center;
+    margin: 0.125rem;
+    padding: 0.125rem;
+    width: auto;
+    max-width: 10rem;
+    font-size:medium;
+    font-weight: bold;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border-radius: 0.25rem;
+}
+
 .sr-select-box{
     display: flex;
     flex-direction: column;
@@ -84,4 +111,37 @@ function handleValueChange(value) {
     width: auto;
     max-width: 10rem;
 }
+
+
+.sr-cycles-btn-panel{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+
+:deep(.p-listbox .p-listbox-list .p-listbox-option.p-listbox-option-selected){
+    color: var(--p-primary-color);
+    font-weight: bold;
+}
+
+
+.sr-select-lists {
+    display: flex;
+    flex-direction: column;
+    justify-content:center;
+    align-items:flex-start;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
+    max-width: 10rem;
+}
+
+.sr-select-all-btn{
+    margin-left: 0.5rem;
+    font-size: smaller;
+    white-space: nowrap;
+}
+
 </style>

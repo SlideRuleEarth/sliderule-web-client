@@ -2,14 +2,14 @@
 import { onMounted,ref,watch,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
-import router from '@/router/index.js';
+//import router from '@/router/index.js';
 import { db } from '@/db/SlideRuleDb';
-import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
+//import { duckDbReadAndUpdateElevationData } from '@/utils/SrDuckDbUtils';
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useMapStore } from '@/stores/mapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useDeckStore } from '@/stores/deckStore';
-import { debounce } from "lodash";
+//import { debounce } from "lodash";
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useToast } from 'primevue/usetoast';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -21,6 +21,7 @@ import Button from 'primevue/button';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+//import { processNewReqId } from "@/utils/SrMapUtils";
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const mapStore = useMapStore();
@@ -56,121 +57,53 @@ const props = defineProps({
     }
 });
 const tooltipRef = ref();
-const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
+//const selectedElevationColorMap = ref({name:'viridis', value:'viridis'});
 const loading = ref(true);
 const toast = useToast();
 const srToastStore = useSrToastStore();
 const isMounted = ref(false);
 
 const computedInitializing = computed(() => {
-    return !isMounted.value || loading.value || recTreeStore.reqIdMenuItems.length === 0;
+    return !isMounted.value || loading.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
 });
 
 
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
-    await processNewReqId();
+    // await processNewReqId();
+    loading.value = false;
+    isMounted.value = true;
 });
 
+// watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
+//     console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
+//     elevationColorMapStore.setElevationColorMap(newColorMap.value);
+//     elevationColorMapStore.updateElevationColorMapValues();
+//     //console.log('Color Map:', colorMapStore.getElevationColorMap());
+//     try{
+//         //await debouncedUpdateElevationMap();
+//     } catch (error) {
+//         console.warn('ElevationColorMap Failed debouncedUpdateElevationMap:', error);
+//         toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
+//     }
+// }, { deep: true });
 
-const updateElevationMap = async (req_id: number) => {
-    console.log('updateElevationMap req_id:', req_id);
-    //const reqIdStr = req_id.toString();
-    if(req_id <= 0){
-        console.warn(`updateElevationMap Invalid request ID:${req_id}`);
-        return;
-    }
-    try {
-        mapStore.setIsLoading(true);
-        const parms = await duckDbReadAndUpdateElevationData(req_id);
-        mapStore.setMapInitialized(true);
-        // const rec = parms.rec;
-        // const numRows = parms.numRows;
-        // console.log(`updateElevationMap: ${req_id} parms:`, parms, 'rec:', rec);
-        // if(rec && numRows > 0){
-        //     deckStore.deleteSelectedLayer();
-        //     //updateFilter([req_id]); // query to set all options for all 
-        //     globalChartStore.setSelectedElevationRec(rec);
-        //     clicked(rec);
-        // }
-        mapStore.setIsLoading(false);
-    } catch (error) {
-        console.warn('Failed to update selected request:', error);
-        //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
-    }
-    try {
-        await router.push(`/analyze/${recTreeStore.selectedReqId}`);
-        console.log('Successfully navigated to analyze:', recTreeStore.selectedReqId);
-    } catch (error) {
-        console.error('Failed to navigate to analyze:', error);
-    }
-    
-};
+// watch(() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
+//     console.log('ElevationColorMapStore changed from:', oldColorMap ,' to:', newColorMap);
+//     await debouncedUpdateElevationMap();
+// }, { deep: true });
 
-const debouncedUpdateElevationMap = debounce(() => {
-    const req_id = recTreeStore.selectedReqId;
-    console.log("debouncedUpdateElevationMap called with req_id:", req_id);
-    return updateElevationMap(req_id);
-}, 500);
-
-async function processNewReqId() {
-    const startTime = performance.now(); // Start time
-    mapStore.setTotalRows(0);
-    mapStore.setCurrentRows(0);
-    atlChartFilterStore.setDebugCnt(0);
-    atlChartFilterStore.setSelectedOverlayedReqIds([]);
-    try {
-        const req_id = recTreeStore.selectedReqId;
-        //console.log('processNewReqId selectedReqId:', req_id);
-        if(req_id !== props.startingReqId){
-            console.warn(`processNewReqId: req_id:${req_id} !== props.startingReqId:${props.startingReqId}`);
-        }
-        debouncedUpdateElevationMap();
-        //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
-    } catch (error) {
-        if (error instanceof Error) {
-            console.error('processNewReqId Failed:', error.message);
-        } else {
-            console.error('processNewReqId Unknown error occurred:', error);
-        }
-    } finally {
-        loading.value = false;
-        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
-        const endTime = performance.now(); // End time
-        isMounted.value = true;
-        console.log(`processNewReqId took ${endTime - startTime} milliseconds.`);
-    }
-}
-
-watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
-    elevationColorMapStore.setElevationColorMap(newColorMap.value);
-    elevationColorMapStore.updateElevationColorMapValues();
-    //console.log('Color Map:', colorMapStore.getElevationColorMap());
-    try{
-        //await debouncedUpdateElevationMap();
-    } catch (error) {
-        console.warn('ElevationColorMap Failed debouncedUpdateElevationMap:', error);
-        toast.add({ severity: 'warn', summary: 'Failed to update Elevation Map', detail: `Failed to update Elevation Map exception`, life: srToastStore.getLife()});
-    }
-}, { deep: true });
-
-watch(() => elevationColorMapStore.selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('ElevationColorMapStore changed from:', oldColorMap ,' to:', newColorMap);
-    await debouncedUpdateElevationMap();
-}, { deep: true });
-
-watch(() => recTreeStore.selectedReqId,async (newValue, oldValue) => {
-    console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
-    // Perform any additional actions on change
-    if(newValue > 0 && (newValue !== oldValue)){
-        await processNewReqId();
-    } else {
-        console.warn(`recTreeStore.selectedReqId is <= 0 or unchanged: ${newValue}`);
-    }
-  }
-);
+// watch(() => recTreeStore.selectedReqId,async (newValue, oldValue) => {
+//     console.log(`recTreeStore.selectedReqId changed from ${oldValue} to ${newValue}`);
+//     // Perform any additional actions on change
+//     if(newValue > 0 && (newValue !== oldValue)){
+//         await processNewReqId();
+//     } else {
+//         console.warn(`recTreeStore.selectedReqId is <= 0 or unchanged: ${newValue}`);
+//     }
+//   }
+// );
 const getSize = computed(() => {
     return formatBytes(useChartStore().getSize());
 });
@@ -257,7 +190,7 @@ const exportButtonClick = async () => {
                     <!-- SrPlotConfig for the main req_id -->
                     <div class="sr-scatterplot-cfg">
                         <SrPlotConfig
-                            v-if="mapStore.mapInitialized" 
+                            v-if="mapStore.analysisMapInitialized" 
                             :reqId="recTreeStore.selectedReqId"
                         />
                     </div>
@@ -265,7 +198,7 @@ const exportButtonClick = async () => {
                     <!-- SrPlotConfig for each overlayed req_id -->
                     <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                         <SrPlotConfig
-                            v-if="mapStore.mapInitialized" 
+                            v-if="mapStore.analysisMapInitialized" 
                             :reqId="overlayedReqId"
                             :isOverlay="true" 
                         />

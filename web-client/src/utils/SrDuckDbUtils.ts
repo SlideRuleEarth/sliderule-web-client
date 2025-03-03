@@ -13,7 +13,7 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { clicked } from '@/utils/SrMapUtils'
+import { processSelectedElData } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 
 interface SummaryRowData {
@@ -101,6 +101,7 @@ export function getHFieldName(reqId:number): string {
 
 
 async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
+    const startTime = performance.now(); // Start time
     try {
         const chartStore = useChartStore();
         // Update elevation data options in the chart store
@@ -130,6 +131,9 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`setElevationDataOptionsFromFieldNames took ${endTime - startTime} milliseconds.`);
     }
 }
 
@@ -262,7 +266,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
-        updateAllFilterOptions(reqId);
+        await updateAllFilterOptions(reqId);
         await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
@@ -371,7 +375,8 @@ export const duckDbGetColsForPickedPoint = async (
 };
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<ElevationDataItem|null> => {
-    //console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    const startTime = performance.now(); // Start time
     let firstRec = null;
     let numRows = 0;
     let srViewName = await indexedDb.getSrViewName(req_id);
@@ -384,7 +389,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return null;
     }
-    const startTime = performance.now(); // Start time
     useMapStore().setIsLoading();
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
@@ -434,7 +438,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
                         useSrToastStore().warn('No Data Processed','No data items processed. Not Data returned for this region and request parameters.');
                     } else {
                         //console.log('duckDbReadAndUpdateElevationData numRows:', numRows);
-                        clicked(firstRec);
+                        await processSelectedElData(firstRec);
                     }
                 }
             } else {
@@ -469,6 +473,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number):Promise<E
 };
 
 export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=10000, maxNumPnts=10000) => {
+    console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
     if(req_id === undefined || req_id === null || req_id === 0){
         console.error('duckDbReadAndUpdateSelectedLayer Bad req_id:', req_id);
         return;
@@ -494,12 +499,18 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         const rgt = globalChartStore.getRgt();
         const cycles = globalChartStore.getCycles(); 
         const spots = globalChartStore.getSpots();
-        const use_y_atc_filter = globalChartStore.use_y_atc_filter;
+        let use_y_atc_filter = globalChartStore.use_y_atc_filter;
+        let min_y_atc = '0.0';
+        let max_y_atc = '0.0';
         const selected_y_atc = globalChartStore.selected_y_atc;
-        const y_atc_margin = globalChartStore.y_atc_margin;
-        const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
-        const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
-
+        if(selected_y_atc){
+            const y_atc_margin = globalChartStore.y_atc_margin;
+            min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
+            max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+        } else {
+            console.log('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined ');
+            use_y_atc_filter = false;
+        }
         if(func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')){
             //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
             queryStr = `

@@ -214,7 +214,7 @@ export function createWhereClause(reqId:number){
                     whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
                 }
             }
-            if(use_y_atc_filter){
+            if(use_y_atc_filter && (selected_y_atc !== undefined)){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
             }
         }
@@ -233,7 +233,7 @@ export function createWhereClause(reqId:number){
             if (spots.length > 0) {
                 whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
             }
-            if(use_y_atc_filter){
+            if(use_y_atc_filter && (selected_y_atc !== undefined)){
                 const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
                 const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;

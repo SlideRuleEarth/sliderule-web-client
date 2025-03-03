@@ -32,7 +32,7 @@ import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary, duckDbGetColsForPickedPoint } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
-import { clearPlot } from '@/utils/plotUtils';
+import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
@@ -43,6 +43,8 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
+import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptions } from '@/utils/SrDuckDbUtils';
+import router from '@/router/index.js';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -379,9 +381,9 @@ export async function filterByAtc() {
     }
 }
 
+export async function processSelectedElData(d:ElevationDataItem): Promise<void> {
 
-export async function clicked(d:ElevationDataItem): Promise<void> {
-    console.log('Clicked data:',d);
+
     const globalChartStore = useGlobalChartStore();
     globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
@@ -424,19 +426,30 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
-    gcs.use_y_atc_filter = true;
-    gcs.selected_y_atc = d.y_atc;
-    await filterByAtc();
-    console.log('Clicked: pair',gcs.getPairs());
-    console.log('Clicked: rgt',gcs.getRgt())
-    console.log('Clicked: cycles',gcs.getCycles())
-    console.log('Clicked: tracks',gcs.getTracks())
-    console.log('Clicked: sc_orient',gcs.getScOrients())
-    console.log('Clicked: spot',gcs.getSpots())
-    console.log('Clicked: gt',gcs.getGts())
-    console.log('clicked:',d);
-
+    if(useAnalysisTabStore().activeTabLabel == 'Time Series'){
+        console.log('processSelectedElData: Time Series using y_atc....');
+        gcs.use_y_atc_filter = true;
+        gcs.selected_y_atc = d.y_atc;
+        await filterByAtc();
+        const filteredCycleOptions = await getAllFilteredCycleOptions(useRecTreeStore().selectedReqId);
+        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+    }
+    console.log('processSelectedElData: pair',gcs.getPairs());
+    console.log('processSelectedElData: rgt',gcs.getRgt())
+    console.log('processSelectedElData: cycles',gcs.getCycles())
+    console.log('processSelectedElData: tracks',gcs.getTracks())
+    console.log('processSelectedElData: sc_orient',gcs.getScOrients())
+    console.log('processSelectedElData: spot',gcs.getSpots())
+    console.log('processSelectedElData: gt',gcs.getGts())
 }
+
+export async function clicked(d:ElevationDataItem): Promise<void> {
+    console.log('clicked data:',d);
+    processSelectedElData(d);
+    const msg = `clicked ${d}`;
+    await updatePlotAndSelectedTrackMapLayer(msg);
+}
+
 
 function createHighlightLayer(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): ScatterplotLayer {
     //console.log('createHighlightLayer elevationData:',elevationData,'projName:',projName);
@@ -490,13 +503,14 @@ function createHighlightLayer(name:string,elevationData:ElevationDataItem[], ext
 
 export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
-    //console.log('updateSelectedLayerWithObject startTime:',startTime);
+    console.log('updateSelectedLayerWithObject');
     try{
         const hlayer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,extHMean,heightFieldName,projName);
         useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME);
-        const theseLayers = useDeckStore().getLayers();
-        console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
-        useDeckStore().getDeckInstance().setProps({layers:theseLayers});
+        // const theseLayers = useDeckStore().getLayers();
+        // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
+        // useDeckStore().getDeckInstance().setProps({layers:theseLayers});
+        console.log('updateSelectedLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
     } catch (error) {
         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
     } finally {
@@ -608,7 +622,7 @@ function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean:
 
 export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
-    //console.log('updateElLayerWithObject startTime:',startTime);
+    console.log('updateElLayerWithObject startTime:',startTime);
     try{
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
@@ -616,7 +630,7 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
             //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
-            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+            //useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
             // if(replaced){
             //     console.log('Replaced using elevation layer:',layer);
@@ -1210,5 +1224,62 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
         map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
     } catch (error) {
         console.error(`Error: zoomMapForReqIdUsingView failed for reqId:${reqId}`,error);
+    }
+}
+
+const updateElevationMap = async (req_id: number) => {
+    const startTime = performance.now(); // Start time
+    console.log('updateElevationMap req_id:', req_id);
+    //const reqIdStr = req_id.toString();
+    if(req_id <= 0){
+        console.warn(`updateElevationMap Invalid request ID:${req_id}`);
+        return;
+    }
+    try {
+        const mapStore = useMapStore();
+        mapStore.setIsLoading(true);
+        const parms = await duckDbReadAndUpdateElevationData(req_id);
+        mapStore.setMapInitialized(true);
+        mapStore.setIsLoading(false);
+    } catch (error) {
+        console.warn('Failed to update selected request:', error);
+        //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
+    }
+    try {
+        await router.push(`/analyze/${useRecTreeStore().selectedReqId}`);
+        console.log('Successfully navigated to analyze:', useRecTreeStore().selectedReqId);
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
+    }
+    const endTime = performance.now(); // End time
+    console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
+};
+
+export async function processNewReqId() {
+    const startTime = performance.now(); // Start time
+    const mapStore = useMapStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const recTreeStore = useRecTreeStore();
+    try {
+        const req_id = recTreeStore.selectedReqId;
+        if(req_id > 0){
+            mapStore.setTotalRows(0);
+            mapStore.setCurrentRows(0);
+            atlChartFilterStore.setDebugCnt(0);
+            atlChartFilterStore.setSelectedOverlayedReqIds([]);
+            await updateElevationMap(req_id);
+            await updatePlotAndSelectedTrackMapLayer("processNewReqId");
+        }
+        //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error('processNewReqId Failed:', error.message);
+        } else {
+            console.error('processNewReqId Unknown error occurred:', error);
+        }
+    } finally {
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
+        const endTime = performance.now(); // End time
+        console.log(`processNewReqId took ${endTime - startTime} milliseconds.`);
     }
 }

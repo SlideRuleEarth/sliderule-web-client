@@ -108,13 +108,6 @@ function handleValueChange(value) {
     width: auto;
 }
 
-.sr-cycles-btn-panel{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-}
-
 .sr-header {
     display: flex;
     justify-content: center;
@@ -132,11 +125,6 @@ function handleValueChange(value) {
     align-items: flex-start;
     width: auto;
     margin-top:0.5rem;
-}
-.sr-select-all-btn{
-    margin-left: 0.5rem;
-    font-size: smaller;
-    white-space: nowrap;
 }
 
 .sr-card-title-center {
