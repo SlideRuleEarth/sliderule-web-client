@@ -434,15 +434,17 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
                 if (firstRec) {
                     numRows += rows.length;
                     useMapStore().setCurrentRows(numRows);
-
+                    //const startTime = performance.now(); // Start time
                     // **Precompute position data**
                     positions = rows.map(d => [d.longitude, d.latitude, 0] as SrPosition);
+                    //const endTime = performance.now(); // End time
+                    //console.log(`duckDbReadAndUpdateElevationData precompute positions for ${req_id} took ${endTime - startTime} milliseconds.`);
 
                     if (numRows === 0) {
                         console.warn('duckDbReadAndUpdateElevationData no data items processed');
                         useSrToastStore().warn('No Data Processed', 'No data items processed. No Data returned for this region and request parameters.');
                     } else {
-                        await processSelectedElData(firstRec);
+                        await processSelectedElData(firstRec); // same as clicked
                     }
                 }
             } else {
@@ -486,104 +488,111 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
 };
 
 
-export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize:number=10000, maxNumPnts=10000) => {
+type Position = [number, number, number];
+
+export const duckDbReadAndUpdateSelectedLayer = async (
+    req_id: number, chunkSize: number = 10000, maxNumPnts = 10000
+) => {
     console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
-    if(req_id === undefined || req_id === null || req_id === 0){
+    if (req_id === undefined || req_id === null || req_id === 0) {
         console.error('duckDbReadAndUpdateSelectedLayer Bad req_id:', req_id);
         return;
     }
-    const startTime = performance.now(); // Start time
+
+    const startTime = performance.now();
     const reqIdStr = req_id.toString();
     let numRows = 0;
+
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
             console.error('duckDbReadAndUpdateSelectedLayer req_id:', req_id, ' status is error SKIPPING!');
             return;
         }
-        useMapStore().setIsLoading(true);
-        //useAtlChartFilterStore().setReqId(req_id);
-        // Step 1: Initialize the DuckDB client
-        const duckDbClient = await createDuckDbClient();
 
-        // Step 2: Retrieve the filename and func using req_id
+        useMapStore().setIsLoading(true);
+        const duckDbClient = await createDuckDbClient();
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = '';
+
+        // Construct SQL query
         const globalChartStore = useGlobalChartStore();
         const rgt = globalChartStore.getRgt();
-        const cycles = globalChartStore.getCycles(); 
+        const cycles = globalChartStore.getCycles();
         const spots = globalChartStore.getSpots();
         let use_y_atc_filter = globalChartStore.use_y_atc_filter;
         let min_y_atc = '0.0';
         let max_y_atc = '0.0';
-        const selected_y_atc = globalChartStore.selected_y_atc;
-        if(selected_y_atc){
+
+        if (globalChartStore.selected_y_atc) {
             const y_atc_margin = globalChartStore.y_atc_margin;
-            min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
-            max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+            min_y_atc = (globalChartStore.selected_y_atc - y_atc_margin).toFixed(3);
+            max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3);
         } else {
-            console.log('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined ');
+            console.log('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
             use_y_atc_filter = false;
         }
-        if(func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')){
-            //console.log('duckDbReadAndUpdateSelectedLayer beams:', beams);
+
+        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')) {
             queryStr = `
-                        SELECT * FROM read_parquet('${filename}') 
-                        WHERE rgt = ${rgt}
-                        AND cycle IN (${cycles.join(', ')})
-                        AND spot IN (${spots.join(', ')})
-                        `
-            if(use_y_atc_filter){
-                queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`
+                SELECT * FROM read_parquet('${filename}') 
+                WHERE rgt = ${rgt}
+                AND cycle IN (${cycles.join(', ')})
+                AND spot IN (${spots.join(', ')})
+            `;
+            if (use_y_atc_filter) {
+                queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`;
             }
-        } else if(func === 'atl03sp'){
-            //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            
+        } else if (func === 'atl03sp') {
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
         }
-        // Step 3: Register the Parquet file with DuckDB
+
         await duckDbClient.insertOpfsParquet(filename);
-
-        // Step 4: Execute a SQL query to retrieve the elevation data
-        //console.log(`duckDbReadAndUpdateSelectedLayer for req:${req_id} PRE Query took ${performance.now() - startTime} milliseconds.`);
-        //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
-        // Calculate the offset for the query
         const rowChunks: ElevationDataItem[] = [];
+        const positions: Position[] = []; // Store precomputed positions
 
-        try{
-            // Execute the query
-            //console.log('duckDbReadAndUpdateSelectedLayer queryStr:', queryStr);
-            const result = await duckDbClient.queryChunkSampled(queryStr); // no sampling for selected
-            //console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} offset:${offset} POST Query took ${performance.now() - startTime} milliseconds.`);
+        try {
+            const result = await duckDbClient.queryChunkSampled(queryStr); // No sampling for selected
+
             for await (const rowChunk of result.readRows()) {
-                //console.log('duckDbReadAndUpdateSelectedLayer chunk.length:', rowChunk.length);
                 if (rowChunk.length > 0) {
                     numRows += rowChunk.length;
                     rowChunks.push(...rowChunk);
-                    // Read and process each chunk from the QueryResult
-                    //console.log('duckDbReadAndUpdateSelectedLayer rowChunks:', rowChunks);
+
+                    // **Precompute positions and store them**
+                    rowChunk.forEach(d => {
+                        positions.push([d.longitude, d.latitude, 0]);
+                    });
                 }
             }
 
             if (numRows === 0) {
                 console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
-            } else {
-                //console.log('duckDbReadAndUpdateSelectedLayer numRows:', numRows);
             }
         } catch (error) {
             console.error('duckDbReadAndUpdateSelectedLayer error processing chunk:', error);
             throw error;
         }
-        if(numRows> 0){
+
+        if (numRows > 0) {
             const srViewName = await indexedDb.getSrViewName(req_id);
             const projName = srViews.value[srViewName].projectionName;
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
-            if(summary?.extHMean){
-                useCurReqSumStore().setSummary({ req_id: req_id, extLatLon: summary.extLatLon, extHMean: summary.extHMean, numPoints: summary.numPoints });
-                updateSelectedLayerWithObject(rowChunks as ElevationDataItem[], summary.extHMean, height_fieldname, projName);
+
+            if (summary?.extHMean) {
+                useCurReqSumStore().setSummary({
+                    req_id: req_id,
+                    extLatLon: summary.extLatLon,
+                    extHMean: summary.extHMean,
+                    numPoints: summary.numPoints
+                });
+
+                // Pass `positions` to the function so it's used efficiently
+                updateSelectedLayerWithObject(rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
                 console.error('duckDbReadAndUpdateSelectedLayer summary is undefined');
             }
@@ -595,8 +604,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
         throw error;
     } finally {
         useMapStore().setIsLoading(false);
-        const endTime = performance.now(); // End time
-        console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} took ${endTime - startTime} milliseconds. endTime:${endTime}`);
+        const endTime = performance.now();
+        console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} took ${endTime - startTime} milliseconds.`);
     }
 };
 

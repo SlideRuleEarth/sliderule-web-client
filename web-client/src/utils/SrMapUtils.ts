@@ -464,6 +464,7 @@ function createHighlightLayer(
     elevationData: ElevationDataItem[],
     extHMean: ExtHMean,
     heightFieldName: string,
+    positions: SrPosition[],
     projName: string
   ): ScatterplotLayer {
     const elevationColorMapStore = useElevationColorMapStore();
@@ -496,7 +497,7 @@ function createHighlightLayer(
     const newLayer = new ScatterplotLayer({
         id: name,
         data: elevationData,
-        getPosition: d => [d.longitude, d.latitude, 0],
+        getPosition: (d: ElevationDataItem, { index }): SrPosition => positions[index],
         getFillColor: (d:any , {index}: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
         getNormal: [0, 0, 1],
         getRadius: 1,
@@ -514,11 +515,17 @@ function createHighlightLayer(
     return newLayer;
 }
   
-export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
+export function updateSelectedLayerWithObject(
+    elevationData:ElevationDataItem[], 
+    extHMean: ExtHMean, 
+    heightFieldName:string, 
+    positions:SrPosition[],
+    projName:string
+): void{
     const startTime = performance.now(); // Start time
     console.log('updateSelectedLayerWithObject');
     try{
-        const hlayer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,extHMean,heightFieldName,projName);
+        const hlayer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,extHMean,heightFieldName,positions,projName);
         useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME);
         // const theseLayers = useDeckStore().getLayers();
         // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
