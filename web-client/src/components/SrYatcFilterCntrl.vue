@@ -77,7 +77,6 @@ const toolTipStr = computed(() => {
 async function handleModelValueChange(value: number) {
     console.log('SrYatcFilterCntrl handleValueChange:', value);
     if(!value) {
-        //globalChartStore.selected_y_atc = undefined;
         console.log('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
     await filterByAtc();

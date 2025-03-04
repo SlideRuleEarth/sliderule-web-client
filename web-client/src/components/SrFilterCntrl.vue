@@ -91,8 +91,6 @@ function handleValueChange(value) {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        globalChartStore.use_y_atc_filter = false;
-        globalChartStore.selected_y_atc = undefined;
         nextTick(() => {
             updatePlotAndSelectedTrackMapLayer("SrFilterCntrl:handleValueChange - RGT");
         })

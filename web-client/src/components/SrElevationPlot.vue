@@ -333,7 +333,6 @@ onMounted(async () => {
         // Log the font size to the console
         console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
 
-        globalChartStore.use_y_atc_filter = false;
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;

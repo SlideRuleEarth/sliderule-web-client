@@ -22,9 +22,8 @@
             <div class="sr-ydata-menu">
                 <div>
                     <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Point Color</label>
-                    <OverlayBadge  v-if="shouldDisplayColorEncode" :value="computedNumOfPnts" size="small">
+                    <OverlayBadge  :value="computedNumOfPnts" size="small">
                     <Select
-                        v-if="shouldDisplayColorEncode"
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
                         :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
@@ -203,7 +202,7 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
     return should;
 });
 
-const shouldDisplayColorEncode = computed(() => {
+const isTimeSeries = computed(() => {
     if(analysisTabStore.activeTabLabel !== 'Time Series'){
         return true;
     } else {
@@ -217,7 +216,7 @@ onMounted(async () => {
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
     console.log('computedFunc:', computedFunc.value);
-    if(!shouldDisplayColorEncode.value){
+    if(!isTimeSeries.value){
         chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
     }
 });
