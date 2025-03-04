@@ -45,7 +45,7 @@ import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
-import { type SrRGBAColor } from '@/types/SrTypes';
+import { type SrPosition, type SrRGBAColor } from '@/types/SrTypes';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -579,7 +579,8 @@ function createElLayer(
     name:string, 
     elevationData:ElevationDataItem[], 
     extHMean: ExtHMean, 
-    heightFieldName:string, 
+    heightFieldName:string,
+    positions:SrPosition[], 
     projName:string
 ): PointCloudLayer {
     const startTime = performance.now(); // Start time
@@ -612,7 +613,7 @@ function createElLayer(
     const newLayer =  new PointCloudLayer({
         id: name,
         data: elevationData,
-        getPosition: d => [d.longitude, d.latitude, 0],
+        getPosition: (d: ElevationDataItem, { index }): SrPosition => positions[index], // use precomputed positions
         getColor:  (d:any , {index}: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
         getNormal: [0, 0, 1],
         pointSize: pntSize,
@@ -634,13 +635,13 @@ function createElLayer(
     return newLayer;
 }
 
-export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
+export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string, positions:SrPosition[]): void{
     const startTime = performance.now(); // Start time
     console.log('updateElLayerWithObject startTime:',startTime);
     try{
         if(useDeckStore().getDeckInstance()){
             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-            const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
+            const layer = createElLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
             //console.log('updateElLayerWithObject layer:',layer);
             //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());

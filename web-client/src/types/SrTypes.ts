@@ -101,3 +101,4 @@ export interface SrRadioItem {
 
 export type SrRGBAColor = [number, number, number, number];
 
+export type SrPosition = [number, number, number];
