@@ -55,7 +55,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return findCycleOption(cycle) || { label: cycle.toString(), value: cycle };
         });
         setSelectedCycleOptions(updatedCycleOptions);
-        console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
+        //console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getCycles(): number[] {
@@ -73,7 +73,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return;
         }
         selectedCycleOptions.value = cycleOptions;
-        console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
+        //console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getSelectedCycleOptions(): SrListNumberItem[] {
@@ -166,7 +166,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selectedGtOptions.value = gts.map(gt => {
             return gtsOptions.find(option => option.value === gt) || { label: gt.toString(), value: gt };
         });
-        console.log('setGts gts:', gts, ' selectedGtOptions:', selectedGtOptions.value);    
+        //console.log('setGts gts:', gts, ' selectedGtOptions:', selectedGtOptions.value);    
     }
 
     function getGts(): number[] {

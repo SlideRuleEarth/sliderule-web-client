@@ -520,9 +520,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, chunkSize
                         AND spot IN (${spots.join(', ')})
                         `
             if(use_y_atc_filter){
-                queryStr += `
-                        AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}
-                        `
+                queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`
             }
         } else if(func === 'atl03sp'){
             //console.log('duckDbReadAndUpdateSelectedLayer tracks:', tracks);            

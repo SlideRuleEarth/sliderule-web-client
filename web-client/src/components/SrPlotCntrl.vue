@@ -215,20 +215,20 @@ onMounted(async () => {
     atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
-    console.log('computedFunc:', computedFunc.value);
+    //console.log('computedFunc:', computedFunc.value);
     if(!isTimeSeries.value){
         chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
     }
 });
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
-    console.log('restoreAtl03DefaultColorsAndUpdatePlot');
+    //console.log('restoreAtl03DefaultColorsAndUpdatePlot');
     await atl03CnfColorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
-    console.log('restoreAtl08DefaultColorsAndUpdatePlot');
+    //console.log('restoreAtl08DefaultColorsAndUpdatePlot');
     await atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }
