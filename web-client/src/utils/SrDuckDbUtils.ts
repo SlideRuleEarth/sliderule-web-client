@@ -636,7 +636,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
 
 export interface SrScatterChartData { value: number[] };
 
-export async function getAllRgtOptions(req_id: number): Promise<SrListNumberItem[]> {
+export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
@@ -765,7 +765,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
     return scOrients;
 }
 
-export async function getAllCycleOptions(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
+export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
@@ -796,7 +796,7 @@ export async function getAllCycleOptions(req_id: number): Promise<{ cycles: numb
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (!row) {
-                    console.warn('getAllCycleOptions rowData is null or undefined');
+                    console.warn('getAllCycleOptionsInFile rowData is null or undefined');
                     continue;
                 }
                 
@@ -818,11 +818,11 @@ export async function getAllCycleOptions(req_id: number): Promise<{ cycles: numb
             }
         }
     } catch (error) {
-        console.error('getAllCycleOptions Error:', error);
+        console.error('getAllCycleOptionsInFile Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`getAllCycleOptions took ${endTime - startTime} ms.`, cycles);
+        console.log(`getAllCycleOptionsInFile took ${endTime - startTime} ms.`, cycles);
     }
 
     return {cycles, cycleOptions};
@@ -896,9 +896,9 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
     const startTime = performance.now(); // Start time
     try{
         const globalChartStore = useGlobalChartStore();
-        const rgts = await getAllRgtOptions(req_id);
+        const rgts = await getAllRgtOptionsInFile(req_id);
         globalChartStore.setRgtOptions(rgts);
-        const retObj = await getAllCycleOptions(req_id);
+        const retObj = await getAllCycleOptionsInFile(req_id);
         globalChartStore.setCycleOptions(retObj.cycleOptions);
     } catch (error) {
         console.error('updateAllFilterOptions Error:', error);

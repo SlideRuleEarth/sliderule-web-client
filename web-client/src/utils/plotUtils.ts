@@ -1102,11 +1102,6 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
         const startTime1 = performance.now(); // Start time
         const deckStore = useDeckStore();
-        // if(deckStore.deleteSelectedLayer()){
-        //     deckStore.updatePropsWithLayers();//redraw without selected
-        //     const endTime = performance.now(); // End time
-        //     console.log(`updatePlotAndSelectedTrackMapLayer redraw without selected took ${endTime - startTime1} milliseconds.`);
-        // }
         await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
         try {
             const intermediateTime = performance.now(); // Intermediate time

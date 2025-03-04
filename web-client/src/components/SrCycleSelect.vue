@@ -32,12 +32,12 @@
 
 <script setup lang="ts">
 
-import { computed } from 'vue';
+import { computed, nextTick, onMounted } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import Button from 'primevue/button';
 import Listbox from 'primevue/listbox';
-import { selectedCyclesReactive } from "@/utils/plotUtils";
-import { getAllCycleOptions, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
+import { selectedCyclesReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { getAllCycleOptionsInFile, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const globalChartStore = useGlobalChartStore();
@@ -47,16 +47,24 @@ const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
 });
 
+
 async function filterCycles() {
+    const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
+    globalChartStore.setCycleOptions(retObj.cycleOptions);
     const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
     globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
 }
 
 async function setAllCycles() {
-    const retObj = await getAllCycleOptions(recTreeStore.selectedReqId)
+    const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
+    globalChartStore.setCycleOptions(retObj.cycleOptions);
     console.log('setAllCycles allCycleOptions:',retObj.cycleOptions);
     globalChartStore.setSelectedCycleOptions(retObj.cycleOptions);
 }
+
+onMounted(() => {
+    console.log('SrCycleSelect component mounted');
+});
 
 function handleValueChange(value) {
     console.log('SrFilterCntrl handleValueChange:', value);
@@ -64,6 +72,9 @@ function handleValueChange(value) {
     if (reqId) {
         globalChartStore.use_y_atc_filter = false;
         globalChartStore.selected_y_atc = undefined;
+        nextTick(() => {
+            updatePlotAndSelectedTrackMapLayer("SrFilterCntrl:handleValueChange - RGT");
+        })
     } else {
         console.warn('reqId is undefined');
     }

@@ -7,18 +7,15 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
-import { getAllFilteredCycleOptions,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
+import { getAllFilteredCycleOptions, getAllCycleOptionsInFile } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
-import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import SrFilterMode from "@/components/SrFilterMode.vue";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
-import SrYatcFilterCntrl from "@/components/SrYatcFilterCntrl.vue";
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -132,9 +129,10 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
-            const filteredCycleOptions = await getAllFilteredCycleOptions(useRecTreeStore().selectedReqId);
-            globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-            globalChartStore.setCycleOptions(filteredCycleOptions);
+            const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
+            globalChartStore.setCycleOptions(retObj.cycleOptions);
+            const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+            globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
              console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());

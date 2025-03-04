@@ -45,10 +45,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { selectedRgtReactive } from "@/utils/plotUtils";
+import { selectedRgtReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from '@/components/SrBeamPattern.vue';
 import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
@@ -93,10 +93,13 @@ function handleValueChange(value) {
     if (reqId) {
         globalChartStore.use_y_atc_filter = false;
         globalChartStore.selected_y_atc = undefined;
+        nextTick(() => {
+            updatePlotAndSelectedTrackMapLayer("SrFilterCntrl:handleValueChange - RGT");
+        })
     } else {
-        console.warn('reqId is undefined');
+        console.warn('SrFilterCntrl:handleValueChange - RGT reqId is undefined');
     }
-    console.log('SrFilterCntrl handleValueChange:', value);
+    console.log('SrFilterCntrl:handleValueChange:- RGT:', value);
 }
 
 </script>

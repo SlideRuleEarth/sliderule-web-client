@@ -21,7 +21,7 @@
             :minFractionDigits="1"
             :min="0.001"
             :max="9999"
-            :step="0.001"
+            :step="1.000"
             showButtons
             :disabled="!computedUseYAtcFilter" 
             @update:modelValue="handleModelValueChange"
