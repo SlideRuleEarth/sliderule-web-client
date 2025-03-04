@@ -671,17 +671,18 @@ export function updateElLayerWithObject(name:string,elevationData:ElevationDataI
 
 }
 
-export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string): OLlayer{
-    //console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
+export function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
+    //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  
 
     const layerOptions = {
-        title: name,
+        //title: name,
+        title: 'ol-deck-layer'
     }
     const new_layer = new OLlayer({
         render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
-            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+            //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             const [width, height] = size;
-            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+            //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
             let [longitude, latitude] = viewState.center;
             if(projectionUnits !== 'degrees'){
                 [longitude, latitude] = toLonLat(viewState.center);
@@ -707,9 +708,9 @@ export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string)
 
 export function resetDeckGLInstance(map:OLMap): Deck | null{
     //console.log('resetDeckGLInstance');
+    let deck = null;
     try{
         useDeckStore().clearDeckInstance(); // Clear any existing instance first
-        let deck = null;
         const mapView =  map.getView();
         //console.log('mapView:',mapView);
         const mapCenter = mapView.getCenter();
@@ -730,11 +731,14 @@ export function resetDeckGLInstance(map:OLMap): Deck | null{
             console.error('resetDeckGLInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
             deck = null;
         }
-        return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
         return null;
+    } finally {
+        console.log('resetDeckGLInstance end: deck:',deck);
     }
+    return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
+
 }
 
 export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
@@ -747,8 +751,8 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
         //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
         map.removeLayer(updatingLayer);
     }
-    useDeckStore().deleteLayer(name);
-    const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
+    //useDeckStore().deleteLayer(name);
+    const deckLayer = createOLlayerForDeck(deck,projectionUnits);
     if(deckLayer){
         map.addLayer(deckLayer);
         //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
@@ -758,7 +762,8 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
 }
 
 export function initDeck(map: OLMap){
-    //console.log('initDeck start')
+    const startTime = performance.now(); // Start time
+    console.log('initDeck start')
     const tgt = map.getViewport() as HTMLDivElement;
     const deck = resetDeckGLInstance(map); 
     if(deck){
@@ -766,7 +771,8 @@ export function initDeck(map: OLMap){
     } else {
       console.error('initDeck(): deck Instance is null');
     }
-    //console.log('initDeck end: deck:',deck);
+    const endTime = performance.now(); // End time
+    console.log(`initDeck took ${endTime - startTime} milliseconds. endTime:`,endTime);
 }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
