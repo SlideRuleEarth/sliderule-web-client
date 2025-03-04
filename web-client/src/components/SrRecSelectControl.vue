@@ -48,9 +48,7 @@ async function updateRecordSelector(event: Event) {
         if (recTreeStore.selectedNodeKey) {
             console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
             const map = customControl?.getMap();
-            if(map){
-              await processNewReqId(map);
-            } else {
+            if(!map){
               console.error('Map is not available in updateRecordSelector');
             }
         } else {

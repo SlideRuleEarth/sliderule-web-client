@@ -469,7 +469,7 @@ function createHighlightLayer(
   ): ScatterplotLayer {
     const elevationColorMapStore = useElevationColorMapStore();
     const deckStore = useDeckStore();
-    const pntSize = deckStore.getPointSize();    
+    const highlightPntSize = deckStore.getPointSize()+1;    
 
     // Precompute color for each data point once.
     const precomputedColors:SrRGBAColor[] = elevationData.map(d => {
@@ -502,7 +502,7 @@ function createHighlightLayer(
         getNormal: [0, 0, 1],
         getRadius: 1,
         radiusUnits: 'pixels',
-        radiusScale: pntSize,
+        radiusScale: highlightPntSize, // this is more efficient than getRadius
         getLineColor: [255, 0, 0, 255],
         stroked: true,
         pickable: true,

@@ -35,7 +35,6 @@ const computedInitializing = computed(() => {
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
     console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
-    // await processNewReqId();
     loadingThisSFC.value = false;
     isMounted.value = true;
 });
