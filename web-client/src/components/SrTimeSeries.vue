@@ -7,15 +7,15 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
-import { getAllFilteredCycleOptions, getAllCycleOptionsInFile } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 
 let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
@@ -122,17 +122,14 @@ onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
 
-        globalChartStore.use_y_atc_filter = true;
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
-            const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
-            globalChartStore.setCycleOptions(retObj.cycleOptions);
-            const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
-            globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
+            globalChartStore.use_y_atc_filter = true;
+            await setCyclesGtsSpotsFromFileUsingRgtYatc();
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
              console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
@@ -201,7 +198,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
 // }, async (newValues, oldValues) => {
 //     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
 //         const gtsValues = newValues.gts.map((gts) => gts);
-//         const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+//         const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(recTreeStore.selectedReqId)
 //         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
 //         console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
 //         atlChartFilterStore.setShowPhotonCloud(false);
@@ -255,15 +252,6 @@ watch(() => {
   { deep: true }
 );
 
-function handleValueChange(value) {
-    console.log('SrTimeSeries handleValueChange:', value);
-    const reqId = recTreeStore.selectedReqIdStr;
-    if (reqId) {
-    } else {
-        console.warn('reqId is undefined');
-    }
-    console.log('SrTimeSeries handleValueChange:', value);
-}
 watch(chartWrapperRef, (newValue) => {
     console.log("chartWrapperRef updated:", newValue);
     chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;

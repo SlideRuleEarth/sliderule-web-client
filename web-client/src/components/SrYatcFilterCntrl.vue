@@ -11,7 +11,6 @@
                 v-model="globalChartStore.use_y_atc_filter" 
                 size="small"
                 @update:model-value="handleModelValueChange"
-                :disabled="!y_atc_is_selected"  
             />
         </div>
         <InputNumber 
@@ -23,10 +22,9 @@
             :max="9999"
             :step="1.000"
             showButtons
-            :disabled="!computedUseYAtcFilter" 
             @update:modelValue="handleModelValueChange"
         ></InputNumber>
-        <div class="sr-yatc-min-selected-max" v-if="(y_atc_is_selected)">
+        <div class="sr-yatc-min-selected-max">
             <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(3) }}</span>
             <span>y_atc_min: {{ computedMaxYAtc.toFixed(3) }}</span>
             <span>y_atc_max: {{ computedMinYAtc.toFixed(3) }}</span>    
@@ -37,7 +35,7 @@
 <script setup lang="ts">
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
-import { filterByAtc } from "@/utils/SrMapUtils";
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
@@ -46,12 +44,8 @@ import { ref, computed } from 'vue';
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
 
-const y_atc_is_selected = computed(() => {
+const y_atc_is_valid = computed(() => {
     return ((globalChartStore.selected_y_atc != undefined) && (globalChartStore.selected_y_atc != null) && (!isNaN(globalChartStore.selected_y_atc)));
-});
-
-const computedUseYAtcFilter = computed(() => {
-    return (y_atc_is_selected && globalChartStore.use_y_atc_filter);
 });
 
 const computedMaxYAtc = computed(() => {
@@ -73,7 +67,7 @@ async function handleModelValueChange(value: number) {
     if(!value) {
         console.log('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
-    await filterByAtc();
+    await setCyclesGtsSpotsFromFileUsingRgtYatc();
     await updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
 }
 

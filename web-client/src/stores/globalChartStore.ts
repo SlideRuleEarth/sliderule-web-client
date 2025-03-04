@@ -24,8 +24,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const scrollY = ref<number>(0);
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
-    const filterMode = ref<string>('SpotMode');
-    const selectedElevationRec = ref<ElevationDataItem | null>({});
+    const selectedElevationRec = ref<ElevationDataItem | null>(null);
     const use_y_atc_filter = ref<boolean>(true);
     const selected_y_atc = ref<number>(0.0);
     const y_atc_margin = ref<number>(5.0);
@@ -56,7 +55,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return findCycleOption(cycle) || { label: cycle.toString(), value: cycle };
         });
         setSelectedCycleOptions(updatedCycleOptions);
-        //console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
+        console.log('setCycles cycles:', cycles, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getCycles(): number[] {
@@ -74,6 +73,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return;
         }
         selectedCycleOptions.value = cycleOptions;
+        console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getSelectedCycleOptions(): SrListNumberItem[] {
@@ -297,14 +297,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return scOrientLabels;        
     }
 
-    async function setFilterMode(thisFilterMode:string) {
-          filterMode.value = thisFilterMode;
-    }
-
-    function getFilterMode():string {
-        return filterMode.value;
-    }
-
     const setSelectedElevationRec = (rec: ElevationDataItem): void => {   
         selectedElevationRec.value = rec;
     };
@@ -365,9 +357,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         scrollX,
         scrollY,
         titleOfElevationPlot: ref('Highlighted Track'),
-        setFilterMode,
-        getFilterMode,
-        filterMode,
         setSelectedElevationRec,
         getSelectedElevationRec,
         use_y_atc_filter,

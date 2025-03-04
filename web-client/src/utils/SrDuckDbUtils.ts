@@ -277,12 +277,12 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     }
 }
 
-export const duckDbGetColsForPickedPoint = async (
+export const getColsForRgtYatcFromFile = async (
         req_id: number,
         cols: string[]
     ): Promise<Record<string, any[]> | undefined> => {
     if (!req_id) {
-        console.error(`duckDbGetColsForPickedPoint ${cols} Bad req_id: ${req_id}`);
+        console.error(`getColsForRgtYatcFromFile ${cols} Bad req_id: ${req_id}`);
         return;
     }
   
@@ -292,7 +292,7 @@ export const duckDbGetColsForPickedPoint = async (
   
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.error(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} status is error, SKIPPING!`);
+            console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} status is error, SKIPPING!`);
             return;
         }
   
@@ -335,13 +335,13 @@ export const duckDbGetColsForPickedPoint = async (
         }
     
     } catch (error) {
-        console.error(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} error:`, error);
+        console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} error:`, error);
         throw error;
     } finally {
         if (numRows > 0) {
-            console.log(`duckDbGetColsForPickedPoint columns: ${cols}`, rowChunks);
+            console.log(`getColsForRgtYatcFromFile columns: ${cols}`, rowChunks);
         } else {
-            console.warn(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} no data items processed`);
+            console.warn(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} no data items processed`);
         }
         
         // ──────────────────────────────────────────
@@ -369,7 +369,7 @@ export const duckDbGetColsForPickedPoint = async (
         }
         
         const endTime = performance.now();
-        console.log(`duckDbGetColsForPickedPoint ${cols} req_id:${req_id} retrieved ${numRows} rows in ${endTime - startTime} ms.`);
+        console.log(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} retrieved ${numRows} rows in ${endTime - startTime} ms.`);
         return uniqueDataByColumn;
     }
 };
@@ -828,7 +828,7 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
     return {cycles, cycleOptions};
 }
 
-export async function getAllFilteredCycleOptions(
+export async function getAllFilteredCycleOptionsFromFile(
     req_id: number,
 ): Promise<SrListNumberItem[]> {
     const startTime = performance.now(); // Start time
@@ -868,19 +868,19 @@ export async function getAllFilteredCycleOptions(
                     cycles.push({ label: newLabel, value: row.cycle });
                 } else {
                     console.warn(
-                        'getAllFilteredCycleOptions fetchData rowData is null'
+                        'getAllFilteredCycleOptionsFromFile fetchData rowData is null'
                     );
                 }
             }
         }
 
     } catch (error) {
-        console.error('getAllFilteredCycleOptions Error:', error);
+        console.error('getAllFilteredCycleOptionsFromFile Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
         console.log(
-            `getAllFilteredCycleOptions took ${endTime - startTime} milliseconds.`,
+            `getAllFilteredCycleOptionsFromFile took ${endTime - startTime} milliseconds.`,
             ' req_id:',
             req_id,
             ' cycles:',

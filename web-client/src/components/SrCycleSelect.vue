@@ -37,7 +37,7 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import Button from 'primevue/button';
 import Listbox from 'primevue/listbox';
 import { selectedCyclesReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
-import { getAllCycleOptionsInFile, getAllFilteredCycleOptions } from "@/utils/SrDuckDbUtils";
+import { getAllCycleOptionsInFile, getAllFilteredCycleOptionsFromFile } from "@/utils/SrDuckDbUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const globalChartStore = useGlobalChartStore();
@@ -49,13 +49,16 @@ const computedCycleOptions = computed(() => {
 
 
 async function filterCycles() {
+    console.log('filterCycles:', selectedCyclesReactive.value);
     const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
     globalChartStore.setCycleOptions(retObj.cycleOptions);
-    const filteredCycleOptions = await getAllFilteredCycleOptions(recTreeStore.selectedReqId)
+    const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(recTreeStore.selectedReqId);
+    globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
     globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
 }
 
 async function setAllCycles() {
+    console.log('setAllCycles:', selectedCyclesReactive.value);
     const retObj = await getAllCycleOptionsInFile(recTreeStore.selectedReqId);
     globalChartStore.setCycleOptions(retObj.cycleOptions);
     console.log('setAllCycles allCycleOptions:',retObj.cycleOptions);

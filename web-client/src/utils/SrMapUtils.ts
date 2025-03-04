@@ -29,7 +29,7 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary, duckDbGetColsForPickedPoint } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary, getColsForRgtYatcFromFile } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
@@ -43,7 +43,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptions } from '@/utils/SrDuckDbUtils';
+import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
@@ -338,24 +338,24 @@ function isInvalid(value: any): boolean {
     return value === null || value === undefined || Number.isNaN(value);
 }
 
-export async function filterByAtc() {
+export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     const reqIdStr = useRecTreeStore().selectedReqIdStr;
     const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     const gcs = useGlobalChartStore();
 
     if (!api.includes('atl03')) {
         if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
-            const y_atc_filtered_Cols = await duckDbGetColsForPickedPoint(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
-            console.log('filterByAtc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
+            const y_atc_filtered_Cols = await getColsForRgtYatcFromFile(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
+            console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
 
             if (y_atc_filtered_Cols) {
                 // Store previous values
                 const prevSpots = gcs.getSpots(); 
                 const prevCycles = gcs.getCycles(); 
                 const prevGts = gcs.getGts(); 
-                console.log('filterByAtc: prevSpots:', prevSpots);
-                console.log('filterByAtc: prevCycles:', prevCycles);
-                console.log('filterByAtc: prevGts:', prevGts);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevSpots:', prevSpots);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevCycles:', prevCycles);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevGts:', prevGts);
 
                 // Map new values, filtering out invalid entries
                 const y_atc_filtered_spots = y_atc_filtered_Cols.spot.filter(spot => !isInvalid(spot));
@@ -368,21 +368,25 @@ export async function filterByAtc() {
                 const gtsChanged = JSON.stringify(prevGts) !== JSON.stringify(y_atc_filtered_gts);
 
                 // Log changes
-                if (spotsChanged) console.log("filterByAtc Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
-                if (cyclesChanged) console.log("filterByAtc Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
-                if (gtsChanged) console.log("filterByAtc GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
+                if (spotsChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
+                if (cyclesChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
+                if (gtsChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
 
                 // Set new values
                 gcs.setSpots(y_atc_filtered_spots);
-                gcs.setCycles(y_atc_filtered_cycles);
                 gcs.setGts(y_atc_filtered_gts);
+                gcs.setCycles(y_atc_filtered_cycles);
+                const selectedCycleOptions = gcs.getSelectedCycleOptions();
+                gcs.setFilteredCycleOptions(selectedCycleOptions);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: selectedCycleOptions:', selectedCycleOptions);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: gcs.getFilteredCycleOptions():', gcs.getFilteredCycleOptions());
             }
         }
     }
 }
 
 export async function processSelectedElData(d:ElevationDataItem): Promise<void> {
-
+    console.log('processSelectedElData d:',d);
     const globalChartStore = useGlobalChartStore();
     globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
@@ -429,9 +433,11 @@ export async function processSelectedElData(d:ElevationDataItem): Promise<void> 
     console.log('processSelectedElData: selected_y_atc:',gcs.selected_y_atc);
     console.log(`processSelectedElData: ${useAnalysisTabStore().activeTabLabel}`);
     if(useAnalysisTabStore().activeTabLabel == 'Time Series'){    gcs.use_y_atc_filter = true;
-        await filterByAtc();
-        const filteredCycleOptions = await getAllFilteredCycleOptions(useRecTreeStore().selectedReqId);
-        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+        await setCyclesGtsSpotsFromFileUsingRgtYatc();
+        // const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(useRecTreeStore().selectedReqId);
+        // globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+        // globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
+        //console.log('processSelectedElData: filteredCycleOptions:',filteredCycleOptions);
     } else {
         gcs.use_y_atc_filter = false;
     }
