@@ -24,16 +24,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const scrollY = ref<number>(0);
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
-    const filterModeOptions = ref<SrRadioItem[]>([
-        { name: 'SpotMode', key: 'SpotMode' },
-        //{ name: 'TrackMode', key: 'TrackMode' },
-        { name: 'RgtMode', key: 'RgtMode' },
-        //{ name: 'UseAll', key: 'UseAll' },
-    ]);
     const filterMode = ref<string>('SpotMode');
     const selectedElevationRec = ref<ElevationDataItem | null>({});
     const use_y_atc_filter = ref<boolean>(true);
-    const selected_y_atc = ref<number|undefined>(undefined);
+    const selected_y_atc = ref<number>(0.0);
     const y_atc_margin = ref<number>(5.0);
 
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
@@ -374,7 +368,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setFilterMode,
         getFilterMode,
         filterMode,
-        filterModeOptions,
         setSelectedElevationRec,
         getSelectedElevationRec,
         use_y_atc_filter,

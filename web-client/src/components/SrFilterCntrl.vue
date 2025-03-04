@@ -35,7 +35,7 @@
                             <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                         </div>
                         <div>
-                            <SrYatcFilterCntrl v-if="showYatc"/>
+                            <SrYatcFilterCntrl />
                         </div>
                     </div>
                  </div>
@@ -81,10 +81,6 @@ const computedRgtOptions = computed(() => {
     const rgtOptions= globalChartStore.getRgtOptions();
     //console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
     return rgtOptions;
-});
-
-const showYatc = computed(() => {
-    return analysisTabStore.isActiveTabTimeSeries;
 });
 
 function handleValueChange(value) {

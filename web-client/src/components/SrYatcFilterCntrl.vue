@@ -55,16 +55,10 @@ const computedUseYAtcFilter = computed(() => {
 });
 
 const computedMaxYAtc = computed(() => {
-    if(globalChartStore.selected_y_atc === undefined) {
-        return 0;
-    }
     return globalChartStore.selected_y_atc + globalChartStore.y_atc_margin;
 });
 
 const computedMinYAtc = computed(() => {
-    if(globalChartStore.selected_y_atc === undefined) {
-        return 0;
-    }
     return globalChartStore.selected_y_atc - globalChartStore.y_atc_margin;
 });
 
