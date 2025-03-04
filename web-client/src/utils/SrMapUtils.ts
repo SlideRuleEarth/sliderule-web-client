@@ -30,7 +30,7 @@ import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary, getColsForRgtYatcFromFile } from "@/utils/SrDuckDbUtils";
-import type { PickingInfo } from '@deck.gl/core';
+import type { AccessorContext, PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
@@ -45,6 +45,7 @@ import { useAnalysisTabStore } from '@/stores/analysisTabStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
+import { type SrRGBAColor } from '@/types/SrTypes';
 
 export const EL_LAYER_NAME = 'elevation-deck-layer';
 export const SELECTED_LAYER_NAME = 'selected-deck-layer';
@@ -458,56 +459,61 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
 }
 
 
-function createHighlightLayer(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): ScatterplotLayer {
-    //console.log('createHighlightLayer elevationData:',elevationData,'projName:',projName);
-    const startTime = performance.now();
+function createHighlightLayer(
+    name: string,
+    elevationData: ElevationDataItem[],
+    extHMean: ExtHMean,
+    heightFieldName: string,
+    projName: string
+  ): ScatterplotLayer {
+    const elevationColorMapStore = useElevationColorMapStore();
+    const deckStore = useDeckStore();
+    const pntSize = deckStore.getPointSize();    
+
+    // Precompute color for each data point once.
+    const precomputedColors:SrRGBAColor[] = elevationData.map(d => {
+        let color = [255, 255, 255, 255]; // default (white)
+        const h = d[heightFieldName];
+        if (h !== undefined && h !== null) {
+            const c = elevationColorMapStore.getColorForElevation(
+                h,
+                extHMean.lowHMean,
+                extHMean.highHMean
+            );
+            if (c) {
+                // We clone or slice if `c` is not guaranteed to be a stable array
+                color = [...c];
+                // Ensure alpha channel is 255
+                color[3] = 255;
+            }
+        }
+  
+        // Return the color array for this data point
+        return color as SrRGBAColor;
+    });
+  
+    // Now the accessor is trivial; it just returns a cached array.
     const newLayer = new ScatterplotLayer({
         id: name,
         data: elevationData,
-        getPosition: (d) => {
-            return [d['longitude'], d['latitude'], 0];
-        },
-        // getPosition: (d) => {
-        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]);
-        //     return new Float64Array(coords); // Use Float64Array for higher precision
-        // },
+        getPosition: d => [d.longitude, d.latitude, 0],
+        getFillColor: (d:any , {index}: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
         getNormal: [0, 0, 1],
-        getRadius: useDeckStore().getPointSize(),
+        getRadius: 1,
         radiusUnits: 'pixels',
-        radiusScale: 1.0,
-        getFillColor:  (d:any) => {
-            let c; 
-            try{
-                const h = d[heightFieldName];
-                c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
-                if(c){
-                    c[3] = 255; // Set the alpha channel to (255 isfully opaque)
-                }
-            } catch (error) {
-                console.error('Error getting color:',c,' error:',error);
-            }
-            if((c === undefined) || (c === null)){
-                c = [255, 255, 255, 255] as [number,number,number,number];// flag illegal points with white
-            }   
-            return c;
-        },
-        getLineColor: [255, 0, 0, 255], // red
-        getLineWidth: 3,
-        lineWidthMinPixels:1,
+        radiusScale: pntSize,
+        getLineColor: [255, 0, 0, 255],
         stroked: true,
-        strokeWidthMinPixels: 1,
-        pickable: true, // Enable picking
+        pickable: true,
         onHover: onHoverHandler,
         parameters: {
-            depthTest: false, // Prevents occlusion by other layers
+            depthTest: false
         }
     });
-    const endTime = performance.now();
-    console.log(`createHighlightLayer took ${endTime - startTime} milliseconds. endTime:`,endTime);
+  
     return newLayer;
 }
-
+  
 export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
     const startTime = performance.now(); // Start time
     console.log('updateSelectedLayerWithObject');
@@ -561,7 +567,7 @@ const onHoverHandler = isIPhone
             }
       };
 
-function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
+//function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
     //console.log('createElLayer name:',name,' elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
     //let coordSys;
     //if(projName === 'EPSG:4326'){
@@ -569,36 +575,47 @@ function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean:
     //} else {
     //    coordSys = COORDINATE_SYSTEM.DEFAULT;
     //}
-    return new PointCloudLayer({
+function createElLayer(
+    name:string, 
+    elevationData:ElevationDataItem[], 
+    extHMean: ExtHMean, 
+    heightFieldName:string, 
+    projName:string
+): PointCloudLayer {
+    const startTime = performance.now(); // Start time
+    const elevationColorMapStore = useElevationColorMapStore();
+    const deckStore = useDeckStore();
+    const pntSize = deckStore.getPointSize();
+
+    // Precompute color for each data point once.
+    const precomputedColors:SrRGBAColor[] = elevationData.map(d => {
+        let color = [255, 255, 255, 255]; // default (white)
+        const h = d[heightFieldName];
+        if (h !== undefined && h !== null) {
+            const c = elevationColorMapStore.getColorForElevation(
+                h,
+                extHMean.lowHMean,
+                extHMean.highHMean
+            );
+            if (c) {
+                // We clone or slice if `c` is not guaranteed to be a stable array
+                color = [...c];
+                // Ensure alpha channel is 255
+                color[3] = 255;
+            }
+        }
+  
+        // Return the color array for this data point
+        return color as SrRGBAColor;
+    });
+
+    const newLayer =  new PointCloudLayer({
         id: name,
         data: elevationData,
-        //coordinateSystem: coordSys, 
-        getPosition: (d) => {
-            return [d['longitude'], d['latitude'], 0];
-        },
-        // getPosition: (d) => {
-        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]); // Deck is in EPSG:3857
-        //     return new Float64Array(coords); // Use Float64Array for higher precision
-        // },
+        getPosition: d => [d.longitude, d.latitude, 0],
+        getColor:  (d:any , {index}: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
         getNormal: [0, 0, 1],
-        getColor: (d:any) => {
-            let c; 
-            try{
-                const h = d[heightFieldName];
-                c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
-                if(c){
-                    c[3] = 255; // Set the alpha channel to 255 (fully opaque)
-                }
-            } catch (error) {
-                console.error('Error getting color:',c,' error:',error);
-            }
-            if((c === undefined) || (c === null)){
-                c = [255, 255, 255, 255] as [number,number,number,number];// flag illegal points with white
-            }   
-            return c;
-        },
-        pointSize: useDeckStore().getPointSize(),
+        pointSize: pntSize,
         pickable: true, // Enable picking
         getCursor: () => 'default',
         parameters: {
@@ -610,21 +627,11 @@ function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean:
                 clicked(object);
             }
         },
-        // onDragStart: ({ object, x, y }, event) => {
-        //     if (object) {
-        //         console.log('Drag started at:', x, y);
-        //         document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
-        //         return true; // Mark the event as handled
-        //     }
-        // },
-        // onDragEnd: ({ object, x, y }, event) => {
-        //     if (object) {
-        //         console.log('Drag ended at:', x, y);
-        //         document.body.style.cursor = 'default'; // Revert to default when dragging ends
-        //         return true; // Mark the event as handled
-        //     }
-        // },        
+    
     });
+    const endTime = performance.now(); // End time
+    console.log(`createElLayer took ${endTime - startTime} milliseconds. endTime:`,endTime);
+    return newLayer;
 }
 
 export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{

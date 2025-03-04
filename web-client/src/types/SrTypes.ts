@@ -99,4 +99,5 @@ export interface SrRadioItem {
   key: string;
 }
 
+export type SrRGBAColor = [number, number, number, number];
 
