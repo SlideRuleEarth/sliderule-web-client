@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
-import { SELECTED_LAYER_NAME_PREFIX,EL_LAYER_NAME } from '@/utils/SrMapUtils';
+import { SELECTED_LAYER_NAME_PREFIX,EL_LAYER_NAME_PREFIX } from '@/utils/SrMapUtils';
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({

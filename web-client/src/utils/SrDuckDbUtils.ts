@@ -2,7 +2,7 @@ import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { EL_LAYER_NAME, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
+import { EL_LAYER_NAME_PREFIX, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useMapStore } from '@/stores/mapStore';
 import { SrMutex } from './SrMutex';
@@ -457,7 +457,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
         }
 
         if (numRows > 0) {
-            const name = EL_LAYER_NAME + '_' + req_id.toString();
+            const name = EL_LAYER_NAME_PREFIX + '_' + req_id.toString();
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
 
