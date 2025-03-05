@@ -47,8 +47,9 @@ import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } 
 import router from '@/router/index.js';
 import { type SrPosition, type SrRGBAColor } from '@/types/SrTypes';
 
-export const EL_LAYER_NAME = 'elevation-deck-layer';
-export const SELECTED_LAYER_NAME = 'selected-deck-layer';
+export const EL_LAYER_NAME = 'elevation-deck-layer'; // deck elevation layer
+export const SELECTED_LAYER_NAME_PREFIX = 'selected-deck-layer'; // deck selected layer prefix
+export const OL_DECK_LAYER_NAME = 'ol-deck-layer'; // open layers deck layer
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -469,7 +470,7 @@ function createHighlightLayer(
   ): ScatterplotLayer {
     const elevationColorMapStore = useElevationColorMapStore();
     const deckStore = useDeckStore();
-    const highlightPntSize = deckStore.getPointSize()+1;    
+    const highlightPntSize = deckStore.getPointSize();    
 
     // Precompute color for each data point once.
     const precomputedColors:SrRGBAColor[] = elevationData.map(d => {
@@ -502,7 +503,8 @@ function createHighlightLayer(
         getNormal: [0, 0, 1],
         getRadius: 1,
         radiusUnits: 'pixels',
-        radiusScale: highlightPntSize, // this is more efficient than getRadius
+        radiusScale: highlightPntSize, 
+        getLineWidth: 4,
         getLineColor: [255, 0, 0, 255],
         stroked: true,
         pickable: true,
@@ -525,8 +527,8 @@ export function updateSelectedLayerWithObject(
     const startTime = performance.now(); // Start time
     console.log('updateSelectedLayerWithObject');
     try{
-        const hlayer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,extHMean,heightFieldName,positions,projName);
-        useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME);
+        const hlayer = createHighlightLayer(SELECTED_LAYER_NAME_PREFIX,elevationData,extHMean,heightFieldName,positions,projName);
+        useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME_PREFIX);
         // const theseLayers = useDeckStore().getLayers();
         // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
         // useDeckStore().getDeckInstance().setProps({layers:theseLayers});
@@ -609,7 +611,7 @@ function createElLayer(
                 // We clone or slice if `c` is not guaranteed to be a stable array
                 color = [...c];
                 // Ensure alpha channel is 255
-                color[3] = 255;
+                color[3] = 100;
             }
         }
   
@@ -706,16 +708,16 @@ export function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
 // Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
 // Sync deck view with OL view
 
-export function resetDeckGLInstance(map:OLMap): Deck | null{
-    //console.log('resetDeckGLInstance');
+export function createDeckInstance(map:OLMap): Deck | null{
+    //console.log('createDeckInstance');
+    const startTime = performance.now(); // Start time
     let deck = null;
     try{
-        useDeckStore().clearDeckInstance(); // Clear any existing instance first
         const mapView =  map.getView();
         //console.log('mapView:',mapView);
         const mapCenter = mapView.getCenter();
         const mapZoom = mapView.getZoom();
-        //console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+        //console.log('createDeckInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
         if(mapCenter && mapZoom){
             const tgt = map.getViewport() as HTMLDivElement;
             deck = new Deck({
@@ -728,30 +730,31 @@ export function resetDeckGLInstance(map:OLMap): Deck | null{
             });
             useDeckStore().setDeckInstance(deck);
         } else {
-            console.error('resetDeckGLInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            console.error('createDeckInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
             deck = null;
         }
     } catch (error) {
         console.error('Error creating DeckGL instance:',error);
         return null;
     } finally {
-        console.log('resetDeckGLInstance end: deck:',deck);
+        console.log('createDeckInstance end: deck:',deck);
     }
+    const endTime = performance.now(); // End time
+    console.log(`createDeckInstance took ${endTime - startTime} milliseconds. endTime:`,endTime);
     return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
-
 }
 
-export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    //console.log('addDeckLayerToMap:',name);
+export function addDeckLayerToMap(map: OLMap, deck:Deck, olLayerName:string){
+    //console.log('addDeckLayerToMap:',olLayerName);
     const mapView =  map.getView();
     const projection = mapView.getProjection();
     const projectionUnits = projection.getUnits();
-    const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === name);
+    const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === olLayerName);
     if (updatingLayer) {
         //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
         map.removeLayer(updatingLayer);
     }
-    //useDeckStore().deleteLayer(name);
+    //useDeckStore().deleteLayer(olLayerName);
     const deckLayer = createOLlayerForDeck(deck,projectionUnits);
     if(deckLayer){
         map.addLayer(deckLayer);
@@ -761,18 +764,18 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
     }
 }
 
-export function initDeck(map: OLMap){
+export function bindDeckToOLMap(map: OLMap){
     const startTime = performance.now(); // Start time
-    console.log('initDeck start')
+    console.log('bindDeckToOLMap start')
     const tgt = map.getViewport() as HTMLDivElement;
-    const deck = resetDeckGLInstance(map); 
+    const deck = createDeckInstance(map); 
     if(deck){
-        addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
+        addDeckLayerToMap(map,deck,OL_DECK_LAYER_NAME);        
     } else {
-      console.error('initDeck(): deck Instance is null');
+      console.error('bindDeckToOLMap(): deck Instance is null');
     }
     const endTime = performance.now(); // End time
-    console.log(`initDeck took ${endTime - startTime} milliseconds. endTime:`,endTime);
+    console.log(`bindDeckToOLMap took ${endTime - startTime} milliseconds. endTime:`,endTime);
 }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -1285,7 +1288,7 @@ const updateElevationMap = async (req_id: number) => {
 
 export async function processNewReqId(map:OLMap): Promise<void> {
     const startTime = performance.now(); // Start time
-    initDeck(map);
+    bindDeckToOLMap(map);
  
     const mapStore = useMapStore();
  
