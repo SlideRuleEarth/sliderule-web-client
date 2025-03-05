@@ -13,7 +13,7 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { processSelectedElData } from '@/utils/SrMapUtils'
+import { processSelectedElData,generateNameSuffix } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 import { type SrPosition } from '@/types/SrTypes';
 
@@ -582,7 +582,12 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             const projName = srViews.value[srViewName].projectionName;
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
-            const name_suffix = `-${req_id}-${cycles.join(', ')}-${spots.join(', ')}-${min_y_atc}-${max_y_atc}`;
+            // let name_suffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
+            // if(use_y_atc_filter){
+            //     name_suffix = name_suffix +`-${min_y_atc}-${max_y_atc}`;
+            // }
+            const name_suffix = generateNameSuffix(req_id,rgt,cycles,spots,use_y_atc_filter,min_y_atc,max_y_atc);
+
             const name= SELECTED_LAYER_NAME_PREFIX + name_suffix;
 
             if (summary?.extHMean) {

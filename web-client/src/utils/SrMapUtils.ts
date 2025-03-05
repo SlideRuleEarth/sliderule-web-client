@@ -484,31 +484,7 @@ function createDeckLayer(
     console.log(`createDeckLayer took ${endTime - startTime} milliseconds. endTime:`, endTime);
     return newLayer;
 }
-  
-// export function updateSelectedLayerWithObject(
-//     elevationData:ElevationDataItem[], 
-//     extHMean: ExtHMean, 
-//     heightFieldName:string, 
-//     positions:SrPosition[],
-//     projName:string
-// ): void{
-//     const startTime = performance.now(); // Start time
-//     console.log('updateSelectedLayerWithObject');
-//     try{
-//         const hlayer = createDeckLayer(SELECTED_LAYER_NAME_PREFIX,elevationData,extHMean,heightFieldName,positions,projName);
-//         useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME_PREFIX);
-//         // const theseLayers = useDeckStore().getLayers();
-//         // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
-//         // useDeckStore().getDeckInstance().setProps({layers:theseLayers});
-//         console.log('updateSelectedLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
-//     } catch (error) {
-//         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
-//     } finally {
-//         const endTime = performance.now(); // End time
-//         console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
-//     }
 
-// }
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // Check device dimensions
 const deviceWidth = Math.min(window.screen.width, window.screen.height); // Use the smaller value for width
@@ -1251,4 +1227,21 @@ export async function processNewReqId(map:OLMap): Promise<void> {
         const endTime = performance.now(); // End time
         console.log(`processNewReqId took ${endTime - startTime} milliseconds.`);
     }
+}
+export function generateNameSuffix(
+    req_id: number|string,
+    rgt: number|string,
+    cycles: number[],
+    spots: number[],
+    use_y_atc_filter: boolean,
+    min_y_atc?: number|string,
+    max_y_atc?: number|string
+): string {
+    let nameSuffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
+
+    if (use_y_atc_filter && min_y_atc !== undefined && max_y_atc !== undefined) {
+        nameSuffix += `-${min_y_atc}-${max_y_atc}`;
+    }
+
+    return nameSuffix;
 }
