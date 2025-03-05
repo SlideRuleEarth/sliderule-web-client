@@ -681,7 +681,8 @@ export function createDeckInstance(map:OLMap): Deck | null{
                 parent: tgt,
                 style: {pointerEvents: 'none', zIndex: '1'},
                 layers: [],
-                getCursor: () => 'default'
+                getCursor: () => 'default',
+                useDevicePixels: false,
             });
             useDeckStore().setDeckInstance(deck);
         } else {
@@ -709,7 +710,6 @@ export function addDeckLayerToMap(map: OLMap, deck:Deck, olLayerName:string){
         //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
         map.removeLayer(updatingLayer);
     }
-    //useDeckStore().deleteLayer(olLayerName);
     const deckLayer = createOLlayerForDeck(deck,projectionUnits);
     if(deckLayer){
         map.addLayer(deckLayer);

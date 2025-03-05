@@ -66,9 +66,6 @@ export const useDeckStore = defineStore('deck', {
             }
             return false;
         },
-        deleteSelectedLayer() {
-            return this.deleteLayer(SELECTED_LAYER_NAME_PREFIX);
-        },
         getLayers() {
             // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
             // must create new array
