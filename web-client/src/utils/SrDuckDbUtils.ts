@@ -2,7 +2,7 @@ import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { EL_LAYER_NAME_PREFIX, updateElLayerWithObject,updateSelectedLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
+import { EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX, updateDeckLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useMapStore } from '@/stores/mapStore';
 import { SrMutex } from './SrMutex';
@@ -457,7 +457,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
         }
 
         if (numRows > 0) {
-            const name = EL_LAYER_NAME_PREFIX + '_' + req_id.toString();
+            const name = EL_LAYER_NAME_PREFIX + '-' + req_id.toString();
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
 
@@ -469,7 +469,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
                     numPoints: summary.numPoints
                 });
 
-                updateElLayerWithObject(name, rows, summary.extHMean, height_fieldname, projName, positions);
+                updateDeckLayerWithObject(name, rows, summary.extHMean, height_fieldname, positions, projName);
             } else {
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
             }
@@ -582,6 +582,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             const projName = srViews.value[srViewName].projectionName;
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
+            const name_suffix = `-${req_id}-${cycles.join(', ')}-${spots.join(', ')}-${min_y_atc}-${max_y_atc}`;
+            const name= SELECTED_LAYER_NAME_PREFIX + name_suffix;
 
             if (summary?.extHMean) {
                 useCurReqSumStore().setSummary({
@@ -592,7 +594,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                 });
 
                 // Pass `positions` to the function so it's used efficiently
-                updateSelectedLayerWithObject(rowChunks, summary.extHMean, height_fieldname, positions, projName);
+                updateDeckLayerWithObject(name,rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
                 console.error('duckDbReadAndUpdateSelectedLayer summary is undefined');
             }

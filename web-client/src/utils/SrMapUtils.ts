@@ -1,7 +1,7 @@
 import { useMapStore } from '@/stores/mapStore';
 import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-import { PointCloudLayer,ScatterplotLayer } from '@deck.gl/layers';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -220,61 +220,6 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
-
-// function formatElObject(obj: { [key: string]: any }): string {
-//     console.log('formatElObject obj:', obj);
-//     const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
-//     const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
-  
-//     return Object.entries(obj)
-//       .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
-//       .map(([key, value]) => {
-//         let formattedValue;
-//         //console.log('key:',key,'type of value:',typeof value,'value:',value);
-//         if (key === 'time' && typeof value === 'number') {
-//           // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
-//           let adjustedTime = value - gpsToATLASOffset;
-//           // Step 2: Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
-//           adjustedTime += gpsToUnixOffset;
-//           // Step 3: Adjust for UTC by subtracting the GPS-UTC offset
-//           adjustedTime -= useReqParamsStore().getGpsToUTCOffset();
-  
-//           const date = new Date(adjustedTime); // Convert seconds to milliseconds
-//           formattedValue = date.toISOString(); // Format as ISO string in UTC
-//         } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
-//             const arr = (value as any).toArray(); // Safely call toArray if available
-//             const formattedPairs = [...arr]
-//                 .reduce((pairs: number[][], num: number, index: number) => {
-//                     if (index % 3 === 0) {
-//                         // Start a new pair
-//                         pairs.push([num]);
-//                     } else {
-//                         // Add to the last pair
-//                         pairs[pairs.length - 1].push(num);
-//                     }
-//                     return pairs;
-//                 }, []) // Initialize as an array of arrays
-//                 .map((pair: number[]) => pair.map((num: number) => num.toFixed(5)).join(', ')) // Format each pair
-//                 .join('<br>'); // Join pairs with line breaks
-        
-//             formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
-//             // console.log('canopy_h_metrics formattedValue:', formattedValue);
-//         } else if (typeof value === 'number') {
-//           formattedValue = parseFloat(value.toPrecision(10));
-//           if (Number.isInteger(formattedValue)) {
-//             formattedValue = formattedValue.toFixed(0); // Format as integer
-//           } else {
-//             formattedValue = formattedValue.toFixed(3); // Format as float with 3 decimal places
-//           }
-//         } else {
-//           formattedValue = value;
-//         }
-  
-//         return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
-//       })
-//       .join('<br>'); // Use <br> for line breaks in HTML
-// }
-
 
 export function formatElObject(obj: { [key: string]: any }): string {
     // Exclude 'extent_id' and format everything else
@@ -540,30 +485,30 @@ function createDeckLayer(
     return newLayer;
 }
   
-export function updateSelectedLayerWithObject(
-    elevationData:ElevationDataItem[], 
-    extHMean: ExtHMean, 
-    heightFieldName:string, 
-    positions:SrPosition[],
-    projName:string
-): void{
-    const startTime = performance.now(); // Start time
-    console.log('updateSelectedLayerWithObject');
-    try{
-        const hlayer = createDeckLayer(SELECTED_LAYER_NAME_PREFIX,elevationData,extHMean,heightFieldName,positions,projName);
-        useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME_PREFIX);
-        // const theseLayers = useDeckStore().getLayers();
-        // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
-        // useDeckStore().getDeckInstance().setProps({layers:theseLayers});
-        console.log('updateSelectedLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
-    } catch (error) {
-        console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
-    } finally {
-        const endTime = performance.now(); // End time
-        console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
-    }
+// export function updateSelectedLayerWithObject(
+//     elevationData:ElevationDataItem[], 
+//     extHMean: ExtHMean, 
+//     heightFieldName:string, 
+//     positions:SrPosition[],
+//     projName:string
+// ): void{
+//     const startTime = performance.now(); // Start time
+//     console.log('updateSelectedLayerWithObject');
+//     try{
+//         const hlayer = createDeckLayer(SELECTED_LAYER_NAME_PREFIX,elevationData,extHMean,heightFieldName,positions,projName);
+//         useDeckStore().replaceOrAddLayer(hlayer,SELECTED_LAYER_NAME_PREFIX);
+//         // const theseLayers = useDeckStore().getLayers();
+//         // console.log('updateSelectedLayerWithObject theseLayers:',theseLayers);
+//         // useDeckStore().getDeckInstance().setProps({layers:theseLayers});
+//         console.log('updateSelectedLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
+//     } catch (error) {
+//         console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
+//     } finally {
+//         const endTime = performance.now(); // End time
+//         console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+//     }
 
-}
+// }
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // Check device dimensions
 const deviceWidth = Math.min(window.screen.width, window.screen.height); // Use the smaller value for width
@@ -597,36 +542,71 @@ const onHoverHandler = isIPhone
                     hideTooltip();
                 }
             }
-      };
+};
 
-export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string, positions:SrPosition[]): void{
+export function updateDeckLayerWithObject(
+    name:string,
+    elevationData:ElevationDataItem[], 
+    extHMean: ExtHMean, 
+    heightFieldName:string, 
+    positions:SrPosition[],
+    projName:string
+): void 
+{
     const startTime = performance.now(); // Start time
-    console.log('updateElLayerWithObject startTime:',startTime);
+    console.log(`updateDeckLayerWithObject ${name} startTime:`,startTime);
     try{
         if(useDeckStore().getDeckInstance()){
-            //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
             const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
-            const replaced = useDeckStore().replaceOrAddLayer(layer,name);
-            //console.log('updateElLayerWithObject layer:',layer);
-            //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
-            //useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-            //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
-            // if(replaced){
-            //     console.log('Replaced using elevation layer:',layer);
-            // } else {
-            //     console.log('Added using elevation layer:',layer);
-            // }
+            //const replaced = useDeckStore().replaceOrAddLayer(layer,name);
+            useDeckStore().appendLayer(layer);
         } else {
-            console.error('updateElLayerWithObject Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
+            console.error(`updateDeckLayerWithObject ${name}  Error updating elevation useDeckStore().deckInstance:`,useDeckStore().getDeckInstance());
         }
     } catch (error) {
-        console.error('updateElLayerWithObject Error updating elevation layer:',error);
+        console.error(`updateDeckLayerWithObject ${name}  Error updating elevation layer:`,error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+        console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`,endTime);  
     }
 
 }
+
+
+// export function updateElLayerWithObject(
+//         name:string,
+//         elevationData:ElevationDataItem[], 
+//         extHMean: ExtHMean, 
+//         heightFieldName:string, 
+//         projName:string, 
+//         positions:SrPosition[]): void{
+//     const startTime = performance.now(); // Start time
+//     console.log('updateElLayerWithObject startTime:',startTime);
+//     try{
+//         if(useDeckStore().getDeckInstance()){
+//             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
+//             const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
+//             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
+//             //console.log('updateElLayerWithObject layer:',layer);
+//             //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
+//             //useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+//             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
+//             // if(replaced){
+//             //     console.log('Replaced using elevation layer:',layer);
+//             // } else {
+//             //     console.log('Added using elevation layer:',layer);
+//             // }
+//         } else {
+//             console.error('updateElLayerWithObject Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
+//         }
+//     } catch (error) {
+//         console.error('updateElLayerWithObject Error updating elevation layer:',error);
+//     } finally {
+//         const endTime = performance.now(); // End time
+//         console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+//     }
+
+// }
 
 export function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
     //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import { SELECTED_LAYER_NAME_PREFIX,EL_LAYER_NAME_PREFIX } from '@/utils/SrMapUtils';
 
 export const useDeckStore = defineStore('deck', {
@@ -31,30 +32,20 @@ export const useDeckStore = defineStore('deck', {
             const now = performance.now();
             console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
         },
-        replaceOrAddLayer(layer: any, name: string): boolean {
-          // 1) Replace if found
-          let found = false;
-          for (let i = 0; i < this.pointCloudLayers.length; i++) {
-            if (this.pointCloudLayers[i].id === name) {
-              this.pointCloudLayers[i] = layer;
-              found = true;
-              break;
-            }
-          }
-          // 2) Otherwise add
-          if (!found) {
+        appendLayer(layer: any) {
+            // Check if the new layer's id contains SELECTED_LAYER_NAME_PREFIX
+            this.pointCloudLayers = this.pointCloudLayers.map(layer =>
+                layer.id.includes(SELECTED_LAYER_NAME_PREFIX)
+                  ? new ScatterplotLayer({ // must create a new layer so deck doesn't ignore the change
+                      ...layer.props,
+                      // same ID, but visible now set to false
+                      id: layer.id,
+                      visible: false
+                    })
+                  : layer
+              );        
+            // Add the new layer
             this.pointCloudLayers.push(layer);
-          }
-        
-          // 3) Always ensure the highlight layer is last in the array
-          const idx = this.pointCloudLayers.findIndex(l => l.id === SELECTED_LAYER_NAME_PREFIX);
-          if (idx !== -1) {
-            const [highlightLayer] = this.pointCloudLayers.splice(idx, 1);
-            // push it so it's guaranteed at the end
-            this.pointCloudLayers.push(highlightLayer);
-          }
-        
-          return found;
         },
         deleteLayer(layerId:string) {
             for (let i = 0; i < this.pointCloudLayers.length; i++) {
@@ -67,15 +58,7 @@ export const useDeckStore = defineStore('deck', {
             return false;
         },
         getLayers() {
-            // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
-            // must create new array
-            const newLayers = [];
-            const layers = this.pointCloudLayers;
-            for (let i = 0; i < layers.length; i++) {
-                newLayers.push(layers[i]);
-            }
-            //console.log('getLayers:',layers);
-            return newLayers;
+            return this.pointCloudLayers;
         },
         setPointSize(size:number) {
             this.pointSize = size;

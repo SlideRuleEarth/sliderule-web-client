@@ -549,6 +549,9 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
-
+/* recommended by deck.gl for performance reasons */
+.overlays canvas {
+  mix-blend-mode: multiply;
+}
 
 </style>

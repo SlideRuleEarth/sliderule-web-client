@@ -1048,7 +1048,7 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
             console.log(`updateElevationMap intermediate time: ${intermediateTime - startTime} milliseconds.`);
             useDeckStore().updatePropsWithLayers(); // causes the draw for all layers
             const intermediateTime2 = performance.now(); // Intermediate time
-            console.log(`updatePlotAndSelectedTrackMapLayer updatePropsWithLayers took ${intermediateTime2 - intermediateTime} milliseconds.`);
+            console.log(`updatePlotAndSelectedTrackMapLayer call to updatePropsWithLayers took ${intermediateTime2 - intermediateTime} milliseconds.`);
         } catch (error) {
             console.error('updatePlotAndSelectedTrackMapLayer Error:', error);
         }
