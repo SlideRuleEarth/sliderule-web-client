@@ -7,7 +7,7 @@ import { generateNameSuffix } from '@/utils/SrMapUtils';
 export const useDeckStore = defineStore('deck', {
     state: () => ({
         deckInstance: null as any,
-        pointCloudLayers: [] as any[],
+        deckLayers: [] as any[],
         pointSize: 3,
         isDragging: false,
     }),
@@ -23,7 +23,7 @@ export const useDeckStore = defineStore('deck', {
             const startTime = performance.now(); // Start time
             if (this.deckInstance) {
                 console.warn('clearDeckInstance()');
-                this.pointCloudLayers = [];
+                this.deckLayers = [];
                 this.getDeckInstance().setProps({layers:[]});
                 this.deckInstance.finalize(); // This ensures all resources are properly released.
                 this.deckInstance = null;
@@ -36,7 +36,7 @@ export const useDeckStore = defineStore('deck', {
         appendLayer(newLayer: any) {
             // This creates new objects so deck will recognize not ignore them
             // Check if the any of the existing layer's id contains SELECTED_LAYER_NAME_PREFIX
-            this.pointCloudLayers = this.pointCloudLayers.map(layer =>
+            this.deckLayers = this.deckLayers.map(layer =>
                 layer.id.includes(SELECTED_LAYER_NAME_PREFIX)
                   ? new ScatterplotLayer({ // must create a new layer so deck doesn't ignore the change
                       ...layer.props,
@@ -48,8 +48,8 @@ export const useDeckStore = defineStore('deck', {
             ); 
             let found = false;       
             // If it is not in the existing set then add the new layer
-            for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === newLayer.id) {
+            for (let i = 0; i < this.deckLayers.length; i++) {
+                if (this.deckLayers[i].id === newLayer.id) {
                     console.log('appendLayer: layer already exists:',newLayer.id);
                     found = true;
                     break;
@@ -63,12 +63,12 @@ export const useDeckStore = defineStore('deck', {
                     visible: true
                   })
             }
-            this.pointCloudLayers.push(newLayer);
+            this.deckLayers.push(newLayer);
         },
         deleteLayer(layerId:string) {
-            for (let i = 0; i < this.pointCloudLayers.length; i++) {
-                if (this.pointCloudLayers[i].id === layerId) {
-                    this.pointCloudLayers.splice(i,1);
+            for (let i = 0; i < this.deckLayers.length; i++) {
+                if (this.deckLayers[i].id === layerId) {
+                    this.deckLayers.splice(i,1);
                     this.getDeckInstance().setProps({layers:this.getLayers()});
                     return true;
                 }
@@ -76,7 +76,7 @@ export const useDeckStore = defineStore('deck', {
             return false;
         },
         getLayers() {
-            return this.pointCloudLayers;
+            return this.deckLayers;
         },
         setPointSize(size:number) {
             this.pointSize = size;
