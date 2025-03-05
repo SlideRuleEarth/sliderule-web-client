@@ -10,7 +10,7 @@
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
     import SrLegendControl from '@/components/SrLegendControl.vue';
-    import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
+    import { zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls } from "vue3-openlayers";
@@ -30,6 +30,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
     import { processNewReqId } from "@/utils/SrMapUtils";
+    import { useDeckStore } from "@/stores/deckStore";  
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -47,6 +48,7 @@
     const mapStore = useMapStore();
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
+    const deckStore = useDeckStore();
     const controls = ref([]);
 
 
@@ -129,6 +131,7 @@
             console.error("Error: map is null");
             return;
         }
+        deckStore.clearDeckInstance(); // Clear any existing instance first
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
-import { SELECTED_LAYER_NAME,EL_LAYER_NAME } from '@/utils/SrMapUtils';
+import { SELECTED_LAYER_NAME_PREFIX,EL_LAYER_NAME } from '@/utils/SrMapUtils';
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({
@@ -47,7 +47,7 @@ export const useDeckStore = defineStore('deck', {
           }
         
           // 3) Always ensure the highlight layer is last in the array
-          const idx = this.pointCloudLayers.findIndex(l => l.id === SELECTED_LAYER_NAME);
+          const idx = this.pointCloudLayers.findIndex(l => l.id === SELECTED_LAYER_NAME_PREFIX);
           if (idx !== -1) {
             const [highlightLayer] = this.pointCloudLayers.splice(idx, 1);
             // push it so it's guaranteed at the end
@@ -67,7 +67,7 @@ export const useDeckStore = defineStore('deck', {
             return false;
         },
         deleteSelectedLayer() {
-            return this.deleteLayer(SELECTED_LAYER_NAME);
+            return this.deleteLayer(SELECTED_LAYER_NAME_PREFIX);
         },
         getLayers() {
             // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
