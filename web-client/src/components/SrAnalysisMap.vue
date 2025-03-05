@@ -30,7 +30,8 @@
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
     import { processNewReqId } from "@/utils/SrMapUtils";
-    import { useDeckStore } from "@/stores/deckStore";  
+    import { useDeckStore } from "@/stores/deckStore"; 
+    import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -169,6 +170,17 @@
         }
     };
 
+    const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
+        const analysisMap = mapRef.value?.map;
+        if (analysisMap) {
+            console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
+            analysisMap.addControl(progressSpinnerControl);
+        } else {
+            console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");
+        }
+    };
+
+
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
         let srViewName = await db.getSrViewName(props.selectedReqId);
@@ -264,6 +276,10 @@
             >
             </SrColMapSelControl>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+            <SrProgressSpinnerControl 
+                @progress-spinner-control-created="handleProgressSpinnerControlCreated" 
+                v-model="mapRef" 
+            />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
             <SrCustomTooltip 
@@ -467,6 +483,21 @@
     padding: 0rem;
 }
 
+
+:deep(.sr-progress-spinner-control) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    border-radius: 50%;
+    z-index: 9999;
+    pointer-events: none; /* Prevent interaction issues */
+}
 .sr-isLoadingEl {
     display: flex;
     flex-direction: column;
