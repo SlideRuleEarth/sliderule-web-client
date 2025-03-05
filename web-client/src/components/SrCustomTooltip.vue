@@ -26,7 +26,7 @@
     const averageCharWidth = getComputedStyle(document.documentElement).fontSize 
     //console.log('averageCharWidth:',averageCharWidth);
     //console.log('maxToolTipWidthPx:',maxToolTipWidthPx);
-    const tooltipWidth = content.length * averageCharWidth;
+    const tooltipWidth = content.length * Number(averageCharWidth);
     
     const tooltipHeight = 10; // estimated or actual height of your tooltip
 
@@ -76,6 +76,7 @@
     border-radius: 4px;
     z-index: 1000;
     max-width: 15rem;
+    overflow: visible;
   }
   </style>
   
