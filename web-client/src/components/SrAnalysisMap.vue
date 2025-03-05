@@ -284,10 +284,12 @@
                 size="small" 
             />
         </div>
-        <div class="sr-spinner">
-            <ProgressSpinner class="sr-spinner" animationDuration=".75s" style="width: 2rem; height: 2rem;" strokeWidth="8" fill="var(--p-primary-300)" v-if="mapStore.isLoading"/>
+        <div>
+            <div class="sr-spinner">
+                <ProgressSpinner class="sr-spinner" animationDuration=".75s" style="width: 2rem; height: 2rem;" strokeWidth="8" fill="var(--p-primary-300)" v-if="mapStore.isLoading"/>
+            </div>
         </div>
-</div>
+    </div>
 
 </div>
 
@@ -340,7 +342,7 @@
 /* Absolutely position the spinner on the right */
 .sr-analysis-map-footer .sr-spinner {
   position: absolute;
-  right: 1rem;
+  right: 7rem;
   top: 50%;
   transform: translateY(-50%);
 }
