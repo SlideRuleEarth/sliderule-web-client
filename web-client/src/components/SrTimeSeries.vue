@@ -7,7 +7,7 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
@@ -110,10 +110,6 @@ const initGradientPosition = () => {
   
 };
 
-const computedCycleOptions = computed(() => {
-    return globalChartStore.getCycleOptions();
-});
-
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
@@ -168,50 +164,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
         nextTick(initGradientPosition); // Ensure DOM updates before repositioning
     }
 });
-
-// watch(() => {
-//     const reqId = recTreeStore.selectedReqId;
-
-//     // If reqId is undefined, null, or empty, return default values
-//     if (!reqId || reqId <= 0) {
-//         return {
-//             scOrients: globalChartStore.getScOrients(),
-//             rgt: globalChartStore.getRgt(),
-//             cycles: globalChartStore.getCycles(),
-//             spots: globalChartStore.getSpots(),
-//             gts: globalChartStore.getGts(),
-//             tracks: globalChartStore.getTracks(),
-//             pairs: globalChartStore.getSelectedPairOptions(),
-//         };
-//     }
-
-//     // Otherwise, fetch the real values
-//     return {
-//         scOrients: globalChartStore.getScOrients(),
-//         rgt: globalChartStore.getRgt(),
-//         cycles: globalChartStore.getCycles(),
-//         spots: globalChartStore.getSpots(),
-//         gts: globalChartStore.getGts(),
-//         tracks: globalChartStore.getTracks(),
-//         pairs: globalChartStore.getSelectedPairOptions(),
-//     };
-// }, async (newValues, oldValues) => {
-//     if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
-//         const gtsValues = newValues.gts.map((gts) => gts);
-//         const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(recTreeStore.selectedReqId)
-//         globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-//         console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
-//         atlChartFilterStore.setShowPhotonCloud(false);
-//     }
-//     if (!loadingComponent.value) {
-//         // if we have selected Y data and anything changes update the plot
-//         await callPlotUpdateDebounced('SrTimeSeries watch filter parms changed');
-//     } else {
-//         console.warn(
-//             `Skipped updateThePlot for watch filter parms - Loading component is still active`
-//         );
-//     }
-// });
 
 watch(() => {
     const reqId = recTreeStore.selectedReqId;
