@@ -4,7 +4,6 @@ import { Control } from 'ol/control';
 import { useChartStore } from "@/stores/chartStore";
 import { computed } from "vue";
 import { formatBytes } from '@/utils/SrParquetUtils';
-import { processNewReqId } from "@/utils/SrMapUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import TreeSelect from 'primevue/treeselect';
 
@@ -40,24 +39,24 @@ onUnmounted(() => {
   }
 });
 
-async function updateRecordSelector(event: Event) {
-    const key = Object.keys(event)[0];
-    const reqId = Number(key);
-    console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId,'recTreeStore.selectedValue:',recTreeStore.selectedValue, 'recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
-    if(reqId>0){
-        if (recTreeStore.selectedNodeKey) {
-            console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
-            const map = customControl?.getMap();
-            if(!map){
-              console.error('Map is not available in updateRecordSelector');
-            }
-        } else {
-            console.error('Failed to update selected request:', reqId);
-        }
-    } else {
-        console.error('Failed to update selected request:', reqId);
-    }
-}
+// async function updateRecordSelector(event: Event) {
+//     const key = Object.keys(event)[0];
+//     const reqId = Number(key);
+//     console.log("updateRecordSelector:", event,'key:', key,'reqId:', reqId,'recTreeStore.selectedValue:',recTreeStore.selectedValue, 'recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
+//     if(reqId>0){
+//         if (recTreeStore.selectedNodeKey) {
+//             console.log('updateRecordSelector recTreeStore.selectedNodeKey:', recTreeStore.selectedNodeKey);
+//             const map = customControl?.getMap();
+//             if(!map){
+//               console.error('Map is not available in updateRecordSelector');
+//             }
+//         } else {
+//             console.error('Failed to update selected request:', reqId);
+//         }
+//     } else {
+//         console.error('Failed to update selected request:', reqId);
+//     }
+// }
 
 function nodeSelect(node:any) {
     console.log('nodeSelect:', node);
@@ -74,7 +73,6 @@ function nodeSelect(node:any) {
             selectionMode="single"
             size="small"
             :filter="true"
-            @update:modelValue="updateRecordSelector"
             @nodeSelect="nodeSelect"
         />
     </div>

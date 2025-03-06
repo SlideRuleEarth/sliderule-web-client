@@ -32,6 +32,9 @@
     import { processNewReqId } from "@/utils/SrMapUtils";
     import { useDeckStore } from "@/stores/deckStore"; 
     import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
+    import { Layer as OLlayer } from 'ol/layer';
+    import { Deck } from '@deck.gl/core';
+    import { OL_DECK_LAYER_NAME } from '@/utils/SrMapUtils';
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -98,7 +101,7 @@
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
-                await updateAnalysisMapView(msg);
+                await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");
             }
@@ -132,7 +135,6 @@
             console.error("Error: map is null");
             return;
         }
-        deckStore.clearDeckInstance(); // Clear any existing instance first
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
@@ -180,6 +182,86 @@
         }
     };
 
+    function createDeckInstance(map:OLMap): void{
+        //console.log('createDeckInstance');
+        const startTime = performance.now(); // Start time
+        try{
+            const mapView =  map.getView();
+            //console.log('mapView:',mapView);
+            const mapCenter = mapView.getCenter();
+            const mapZoom = mapView.getZoom();
+            //console.log('createDeckInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            if(mapCenter && mapZoom){
+                const tgt = map.getViewport() as HTMLDivElement;
+                const deck = new Deck({
+                    initialViewState: {longitude:0, latitude:0, zoom: 1},
+                    controller: false,
+                    parent: tgt,
+                    style: {pointerEvents: 'none', zIndex: '1'},
+                    layers: [],
+                    getCursor: () => 'default',
+                    useDevicePixels: false,
+                });
+                useDeckStore().setDeckInstance(deck);
+            } else {
+                console.error('createDeckInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            }
+        } catch (error) {
+            console.error('Error creating DeckGL instance:',error);
+        } finally {
+            console.log('createDeckInstance end');
+        }
+        const endTime = performance.now(); // End time
+        console.log(`createDeckInstance took ${endTime - startTime} milliseconds. endTime:`,endTime);
+    }
+
+    function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
+        //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  
+
+        const layerOptions = {
+            //title: name,
+            title: 'ol-deck-layer'
+        }
+        const new_layer = new OLlayer({
+            render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
+                //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+                const [width, height] = size;
+                //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+                let [longitude, latitude] = viewState.center;
+                if(projectionUnits !== 'degrees'){
+                    [longitude, latitude] = toLonLat(viewState.center);
+                }
+                const zoom = viewState.zoom - 1;
+                const bearing = (-viewState.rotation * 180) / Math.PI;
+                const deckViewState = {bearing, longitude, latitude, zoom};
+                deck.setProps({width, height, viewState: deckViewState});
+                deck.redraw();
+                return document.createElement('div');
+            },
+            ...layerOptions
+        }); 
+        return new_layer;  
+    }
+
+    function addDeckLayerToMap(map: OLMap){
+        //console.log('addDeckLayerToMap:',olLayerName);
+        const mapView =  map.getView();
+        const projection = mapView.getProjection();
+        const projectionUnits = projection.getUnits();
+        const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === OL_DECK_LAYER_NAME);
+        if (updatingLayer) {
+            //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
+            map.removeLayer(updatingLayer);
+        }
+        const deck = deckStore.getDeckInstance();
+        const deckLayer = createOLlayerForDeck(deck,projectionUnits);
+        if(deckLayer){
+            map.addLayer(deckLayer);
+            //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        } else {
+            console.error('No current_layer to add.');
+        }
+    }
 
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
@@ -210,6 +292,9 @@
                     //useMapStore().setCenterToRestore(center);
 
                 }
+                deckStore.clearDeckInstance(); // Clear any existing instance first
+                createDeckInstance(map); 
+                addDeckLayerToMap(map);        
                 await processNewReqId(map);
 
             } else {

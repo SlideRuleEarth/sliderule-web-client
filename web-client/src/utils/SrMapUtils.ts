@@ -6,7 +6,6 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
-import { Deck } from '@deck.gl/core';
 import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
@@ -548,147 +547,6 @@ export function updateDeckLayerWithObject(
 
 }
 
-
-// export function updateElLayerWithObject(
-//         name:string,
-//         elevationData:ElevationDataItem[], 
-//         extHMean: ExtHMean, 
-//         heightFieldName:string, 
-//         projName:string, 
-//         positions:SrPosition[]): void{
-//     const startTime = performance.now(); // Start time
-//     console.log('updateElLayerWithObject startTime:',startTime);
-//     try{
-//         if(useDeckStore().getDeckInstance()){
-//             //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-//             const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
-//             const replaced = useDeckStore().replaceOrAddLayer(layer,name);
-//             //console.log('updateElLayerWithObject layer:',layer);
-//             //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
-//             //useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-//             //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
-//             // if(replaced){
-//             //     console.log('Replaced using elevation layer:',layer);
-//             // } else {
-//             //     console.log('Added using elevation layer:',layer);
-//             // }
-//         } else {
-//             console.error('updateElLayerWithObject Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
-//         }
-//     } catch (error) {
-//         console.error('updateElLayerWithObject Error updating elevation layer:',error);
-//     } finally {
-//         const endTime = performance.now(); // End time
-//         console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
-//     }
-
-// }
-
-export function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
-    //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  
-
-    const layerOptions = {
-        //title: name,
-        title: 'ol-deck-layer'
-    }
-    const new_layer = new OLlayer({
-        render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
-            //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
-            const [width, height] = size;
-            //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
-            let [longitude, latitude] = viewState.center;
-            if(projectionUnits !== 'degrees'){
-                [longitude, latitude] = toLonLat(viewState.center);
-            }
-            const zoom = viewState.zoom - 1;
-            const bearing = (-viewState.rotation * 180) / Math.PI;
-            const deckViewState = {bearing, longitude, latitude, zoom};
-            deck.setProps({width, height, viewState: deckViewState});
-            deck.redraw();
-            return document.createElement('div');
-        },
-        ...layerOptions
-    }); 
-    return new_layer;  
-}
-
-// Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
-// size is an array [width, height] indicating the dimensions of the map's viewport.
-// viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
-// Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
-// Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
-// Sync deck view with OL view
-
-export function createDeckInstance(map:OLMap): Deck | null{
-    //console.log('createDeckInstance');
-    const startTime = performance.now(); // Start time
-    let deck = null;
-    try{
-        const mapView =  map.getView();
-        //console.log('mapView:',mapView);
-        const mapCenter = mapView.getCenter();
-        const mapZoom = mapView.getZoom();
-        //console.log('createDeckInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
-        if(mapCenter && mapZoom){
-            const tgt = map.getViewport() as HTMLDivElement;
-            deck = new Deck({
-                initialViewState: {longitude:0, latitude:0, zoom: 1},
-                controller: false,
-                parent: tgt,
-                style: {pointerEvents: 'none', zIndex: '1'},
-                layers: [],
-                getCursor: () => 'default',
-                useDevicePixels: false,
-            });
-            useDeckStore().setDeckInstance(deck);
-        } else {
-            console.error('createDeckInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
-            deck = null;
-        }
-    } catch (error) {
-        console.error('Error creating DeckGL instance:',error);
-        return null;
-    } finally {
-        console.log('createDeckInstance end: deck:',deck);
-    }
-    const endTime = performance.now(); // End time
-    console.log(`createDeckInstance took ${endTime - startTime} milliseconds. endTime:`,endTime);
-    return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
-}
-
-export function addDeckLayerToMap(map: OLMap, deck:Deck, olLayerName:string){
-    //console.log('addDeckLayerToMap:',olLayerName);
-    const mapView =  map.getView();
-    const projection = mapView.getProjection();
-    const projectionUnits = projection.getUnits();
-    const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === olLayerName);
-    if (updatingLayer) {
-        //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
-        map.removeLayer(updatingLayer);
-    }
-    const deckLayer = createOLlayerForDeck(deck,projectionUnits);
-    if(deckLayer){
-        map.addLayer(deckLayer);
-        //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
-    } else {
-        console.error('No current_layer to add.');
-    }
-}
-
-export function bindDeckToOLMap(map: OLMap){
-    const startTime = performance.now(); // Start time
-    console.log('bindDeckToOLMap start')
-    const tgt = map.getViewport() as HTMLDivElement;
-    const deck = createDeckInstance(map); 
-    if(deck){
-        addDeckLayerToMap(map,deck,OL_DECK_LAYER_NAME);        
-    } else {
-      console.error('bindDeckToOLMap(): deck Instance is null');
-    }
-    const endTime = performance.now(); // End time
-    console.log(`bindDeckToOLMap took ${endTime - startTime} milliseconds. endTime:`,endTime);
-}
-
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {
     // Split the coordinate string into an array
@@ -1199,7 +1057,6 @@ const updateElevationMap = async (req_id: number) => {
 
 export async function processNewReqId(map:OLMap): Promise<void> {
     const startTime = performance.now(); // Start time
-    bindDeckToOLMap(map);
  
     const mapStore = useMapStore();
  
