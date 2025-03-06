@@ -26,8 +26,8 @@
         ></InputNumber>
         <div class="sr-yatc-min-selected-max">
             <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(3) }}</span>
-            <span>y_atc_min: {{ computedMaxYAtc.toFixed(3) }}</span>
-            <span>y_atc_max: {{ computedMinYAtc.toFixed(3) }}</span>    
+            <span>y_atc_min: {{ computedMinYAtc.toFixed(3) }}</span>
+            <span>y_atc_max: {{ computedMaxYAtc.toFixed(3) }}</span>    
         </div>
     </div>
 </template>
