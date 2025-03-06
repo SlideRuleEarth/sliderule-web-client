@@ -443,7 +443,7 @@ function createDeckLayer(
         getLineWidth?: number;
         getLineColor?: (_d: ElevationDataItem) => [number, number, number, number];
         stroked?: boolean;
-        getColor?: (d: any, context: AccessorContext<any>) => SrRGBAColor;
+        getFillColor?: (d: any, context: AccessorContext<any>) => SrRGBAColor;
         filled?: boolean;
         getCursor?: () => string;
     };
@@ -458,7 +458,7 @@ function createDeckLayer(
         filled: false,
     } : {
         getCursor: () => 'default',
-        getColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
+        getFillColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
     };
 
     const newLayer = new ScatterplotLayer({
