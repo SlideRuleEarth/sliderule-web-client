@@ -44,7 +44,6 @@ export const useMapStore = defineStore('map', {
     polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
     isLoading: false as boolean,
-    isAborting: false as boolean,
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
     totalRows: 0 as number, 
@@ -168,12 +167,6 @@ export const useMapStore = defineStore('map', {
     },
     setIsLoading(value:boolean=true) {
       this.isLoading = value;
-    },
-    getIsAborting() {
-      return this.isAborting;
-    },
-    setIsAborting(value:boolean=true) {
-      this.isAborting = value;
     },
     resetIsLoading() {
       this.isLoading = false;

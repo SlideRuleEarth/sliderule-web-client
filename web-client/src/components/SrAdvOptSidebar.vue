@@ -3,15 +3,13 @@
     import SrMenu from "@/components/SrMenu.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
     import { onMounted } from 'vue';
-    import { useMapStore } from '@/stores/mapStore';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
-
-    const mapStore = useMapStore();
+    import { useServerStateStore } from '@/stores/serverStateStore';
     
     onMounted(async () => {
         //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
-       mapStore.setIsAborting(false);
+       useServerStateStore().isAborting = false;
     });
 
 </script>

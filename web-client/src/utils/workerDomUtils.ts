@@ -27,6 +27,7 @@ const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
+const serverStateStore = useServerStateStore();
 
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
@@ -231,7 +232,7 @@ const handleWorkerMsgEvent = async (event: MessageEvent) => {
 
 export function processAbortClicked() {
     if(worker){
-       mapStore.setIsAborting(true); 
+        serverStateStore.isAborting = true; 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
         console.log('abortClicked isLoading:',mapStore.isLoading);
@@ -266,11 +267,11 @@ async function cleanUpWorker(reqId:number){
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
     mapStore.setIsLoading(false); // controls spinning progress
-    mapStore.setIsAborting(false);
+    serverStateStore.isAborting = false;
     const reqParamsStore = await getReqParamStore(reqId);
     if(reqParamsStore){
         reqParamsStore.using_worker = false;
-        useServerStateStore().isFetching = false;
+        serverStateStore.isFetching = false;
     } else {
         console.error('cleanUpWorker reqParamsStore was undefined');
     }
@@ -304,7 +305,7 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             mapStore.setCurrentRows(0);
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if(reqParamsStore){
-                useServerStateStore().isFetching = true;
+                serverStateStore.isFetching = true;
             } else {
                 console.error('runFetchToFileWorker reqParamsStore was undefined');
             }
@@ -358,7 +359,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
     }
 
     mapStore.setIsLoading(true);
-    mapStore.setIsAborting(false);
+    serverStateStore.isAborting = false;
     console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);

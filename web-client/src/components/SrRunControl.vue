@@ -26,18 +26,16 @@
     const srToastStore = useSrToastStore();
     const requestsStore = useRequestsStore();
     const serverStateStore = useServerStateStore();
-    const mapStore = useMapStore();
     const tooltipRef = ref();
     const enableRunButton = computed(() => {
-        return (((mapStore.isAborting ||  serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
+        return (((serverStateStore.isAborting ||  serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
     });
     const showRunButton = computed(() => {
-        return (((mapStore.isAborting || serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
+        return (((serverStateStore.isAborting || serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
     });
 
     onMounted(async () => {
         console.log('SrRunControl onMounted props.includeAdvToggle:',props.includeAdvToggle);
-        mapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
         if(props.includeAdvToggle) { // this means it is the Request Run button
