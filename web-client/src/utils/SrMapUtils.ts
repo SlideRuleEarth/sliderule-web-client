@@ -41,6 +41,7 @@ import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
@@ -561,10 +562,11 @@ export function swapLongLatToLatLong(coordString: string): string {
 }
 
 export function checkAreaOfConvexHullWarning(): boolean {
-    const limit = useReqParamsStore().getAreaWarningThreshold()
+    const currentApi = useReqParamsStore().getCurAPI();
+    const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
     //console.log('checkAreaOfConvexHullWarning area:',limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useReqParamsStore().getAreaWarningThreshold()} km²).`;
+        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().warn('Warn',msg);
         } else {
@@ -576,10 +578,11 @@ export function checkAreaOfConvexHullWarning(): boolean {
 }
 
 export function checkAreaOfConvexHullError(): boolean {
-    const limit = useReqParamsStore().getAreaErrorThreshold()
+    const currentApi = useReqParamsStore().getCurAPI();
+    const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
     //console.log('checkAreaOfConvexHullError area:',limit);
     if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
+        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(currentApi)} km²).`;
         if(!useAdvancedModeStore().getAdvanced()){
             useSrToastStore().error('Error',msg);
         } else {

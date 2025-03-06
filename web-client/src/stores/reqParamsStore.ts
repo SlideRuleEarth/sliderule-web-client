@@ -11,7 +11,6 @@ import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from './globalChartStore';
-import { useAreaThresholdsStore } from './areaThresholds';
 
 interface YapcConfig {
   version: number;
@@ -40,8 +39,6 @@ const createReqParamsStore = (id: string) =>
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         areaOfConvexHull: 0.0 as number, // in square kilometers
-        // areaWarningThreshold: 1000.0 as number, // in square kilometers
-        // areaErrorThreshold: 10000.0 as number, // in square kilometers
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks: [] as SrListNumberItem[],
@@ -804,12 +801,12 @@ const createReqParamsStore = (id: string) =>
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
         },
-        getAreaWarningThreshold(): number {
-          return useAreaThresholdsStore().getAreaWarningThreshold(this.getFunc());
-        },
-        getAreaErrorThreshold(): number {
-          return useAreaThresholdsStore().getAreaErrorThreshold(this.getFunc());
-        },
+        // getAreaWarningThreshold(): number {
+        //   return useAreaThresholdsStore().getAreaWarningThreshold(this.getFunc());
+        // },
+        // getAreaErrorThreshold(): number {
+        //   return useAreaThresholdsStore().getAreaErrorThreshold(this.getFunc());
+        // },
         getEnableAtl08Classification(): boolean {
           return this.enableAtl08Classification;
         },

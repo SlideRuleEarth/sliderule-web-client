@@ -4,7 +4,7 @@ import { ref } from 'vue'
 // Define a type for the valid API names
 type ApiName = 'atl06p' | 'atl06sp' | 'atl08sp' | 'atl03sp' | 'atl03vp'
 
-export const useAreaThresholdsStore = defineStore('thresholdStore', () => {
+export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
   // State: maps an API name to a numeric threshold
   const areaErrorThreshold = ref<Record<ApiName, number>>({
     'atl06p': 10000,
@@ -13,7 +13,7 @@ export const useAreaThresholdsStore = defineStore('thresholdStore', () => {
     'atl03sp': 350,
     'atl03vp': 350,
   })
-
+  const areaErrorThresholdFallback = ref<number>(350)
   const areaWarningThreshold = ref<Record<ApiName, number>>({
     'atl06p': 5000,
     'atl06sp': 5000,
@@ -21,7 +21,7 @@ export const useAreaThresholdsStore = defineStore('thresholdStore', () => {
     'atl03sp': 100,
     'atl03vp': 100,
   })
-
+  const areaWarningThresholdFallback = ref<number>(100)
   // Actions to update thresholds with validation
   function setAreaErrorThreshold(api: ApiName, threshold: number) {
     if (threshold >= 0) {
@@ -40,18 +40,20 @@ export const useAreaThresholdsStore = defineStore('thresholdStore', () => {
   }
 
   // Getters to retrieve thresholds with a fallback for invalid API names
-  function getAreaErrorThreshold(api: string): number | undefined {
-    const threshold = areaErrorThreshold.value[api as ApiName]
+  function getAreaErrorThreshold(api: string): number {
+    let threshold = areaErrorThreshold.value[api as ApiName]
     if (threshold === undefined) {
-      console.warn(`No error threshold found for API: ${api}`)
+      threshold = areaErrorThresholdFallback.value;
+      console.warn(`No error threshold found for API: ${api} using fallback value: ${threshold}`)
     }
     return threshold
   }
 
-  function getAreaWarningThreshold(api: string): number | undefined {
-    const threshold = areaWarningThreshold.value[api as ApiName]
+  function getAreaWarningThreshold(api: string): number {
+    let threshold = areaWarningThreshold.value[api as ApiName]
     if (threshold === undefined) {
-      console.warn(`No warning threshold found for API: ${api}`)
+      threshold = areaWarningThresholdFallback.value;
+      console.warn(`No warning threshold found for API: ${api} using fallback value: ${threshold}`)
     }
     return threshold
   }
