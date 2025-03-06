@@ -1,69 +1,66 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { type ApiName } from '@/types/SrTypes'
 
-// Define a type for the valid API names
-type ApiName = 'atl06p' | 'atl06sp' | 'atl08sp' | 'atl03sp' | 'atl03vp'
 
 export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
-  // State: maps an API name to a numeric threshold
-  const areaErrorThreshold = ref<Record<ApiName, number>>({
-    'atl06p': 10000,
-    'atl06sp': 10000,
-    'atl08sp': 10000,
-    'atl03sp': 350,
-    'atl03vp': 350,
-  })
-  const areaErrorThresholdFallback = ref<number>(350)
-  const areaWarningThreshold = ref<Record<ApiName, number>>({
-    'atl06p': 5000,
-    'atl06sp': 5000,
-    'atl08sp': 5000,
-    'atl03sp': 100,
-    'atl03vp': 100,
-  })
-  const areaWarningThresholdFallback = ref<number>(100)
-  // Actions to update thresholds with validation
-  function setAreaErrorThreshold(api: ApiName, threshold: number) {
-    if (threshold >= 0) {
-      areaErrorThreshold.value[api] = threshold
-    } else {
-      console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
-    }
-  }
+    // State: maps an API name to a numeric threshold
+    const areaErrorThreshold = ref<Record<ApiName, number>>({
+        atl06p: 10000,
+        atl06sp: 10000,
+        atl08sp: 10000,
+        atl03sp: 350,
+        atl03vp: 350,
+        gedi01bp: 350,//TBD find out what to use for Gedi this is a placeholder 
+        gedi02ap: 350,
+        gedi04ap: 350,
+    })
+    const areaErrorThresholdFallback = ref<number>(350)
 
-  function setAreaWarningThreshold(api: ApiName, threshold: number) {
-    if (threshold >= 0) {
-      areaWarningThreshold.value[api] = threshold
-    } else {
-      console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
-    }
-  }
+    const areaWarningThreshold = ref<Record<ApiName, number>>({
+        atl06p: 5000,
+        atl06sp: 5000,
+        atl08sp: 5000,
+        atl03sp: 100,
+        atl03vp: 100,
+        gedi01bp: 350,//TBD find out what to use for Gedi this is a placeholder 
+        gedi02ap: 350,
+        gedi04ap: 350,
+    })
+    const areaWarningThresholdFallback = ref<number>(100)
 
-  // Getters to retrieve thresholds with a fallback for invalid API names
-  function getAreaErrorThreshold(api: string): number {
-    let threshold = areaErrorThreshold.value[api as ApiName]
-    if (threshold === undefined) {
-      threshold = areaErrorThresholdFallback.value;
-      console.warn(`No error threshold found for API: ${api} using fallback value: ${threshold}`)
+    // Actions to update thresholds with validation
+    function setAreaErrorThreshold(api: ApiName, threshold: number) {
+        if (threshold >= 0) {
+            areaErrorThreshold.value = { ...areaErrorThreshold.value, [api]: threshold }
+        } else {
+            console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
+        }
     }
-    return threshold
-  }
 
-  function getAreaWarningThreshold(api: string): number {
-    let threshold = areaWarningThreshold.value[api as ApiName]
-    if (threshold === undefined) {
-      threshold = areaWarningThresholdFallback.value;
-      console.warn(`No warning threshold found for API: ${api} using fallback value: ${threshold}`)
+    function setAreaWarningThreshold(api: ApiName, threshold: number) {
+        if (threshold >= 0) {
+            areaWarningThreshold.value = { ...areaWarningThreshold.value, [api]: threshold }
+        } else {
+            console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
+        }
     }
-    return threshold
-  }
 
-  return {
-    areaErrorThreshold,
-    areaWarningThreshold,
-    setAreaErrorThreshold,
-    setAreaWarningThreshold,
-    getAreaErrorThreshold,
-    getAreaWarningThreshold,
-  }
+    // Getters to retrieve thresholds with fallback
+    function getAreaErrorThreshold(api: ApiName): number {
+        return areaErrorThreshold.value[api] ?? areaErrorThresholdFallback.value
+    }
+
+    function getAreaWarningThreshold(api: ApiName): number {
+        return areaWarningThreshold.value[api] ?? areaWarningThresholdFallback.value
+    }
+
+    return {
+        areaErrorThreshold,
+        areaWarningThreshold,
+        setAreaErrorThreshold,
+        setAreaWarningThreshold,
+        getAreaErrorThreshold,
+        getAreaWarningThreshold,
+    }
 })

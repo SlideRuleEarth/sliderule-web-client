@@ -11,7 +11,7 @@ import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from './globalChartStore';
-
+import { type ApiName, isValidAPI } from '@/types/SrTypes'
 interface YapcConfig {
   version: number;
   score: number;
@@ -777,7 +777,7 @@ const createReqParamsStore = (id: string) =>
         setGediAPI(value:string) {
           this.gediSelectedAPI = value;
         },
-        getCurAPI() : string {
+        getCurAPIStr() : string {
           if(this.missionValue === 'ICESat-2') {
             return this.iceSat2SelectedAPI;
           } else if(this.missionValue === 'GEDI') {
@@ -785,6 +785,14 @@ const createReqParamsStore = (id: string) =>
           }
           return '';
         },
+        getCurAPIObj(): ApiName | null {
+          if (this.missionValue === 'ICESat-2' && isValidAPI(this.iceSat2SelectedAPI)) {
+            return this.iceSat2SelectedAPI as ApiName;
+          } else if (this.missionValue === 'GEDI' && isValidAPI(this.gediSelectedAPI)) {
+            return this.gediSelectedAPI as ApiName;
+          }
+          return null; // Explicitly return `null` instead of `''`
+        },    
         setConvexHull(convexHull: SrRegion) {
           this.convexHull = convexHull;
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
@@ -801,12 +809,6 @@ const createReqParamsStore = (id: string) =>
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
         },
-        // getAreaWarningThreshold(): number {
-        //   return useAreaThresholdsStore().getAreaWarningThreshold(this.getFunc());
-        // },
-        // getAreaErrorThreshold(): number {
-        //   return useAreaThresholdsStore().getAreaErrorThreshold(this.getFunc());
-        // },
         getEnableAtl08Classification(): boolean {
           return this.enableAtl08Classification;
         },
@@ -834,6 +836,8 @@ const createReqParamsStore = (id: string) =>
         
     },
 })
-export const useReqParamsStore = createReqParamsStore('reqParamsStore');
-export const useAutoReqParamsStore = createReqParamsStore('autoReqParamsStore');
+const theReqParamsStore = createReqParamsStore('reqParamsStore');
+const theAutoReqParamsStore = createReqParamsStore('autoReqParamsStore');
+export const useReqParamsStore = theReqParamsStore;
+export const useAutoReqParamsStore = theAutoReqParamsStore;
 

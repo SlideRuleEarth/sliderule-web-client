@@ -18,6 +18,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
 import { callPlotUpdateDebounced,updateWhereClauseAndXData } from '@/utils/plotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useServerStateStore } from '@/stores/serverStateStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -269,6 +270,7 @@ async function cleanUpWorker(reqId:number){
     const reqParamsStore = await getReqParamStore(reqId);
     if(reqParamsStore){
         reqParamsStore.using_worker = false;
+        useServerStateStore().isFetching = false;
     } else {
         console.error('cleanUpWorker reqParamsStore was undefined');
     }
@@ -300,6 +302,12 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
             mapStore.setIsLoading(true); // controls spinning progress
             mapStore.setTotalRows(0);
             mapStore.setCurrentRows(0);
+            const reqParamsStore = await getReqParamStore(srReqRec.req_id);
+            if(reqParamsStore){
+                useServerStateStore().isFetching = true;
+            } else {
+                console.error('runFetchToFileWorker reqParamsStore was undefined');
+            }
             worker = await startFetchToFileWorker(srReqRec.req_id);
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = async (error) => {

@@ -562,33 +562,42 @@ export function swapLongLatToLatLong(coordString: string): string {
 }
 
 export function checkAreaOfConvexHullWarning(): boolean {
-    const currentApi = useReqParamsStore().getCurAPI();
-    const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
-    //console.log('checkAreaOfConvexHullWarning area:',limit);
-    if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
-        if(!useAdvancedModeStore().getAdvanced()){
-            useSrToastStore().warn('Warn',msg);
-        } else {
-            //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+    const currentApi = useReqParamsStore().getCurAPIObj();
+    if(currentApi){
+        const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
+        //console.log('checkAreaOfConvexHullWarning area:',limit);
+        if(useReqParamsStore().getAreaOfConvexHull() > limit){
+            const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
+            if(!useAdvancedModeStore().getAdvanced()){
+                useSrToastStore().warn('Warn',msg);
+            } else {
+                //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+            }
+            return false;
         }
-        return false;
+    } else {
+        console.error('checkAreaOfConvexHullWarning: currentApi is null');
+
     }
     return true;
 }
 
 export function checkAreaOfConvexHullError(): boolean {
-    const currentApi = useReqParamsStore().getCurAPI();
-    const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
-    //console.log('checkAreaOfConvexHullError area:',limit);
-    if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(currentApi)} km²).`;
-        if(!useAdvancedModeStore().getAdvanced()){
-            useSrToastStore().error('Error',msg);
-        } else {
-            //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+    const currentApi = useReqParamsStore().getCurAPIObj();
+    if(currentApi){
+        const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
+        //console.log('checkAreaOfConvexHullError area:',limit);
+        if(useReqParamsStore().getAreaOfConvexHull() > limit){
+            const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(currentApi)} km²).`;
+            if(!useAdvancedModeStore().getAdvanced()){
+                useSrToastStore().error('Error',msg);
+            } else {
+                //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+            }
+            return false;
         }
-        return false;
+    } else {
+        console.error('checkAreaOfConvexHullError: currentApi is null');
     }
     return true;
 }

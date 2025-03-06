@@ -102,3 +102,11 @@ export interface SrRadioItem {
 export type SrRGBAColor = [number, number, number, number];
 
 export type SrPosition = [number, number, number];
+
+// Define a type for the valid API names
+export const API_NAMES = ['atl06p', 'atl06sp', 'atl08sp', 'atl03sp', 'atl03vp', 'gedi01bp', 'gedi02ap', 'gedi04ap'] as const;
+export type ApiName = (typeof API_NAMES)[number];
+
+export function isValidAPI(api: string): api is ApiName {
+    return API_NAMES.includes(api as ApiName);
+}
