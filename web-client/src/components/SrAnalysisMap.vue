@@ -219,8 +219,7 @@
         //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  
 
         const layerOptions = {
-            //title: name,
-            title: 'ol-deck-layer'
+            title: OL_DECK_LAYER_NAME,
         }
         const new_layer = new OLlayer({
             render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
