@@ -154,7 +154,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             if(worker){
                 await cleanUpWorker(workerMsg.req_id);
             }
-            console.log('Error... isLoading:',mapStore.isLoading);
+            console.log('Error... isFetching:',serverStateStore.isFetching);
             break;
 
         case 'opfs_ready':
@@ -235,7 +235,7 @@ export function processAbortClicked() {
         serverStateStore.isAborting = true; 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
-        console.log('abortClicked isLoading:',mapStore.isLoading);
+        console.log('abortClicked isAborting:',serverStateStore.isAborting,' isFetching:',serverStateStore.isFetching);
         requestsStore.setConsoleMsg('Abort Clicked');
         useSrToastStore().info('Abort Clicked','Aborting request');
     } else {
@@ -266,16 +266,16 @@ async function cleanUpWorker(reqId:number){
     }
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
-    mapStore.setIsLoading(false); // controls spinning progress
+    //mapStore.setIsLoading(false); // controls spinning progress
     serverStateStore.isAborting = false;
     const reqParamsStore = await getReqParamStore(reqId);
     if(reqParamsStore){
         reqParamsStore.using_worker = false;
-        serverStateStore.isFetching = false;
     } else {
         console.error('cleanUpWorker reqParamsStore was undefined');
     }
-    console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
+    serverStateStore.isFetching = false;
+    console.log('cleanUpWorker -- iserverStateStore.isFetching:',serverStateStore.isFetching);
 }
 
 function parseCompletionPercentage(message: string): number | null {
@@ -358,9 +358,9 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         return;
     }
 
-    mapStore.setIsLoading(true);
+    //mapStore.setIsLoading(true);
     serverStateStore.isAborting = false;
-    console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
+    console.log('runSlideRuleClicked');
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
     curReqSumStore.setNumArrowDataRecs(0);
