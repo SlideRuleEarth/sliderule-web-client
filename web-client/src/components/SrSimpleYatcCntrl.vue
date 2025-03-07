@@ -12,7 +12,7 @@
             size="small"
             :minFractionDigits="1"
             :min="0.001"
-            :max="500"
+            :max="5000"
             :step="1.000"
             showButtons
             @update:modelValue="handleModelValueChange"
