@@ -336,7 +336,7 @@ export function isClickable(d:ElevationDataItem): boolean {
 
     let valid = true;
     if(isInvalid(d.cycle) || isInvalid(d.rgt) || isInvalid(d.y_atc)){
-        console.error('isValidElevationPnt: invalid elevation point:',d);
+        console.log('isValidElevationPnt: invalid elevation point:',d);
         valid = false;
     }
     return valid;
