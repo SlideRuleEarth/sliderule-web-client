@@ -13,7 +13,7 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { processSelectedElData,generateNameSuffix } from '@/utils/SrMapUtils'
+import { processSelectedElData,generateNameSuffix,isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 import { type SrPosition } from '@/types/SrTypes';
 
@@ -378,12 +378,11 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-
 export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<ElevationDataItem | null> => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
-    let firstRec = null;
+    let firstRec: ElevationDataItem | null = null;
     let numRows = 0;
     let srViewName = await indexedDb.getSrViewName(req_id);
     
@@ -394,7 +393,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
 
     const projName = srViews.value[srViewName].projectionName;
     
-    if (req_id === undefined || req_id === null || req_id === 0) {
+    if (!req_id) {
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return null;
     }
@@ -432,23 +431,20 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
 
             if (!done && value) {
                 rows = value as ElevationDataItem[];
-                firstRec = rows[0];
+                numRows = rows.length;
+                useMapStore().setCurrentRows(numRows);
+
+                // **Find the first valid elevation point**
+                firstRec = rows.find(isClickable) || null;
 
                 if (firstRec) {
-                    numRows += rows.length;
-                    useMapStore().setCurrentRows(numRows);
-                    //const startTime = performance.now(); // Start time
-                    // **Precompute position data**
+                    // Precompute position data for all rows
                     positions = rows.map(d => [d.longitude, d.latitude, 0] as SrPosition);
-                    //const endTime = performance.now(); // End time
-                    //console.log(`duckDbReadAndUpdateElevationData precompute positions for ${req_id} took ${endTime - startTime} milliseconds.`);
 
-                    if (numRows === 0) {
-                        console.warn('duckDbReadAndUpdateElevationData no data items processed');
-                        useSrToastStore().warn('No Data Processed', 'No data items processed. No Data returned for this region and request parameters.');
-                    } else {
-                        await processSelectedElData(firstRec); // same as clicked
-                    }
+                    await processSelectedElData(firstRec);
+                } else {
+                    console.warn('No valid elevation points found.');
+                    useSrToastStore().warn('No Data Processed', 'No valid elevation points found.');
                 }
             } else {
                 console.warn('duckDbReadAndUpdateElevationData no data items processed');
@@ -459,7 +455,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
             throw error;
         }
 
-        if (numRows > 0) {
+        if (numRows > 0 && firstRec) {
             const name = EL_LAYER_NAME_PREFIX + '-' + req_id.toString();
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
@@ -489,7 +485,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
         return { firstRec, numRows };
     }
 };
-
 
 type Position = [number, number, number];
 

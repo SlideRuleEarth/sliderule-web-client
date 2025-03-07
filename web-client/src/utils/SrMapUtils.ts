@@ -332,6 +332,16 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     }
 }
 
+export function isClickable(d:ElevationDataItem): boolean {
+
+    let valid = true;
+    if(isInvalid(d.cycle) || isInvalid(d.rgt) || isInvalid(d.y_atc)){
+        console.error('isValidElevationPnt: invalid elevation point:',d);
+        valid = false;
+    }
+    return valid;
+}
+
 export async function processSelectedElData(d:ElevationDataItem): Promise<void> {
     console.log('processSelectedElData d:',d);
     const globalChartStore = useGlobalChartStore();
@@ -393,7 +403,12 @@ export async function processSelectedElData(d:ElevationDataItem): Promise<void> 
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('clicked data:',d);
-    processSelectedElData(d);
+    if(!isClickable(d)){
+        console.log('clicked: invalid elevation point:',d);
+        useSrToastStore().warn('Clicked data point contains NaNs', 'Please Click on another point.');
+        return;
+    }
+    await processSelectedElData(d);
     const msg = `clicked ${d}`;
     await updatePlotAndSelectedTrackMapLayer(msg);
 }

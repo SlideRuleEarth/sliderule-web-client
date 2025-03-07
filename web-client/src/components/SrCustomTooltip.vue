@@ -18,7 +18,8 @@
   // Define the functions that will control tooltip visibility and position
   const showTooltip = (event: MouseEvent, content: string | undefined) => {
     if (!content) {
-        console.warn('Tooltip content is undefined or empty');
+        console.warn('Tooltip content is undefined or empty content:', content);
+        console.log('Tooltip event:', event);
         return;
     }
     
