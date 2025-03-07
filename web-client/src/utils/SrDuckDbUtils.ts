@@ -532,7 +532,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             min_y_atc = (globalChartStore.selected_y_atc - y_atc_margin).toFixed(3);
             max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3);
         } else {
-            console.log('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
+            console.error('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
             use_y_atc_filter = false;
         }
 

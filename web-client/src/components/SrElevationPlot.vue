@@ -28,6 +28,9 @@ import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { processSelectedElData } from "@/utils/SrMapUtils";
+import SrCycleSelect from "@/components/SrCycleSelect.vue";
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 
 const tooltipRef = ref();
 
@@ -282,50 +285,6 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
-// const enableTouchDragging = () => {
-//     const dialogs = document.querySelectorAll('.sr-floating-dialog');
-
-//     dialogs.forEach((dialogElement) => {
-//         const dialog = dialogElement as HTMLElement; // Cast to HTMLElement for style access
-//         let startX = 0;
-//         let startY = 0;
-//         let initialLeft = 0;
-//         let initialTop = 0;
-
-//         const onTouchStart = (e: TouchEvent) => {
-//             const touch = e.touches[0];
-//             startX = touch.clientX;
-//             startY = touch.clientY;
-//             const rect = dialog.getBoundingClientRect();
-//             initialLeft = rect.left;
-//             initialTop = rect.top;
-
-//             // Attach move and end listeners with appropriate options
-//             document.addEventListener('touchmove', onTouchMove, { passive: false }); // Prevent default when dragging
-//             document.addEventListener('touchend', onTouchEnd, { passive: true }); // No need to block scrolling
-//         };
-
-//         const onTouchMove = (e: TouchEvent) => {
-//             e.preventDefault(); // Prevent scrolling while dragging
-
-//             const touch = e.touches[0];
-//             const dx = touch.clientX - startX;
-//             const dy = touch.clientY - startY;
-
-//             dialog.style.left = `${initialLeft + dx}px`;
-//             dialog.style.top = `${initialTop + dy}px`;
-//         };
-
-//         const onTouchEnd = () => {
-//             document.removeEventListener('touchmove', onTouchMove);
-//             document.removeEventListener('touchend', onTouchEnd);
-//         };
-
-//         // Add touchstart with { passive: true }
-//         dialog.addEventListener('touchstart', onTouchStart, { passive: true });
-//     });
-// };
-
 const handleChartFinished = () => {
     console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
     if(chartWrapperRef.value){
@@ -364,6 +323,7 @@ onMounted(async () => {
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
+            await setCyclesGtsSpotsFromFileUsingRgtYatc();
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
             // set this so if the user looks at it, it will be there
@@ -490,16 +450,21 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     }" 
                     @finished="handleChartFinished"
                 />
-                <Dialog
-                    v-if="(chartWrapperRef !== undefined)"
-                    v-model:visible="shouldDisplayMainGradient"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapperRef"
-                    :style="mainLegendDialogStyle"
-                >
+            </div> 
+            <div class="sr-cycles-legend-panel">
+                <SrCycleSelect />
+                <SrSimpleYatcCntrl />
+                <div class="sr-legends-panel">
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayMainGradient"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="mainLegendDialogStyle"
+                    >
                     <template #header>
                         <SrGradientLegend
                             class="chart-overlay"
@@ -509,83 +474,83 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                             :transparentBackground="true" 
                         />
                     </template>
-                </Dialog>
-                <Dialog
-                    v-if="(chartWrapperRef !== undefined)"
-                    v-model:visible="shouldDisplayMainSolidColorLegend"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapperRef"
-                    :style="mainLegendDialogStyle"
-                >
-                    <template #header>
-                        <SrSolidColorLegend
-                            class="chart-overlay"
-                            v-if = shouldDisplayMainSolidColorLegend
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            :data_key="computedDataKey" 
-                            :transparentBackground="true" 
-                        />
-                    </template>
-                </Dialog>
-
-                <Dialog
-                    v-if="(chartWrapperRef !== undefined)"
-                    v-model:visible="shouldDisplayOverlayGradient"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapperRef"
-                    :style="overlayLegendDialogStyle"
-                >
-                    <template #header>
-                        <SrGradientLegend
-                            class="chart-overlay"
-                            v-if = shouldDisplayOverlayGradient
-                            :reqIdStr="overlayReqIdStr" 
-                            :data_key="computedOverlayDataKey" 
-                            :transparentBackground="true" 
-                        />
-                    </template>
-                </Dialog>
-                <Dialog
-                    v-model:visible="shouldDisplayAtl08Colors"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    appendTo="self" 
-                    :style="overlayLegendDialogStyle"
+                    </Dialog>
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayMainSolidColorLegend"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="mainLegendDialogStyle"
                     >
-                    <template #header>
-                        <SrAtl08Colors  
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            class="chart-overlay"
-                            v-if="shouldDisplayAtl08Colors"
-                        />
-                    </template> 
-                </Dialog>
-                <Dialog
-                    v-model:visible="shouldDisplayAtl03Colors"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    appendTo="self"
-                    :style="overlayLegendDialogStyle" 
-                >
-                    <template #header>
-                        <SrAtl03CnfColors
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            class="chart-overlay"
-                            v-if="shouldDisplayAtl03Colors" 
-                        />
-                    </template>
-                </Dialog>
-            </div>  
+                        <template #header>
+                            <SrSolidColorLegend
+                                class="chart-overlay"
+                                v-if = shouldDisplayMainSolidColorLegend
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                :data_key="computedDataKey" 
+                                :transparentBackground="true" 
+                            />
+                        </template>
+                    </Dialog>
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayOverlayGradient"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="overlayLegendDialogStyle"
+                    >
+                        <template #header>
+                            <SrGradientLegend
+                                class="chart-overlay"
+                                v-if = shouldDisplayOverlayGradient
+                                :reqIdStr="overlayReqIdStr" 
+                                :data_key="computedOverlayDataKey" 
+                                :transparentBackground="true" 
+                            />
+                        </template>
+                    </Dialog>
+                    <Dialog
+                        v-model:visible="shouldDisplayAtl08Colors"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        appendTo="self" 
+                        :style="overlayLegendDialogStyle"
+                        >
+                        <template #header>
+                            <SrAtl08Colors  
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                class="chart-overlay"
+                                v-if="shouldDisplayAtl08Colors"
+                            />
+                        </template> 
+                    </Dialog>
+                    <Dialog
+                        v-model:visible="shouldDisplayAtl03Colors"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        appendTo="self"
+                        :style="overlayLegendDialogStyle" 
+                    >
+                        <template #header>
+                            <SrAtl03CnfColors
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                class="chart-overlay"
+                                v-if="shouldDisplayAtl03Colors" 
+                            />
+                        </template>
+                    </Dialog>
+                </div> 
+            </div>
         </div> 
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
@@ -716,6 +681,16 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     align-items: center
 }
 
+.sr-cycles-legend-panel{
+    display: flex;
+    flex-direction: column;
+    justify-content:flex-start;
+    align-items:center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
+}
+
 .sr-select-lists {
     display: flex;
     flex-direction: column;
@@ -726,6 +701,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     width: auto;
     max-width: 10rem;
 }
+
 .sr-select-boxes {
     display: flex;
     flex-direction: row;

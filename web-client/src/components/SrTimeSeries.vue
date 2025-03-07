@@ -139,7 +139,6 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
-            globalChartStore.use_y_atc_filter = true;
             await setCyclesGtsSpotsFromFileUsingRgtYatc();
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
@@ -243,7 +242,6 @@ watch(() => {
                 <SrCycleSelect />
                 <SrSimpleYatcCntrl />
                 <div class="sr-legends-panel">
-                    <!-- {{ shouldDisplayGradient }} {{ (chartWrapperRef !== undefined) }} -->
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"
                         v-model:visible="shouldDisplayGradient"
@@ -362,6 +360,7 @@ watch(() => {
     justify-content: flex-start;
     align-items:center;
 }
+
 .sr-cycles-legend-panel{
     display: flex;
     flex-direction: column;
@@ -371,6 +370,7 @@ watch(() => {
     padding: 0.5rem;
     width: auto;
 }
+
 .sr-select-lists {
     display: flex;
     flex-direction: column;

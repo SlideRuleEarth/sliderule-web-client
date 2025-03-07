@@ -379,14 +379,8 @@ export async function processSelectedElData(d:ElevationDataItem): Promise<void> 
     gcs.selected_y_atc = d.y_atc;
     console.log('processSelectedElData: selected_y_atc:',gcs.selected_y_atc);
     console.log(`processSelectedElData: ${useAnalysisTabStore().activeTabLabel}`);
-    if(useAnalysisTabStore().activeTabLabel == 'Time Series'){    gcs.use_y_atc_filter = true;
+    if(gcs.use_y_atc_filter){    
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
-        // const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(useRecTreeStore().selectedReqId);
-        // globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        // globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
-        //console.log('processSelectedElData: filteredCycleOptions:',filteredCycleOptions);
-    } else {
-        gcs.use_y_atc_filter = false;
     }
     console.log('processSelectedElData: pair',gcs.getPairs());
     console.log('processSelectedElData: rgt',gcs.getRgt())
