@@ -796,7 +796,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
   /* Each item should not flex to fill the container, so prevent auto stretching: */
   flex: 0 0 auto; 
   /* Or use: display: inline-block; */
-  white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
+  white-space: nowrap;  /* Make sure each items text doesnt wrap within itself */
 }
 
 .sr-run-control{
