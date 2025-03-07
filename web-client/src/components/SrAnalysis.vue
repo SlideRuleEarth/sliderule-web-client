@@ -12,7 +12,7 @@
                 <TabPanel value="0">
                     <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
                     <SrElevationPlot 
-                        v-if="shouldDisplayScatterPlot" 
+                        v-if="shouldDisplayElevationPlot" 
                         :startingReqId="reqId"
                     />
                 </TabPanel>
@@ -33,7 +33,7 @@
 </template>
   
 <script setup lang="ts">
-    import { ref, computed, onMounted } from 'vue'
+    import { computed, onMounted } from 'vue'
     import Tabs from 'primevue/tabs';
     import TabList from 'primevue/tablist';
     import Tab from 'primevue/tab';
@@ -44,6 +44,7 @@
     import { useRecTreeStore } from '@/stores/recTreeStore';
     import { useChartStore } from '@/stores/chartStore';
     import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+    import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from './SrTimeSeries.vue';
 
@@ -51,17 +52,20 @@
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     const analysisTabStore = useAnalysisTabStore();
+    const globalChartStore = useGlobalChartStore();
 
 
     // The reqId from the route
     const reqId = computed(() => Number(route.params.id) || 0);
 
     // In each "shouldDisplay" computed, also check the active tab
-    const shouldDisplayScatterPlot = computed(() => {
+    const shouldDisplayElevationPlot = computed(() => {
         return (
             analysisTabStore.getActiveTab === '0' && // Only show on tab 0
             recTreeStore.selectedReqId > 0 &&
-            recTreeStore.allReqIds.includes(reqId.value)
+            recTreeStore.allReqIds.includes(reqId.value) &&
+            globalChartStore.getSelectedElevationRec() !== null
+
         );
     });
 

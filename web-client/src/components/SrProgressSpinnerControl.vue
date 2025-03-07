@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, defineEmits, nextTick } from "vue";
+import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { Control } from "ol/control";
 import ProgressSpinner from "primevue/progressspinner";
 import { useMapStore } from "@/stores/mapStore";

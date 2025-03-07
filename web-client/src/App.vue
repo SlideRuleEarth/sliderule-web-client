@@ -94,11 +94,12 @@ const detectBrowserAndOS = () => {
 let stopWatching: (() => void) | null = null;
 
 onMounted(async () => {
+    console.log('App onMounted');
     const reqId = await recTreeStore.updateRecMenu('from App');
     initChartStore();
-
     if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {
-        recTreeStore.initToFirstRecord();
+      // this covers the case that the user types a bad URL
+      recTreeStore.initToFirstRecord();
     }
 
     detectBrowserAndOS();
@@ -129,6 +130,7 @@ onMounted(async () => {
             toast.add({ severity: 'error', summary: 'Exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife() });
         }
     });
+    console.log('App onMounted done');
 });
 
 const requestButtonClick = async () => {
