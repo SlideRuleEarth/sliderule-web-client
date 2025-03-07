@@ -16,8 +16,8 @@ import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 
-let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -36,6 +36,7 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
+const chartReady = ref(false);
 const shouldDisplayGradient = ref(false);
 const gradientDialogStyle = ref<{
     backgroundColor: string;
@@ -52,9 +53,9 @@ const gradientDialogStyle = ref<{
 });
 
 const initGradientPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -77,7 +78,7 @@ const initGradientPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrScatterPlot initGradientPosition:', {
+    console.log('SrTimeSeries initGradientPosition:', {
         windowScrollX,
         windowScrollY,
         fontSize: globalChartStore.fontSize,
@@ -105,7 +106,7 @@ const initGradientPosition = () => {
         transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrScatterPlot initGradientPosition - chartWrapper is null');
+    console.warn('SrTimeSeries initGradientPosition - chartWrapper is null');
   }
   
 };
@@ -113,6 +114,20 @@ const initGradientPosition = () => {
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
+
+const handleChartFinished = () => {
+    console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    if(chartWrapperRef.value){
+        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+            initGradientPosition();
+            chartReady.value = true;
+        } else {
+            console.warn('handleChartFinished - no Y data selected');
+        }
+    } else {
+        console.warn('handleChartFinished - chartWrapperRef is null');
+    }
+};
 
 onMounted(async () => {
     try {
@@ -204,11 +219,6 @@ watch(() => {
   { deep: true }
 );
 
-watch(chartWrapperRef, (newValue) => {
-    console.log("chartWrapperRef updated:", newValue);
-    chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-});
-
 </script>
 <template>
     <div class="sr-time-series-container" v-if="loadingComponent"><span>Loading...</span></div>
@@ -226,20 +236,21 @@ watch(chartWrapperRef, (newValue) => {
                         showSpinner: true, 
                         zlevel:100
                     }" 
+                    @finished="handleChartFinished"
                 />
             </div>
             <div class="sr-cycles-legend-panel">
                 <SrCycleSelect />
                 <div class="sr-legends-panel">
-                    <!-- {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }} -->
+                    <!-- {{ shouldDisplayGradient }} {{ (chartWrapperRef !== undefined) }} -->
                     <Dialog
-                        v-if="(chartWrapper !== null)"
+                        v-if="(chartWrapperRef !== undefined)"
                         v-model:visible="shouldDisplayGradient"
                         :closable="false"
                         :draggable="true"
                         :modal="false"
                         class="sr-floating-dialog"
-                        :appendTo="chartWrapper"
+                        :appendTo="chartWrapperRef"
                         :style="gradientDialogStyle"
                     >
                         <template #header>

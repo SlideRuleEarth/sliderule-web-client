@@ -305,6 +305,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return selectedElevationRec.value ?? null;
     };
 
+    function y_atc_is_valid():boolean {
+        return ((selected_y_atc.value != undefined) && (selected_y_atc.value != null) && (!isNaN(selected_y_atc.value)));
+    };
+
     return {
         fontSize,
         getCycleOptions,
@@ -361,6 +365,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getSelectedElevationRec,
         use_y_atc_filter,
         selected_y_atc,
+        y_atc_is_valid,
         y_atc_margin,
     };
 });

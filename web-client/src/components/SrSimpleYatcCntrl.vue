@@ -1,76 +1,47 @@
 <template>
     <SrCustomTooltip ref="tooltipRef"/>
     <div class="sr-y-atc-panel" 
-        @mouseover="tooltipRef.showTooltip($event, toolTipStr)"
+        @mouseover="tooltipRef.showTooltip('Used to increase/decrease width of coverage and filter in/out off pointed tracks from different cycles')"
         @mouseleave="tooltipRef.hideTooltip"
     >
-        <div class="sr-checkbox-item">
-            <label>y_atc</label>
-            <Checkbox 
-                binary 
-                v-model="globalChartStore.use_y_atc_filter" 
-                size="small"
-                @update:model-value="handleModelValueChange"
-            />
-        </div>
+        <label class="sr-label-simple_yatc" for="width">Width of Coverage (meters):</label>
         <InputNumber 
-            v-model="globalChartStore.y_atc_margin"
+            v-model="widthOfCoverage"
+            id="width",
             class="sr-yatc-number"
             size="small"
             :minFractionDigits="1"
             :min="0.001"
-            :max="9999"
+            :max="500"
             :step="1.000"
             showButtons
             @update:modelValue="handleModelValueChange"
         ></InputNumber>
-        <div class="sr-yatc-min-selected-max">
-            <span>y_atc: {{ globalChartStore.selected_y_atc?.toFixed(3) }}</span>
-            <span>y_atc_min: {{ computedMinYAtc.toFixed(3) }}</span>
-            <span>y_atc_max: {{ computedMaxYAtc.toFixed(3) }}</span>    
-        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
+const widthOfCoverage = ref<number>(globalChartStore.y_atc_margin);
 
 
-
-const computedMaxYAtc = computed(() => {
-    return globalChartStore.selected_y_atc + globalChartStore.y_atc_margin;
-});
-
-const computedMinYAtc = computed(() => {
-    return globalChartStore.selected_y_atc - globalChartStore.y_atc_margin;
-});
-
-const toolTipStr = computed(() => {
-    const ttstr = globalChartStore.selected_y_atc === undefined? 'Click on a track to enable this, it is used to filter out off pointed tracks from different cycles' : 'Used to filter out off pointed tracks from different cycles';
-    console.log('toolTipStr:',ttstr);
-    return ttstr;
-});
 
 async function handleModelValueChange(value: number) {
     console.log('SrYatcFilterCntrl handleValueChange:', value);
+    globalChartStore.y_atc_margin = value/2;
     if(!value) {
-        console.log('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
+        console.warn('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
-    if(globalChartStore.y_atc_is_valid()){
-        await setCyclesGtsSpotsFromFileUsingRgtYatc();
-        await updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
-    } else {
-        console.error('SrYatcFilterCntrl handleValueChange: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
-    }
+    await setCyclesGtsSpotsFromFileUsingRgtYatc();
+    await updatePlotAndSelectedTrackMapLayer("SrSimpleYatcCntrl");// no need to debounce
 }
 
 </script>
@@ -98,6 +69,12 @@ async function handleModelValueChange(value: number) {
     overflow: hidden; /* Hides overflow */
     text-overflow: ellipsis; /* Adds an ellipsis if the text overflows */
 }
+
+.sr-label-simple_yatc{
+    font-size: small;
+    margin:auto;
+}
+
 .sr-yatc-min-selected-max{
     display: flex;
     flex-direction: column;

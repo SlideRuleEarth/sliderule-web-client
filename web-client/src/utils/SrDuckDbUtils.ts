@@ -296,13 +296,16 @@ export const getColsForRgtYatcFromFile = async (
             console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} status is error, SKIPPING!`);
             return;
         }
-  
+        const globalChartStore = useGlobalChartStore();
+        if( !globalChartStore.y_atc_is_valid()){
+            console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} y_atc is invalid, SKIPPING!`);
+            return;
+        }
         // 1. Initialize DuckDB client
         const duckDbClient = await createDuckDbClient();
     
         // 2. Retrieve the filename/func
         const filename = await indexedDb.getFilename(req_id);
-        const globalChartStore = useGlobalChartStore();
         const rgt = globalChartStore.getRgt();
         const selected_y_atc = globalChartStore.selected_y_atc;
         const y_atc_margin = globalChartStore.y_atc_margin;
