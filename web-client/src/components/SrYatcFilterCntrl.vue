@@ -1,7 +1,7 @@
 <template>
     <SrCustomTooltip ref="tooltipRef"/>
     <div class="sr-y-atc-panel" 
-        @mouseover="tooltipRef.showTooltip($event, toolTipStr)"
+        @mouseover="tooltipRef.showTooltip($event, 'Used to filter out off pointed tracks from different cycles')"
         @mouseleave="tooltipRef.hideTooltip"
     >
         <div class="sr-checkbox-item">
@@ -52,12 +52,6 @@ const computedMaxYAtc = computed(() => {
 
 const computedMinYAtc = computed(() => {
     return globalChartStore.selected_y_atc - globalChartStore.y_atc_margin;
-});
-
-const toolTipStr = computed(() => {
-    const ttstr = globalChartStore.selected_y_atc === undefined? 'Click on a track to enable this, it is used to filter out off pointed tracks from different cycles' : 'Used to filter out off pointed tracks from different cycles';
-    console.log('toolTipStr:',ttstr);
-    return ttstr;
 });
 
 async function handleModelValueChange(value: number) {

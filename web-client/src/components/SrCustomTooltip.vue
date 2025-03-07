@@ -16,18 +16,21 @@
   });
 
   // Define the functions that will control tooltip visibility and position
-  const showTooltip = (event: MouseEvent, content: string) => {
+  const showTooltip = (event: MouseEvent, content: string | undefined) => {
+    if (!content) {
+        console.warn('Tooltip content is undefined or empty');
+        return;
+    }
+    
     text.value = content;
     visible.value = true;
-    
+
     const { clientX: x, clientY: y } = event;
     const tooltipOffset = 10; // distance from the cursor
-    // Estimate tooltip width based on the number of characters
-    const averageCharWidth = getComputedStyle(document.documentElement).fontSize 
-    //console.log('averageCharWidth:',averageCharWidth);
-    //console.log('maxToolTipWidthPx:',maxToolTipWidthPx);
-    const tooltipWidth = content.length * Number(averageCharWidth);
     
+    // Ensure `content` is a valid string before accessing `.length`
+    const tooltipWidth = (content?.length ?? 0) * parseFloat(getComputedStyle(document.documentElement).fontSize);
+
     const tooltipHeight = 10; // estimated or actual height of your tooltip
 
     // Get the window's dimensions

@@ -241,6 +241,7 @@ watch(() => {
             </div>
             <div class="sr-cycles-legend-panel">
                 <SrCycleSelect />
+                <SrSimpleYatcCntrl />
                 <div class="sr-legends-panel">
                     <!-- {{ shouldDisplayGradient }} {{ (chartWrapperRef !== undefined) }} -->
                     <Dialog
@@ -364,7 +365,7 @@ watch(() => {
 .sr-cycles-legend-panel{
     display: flex;
     flex-direction: column;
-    justify-content:space-between;
+    justify-content:flex-start;
     align-items:center;
     margin: 0.5rem;
     padding: 0.5rem;
