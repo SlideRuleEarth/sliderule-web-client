@@ -27,12 +27,10 @@ import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import { useAnalysisTabStore } from "@/stores/analysisTabStore";
 import { processSelectedElData } from "@/utils/SrMapUtils";
 
 const tooltipRef = ref();
 
-let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -53,6 +51,8 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+const chartReady = ref(false);
+
 const mainLegendDialogStyle = ref<{
     position: string;
     top: string;
@@ -79,9 +79,9 @@ const overlayLegendDialogStyle = ref<{
 });
 
 const initMainLegendPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -131,16 +131,16 @@ const initMainLegendPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initMainLegendPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initMainLegendPosition - thisChartWrapper is null');
   }
   
 };
 
 
 const initOverlayLegendPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -190,7 +190,7 @@ const initOverlayLegendPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initOverlayLegendPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initOverlayLegendPosition - thisChartWrapper is null');
   }
   
 };
@@ -227,7 +227,7 @@ const computedDataKey = computed(() => {
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if((computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
+    if((chartReady.value) && (computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
         shouldDisplay = true;
     }
     return shouldDisplay;
@@ -282,49 +282,68 @@ const photonCloudBtnTooltip = computed(() => {
 
 });
 
-const enableTouchDragging = () =>{
-    const dialogs = document.querySelectorAll('.sr-floating-dialog');
+// const enableTouchDragging = () => {
+//     const dialogs = document.querySelectorAll('.sr-floating-dialog');
 
-    dialogs.forEach((dialogElement) => {
-        const dialog = dialogElement as HTMLElement; // Cast to HTMLElement for style access
-        let startX = 0;
-        let startY = 0;
-        let initialLeft = 0;
-        let initialTop = 0;
+//     dialogs.forEach((dialogElement) => {
+//         const dialog = dialogElement as HTMLElement; // Cast to HTMLElement for style access
+//         let startX = 0;
+//         let startY = 0;
+//         let initialLeft = 0;
+//         let initialTop = 0;
 
-        const onTouchStart = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            startX = touch.clientX;
-            startY = touch.clientY;
-            const rect = dialog.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
+//         const onTouchStart = (e: TouchEvent) => {
+//             const touch = e.touches[0];
+//             startX = touch.clientX;
+//             startY = touch.clientY;
+//             const rect = dialog.getBoundingClientRect();
+//             initialLeft = rect.left;
+//             initialTop = rect.top;
 
-            document.addEventListener('touchmove', onTouchMove);
-            document.addEventListener('touchend', onTouchEnd);
-        };
+//             // Attach move and end listeners with appropriate options
+//             document.addEventListener('touchmove', onTouchMove, { passive: false }); // Prevent default when dragging
+//             document.addEventListener('touchend', onTouchEnd, { passive: true }); // No need to block scrolling
+//         };
 
-        const onTouchMove = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            const dx = touch.clientX - startX;
-            const dy = touch.clientY - startY;
+//         const onTouchMove = (e: TouchEvent) => {
+//             e.preventDefault(); // Prevent scrolling while dragging
 
-            dialog.style.left = `${initialLeft + dx}px`;
-            dialog.style.top = `${initialTop + dy}px`;
-        };
+//             const touch = e.touches[0];
+//             const dx = touch.clientX - startX;
+//             const dy = touch.clientY - startY;
 
-        const onTouchEnd = () => {
-            document.removeEventListener('touchmove', onTouchMove);
-            document.removeEventListener('touchend', onTouchEnd);
-        };
+//             dialog.style.left = `${initialLeft + dx}px`;
+//             dialog.style.top = `${initialTop + dy}px`;
+//         };
 
-        dialog.addEventListener('touchstart', onTouchStart);
-  });
-}
+//         const onTouchEnd = () => {
+//             document.removeEventListener('touchmove', onTouchMove);
+//             document.removeEventListener('touchend', onTouchEnd);
+//         };
+
+//         // Add touchstart with { passive: true }
+//         dialog.addEventListener('touchstart', onTouchStart, { passive: true });
+//     });
+// };
+
+const handleChartFinished = () => {
+    console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    if(chartWrapperRef.value){
+        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+            initMainLegendPosition();
+            initOverlayLegendPosition();
+            chartReady.value = true;
+        } else {
+            console.warn('handleChartFinished - no Y data selected');
+        }
+    } else {
+        console.warn('handleChartFinished - chartWrapperRef is null');
+    }
+};
 
 onMounted(async () => {
     try {
-        console.log('SrElevationPlot onMounted initial chartWrapper:',chartWrapper);
+        console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
         webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
         //console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
         // Get the computed style of the document's root element
@@ -343,7 +362,7 @@ onMounted(async () => {
             if(selectedElRecord){
                 processSelectedElData(selectedElRecord);
             } else {
-                console.warn('SrElevationPlot onMounted - selectedElRecord is null');
+                console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
@@ -352,13 +371,8 @@ onMounted(async () => {
         } else {
             console.warn('reqId is undefined');
         }        
-        //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
-        await nextTick(); // Ensures Vue has completed the DOM rendering
-        initMainLegendPosition();
-        initOverlayLegendPosition();
-        //console.log('SrElevationPlot onMounted completed');
 
-        enableTouchDragging();
+        //enableTouchDragging(); // this is experimental
         requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
@@ -381,7 +395,6 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
 });
 
 watch(() => plotRef.value, async (newPlotRef) => {
-    //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
         console.warn('SrElevationPlot watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
@@ -390,11 +403,8 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
-        nextTick(initMainLegendPosition); // Ensure DOM updates before repositioning
-        nextTick(initOverlayLegendPosition); // Ensure DOM updates before repositioning
     }
 });
-
 const messageClass = computed(() => {
   return {
     'message': true,
@@ -459,6 +469,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
 <template>
     <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
     <div class="sr-elevation-plot-container" v-else>
+        <!-- {{ webGLSupported ? 'WebGL is supported' : 'WebGL is not supported' }}
+        {{ shouldDisplayMainGradient ? 'Main Gradient Displayed' : 'Main Gradient Not Displayed' }}
+        {{ shouldDisplayMainSolidColorLegend ? 'Main Solid Color Legend Displayed' : 'Main Solid Color Legend Not Displayed' }}
+        {{ shouldDisplayOverlayGradient ? 'Overlay Gradient Displayed' : 'Overlay Gradient Not Displayed' }}
+        {{ shouldDisplayAtl08Colors ? 'Atl08 Colors Displayed' : 'Atl08 Colors Not Displayed' }}
+        {{ shouldDisplayAtl03Colors ? 'Atl03 Colors Displayed' : 'Atl03 Colors Not Displayed' }} -->      
         <div class="sr-elevation-plot-content">
             <div ref="chartWrapperRef" class="chart-wrapper">
                 <v-chart  ref="plotRef" 
@@ -472,15 +488,16 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                         showSpinner: true, 
                         zlevel:100
                     }" 
+                    @finished="handleChartFinished"
                 />
                 <Dialog
-                    v-if="(chartWrapper !== null)"
+                    v-if="(chartWrapperRef !== undefined)"
                     v-model:visible="shouldDisplayMainGradient"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
                     class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
+                    :appendTo="chartWrapperRef"
                     :style="mainLegendDialogStyle"
                 >
                     <template #header>
@@ -494,13 +511,13 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     </template>
                 </Dialog>
                 <Dialog
-                    v-if="(chartWrapper !== null)"
+                    v-if="(chartWrapperRef !== undefined)"
                     v-model:visible="shouldDisplayMainSolidColorLegend"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
                     class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
+                    :appendTo="chartWrapperRef"
                     :style="mainLegendDialogStyle"
                 >
                     <template #header>
@@ -515,13 +532,13 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 </Dialog>
 
                 <Dialog
-                    v-if="(chartWrapper !== null)"
+                    v-if="(chartWrapperRef !== undefined)"
                     v-model:visible="shouldDisplayOverlayGradient"
                     :closable="false"
                     :draggable="true"
                     :modal="false"
                     class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
+                    :appendTo="chartWrapperRef"
                     :style="overlayLegendDialogStyle"
                 >
                     <template #header>
