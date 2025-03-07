@@ -7,7 +7,7 @@
         <label class="sr-label-simple_yatc" for="width">Width of Coverage (meters):</label>
         <InputNumber 
             v-model="widthOfCoverage"
-            id="width",
+            id="width"
             class="sr-yatc-number"
             size="small"
             :minFractionDigits="1"
