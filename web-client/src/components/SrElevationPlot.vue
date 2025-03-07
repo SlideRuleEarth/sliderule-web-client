@@ -263,26 +263,17 @@ const shouldDisplayOverlayGradient =computed(() => {
             (computedOverlayDataKey.value!='atl08_class');
 });
 
-const filterGood = computed(() => {
-    return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgt()>=0) && (globalChartStore.getSpots().length === 1));
-});
 
 const enableThePhotonCloud = computed(() => {
-    return (!useMapStore().getIsLoading() && filterGood.value);
+    return (!useMapStore().getIsLoading());
 }); 
 
 const photonCloudBtnTooltip = computed(() => {
-    if(!filterGood.value){
-        return 'Photon Cloud is disabled due to:\n multiple Cycles, Rgts, Spots, or Gts.\nClick on a track to enable this.';
-    } else {
-        if(useMapStore().getIsLoading()){
+    if(!useMapStore().getIsLoading()){
             return 'Photon Cloud is disabled while record is loading';
-        } else {
-            //return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
-            return '';
-        }
+    } else {
+        return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
     }
-
 });
 
 const handleChartFinished = () => {
@@ -588,14 +579,14 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">
                         <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
-                </div>
-                <div class="sr-multiselect-col-req">
-                    <SrReqDisplay
-                        v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
-                        checkboxLabel='Show Photon Cloud Req Params'
-                        :isForPhotonCloud="true"
-                        :tooltipText="'The params that will be used for the Photon Cloud overlay'"
-                    />
+                    <div class="sr-multiselect-col-req">
+                        <SrReqDisplay
+                            v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
+                            checkboxLabel='Show Photon Cloud Req Params'
+                            :isForPhotonCloud="true"
+                            :tooltipText="'The params that will be used for the Photon Cloud overlay'"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
