@@ -10,14 +10,17 @@
                 :decimalPlaces=0
                 tooltipText="Chunk size to Query from parquet file"
         />
-        <SrSliderInput
-            v-model="useSrParquetCfgStore().maxNumPntsToDisplay"
-            label="Max Num Elevation Pnts"
+        <InputNumber
+            v-model="srParquetCfgStore.maxNumPntsToDisplay"
+            class="sr-max-num-pnts-to-display"
+            size="small"
             :min="10000"
             :max="5000000"
-            :defaultValue="100000"
+            :step="10000"
+            showButtons
+            label="Max Num Elevation Pnts"
+            :defaultValue="10000"
             :decimalPlaces=0
-            tooltipText="Maximum number of points to display"
         />
         <SrToggleButton 
             :value="reqParamsStore.useChecksum"
@@ -79,6 +82,7 @@
     import { ref } from 'vue';
     import SrCheckbox from './SrCheckbox.vue';
     import InputNumber from 'primevue/inputnumber';
+    import FloatLabel from 'primevue/floatlabel';
 
 
     const debugStore = useDebugStore();
