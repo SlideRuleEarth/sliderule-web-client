@@ -314,7 +314,11 @@ onMounted(async () => {
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
-            await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            if(recTreeStore.selectedApi.includes('atl08')){
+                console.warn('SrElevationPlot onMounted - atl08 selected no y_atc supported yet');
+            } else {
+                await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            }
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
             // set this so if the user looks at it, it will be there

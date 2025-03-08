@@ -332,11 +332,10 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     }
 }
 
-export function isClickable(d:ElevationDataItem): boolean {
-
+export function isClickable(d: ElevationDataItem): boolean {
     let valid = true;
-    if(isInvalid(d.cycle) || isInvalid(d.rgt) || isInvalid(d.y_atc)){
-        console.log('isValidElevationPnt: invalid elevation point:',d);
+    if (isInvalid(d.cycle) || isInvalid(d.rgt) || (d?.y_atc !== undefined && isInvalid(d?.y_atc))) {
+        //console.log('isClickable: invalid elevation point:', d);
         valid = false;
     }
     return valid;
