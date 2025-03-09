@@ -12,7 +12,7 @@
 </script>
 
 <template>
-    <div class="mode-box">
+    <div class="sr-graticule-panel">
         <SrToggleButton 
             :value="mapStore.graticuleState"
             :getValue="mapStore.getGraticuleState"
@@ -26,9 +26,10 @@
 </template>
 
 <style scoped>
-    .mode-box {
+    .sr-graticule-panel {
         display: flex;
-        justify-content: center;
+        flex-direction: row;
+        justify-content:flex-start;
         align-items: center;
         margin: 1rem;
     }

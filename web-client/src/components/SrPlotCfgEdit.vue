@@ -1,5 +1,5 @@
 <template>
-        <div class="sr-card">
+    <div class="sr-card">
         <div class="sr-card-header">Plot Config Defaults</div>
         <div class="sr-card-content">
             <div class="sr-form-grid" v-if="plotConfig">
@@ -68,7 +68,7 @@
             <Button label="Save" icon="pi pi-save" @click="saveConfig" class="sr-button-primary" />
             <Button label="Cancel" icon="pi pi-times" class="sr-button-secondary" @click="resetConfig" />
         </div>
-        </div>
+    </div>
 </template>
   
 <script setup lang="ts">
@@ -111,14 +111,19 @@
 
 <style scoped>
   .sr-card {
-    border-radius: o.5rem;
+    border: 2px solid grey;
+    border-radius: 0.5rem;
     padding: 1.0rem;
   }
   
   .sr-card-header {
+    display: flex;
     font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 1rem;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
   }
   
   .sr-card-content {

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import colormap  from 'colormap';
+import { type SrMenuNumberItem } from '@/types/SrTypes';
 
 export const useElevationColorMapStore = defineStore('elevationColorMap', {
     state: () => ({
@@ -20,8 +21,8 @@ export const useElevationColorMapStore = defineStore('elevationColorMap', {
         getNumShadesForElevation() {
             return this.numShadesForElevation;
         },
-        getNumOfElevationShadesOptions() {
-            return [{name:'256', value:'256'},{name:'512', value:'512'},{name:'1024', value:'1024'}];
+        getNumOfElevationShadesOptions() : SrMenuNumberItem[]{
+            return [{label:'256', value:256},{label:'512', value:512},{label:'1024', value:1024}];
         },
         updateElevationColorMapValues()
         {

@@ -53,6 +53,7 @@
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const deckStore = useDeckStore();
+    const srParquetCfgStore = useSrParquetCfgStore();
     const controls = ref([]);
 
 
@@ -115,7 +116,7 @@
         await updateAnalysisMapView("New parquetReader");
     });
 
-    watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
+    watch(() => srParquetCfgStore.maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
         console.log(`watch maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });

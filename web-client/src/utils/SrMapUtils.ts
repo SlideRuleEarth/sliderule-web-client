@@ -1085,9 +1085,9 @@ export async function processNewReqId(map:OLMap): Promise<void> {
     try {
         const req_id = recTreeStore.selectedReqId;
         if(req_id > 0){
-            mapStore.setTotalRows(0);
-            mapStore.setCurrentRows(0);
-            atlChartFilterStore.setDebugCnt(0);
+            // mapStore.setTotalRows(0);
+            // mapStore.setCurrentRows(0);
+            // atlChartFilterStore.setDebugCnt(0);
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await updateElevationMap(req_id);
             await updatePlotAndSelectedTrackMapLayer("processNewReqId");
