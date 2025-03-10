@@ -2,7 +2,7 @@ import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import { EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX, updateDeckLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
+import { updateDeckLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
 import { useMapStore } from '@/stores/mapStore';
 import { SrMutex } from './SrMutex';
@@ -13,9 +13,11 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { processSelectedElPnt,generateNameSuffix,isClickable } from '@/utils/SrMapUtils'
+import { processSelectedElPnt,isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
-import { type SrPosition } from '@/types/SrTypes';
+import { type SrPosition, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
+import { useDeckStore } from '@/stores/deckStore';
+
 
 interface SummaryRowData {
     minLat: number;
@@ -378,7 +380,7 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<ElevationDataItem | null> => {
+export const duckDbReadAndUpdateElevationData = async (req_id: number,name:string): Promise<ElevationDataItem | null> => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
@@ -456,7 +458,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
         }
 
         if (numRows > 0 && firstRec) {
-            const name = EL_LAYER_NAME_PREFIX + '-' + req_id.toString();
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
 
@@ -469,6 +470,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
                 });
 
                 updateDeckLayerWithObject(name, rows, summary.extHMean, height_fieldname, positions, projName);
+                
             } else {
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
             }
@@ -489,7 +491,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
 type Position = [number, number, number];
 
 export const duckDbReadAndUpdateSelectedLayer = async (
-    req_id: number, chunkSize: number = 10000, maxNumPnts = 10000
+    req_id: number, name:string, chunkSize: number = 10000, maxNumPnts = 10000
 ) => {
     console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
     if (req_id === undefined || req_id === null || req_id === 0) {
@@ -580,14 +582,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             const projName = srViews.value[srViewName].projectionName;
             const height_fieldname = getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
-            // let name_suffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
-            // if(use_y_atc_filter){
-            //     name_suffix = name_suffix +`-${min_y_atc}-${max_y_atc}`;
-            // }
-            const name_suffix = generateNameSuffix(req_id,rgt,cycles,spots,use_y_atc_filter,min_y_atc,max_y_atc);
-
-            const name= SELECTED_LAYER_NAME_PREFIX + name_suffix;
-
             if (summary?.extHMean) {
                 useCurReqSumStore().setSummary({
                     req_id: req_id,
@@ -595,7 +589,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                     extHMean: summary.extHMean,
                     numPoints: summary.numPoints
                 });
-
                 // Pass `positions` to the function so it's used efficiently
                 updateDeckLayerWithObject(name,rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
