@@ -107,25 +107,25 @@ const initMainLegendPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initMainLegendPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
+    // console.log('SrElevationPlot initMainLegendPosition:', {
+    //     windowScrollX,
+    //     windowScrollY,
+    //     fontSize: globalChartStore.fontSize,
+    //     topOffset,
+    //     endOfTitle,
+    //     middleHorizontalOffset,
+    //     middleX,
+    //     leftLegendOffset,        
+    //     assumedTitleWidth,
+    //     spaceSize,
+    //     centerOfLegend,    
+    //     top,
+    //     left,
+    //     rect_top,
+    //     rect_left,
+    //     rect_right,
+    //     rect_bottom
+    //});
 
     mainLegendDialogStyle.value = {
       position: "absolute",
@@ -166,25 +166,25 @@ const initOverlayLegendPosition = () => {
     const topOffset = 3 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initOverlayLegendPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
+    // console.log('SrElevationPlot initOverlayLegendPosition:', {
+    //     windowScrollX,
+    //     windowScrollY,
+    //     fontSize: globalChartStore.fontSize,
+    //     topOffset,
+    //     endOfTitle,
+    //     middleHorizontalOffset,
+    //     middleX,
+    //     leftLegendOffset,        
+    //     assumedTitleWidth,
+    //     spaceSize,
+    //     centerOfLegend,    
+    //     top,
+    //     left,
+    //     rect_top,
+    //     rect_left,
+    //     rect_right,
+    //     rect_bottom
+    // });
 
     overlayLegendDialogStyle.value = {
       position: "absolute",
