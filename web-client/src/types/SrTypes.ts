@@ -110,3 +110,7 @@ export type ApiName = (typeof API_NAMES)[number];
 export function isValidAPI(api: string): api is ApiName {
     return API_NAMES.includes(api as ApiName);
 }
+
+export const EL_LAYER_NAME_PREFIX = 'elevation-deck-layer'; // deck elevation layer
+export const SELECTED_LAYER_NAME_PREFIX = 'selected-deck-layer'; // deck selected layer prefix
+export const OL_DECK_LAYER_NAME = 'ol-deck-layer'; // open layers deck layer

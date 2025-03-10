@@ -1,8 +1,5 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
-import { ScatterplotLayer } from '@deck.gl/layers';
-import { SELECTED_LAYER_NAME_PREFIX,EL_LAYER_NAME_PREFIX } from '@/utils/SrMapUtils';
-import { generateNameSuffix } from '@/utils/SrMapUtils';
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({
@@ -34,50 +31,88 @@ export const useDeckStore = defineStore('deck', {
             console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
         },
         appendLayer(newLayer: any) {
-            // This creates new objects so deck will recognize not ignore them
-            // Check if the any of the existing layer's id contains SELECTED_LAYER_NAME_PREFIX
-            this.deckLayers = this.deckLayers.map(layer =>
-                layer.id.includes(SELECTED_LAYER_NAME_PREFIX)
-                  ? new ScatterplotLayer({ // must create a new layer so deck doesn't ignore the change
-                      ...layer.props,
-                      // same ID, but visible now set to false
-                      id: layer.id,
-                      visible: false
-                    })
-                  : layer
-            ); 
-            let found = false;       
-            // If it is not in the existing set then add the new layer
-            for (let i = 0; i < this.deckLayers.length; i++) {
-                if (this.deckLayers[i].id === newLayer.id) {
-                    console.log('appendLayer: layer already exists:',newLayer.id);
-                    found = true;
-                    break;
-                }
-            }
-            if(found){
-                new ScatterplotLayer({ // must create a new layer so deck doesn't ignore the change
-                    ...newLayer.props,
-                    // same ID, but visible now set to true
-                    id: newLayer.id,
-                    visible: true
-                  })
-            }
             this.deckLayers.push(newLayer);
         },
-        deleteLayer(layerId:string) {
+        hideLayersWithSubstr(substr: string): boolean {
+            let hidIt = false;
+        
+            this.deckLayers = this.deckLayers.map(layer => {
+                //console.log('hideLayersWithSubstr Checking:', JSON.stringify(substr), 'against', JSON.stringify(layer.id));
+        
+                if (layer.id.includes(substr)) {
+                    //console.log('hideLayersWithSubstr: BEFORE hiding existing Selected layer:', layer);
+        
+                    // Create a new layer instance with updated visibility
+                    const newLayer = new layer.constructor({
+                        ...layer.props, // Copy existing properties
+                        visible: false, // Set visibility to false
+                        id: layer.id + "-updated-" + Date.now(), // Force a new layer instance
+                    });
+        
+                    //console.log('hideLayersWithSubstr: AFTER hiding existing Selected layer:', newLayer);
+                    hidIt = true;
+                    return newLayer;
+                }
+        
+                return layer; // Keep other layers unchanged
+            });
+        
+            //console.log('hideLayersWithSubstr:', substr, 'hidIt:', hidIt, 'numLayers:', this.deckLayers.length);
+            return hidIt;
+        },
+        layerExists(layerId:string) {
+            let foundit = false;
             for (let i = 0; i < this.deckLayers.length; i++) {
                 if (this.deckLayers[i].id === layerId) {
-                    this.deckLayers.splice(i,1);
-                    this.getDeckInstance().setProps({layers:this.getLayers()});
-                    return true;
+                    foundit = true;
+                }
+            }
+            //console.log('layerExists:',layerId,'foundit:',foundit);
+            return foundit;
+        },
+        isLayerVisible(layerId:string) {
+            for (let i = 0; i < this.deckLayers.length; i++) {
+                if (this.deckLayers[i].id === layerId) {
+                    return this.deckLayers[i].visible;
                 }
             }
             return false;
         },
-        getLayers() {
-            return this.deckLayers;
+        setVisible(layerId: string, visible: boolean): boolean {
+            let updated = false;
+        
+            this.deckLayers = this.deckLayers.map(layer => {
+                if (layer.id === layerId) {
+                    //console.log('setVisible: BEFORE updating visibility:', layer);
+        
+                    // Create a new instance of the same layer type with updated properties
+                    const newLayer = new layer.constructor({
+                        ...layer.props, // Preserve existing properties
+                        visible: visible, // Update visibility
+                        id: layer.id + "-updated-" + Date.now(), // Force a new layer instance
+                    });
+        
+                    //console.log('setVisible: AFTER updating visibility:', newLayer);
+                    updated = true;
+                    return newLayer;
+                }
+                return layer;
+            });
+        
+            return updated;
+        },        
+        getLayersCopied() {
+            // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
+            // must create new array
+            const newLayers = [];
+            const layers = this.deckLayers;
+            for (let i = 0; i < layers.length; i++) {
+                newLayers.push(layers[i]);
+            }
+            //console.log('getLayers:',layers);
+            return newLayers;
         },
+
         setPointSize(size:number) {
             this.pointSize = size;
         },
@@ -90,10 +125,11 @@ export const useDeckStore = defineStore('deck', {
         getIsDragging(): boolean {
             return this.isDragging;
         },
-        updatePropsWithLayers(){ // this causes it to be drawn
-            const theLayers = this.getLayers();
-            console.log('updatePropsWithLayers:',theLayers);
-            this.deckInstance.setProps({layers:theLayers});
+        updatePropsWithShallowCopiedLayers() { // This forces deck to examine each layer for any real changes
+            const theLayers = this.getLayersCopied();
+            console.log('updatePropsWithShallowCopiedLayers:',theLayers);
+            this.deckInstance.setProps({ layers:  theLayers });
         }
+        
     }
 });

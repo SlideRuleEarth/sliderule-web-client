@@ -309,6 +309,24 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return ((selected_y_atc.value != undefined) && (selected_y_atc.value != null) && (!isNaN(selected_y_atc.value)));
     };
 
+    function generateNameSuffix(
+        req_id: number|string,
+    ): string {
+        const rgt = getRgt();
+        const cycles = getCycles();
+        const spots = getSpots();
+        const min_y_atc = selected_y_atc.value - y_atc_margin.value;
+        const max_y_atc = selected_y_atc.value + y_atc_margin.value;
+        const min_y_atc_str = min_y_atc !== undefined ? min_y_atc.toFixed(2) : '';
+        const max_y_atc_str = max_y_atc !== undefined ? max_y_atc.toFixed(2) : '';
+        let nameSuffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
+
+        if (use_y_atc_filter && min_y_atc !== undefined && max_y_atc !== undefined) {
+            nameSuffix += `-${min_y_atc_str}-${max_y_atc_str}`;
+        }
+        return nameSuffix;
+    }
+
     return {
         fontSize,
         getCycleOptions,
@@ -367,5 +385,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selected_y_atc,
         y_atc_is_valid,
         y_atc_margin,
+        generateNameSuffix,
     };
 });

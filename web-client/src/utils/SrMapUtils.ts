@@ -45,11 +45,8 @@ import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
-import { type SrPosition, type SrRGBAColor } from '@/types/SrTypes';
+import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 
-export const EL_LAYER_NAME_PREFIX = 'elevation-deck-layer'; // deck elevation layer
-export const SELECTED_LAYER_NAME_PREFIX = 'selected-deck-layer'; // deck selected layer prefix
-export const OL_DECK_LAYER_NAME = 'ol-deck-layer'; // open layers deck layer
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -455,22 +452,25 @@ function createDeckLayer(
         filled?: boolean;
         getCursor?: () => string;
     };
+
     // Conditionally include properties
     const isSelectedLayer = name.includes(SELECTED_LAYER_NAME_PREFIX);
-    const selectedLayerProps: Partial<ScatterplotLayerProps> = isSelectedLayer ? 
-    {
-        getLineWidthUnits: 'pixels',
-        getLineWidth: 1,
-        getLineColor: (_d: ElevationDataItem): [number, number, number, number] => [255, 0, 0, 255], // Explicit type
-        stroked: true,
-        filled: false,
-    } : {
-        getCursor: () => 'default',
-        getFillColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
-    };
+    const selectedLayerProps: Partial<ScatterplotLayerProps> = isSelectedLayer
+        ? {
+              getLineWidthUnits: 'pixels',
+              getLineWidth: 1,
+              getLineColor: (_d: ElevationDataItem): [number, number, number, number] => [255, 0, 0, 255], // Explicit type
+              stroked: true,
+              filled: false,
+          }
+        : {
+              getCursor: () => 'default',
+              getFillColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
+          };
 
     const newLayer = new ScatterplotLayer({
         id: name,
+        visible: true,
         data: elevationData,
         getPosition: (d: ElevationDataItem, { index }): SrPosition => positions[index],
         getNormal: [0, 0, 1],
@@ -486,12 +486,45 @@ function createDeckLayer(
                 clicked(object);
             }
         },
+        onError: (error: Error) => {
+            console.error(`Error in ScatterplotLayer ${name}:`, error);
+        },
         ...selectedLayerProps // Spread conditionally included properties
     });
+
     const endTime = performance.now();
     console.log(`createDeckLayer took ${endTime - startTime} milliseconds. endTime:`, endTime);
     return newLayer;
 }
+
+
+export function updateDeckLayerWithObject(
+    name:string,
+    elevationData:ElevationDataItem[], 
+    extHMean: ExtHMean, 
+    heightFieldName:string, 
+    positions:SrPosition[],
+    projName:string
+): void 
+{
+    const startTime = performance.now(); // Start time
+    console.log(`updateDeckLayerWithObject ${name} startTime:`,startTime);
+    try{
+        if(useDeckStore().getDeckInstance()){
+            const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
+            useDeckStore().appendLayer(layer);
+        } else {
+            console.error(`updateDeckLayerWithObject ${name}  Error updating elevation useDeckStore().deckInstance:`,useDeckStore().getDeckInstance());
+        }
+    } catch (error) {
+        console.error(`updateDeckLayerWithObject ${name}  Error updating elevation layer:`,error);
+    } finally {
+        const endTime = performance.now(); // End time
+        console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+    }
+
+}
+
 
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // Check device dimensions
@@ -527,34 +560,6 @@ const onHoverHandler = isIPhone
                 }
             }
 };
-
-export function updateDeckLayerWithObject(
-    name:string,
-    elevationData:ElevationDataItem[], 
-    extHMean: ExtHMean, 
-    heightFieldName:string, 
-    positions:SrPosition[],
-    projName:string
-): void 
-{
-    const startTime = performance.now(); // Start time
-    console.log(`updateDeckLayerWithObject ${name} startTime:`,startTime);
-    try{
-        if(useDeckStore().getDeckInstance()){
-            const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
-            //const replaced = useDeckStore().replaceOrAddLayer(layer,name);
-            useDeckStore().appendLayer(layer);
-        } else {
-            console.error(`updateDeckLayerWithObject ${name}  Error updating elevation useDeckStore().deckInstance:`,useDeckStore().getDeckInstance());
-        }
-    } catch (error) {
-        console.error(`updateDeckLayerWithObject ${name}  Error updating elevation layer:`,error);
-    } finally {
-        const endTime = performance.now(); // End time
-        console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`,endTime);  
-    }
-
-}
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {
@@ -1058,7 +1063,25 @@ const updateElevationMap = async (req_id: number) => {
     try {
         const mapStore = useMapStore();
         mapStore.setIsLoading(true);
-        const parms = await duckDbReadAndUpdateElevationData(req_id);
+        let name = EL_LAYER_NAME_PREFIX + '-' + req_id.toString();
+        const colorMapName = useElevationColorMapStore().getSelectedElevationColorMap();
+        if( colorMapName){
+            name += `-${colorMapName}`;
+        } else {
+            console.warn('updateElevationMap: colorMapName is null' );
+        }
+        const foundOne = useDeckStore().hideLayersWithSubstr(EL_LAYER_NAME_PREFIX);
+        if (foundOne) {
+            console.log('updateElevationMap hiding existing selected layer:', name);
+        } else {
+            console.log('updateElevationMap no existing selected layer found:', name);
+        }
+        if(useDeckStore().layerExists(name)){
+            console.warn('updateElevationMap layer already exists:', name);
+            useDeckStore().setVisible(name,true);
+        } else {
+            const parms = await duckDbReadAndUpdateElevationData(req_id,name);
+        }
         mapStore.setMapInitialized(true);
         mapStore.setIsLoading(false);
     } catch (error) {
@@ -1099,21 +1122,4 @@ export async function updateMapAndPlot(): Promise<void> {
         const endTime = performance.now(); // End time
         console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
-}
-export function generateNameSuffix(
-    req_id: number|string,
-    rgt: number|string,
-    cycles: number[],
-    spots: number[],
-    use_y_atc_filter: boolean,
-    min_y_atc?: number|string,
-    max_y_atc?: number|string
-): string {
-    let nameSuffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
-
-    if (use_y_atc_filter && min_y_atc !== undefined && max_y_atc !== undefined) {
-        nameSuffix += `-${min_y_atc}-${max_y_atc}`;
-    }
-
-    return nameSuffix;
 }

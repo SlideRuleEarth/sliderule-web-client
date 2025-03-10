@@ -34,7 +34,7 @@
     import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
     import { Layer as OLlayer } from 'ol/layer';
     import { Deck } from '@deck.gl/core';
-    import { OL_DECK_LAYER_NAME } from '@/utils/SrMapUtils';
+    import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
