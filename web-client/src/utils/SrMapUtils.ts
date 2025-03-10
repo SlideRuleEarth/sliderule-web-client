@@ -341,8 +341,8 @@ export function isClickable(d: ElevationDataItem): boolean {
     return valid;
 }
 
-export async function processSelectedElData(d:ElevationDataItem): Promise<void> {
-    console.log('processSelectedElData d:',d);
+export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
+    console.log('processSelectedElPnt d:',d);
     const globalChartStore = useGlobalChartStore();
     globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
@@ -386,18 +386,18 @@ export async function processSelectedElData(d:ElevationDataItem): Promise<void> 
         console.error('d.cycle is undefined'); // should always be defined
     }
     gcs.selected_y_atc = d.y_atc;
-    console.log('processSelectedElData: selected_y_atc:',gcs.selected_y_atc);
-    console.log(`processSelectedElData: ${useAnalysisTabStore().activeTabLabel}`);
+    console.log('processSelectedElPnt: selected_y_atc:',gcs.selected_y_atc);
+    console.log(`processSelectedElPnt: ${useAnalysisTabStore().activeTabLabel}`);
     if(gcs.use_y_atc_filter){    
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
     }
-    console.log('processSelectedElData: pair',gcs.getPairs());
-    console.log('processSelectedElData: rgt',gcs.getRgt())
-    console.log('processSelectedElData: cycles',gcs.getCycles())
-    console.log('processSelectedElData: tracks',gcs.getTracks())
-    console.log('processSelectedElData: sc_orient',gcs.getScOrients())
-    console.log('processSelectedElData: spot',gcs.getSpots())
-    console.log('processSelectedElData: gt',gcs.getGts())
+    console.log('processSelectedElPnt: pair',gcs.getPairs());
+    console.log('processSelectedElPnt: rgt',gcs.getRgt())
+    console.log('processSelectedElPnt: cycles',gcs.getCycles())
+    console.log('processSelectedElPnt: tracks',gcs.getTracks())
+    console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
+    console.log('processSelectedElPnt: spot',gcs.getSpots())
+    console.log('processSelectedElPnt: gt',gcs.getGts())
 }
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
@@ -407,7 +407,7 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
         useSrToastStore().warn('Clicked data point contains NaNs', 'Please Click on another point.');
         return;
     }
-    await processSelectedElData(d);
+    await processSelectedElPnt(d);
     const msg = `clicked ${d}`;
     await updatePlotAndSelectedTrackMapLayer(msg);
 }

@@ -13,7 +13,7 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { processSelectedElData,generateNameSuffix,isClickable } from '@/utils/SrMapUtils'
+import { processSelectedElPnt,generateNameSuffix,isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 import { type SrPosition } from '@/types/SrTypes';
 
@@ -441,7 +441,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number): Promise<
                     // Precompute position data for all rows
                     positions = rows.map(d => [d.longitude, d.latitude, 0] as SrPosition);
 
-                    await processSelectedElData(firstRec);
+                    await processSelectedElPnt(firstRec);
                 } else {
                     console.warn('No valid elevation points found.');
                     useSrToastStore().warn('No Data Processed', 'No valid elevation points found.');

@@ -27,7 +27,7 @@ import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import { processSelectedElData } from "@/utils/SrMapUtils";
+import { processSelectedElPnt } from "@/utils/SrMapUtils";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
@@ -310,7 +310,7 @@ onMounted(async () => {
             const selectedElRecord = globalChartStore.getSelectedElevationRec();
             console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
             if(selectedElRecord){
-                await processSelectedElData(selectedElRecord); // TBD maybe no await here to run in parallel?
+                await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
