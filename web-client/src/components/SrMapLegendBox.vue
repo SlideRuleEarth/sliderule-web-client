@@ -22,6 +22,7 @@ import { onMounted } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { updateMapAndPlot } from '@/utils/SrMapUtils';
 
 const chartStore = useChartStore();
 const elevationColorMap = useElevationColorMapStore();
@@ -54,8 +55,9 @@ onMounted(() => {
 // Watch for changes in the elevation color map or the number of shades to update the gradient
 watch(
   () => [elevationColorMap.selectedElevationColorMap, elevationColorMap.numShadesForElevation],
-  () => {
+  async ()  => {
     elevationColorMap.updateElevationColorMapValues();
+    await updateMapAndPlot();
   }
 );
 </script>

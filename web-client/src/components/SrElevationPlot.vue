@@ -310,7 +310,7 @@ onMounted(async () => {
             const selectedElRecord = globalChartStore.getSelectedElevationRec();
             console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
             if(selectedElRecord){
-                processSelectedElData(selectedElRecord);
+                await processSelectedElData(selectedElRecord); // TBD maybe no await here to run in parallel?
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }

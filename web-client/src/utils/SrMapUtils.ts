@@ -1075,34 +1075,29 @@ const updateElevationMap = async (req_id: number) => {
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
 };
 
-export async function processNewReqId(map:OLMap): Promise<void> {
+export async function updateMapAndPlot(): Promise<void> {
     const startTime = performance.now(); // Start time
- 
-    const mapStore = useMapStore();
- 
+  
     const atlChartFilterStore = useAtlChartFilterStore();
     const recTreeStore = useRecTreeStore();
     try {
         const req_id = recTreeStore.selectedReqId;
         if(req_id > 0){
-            // mapStore.setTotalRows(0);
-            // mapStore.setCurrentRows(0);
-            // atlChartFilterStore.setDebugCnt(0);
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await updateElevationMap(req_id);
-            await updatePlotAndSelectedTrackMapLayer("processNewReqId");
+            await updatePlotAndSelectedTrackMapLayer("updateMapAndPlot");
         }
         //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
     } catch (error) {
         if (error instanceof Error) {
-            console.error('processNewReqId Failed:', error.message);
+            console.error('updateMapAndPlot Failed:', error.message);
         } else {
-            console.error('processNewReqId Unknown error occurred:', error);
+            console.error('updateMapAndPlot Unknown error occurred:', error);
         }
     } finally {
         //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
         const endTime = performance.now(); // End time
-        console.log(`processNewReqId took ${endTime - startTime} milliseconds.`);
+        console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
 }
 export function generateNameSuffix(

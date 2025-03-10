@@ -29,7 +29,7 @@
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
-    import { processNewReqId } from "@/utils/SrMapUtils";
+    import { updateMapAndPlot } from "@/utils/SrMapUtils";
     import { useDeckStore } from "@/stores/deckStore"; 
     import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
     import { Layer as OLlayer } from 'ol/layer';
@@ -295,7 +295,7 @@
                 deckStore.clearDeckInstance(); // Clear any existing instance first
                 createDeckInstance(map); 
                 addDeckLayerToMap(map);        
-                await processNewReqId(map);
+                await updateMapAndPlot();
 
             } else {
                 console.error("SrMap Error:map is null");
