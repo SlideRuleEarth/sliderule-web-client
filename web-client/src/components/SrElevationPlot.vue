@@ -277,7 +277,7 @@ const photonCloudBtnTooltip = computed(() => {
 });
 
 const handleChartFinished = () => {
-    console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
     if(chartWrapperRef.value){
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
             initMainLegendPosition();
@@ -293,13 +293,13 @@ const handleChartFinished = () => {
 
 onMounted(async () => {
     try {
-        console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
+        //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
         webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
-        //console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
         // Get the computed style of the document's root element
         // Extract the font size from the computed style
         // Log the font size to the console
-        console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
+        //console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
 
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
@@ -308,7 +308,7 @@ onMounted(async () => {
         const reqId = props.startingReqId;
         if (reqId > 0) {
             const selectedElRecord = globalChartStore.getSelectedElevationRec();
-            console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
+            //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
             if(selectedElRecord){
                 await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
             } else {

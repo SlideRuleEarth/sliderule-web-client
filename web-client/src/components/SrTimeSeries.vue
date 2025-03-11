@@ -116,7 +116,7 @@ const computedDataKey = computed(() => {
 });
 
 const handleChartFinished = () => {
-    console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
     if(chartWrapperRef.value){
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
             initGradientPosition();
@@ -142,7 +142,7 @@ onMounted(async () => {
             await setCyclesGtsSpotsFromFileUsingRgtYatc();
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-             console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
+            //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
             console.error('SrTimeSeries reqId is undefined');
         }        
@@ -153,7 +153,7 @@ onMounted(async () => {
             console.error('Error during onMounted initialization:', error);
     } finally {
         loadingComponent.value = false;
-        console.log('SrTimeSeries onMounted completed');
+        //console.log('SrTimeSeries onMounted completed');
     }
 });
 
