@@ -26,7 +26,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const selectedElevationRec = ref<ElevationDataItem | null>(null);
     const use_y_atc_filter = ref<boolean>(true);
     const selected_y_atc = ref<number>(0.0);
-    const y_atc_margin = ref<number>(5.0);
+    const y_atc_margin = ref<number>(50.0);
 
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  

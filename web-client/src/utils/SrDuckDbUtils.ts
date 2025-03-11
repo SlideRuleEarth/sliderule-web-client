@@ -442,8 +442,6 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                 if (firstRec) {
                     // Precompute position data for all rows
                     positions = rows.map(d => [d.longitude, d.latitude, 0] as SrPosition);
-
-                    await processSelectedElPnt(firstRec);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
                     useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);

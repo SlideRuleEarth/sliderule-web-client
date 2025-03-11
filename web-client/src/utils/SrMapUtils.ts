@@ -345,6 +345,7 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
+    useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     const gcs = useGlobalChartStore();
@@ -1072,8 +1073,7 @@ const updateElevationMap = async (req_id: number) => {
                 if(parms.firstRec){
                     useDeckStore().deleteSelectedLayer();
                     //updateFilter([req_id]); // query to set all options for all 
-                    useGlobalChartStore().setSelectedElevationRec(parms.firstRec);
-                    clicked(parms.firstRec);
+                    processSelectedElPnt(parms.firstRec);
                     mapStore.setMapInitialized(true);
                 } else {
                     console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);
