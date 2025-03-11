@@ -30,7 +30,7 @@ import { ref } from 'vue';
 
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
-const widthOfCoverage = ref<number>(globalChartStore.y_atc_margin);
+const widthOfCoverage = ref<number>(globalChartStore.y_atc_margin*2);
 
 
 
