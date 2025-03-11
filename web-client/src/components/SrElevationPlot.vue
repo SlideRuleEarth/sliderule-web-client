@@ -20,7 +20,7 @@ import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrGradientLegend from "./SrGradientLegend.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { prepareDbForReqId, updateAllFilterOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
@@ -398,6 +398,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                // the filter options got set with the overlayed data file so reset them
+                await updateAllFilterOptions(runContext.parentReqId);
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
