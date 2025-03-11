@@ -279,7 +279,7 @@ export interface ElevationDataItem {
 }
 
 function isInvalid(value: any): boolean {
-    return value === null || value === undefined || Number.isNaN(value);
+    return value === null || value === undefined || value === '' || Number.isNaN(value);
 }
 
 export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
@@ -331,7 +331,7 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
 
 export function isClickable(d: ElevationDataItem): boolean {
     let valid = true;
-    if (isInvalid(d.cycle) || isInvalid(d.rgt) || (d?.y_atc !== undefined && isInvalid(d?.y_atc))) {
+    if (isInvalid(d?.cycle) || isInvalid(d?.rgt) || (d?.y_atc !== undefined && isInvalid(d?.y_atc))) {
         //console.log('isClickable: invalid elevation point:', d);
         valid = false;
     }
@@ -1068,12 +1068,20 @@ const updateElevationMap = async (req_id: number) => {
         if(parms){
             const numRows = parms.numRows;
             mapStore.setIsLoading(true);
-            if(parms.rec && numRows > 0){
-                useDeckStore().deleteSelectedLayer();
-                //updateFilter([req_id]); // query to set all options for all 
-                useGlobalChartStore().setSelectedElevationRec(parms.rec);
-                clicked(parms.rec);
-                mapStore.setMapInitialized(true);
+            if(numRows > 0){
+                if(parms.firstRec){
+                    useDeckStore().deleteSelectedLayer();
+                    //updateFilter([req_id]); // query to set all options for all 
+                    useGlobalChartStore().setSelectedElevationRec(parms.firstRec);
+                    clicked(parms.firstRec);
+                    mapStore.setMapInitialized(true);
+                } else {
+                    console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);
+                    useSrToastStore().warn('No points in file', 'The request produced no points');
+               }
+            } else {
+                console.warn(`updateElevationMap No points in file for req_id:${req_id}`);
+                useSrToastStore().warn('No points in file', 'The request produced no points');
             }
         } else {
             console.error(`updateElevationMap Failed to get parms for req_id:${req_id}`);

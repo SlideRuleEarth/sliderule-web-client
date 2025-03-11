@@ -13,8 +13,8 @@
                 label="SQL Query Chunk Size"
                 size="small"
                 :step="1000"
-                :min="10000"
-                :max="1000000"
+                :min="1000"
+                :max="100000"
                 :defaultValue="10000"
                 showButtons
                 :decimalPlaces=0
@@ -30,7 +30,7 @@
             :max="5000000"
             :step="10000"
             showButtons
-            :defaultValue="100000"
+            :defaultValue="50000"
             :decimalPlaces=0
         />
         <SrToggleButton 

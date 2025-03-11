@@ -445,8 +445,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
 
                     await processSelectedElPnt(firstRec);
                 } else {
-                    console.warn('No valid elevation points found.');
-                    useSrToastStore().warn('No Data Processed', 'No valid elevation points found.');
+                    console.warn(`No valid elevation points found in ${numRows} rows.`);
+                    useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);
                 }
             } else {
                 console.warn('duckDbReadAndUpdateElevationData no data items processed');

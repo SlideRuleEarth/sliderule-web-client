@@ -5,7 +5,6 @@ import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
-import { type SrRadioItem } from '@/types/SrTypes';
 
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
