@@ -1041,42 +1041,7 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        
-        let nameSuffix = globalChartStore.generateNameSuffix(recTreeStore.selectedReqId);
-        const colorMapName = useElevationColorMapStore().getSelectedElevationColorMap();
-        if( colorMapName){
-            nameSuffix += `-${colorMapName}`;
-        } else {
-            console.warn('updatePlotAndSelectedTrackMapLayer: colorMapName is null' );
-        }
-
-        const foundOne = useDeckStore().hideLayersWithSubstr(SELECTED_LAYER_NAME_PREFIX);
-        if (foundOne) {
-            console.log('updatePlotAndSelectedTrackMapLayer hid existing selected layers using substr:', SELECTED_LAYER_NAME_PREFIX);
-        } else {
-            console.log('updatePlotAndSelectedTrackMapLayer no existing selected layers found using substr:', SELECTED_LAYER_NAME_PREFIX);
-        }
-        const name = SELECTED_LAYER_NAME_PREFIX + nameSuffix;
-        console.log('updatePlotAndSelectedTrackMapLayer name:', name);
-
-        if(useDeckStore().layerExists(name)){
-            console.warn('updatePlotAndSelectedTrackMapLayer using layer that already exists:', name);
-            useDeckStore().setVisible(name,true);
-        } else {
-            //updateDeckLayerWithObject(name, rows, summary.extHMean, height_fieldname, positions, projName);
-            await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,name,chunkSize,maxNumPnts);
-        }
-        
-        try {
-            const intermediateTime = performance.now(); // Intermediate time
-            console.log(`updatePlotAndSelectedTrackMapLayer intermediate time: ${intermediateTime - startTime} milliseconds.`);
-            useDeckStore().updatePropsWithShallowCopiedLayers(); // causes the draw for all layers
-            const intermediateTime2 = performance.now(); // Intermediate time
-            console.log(`updatePlotAndSelectedTrackMapLayer call to updatePropsWithLayers took ${intermediateTime2 - intermediateTime} milliseconds.`);
-        } catch (error) {
-            console.error('updatePlotAndSelectedTrackMapLayer Error:', error);
-        }
-        
+        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
     } else {
         console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
         console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());

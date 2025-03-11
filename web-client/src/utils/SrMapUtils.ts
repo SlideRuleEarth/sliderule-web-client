@@ -512,7 +512,8 @@ export function updateDeckLayerWithObject(
     try{
         if(useDeckStore().getDeckInstance()){
             const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
-            useDeckStore().appendLayer(layer);
+            useDeckStore().replaceOrAddLayer(layer,name);
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
         } else {
             console.error(`updateDeckLayerWithObject ${name}  Error updating elevation useDeckStore().deckInstance:`,useDeckStore().getDeckInstance());
         }
@@ -1063,26 +1064,20 @@ const updateElevationMap = async (req_id: number) => {
     try {
         const mapStore = useMapStore();
         mapStore.setIsLoading(true);
-        let name = EL_LAYER_NAME_PREFIX + '-' + req_id.toString();
-        const colorMapName = useElevationColorMapStore().getSelectedElevationColorMap();
-        if( colorMapName){
-            name += `-${colorMapName}`;
+        const parms = await duckDbReadAndUpdateElevationData(req_id,EL_LAYER_NAME_PREFIX);
+        if(parms){
+            const numRows = parms.numRows;
+            mapStore.setIsLoading(true);
+            if(parms.rec && numRows > 0){
+                useDeckStore().deleteSelectedLayer();
+                //updateFilter([req_id]); // query to set all options for all 
+                useGlobalChartStore().setSelectedElevationRec(parms.rec);
+                clicked(parms.rec);
+                mapStore.setMapInitialized(true);
+            }
         } else {
-            console.warn('updateElevationMap: colorMapName is null' );
+            console.error(`updateElevationMap Failed to get parms for req_id:${req_id}`);
         }
-        const foundOne = useDeckStore().hideLayersWithSubstr(EL_LAYER_NAME_PREFIX);
-        if (foundOne) {
-            console.log('updateElevationMap hiding existing selected layer:', name);
-        } else {
-            console.log('updateElevationMap no existing selected layer found:', name);
-        }
-        if(useDeckStore().layerExists(name)){
-            console.warn('updateElevationMap layer already exists:', name);
-            useDeckStore().setVisible(name,true);
-        } else {
-            const parms = await duckDbReadAndUpdateElevationData(req_id,name);
-        }
-        mapStore.setMapInitialized(true);
         mapStore.setIsLoading(false);
     } catch (error) {
         console.warn('Failed to update selected request:', error);

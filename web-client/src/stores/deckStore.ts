@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
+import { SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({
@@ -21,7 +22,7 @@ export const useDeckStore = defineStore('deck', {
             if (this.deckInstance) {
                 console.warn('clearDeckInstance()');
                 this.deckLayers = [];
-                this.getDeckInstance().setProps({layers:[]});
+                this.getDeckInstance().setProps({layers:this.getLayers()});
                 this.deckInstance.finalize(); // This ensures all resources are properly released.
                 this.deckInstance = null;
             } else {
@@ -30,78 +31,30 @@ export const useDeckStore = defineStore('deck', {
             const now = performance.now();
             console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
         },
-        appendLayer(newLayer: any) {
-            this.deckLayers.push(newLayer);
-        },
-        hideLayersWithSubstr(substr: string): boolean {
-            let hidIt = false;
-        
-            this.deckLayers = this.deckLayers.map(layer => {
-                //console.log('hideLayersWithSubstr Checking:', JSON.stringify(substr), 'against', JSON.stringify(layer.id));
-        
-                if (layer.id.includes(substr)) {
-                    //console.log('hideLayersWithSubstr: BEFORE hiding existing Selected layer:', layer);
-        
-                    // Create a new layer instance with updated visibility
-                    const newLayer = new layer.constructor({
-                        ...layer.props, // Copy existing properties
-                        visible: false, // Set visibility to false
-                        id: layer.id + "-updated-" + Date.now(), // Force a new layer instance
-                    });
-        
-                    //console.log('hideLayersWithSubstr: AFTER hiding existing Selected layer:', newLayer);
-                    hidIt = true;
-                    return newLayer;
-                }
-        
-                return layer; // Keep other layers unchanged
-            });
-        
-            //console.log('hideLayersWithSubstr:', substr, 'hidIt:', hidIt, 'numLayers:', this.deckLayers.length);
-            return hidIt;
-        },
-        layerExists(layerId:string) {
-            let foundit = false;
+        replaceOrAddLayer(layer:any,name:string): boolean {
             for (let i = 0; i < this.deckLayers.length; i++) {
-                if (this.deckLayers[i].id === layerId) {
-                    foundit = true;
+                if (this.deckLayers[i].id === name) {
+                    this.deckLayers[i] = layer;
+                    return true;
                 }
             }
-            //console.log('layerExists:',layerId,'foundit:',foundit);
-            return foundit;
+            this.deckLayers.push(layer);
+            return false;
         },
-        isLayerVisible(layerId:string) {
+        deleteLayer(layerId:string) {
             for (let i = 0; i < this.deckLayers.length; i++) {
                 if (this.deckLayers[i].id === layerId) {
-                    return this.deckLayers[i].visible;
+                    this.deckLayers.splice(i,1);
+                    this.getDeckInstance().setProps({layers:this.getLayers()});
+                    return true;
                 }
             }
             return false;
         },
-        setVisible(layerId: string, visible: boolean): boolean {
-            let updated = false;
-        
-            this.deckLayers = this.deckLayers.map(layer => {
-                if (layer.id === layerId) {
-                    //console.log('setVisible: BEFORE updating visibility:', layer);
-        
-                    // Create a new instance of the same layer type with updated properties
-                    const newLayer = new layer.constructor({
-                        ...layer.props, // Preserve existing properties
-                        visible: visible, // Update visibility
-                        id: layer.id + "-updated-" + Date.now(), // Force a new layer instance
-                    });
-        
-                    //console.log('setVisible: AFTER updating visibility:', newLayer);
-                    updated = true;
-                    return newLayer;
-                }
-                return layer;
-            });
-        
-            return updated;
-        },        
-        getLayersCopied() {
+        deleteSelectedLayer() {
+            return this.deleteLayer(SELECTED_LAYER_NAME_PREFIX);
+        },
+        getLayers() {
             // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
             // must create new array
             const newLayers = [];
@@ -112,7 +65,6 @@ export const useDeckStore = defineStore('deck', {
             //console.log('getLayers:',layers);
             return newLayers;
         },
-
         setPointSize(size:number) {
             this.pointSize = size;
         },
@@ -125,11 +77,5 @@ export const useDeckStore = defineStore('deck', {
         getIsDragging(): boolean {
             return this.isDragging;
         },
-        updatePropsWithShallowCopiedLayers() { // This forces deck to examine each layer for any real changes
-            const theLayers = this.getLayersCopied();
-            console.log('updatePropsWithShallowCopiedLayers:',theLayers);
-            this.deckInstance.setProps({ layers:  theLayers });
-        }
-        
     }
 });
