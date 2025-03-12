@@ -351,6 +351,8 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
     if(!checkAreaOfConvexHullError()){
+        //needed here for geojson upload
+        useSrToastStore().error('Error', 'The area of the convex hull is too large. Please reduce the size of the area.');
         return;
     }
 

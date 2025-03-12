@@ -601,6 +601,10 @@ export function checkAreaOfConvexHullWarning(): boolean {
 
 export function checkAreaOfConvexHullError(): boolean {
     const currentApi = useReqParamsStore().getCurAPIObj();
+    if (useReqParamsStore().getUseRgt()){
+        console.warn('checkAreaOfConvexHullError: useRGT is true skipping check');
+        return true;//TBD HACK ALERT make this check better
+    }
     if(currentApi){
         const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
         //console.log('checkAreaOfConvexHullError area:',limit);

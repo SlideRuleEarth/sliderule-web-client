@@ -32,6 +32,8 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
+import Panel from 'primevue/panel';
+
 
 const tooltipRef = ref();
 
@@ -301,7 +303,7 @@ onMounted(async () => {
         // Extract the font size from the computed style
         // Log the font size to the console
         //console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
-
+        globalChartStore.use_y_atc_filter = false;
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
@@ -462,8 +464,16 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 />
             </div> 
             <div class="sr-cycles-legend-panel">
-                <SrCycleSelect />
-                <SrSimpleYatcCntrl />
+                <Panel 
+                     v-show="globalChartStore.use_y_atc_filter"
+                    header="Off Pointing Cntrl" 
+                    :toggleable="true" 
+                    :collapsed="false"
+                >
+                    <SrCycleSelect/>
+                    <SrSimpleYatcCntrl />
+                </Panel>
+
                 <div class="sr-legends-panel">
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"

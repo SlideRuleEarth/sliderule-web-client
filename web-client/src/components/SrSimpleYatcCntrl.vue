@@ -7,7 +7,7 @@
         <label class="sr-label-simple_yatc" for="width">Width of Coverage (meters):</label>
         <InputNumber 
             v-model="widthOfCoverage"
-            id="width"
+            id="width-of-coverage"
             class="sr-yatc-number"
             size="small"
             :minFractionDigits="1"
@@ -35,10 +35,10 @@ const widthOfCoverage = ref<number>(globalChartStore.y_atc_margin*2);
 
 
 async function handleModelValueChange(value: number) {
-    console.log('SrYatcFilterCntrl handleValueChange:', value);
+    console.log('SrSimpleYatcFilterCntrl handleValueChange:', value);
     globalChartStore.y_atc_margin = value/2;
     if(!value) {
-        console.warn('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
+        console.warn('SrSimpleYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
     await setCyclesGtsSpotsFromFileUsingRgtYatc();
     await updatePlotAndSelectedTrackMapLayer("SrSimpleYatcCntrl");// no need to debounce

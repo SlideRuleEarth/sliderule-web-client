@@ -36,6 +36,7 @@
     import { Deck } from '@deck.gl/core';
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
+    import { useGlobalChartStore } from "@/stores/globalChartStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -56,6 +57,7 @@
     const deckStore = useDeckStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
+    const globalChartStore = useGlobalChartStore();
     const controls = ref([]);
 
 
@@ -384,6 +386,18 @@
                 tooltipText="Show or hide the elevation when hovering mouse over a track"
                 v-model="mapStore.showTheTooltip"
                 :disabled=elevationIsLoading
+                size="small" 
+            />
+        </div>
+        <div>
+            <SrCheckbox 
+                class="sr-show-hide-tooltip"
+                :defaultValue="false"
+                label="Enable off pointing filter"
+                labelFontSize="small"
+                tooltipText="Show or hide the off pointing filter"
+                v-model="globalChartStore.use_y_atc_filter"
+                :disabled="!recTreeStore.selectedApi.includes('atl03')"
                 size="small" 
             />
         </div>
