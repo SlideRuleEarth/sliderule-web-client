@@ -587,7 +587,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     onLabel="Hide Atl03 Photons"
                     offLabel="Show Atl03 Photons"
                     v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading"
+                    :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
                     size="small" 
                     rounded
                 />
