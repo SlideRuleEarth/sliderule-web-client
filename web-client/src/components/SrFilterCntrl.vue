@@ -55,11 +55,11 @@ import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
 import SrCycleSelect from '@/components/SrCycleSelect.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
-const analysisTabStore = useAnalysisTabStore();
+const activeTabStore = useActiveTabStore();
 
 const computedScOrientLabels = computed(() => {
     return globalChartStore.getScOrientsLabels();

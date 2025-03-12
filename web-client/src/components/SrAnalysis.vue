@@ -1,11 +1,11 @@
 <template>
     <div class="card">
         <!-- v-model binds to activeIndex so we know which tab is selected -->
-        <Tabs v-model:value="analysisTabStore.activeTab">
+        <Tabs v-model:value="activeTabStore.activeTab">
             <TabList>
-                <Tab value="0">{{ analysisTabStore.getTabLabelByIndex('0') }}</Tab>
-                <Tab value="1">{{ analysisTabStore.getTabLabelByIndex('1') }}</Tab>
-                <Tab value="2">{{ analysisTabStore.getTabLabelByIndex('2') }}</Tab>
+                <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
+                <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
+                <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
             </TabList>
 
             <TabPanels>
@@ -43,7 +43,7 @@
     import SrDuckDbShell from '@/components/SrDuckDbShell.vue';
     import { useRecTreeStore } from '@/stores/recTreeStore';
     import { useChartStore } from '@/stores/chartStore';
-    import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+    import { useActiveTabStore } from '@/stores/activeTabStore';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from './SrTimeSeries.vue';
@@ -51,7 +51,7 @@
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
-    const analysisTabStore = useAnalysisTabStore();
+    const activeTabStore = useActiveTabStore();
     const globalChartStore = useGlobalChartStore();
 
 
@@ -61,7 +61,7 @@
     // In each "shouldDisplay" computed, also check the active tab
     const shouldDisplayElevationPlot = computed(() => {
         return (
-            analysisTabStore.getActiveTab === '0' && // Only show on tab 0
+            activeTabStore.getActiveTab === '0' && // Only show on tab 0
             recTreeStore.selectedReqId > 0 &&
             recTreeStore.allReqIds.includes(reqId.value) &&
             globalChartStore.getSelectedElevationRec() !== null
@@ -71,7 +71,7 @@
 
     const shouldDisplayTimeSeries = computed(() => {
         return (
-            analysisTabStore.getActiveTab === '1' && // Only show on tab 1
+            activeTabStore.getActiveTab === '1' && // Only show on tab 1
             recTreeStore.selectedReqId > 0 &&
             recTreeStore.allReqIds.includes(reqId.value)
         );
@@ -79,14 +79,14 @@
 
     const shouldDisplayShell = computed(() => {
         return (
-            analysisTabStore.getActiveTab === '2' && // Only show on tab 2
+            activeTabStore.getActiveTab === '2' && // Only show on tab 2
             chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
         );
     });
 
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
-        analysisTabStore.setActiveTab('0');
+        activeTabStore.setActiveTab('0');
     });
 </script>
 

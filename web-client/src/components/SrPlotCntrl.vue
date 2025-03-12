@@ -122,7 +122,7 @@ import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { SelectChangeEvent } from 'primevue/select';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 
 
 const props = withDefaults(
@@ -141,7 +141,7 @@ const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
 const atl08ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
-const analysisTabStore = useAnalysisTabStore();
+const activeTabStore = useActiveTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
 const computedFunc = computed(() => recTreeStore.findApiForReqId(props.reqId));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
@@ -203,7 +203,7 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
 });
 
 const isTimeSeries = computed(() => {
-    if(analysisTabStore.activeTabLabel !== 'Time Series'){
+    if(activeTabStore.activeTabLabel !== 'Time Series'){
         return true;
     } else {
         return false;

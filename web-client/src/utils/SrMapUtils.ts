@@ -40,7 +40,7 @@ import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
@@ -385,7 +385,7 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     }
     gcs.selected_y_atc = d.y_atc;
     console.log('processSelectedElPnt: selected_y_atc:',gcs.selected_y_atc);
-    console.log(`processSelectedElPnt: ${useAnalysisTabStore().activeTabLabel}`);
+    console.log(`processSelectedElPnt: ${useActiveTabStore().activeTabLabel}`);
     if(gcs.use_y_atc_filter){    
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
     }
