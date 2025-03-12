@@ -35,6 +35,7 @@
     import { Layer as OLlayer } from 'ol/layer';
     import { Deck } from '@deck.gl/core';
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
+    import { useAnalysisMapStore } from "@/stores/analysisMapStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -54,6 +55,7 @@
     const recTreeStore = useRecTreeStore();
     const deckStore = useDeckStore();
     const srParquetCfgStore = useSrParquetCfgStore();
+    const analysisMapStore = useAnalysisMapStore();
     const controls = ref([]);
 
 
@@ -67,8 +69,7 @@
         console.log(event);
     };
     const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
-
-    const elevationIsLoading = computed(() => mapStore.getIsLoading());
+    const elevationIsLoading = computed(() => analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading);
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
@@ -77,9 +78,9 @@
     });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
-        const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
-        const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
-        if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
+        const currentRowsFormatted = numberFormatter.format(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).currentPnts);
+        const totalRowsFormatted = numberFormatter.format(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).totalPnts);
+        if (analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).currentPnts != analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).totalPnts) {
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
         } else {
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
@@ -319,7 +320,7 @@
 <div class="sr-analysis-map-panel">
     <div class="sr-analysis-map-header">
         <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
-            <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+            <ProgressSpinner v-if="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
             {{computedLoadMsg}}
         </div>
         <div class="sr-notLoadingEl" v-else >
@@ -364,6 +365,7 @@
             <SrProgressSpinnerControl 
                 @progress-spinner-control-created="handleProgressSpinnerControlCreated" 
                 v-model="mapRef" 
+                :selectedReqId="props.selectedReqId"
             />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
@@ -381,13 +383,21 @@
                 labelFontSize="small"
                 tooltipText="Show or hide the elevation when hovering mouse over a track"
                 v-model="mapStore.showTheTooltip"
-                :disabled="useMapStore().isLoading"
+                :disabled=elevationIsLoading
                 size="small" 
             />
         </div>
         <div>
             <div class="sr-spinner">
-                <ProgressSpinner class="sr-spinner" animationDuration=".75s" style="width: 2rem; height: 2rem;" strokeWidth="8" fill="var(--p-primary-300)" v-if="mapStore.isLoading"/>
+                <ProgressSpinner 
+                    v-if="elevationIsLoading"
+                    class="sr-spinner" 
+                    animationDuration=".75s" 
+                    style="width: 2rem; 
+                    height: 2rem;" 
+                    strokeWidth="8" 
+                    fill="var(--p-primary-300)"
+                />
             </div>
         </div>
     </div>

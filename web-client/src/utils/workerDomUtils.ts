@@ -244,7 +244,6 @@ export function processAbortClicked() {
         console.error('abortClicked worker was undefined');
         useRequestsStore().setConsoleMsg('Abort Clicked');
     }
-    mapStore.setIsLoading(false); // controls spinning progress
 }
 
 function handleWorkerError(reqId:number,error:ErrorEvent, errorMsg:string) {
@@ -299,10 +298,7 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
-            mapStore.setCurrentReqId(srReqRec.req_id);
-            mapStore.setIsLoading(true); // controls spinning progress
-            mapStore.setTotalRows(0);
-            mapStore.setCurrentRows(0);
+            mapStore.setCurrentReqId(srReqRec.req_id);            
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if(reqParamsStore){
                 serverStateStore.isFetching = true;
@@ -391,7 +387,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 } else {
                     console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
                 }
-                mapStore.setIsLoading(false);
                 return;
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
@@ -401,7 +396,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 console.error('runSlideRuleClicked srViewKey was undefined');
                 useSrToastStore().error('Error', 'There was an error. srViewKey was undefined');
                 requestsStore.setConsoleMsg('stopped...');
-                mapStore.setIsLoading(false);
                 return;
             }
 
@@ -422,7 +416,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.error('runSlideRuleClicked IceSat2API was undefined');
                     useSrToastStore().error('Error', 'There was an error. IceSat2API was undefined');
                     requestsStore.setConsoleMsg('stopped...');
-                    mapStore.setIsLoading(false);
                 }
             } else if (reqParamsStore.getMissionValue() === 'GEDI') {
                 if (reqParamsStore.getGediAPI()) {
@@ -441,7 +434,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.error('runSlideRuleClicked GediAPI was undefined');
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
-                    mapStore.setIsLoading(false);
                 }
             }
         } else {
@@ -453,6 +445,5 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         console.error('runSlideRuleClicked srReqRec was undefined');
         useSrToastStore().error('Error', 'There was an error');
         requestsStore.setConsoleMsg('stopped...');
-        mapStore.setIsLoading(false);
     }
 };

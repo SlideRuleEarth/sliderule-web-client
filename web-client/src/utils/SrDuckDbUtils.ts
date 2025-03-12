@@ -13,11 +13,10 @@ import { useChartStore} from '@/stores/chartStore';
 import type { SrListNumberItem } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { processSelectedElPnt,isClickable } from '@/utils/SrMapUtils'
+import { isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 import { type SrPosition, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
-import { useDeckStore } from '@/stores/deckStore';
-
+import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 
 interface SummaryRowData {
     minLat: number;
@@ -399,8 +398,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return null;
     }
-
-    useMapStore().setIsLoading();
+    
+    const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+    pntData.isLoading = true;
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
@@ -414,16 +414,15 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
 
         let rows: ElevationDataItem[] = [];
         let positions: SrPosition[] = []; // Precompute positions
-
-        useMapStore().setCurrentRows(0);
-        useMapStore().setTotalRows(0);
-
+        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntData.totalPnts = 0;
+        pntData.currentPnts = 0;
         try {
             const sample_fraction = await computeSamplingRate(req_id);
             const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${filename}')`, sample_fraction);
 
             if (result.totalRows) {
-                useMapStore().setTotalRows(result.totalRows);
+                pntData.totalPnts =result.totalRows;
             } else if (result.schema === undefined) {
                 console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
             }
@@ -434,7 +433,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 numRows = rows.length;
-                useMapStore().setCurrentRows(numRows);
+                pntData.currentPnts = numRows;
 
                 // **Find the first valid elevation point**
                 firstRec = rows.find(isClickable) || null;
@@ -479,7 +478,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
         console.error('duckDbReadAndUpdateElevationData error:', error);
         throw error;
     } finally {
-        useMapStore().resetIsLoading();
+        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntData.isLoading = false;
         const endTime = performance.now(); // End time
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
         return { firstRec, numRows };
@@ -500,6 +500,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (
     const startTime = performance.now();
     const reqIdStr = req_id.toString();
     let numRows = 0;
+    const filteredPntData = useAnalysisMapStore().getFilteredPntDataByReqId(reqIdStr);
+    const globalChartStore = useGlobalChartStore();
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
@@ -507,14 +509,15 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             return;
         }
 
-        useMapStore().setIsLoading(true);
+        filteredPntData.isLoading = true;
+        filteredPntData.currentPnts = 0;
+
         const duckDbClient = await createDuckDbClient();
         const filename = await indexedDb.getFilename(req_id);
         const func = await indexedDb.getFunc(req_id);
         let queryStr = '';
 
         // Construct SQL query
-        const globalChartStore = useGlobalChartStore();
         const rgt = globalChartStore.getRgt();
         const cycles = globalChartStore.getCycles();
         const spots = globalChartStore.getSpots();
@@ -559,7 +562,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                 if (rowChunk.length > 0) {
                     numRows += rowChunk.length;
                     rowChunks.push(...rowChunk);
-
+                    filteredPntData.currentPnts = numRows;
                     // **Precompute positions and store them**
                     rowChunk.forEach(d => {
                         positions.push([d.longitude, d.latitude, 0]);
@@ -599,7 +602,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
         console.error('duckDbReadAndUpdateSelectedLayer error:', error);
         throw error;
     } finally {
-        useMapStore().setIsLoading(false);
+        filteredPntData.isLoading = false;
         const endTime = performance.now();
         console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} took ${endTime - startTime} milliseconds.`);
     }

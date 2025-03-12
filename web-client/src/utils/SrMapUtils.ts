@@ -1064,11 +1064,9 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         const mapStore = useMapStore();
-        mapStore.setIsLoading(true);
         const parms = await duckDbReadAndUpdateElevationData(req_id,EL_LAYER_NAME_PREFIX);
         if(parms){
             const numRows = parms.numRows;
-            mapStore.setIsLoading(true);
             if(numRows > 0){
                 if(parms.firstRec){
                     useDeckStore().deleteSelectedLayer();
@@ -1086,7 +1084,6 @@ const updateElevationMap = async (req_id: number) => {
         } else {
             console.error(`updateElevationMap Failed to get parms for req_id:${req_id}`);
         }
-        mapStore.setIsLoading(false);
     } catch (error) {
         console.warn('Failed to update selected request:', error);
         //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});

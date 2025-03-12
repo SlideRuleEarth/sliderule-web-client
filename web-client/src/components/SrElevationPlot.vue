@@ -13,7 +13,6 @@ import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEnco
 import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
-import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
@@ -22,6 +21,7 @@ import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId, updateAllFilterOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
+import { useAnalysisMapStore } from "@/stores/analysisMapStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
@@ -31,6 +31,7 @@ import { processSelectedElPnt } from "@/utils/SrMapUtils";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
+import ProgressSpinner from "primevue/progressspinner";
 
 const tooltipRef = ref();
 
@@ -46,7 +47,9 @@ const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
+const analysisMapStore = useAnalysisMapStore();
 const loadingComponent = ref(true);
+
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -264,12 +267,10 @@ const shouldDisplayOverlayGradient =computed(() => {
 });
 
 
-const enableThePhotonCloud = computed(() => {
-    return (!useMapStore().getIsLoading());
-}); 
+
 
 const photonCloudBtnTooltip = computed(() => {
-    if(!useMapStore().getIsLoading()){
+    if(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading){
             return 'Photon Cloud is disabled while record is loading';
     } else {
         return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
@@ -424,7 +425,19 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
 
 </script>
 <template>
-    <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
+    <div class="sr-elevation-plot-container" v-if="loadingComponent">
+        <span >Filtered Data is Loading...</span>
+        <br>
+        <ProgressSpinner 
+            class="sr-spinner" 
+            animationDuration=".75s" 
+            style="width: 2rem; 
+            height: 2rem;" 
+            strokeWidth="8" 
+            fill="var(--p-primary-300)"
+        />
+        
+    </div>
     <div class="sr-elevation-plot-container" v-else>
         <!-- {{ webGLSupported ? 'WebGL is supported' : 'WebGL is not supported' }}
         {{ shouldDisplayMainGradient ? 'Main Gradient Displayed' : 'Main Gradient Not Displayed' }}
@@ -564,7 +577,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     onLabel="Hide Atl03 Photons"
                     offLabel="Show Atl03 Photons"
                     v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="!enableThePhotonCloud"
+                    :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading"
                     size="small" 
                     rounded
                 />
