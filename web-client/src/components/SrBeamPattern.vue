@@ -201,43 +201,34 @@ const handleValueChange = (e: any) => {
     globalChartStore.setGts(gts);
     let currentTracks = [] as number[];
     let currentPairs = [] as number[];
-    globalChartStore.setTracks(currentTracks);
-    globalChartStore.setPairs(currentPairs);
     globalChartStore.selectedSpots.forEach((spot) => {
+        const details = getDetailsFromSpotNumber(spot);
         if(globalChartStore.hasScForward){
-            const details = getDetailsFromSpotNumber(spot);
             console.log('spot:', spot, `Forward details[${SC_FORWARD}]:`, details[SC_FORWARD]);
-            currentTracks = globalChartStore.getTracks();
             currentTracks.push(details[SC_FORWARD].track);
             const exists = currentTracks.includes(details[SC_FORWARD].track);
             if(!exists){
                 currentTracks.push(details[SC_FORWARD].track);
-                globalChartStore.setTracks(currentTracks);
             }
-            currentPairs = globalChartStore.getPairs();
             const existsPair = currentPairs.includes(details[SC_FORWARD].pair);
             if(!existsPair){
                 currentPairs.push(details[SC_FORWARD].pair);
-                globalChartStore.setPairs(currentPairs);
             }
         }
         if(globalChartStore.hasScBackward){
-            const details = getDetailsFromSpotNumber(spot);
             console.log('spot:', spot, `Backward details[${SC_BACKWARD}]:`, details[SC_BACKWARD]);
-            currentTracks = globalChartStore.getTracks();
             const exists = currentTracks.includes(details[SC_BACKWARD].track);
             if(!exists){
                 currentTracks.push(details[SC_BACKWARD].track);
-                globalChartStore.setTracks(currentTracks);
             }
-            currentPairs = globalChartStore.getPairs();
             const existsPair = currentPairs.includes(details[SC_BACKWARD].pair);
             if(!existsPair){
                 currentPairs.push(details[SC_BACKWARD].pair);
-                globalChartStore.setPairs(currentPairs);
             }
         }            
     });
+    globalChartStore.setTracks(currentTracks);
+    globalChartStore.setPairs(currentPairs);
 
 };
 

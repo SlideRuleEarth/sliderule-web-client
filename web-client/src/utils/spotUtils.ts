@@ -184,15 +184,10 @@ export function createWhereClause(reqId:number){
     const spots = globalChartStore.getSpots();
     const rgt = globalChartStore.getRgt();
     const cycles = globalChartStore.getCycles();
-    // const pairs = globalChartStore.getPairs();
-    // const sc_orients = globalChartStore.getScOrients();
-    // const tracks = globalChartStore.getTracks();
     const use_y_atc_filter = globalChartStore.use_y_atc_filter;
     const y_atc_is_valid = globalChartStore.y_atc_is_valid();
     const selected_y_atc = globalChartStore.selected_y_atc;
     const y_atc_margin = globalChartStore.y_atc_margin;
-
-    //console.log('createWhereClause: cycles:', cycles);
     let whereStr = '';
     if (func === 'atl03sp'){
         if ((rgt >= 0) || (cycles.length > 0)) {
@@ -243,7 +238,7 @@ export function createWhereClause(reqId:number){
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    //console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
+    console.log('createWhereClause: reqId:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'use_y_atc_filter:', use_y_atc_filter, 'y_atc_is_valid:', y_atc_is_valid, 'selected_y_atc:', selected_y_atc, 'y_atc_margin:', y_atc_margin, 'whereStr:', whereStr);
     return whereStr;
 }
 

@@ -205,11 +205,6 @@ const createReqParamsStore = (id: string) =>
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine
-            //console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
             this.setMissionValue("ICESat-2");
             this.setIceSat2API("atl03sp");
@@ -238,14 +233,7 @@ const createReqParamsStore = (id: string) =>
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
             this.setCycle(useGlobalChartStore().getCycles()[0]);
-
-            // console.log('beams:', useAtlChartFilterStore().getGts());
-            // console.log('rgt:', useAtlChartFilterStore().getRgt());
-            // console.log('cycles:', useAtlChartFilterStore().getCycles());
-            // console.log('pairs:', useAtlChartFilterStore().getPairs());
-            // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());
-            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
-
+            //console.log('presetForScatterPlotOverlay: tracks:', this.getSelectedTrackOptions(),'gts:', this.getSelectedGtOptions(), 'rgts:', this.getRgt(), 'cycles:', this.getCycle());
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;

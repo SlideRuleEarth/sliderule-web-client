@@ -326,6 +326,8 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
                 console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: gcs.getFilteredCycleOptions():', gcs.getFilteredCycleOptions());
             }
         }
+    } else {
+        console.warn('setCyclesGtsSpotsFromFileUsingRgtYatc: Ignored for ATL03. TBD need to implement an atl03 equivalent function for y_atc?');
     }
 }
 
@@ -401,7 +403,7 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
 export async function clicked(d:ElevationDataItem): Promise<void> {
     console.log('clicked data:',d);
     if(!isClickable(d)){
-        console.log('clicked: invalid elevation point:',d);
+        console.warn('clicked: invalid elevation point:',d);
         useSrToastStore().warn('Clicked data point contains NaNs', 'Please Click on another point.');
         return;
     }

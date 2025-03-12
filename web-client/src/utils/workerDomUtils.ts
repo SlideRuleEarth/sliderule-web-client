@@ -374,6 +374,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             if (rc) {
                 rc.reqId = srReqRec.req_id;
                 await db.addSrRunContext(rc);
+                //console.log('runSlideRuleClicked srReqRec.req_id:', srReqRec.req_id, 'runContext:', rc);
             }
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if(!reqParamsStore){

@@ -219,6 +219,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             .map(gt => tracksOptions.find(track => Number(gt.label.charAt(2)) === track.value))
             .filter((track): track is SrListNumberItem => track !== undefined);
         const trkList = tracks.map(track => track.value);
+        //console.log('setTracksForGts:',input_gts, 'tracks:', trkList);
         setTracks(trkList);
     }
 

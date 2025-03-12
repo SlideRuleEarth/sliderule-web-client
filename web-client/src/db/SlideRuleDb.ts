@@ -127,13 +127,13 @@ export class SlideRuleDexie extends Dexie {
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(9).stores({
+        this.version(10).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id',
             colors: '&color',
             atl03CnfColors: 'number',
             atl08ClassColors: 'number',
-            //find runContexts by (parentReqId + rgt + cycle + beam) in one go, define a compound index:
+            //find runContexts by (parentReqId + rgt + cycle + beam +track) in one go, define a compound index:
             runContexts: `
                 ++id, 
                 &reqId, 
@@ -142,7 +142,7 @@ export class SlideRuleDexie extends Dexie {
                 cycle, 
                 beam, 
                 track, 
-                [parentReqId+rgt+cycle+beam]`,
+                [parentReqId+rgt+cycle+beam+track]`,
             plotConfig: 'id',  // single record table
         });
 
@@ -647,21 +647,22 @@ export class SlideRuleDexie extends Dexie {
     }
     async getFilename(reqId: number): Promise<string> {
         const startTime = performance.now(); // Start time
+        let fn='';
         try {
             const request = await this.requests.get(reqId);
-            if (!request) {
+            if (request) {
+                fn = request.file || '';
+            } else {
                 console.error(`No request found with req_id ${reqId}`);
-                return '';
             }
-            return request.file || '';
         } catch (error) {
             console.error(`Failed to get filename for req_id ${reqId}:`, error);
             throw error;
         } finally {
             const endTime = performance.now(); // End time
-            console.log(`SlideRuleDb.getFilename took ${endTime - startTime} milliseconds.`);
+            console.log(`SlideRuleDb.getFilename |${fn}| for ${reqId} took ${endTime - startTime} milliseconds.`);
         }
-
+        return fn;
     }
     async getFunc(req_id:number): Promise<string> {
         try {
@@ -1065,11 +1066,16 @@ export class SlideRuleDexie extends Dexie {
     async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
             const found = await this.runContexts
-                .where('[parentReqId+rgt+cycle+beam]')
-                .equals([runContext.parentReqId, runContext.trackFilter.rgt, runContext.trackFilter.cycle, runContext.trackFilter.beam])
+                .where('[parentReqId+rgt+cycle+beam+track]')
+                .equals([
+                    runContext.parentReqId, 
+                    runContext.trackFilter.rgt, 
+                    runContext.trackFilter.cycle, 
+                    runContext.trackFilter.beam,
+                    runContext.trackFilter.track
+                ])
                 .toArray();
           
-            //console.log('findCachedRec found?:',found); // All runContexts for parentReqId=111 and rgt=12 and cycle=2 and beam=1
             if (found.length <= 0) {
                 console.log(`No matching record found for run context:`, runContext);
                 return undefined;
@@ -1084,7 +1090,6 @@ export class SlideRuleDexie extends Dexie {
         }
     }
     
-
     async addSrRunContext(runContext: SrRunContext): Promise<void> {
         try {
             const thisRunContextRecord: SrRunContextRecord = {
