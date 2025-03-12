@@ -24,7 +24,6 @@
     import { ref,onMounted,computed } from "vue";
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { useChartStore } from "@/stores/chartStore";
-    import { updateWhereClauseAndXData } from "@/utils/plotUtils";
 
     const props = withDefaults(
         defineProps<{
@@ -64,7 +63,7 @@
     }); 
     async function handleShowSqlStmnt(newValue: boolean) {
         if(newValue) {
-            await updateWhereClauseAndXData(props.reqId);
+          console.log('SrSqlStmnt handleShowSqlStmnt: showSqlStmnt:', newValue,'sql:',computedSqlStmnt.value);  
         }
     }
     onMounted(async () => {
