@@ -196,7 +196,7 @@ const computedHasScBackward = computed(() => {
 
 const handleValueChange = (e: any) => {
     console.log('handleValueChange', e);
-    console.log('globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients() );
+    console.log('handleValueChange BEFORE globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients(), 'globalChartStore.hasScForward:', globalChartStore.hasScForward, 'globalChartStore.hasScBackward:', globalChartStore.hasScBackward, 'globalChartStore.gts:', globalChartStore.getGts(), 'globalChartStore.tracks:', globalChartStore.getTracks(), 'globalChartStore.pairs:', globalChartStore.getPairs());
     const gts = getGtsForSpotsAndScOrients(globalChartStore.selectedSpots, globalChartStore.getScOrients());
     globalChartStore.setGts(gts);
     let currentTracks = [] as number[];
@@ -205,7 +205,6 @@ const handleValueChange = (e: any) => {
         const details = getDetailsFromSpotNumber(spot);
         if(globalChartStore.hasScForward){
             console.log('spot:', spot, `Forward details[${SC_FORWARD}]:`, details[SC_FORWARD]);
-            currentTracks.push(details[SC_FORWARD].track);
             const exists = currentTracks.includes(details[SC_FORWARD].track);
             if(!exists){
                 currentTracks.push(details[SC_FORWARD].track);
@@ -229,6 +228,7 @@ const handleValueChange = (e: any) => {
     });
     globalChartStore.setTracks(currentTracks);
     globalChartStore.setPairs(currentPairs);
+    console.log('handleValueChange AFTER  globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients(), 'globalChartStore.hasScForward:', globalChartStore.hasScForward, 'globalChartStore.hasScBackward:', globalChartStore.hasScBackward, 'globalChartStore.gts:', globalChartStore.getGts(), 'globalChartStore.tracks:', globalChartStore.getTracks(), 'globalChartStore.pairs:', globalChartStore.getPairs());
 
 };
 
