@@ -132,6 +132,7 @@ const handleChartFinished = () => {
 onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
+        globalChartStore.use_y_atc_filter = true;
 
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
