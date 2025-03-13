@@ -385,7 +385,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-                    await initSymbolSize(runContext.reqId);
+                    chartStore.setSymbolSize(runContext.reqId.toString(),1);
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     initializeColorEncoding(runContext.reqId);
@@ -393,7 +393,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
-                await initSymbolSize(runContext.reqId);
+                //await initSymbolSize(runContext.reqId);
+                chartStore.setSymbolSize(runContext.reqId.toString(),1);
                 initializeColorEncoding(runContext.reqId);
                 const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr);
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);

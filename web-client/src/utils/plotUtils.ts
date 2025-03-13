@@ -18,8 +18,6 @@ import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { useDeckStore } from "@/stores/deckStore";
-import { useElevationColorMapStore } from "@/stores/elevationColorMapStore";
 import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
@@ -988,11 +986,15 @@ const refreshScatterPlot = async (msg:string) => {
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
-    if (plotRef && plotRef.chart) {
-        await initScatterPlotWith(recTreeStore.selectedReqId);
-        await addOverlaysToScatterPlot(msg);
+    if (plotRef){
+        if(plotRef.chart) {
+            await initScatterPlotWith(recTreeStore.selectedReqId);
+            await addOverlaysToScatterPlot(msg);
+        } else {
+            console.warn(`Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined.`);
+        }
     } else {
-        console.error(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
     }
 };
 

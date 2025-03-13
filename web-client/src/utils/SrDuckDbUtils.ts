@@ -1116,9 +1116,16 @@ export async function fetchScatterData(
         let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`;
 
         useChartStore().setQuerySql(reqIdStr, mainQuery);
+        const totalRowCnt = await duckDbClient.getTotalRowCount(mainQuery);
+        //console.log('fetchScatterData totalRowCnt:', totalRowCnt, ' typeof:', typeof totalRowCnt);
+        //console.log('fetchScatterData max_pnts_on_plot:', useGlobalChartStore().max_pnts_on_plot, ' typeof:', typeof useGlobalChartStore().max_pnts_on_plot);
 
-        const queryResultMain: QueryResult = await duckDbClient.query(
-            useChartStore().getQuerySql(reqIdStr)
+
+
+        const sample_fraction = useGlobalChartStore().max_pnts_on_plot/Number(totalRowCnt);
+        const queryResultMain: QueryResult = await duckDbClient.queryChunkSampled(
+            useChartStore().getQuerySql(reqIdStr),
+            sample_fraction
         );
         /**
          * 5. For each row, produce an array [ xVal, yVal1, yVal2, ..., extras ]

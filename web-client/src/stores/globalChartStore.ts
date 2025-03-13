@@ -27,7 +27,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const use_y_atc_filter = ref<boolean>(true);
     const selected_y_atc = ref<number>(0.0);
     const y_atc_margin = ref<number>(50.0);
-
+    const max_pnts_on_plot = ref<number>(50000);
+    const chunk_size_for_plot = ref<number>(10000);
+    const selected_y_atc_label = ref<string>('y_atc');
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -386,5 +388,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         y_atc_is_valid,
         y_atc_margin,
         generateNameSuffix,
+        max_pnts_on_plot,
+        chunk_size_for_plot,
     };
 });

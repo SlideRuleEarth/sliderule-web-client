@@ -20,9 +20,23 @@
                 :decimalPlaces=0
         />
         <br>
-        <label for="maxNumPntsToDisplay">Max Num El Pnts to Display</label>
+        <label for="maxNumPntsToDisplay">Max Num El Pnts to Display on Map</label>
         <InputNumber
             v-model="srParquetCfgStore.maxNumPntsToDisplay"
+            inputId="maxNumPntsToDisplay"
+            class="sr-max-num-pnts-to-display"
+            size="small"
+            :min="10000"
+            :max="5000000"
+            :step="10000"
+            showButtons
+            :defaultValue="50000"
+            :decimalPlaces=0
+        />
+        <br>
+        <label for="maxNumPntsToDisplay">Max Num El Pnts to Display on Plot</label>
+        <InputNumber
+            v-model="globalChartStore.max_pnts_on_plot"
             inputId="maxNumPntsToDisplay"
             class="sr-max-num-pnts-to-display"
             size="small"
@@ -98,6 +112,7 @@
     import { useRequestsStore } from '@/stores/requestsStore';
     import SrCheckbox from './SrCheckbox.vue';
     import InputNumber from 'primevue/inputnumber';
+    import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 
     const debugStore = useDebugStore();
@@ -105,6 +120,7 @@
     const reqParamsStore = useReqParamsStore();
     const deckStore = useDeckStore();
     const requestsStore = useRequestsStore();
+    const globalChartStore = useGlobalChartStore();
 
 </script>
 <style scoped>
