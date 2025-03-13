@@ -15,53 +15,53 @@ import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue';
 </script>
 
 <template>
-  <SingleColumnLayout>
+<SingleColumnLayout>
     <template v-slot:sr-single-col>
-      <Card class="sr-settings-opt-card" >
+    <Card class="sr-settings-opt-card" >
         <template #title>
             <div class="sr-settings-title">Settings</div>
         </template>
         <template #content>
 
-		<div class="sr-settings-opt-wrapper">
-          <Accordion class="sr-settings-accordion" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus">
+        <div class="sr-settings-opt-wrapper">
+            <Accordion class="sr-settings-accordion" :multiple="true" expandIcon="pi pi-plus" collapseIcon="pi pi-minus">
 
-			<AccordionPanel value="0">
-				<AccordionHeader>System Configuration</AccordionHeader>
-				<AccordionContent>
-					<SrSysConfig />
-				</AccordionContent>
-            </AccordionPanel>
-
-            <AccordionPanel value="1">
-				<AccordionHeader>Storage Usage</AccordionHeader>
-				<AccordionContent>
-					<SrStorageUsage />
-					<SrClearCache />
-				</AccordionContent>
-            </AccordionPanel>
-
-            <AccordionPanel value="2">
-                <AccordionHeader>Advanced</AccordionHeader>
-                <AccordionContent>
-                    <SrAdvOptPanel />
-                    <SrPlotCfgEdit />
-                </AccordionContent>
-            </AccordionPanel>
-
-            <AccordionPanel value="3">
-                <AccordionHeader>Color Defaults</AccordionHeader>
-                <AccordionContent>
-                    <SrColorPalette />
-                </AccordionContent>
+                <AccordionPanel value="0">
+                    <AccordionHeader>System Configuration</AccordionHeader>
+                    <AccordionContent>
+                        <SrSysConfig />
+                    </AccordionContent>
                 </AccordionPanel>
 
-          </Accordion>
-		  </div>
-          </template>
+                <AccordionPanel value="1">
+                    <AccordionHeader>Storage Usage</AccordionHeader>
+                    <AccordionContent>
+                        <SrStorageUsage />
+                        <SrClearCache />
+                    </AccordionContent>
+                </AccordionPanel>
+
+                <AccordionPanel value="2">
+                    <AccordionHeader>Advanced</AccordionHeader>
+                    <AccordionContent>
+                        <SrAdvOptPanel />
+                        <SrPlotCfgEdit />
+                    </AccordionContent>
+                </AccordionPanel>
+
+                <AccordionPanel value="3">
+                    <AccordionHeader>Color Defaults</AccordionHeader>
+                    <AccordionContent>
+                        <SrColorPalette />
+                    </AccordionContent>
+                </AccordionPanel>
+
+            </Accordion>
+        </div>
+        </template>
         </Card>
     </template>
-  </SingleColumnLayout>
+</SingleColumnLayout>
 </template>
 
 <style scoped>

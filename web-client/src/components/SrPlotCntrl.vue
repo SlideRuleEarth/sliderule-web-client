@@ -22,9 +22,8 @@
             <div class="sr-ydata-menu">
                 <div>
                     <label class="sr-y-data-label":for="`srYColEncode-overlayed-${reqIdStr}`">Point Color</label>
-                    <OverlayBadge  v-if="shouldDisplayColorEncode" :value="computedNumOfPnts" size="small">
+                    <OverlayBadge  :value="computedNumOfPnts" size="small">
                     <Select
-                        v-if="shouldDisplayColorEncode"
                         class="sr-select-col-encode-data"
                         v-model="yColorEncodeSelectedReactive[reqIdStr]"
                         :options="chartStore.getColorEncodeOptionsForFunc(reqIdStr,computedFunc)"
@@ -123,7 +122,7 @@ import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { SelectChangeEvent } from 'primevue/select';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 
 
 const props = withDefaults(
@@ -142,7 +141,7 @@ const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
 const atl08ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
-const analysisTabStore = useAnalysisTabStore();
+const activeTabStore = useActiveTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
 const computedFunc = computed(() => recTreeStore.findApiForReqId(props.reqId));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
@@ -203,8 +202,8 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
     return should;
 });
 
-const shouldDisplayColorEncode = computed(() => {
-    if(analysisTabStore.activeTabLabel !== 'Time Series'){
+const isTimeSeries = computed(() => {
+    if(activeTabStore.activeTabLabel !== 'Time Series'){
         return true;
     } else {
         return false;
@@ -216,20 +215,20 @@ onMounted(async () => {
     atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
-    console.log('computedFunc:', computedFunc.value);
-    if(!shouldDisplayColorEncode.value){
+    //console.log('computedFunc:', computedFunc.value);
+    if(!isTimeSeries.value){
         chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
     }
 });
 
 async function restoreAtl03DefaultColorsAndUpdatePlot() {
-    console.log('restoreAtl03DefaultColorsAndUpdatePlot');
+    //console.log('restoreAtl03DefaultColorsAndUpdatePlot');
     await atl03CnfColorMapStore.restoreDefaultAtl03CnfColorMap();
     await callPlotUpdateDebounced('from restoreAtl03DefaultColorsAndUpdatePlot');
 }
 
 async function restoreAtl08DefaultColorsAndUpdatePlot() {
-    console.log('restoreAtl08DefaultColorsAndUpdatePlot');
+    //console.log('restoreAtl08DefaultColorsAndUpdatePlot');
     await atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
 }

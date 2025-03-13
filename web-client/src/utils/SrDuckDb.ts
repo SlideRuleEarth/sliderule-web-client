@@ -165,6 +165,8 @@ export class DuckDBClient {
 
   // Method to execute queries
   async query(query: string, params?: any): Promise<QueryResult> {
+    //console.log('SrDuckDb query:', query);
+    //console.trace('SrDuckDb query:', query);
     const { Table } = await import('apache-arrow');
     const conn = await this._db!.connect();
     let tbl: Table<any>;
@@ -188,7 +190,7 @@ export class DuckDBClient {
         async *readRows(chunkSize = 10000) { // Default chunk size set to 100
           const rows = tbl.toArray().map((r) => Object.fromEntries(r));
           if(rows.length === 0) {
-            console.warn('SrDuckDb No Chunks? readRows rows.length:', rows.length);
+            console.warn('SrDuckDb No Chunks? readRows rows.length:', rows.length,' with query:', query);
           }
           for (let i = 0; i < rows.length; i += chunkSize) {
             yield rows.slice(i, i + chunkSize);
@@ -205,6 +207,7 @@ export class DuckDBClient {
 
 
   async getTotalRowCount(query: string): Promise<number> {
+    const startTime = performance.now(); // Start time
     const conn = await this._db!.connect();
     try {
       const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
@@ -220,6 +223,9 @@ export class DuckDBClient {
       throw error;
     } finally {
       await conn.close();
+      const endTime = performance.now(); // End time
+      const duration = endTime - startTime; // Duration in milliseconds
+      console.log(`getTotalRowCount took ${duration} milliseconds.`);
     }
   }
   
@@ -229,6 +235,7 @@ export class DuckDBClient {
     random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
     params?: any
   ): Promise<QueryChunkResult> {
+    //console.trace('SrDuckDb queryChunkSampled query:', query);
     const conn = await this._db!.connect();
     let tbl: Table<any>;
     const chunkSize = useSrParquetCfgStore().getMaxNumPntsToDisplay(); // Default chunk size set to 100
@@ -279,6 +286,7 @@ export class DuckDBClient {
 
     // Method to execute paginated queries with in-query random sampling
     async queryForColNames(fileName:string): Promise<string[]> {
+      const startTime = performance.now(); // Start time
       const conn = await this._db!.connect();
       let tbl: Table<any>;
       const query = `SELECT * FROM "${fileName}" LIMIT 1`;
@@ -291,6 +299,9 @@ export class DuckDBClient {
         throw error;
       } finally {
         await conn.close();
+        const endTime = performance.now(); // End time
+        const duration = endTime - startTime; // Duration in milliseconds
+        console.log(`queryForColNames took ${duration} milliseconds.`);
       }
     }
 

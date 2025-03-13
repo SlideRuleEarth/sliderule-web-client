@@ -15,7 +15,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
         let dataOrderNdx = {} as Record<string, number>;
         let debugCnt = 0;
         function initializeColorMapStore() {
-            console.log('gradientColorMapStore initializeColorMapStore isInitialized:',isInitialized.value);
+            //console.log('gradientColorMapStore initializeColorMapStore isInitialized:',isInitialized.value);
             isInitialized.value = true;
             updateGradientColorMapValues();
         }
@@ -26,18 +26,18 @@ export function useGradientColorMapStore(reqIdStr: string) {
         }
 
         function getSelectedGradientColorMapName():string {
-            console.log('getSelectedGradientColorMapName:',selectedGradientColorMapName.value);
+            //console.log('getSelectedGradientColorMapName:',selectedGradientColorMapName.value);
             return selectedGradientColorMapName.value;
         }
 
         function setNumShadesForGradient(numShades: number) {
-            console.log('setNumShadesForGradient:',numShades);
+            //console.log('setNumShadesForGradient:',numShades);
             numShadesForGradient.value = Math.max(numShades, 10); //at least 10 shades
             updateGradientColorMapValues();
         }
 
         function getNumShadesForGradient():number {
-            console.log('getNumShadesForGradient:',numShadesForGradient.value);
+            //console.log('getNumShadesForGradient:',numShadesForGradient.value);
             return numShadesForGradient.value;
         }
 
@@ -58,7 +58,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
               console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
               throw error;
             }
-            console.log(`updateGradientColorMapValues ${reqIdStr}:`,selectedGradientColorMapName.value,numShadesForGradient.value);
+            //console.log(`updateGradientColorMapValues ${reqIdStr}:`,selectedGradientColorMapName.value,numShadesForGradient.value);
         }
 
         function getGradientColorMap():string[] {
@@ -102,11 +102,11 @@ export function useGradientColorMapStore(reqIdStr: string) {
                 if (value >= maxValue) return gradientColorMap.value[numShadesForGradient.value - 1];
                 const colorIndex = Math.floor((value - minValue) * scale);
                 const color = gradientColorMap.value[colorIndex];
-                if(debugCnt++ < 10){
-                    console.log(`createGradientColorFunction ${reqIdStr} params:`,params);
-                    console.log(`createGradientColorFunction ${reqIdStr} dataOrderNdx:`,dataOrderNdx);
-                    console.log(`createGradientColorFunction ${reqIdStr} ndx:`,ndx, 'ndx_name:',ndx_name,'value:',value,'colorIndex:',colorIndex, 'color:',color);
-                }
+                // if(debugCnt++ < 10){
+                //     console.log(`createGradientColorFunction ${reqIdStr} params:`,params);
+                //     console.log(`createGradientColorFunction ${reqIdStr} dataOrderNdx:`,dataOrderNdx);
+                //     console.log(`createGradientColorFunction ${reqIdStr} ndx:`,ndx, 'ndx_name:',ndx_name,'value:',value,'colorIndex:',colorIndex, 'color:',color);
+                // }
                 return color;
             }
         }

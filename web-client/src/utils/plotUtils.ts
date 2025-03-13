@@ -17,7 +17,8 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
-
+import { formatKeyValuePair } from '@/utils/formatUtils';
+import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -139,66 +140,6 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
         }
     });
 }
-
-// function createDiscreteColorFunction(
-//     getColorFunction: (value: number) => string,
-//     ndx_name: string
-// ){
-//     const colorCache: Record<number, string> = {};
-//     let ndx: number = -1;
-
-//     const colorFunction = (params: any) => {
-//         if (ndx < 0) {
-//             const cms = useGradientColorMapStore(reqIdStr);
-//             ndx = cms.getDataOrderNdx[ndx_name];
-//         }
-//         const value = params.data[ndx];
-//         if (colorCache[value] === undefined) {
-//             colorCache[value] = getColorFunction(value);
-//         }
-//         return colorCache[value];
-//     };
-
-//     // Function to clear the cache
-//     colorFunction.resetCache = () => {
-//         Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
-//         ndx = -1; // Reset index so it is recalculated
-//         console.log(`Cache for ${ndx_name} reset.`);
-//     };
-
-//     return colorFunction;
-// }
-
-
-// const getAtl03CnfColorCached = createDiscreteColorFunction(
-//     getColorForAtl03CnfValue,
-//     'atl03_cnf'
-// );
-
-// const getAtl08ClassColorCached = createDiscreteColorFunction(
-//     getColorForAtl08ClassValue,
-//     'atl08_class'
-// );
-
-//const getColorUsingGradient = colorMapStore.createGradientColorFunction('yapc_score',0,255);
-
-// function getColorUsingAtl03_cnf(params: any): string {
-//     return getAtl03CnfColorCached(params);
-// }
-
-
-// function getColorUsingAtl08_class(params: any): string {
-//     return getAtl08ClassColorCached(params);
-// }
-
-// export function resetAtl03CnfColorCaches() {
-//     getAtl03CnfColorCached.resetCache();
-// }
-
-// export function resetAlt08ClassColorCaches() {
-//     getAtl08ClassColorCached.resetCache();
-// }
-
 
 interface GetSeriesParams {
     reqIdStr: string;
@@ -487,13 +428,29 @@ export function clearPlot() {
     }
 }
 
-const formatTooltip = (params: any) => {
-    //console.log('formatTooltip params:', params );
-    const paramsData = params.data;
-    const paramsDim = params.dimensionNames as any[];
-    let ndx = 0;
-    return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
-};
+// const formatTooltip = (params: any) => {
+//     //console.log('formatTooltip params:', params );
+//     const paramsData = params.data;
+//     const paramsDim = params.dimensionNames as any[];
+//     let ndx = 0;
+//     return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
+// };
+
+// formatTooltip.ts
+
+
+export function formatTooltip(params: any) {
+  const paramsData = params.data;
+  const paramsDim = params.dimensionNames as string[];
+  let ndx = 0;
+
+  return paramsDim
+    .map((dim) => {
+      const val = paramsData[ndx++];
+      return formatKeyValuePair(dim, val);
+    })
+    .join('<br>');
+}
 
 async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();
@@ -1029,11 +986,15 @@ const refreshScatterPlot = async (msg:string) => {
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
-    if (plotRef && plotRef.chart) {
-        await initScatterPlotWith(recTreeStore.selectedReqId);
-        await addOverlaysToScatterPlot(msg);
+    if (plotRef){
+        if(plotRef.chart) {
+            await initScatterPlotWith(recTreeStore.selectedReqId);
+            await addOverlaysToScatterPlot(msg);
+        } else {
+            console.warn(`Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined.`);
+        }
     } else {
-        console.error(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
     }
 };
 
@@ -1069,8 +1030,9 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     return runContext;
 }
 
-async function updatePlotAndSelectedTrackMapLayer(msg:string){
-    //console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
+export async function updatePlotAndSelectedTrackMapLayer(msg:string){
+    const startTime = performance.now(); // Start time
+    console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();
     if( (globalChartStore.getRgt() >= 0) &&
@@ -1081,19 +1043,21 @@ async function updatePlotAndSelectedTrackMapLayer(msg:string){
         await refreshScatterPlot(msg);
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
         const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,chunkSize,maxNumPnts);
+        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
     } else {
-        console.warn('Need Rgts, Cycles, and Spots values selected');
-        console.warn('Rgt:', globalChartStore.getRgt());
-        console.warn('Cycles:', globalChartStore.getCycles());
-        console.warn('Spots:', globalChartStore.getSpots());
+        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
+        console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
+        console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
+        console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
     }
+    const endTime = performance.now(); // End time
+    console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
 }
 let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
-    //console.log("callPlotUpdateDebounced called:", msg);
+    console.log("callPlotUpdateDebounced called:", msg);
     const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');
@@ -1108,9 +1072,9 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
         pendingResolves.push(resolve);
         updatePlotTimeoutId = window.setTimeout(async () => {
         await updatePlotAndSelectedTrackMapLayer(msg);
-            // Resolve all pending promises, since updatePlotAndSelectedTrackMapLayer is now complete
-            pendingResolves.forEach(res => res());
-            pendingResolves = [];
+        // Resolve all pending promises, since updatePlotAndSelectedTrackMapLayer is now complete
+        pendingResolves.forEach(res => res());
+        pendingResolves = [];
         }, 500);
     });
 }

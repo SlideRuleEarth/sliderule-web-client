@@ -43,12 +43,11 @@ export const useMapStore = defineStore('map', {
     polygonSource:'Draw on Map' as string,
     polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
     polyCoords: <Coordinate[][]>([]),
-    isLoading: false as boolean,
-    isAborting: false as boolean,
+    //isLoading: false as boolean,
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
-    totalRows: 0 as number, 
-    currentRows: 0 as number,
+    // totalRows: 0 as number, 
+    // currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
@@ -59,7 +58,7 @@ export const useMapStore = defineStore('map', {
     centerToRestore: null as number[] | null,
     zoomToRestore: null as number | null,
     showTheTooltip: false as boolean,
-    mapInitialized: false as boolean,
+    analysisMapInitialized: false as boolean,
 }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -163,33 +162,27 @@ export const useMapStore = defineStore('map', {
     getRedrawElevationsTimeoutHandle() {
       return this.reDrawElevationsTimeoutHandle;
     },
-    getIsLoading() {
-      return this.isLoading;
-    },
-    setIsLoading(value:boolean=true) {
-      this.isLoading = value;
-    },
-    getIsAborting() {
-      return this.isAborting;
-    },
-    setIsAborting(value:boolean=true) {
-      this.isAborting = value;
-    },
-    resetIsLoading() {
-      this.isLoading = false;
-    },
-    getTotalRows(): number | bigint {
-      return this.totalRows;
-    },
-    setTotalRows(rows: number) {
-      this.totalRows = rows;
-    },
-    getCurrentRows(): number {
-        return this.currentRows;
-    },
-    setCurrentRows(rows: number) {
-      this.currentRows = rows;
-    },
+    // getIsLoading() {
+    //   return this.isLoading;
+    // },
+    // setIsLoading(value:boolean=true) {
+    //   this.isLoading = value;
+    // },
+    // resetIsLoading() {
+    //   this.isLoading = false;
+    // },
+    // getTotalRows(): number | bigint {
+    //   return this.totalRows;
+    // },
+    // setTotalRows(rows: number) {
+    //   this.totalRows = rows;
+    // },
+    // getCurrentRows(): number {
+    //     return this.currentRows;
+    // },
+    // setCurrentRows(rows: number) {
+    //   this.currentRows = rows;
+    // },
     getPolySource() {
       return this.polygonSource;
     },
@@ -292,10 +285,10 @@ export const useMapStore = defineStore('map', {
         this.zoomToRestore = zoom;
     },
     setMapInitialized(value: boolean) {
-        this.mapInitialized = value;
+        this.analysisMapInitialized = value;
     },
     getMapInitialized() {
-        return this.mapInitialized;
+        return this.analysisMapInitialized;
     },
   },
 });

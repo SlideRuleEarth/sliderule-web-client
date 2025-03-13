@@ -58,7 +58,7 @@
   const reqParms = computed(() => {
     return JSON.stringify(reqParamsStore.getAtlxxReqParams(0), null, 2);
   });
-  const curAPI = computed(() => reqParamsStore.getCurAPI());
+  const curAPI = computed(() => reqParamsStore.getCurAPIStr());
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(reqParms.value)

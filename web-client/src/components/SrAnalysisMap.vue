@@ -10,7 +10,7 @@
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { get as getProjection } from 'ol/proj.js';
     import SrLegendControl from '@/components/SrLegendControl.vue';
-    import { initDeck, zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
+    import { zoomMapForReqIdUsingView } from '@/utils/SrMapUtils';
     import { useSrParquetCfgStore } from "@/stores/srParquetCfgStore";
     import { useRequestsStore } from "@/stores/requestsStore";
     import { Map, MapControls } from "vue3-openlayers";
@@ -29,6 +29,14 @@
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
+    import { updateMapAndPlot } from "@/utils/SrMapUtils";
+    import { useDeckStore } from "@/stores/deckStore"; 
+    import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
+    import { Layer as OLlayer } from 'ol/layer';
+    import { Deck } from '@deck.gl/core';
+    import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
+    import { useAnalysisMapStore } from "@/stores/analysisMapStore";
+    import { useGlobalChartStore } from "@/stores/globalChartStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -46,6 +54,10 @@
     const mapStore = useMapStore();
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
+    const deckStore = useDeckStore();
+    const srParquetCfgStore = useSrParquetCfgStore();
+    const analysisMapStore = useAnalysisMapStore();
+    const globalChartStore = useGlobalChartStore();
     const controls = ref([]);
 
 
@@ -59,8 +71,7 @@
         console.log(event);
     };
     const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
-
-    const elevationIsLoading = computed(() => mapStore.getIsLoading());
+    const elevationIsLoading = computed(() => analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading);
     const loadStateStr = computed(() => {
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
@@ -69,9 +80,9 @@
     });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
-        const currentRowsFormatted = numberFormatter.format(mapStore.getCurrentRows());
-        const totalRowsFormatted = numberFormatter.format(mapStore.getTotalRows());
-        if (mapStore.getCurrentRows() != mapStore.getTotalRows()) {
+        const currentRowsFormatted = numberFormatter.format(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).currentPnts);
+        const totalRowsFormatted = numberFormatter.format(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).totalPnts);
+        if (analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).currentPnts != analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).totalPnts) {
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} ${currentRowsFormatted} out of ${totalRowsFormatted} pnts`;
         } else {
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
@@ -90,11 +101,11 @@
 
     // Watch for changes on reqId
     watch( () => props.selectedReqId, async (newReqId, oldReqId) => {
-        const msg = `props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
+        const msg = `watch props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
-                await updateAnalysisMapView(msg);
+                await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");
             }
@@ -104,12 +115,12 @@
 
     // Watch for changes on parquetReader
     watch(() => useSrParquetCfgStore().parquetReader, async (newReader, oldReader) => {
-        console.log(`parquet reader changed from ${oldReader} to ${newReader}`);
+        console.log(`watch parquet reader changed from ${oldReader} to ${newReader}`);
         await updateAnalysisMapView("New parquetReader");
     });
 
-    watch(() => useSrParquetCfgStore().maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
-        console.log(`maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
+    watch(() => srParquetCfgStore.maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
+        console.log(`watch maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
@@ -123,6 +134,11 @@
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);
+        const map = mapRef.value?.map;
+        if(!map){
+            console.error("Error: map is null");
+            return;
+        }
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
@@ -160,6 +176,96 @@
         }
     };
 
+    const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
+        const analysisMap = mapRef.value?.map;
+        if (analysisMap) {
+            console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
+            analysisMap.addControl(progressSpinnerControl);
+        } else {
+            console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");
+        }
+    };
+
+    function createDeckInstance(map:OLMap): void{
+        //console.log('createDeckInstance');
+        const startTime = performance.now(); // Start time
+        try{
+            const mapView =  map.getView();
+            //console.log('mapView:',mapView);
+            const mapCenter = mapView.getCenter();
+            const mapZoom = mapView.getZoom();
+            //console.log('createDeckInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            if(mapCenter && mapZoom){
+                const tgt = map.getViewport() as HTMLDivElement;
+                const deck = new Deck({
+                    initialViewState: {longitude:0, latitude:0, zoom: 1},
+                    controller: false,
+                    parent: tgt,
+                    style: {pointerEvents: 'none', zIndex: '1'},
+                    layers: [],
+                    getCursor: () => 'default',
+                    useDevicePixels: false,
+                });
+                useDeckStore().setDeckInstance(deck);
+            } else {
+                console.error('createDeckInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
+            }
+        } catch (error) {
+            console.error('Error creating DeckGL instance:',error);
+        } finally {
+            console.log('createDeckInstance end');
+        }
+        const endTime = performance.now(); // End time
+        console.log(`createDeckInstance took ${endTime - startTime} milliseconds. endTime:`,endTime);
+    }
+
+    function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
+        //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);  
+
+        const layerOptions = {
+            title: OL_DECK_LAYER_NAME,
+        }
+        const new_layer = new OLlayer({
+            render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
+                //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+                const [width, height] = size;
+                //console.log('createOLlayerForDeck render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
+                let [longitude, latitude] = viewState.center;
+                if(projectionUnits !== 'degrees'){
+                    [longitude, latitude] = toLonLat(viewState.center);
+                }
+                const zoom = viewState.zoom - 1;
+                const bearing = (-viewState.rotation * 180) / Math.PI;
+                const deckViewState = {bearing, longitude, latitude, zoom};
+                deck.setProps({width, height, viewState: deckViewState});
+                deck.redraw();
+                return document.createElement('div');
+            },
+            ...layerOptions
+        }); 
+        return new_layer;  
+    }
+
+    function addDeckLayerToMap(map: OLMap){
+        //console.log('addDeckLayerToMap:',olLayerName);
+        const mapView =  map.getView();
+        const projection = mapView.getProjection();
+        const projectionUnits = projection.getUnits();
+        const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === OL_DECK_LAYER_NAME);
+        if (updatingLayer) {
+            //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
+            map.removeLayer(updatingLayer);
+        }
+        const deck = deckStore.getDeckInstance();
+        const deckLayer = createOLlayerForDeck(deck,projectionUnits);
+        if(deckLayer){
+            map.addLayer(deckLayer);
+            //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
+        } else {
+            console.error('No current_layer to add.');
+        }
+    }
+
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
         let srViewName = await db.getSrViewName(props.selectedReqId);
@@ -169,6 +275,10 @@
             if(map){
                 await updateMapView(map, srViewName, reason, false, props.selectedReqId);
                 const summary = await readOrCacheSummary(props.selectedReqId);
+                if(!summary){
+                    console.error(`Error: No summary for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                    return;
+                }
                 console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
                 const numPointsStr = summary.numPoints; // it is a string BIG INT!
                 const numPoints = parseInt(String(numPointsStr));
@@ -185,7 +295,11 @@
                     //useMapStore().setCenterToRestore(center);
 
                 }
-                initDeck(map);
+                deckStore.clearDeckInstance(); // Clear any existing instance first
+                createDeckInstance(map); 
+                addDeckLayerToMap(map);        
+                await updateMapAndPlot();
+
             } else {
                 console.error("SrMap Error:map is null");
             }
@@ -208,7 +322,7 @@
 <div class="sr-analysis-map-panel">
     <div class="sr-analysis-map-header">
         <div class="sr-isLoadingEl" v-if="elevationIsLoading" >
-            <ProgressSpinner v-if="mapStore.isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
+            <ProgressSpinner v-if="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading" animationDuration="1.25s" style="width: 1rem; height: 1rem"/>
             {{computedLoadMsg}}
         </div>
         <div class="sr-notLoadingEl" v-else >
@@ -250,6 +364,11 @@
             >
             </SrColMapSelControl>
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+            <SrProgressSpinnerControl 
+                @progress-spinner-control-created="handleProgressSpinnerControlCreated" 
+                v-model="mapRef" 
+                :selectedReqId="props.selectedReqId"
+            />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
             <SrCustomTooltip 
@@ -257,18 +376,46 @@
             />
         </div>
     </div>
-    <div>
-        <SrCheckbox 
-            class="sr-show-hide-tooltip"
-            :defaultValue="true"
-            label="Show map tooltip"
-            labelFontSize="small"
-            tooltipText="Show or hide the elevation when hovering mouse over a track"
-            v-model="mapStore.showTheTooltip"
-            :disabled="useMapStore().isLoading"
-            size="small" 
-        />            
+    <div class="sr-analysis-map-footer">
+        <div>
+            <SrCheckbox 
+                class="sr-show-hide-tooltip"
+                :defaultValue="true"
+                label="Show map tooltip"
+                labelFontSize="small"
+                tooltipText="Show or hide the elevation when hovering mouse over a track"
+                v-model="mapStore.showTheTooltip"
+                :disabled=elevationIsLoading
+                size="small" 
+            />
+        </div>
+        <div>
+            <SrCheckbox 
+                class="sr-show-hide-tooltip"
+                :defaultValue="false"
+                label="Enable off pointing filter"
+                labelFontSize="small"
+                tooltipText="Show or hide the off pointing filter"
+                v-model="globalChartStore.use_y_atc_filter"
+                :disabled="!recTreeStore.selectedApi.includes('atl03')"
+                size="small" 
+            />
+        </div>
+        <div>
+            <div class="sr-spinner">
+                <ProgressSpinner 
+                    v-if="elevationIsLoading"
+                    class="sr-spinner" 
+                    animationDuration=".75s" 
+                    style="width: 2rem; 
+                    height: 2rem;" 
+                    strokeWidth="8" 
+                    fill="var(--p-primary-300)"
+                />
+            </div>
+        </div>
     </div>
+
 </div>
 
 </template>
@@ -300,6 +447,29 @@
     font-weight: bold;
     padding: 0.5rem;
     margin-bottom: 0.5rem;
+}
+.sr-analysis-map-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;    /* Center the checkbox horizontally */
+  position: relative;         /* Needed for absolute positioning of spinner */
+  width: 100%;
+  height: 2rem;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0.5rem;
+}
+
+/* Absolutely position the spinner on the right */
+.sr-analysis-map-footer .sr-spinner {
+  position: absolute;
+  right: 7rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .sr-show-hide-tooltip {
@@ -422,6 +592,21 @@
     padding: 0rem;
 }
 
+
+:deep(.sr-progress-spinner-control) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    border-radius: 50%;
+    z-index: 9999;
+    pointer-events: none; /* Prevent interaction issues */
+}
 .sr-isLoadingEl {
     display: flex;
     flex-direction: column;
@@ -504,6 +689,9 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
-
+/* recommended by deck.gl for performance reasons */
+.overlays canvas {
+  mix-blend-mode: multiply;
+}
 
 </style>

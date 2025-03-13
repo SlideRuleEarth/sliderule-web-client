@@ -7,18 +7,17 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize,selectedCyclesReactive,selectedRgtReactive } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
-import SrPlotCntrl from "./SrPlotCntrl.vue";
-import SrGradientLegend from "./SrGradientLegend.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,getAllCycleOptions } from "@/utils/SrDuckDbUtils";
+import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
+import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
-import Listbox from 'primevue/listbox';
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import SrFilterMode from "./SrFilterMode.vue";
+import SrCycleSelect from "@/components/SrCycleSelect.vue";
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 
-let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -37,6 +36,7 @@ use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendCompo
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
+const chartReady = ref(false);
 const shouldDisplayGradient = ref(false);
 const gradientDialogStyle = ref<{
     backgroundColor: string;
@@ -53,9 +53,9 @@ const gradientDialogStyle = ref<{
 });
 
 const initGradientPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -78,7 +78,7 @@ const initGradientPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrScatterPlot initGradientPosition:', {
+    console.log('SrTimeSeries initGradientPosition:', {
         windowScrollX,
         windowScrollY,
         fontSize: globalChartStore.fontSize,
@@ -106,18 +106,28 @@ const initGradientPosition = () => {
         transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrScatterPlot initGradientPosition - chartWrapper is null');
+    console.warn('SrTimeSeries initGradientPosition - chartWrapper is null');
   }
   
 };
 
-const computedCycleOptions = computed(() => {
-    return globalChartStore.getCycleOptions();
-});
-
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
+
+const handleChartFinished = () => {
+    //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    if(chartWrapperRef.value){
+        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+            initGradientPosition();
+            chartReady.value = true;
+        } else {
+            console.warn('handleChartFinished - no Y data selected');
+        }
+    } else {
+        console.warn('handleChartFinished - chartWrapperRef is null');
+    }
+};
 
 onMounted(async () => {
     try {
@@ -129,12 +139,10 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
+            await setCyclesGtsSpotsFromFileUsingRgtYatc();
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
-            const retObj = await getAllCycleOptions(reqId);
-            globalChartStore.setCycles(retObj.cycles); // force select all 
-            globalChartStore.setFilterMode(SrFilterMode.RgtMode);
-            console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
+            //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
             console.error('SrTimeSeries reqId is undefined');
         }        
@@ -145,7 +153,7 @@ onMounted(async () => {
             console.error('Error during onMounted initialization:', error);
     } finally {
         loadingComponent.value = false;
-        console.log('SrTimeSeries onMounted completed');
+        //console.log('SrTimeSeries onMounted completed');
     }
 });
 
@@ -168,50 +176,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
             console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
         }
         nextTick(initGradientPosition); // Ensure DOM updates before repositioning
-    }
-});
-
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
-
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            scOrients: globalChartStore.getScOrients(),
-            rgt: globalChartStore.getRgt(),
-            cycles: globalChartStore.getCycles(),
-            spots: globalChartStore.getSpots(),
-            gts: globalChartStore.getGts(),
-            tracks: globalChartStore.getTracks(),
-            pairs: globalChartStore.getSelectedPairOptions(),
-        };
-    }
-
-    // Otherwise, fetch the real values
-    return {
-        scOrients: globalChartStore.getScOrients(),
-        rgt: globalChartStore.getRgt(),
-        cycles: globalChartStore.getCycles(),
-        spots: globalChartStore.getSpots(),
-        gts: globalChartStore.getGts(),
-        tracks: globalChartStore.getTracks(),
-        pairs: globalChartStore.getSelectedPairOptions(),
-    };
-}, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
-        const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtSpotsAndGts(recTreeStore.selectedReqId)
-        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrTimeSeries watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
-        atlChartFilterStore.setShowPhotonCloud(false);
-    }
-    if (!loadingComponent.value) {
-        // if we have selected Y data and anything changes update the plot
-        await callPlotUpdateDebounced('SrTimeSeries watch filter parms changed');
-    } else {
-        console.warn(
-            `Skipped updateThePlot for watch filter parms - Loading component is still active`
-        );
     }
 });
 
@@ -254,20 +218,6 @@ watch(() => {
   { deep: true }
 );
 
-function handleValueChange(value) {
-    console.log('SrTimeSeries handleValueChange:', value);
-    const reqId = recTreeStore.selectedReqIdStr;
-    if (reqId) {
-    } else {
-        console.warn('reqId is undefined');
-    }
-    console.log('SrTimeSeries handleValueChange:', value);
-}
-watch(chartWrapperRef, (newValue) => {
-    console.log("chartWrapperRef updated:", newValue);
-    chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-});
-
 </script>
 <template>
     <div class="sr-time-series-container" v-if="loadingComponent"><span>Loading...</span></div>
@@ -285,49 +235,21 @@ watch(chartWrapperRef, (newValue) => {
                         showSpinner: true, 
                         zlevel:100
                     }" 
+                    @finished="handleChartFinished"
                 />
             </div>
             <div class="sr-cycles-legend-panel">
-                <div>
-                    <SrFilterMode />
-                </div>
-                <div class="sr-select-box">
-                    <p class="sr-select-box-hdr">Cycles</p>
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedCyclesReactive" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="true"
-                        :metaKeySelection="true"
-                        :options="computedCycleOptions"
-                        @change="handleValueChange"
-                    >
-                    </Listbox>
-                </div>
-                <div class="sr-select-box">
-                    <p class="sr-select-box-hdr">Rgts</p>
-                    <Listbox 
-                        class="sr-select-lists"
-                        v-model="selectedRgtReactive" 
-                        optionLabel="label"
-                        optionValue="value"
-                        :multiple="false"
-                        :options="globalChartStore.rgtOptions"
-                        @change="handleValueChange"
-                    >
-                    </Listbox>
-                </div>
+                <SrCycleSelect />
+                <SrSimpleYatcCntrl />
                 <div class="sr-legends-panel">
-                    <!-- {{ shouldDisplayGradient }} {{ (chartWrapper !== null) }} -->
                     <Dialog
-                        v-if="(chartWrapper !== null)"
+                        v-if="(chartWrapperRef !== undefined)"
                         v-model:visible="shouldDisplayGradient"
                         :closable="false"
                         :draggable="true"
                         :modal="false"
                         class="sr-floating-dialog"
-                        :appendTo="chartWrapper"
+                        :appendTo="chartWrapperRef"
                         :style="gradientDialogStyle"
                     >
                         <template #header>
@@ -438,15 +360,17 @@ watch(chartWrapperRef, (newValue) => {
     justify-content: flex-start;
     align-items:center;
 }
+
 .sr-cycles-legend-panel{
     display: flex;
     flex-direction: column;
-    justify-content:space-between;
+    justify-content:flex-start;
     align-items:center;
     margin: 0.5rem;
     padding: 0.5rem;
     width: auto;
 }
+
 .sr-select-lists {
     display: flex;
     flex-direction: column;
@@ -527,7 +451,7 @@ watch(chartWrapperRef, (newValue) => {
   /* Each item should not flex to fill the container, so prevent auto stretching: */
   flex: 0 0 auto; 
   /* Or use: display: inline-block; */
-  white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
+  white-space: nowrap;  /* Make sure each items text doesnt wrap within itself */
 }
 
 .sr-multiselect-container {

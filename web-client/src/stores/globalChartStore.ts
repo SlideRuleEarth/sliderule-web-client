@@ -5,7 +5,6 @@ import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
 import type { ElevationDataItem } from '@/utils/SrMapUtils';
-import { type SrRadioItem } from '@/types/SrTypes';
 
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -24,16 +23,13 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const scrollY = ref<number>(0);
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
-    const filterModeOptions = ref<SrRadioItem[]>([
-        { name: 'SpotMode', key: 'SpotMode' },
-        //{ name: 'TrackMode', key: 'TrackMode' },
-        { name: 'RgtMode', key: 'RgtMode' },
-        //{ name: 'UseAll', key: 'UseAll' },
-    ]);
-    const filterMode = ref<string>('SpotMode');
-    const selectedElevationRec = ref<ElevationDataItem | null>({});
-
-
+    const selectedElevationRec = ref<ElevationDataItem | null>(null);
+    const use_y_atc_filter = ref<boolean>(true);
+    const selected_y_atc = ref<number>(0.0);
+    const y_atc_margin = ref<number>(50.0);
+    const max_pnts_on_plot = ref<number>(50000);
+    const chunk_size_for_plot = ref<number>(10000);
+    const selected_y_atc_label = ref<string>('y_atc');
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -78,6 +74,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return;
         }
         selectedCycleOptions.value = cycleOptions;
+        //console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getSelectedCycleOptions(): SrListNumberItem[] {
@@ -170,7 +167,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selectedGtOptions.value = gts.map(gt => {
             return gtsOptions.find(option => option.value === gt) || { label: gt.toString(), value: gt };
         });
-        console.log('setGts gts:', gts, ' selectedGtOptions:', selectedGtOptions.value);    
+        //console.log('setGts gts:', gts, ' selectedGtOptions:', selectedGtOptions.value);    
     }
 
     function getGts(): number[] {
@@ -224,6 +221,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             .map(gt => tracksOptions.find(track => Number(gt.label.charAt(2)) === track.value))
             .filter((track): track is SrListNumberItem => track !== undefined);
         const trkList = tracks.map(track => track.value);
+        //console.log('setTracksForGts:',input_gts, 'tracks:', trkList);
         setTracks(trkList);
     }
 
@@ -301,14 +299,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return scOrientLabels;        
     }
 
-    async function setFilterMode(thisFilterMode:string) {
-          filterMode.value = thisFilterMode;
-    }
-
-    function getFilterMode():string {
-        return filterMode.value;
-    }
-
     const setSelectedElevationRec = (rec: ElevationDataItem): void => {   
         selectedElevationRec.value = rec;
     };
@@ -316,6 +306,28 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const getSelectedElevationRec = (): ElevationDataItem | null => {
         return selectedElevationRec.value ?? null;
     };
+
+    function y_atc_is_valid():boolean {
+        return ((selected_y_atc.value != undefined) && (selected_y_atc.value != null) && (!isNaN(selected_y_atc.value)));
+    };
+
+    function generateNameSuffix(
+        req_id: number|string,
+    ): string {
+        const rgt = getRgt();
+        const cycles = getCycles();
+        const spots = getSpots();
+        const min_y_atc = selected_y_atc.value - y_atc_margin.value;
+        const max_y_atc = selected_y_atc.value + y_atc_margin.value;
+        const min_y_atc_str = min_y_atc !== undefined ? min_y_atc.toFixed(2) : '';
+        const max_y_atc_str = max_y_atc !== undefined ? max_y_atc.toFixed(2) : '';
+        let nameSuffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
+
+        if (use_y_atc_filter && min_y_atc !== undefined && max_y_atc !== undefined) {
+            nameSuffix += `-${min_y_atc_str}-${max_y_atc_str}`;
+        }
+        return nameSuffix;
+    }
 
     return {
         fontSize,
@@ -369,11 +381,14 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         scrollX,
         scrollY,
         titleOfElevationPlot: ref('Highlighted Track'),
-        setFilterMode,
-        getFilterMode,
-        filterMode,
-        filterModeOptions,
         setSelectedElevationRec,
         getSelectedElevationRec,
+        use_y_atc_filter,
+        selected_y_atc,
+        y_atc_is_valid,
+        y_atc_margin,
+        generateNameSuffix,
+        max_pnts_on_plot,
+        chunk_size_for_plot,
     };
 });

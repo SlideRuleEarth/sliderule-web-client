@@ -11,8 +11,7 @@ import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from './globalChartStore';
-import { useAreaThresholdsStore } from './areaThresholds';
-
+import { type ApiName, isValidAPI } from '@/types/SrTypes'
 interface YapcConfig {
   version: number;
   score: number;
@@ -40,8 +39,6 @@ const createReqParamsStore = (id: string) =>
         poly: null as SrRegion | null,
         convexHull: null as SrRegion | null,
         areaOfConvexHull: 0.0 as number, // in square kilometers
-        // areaWarningThreshold: 1000.0 as number, // in square kilometers
-        // areaErrorThreshold: 10000.0 as number, // in square kilometers
         urlValue: 'slideruleearth.io',
         enableGranuleSelection: false,
         tracks: [] as SrListNumberItem[],
@@ -208,11 +205,6 @@ const createReqParamsStore = (id: string) =>
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine
-            //console.log('presetForScatterPlotOverlay parentReqId:', parentReqId);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed:', svrParmsUsed);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server:', svrParmsUsed.server);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst:', svrParmsUsed.server.rqst);
-            // console.log('presetForScatterPlotOverlay svrParmsUsed.server.rqst.parms:', svrParmsUsed.server.rqst.parms);
 
             this.setMissionValue("ICESat-2");
             this.setIceSat2API("atl03sp");
@@ -241,14 +233,7 @@ const createReqParamsStore = (id: string) =>
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
             this.setCycle(useGlobalChartStore().getCycles()[0]);
-
-            // console.log('beams:', useAtlChartFilterStore().getGts());
-            // console.log('rgt:', useAtlChartFilterStore().getRgt());
-            // console.log('cycles:', useAtlChartFilterStore().getCycles());
-            // console.log('pairs:', useAtlChartFilterStore().getPairs());
-            // console.log('spots:', useAtlChartFilterStore().getSelectedSpotOptions());
-            // console.log('scOrients:', useAtlChartFilterStore().getScOrients());
-
+            //console.log('presetForScatterPlotOverlay: tracks:', this.getSelectedTrackOptions(),'gts:', this.getSelectedGtOptions(), 'rgts:', this.getRgt(), 'cycles:', this.getCycle());
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
@@ -780,7 +765,7 @@ const createReqParamsStore = (id: string) =>
         setGediAPI(value:string) {
           this.gediSelectedAPI = value;
         },
-        getCurAPI() : string {
+        getCurAPIStr() : string {
           if(this.missionValue === 'ICESat-2') {
             return this.iceSat2SelectedAPI;
           } else if(this.missionValue === 'GEDI') {
@@ -788,6 +773,14 @@ const createReqParamsStore = (id: string) =>
           }
           return '';
         },
+        getCurAPIObj(): ApiName | null {
+          if (this.missionValue === 'ICESat-2' && isValidAPI(this.iceSat2SelectedAPI)) {
+            return this.iceSat2SelectedAPI as ApiName;
+          } else if (this.missionValue === 'GEDI' && isValidAPI(this.gediSelectedAPI)) {
+            return this.gediSelectedAPI as ApiName;
+          }
+          return null; // Explicitly return `null` instead of `''`
+        },    
         setConvexHull(convexHull: SrRegion) {
           this.convexHull = convexHull;
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
@@ -803,12 +796,6 @@ const createReqParamsStore = (id: string) =>
         },
         setAreaOfConvexHull(value:number) { 
           this.areaOfConvexHull = value;
-        },
-        getAreaWarningThreshold(): number {
-          return useAreaThresholdsStore().getAreaWarningThreshold(this.getFunc());
-        },
-        getAreaErrorThreshold(): number {
-          return useAreaThresholdsStore().getAreaErrorThreshold(this.getFunc());
         },
         getEnableAtl08Classification(): boolean {
           return this.enableAtl08Classification;
@@ -837,6 +824,8 @@ const createReqParamsStore = (id: string) =>
         
     },
 })
-export const useReqParamsStore = createReqParamsStore('reqParamsStore');
-export const useAutoReqParamsStore = createReqParamsStore('autoReqParamsStore');
+const theReqParamsStore = createReqParamsStore('reqParamsStore');
+const theAutoReqParamsStore = createReqParamsStore('autoReqParamsStore');
+export const useReqParamsStore = theReqParamsStore;
+export const useAutoReqParamsStore = theAutoReqParamsStore;
 

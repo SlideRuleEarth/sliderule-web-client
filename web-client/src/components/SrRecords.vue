@@ -79,7 +79,8 @@ async function deleteRequest(id:number){
     try {
         const fn = await db.getFilename(id);
         console.log('deleteRequest:', id, 'fileName:', fn);
-        deleted = await deleteOpfsFile(fn);
+        await deleteOpfsFile(fn);
+        deleted = true; // If we get here, the file was deleted
     } catch (error) {
         console.error(`deleteRequest Failed to delete file for id:${id}`, error);
         deleted = false;

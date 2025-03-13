@@ -1,9 +1,12 @@
   <template>
     <div v-if=(computedDisplayIt)>
         <div class="sr-legend-box" :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }" >
-            <div class="sr-solid-color-box" :style="{  background: computedSolidColor, height: '0.75rem',  width: '0.75rem', border: '1px solid transparent' }">
+            <span class="sr-legend-name"> {{ computedTitle }} </span>
+            <div class="sr-legend-row">
+                <div class="sr-solid-color-box" :style="{  background: computedSolidColor, height: '0.75rem',  width: '0.75rem', border: '1px solid transparent' }">
+                </div>
+                <span class="sr-legend-name"> {{ computedHFieldName }} </span>
             </div>
-            <span class="sr-legend-name"> {{ computedHFieldName }} </span>
         </div>
     </div>
   </template>
@@ -48,6 +51,13 @@ const computedHFieldName = computed(() => {
   return getHFieldNameForFuncStr(recTreeStore.selectedApi);
 });
 
+const computedTitle = computed(() => {
+  return recTreeStore.selectedApi
+    ? recTreeStore.selectedApi.charAt(0).toUpperCase() + recTreeStore.selectedApi.slice(1) + ' Colors'
+    : 'Colors';
+});
+
+
 const emit = defineEmits(['color-legendbox-created']);
 
 
@@ -60,17 +70,24 @@ onMounted(async () => {
 <style scoped>
 .sr-legend-box {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 0.3125rem;
   color: var(--p-primary-color);
   background-color: transparent;
   border-radius: var(--p-border-radius);
-  border: 1px solid transparent; /* Initially transparent */
+  border: 1px solid var(--p-fieldset-border-color); /* to match other dialogs with fieldsets */
   transition: border 0.3s ease-in-out; /* Smooth transition effect */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
-
+.sr-legend-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem; /* 4px equivalent */
+}
 .sr-legend-box:hover {
   background-color: transparent;
   border: 1px solid var(--p-primary-color); /* Show border on hover */

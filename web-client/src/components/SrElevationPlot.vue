@@ -13,24 +13,30 @@ import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEnco
 import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
-import { useMapStore } from "@/stores/mapStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrGradientLegend from "./SrGradientLegend.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import { getAllCycleOptionsByRgtSpotsAndGts,prepareDbForReqId } from "@/utils/SrDuckDbUtils";
+import { prepareDbForReqId, updateAllFilterOptions } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
+import { useAnalysisMapStore } from "@/stores/analysisMapStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
+import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
-import { useAnalysisTabStore } from "@/stores/analysisTabStore";
-import { clicked } from "@/utils/SrMapUtils";
+import { processSelectedElPnt } from "@/utils/SrMapUtils";
+import SrCycleSelect from "@/components/SrCycleSelect.vue";
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
+import ProgressSpinner from "primevue/progressspinner";
+import Panel from 'primevue/panel';
 
 
-let chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+const tooltipRef = ref();
+
 const props = defineProps({
     startingReqId: {
         type:Number, 
@@ -43,8 +49,9 @@ const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
-const analysisTabStore = useAnalysisTabStore();
+const analysisMapStore = useAnalysisMapStore();
 const loadingComponent = ref(true);
+
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
 
@@ -52,6 +59,8 @@ provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
 const chartWrapperRef = ref<AppendToType>(undefined);
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+const chartReady = ref(false);
+
 const mainLegendDialogStyle = ref<{
     position: string;
     top: string;
@@ -78,9 +87,9 @@ const overlayLegendDialogStyle = ref<{
 });
 
 const initMainLegendPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -103,25 +112,25 @@ const initMainLegendPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initMainLegendPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
+    // console.log('SrElevationPlot initMainLegendPosition:', {
+    //     windowScrollX,
+    //     windowScrollY,
+    //     fontSize: globalChartStore.fontSize,
+    //     topOffset,
+    //     endOfTitle,
+    //     middleHorizontalOffset,
+    //     middleX,
+    //     leftLegendOffset,        
+    //     assumedTitleWidth,
+    //     spaceSize,
+    //     centerOfLegend,    
+    //     top,
+    //     left,
+    //     rect_top,
+    //     rect_left,
+    //     rect_right,
+    //     rect_bottom
+    //});
 
     mainLegendDialogStyle.value = {
       position: "absolute",
@@ -130,16 +139,16 @@ const initMainLegendPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initMainLegendPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initMainLegendPosition - thisChartWrapper is null');
   }
   
 };
 
 
 const initOverlayLegendPosition = () => {
-  const chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-  if (chartWrapper) {
-    const rect = chartWrapper.getBoundingClientRect();
+  const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
+  if (thisChartWrapper) {
+    const rect = thisChartWrapper.getBoundingClientRect();
     const rect_left = rect.left;
     const rect_top = rect.top;
     const rect_right = rect.right;
@@ -162,25 +171,25 @@ const initOverlayLegendPosition = () => {
     const topOffset = 3 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrElevationPlot initOverlayLegendPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
+    // console.log('SrElevationPlot initOverlayLegendPosition:', {
+    //     windowScrollX,
+    //     windowScrollY,
+    //     fontSize: globalChartStore.fontSize,
+    //     topOffset,
+    //     endOfTitle,
+    //     middleHorizontalOffset,
+    //     middleX,
+    //     leftLegendOffset,        
+    //     assumedTitleWidth,
+    //     spaceSize,
+    //     centerOfLegend,    
+    //     top,
+    //     left,
+    //     rect_top,
+    //     rect_left,
+    //     rect_right,
+    //     rect_bottom
+    // });
 
     overlayLegendDialogStyle.value = {
       position: "absolute",
@@ -189,7 +198,7 @@ const initOverlayLegendPosition = () => {
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initOverlayLegendPosition - chartWrapper is null');
+    console.warn('SrElevationPlot initOverlayLegendPosition - thisChartWrapper is null');
   }
   
 };
@@ -226,7 +235,7 @@ const computedDataKey = computed(() => {
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if((computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
+    if((chartReady.value) && (computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
         shouldDisplay = true;
     }
     return shouldDisplay;
@@ -259,84 +268,60 @@ const shouldDisplayOverlayGradient =computed(() => {
             (computedOverlayDataKey.value!='atl08_class');
 });
 
-const filterGood = computed(() => {
-    return ((globalChartStore.getCycles().length === 1) && (globalChartStore.getRgt()>=0) && (globalChartStore.getSpots().length === 1));
-});
 
-const enableThePhotonCloud = computed(() => {
-    return (!useMapStore().getIsLoading() && filterGood.value);
-}); 
+
 
 const photonCloudBtnTooltip = computed(() => {
-    if(!filterGood.value){
-        return 'Photon Cloud is disabled due to multiple Cycles, Rgts, Spots, or Gts';
-    } else {
-        if(useMapStore().getIsLoading()){
+    if(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading){
             return 'Photon Cloud is disabled while record is loading';
-        } else {
-            //return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
-            return '';
-        }
+    } else {
+        return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
     }
-
 });
 
-const enableTouchDragging = () =>{
-    const dialogs = document.querySelectorAll('.sr-floating-dialog');
-
-    dialogs.forEach((dialogElement) => {
-        const dialog = dialogElement as HTMLElement; // Cast to HTMLElement for style access
-        let startX = 0;
-        let startY = 0;
-        let initialLeft = 0;
-        let initialTop = 0;
-
-        const onTouchStart = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            startX = touch.clientX;
-            startY = touch.clientY;
-            const rect = dialog.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-
-            document.addEventListener('touchmove', onTouchMove);
-            document.addEventListener('touchend', onTouchEnd);
-        };
-
-        const onTouchMove = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            const dx = touch.clientX - startX;
-            const dy = touch.clientY - startY;
-
-            dialog.style.left = `${initialLeft + dx}px`;
-            dialog.style.top = `${initialTop + dy}px`;
-        };
-
-        const onTouchEnd = () => {
-            document.removeEventListener('touchmove', onTouchMove);
-            document.removeEventListener('touchend', onTouchEnd);
-        };
-
-        dialog.addEventListener('touchstart', onTouchStart);
-  });
-}
+const handleChartFinished = () => {
+    //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
+    if(chartWrapperRef.value){
+        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+            initMainLegendPosition();
+            initOverlayLegendPosition();
+            chartReady.value = true;
+        } else {
+            console.warn('handleChartFinished - no Y data selected');
+        }
+    } else {
+        console.warn('handleChartFinished - chartWrapperRef is null');
+    }
+};
 
 onMounted(async () => {
     try {
-        console.log('SrElevationPlot onMounted initial chartWrapper:',chartWrapper);
+        //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
         webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
-        //console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+        console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
         // Get the computed style of the document's root element
         // Extract the font size from the computed style
         // Log the font size to the console
-        console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
-
+        //console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
+        globalChartStore.use_y_atc_filter = false;
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
+            const selectedElRecord = globalChartStore.getSelectedElevationRec();
+            //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
+            if(selectedElRecord){
+                await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
+            } else {
+                console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
+            }
+            if(recTreeStore.selectedApi.includes('atl08')){
+                console.warn('SrElevationPlot onMounted - atl08 selected no y_atc supported yet');
+            } else {
+                await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            }
             await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
             // set this so if the user looks at it, it will be there
@@ -344,13 +329,8 @@ onMounted(async () => {
         } else {
             console.warn('reqId is undefined');
         }        
-        //setTimeout(updateDialogPosition, 100); // Ensure DOM is fully loaded
-        await nextTick(); // Ensures Vue has completed the DOM rendering
-        initMainLegendPosition();
-        initOverlayLegendPosition();
-        //console.log('SrElevationPlot onMounted completed');
 
-        enableTouchDragging();
+        //enableTouchDragging(); // this is experimental
         requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
@@ -373,7 +353,6 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
 });
 
 watch(() => plotRef.value, async (newPlotRef) => {
-    //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
         console.warn('SrElevationPlot watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
@@ -382,11 +361,8 @@ watch(() => plotRef.value, async (newPlotRef) => {
         } else {
             console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
         }
-        nextTick(initMainLegendPosition); // Ensure DOM updates before repositioning
-        nextTick(initOverlayLegendPosition); // Ensure DOM updates before repositioning
     }
 });
-
 const messageClass = computed(() => {
   return {
     'message': true,
@@ -409,7 +385,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-                    await initSymbolSize(runContext.reqId);
+                    chartStore.setSymbolSize(runContext.reqId.toString(),1);
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     initializeColorEncoding(runContext.reqId);
@@ -417,7 +393,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
-                await initSymbolSize(runContext.reqId);
+                //await initSymbolSize(runContext.reqId);
+                chartStore.setSymbolSize(runContext.reqId.toString(),1);
                 initializeColorEncoding(runContext.reqId);
                 const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr);
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
@@ -425,6 +402,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                // the filter options got set with the overlayed data file so reset them
+                await updateAllFilterOptions(runContext.parentReqId);
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
@@ -447,98 +426,28 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     }
 });
 
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
-
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            scOrients: globalChartStore.getScOrients(),
-            rgt: globalChartStore.getRgt(),
-            cycles: globalChartStore.getCycles(),
-            spots: globalChartStore.getSpots(),
-            gts: globalChartStore.getGts(),
-            tracks: globalChartStore.getTracks(),
-            pairs: globalChartStore.getSelectedPairOptions(),
-        };
-    }
-
-    // Otherwise, fetch the real values
-    return {
-        scOrients: globalChartStore.getScOrients(),
-        rgt: globalChartStore.getRgt(),
-        cycles: globalChartStore.getCycles(),
-        spots: globalChartStore.getSpots(),
-        gts: globalChartStore.getGts(),
-        tracks: globalChartStore.getTracks(),
-        pairs: globalChartStore.getSelectedPairOptions(),
-    };
-}, async (newValues, oldValues) => {
-    if((newValues.spots != oldValues.spots) || (newValues.rgt != oldValues.rgt) || (newValues.gts != oldValues.gts)){
-        const gtsValues = newValues.gts.map((gts) => gts);
-        const filteredCycleOptions = await getAllCycleOptionsByRgtSpotsAndGts(recTreeStore.selectedReqId)
-        globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
-        console.log('SrElevationPlot watch selected filter stuff Rgt,Spots,Gts... changed:', newValues.rgt, newValues.spots,gtsValues);
-        atlChartFilterStore.setShowPhotonCloud(false);
-    }
-    if (!loadingComponent.value) {
-        // if we have selected Y data and anything changes update the plot
-        await callPlotUpdateDebounced('SrElevationPlot watch filter parms changed');
-    } else {
-        console.warn(
-            `Skipped updateThePlot for watch filter parms - Loading component is still active`
-        );
-    }
-});
-
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
-    const reqIdStr = recTreeStore.selectedReqIdStr;
-
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            ydata: [],
-            solidColor: null,
-        };
-    }
-
-    // Otherwise, fetch the real values
-    return {
-        ydata: chartStore.getSelectedYData(reqIdStr),
-        solidColor: chartStore.getSolidSymbolColor(reqIdStr),
-    };
-  },
-  async (newValues, oldValues) => {
-    let needPlotUpdate = false;
-    if (!loadingComponent.value) {
-         // if we have selected Y data and anything changes update the plot
-        if(newValues.ydata.length > 0){
-            needPlotUpdate = true;
-        } else {
-            console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
-        }       
-        if(needPlotUpdate){
-            await callPlotUpdateDebounced('from watch selected Y data changed');
-        }
-    } else {
-      console.warn(
-        `Skipped updateThePlot for watch multiple properties - Loading component is still active`
-      );
-    }
-  },
-  { deep: true }
-);
-
-watch(chartWrapperRef, (newValue) => {
-    console.log("chartWrapperRef updated:", newValue);
-    chartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
-});
-
 </script>
 <template>
-    <div class="sr-elevation-plot-container" v-if="loadingComponent"><span>Loading...</span></div>
+    <div class="sr-elevation-plot-container" v-if="loadingComponent">
+        <span >Filtered Data is Loading...</span>
+        <br>
+        <ProgressSpinner 
+            class="sr-spinner" 
+            animationDuration=".75s" 
+            style="width: 2rem; 
+            height: 2rem;" 
+            strokeWidth="8" 
+            fill="var(--p-primary-300)"
+        />
+        
+    </div>
     <div class="sr-elevation-plot-container" v-else>
+        <!-- {{ webGLSupported ? 'WebGL is supported' : 'WebGL is not supported' }}
+        {{ shouldDisplayMainGradient ? 'Main Gradient Displayed' : 'Main Gradient Not Displayed' }}
+        {{ shouldDisplayMainSolidColorLegend ? 'Main Solid Color Legend Displayed' : 'Main Solid Color Legend Not Displayed' }}
+        {{ shouldDisplayOverlayGradient ? 'Overlay Gradient Displayed' : 'Overlay Gradient Not Displayed' }}
+        {{ shouldDisplayAtl08Colors ? 'Atl08 Colors Displayed' : 'Atl08 Colors Not Displayed' }}
+        {{ shouldDisplayAtl03Colors ? 'Atl03 Colors Displayed' : 'Atl03 Colors Not Displayed' }} -->      
         <div class="sr-elevation-plot-content">
             <div ref="chartWrapperRef" class="chart-wrapper">
                 <v-chart  ref="plotRef" 
@@ -552,17 +461,31 @@ watch(chartWrapperRef, (newValue) => {
                         showSpinner: true, 
                         zlevel:100
                     }" 
+                    @finished="handleChartFinished"
                 />
-                <Dialog
-                    v-if="(chartWrapper !== null)"
-                    v-model:visible="shouldDisplayMainGradient"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
-                    :style="mainLegendDialogStyle"
+            </div> 
+            <div class="sr-cycles-legend-panel">
+                <Panel 
+                     v-show="globalChartStore.use_y_atc_filter"
+                    header="Off Pointing Cntrl" 
+                    :toggleable="true" 
+                    :collapsed="false"
                 >
+                    <SrCycleSelect/>
+                    <SrSimpleYatcCntrl />
+                </Panel>
+
+                <div class="sr-legends-panel">
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayMainGradient"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="mainLegendDialogStyle"
+                    >
                     <template #header>
                         <SrGradientLegend
                             class="chart-overlay"
@@ -572,97 +495,102 @@ watch(chartWrapperRef, (newValue) => {
                             :transparentBackground="true" 
                         />
                     </template>
-                </Dialog>
-                <Dialog
-                    v-if="(chartWrapper !== null)"
-                    v-model:visible="shouldDisplayMainSolidColorLegend"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
-                    :style="mainLegendDialogStyle"
-                >
-                    <template #header>
-                        <SrSolidColorLegend
-                            class="chart-overlay"
-                            v-if = shouldDisplayMainSolidColorLegend
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            :data_key="computedDataKey" 
-                            :transparentBackground="true" 
-                        />
-                    </template>
-                </Dialog>
-
-                <Dialog
-                    v-if="(chartWrapper !== null)"
-                    v-model:visible="shouldDisplayOverlayGradient"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    :appendTo="chartWrapper"
-                    :style="overlayLegendDialogStyle"
-                >
-                    <template #header>
-                        <SrGradientLegend
-                            class="chart-overlay"
-                            v-if = shouldDisplayOverlayGradient
-                            :reqIdStr="overlayReqIdStr" 
-                            :data_key="computedOverlayDataKey" 
-                            :transparentBackground="true" 
-                        />
-                    </template>
-                </Dialog>
-                <Dialog
-                    v-model:visible="shouldDisplayAtl08Colors"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    appendTo="self" 
-                    :style="overlayLegendDialogStyle"
+                    </Dialog>
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayMainSolidColorLegend"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="mainLegendDialogStyle"
                     >
-                    <template #header>
-                        <SrAtl08Colors  
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            class="chart-overlay"
-                            v-if="shouldDisplayAtl08Colors"
-                        />
-                    </template> 
-                </Dialog>
-                <Dialog
-                    v-model:visible="shouldDisplayAtl03Colors"
-                    :closable="false"
-                    :draggable="true"
-                    :modal="false"
-                    class="sr-floating-dialog"
-                    appendTo="self"
-                    :style="overlayLegendDialogStyle" 
-                >
-                    <template #header>
-                        <SrAtl03CnfColors
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            class="chart-overlay"
-                            v-if="shouldDisplayAtl03Colors" 
-                        />
-                    </template>
-                </Dialog>
-            </div>  
+                        <template #header>
+                            <SrSolidColorLegend
+                                class="chart-overlay"
+                                v-if = shouldDisplayMainSolidColorLegend
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                :data_key="computedDataKey" 
+                                :transparentBackground="true" 
+                            />
+                        </template>
+                    </Dialog>
+                    <Dialog
+                        v-if="(chartWrapperRef !== undefined)"
+                        v-model:visible="shouldDisplayOverlayGradient"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        :appendTo="chartWrapperRef"
+                        :style="overlayLegendDialogStyle"
+                    >
+                        <template #header>
+                            <SrGradientLegend
+                                class="chart-overlay"
+                                v-if = shouldDisplayOverlayGradient
+                                :reqIdStr="overlayReqIdStr" 
+                                :data_key="computedOverlayDataKey" 
+                                :transparentBackground="true" 
+                            />
+                        </template>
+                    </Dialog>
+                    <Dialog
+                        v-model:visible="shouldDisplayAtl08Colors"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        appendTo="self" 
+                        :style="overlayLegendDialogStyle"
+                        >
+                        <template #header>
+                            <SrAtl08Colors  
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                class="chart-overlay"
+                                v-if="shouldDisplayAtl08Colors"
+                            />
+                        </template> 
+                    </Dialog>
+                    <Dialog
+                        v-model:visible="shouldDisplayAtl03Colors"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        appendTo="self"
+                        :style="overlayLegendDialogStyle" 
+                    >
+                        <template #header>
+                            <SrAtl03CnfColors
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                class="chart-overlay"
+                                v-if="shouldDisplayAtl03Colors" 
+                            />
+                        </template>
+                    </Dialog>
+                </div> 
+            </div>
         </div> 
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <div class="sr-run-control" v-if="!recTreeStore.selectedApi?.includes('atl03')">
+            <SrCustomTooltip ref="tooltipRef"/>
+            <div 
+                class="sr-run-control" 
+                v-if="!recTreeStore.selectedApi?.includes('atl03')"
+                @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
+                @mouseleave="tooltipRef.hideTooltip"
+            >
                 <ToggleButton 
                     class="sr-show-hide-button"
                     onLabel="Hide Atl03 Photons"
                     offLabel="Show Atl03 Photons"
                     v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="!enableThePhotonCloud"
+                    :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
                     size="small" 
                     rounded
-                    v-tooltip.top="photonCloudBtnTooltip"
                 />
                 <SrRunControl 
                     :includeAdvToggle="false"
@@ -681,14 +609,14 @@ watch(chartWrapperRef, (newValue) => {
                     <div v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key="overlayedReqId">
                         <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />   
                     </div>
-                </div>
-                <div class="sr-multiselect-col-req">
-                    <SrReqDisplay
-                        v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
-                        checkboxLabel='Show Photon Cloud Req Params'
-                        :isForPhotonCloud="true"
-                        :tooltipText="'The params that will be used for the Photon Cloud overlay'"
-                    />
+                    <div class="sr-multiselect-col-req">
+                        <SrReqDisplay
+                            v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
+                            checkboxLabel='Show Photon Cloud Req Params'
+                            :isForPhotonCloud="true"
+                            :tooltipText="'The params that will be used for the Photon Cloud overlay'"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -774,6 +702,16 @@ watch(chartWrapperRef, (newValue) => {
     align-items: center
 }
 
+.sr-cycles-legend-panel{
+    display: flex;
+    flex-direction: column;
+    justify-content:flex-start;
+    align-items:center;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    width: auto;
+}
+
 .sr-select-lists {
     display: flex;
     flex-direction: column;
@@ -784,6 +722,7 @@ watch(chartWrapperRef, (newValue) => {
     width: auto;
     max-width: 10rem;
 }
+
 .sr-select-boxes {
     display: flex;
     flex-direction: row;
@@ -854,7 +793,7 @@ watch(chartWrapperRef, (newValue) => {
   /* Each item should not flex to fill the container, so prevent auto stretching: */
   flex: 0 0 auto; 
   /* Or use: display: inline-block; */
-  white-space: nowrap;  /* Make sure each item’s text doesn’t wrap within itself */
+  white-space: nowrap;  /* Make sure each items text doesnt wrap within itself */
 }
 
 .sr-run-control{

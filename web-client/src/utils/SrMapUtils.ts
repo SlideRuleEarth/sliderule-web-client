@@ -1,12 +1,11 @@
 import { useMapStore } from '@/stores/mapStore';
 import { computed} from 'vue';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
-import { PointCloudLayer } from '@deck.gl/layers';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
-import { Deck } from '@deck.gl/core';
 import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
@@ -29,23 +28,25 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
-import type { PickingInfo } from '@deck.gl/core';
+import { readOrCacheSummary, getColsForRgtYatcFromFile } from "@/utils/SrDuckDbUtils";
+import type { AccessorContext, PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
-import { useChartStore } from '@/stores/chartStore';
-import { clearPlot } from '@/utils/plotUtils';
+import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
 import Geometry from 'ol/geom/Geometry';
-import type { SrRegion,SrLatLon } from '@/sliderule/icesat2';
+import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { useAnalysisTabStore } from '@/stores/analysisTabStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
+import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
+import { formatKeyValuePair } from '@/utils/formatUtils';
+import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
+import router from '@/router/index.js';
+import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 
-export const EL_LAYER_NAME = 'elevation-deck-layer';
-export const SELECTED_LAYER_NAME = 'selected-deck-layer';
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -216,54 +217,14 @@ export function disableTagDisplay(): void {
         useMapStore().setPointerMoveListenerKey(null);    // Clear the reference
     }
 }
-function formatElObject(obj: { [key: string]: any }): string {
-    const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
-    const gpsToUnixOffset = 315964800; // Offset in seconds from GPS epoch to Unix epoch
-  
+
+export function formatElObject(obj: { [key: string]: any }): string {
+    // Exclude 'extent_id' and format everything else
     return Object.entries(obj)
-      .filter(([key]) => key !== 'extent_id') // Exclude 'extent_id'
-      .map(([key, value]) => {
-        let formattedValue;
-        //console.log('key:',key,'type of value:',typeof value,'value:',value);
-        if (key === 'time' && typeof value === 'number') {
-          // Step 1: Convert GPS to ATLAS SDP by subtracting the ATLAS offset
-          let adjustedTime = value - gpsToATLASOffset;
-          // Step 2: Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
-          adjustedTime += gpsToUnixOffset;
-          // Step 3: Adjust for UTC by subtracting the GPS-UTC offset
-          adjustedTime -= useReqParamsStore().getGpsToUTCOffset();
-  
-          const date = new Date(adjustedTime); // Convert seconds to milliseconds
-          formattedValue = date.toISOString(); // Format as ISO string in UTC
-        } else if (key === 'canopy_h_metrics' && typeof value === 'object' && 'toArray' in value) {
-            const arr = (value as any).toArray(); // Safely call toArray if available
-            const formattedPairs = [...arr]
-                .reduce((pairs: number[][], num: number, index: number) => {
-                    if (index % 3 === 0) {
-                        // Start a new pair
-                        pairs.push([num]);
-                    } else {
-                        // Add to the last pair
-                        pairs[pairs.length - 1].push(num);
-                    }
-                    return pairs;
-                }, []) // Initialize as an array of arrays
-                .map((pair: number[]) => pair.map((num: number) => num.toFixed(5)).join(', ')) // Format each pair
-                .join('<br>'); // Join pairs with line breaks
-        
-            formattedValue = `[<br>${formattedPairs}<br>]`; // Wrap the entire string with brackets
-            // console.log('canopy_h_metrics formattedValue:', formattedValue);
-        } else if (typeof value === 'number') {
-          // Format other numbers to 5 significant figures
-          formattedValue = parseFloat(value.toPrecision(10));
-        } else {
-          formattedValue = value;
-        }
-  
-        return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
-      })
-      .join('<br>'); // Use <br> for line breaks in HTML
-  }
+        .filter(([key]) => key !== 'extent_id')
+        .map(([key, value]) => formatKeyValuePair(key, value))
+        .join('<br>');
+}
   
   
 interface TooltipParams {
@@ -317,18 +278,80 @@ export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
 }
 
-export async function clicked(d:ElevationDataItem): Promise<void> {
-    console.log('Clicked data:',d);
-    useGlobalChartStore().setSelectedElevationRec(d);
+function isInvalid(value: any): boolean {
+    return value === null || value === undefined || value === '' || Number.isNaN(value);
+}
+
+export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
+    const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
+    const gcs = useGlobalChartStore();
+
+    if (!api.includes('atl03')) {
+        if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
+            const y_atc_filtered_Cols = await getColsForRgtYatcFromFile(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
+            console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
+
+            if (y_atc_filtered_Cols) {
+                // Store previous values
+                const prevSpots = gcs.getSpots(); 
+                const prevCycles = gcs.getCycles(); 
+                const prevGts = gcs.getGts(); 
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevSpots:', prevSpots);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevCycles:', prevCycles);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevGts:', prevGts);
+
+                // Map new values, filtering out invalid entries
+                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.filter(spot => !isInvalid(spot));
+                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.filter(cycle => !isInvalid(cycle));
+                const y_atc_filtered_gts = y_atc_filtered_Cols.gt.filter(gt => !isInvalid(gt));
+
+                // Check for changes
+                const spotsChanged = JSON.stringify(prevSpots) !== JSON.stringify(y_atc_filtered_spots);
+                const cyclesChanged = JSON.stringify(prevCycles) !== JSON.stringify(y_atc_filtered_cycles);
+                const gtsChanged = JSON.stringify(prevGts) !== JSON.stringify(y_atc_filtered_gts);
+
+                // Log changes
+                if (spotsChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc Spots changed by y_atc_filter:", { prev: prevSpots, new: y_atc_filtered_spots });
+                if (cyclesChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc Cycles changed by y_atc_filter:", { prev: prevCycles, new: y_atc_filtered_cycles });
+                if (gtsChanged) console.log("setCyclesGtsSpotsFromFileUsingRgtYatc GTs changed by y_atc_filter:", { prev: prevGts, new: y_atc_filtered_gts });
+
+                // Set new values
+                gcs.setSpots(y_atc_filtered_spots);
+                gcs.setGts(y_atc_filtered_gts);
+                gcs.setCycles(y_atc_filtered_cycles);
+                const selectedCycleOptions = gcs.getSelectedCycleOptions();
+                gcs.setFilteredCycleOptions(selectedCycleOptions);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: selectedCycleOptions:', selectedCycleOptions);
+                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: gcs.getFilteredCycleOptions():', gcs.getFilteredCycleOptions());
+            }
+        }
+    } else {
+        console.warn('setCyclesGtsSpotsFromFileUsingRgtYatc: Ignored for ATL03. TBD need to implement an atl03 equivalent function for y_atc?');
+    }
+}
+
+export function isClickable(d: ElevationDataItem): boolean {
+    let valid = true;
+    if (isInvalid(d?.cycle) || isInvalid(d?.rgt) || (d?.y_atc !== undefined && isInvalid(d?.y_atc))) {
+        //console.log('isClickable: invalid elevation point:', d);
+        valid = false;
+    }
+    return valid;
+}
+
+export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
+    console.log('processSelectedElPnt d:',d);
+    const globalChartStore = useGlobalChartStore();
+    globalChartStore.setSelectedElevationRec(d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
-    
-    const reqIdStr = useRecTreeStore().selectedReqIdStr;
-    //useAtlChartFilterStore().setIsLoading();
+    useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
     const gcs = useGlobalChartStore();
+
     if(d.track !== undefined){ // for atl03
         gcs.setTracks([d.track]); // set to this one track
         gcs.setGtsForTracks(gcs.getTracks());
@@ -362,79 +385,151 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     } else {
         console.error('d.cycle is undefined'); // should always be defined
     }
-    const analysisTabStore = useAnalysisTabStore();
-    if(analysisTabStore && analysisTabStore.activeTabLabel){
-        if (analysisTabStore.activeTabLabel === 'Time Series'){
-            switch (useGlobalChartStore().filterMode) {
-                case 'RgtMode':
-                    console.log('Applying RGT Mode filter');
-                    useGlobalChartStore().setSpots([1,2,3,4,5,6]);
-                    useGlobalChartStore().hasScForward = true;
-                    useGlobalChartStore().hasScBackward = true;
-                    break;
-            default:
-                    console.log('Unknown filter mode');
-            }
-            useGlobalChartStore().setSelectedCycleOptions(useGlobalChartStore().getCycleOptions());
-        }
+    gcs.selected_y_atc = d.y_atc;
+    console.log('processSelectedElPnt: selected_y_atc:',gcs.selected_y_atc);
+    console.log(`processSelectedElPnt: ${useActiveTabStore().activeTabLabel}`);
+    if(gcs.use_y_atc_filter){    
+        await setCyclesGtsSpotsFromFileUsingRgtYatc();
     }
-    const func = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
-   
-    console.log('Clicked: func',func);
-    console.log('Clicked: pair',gcs.getPairs());
-    console.log('Clicked: rgt',gcs.getRgt())
-    console.log('Clicked: cycles',gcs.getCycles())
-    console.log('Clicked: tracks',gcs.getTracks())
-    console.log('Clicked: sc_orient',gcs.getScOrients())
-    console.log('Clicked: spot',gcs.getSpots())
-    console.log('Clicked: gt',gcs.getGts())
-    console.log('clicked:',d);
-
+    console.log('processSelectedElPnt: pair',gcs.getPairs());
+    console.log('processSelectedElPnt: rgt',gcs.getRgt())
+    console.log('processSelectedElPnt: cycles',gcs.getCycles())
+    console.log('processSelectedElPnt: tracks',gcs.getTracks())
+    console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
+    console.log('processSelectedElPnt: spot',gcs.getSpots())
+    console.log('processSelectedElPnt: gt',gcs.getGts())
 }
 
-function createHighlightLayer(name:string,elevationData:ElevationDataItem[], color:[number,number,number,number], projName:string): PointCloudLayer {
-    //console.log('createHighlightLayer elevationData:',elevationData,'color:',color,'projName:',projName);
-    return new PointCloudLayer({
-        id: name,
-        data: elevationData,
-        getPosition: (d) => {
-            return [d['longitude'], d['latitude'], 0];
-        },
-        // getPosition: (d) => {
-        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]);
-        //     return new Float64Array(coords); // Use Float64Array for higher precision
-        // },
-        getNormal: [0, 0, 1],
-        getColor: () => {
-             return color;
-        },
-        pointSize: useDeckStore().getPointSize(),
-        onDragStart: () => {
-            //console.log('onDragStart');
-            document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
-          },
-        onDragEnd: () => {
-            //console.log('onDragEnd');
-            document.body.style.cursor = 'default'; // Revert to default when dragging ends
-        },
+export async function clicked(d:ElevationDataItem): Promise<void> {
+    console.log('clicked data:',d);
+    if(!isClickable(d)){
+        console.warn('clicked: invalid elevation point:',d);
+        useSrToastStore().warn('Clicked data point contains NaNs', 'Please Click on another point.');
+        return;
+    }
+    await processSelectedElPnt(d);
+    const msg = `clicked ${d}`;
+    await updatePlotAndSelectedTrackMapLayer(msg);
+}
+
+function createDeckLayer(
+    name: string,
+    elevationData: ElevationDataItem[],
+    extHMean: ExtHMean,
+    heightFieldName: string,
+    positions: SrPosition[],
+    projName: string
+): ScatterplotLayer {
+    const startTime = performance.now();
+    const elevationColorMapStore = useElevationColorMapStore();
+    const deckStore = useDeckStore();
+    const highlightPntSize = deckStore.getPointSize() + 1;
+
+    // Precompute color for each data point once.
+    const precomputedColors: SrRGBAColor[] = elevationData.map(d => {
+        let color: [number, number, number, number] = [255, 255, 255, 255]; // default (white)
+        const h = d[heightFieldName];
+        if (h !== undefined && h !== null) {
+            const c = elevationColorMapStore.getColorForElevation(
+                h,
+                extHMean.lowHMean,
+                extHMean.highHMean
+            );
+            if (c) {
+                color = [...c] as [number, number, number, number]; // Ensure correct type
+                color[3] = 255;
+            }
+        }
+        return color;
     });
+
+    const endTime1 = performance.now();
+    console.log(`createDeckLayer precomputeColors took ${endTime1 - startTime} milliseconds. endTime:`, endTime1);
+
+    type ScatterplotLayerProps = {
+        getLineWidthUnits?: string;
+        getLineWidth?: number;
+        getLineColor?: (_d: ElevationDataItem) => [number, number, number, number];
+        stroked?: boolean;
+        getFillColor?: (d: any, context: AccessorContext<any>) => SrRGBAColor;
+        filled?: boolean;
+        getCursor?: () => string;
+    };
+
+    // Conditionally include properties
+    const isSelectedLayer = name.includes(SELECTED_LAYER_NAME_PREFIX);
+    const selectedLayerProps: Partial<ScatterplotLayerProps> = isSelectedLayer
+        ? {
+              getLineWidthUnits: 'pixels',
+              getLineWidth: 1,
+              getLineColor: (_d: ElevationDataItem): [number, number, number, number] => [255, 0, 0, 255], // Explicit type
+              stroked: true,
+              filled: false,
+          }
+        : {
+              getCursor: () => 'default',
+              getFillColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
+          };
+
+    const newLayer = new ScatterplotLayer({
+        id: name,
+        visible: true,
+        data: elevationData,
+        getPosition: (d: ElevationDataItem, { index }): SrPosition => positions[index],
+        getNormal: [0, 0, 1],
+        getRadius: highlightPntSize,
+        radiusUnits: 'pixels',
+        pickable: true,
+        onHover: onHoverHandler,
+        parameters: {
+            depthTest: false
+        },
+        onClick: ({ object, x, y }) => {
+            if (object) {
+                clicked(object);
+            }
+        },
+        onError: (error: Error) => {
+            console.error(`Error in ScatterplotLayer ${name}:`, error);
+        },
+        ...selectedLayerProps // Spread conditionally included properties
+    });
+
+    const endTime = performance.now();
+    console.log(`createDeckLayer took ${endTime - startTime} milliseconds. endTime:`, endTime);
+    return newLayer;
 }
 
-export function updateSelectedLayerWithObject(elevationData:ElevationDataItem[], projName:string): void{
+
+export function updateDeckLayerWithObject(
+    name:string,
+    elevationData:ElevationDataItem[], 
+    extHMean: ExtHMean, 
+    heightFieldName:string, 
+    positions:SrPosition[],
+    projName:string
+): void 
+{
     const startTime = performance.now(); // Start time
-    //console.log('updateSelectedLayerWithObject startTime:',startTime);
+    console.log(`updateDeckLayerWithObject ${name} startTime:`,startTime);
     try{
-        const layer = createHighlightLayer(SELECTED_LAYER_NAME,elevationData,[255, 0, 0, 255],projName);
-        useDeckStore().replaceOrAddLayer(layer,SELECTED_LAYER_NAME);
-        useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+        if(useDeckStore().getDeckInstance()){
+            const layer = createDeckLayer(name,elevationData,extHMean,heightFieldName,positions,projName);
+            useDeckStore().replaceOrAddLayer(layer,name);
+            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
+        } else {
+            console.error(`updateDeckLayerWithObject ${name}  Error updating elevation useDeckStore().deckInstance:`,useDeckStore().getDeckInstance());
+        }
     } catch (error) {
-        console.error('updateSelectedLayerWithObject Error updating elevation layer:',error);
+        console.error(`updateDeckLayerWithObject ${name}  Error updating elevation layer:`,error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`updateSelectedLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
+        console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`,endTime);  
     }
 
 }
+
+
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // Check device dimensions
 const deviceWidth = Math.min(window.screen.width, window.screen.height); // Use the smaller value for width
@@ -468,200 +563,7 @@ const onHoverHandler = isIPhone
                     hideTooltip();
                 }
             }
-      };
-
-function createElLayer(name:string, elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): PointCloudLayer {
-    //console.log('createElLayer name:',name,' elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName,'projName:',projName);
-    //let coordSys;
-    //if(projName === 'EPSG:4326'){
-    //    coordSys = COORDINATE_SYSTEM.LNGLAT; // Deck.gl’s internal system for EPSG:4326
-    //} else {
-    //    coordSys = COORDINATE_SYSTEM.DEFAULT;
-    //}
-    return new PointCloudLayer({
-        id: name,
-        data: elevationData,
-        //coordinateSystem: coordSys, 
-        getPosition: (d) => {
-            return [d['longitude'], d['latitude'], 0];
-        },
-        // getPosition: (d) => {
-        //     const coords = proj4(projName, 'EPSG:3857', [d['longitude'], d['latitude'], 0]); // Deck is in EPSG:3857
-        //     return new Float64Array(coords); // Use Float64Array for higher precision
-        // },
-        getNormal: [0, 0, 1],
-        getColor: (d:any) => {
-            let c; 
-            try{
-                const h = d[heightFieldName];
-                c = useElevationColorMapStore().getColorForElevation(h, extHMean.lowHMean , extHMean.highHMean) as [number, number, number, number];
-                //console.log(`hfn:${heightFieldName} getColor h:${h} c:${c}`);
-                if(c){
-                    c[3] = 255; // Set the alpha channel to 255 (fully opaque)
-                }
-            } catch (error) {
-                console.error('Error getting color:',c,' error:',error);
-            }
-            if((c === undefined) || (c === null)){
-                c = [255, 255, 255, 255] as [number,number,number,number];// flag illegal points with white
-            }   
-            return c;
-        },
-        pointSize: 3,
-        pickable: true, // Enable picking
-        getCursor: () => 'default',
-        parameters: {
-            depthTest: false
-        },
-        onHover: onHoverHandler,
-        onClick: ({ object, x, y }) => {
-            if (object) {
-                clicked(object);
-            }
-        },
-        // onDragStart: ({ object, x, y }, event) => {
-        //     if (object) {
-        //         console.log('Drag started at:', x, y);
-        //         document.body.style.cursor = 'grabbing'; // Change to grabbing when dragging starts
-        //         return true; // Mark the event as handled
-        //     }
-        // },
-        // onDragEnd: ({ object, x, y }, event) => {
-        //     if (object) {
-        //         console.log('Drag ended at:', x, y);
-        //         document.body.style.cursor = 'default'; // Revert to default when dragging ends
-        //         return true; // Mark the event as handled
-        //     }
-        // },        
-    });
-}
-
-export function updateElLayerWithObject(name:string,elevationData:ElevationDataItem[], extHMean: ExtHMean, heightFieldName:string, projName:string): void{
-    const startTime = performance.now(); // Start time
-    //console.log('updateElLayerWithObject startTime:',startTime);
-    try{
-        if(useDeckStore().getDeckInstance()){
-            //console.log('updateElLayerWithObject elevationData:',elevationData,'extHMean:',extHMean,'heightFieldName:',heightFieldName);
-            const layer = createElLayer(name,elevationData,extHMean,heightFieldName,projName);
-            const replaced = useDeckStore().replaceOrAddLayer(layer,name);
-            //console.log('updateElLayerWithObject layer:',layer);
-            //console.log('updateElLayerWithObject useDeckStore().getLayers():',useDeckStore().getLayers());
-            useDeckStore().getDeckInstance().setProps({layers:useDeckStore().getLayers()});
-            //console.log('updateElLayerWithObject useDeckStore().getDeckInstance():',useDeckStore().getDeckInstance());
-            // if(replaced){
-            //     console.log('Replaced using elevation layer:',layer);
-            // } else {
-            //     console.log('Added using elevation layer:',layer);
-            // }
-        } else {
-            console.error('updateElLayerWithObject Error updating elevation useDeckStore().deckInstance:',useDeckStore().getDeckInstance());
-        }
-    } catch (error) {
-        console.error('updateElLayerWithObject Error updating elevation layer:',error);
-    } finally {
-        const endTime = performance.now(); // End time
-        console.log(`updateElLayerWithObject took ${endTime - startTime} milliseconds. endTime:`,endTime);  
-    }
-
-}
-
-export function createNewDeckLayer(deck:Deck,name:String,projectionUnits:string): OLlayer{
-    //console.log('createNewDeckLayer:',name,' projectonUnits:',projectionUnits);  
-
-    const layerOptions = {
-        title: name,
-    }
-    const new_layer = new OLlayer({
-        render: ({size, viewState}: {size: number[], viewState: {center: number[], zoom: number, rotation: number}})=>{
-            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
-            const [width, height] = size;
-            //console.log('createNewDeckLayer render:',name,' size:',size,' viewState:',viewState,' center:',viewState.center,' zoom:',viewState.zoom,' rotation:',viewState.rotation);
-            let [longitude, latitude] = viewState.center;
-            if(projectionUnits !== 'degrees'){
-                [longitude, latitude] = toLonLat(viewState.center);
-            }
-            const zoom = viewState.zoom - 1;
-            const bearing = (-viewState.rotation * 180) / Math.PI;
-            const deckViewState = {bearing, longitude, latitude, zoom};
-            deck.setProps({width, height, viewState: deckViewState});
-            deck.redraw();
-            return document.createElement('div');
-        },
-        ...layerOptions
-    }); 
-    return new_layer;  
-}
-
-// Custom Render Logic: The render option is a function that takes an object containing size and viewState. This function is where you align the DeckGL layer's view with the OpenLayers map's current view state.
-// size is an array [width, height] indicating the dimensions of the map's viewport.
-// viewState contains the current state of the map's view, including center coordinates, zoom level, and rotation. This information is converted and passed to DeckGL to ensure both visualizations are synchronized.
-// Setting DeckGL Properties: Inside the render function, properties of the DeckGL instance (deck) are updated to match the current size and view state of the OpenLayers map. This ensures that the DeckGL visualization aligns correctly with the map's viewport, zoom level, and rotation.
-// Redrawing DeckGL: After updating the properties, deck.redraw() is called to render the DeckGL layer with the new settings.
-// Sync deck view with OL view
-
-export function resetDeckGLInstance(map:OLMap): Deck | null{
-    //console.log('resetDeckGLInstance');
-    try{
-        useDeckStore().clearDeckInstance(); // Clear any existing instance first
-        let deck = null;
-        const mapView =  map.getView();
-        //console.log('mapView:',mapView);
-        const mapCenter = mapView.getCenter();
-        const mapZoom = mapView.getZoom();
-        //console.log('resetDeckGLInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
-        if(mapCenter && mapZoom){
-            const tgt = map.getViewport() as HTMLDivElement;
-            deck = new Deck({
-                initialViewState: {longitude:0, latitude:0, zoom: 1},
-                controller: false,
-                parent: tgt,
-                style: {pointerEvents: 'none', zIndex: '1'},
-                layers: [],
-                getCursor: () => 'default'
-            });
-            useDeckStore().setDeckInstance(deck);
-        } else {
-            console.error('resetDeckGLInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
-            deck = null;
-        }
-        return deck // we just need a 'fake' Layer object with render function and title to marry to Open Layers
-    } catch (error) {
-        console.error('Error creating DeckGL instance:',error);
-        return null;
-    }
-}
-
-export function addDeckLayerToMap(map: OLMap, deck:Deck, name:string){
-    //console.log('addDeckLayerToMap:',name);
-    const mapView =  map.getView();
-    const projection = mapView.getProjection();
-    const projectionUnits = projection.getUnits();
-    const updatingLayer = map.getLayers().getArray().find(layer => layer.get('title') === name);
-    if (updatingLayer) {
-        //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
-        map.removeLayer(updatingLayer);
-    }
-    useDeckStore().deleteLayer(name);
-    const deckLayer = createNewDeckLayer(deck,name,projectionUnits);
-    if(deckLayer){
-        map.addLayer(deckLayer);
-        //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
-    } else {
-        console.error('No current_layer to add.');
-    }
-}
-
-export function initDeck(map: OLMap){
-    //console.log('initDeck start')
-    const tgt = map.getViewport() as HTMLDivElement;
-    const deck = resetDeckGLInstance(map); 
-    if(deck){
-        addDeckLayerToMap(map,deck,EL_LAYER_NAME);        
-    } else {
-      console.error('initDeck(): deck Instance is null');
-    }
-    //console.log('initDeck end: deck:',deck);
-}
+};
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {
@@ -677,31 +579,46 @@ export function swapLongLatToLatLong(coordString: string): string {
 }
 
 export function checkAreaOfConvexHullWarning(): boolean {
-    const limit = useReqParamsStore().getAreaWarningThreshold()
-    //console.log('checkAreaOfConvexHullWarning area:',limit);
-    if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useReqParamsStore().getAreaWarningThreshold()} km²).`;
-        if(!useAdvancedModeStore().getAdvanced()){
-            useSrToastStore().warn('Warn',msg);
-        } else {
-            //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+    const currentApi = useReqParamsStore().getCurAPIObj();
+    if(currentApi){
+        const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
+        //console.log('checkAreaOfConvexHullWarning area:',limit);
+        if(useReqParamsStore().getAreaOfConvexHull() > limit){
+            const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
+            if(!useAdvancedModeStore().getAdvanced()){
+                useSrToastStore().warn('Warn',msg);
+            } else {
+                //console.log('checkAreaOfConvexHullWarning: Advanced mode is enabled. '+msg);
+            }
+            return false;
         }
-        return false;
+    } else {
+        console.error('checkAreaOfConvexHullWarning: currentApi is null');
+
     }
     return true;
 }
 
 export function checkAreaOfConvexHullError(): boolean {
-    const limit = useReqParamsStore().getAreaErrorThreshold()
-    //console.log('checkAreaOfConvexHullError area:',limit);
-    if(useReqParamsStore().getAreaOfConvexHull() > limit){
-        const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useReqParamsStore().getAreaErrorThreshold()} km²).`;
-        if(!useAdvancedModeStore().getAdvanced()){
-            useSrToastStore().error('Error',msg);
-        } else {
-            //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+    const currentApi = useReqParamsStore().getCurAPIObj();
+    if (useReqParamsStore().getUseRgt()){
+        console.warn('checkAreaOfConvexHullError: useRGT is true skipping check');
+        return true;//TBD HACK ALERT make this check better
+    }
+    if(currentApi){
+        const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
+        //console.log('checkAreaOfConvexHullError area:',limit);
+        if(useReqParamsStore().getAreaOfConvexHull() > limit){
+            const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(currentApi)} km²).`;
+            if(!useAdvancedModeStore().getAdvanced()){
+                useSrToastStore().error('Error',msg);
+            } else {
+                //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
+            }
+            return false;
         }
-        return false;
+    } else {
+        console.error('checkAreaOfConvexHullError: currentApi is null');
     }
     return true;
 }
@@ -1140,5 +1057,75 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
         map.getView().fit(view_extent, {size: map.getSize(), padding: [40, 40, 40, 40]});
     } catch (error) {
         console.error(`Error: zoomMapForReqIdUsingView failed for reqId:${reqId}`,error);
+    }
+}
+
+const updateElevationMap = async (req_id: number) => {
+    const startTime = performance.now(); // Start time
+    console.log('updateElevationMap req_id:', req_id);
+    //const reqIdStr = req_id.toString();
+    if(req_id <= 0){
+        console.warn(`updateElevationMap Invalid request ID:${req_id}`);
+        return;
+    }
+    try {
+        const mapStore = useMapStore();
+        const parms = await duckDbReadAndUpdateElevationData(req_id,EL_LAYER_NAME_PREFIX);
+        if(parms){
+            const numRows = parms.numRows;
+            if(numRows > 0){
+                if(parms.firstRec){
+                    useDeckStore().deleteSelectedLayer();
+                    //updateFilter([req_id]); // query to set all options for all 
+                    processSelectedElPnt(parms.firstRec);
+                    mapStore.setMapInitialized(true);
+                } else {
+                    console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);
+                    useSrToastStore().warn('No points in file', 'The request produced no points');
+               }
+            } else {
+                console.warn(`updateElevationMap No points in file for req_id:${req_id}`);
+                useSrToastStore().warn('No points in file', 'The request produced no points');
+            }
+        } else {
+            console.error(`updateElevationMap Failed to get parms for req_id:${req_id}`);
+        }
+    } catch (error) {
+        console.warn('Failed to update selected request:', error);
+        //toast.add({ severity: 'warn', summary: 'No points in file', detail: 'The request produced no points', life: srToastStore.getLife()});
+    }
+    try {
+        await router.push(`/analyze/${useRecTreeStore().selectedReqId}`);
+        console.log('Successfully navigated to analyze:', useRecTreeStore().selectedReqId);
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
+    }
+    const endTime = performance.now(); // End time
+    console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
+};
+
+export async function updateMapAndPlot(): Promise<void> {
+    const startTime = performance.now(); // Start time
+  
+    const atlChartFilterStore = useAtlChartFilterStore();
+    const recTreeStore = useRecTreeStore();
+    try {
+        const req_id = recTreeStore.selectedReqId;
+        if(req_id > 0){
+            atlChartFilterStore.setSelectedOverlayedReqIds([]);
+            await updateElevationMap(req_id);
+            await updatePlotAndSelectedTrackMapLayer("updateMapAndPlot");
+        }
+        //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error('updateMapAndPlot Failed:', error.message);
+        } else {
+            console.error('updateMapAndPlot Unknown error occurred:', error);
+        }
+    } finally {
+        //console.log('Mounted SrAnalyzeOptSidebar with defaultReqIdMenuItemIndex:', defaultReqIdMenuItemIndex);
+        const endTime = performance.now(); // End time
+        console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
 }

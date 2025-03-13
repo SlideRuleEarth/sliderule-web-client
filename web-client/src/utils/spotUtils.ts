@@ -184,11 +184,10 @@ export function createWhereClause(reqId:number){
     const spots = globalChartStore.getSpots();
     const rgt = globalChartStore.getRgt();
     const cycles = globalChartStore.getCycles();
-    const pairs = globalChartStore.getPairs();
-    const sc_orients = globalChartStore.getScOrients();
-    const tracks = globalChartStore.getTracks();
-    
-    //console.log('createWhereClause: cycles:', cycles);
+    const use_y_atc_filter = globalChartStore.use_y_atc_filter;
+    const y_atc_is_valid = globalChartStore.y_atc_is_valid();
+    const selected_y_atc = globalChartStore.selected_y_atc;
+    const y_atc_margin = globalChartStore.y_atc_margin;
     let whereStr = '';
     if (func === 'atl03sp'){
         if ((rgt >= 0) || (cycles.length > 0)) {
@@ -211,6 +210,9 @@ export function createWhereClause(reqId:number){
                     whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
                 }
             }
+            if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
+                whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
+            }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
         if ((rgt >= 0) || (cycles.length > 0)) {
@@ -227,11 +229,16 @@ export function createWhereClause(reqId:number){
             if (spots.length > 0) {
                 whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
             }
+            if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
+                const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
+                const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+                whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;
+            }
         }
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    //console.log('createWhereClause req_id:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'pairs:', pairs, 'sc_orients:', sc_orients, 'tracks:', tracks, 'whereStr:', whereStr);
+    console.log('createWhereClause: reqId:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'use_y_atc_filter:', use_y_atc_filter, 'y_atc_is_valid:', y_atc_is_valid, 'selected_y_atc:', selected_y_atc, 'y_atc_margin:', y_atc_margin, 'whereStr:', whereStr);
     return whereStr;
 }
 

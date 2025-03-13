@@ -10,6 +10,7 @@
     import SrModeSelect from './SrModeSelect.vue';
     import SrCustomTooltip from './SrCustomTooltip.vue';
     import { useSrToastStore } from "@/stores/srToastStore";
+    import { useServerStateStore } from '@/stores/serverStateStore';
 
     const props = defineProps({
         includeAdvToggle: {
@@ -24,15 +25,17 @@
 
     const srToastStore = useSrToastStore();
     const requestsStore = useRequestsStore();
-    const mapStore = useMapStore();
+    const serverStateStore = useServerStateStore();
     const tooltipRef = ref();
-    const computedShowRunButton = computed(() => {
-        return (((mapStore.isAborting || mapStore.isLoading) && !props.includeAdvToggle) || props.includeAdvToggle);
+    const enableRunButton = computed(() => {
+        return (((serverStateStore.isAborting ||  serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
+    });
+    const showRunButton = computed(() => {
+        return (((serverStateStore.isAborting || serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
     });
 
     onMounted(async () => {
         console.log('SrRunControl onMounted props.includeAdvToggle:',props.includeAdvToggle);
-        mapStore.setIsAborting(false);
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
         if(props.includeAdvToggle) { // this means it is the Request Run button
@@ -43,7 +46,7 @@
             requestsStore.displayHelpfulMapAdvice(msg);
             requestsStore.setConsoleMsg(msg);
         }
-        //console.log(`SrRunControl for ${props.buttonLabel} mounted show button:`,computedShowRunButton.value);
+        //console.log(`SrRunControl for ${props.buttonLabel} mounted show button:`,enableRunButton.value);
     });
 
     onBeforeUnmount(() => {
@@ -51,11 +54,11 @@
     });
 
     async function toggleRunAbort() {
-        if (mapStore.getIsLoading()) {
+        if (serverStateStore.isFetching) {
             console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
             processAbortClicked();
         } else {
-            console.log(`Run clicked for ${props.buttonLabel} calling processRunSlideRuleClicked`);
+            console.log(`Run button pressed for ${props.buttonLabel} calling processRunSlideRuleClicked`);
             if(props.includeAdvToggle){
                 try{
                     await processRunSlideRuleClicked();
@@ -74,22 +77,21 @@
         <div class="control-container">
             <SrModeSelect class="sr-mode-select" v-if="props.includeAdvToggle"/>
             <div class="button-spinner-container">
-                <div v-if="mapStore.isLoading" class="loading-indicator">
+                <div v-if="serverStateStore.isFetching" class="loading-indicator">
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
                 <SrCustomTooltip ref="tooltipRef"/>
-
                <Button
-                    v-if=computedShowRunButton
+                    v-show="showRunButton"
                     class="sr-run-abort-button" 
-                    :class="{ 'abort-mode': mapStore.isLoading }"
-                    :label="mapStore.isLoading ? 'Abort' : props.buttonLabel" 
+                    :class="{ 'abort-mode':  serverStateStore.isFetching }"
+                    :label=" serverStateStore.isFetching ? 'Abort' : props.buttonLabel" 
                     @click="toggleRunAbort" 
-                    :disabled="!computedShowRunButton"
+                    :disabled="!enableRunButton"
                 >
                     <template #icon>
-                        <i :class="mapStore.isLoading ? 'pi pi-times' : 'pi pi-play'"></i>
+                        <i :class=" serverStateStore.isFetching ? 'pi pi-times' : 'pi pi-play'"></i>
                     </template>
                 </Button>
             </div>

@@ -32,7 +32,7 @@
   }
   
   const props = defineProps<SingleDigitCheckboxProps>()
-  const emit = defineEmits(['update:modelValue'])
+  const emit = defineEmits(['update:modelValue','user-checked'])
   
   /**
    * Computed boolean to determine if `digit` is in the array.
@@ -53,6 +53,7 @@
         newValue = newValue.filter(num => num !== props.digit)
       }
       emit('update:modelValue', newValue)
+      emit('user-checked', props.digit); // or no arguments, as you wish
     },
   })
   </script>

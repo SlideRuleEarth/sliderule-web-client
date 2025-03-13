@@ -18,6 +18,7 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import { useChartStore } from '@/stores/chartStore';
 import { callPlotUpdateDebounced,updateWhereClauseAndXData } from '@/utils/plotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useServerStateStore } from '@/stores/serverStateStore';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -26,6 +27,7 @@ const mapStore = useMapStore();
 const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
+const serverStateStore = useServerStateStore();
 
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
@@ -152,7 +154,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             if(worker){
                 await cleanUpWorker(workerMsg.req_id);
             }
-            console.log('Error... isLoading:',mapStore.isLoading);
+            console.log('Error... isFetching:',serverStateStore.isFetching);
             break;
 
         case 'opfs_ready':
@@ -230,10 +232,10 @@ const handleWorkerMsgEvent = async (event: MessageEvent) => {
 
 export function processAbortClicked() {
     if(worker){
-       mapStore.setIsAborting(true); 
+        serverStateStore.isAborting = true; 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
-        console.log('abortClicked isLoading:',mapStore.isLoading);
+        console.log('abortClicked isAborting:',serverStateStore.isAborting,' isFetching:',serverStateStore.isFetching);
         requestsStore.setConsoleMsg('Abort Clicked');
         useSrToastStore().info('Abort Clicked','Aborting request');
     } else {
@@ -242,7 +244,6 @@ export function processAbortClicked() {
         console.error('abortClicked worker was undefined');
         useRequestsStore().setConsoleMsg('Abort Clicked');
     }
-    mapStore.setIsLoading(false); // controls spinning progress
 }
 
 function handleWorkerError(reqId:number,error:ErrorEvent, errorMsg:string) {
@@ -264,15 +265,16 @@ async function cleanUpWorker(reqId:number){
     }
 
     //mapStore.clearRedrawElevationsTimeoutHandle();
-    mapStore.setIsLoading(false); // controls spinning progress
-    mapStore.setIsAborting(false);
+    //mapStore.setIsLoading(false); // controls spinning progress
+    serverStateStore.isAborting = false;
     const reqParamsStore = await getReqParamStore(reqId);
     if(reqParamsStore){
         reqParamsStore.using_worker = false;
     } else {
         console.error('cleanUpWorker reqParamsStore was undefined');
     }
-    console.log('cleanUpWorker -- isLoading:',mapStore.isLoading);
+    serverStateStore.isFetching = false;
+    console.log('cleanUpWorker -- iserverStateStore.isFetching:',serverStateStore.isFetching);
 }
 
 function parseCompletionPercentage(message: string): number | null {
@@ -296,10 +298,13 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
             await db.updateRequest(srReqRec.req_id,srReqRec); 
-            mapStore.setCurrentReqId(srReqRec.req_id);
-            mapStore.setIsLoading(true); // controls spinning progress
-            mapStore.setTotalRows(0);
-            mapStore.setCurrentRows(0);
+            mapStore.setCurrentReqId(srReqRec.req_id);            
+            const reqParamsStore = await getReqParamStore(srReqRec.req_id);
+            if(reqParamsStore){
+                serverStateStore.isFetching = true;
+            } else {
+                console.error('runFetchToFileWorker reqParamsStore was undefined');
+            }
             worker = await startFetchToFileWorker(srReqRec.req_id);
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = async (error) => {
@@ -346,12 +351,14 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
     if(!checkAreaOfConvexHullError()){
+        //needed here for geojson upload
+        useSrToastStore().error('Error', 'The area of the convex hull is too large. Please reduce the size of the area.');
         return;
     }
 
-    mapStore.setIsLoading(true);
-    mapStore.setIsAborting(false);
-    console.log('runSlideRuleClicked isLoading:',mapStore.isLoading);
+    //mapStore.setIsLoading(true);
+    serverStateStore.isAborting = false;
+    console.log('runSlideRuleClicked');
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
     curReqSumStore.setNumArrowDataRecs(0);
@@ -369,6 +376,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             if (rc) {
                 rc.reqId = srReqRec.req_id;
                 await db.addSrRunContext(rc);
+                //console.log('runSlideRuleClicked srReqRec.req_id:', srReqRec.req_id, 'runContext:', rc);
             }
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if(!reqParamsStore){
@@ -382,7 +390,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 } else {
                     console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
                 }
-                mapStore.setIsLoading(false);
                 return;
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
@@ -392,7 +399,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 console.error('runSlideRuleClicked srViewKey was undefined');
                 useSrToastStore().error('Error', 'There was an error. srViewKey was undefined');
                 requestsStore.setConsoleMsg('stopped...');
-                mapStore.setIsLoading(false);
                 return;
             }
 
@@ -413,7 +419,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.error('runSlideRuleClicked IceSat2API was undefined');
                     useSrToastStore().error('Error', 'There was an error. IceSat2API was undefined');
                     requestsStore.setConsoleMsg('stopped...');
-                    mapStore.setIsLoading(false);
                 }
             } else if (reqParamsStore.getMissionValue() === 'GEDI') {
                 if (reqParamsStore.getGediAPI()) {
@@ -432,7 +437,6 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     console.error('runSlideRuleClicked GediAPI was undefined');
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
-                    mapStore.setIsLoading(false);
                 }
             }
         } else {
@@ -444,6 +448,5 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
         console.error('runSlideRuleClicked srReqRec was undefined');
         useSrToastStore().error('Error', 'There was an error');
         requestsStore.setConsoleMsg('stopped...');
-        mapStore.setIsLoading(false);
     }
 };

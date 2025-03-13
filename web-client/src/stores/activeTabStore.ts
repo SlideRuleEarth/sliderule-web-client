@@ -2,7 +2,7 @@ import { type ElevationDataItem } from '@/utils/SrMapUtils';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
-export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
+export const useActiveTabStore = defineStore('activeTabStore', () => {
     const tabLabels: string[] = ['Elevation Plot', 'Time Series', 'Table'];
     const activeTab = ref<string>('0'); // Store activeTab as a string
     // Getter: Get the active tab index as a string
@@ -30,6 +30,9 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         return tabLabels[numericIndex] ?? null;
     };
 
+    const isActiveTabTimeSeries = computed(() => {
+        return activeTab.value === '1';
+    });
 
     return {
         activeTab,
@@ -37,5 +40,6 @@ export const useAnalysisTabStore = defineStore('analysisTabStore', () => {
         setActiveTab,
         activeTabLabel,
         getTabLabelByIndex,
+        isActiveTabTimeSeries,
     };
 });

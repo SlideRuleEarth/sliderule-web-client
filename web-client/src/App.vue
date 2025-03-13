@@ -23,6 +23,9 @@ const route = useRoute();
 const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
 
+// Flag to indicate if the component has been mounted
+const isMounted = ref(false);
+
 const checkUnsupported = () =>{
   console.log('checkUnsupported browser:', deviceStore.getBrowser(), 'OS:', deviceStore.getOS());
   if (
@@ -32,31 +35,31 @@ const checkUnsupported = () =>{
   }
 }
 
-watch(() => route.params.id, async (newId) => {
-    let newReqId = Number(newId) || 0;
-    try{
-        if(newReqId > 0){
-            const first = recTreeStore.findAndSelectNode(newReqId);
-            if(first){
-                //console.log('App watch Route ID changed to:', newReqId);
-            } else {
-                if(recTreeStore.allReqIds.length===0){
-                    console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
-                    toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
-                }
-            }
-        } else {
-            if(recTreeStore.allReqIds.length===0){
-                console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
-                toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
-            }
-        }
-    } catch (error) {
-        console.error('App watch Error processing route ID change:', error);
-        console.error("App watch exception setting route parameter for 'id':", newReqId);
-        toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
-    }
-});
+// watch(() => route.params.id, async (newId) => {
+//     let newReqId = Number(newId) || 0;
+//     try{
+//         if(newReqId > 0){
+//             const first = recTreeStore.findAndSelectNode(newReqId);
+//             if(first){
+//                 //console.log('App watch Route ID changed to:', newReqId);
+//             } else {
+//                 if(recTreeStore.allReqIds.length===0){
+//                     console.warn("App watch ignoring newId from router:",newId,"newReqId:", newReqId);
+//                     toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+//                 }
+//             }
+//         } else {
+//             if(recTreeStore.allReqIds.length===0){
+//                 console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
+//                 toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
+//             }
+//         }
+//     } catch (error) {
+//         console.error('App watch Error processing route ID change:', error);
+//         console.error("App watch exception setting route parameter for 'id':", newReqId);
+//         toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
+//     }
+// });
 // Function to detect browser and OS from userAgent string
 const detectBrowserAndOS = () => {
   deviceStore.setUserAgent(navigator.userAgent);
@@ -86,20 +89,48 @@ const detectBrowserAndOS = () => {
   deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
 };
 
+
+// Watcher (initially inactive)
+let stopWatching: (() => void) | null = null;
+
 onMounted(async () => {
+    console.log('App onMounted');
     const reqId = await recTreeStore.updateRecMenu('from App');
     initChartStore();
-    if((reqId <= 0) && (recTreeStore.allReqIds.length > 0)){
-        recTreeStore.initToFirstRecord();
-    } 
-    // Get the computed style of the document's root element
-    const rootStyle = window.getComputedStyle(document.documentElement);
-    // Extract the font size from the computed style
-    const fontSize = rootStyle.fontSize;
-    // Log the font size to the console
-    console.log(`App.vue onMounted Current root font size: ${fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
+    if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {
+      // this covers the case that the user types a bad URL
+      recTreeStore.initToFirstRecord();
+    }
+
     detectBrowserAndOS();
     checkUnsupported();
+
+    // Mark as mounted
+    isMounted.value = true;
+
+    // Start watching only after mounted
+    stopWatching = watch(() => route.params.id, async (newId) => {
+        let newReqId = Number(newId) || 0;
+        try {
+            if (newReqId > 0) {
+                const first = recTreeStore.findAndSelectNode(newReqId);
+                if (!first && recTreeStore.allReqIds.length === 0) {
+                    console.warn("Ignoring newId:", newId, "newReqId:", newReqId);
+                    toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife() });
+                }
+            } else {
+                if (recTreeStore.allReqIds.length === 0) {
+                    console.warn("Ignoring newId:", newId, "newReqId:", newReqId);
+                    toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife() });
+                }
+            }
+        } catch (error) {
+            console.error('Error processing route ID change:', error);
+            console.error("App watch exception setting route parameter for 'id':", newReqId);
+            toast.add({ severity: 'error', summary: 'Exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife() });
+        }
+    });
+    console.log('App onMounted done');
 });
 
 const requestButtonClick = async () => {
