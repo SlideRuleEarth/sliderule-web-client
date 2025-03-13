@@ -7,13 +7,12 @@
             :collapsed="false" 
         >
             <div class="sr-cntrls-panel" >
-                <SrMenu 
+                <Select 
+                    size="small"
                     label="Color Map" 
                     labelFontSize="small"
                     v-model="gradientColorMapStore.selectedGradientColorMapName"
-                    :menuOptions="srColorMapNames" 
-                    :getSelectedMenuItem="gradientColorMapStore.getSelectedGradientColorMapName"
-                    :setSelectedMenuItem="gradientColorMapStore.setSelectedGradientColorMapName"
+                    :options="srColorMapNames" 
                     @update:modelValue="gradientColorMapChanged"
                     tooltipText="Gradient Color Map for scatter plot"
                 />
@@ -27,14 +26,13 @@
   
 <script setup lang="ts">
 
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
 import Fieldset from 'primevue/fieldset';
-import SrMenu from './SrMenu.vue';
+import Select from 'primevue/select';
 import Button from 'primevue/button';
 import SrGradientLegend from './SrGradientLegend.vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
-import { use } from 'echarts';
 
 // Define props with TypeScript types
 const props = withDefaults(
