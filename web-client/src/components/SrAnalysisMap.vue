@@ -18,10 +18,9 @@
     import { type Coordinate } from "ol/coordinate";
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
-    import { updateMapView, dumpMapLayers, renderSvrReqPoly } from "@/utils/SrMapUtils";
+    import { updateMapView, renderSvrReqPoly, resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
     import SrRecSelectControl from "./SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
-    import SrCheckbox from "@/components/SrCheckbox.vue";
     import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrColMapSelControl from "./SrColMapSelControl.vue";
@@ -37,6 +36,9 @@
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
+    import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+    import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+    import Checkbox from 'primevue/checkbox';
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -316,6 +318,24 @@
         }
         console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqId:${props.selectedReqId} ------`);
     };
+
+    async function handleOffPntEnable(value: number) {
+        console.log('SrAnalysisMap handleOffPntEnable:', value);
+        if(!value) {
+            console.log('SrAnalysisMap handleOffPntEnable: value is undefined:', value);
+        }
+        if(globalChartStore.y_atc_is_valid()){
+            if(value){
+                await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            } else {
+                resetFilterUsingSelectedRec();
+            }
+            await updatePlotAndSelectedTrackMapLayer("SrAnalysisMap yatc change");// no need to debounce
+        } else {
+            console.error('SrAnalysisMap handleOffPntEnable: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
+        }
+    }
+
 </script>
 
 <template>
@@ -378,28 +398,25 @@
     </div>
     <div class="sr-analysis-map-footer">
         <div>
-            <SrCheckbox 
-                class="sr-show-hide-tooltip"
-                :defaultValue="true"
-                label="Show map tooltip"
-                labelFontSize="small"
-                tooltipText="Show or hide the elevation when hovering mouse over a track"
+            <Checkbox 
                 v-model="mapStore.showTheTooltip"
-                :disabled=elevationIsLoading
-                size="small" 
+                binary
+                inputId="show-hide-tooltip"
+                size="small"
             />
+            <label for="show-hide-tooltip" class="sr-check-label" >Show Map Tooltip</label>
         </div>
         <div>
-            <SrCheckbox 
-                class="sr-show-hide-tooltip"
-                :defaultValue="false"
-                label="Enable off pointing filter"
-                labelFontSize="small"
-                tooltipText="Show or hide the off pointing filter"
-                v-model="globalChartStore.use_y_atc_filter"
-                :disabled="!recTreeStore.selectedApi.includes('atl03')"
-                size="small" 
+            <div class="sr-checkbox-item">
+            <Checkbox 
+                v-model="globalChartStore.use_y_atc_filter" 
+                binary 
+                inputId="enable-off-filter"
+                size="small"
+                @update:model-value="handleOffPntEnable"
             />
+            <label for="enable-off-filter" class="sr-check-label">Enable off pointing filter</label>
+        </div>
         </div>
         <div>
             <div class="sr-spinner">
@@ -452,7 +469,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;    /* Center the checkbox horizontally */
+  justify-content:space-evenly;
   position: relative;         /* Needed for absolute positioning of spinner */
   width: 100%;
   height: 2rem;
@@ -467,7 +484,7 @@
 /* Absolutely position the spinner on the right */
 .sr-analysis-map-footer .sr-spinner {
   position: absolute;
-  right: 7rem;
+  right: 2rem;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -543,6 +560,12 @@
     max-height: 30%;
     min-width: 30vw;
     width: 100%;
+}
+
+.sr-check-label {
+    font-size:small;
+    color: var(--p-primary-color);
+    margin: 0.5rem;
 }
 
 :deep(.ol-mouse-position) {

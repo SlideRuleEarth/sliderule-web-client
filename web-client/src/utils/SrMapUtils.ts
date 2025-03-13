@@ -290,20 +290,20 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     if (!api.includes('atl03')) {
         if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
             const y_atc_filtered_Cols = await getColsForRgtYatcFromFile(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
-            console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
+            //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
 
             if (y_atc_filtered_Cols) {
                 // Store previous values
                 const prevSpots = gcs.getSpots(); 
                 const prevCycles = gcs.getCycles(); 
                 const prevGts = gcs.getGts(); 
-                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevSpots:', prevSpots);
-                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevCycles:', prevCycles);
-                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevGts:', prevGts);
+                //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevSpots:', prevSpots);
+                //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevCycles:', prevCycles);
+                //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: prevGts:', prevGts);
 
                 // Map new values, filtering out invalid entries
-                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.filter(spot => !isInvalid(spot));
-                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.filter(cycle => !isInvalid(cycle));
+                const y_atc_filtered_spots = y_atc_filtered_Cols.spot.filter(spot => !isInvalid(spot)).sort((a, b) => a - b);;
+                const y_atc_filtered_cycles = y_atc_filtered_Cols.cycle.filter(cycle => !isInvalid(cycle)).sort((a, b) => a - b);;
                 const y_atc_filtered_gts = y_atc_filtered_Cols.gt.filter(gt => !isInvalid(gt));
 
                 // Check for changes
@@ -322,13 +322,14 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
                 gcs.setCycles(y_atc_filtered_cycles);
                 const selectedCycleOptions = gcs.getSelectedCycleOptions();
                 gcs.setFilteredCycleOptions(selectedCycleOptions);
-                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: selectedCycleOptions:', selectedCycleOptions);
-                console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: gcs.getFilteredCycleOptions():', gcs.getFilteredCycleOptions());
+                //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: selectedCycleOptions:', selectedCycleOptions);
+                //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: gcs.getFilteredCycleOptions():', gcs.getFilteredCycleOptions());
             }
         }
     } else {
         console.warn('setCyclesGtsSpotsFromFileUsingRgtYatc: Ignored for ATL03. TBD need to implement an atl03 equivalent function for y_atc?');
     }
+    console.trace(`setCyclesGtsSpotsFromFileUsingRgtYatc: ${useActiveTabStore().activeTabLabel} reqIdStr: ${reqIdStr} use_y_atc_filter: ${gcs.use_y_atc_filter} selected_y_atc: ${gcs.selected_y_atc} gcs.getCycles: ${gcs.getCycles()} gcs.getSpots: ${gcs.getSpots()} gcs.getGts: ${gcs.getGts()}`);
 }
 
 export function isClickable(d: ElevationDataItem): boolean {
@@ -342,15 +343,14 @@ export function isClickable(d: ElevationDataItem): boolean {
 
 export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     console.log('processSelectedElPnt d:',d);
-    const globalChartStore = useGlobalChartStore();
-    globalChartStore.setSelectedElevationRec(d);
+    const gcs = useGlobalChartStore();
+    gcs.setSelectedElevationRec(d);
     hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
 
     //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
-    const gcs = useGlobalChartStore();
 
     if(d.track !== undefined){ // for atl03
         gcs.setTracks([d.track]); // set to this one track
@@ -410,6 +410,16 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     await processSelectedElPnt(d);
     const msg = `clicked ${d}`;
     await updatePlotAndSelectedTrackMapLayer(msg);
+}
+
+export async function resetFilterUsingSelectedRec(){
+    const gcs = useGlobalChartStore();
+    const selectedRec = gcs.getSelectedElevationRec();
+    if(selectedRec){
+        await processSelectedElPnt(selectedRec);
+    } else {
+        console.warn('resetFilterUsingSelectedRec: selectedRec is null');
+    }
 }
 
 function createDeckLayer(

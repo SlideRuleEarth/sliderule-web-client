@@ -24,7 +24,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const hasScForward = ref<boolean>(false);
     const hasScBackward = ref<boolean>(false);
     const selectedElevationRec = ref<ElevationDataItem | null>(null);
-    const use_y_atc_filter = ref<boolean>(true);
+    const use_y_atc_filter = ref<boolean>(false);
     const selected_y_atc = ref<number>(0.0);
     const y_atc_margin = ref<number>(50.0);
     const max_pnts_on_plot = ref<number>(50000);
