@@ -4,7 +4,7 @@
         
         <div class="sr-ss-number-container">
             <InputNumber 
-                v-model="symbolSize"
+                v-model="symbolStore.size[props.reqIdStr]"
                 size="small"
                 :min="1"
                 :max="10"
@@ -13,6 +13,7 @@
                 inputId="symbolSize"
                 showButtons
                 class="sr-ss-number"
+                @update:modelValue="handleUpdate"
             />
         </div>
 
@@ -20,38 +21,27 @@
 </template>
   
 <script setup lang="ts">
-    import { computed } from 'vue';
     import InputNumber from 'primevue/inputnumber';
-    import { useChartStore } from '@/stores/chartStore';
-    
+    import { useSymbolStore } from '@/stores/symbolStore';
+    import { refreshScatterPlot } from '@/utils/plotUtils';
+
+    const symbolStore = useSymbolStore();
+
     const props = defineProps<{
         /**
          * The reqIdStr identifies the portion of state in your chartStore.
          */
         reqIdStr: string;
     }>();
-  
-    const emit = defineEmits<{
-        (event: 'update:symbolSize', value: number): void;
-    }>();
 
-    // Access Pinia store
-    const chartStore = useChartStore();
-  
-    /**
-     * 'symbolSize' is a computed property that:
-     *   - reads symbolSize from the store (get)
-     *   - writes symbolSize to the store (set)
-     */
-    const symbolSize = computed<number>({
-        get() {
-            return chartStore.getSymbolSize(props.reqIdStr);
-        },
-        set(value) {
-            chartStore.setSymbolSize(props.reqIdStr, value);
-            emit('update:symbolSize', value); // Emit the event with the new value
-        },
-    });
+async function handleUpdate() {
+    // This function is called whenever the input value changes
+    // You can add any additional logic here if needed
+    // For example, you might want to log the new value or perform some validation
+    console.log(`Symbol size updated to: ${symbolStore.size[props.reqIdStr]}`);
+    await refreshScatterPlot("user changed symbol size");
+}
+
 </script>
   
 <style scoped>

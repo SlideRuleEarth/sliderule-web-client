@@ -391,13 +391,13 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     if(gcs.use_y_atc_filter){    
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
     }
-    console.log('processSelectedElPnt: pair',gcs.getPairs());
-    console.log('processSelectedElPnt: rgt',gcs.getRgt())
-    console.log('processSelectedElPnt: cycles',gcs.getCycles())
-    console.log('processSelectedElPnt: tracks',gcs.getTracks())
-    console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
-    console.log('processSelectedElPnt: spot',gcs.getSpots())
-    console.log('processSelectedElPnt: gt',gcs.getGts())
+    // console.log('processSelectedElPnt: pair',gcs.getPairs());
+    // console.log('processSelectedElPnt: rgt',gcs.getRgt())
+    // console.log('processSelectedElPnt: cycles',gcs.getCycles())
+    // console.log('processSelectedElPnt: tracks',gcs.getTracks())
+    // console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
+    // console.log('processSelectedElPnt: spot',gcs.getSpots())
+    // console.log('processSelectedElPnt: gt',gcs.getGts())
 }
 
 export async function clicked(d:ElevationDataItem): Promise<void> {

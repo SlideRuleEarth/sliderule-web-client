@@ -19,6 +19,7 @@ import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
+import { useSymbolStore } from "@/stores/symbolStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -252,7 +253,7 @@ async function getGenericSeries({
                     progressiveChunkMode,
                     animation: false,
                     yAxisIndex: 0, // only plotting on series i.e. y-axis 0
-                    symbolSize: chartStore.getSymbolSize(reqIdStr),
+                    symbolSize: useSymbolStore().getSize(reqIdStr),
                 },
                 min,
                 max,
@@ -493,7 +494,6 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
 
 export async function initChartStoreFor(reqId:number) : Promise<boolean>{
     const chartStore = useChartStore();
-    const recTreeStore = useRecTreeStore();
     const reqIdStr = reqId.toString();
     let status = true;
     if (reqId <= 0) {
@@ -503,7 +503,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
 
     try {
 
-        initSymbolSize(reqId);
+        await initSymbolSize(reqId);
         initializeColorEncoding(reqId);
         const request = await indexedDb.getRequest(reqId);
 
@@ -981,7 +981,7 @@ export const addOverlaysToScatterPlot = async (msg:string) => {
     console.log(`addOverlaysToScatterPlot took ${endTime - startTime} milliseconds.`);
 }
 
-const refreshScatterPlot = async (msg:string) => {
+export const refreshScatterPlot = async (msg:string) => {
     //console.log(`refreshScatterPlot ${msg}`);
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -1090,23 +1090,30 @@ export const findReqMenuLabel = (reqId:number) => {
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
-    const chartStore = useChartStore(); 
+    const chartStore = useChartStore();
+    const symbolStore = useSymbolStore(); 
     const func = await indexedDb.getFunc(req_id);//must use db
     if (func.includes('atl03sp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03spSymbolSize  ?? 1));
+        //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
+        //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03vpSymbolSize  ?? 5);
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
     } else if (func.includes('atl06')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize  ?? 3));
+        //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl06SymbolSize  ?? 3);
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
+        if(reqIdStr == '329'){
+            console.trace('initialized symbol size for atl06 for reqId:', req_id);
+        }
     } else if (func.includes('atl08')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl08SymbolSize  ?? 3));
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
     } else if (func.includes('gedi')) {
-        chartStore.setSymbolSize(reqIdStr,(plotConfig?.defaultAtl06SymbolSize ?? 3));
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
     } else {
         console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
     }
     //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
-    return chartStore.getSymbolSize(reqIdStr);
+    return symbolStore.getSize(reqIdStr); 
 }
 
 export async function updateWhereClauseAndXData(req_id: number) {
