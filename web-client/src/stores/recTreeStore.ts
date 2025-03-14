@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, type ComputedRef } from 'vue';
 import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
-import { initDataBindingsToChartStore,initChartStoreFor } from '@/utils/plotUtils';
+import { initDataBindingsToChartStore,initChartStoreFor,initSymbolSize } from '@/utils/plotUtils';
 
 
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
@@ -194,6 +194,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             initDataBindingsToChartStore(reqIdMenuItems.value.map(item => item.value.toString()));
             if(newReqId){
                 await initChartStoreFor(newReqId);
+                await initSymbolSize(newReqId);
             }
         } catch (error) {
             console.error(`updateRecMenu ${logMsg} Failed to updateRecMenu:`, error);

@@ -141,7 +141,6 @@ onMounted(async () => {
         const reqId = props.startingReqId;
         if (reqId > 0) {
             await setCyclesGtsSpotsFromFileUsingRgtYatc();
-            await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
             //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {

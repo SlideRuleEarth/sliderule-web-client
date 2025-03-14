@@ -503,7 +503,6 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
 
     try {
 
-        await initSymbolSize(reqId);
         initializeColorEncoding(reqId);
         const request = await indexedDb.getRequest(reqId);
 
@@ -561,6 +560,7 @@ export async function initChartStore() {
         if(!status){
             console.error(`initChartStoreFor ${reqId} failed`);
         }
+        await initSymbolSize(reqId);
     }
     const endTime = performance.now(); // End time
     console.log(`initChartStore took ${endTime - startTime} milliseconds.`);
