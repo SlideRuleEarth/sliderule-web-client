@@ -35,32 +35,6 @@ const checkUnsupported = () =>{
   }
 }
 
-// watch(() => route.params.id, async (newId) => {
-//     let newReqId = Number(newId) || 0;
-//     try{
-//         if(newReqId > 0){
-//             const first = recTreeStore.findAndSelectNode(newReqId);
-//             if(first){
-//                 //console.log('App watch Route ID changed to:', newReqId);
-//             } else {
-//                 if(recTreeStore.allReqIds.length===0){
-//                     console.warn("App watch ignoring newId from router:",newId,"newReqId:", newReqId);
-//                     toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
-//                 }
-//             }
-//         } else {
-//             if(recTreeStore.allReqIds.length===0){
-//                 console.warn("App watch ignoring newId:",newId,"newReqId:", newReqId);
-//                 toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife()});
-//             }
-//         }
-//     } catch (error) {
-//         console.error('App watch Error processing route ID change:', error);
-//         console.error("App watch exception setting route parameter for 'id':", newReqId);
-//         toast.add({ severity: 'error', summary: 'exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife()});
-//     }
-// });
-// Function to detect browser and OS from userAgent string
 const detectBrowserAndOS = () => {
   deviceStore.setUserAgent(navigator.userAgent);
   deviceStore.setLanguage(navigator.language);

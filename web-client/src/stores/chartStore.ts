@@ -25,7 +25,7 @@ interface ChartState {
     xLegend: string;
     numOfPlottedPnts: number;
     selectedAtl03YapcColorMap: SrMenuItem;
-    symbolSize: number;
+    //symbolSize: number;
     symbolColorEncoding: string;
     solidSymbolColor: string;
     selectAllTracks: boolean;
@@ -70,7 +70,7 @@ export const useChartStore = defineStore('chartStore', {
                     xLegend: 'Meters',
                     numOfPlottedPnts: 0,
                     selectedAtl03YapcColorMap: { name: 'viridis', value: 'viridis' },
-                    symbolSize: 3,
+                    //symbolSize: 3,
                     symbolColorEncoding: 'unset',
                     savedColorEncodeData: 'unset',
                     solidSymbolColor: 'red',
@@ -141,16 +141,16 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].whereClause;
         },
-        setSymbolSize(reqIdStr: string, symbolSize: number) {
-            //console.log('setSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',symbolSize);
-            this.ensureState(reqIdStr);
-            this.stateByReqId[reqIdStr].symbolSize = symbolSize;
-        },
-        getSymbolSize(reqIdStr: string): number {
-            this.ensureState(reqIdStr);
-            //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
-            return this.stateByReqId[reqIdStr].symbolSize;
-        },
+        // setSymbolSize(reqIdStr: string, symbolSize: number) {
+        //     //console.log('setSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',symbolSize);
+        //     this.ensureState(reqIdStr);
+        //     this.stateByReqId[reqIdStr].symbolSize = symbolSize;
+        // },
+        // getSymbolSize(reqIdStr: string): number {
+        //     this.ensureState(reqIdStr);
+        //     //console.log('getSymbolSize reqIdStr:',reqIdStr, ' symbolSize:',this.stateByReqId[reqIdStr].symbolSize);
+        //     return this.stateByReqId[reqIdStr].symbolSize;
+        // },
         setSymbolColorEncoding(reqIdStr: string, symbolColorEncoding: string) {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].symbolColorEncoding = symbolColorEncoding;

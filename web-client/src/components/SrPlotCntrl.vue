@@ -78,7 +78,6 @@
         <div>
             <SrSymbolSize
                 :reqIdStr="reqIdStr"
-                @update:symbolSize="handleSymbolSizeUpdate"
             />
         </div>
         <div>
@@ -259,10 +258,10 @@ const sqlStmntToolTipText = computed(() => {
     return `This is the Sql statement used to create (the record ${props.reqId} portion of) the scatter plot above`;    
 });
 
-const handleSymbolSizeUpdate = async (newSymbolSize: number) => {
-    console.log(`Updated symbol size for ${props.reqId}:`, newSymbolSize);
-    await callPlotUpdateDebounced('handleSymbolSizeUpdate');
-};
+// const handleSymbolSizeUpdate = async (newSymbolSize: number) => {
+//     console.log(`Updated symbol size for ${props.reqId}:`, newSymbolSize);
+//     await callPlotUpdateDebounced('handleSymbolSizeUpdate');
+// };
 
 const handleYDataSelectionChange = async (event: SelectChangeEvent) => {
     const newValue = event.value as string[]; // Extract the selected value

@@ -9,7 +9,7 @@ import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -32,6 +32,7 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
+import { useSymbolStore } from "@/stores/symbolStore";
 
 
 const tooltipRef = ref();
@@ -49,6 +50,7 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const analysisMapStore = useAnalysisMapStore();
+const symbolStore = useSymbolStore();
 const loadingComponent = ref(true);
 
 
@@ -320,7 +322,6 @@ onMounted(async () => {
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
-            await initSymbolSize(reqId);
             initializeColorEncoding(reqId);
             // set this so if the user looks at it, it will be there
             await useAutoReqParamsStore().presetForScatterPlotOverlay(reqId);
@@ -383,10 +384,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
-                    chartStore.setSymbolSize(runContext.reqId.toString(),1);
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
+                    await initSymbolSize(runContext.reqId); // for new record
                     initializeColorEncoding(runContext.reqId);
+                    symbolStore.saveSize(parentReqIdStr); // save the symbol size for parent to restore
+                    symbolStore.setSize(parentReqIdStr,1); // set the symbol size for parent to 1 for overlayed
                     // The worker will now fetch the data from the server 
                     // and write the opfs file then update 
                     // the map selected layer and the chart
@@ -394,15 +397,16 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
-                //await initSymbolSize(runContext.reqId);
-                chartStore.setSymbolSize(runContext.reqId.toString(),1);
                 initializeColorEncoding(runContext.reqId);
                 const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr);
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
-                await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                symbolStore.saveSize(parentReqIdStr); // save the symbol size for parent to restore
+                symbolStore.setSize(parentReqIdStr,1); // set the symbol size for parent to 1 for overlayed
+                //await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
@@ -410,7 +414,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
             const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr);
             //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
-
+            symbolStore.restoreSize(recTreeStore.selectedReqIdStr);
             if(sced && (sced != 'unset')){
                 //console.log('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
                 chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, sced);
