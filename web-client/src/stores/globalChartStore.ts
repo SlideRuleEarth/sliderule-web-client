@@ -90,11 +90,27 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     }
     
     function setRgtOptions(newRgtOptions: SrListNumberItem[]) {
-        rgtOptions.value = newRgtOptions;  
+        rgtOptions.value = newRgtOptions; 
+        //console.trace('setRgtOptions rgtOptions:', newRgtOptions, ' selectedRgtOption:', selectedRgtOption.value); 
     }
     
     function getRgtOptions(): SrListNumberItem[] {
         return rgtOptions.value;
+    }
+
+    function setSelectedRgtOptions(rgtOptions: SrListNumberItem[]): void {
+        if (!Array.isArray(rgtOptions)) {
+            console.error('setSelectedRgtOptions received invalid rgtOptions:', rgtOptions);
+            selectedRgtOption.value = undefined;
+            return;
+        }
+        selectedRgtOption.value = rgtOptions.find(option => option.value === getRgt()) || { label: 'None', value: -1 };
+        //console.log('setSelectedRgtOptions rgtOptions:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
+        if (selectedRgtOption.value === undefined) {
+            console.error('setSelectedRgtOptions: selectedRgtOption is undefined', selectedRgtOption.value);
+            selectedRgtOption.value = { label: 'None', value: -1 };
+        }
+        //console.log('setSelectedRgtOptions rgtOptions:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
     }
 
     function findRgtOption(rgt: number): SrListNumberItem | undefined {
@@ -345,10 +361,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setFilteredCycleOptions,
         setRgtOptions,
         getRgtOptions,
-        rgtOptions,
         setRgt,
         getRgt,
         selectedRgtOption,
+        setSelectedRgtOptions,
         selectedSpots,
         getSpots,
         setSpots,

@@ -10,6 +10,11 @@
             </div>
             <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
+                    <Button class="sr-reset-btn"
+                        label="Reset" 
+                        @click="resetFilter"
+                        size="small"
+                    ></Button>
                     <div class="sr-select-boxes">
                         <div class="sr-rgt-y-atc">
                             <div class="sr-select-box">
@@ -48,6 +53,8 @@
 import { computed, nextTick } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { resetFilter } from '@/utils/SrMapUtils';
+import Button from 'primevue/button';
 import { selectedRgtReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import Listbox from 'primevue/listbox';
 import SrBeamPattern from '@/components/SrBeamPattern.vue';
@@ -55,11 +62,9 @@ import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
 import SrCycleSelect from '@/components/SrCycleSelect.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
-import { useActiveTabStore } from '@/stores/activeTabStore';
 
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
-const activeTabStore = useActiveTabStore();
 
 const computedScOrientLabels = computed(() => {
     return globalChartStore.getScOrientsLabels();

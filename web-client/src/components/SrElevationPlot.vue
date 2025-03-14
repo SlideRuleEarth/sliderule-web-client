@@ -5,7 +5,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
-import { provide, watch, onMounted, onUnmounted, nextTick, ref, computed } from "vue";
+import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
@@ -19,7 +19,7 @@ import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrGradientLegend from "./SrGradientLegend.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
-import { prepareDbForReqId, updateAllFilterOptions } from "@/utils/SrDuckDbUtils";
+import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useAnalysisMapStore } from "@/stores/analysisMapStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
@@ -29,7 +29,6 @@ import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import { processSelectedElPnt } from "@/utils/SrMapUtils";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
-import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
@@ -269,13 +268,17 @@ const shouldDisplayOverlayGradient =computed(() => {
 });
 
 
-
+const PC_OnTooltip = computed(() => { 
+    return (globalChartStore.use_y_atc_filter ? 
+        'Disabled when off pointing filter in ON' : 
+        'Click to show atl03 photon cloud');
+});
 
 const photonCloudBtnTooltip = computed(() => {
     if(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading){
             return 'Photon Cloud is disabled while record is loading';
     } else {
-        return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud':'Click to show atl03 photon cloud';
+        return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud' : PC_OnTooltip.value;
     }
 });
 
@@ -384,6 +387,9 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     initializeColorEncoding(runContext.reqId);
+                    // The worker will now fetch the data from the server 
+                    // and write the opfs file then update 
+                    // the map selected layer and the chart
                 } else { 
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
@@ -397,8 +403,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
                 await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
-                // the filter options got set with the overlayed data file so reset them
-                await updateAllFilterOptions(runContext.parentReqId);
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);

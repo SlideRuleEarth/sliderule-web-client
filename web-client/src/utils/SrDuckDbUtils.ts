@@ -665,21 +665,23 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
     try{
         const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
+        //console.log('getAllRgtOptionsInFile queryResult:', queryResult);
         for await (const rowChunk of queryResult.readRows()) {
+            //console.log('getAllRgtOptionsInFile rowChunk:', rowChunk);
             for (const row of rowChunk) {
                 if (row) {
                     rgtOptions.push({ label: row.rgt.toString(), value: row.rgt });
                 } else {
-                    console.warn('getRgt fetchData rowData is null');
+                    console.warn('getAllRgtOptionsInFile fetchData rowData is null');
                 }
             }
         } 
     } catch (error) {
-        console.error('getRgt Error:', error);
+        console.error('getAllRgtOptionsInFile Error:', error);
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getRgt() took ${endTime - startTime} milliseconds.`);
+        //console.log(`SrDuckDbUtils.getAllRgtOptionsInFile() took ${endTime - startTime} milliseconds.`,rgtOptions);
     }
     return rgtOptions;
 }

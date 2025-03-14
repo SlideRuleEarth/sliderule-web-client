@@ -28,7 +28,7 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary, getColsForRgtYatcFromFile } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary, getColsForRgtYatcFromFile,getAllCycleOptionsInFile, getAllRgtOptionsInFile } from "@/utils/SrDuckDbUtils";
 import type { AccessorContext, PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
@@ -412,6 +412,45 @@ export async function clicked(d:ElevationDataItem): Promise<void> {
     await updatePlotAndSelectedTrackMapLayer(msg);
 }
 
+export async function syncAllCycleOptionsFromFile(): Promise<void> {
+    // This selects all cycle options from the file and sets them in the global chart store
+    // And sets the selected cycle options to all cycle options
+    const globalChartStore = useGlobalChartStore();
+    const retObj = await getAllCycleOptionsInFile(useRecTreeStore().selectedReqId);
+    globalChartStore.setCycleOptions(retObj.cycleOptions);
+}
+
+export async function resetCycleOptions(): Promise<void> {
+    // This selects all cycle options from the file and sets them in the global chart store
+    // And sets the selected cycle options to all cycle options 
+    // So ALL are selected
+    syncAllCycleOptionsFromFile();
+    useGlobalChartStore().setSelectedCycleOptions(useGlobalChartStore().getCycleOptions());
+}
+
+export async function resetFilterCycleOptions(): Promise<void> {
+    // This selects all cycle options from the file and sets them in the global chart store
+    // And sets the selected cycle options based on the filter
+    // So only the filtered cycle options are selected
+    syncAllCycleOptionsFromFile();
+    const globalChartStore = useGlobalChartStore();
+    const filteredCycleOptions = await getAllFilteredCycleOptionsFromFile(useRecTreeStore().selectedReqId);
+    globalChartStore.setFilteredCycleOptions(filteredCycleOptions);
+    globalChartStore.setSelectedCycleOptions(filteredCycleOptions);
+}
+
+export async function resetFilterRgtOptions(): Promise<void> {
+    // This selects all rgt options from the file and sets them in the global chart store
+    const globalChartStore = useGlobalChartStore();
+    const rgtOptions = await getAllRgtOptionsInFile(useRecTreeStore().selectedReqId);
+    globalChartStore.setRgtOptions(rgtOptions);
+}
+
+export async function resetFilter(): Promise<void> {
+    resetCycleOptions();
+    resetFilterRgtOptions();
+}
+
 export async function resetFilterUsingSelectedRec(){
     const gcs = useGlobalChartStore();
     const selectedRec = gcs.getSelectedElevationRec();
@@ -420,6 +459,8 @@ export async function resetFilterUsingSelectedRec(){
     } else {
         console.warn('resetFilterUsingSelectedRec: selectedRec is null');
     }
+    resetFilterCycleOptions();
+    resetFilterRgtOptions();
 }
 
 function createDeckLayer(

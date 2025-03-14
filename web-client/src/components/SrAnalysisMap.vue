@@ -39,6 +39,7 @@
     import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
     import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';
+    import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -60,7 +61,9 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const controls = ref([]);
+    const tooltipRef = ref();
 
 
     const recordsVectorSource = new VectorSource({wrapX: false});
@@ -90,7 +93,15 @@
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
         }
     });
-    
+
+    const offFilterTooltip = computed(() => {
+        if(atlChartFilterStore.showPhotonCloud){
+            return 'This is disabled when Show Photon Cloud is enabled';
+        } else {
+            return 'Enable/Disable off pointing filter';
+        }   
+    });
+
     const props = withDefaults(
         defineProps<{
             selectedReqId: number;
@@ -407,16 +418,23 @@
             <label for="show-hide-tooltip" class="sr-check-label" >Show Map Tooltip</label>
         </div>
         <div>
-            <div class="sr-checkbox-item">
-            <Checkbox 
-                v-model="globalChartStore.use_y_atc_filter" 
-                binary 
-                inputId="enable-off-filter"
-                size="small"
-                @update:model-value="handleOffPntEnable"
-            />
-            <label for="enable-off-filter" class="sr-check-label">Enable off pointing filter</label>
-        </div>
+            <div
+                @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
+                @mouseleave="tooltipRef.hideTooltip"
+            >
+                <Checkbox 
+                    v-model="globalChartStore.use_y_atc_filter" 
+                    binary 
+                    inputId="enable-off-filter"
+                    size="small"
+                    @update:model-value="handleOffPntEnable"
+                    :disabled="atlChartFilterStore.showPhotonCloud"
+                />               
+                <label 
+                    for="enable-off-filter" 
+                    class="sr-check-label">Enable off pointing filter
+                </label>
+            </div>
         </div>
         <div>
             <div class="sr-spinner">
