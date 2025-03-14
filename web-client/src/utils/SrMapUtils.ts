@@ -425,7 +425,7 @@ export async function resetCycleOptions(): Promise<void> {
     // And sets the selected cycle options to all cycle options 
     // So ALL are selected
     syncAllCycleOptionsFromFile();
-    useGlobalChartStore().setSelectedCycleOptions(useGlobalChartStore().getCycleOptions());
+    useGlobalChartStore().setCycleOptions(useGlobalChartStore().getCycleOptions());
 }
 
 export async function resetFilterCycleOptions(): Promise<void> {
