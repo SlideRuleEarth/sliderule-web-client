@@ -17,6 +17,10 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: true as boolean,
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
+    xZoomStart: 0 as number,
+    xZoomEnd: 100 as number,
+    yZoomStart: 0 as number,
+    yZoomEnd: 100 as number,
   }),
 
   getters: {

@@ -638,6 +638,8 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         xAxisIndex: 0,
                         filterMode: 'none',
                         bottom: 1,
+                        start: useAtlChartFilterStore().xZoomStart, // Start zoom level
+                        end: useAtlChartFilterStore().xZoomEnd, // End zoom level
                     },
                     {
                         type: 'slider', // This creates a slider to zoom in the Y-axis
@@ -645,16 +647,22 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         filterMode: 'none',
                         left: '95%',
                         width: 20,
+                        start: useAtlChartFilterStore().yZoomStart, // Start zoom level
+                        end: useAtlChartFilterStore().yZoomEnd, // End zoom level
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
                         xAxisIndex: 0,
                         filterMode: 'none',
+                        start: useAtlChartFilterStore().xZoomStart, // Start zoom level
+                        end: useAtlChartFilterStore().xZoomEnd, // End zoom level
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
                         yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
                         filterMode: 'none',
+                        start: useAtlChartFilterStore().yZoomStart, // Start zoom level
+                        end: useAtlChartFilterStore().yZoomEnd, // End zoom level
                     },
                 ],            
             };
@@ -712,7 +720,28 @@ const initScatterPlotWith = async (reqId: number) => {
 
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataOptions(reqIdStr);
-
+    const plotRef = atlChartFilterStore.getPlotRef();
+    if (!plotRef?.chart) {
+        console.warn(`appendSeries(${reqId.toString()}): plotRef or chart is undefined.`);
+        return;
+    }
+    const chart: ECharts = plotRef.chart;
+    const options = chart.getOption() as EChartsOption;
+    const zoomCntrls = Array.isArray(options?.dataZoom) ? options.dataZoom : [options?.dataZoom];
+    for(let zoomNdx = 0; zoomNdx < zoomCntrls.length; zoomNdx++) {
+        const zoomCntrl = zoomCntrls[zoomNdx];//console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);            
+        if(zoomCntrl) {
+            if(zoomCntrl.start){
+                console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].start:`, zoomCntrl.start);
+                atlChartFilterStore.xZoomStart = zoomCntrl.start;
+            }
+            if(zoomCntrl.end){
+                console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].end:`, zoomCntrl.end);
+                atlChartFilterStore.yZoomEnd = zoomCntrl.end;
+            } 
+        }
+    }
+    
     //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
     const msg = '';
     atlChartFilterStore.setShowMessage(false);
