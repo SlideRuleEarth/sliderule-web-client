@@ -154,38 +154,6 @@
             return;
         }
         await updateAnalysisMapView("onMounted");
-        const view = map.getView();
-        const center = view.getCenter();
-        if(center){ 
-            const latLonCenter = toLonLat(center, view.getProjection());
-            console.log("SrAnalysisMap onMounted view:",view, 'center:',center, 'latLonCenter:',latLonCenter);
-        
-            const dbDescr = await db.getDescription(props.selectedReqId);
-            console.log(`dbDescr for reqId:${props.selectedReqId} dbDescr:${dbDescr}`);
-            if (dbDescr === ''){
-                try {
-                    // Fetch address data from OpenStreetMap
-                    const response = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLonCenter[1]}&lon=${latLonCenter[0]}`
-                    );
-                    const data = await response.json();
-                    console.log('New Description:', data.display_name);
-
-                    // If display_name is available, update the request record
-                    if (data && data.display_name) {
-                        db.updateRequest(props.selectedReqId, {description: data.display_name} );
-                    }
-                } catch (error) {
-                    console.error('Error fetching or updating:', error);
-                }
-        
-            } else {
-                console.error(`Error: No description for reqId:${props.selectedReqId} dbDescr:${dbDescr}`);
-            }
-        } else {
-            console.error("Error: map center is null");
-            useSrToastStore().error('No Map center for this request?', 'The map view is Invalid',10000);
-        }
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
         console.log("SrAnalysisMap onMounted done");
     });
