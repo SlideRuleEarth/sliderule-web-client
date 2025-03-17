@@ -20,6 +20,7 @@ import { useDeckStore } from '@/stores/deckStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
+import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { srViews } from "@/composables/SrViews";
 import { srProjections } from "@/composables/SrProjections";
 import { get as getProjection } from 'ol/proj.js';
@@ -603,10 +604,10 @@ const onHoverHandler = isIPhone
                 x = pickingInfo.x ?? event.srcEvent.clientX;
                 y = pickingInfo.y ?? event.srcEvent.clientY;
             }
-            const mapStore = useMapStore();
+            const analysisMapStore = useAnalysisMapStore();
 
             //console.log('onHoverHandler object:',object,' x:',x,' y:',y,' mapStore.showTheTooltip:',mapStore.showTheTooltip);
-            if(mapStore.showTheTooltip){
+            if(analysisMapStore.showTheTooltip){
                 if (object && !useDeckStore().isDragging) {
                     const tooltip = formatElObject(object);
                     showTooltip({ x, y, tooltip });
@@ -1120,7 +1121,7 @@ const updateElevationMap = async (req_id: number) => {
         return;
     }
     try {
-        const mapStore = useMapStore();
+        const analysisMapStore = useAnalysisMapStore();
         const parms = await duckDbReadAndUpdateElevationData(req_id,EL_LAYER_NAME_PREFIX);
         if(parms){
             const numRows = parms.numRows;
@@ -1129,7 +1130,7 @@ const updateElevationMap = async (req_id: number) => {
                     useDeckStore().deleteSelectedLayer();
                     //updateFilter([req_id]); // query to set all options for all 
                     processSelectedElPnt(parms.firstRec);
-                    mapStore.setMapInitialized(true);
+                    analysisMapStore.analysisMapInitialized = true;
                 } else {
                     console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);
                     useSrToastStore().warn('No points in file', 'The request produced no points');

@@ -4,6 +4,7 @@ import { ref, watch, onMounted } from 'vue';
 import InputText from 'primevue/inputtext';
 import FloatLabel from 'primevue/floatlabel';
 import { useSrToastStore } from "@/stores/srToastStore";
+import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 
 // Define props first
 const props = defineProps({
@@ -17,15 +18,15 @@ const props = defineProps({
     }
 });
 
-const descrRef = ref('default description');
+const analysisMapStore = useAnalysisMapStore();
 
 // Watch for changes in the reqId and fetch the description asynchronously
 const fetchDescription = async () => {
     console.log('fetchDescription called with reqId:', props.reqId);
     if (props.reqId !== 0) {
-        descrRef.value = await db.getDescription(props.reqId);
+        analysisMapStore.description = await db.getDescription(props.reqId);
     } else {
-        descrRef.value = 'No description available';
+        analysisMapStore.description = 'No description available';
     }
 };
 
@@ -37,8 +38,8 @@ watch(() => props.reqId, fetchDescription);
 const onEditComplete = (event: Event) => {
     const inputElement = event.target as HTMLInputElement;
     const newValue = inputElement.value.trim();
-    descrRef.value = newValue; // Update the specific field with the new value
-    db.updateRequestRecord({ req_id: props.reqId, description: descrRef.value },false);
+    analysisMapStore.description = newValue; // Update the specific field with the new value
+    db.updateRequestRecord({ req_id: props.reqId, description: analysisMapStore.description},false);
     useSrToastStore().info('Description Updated', 'You updated the description',2000);
     //console.log('Edit completed, new value:', newValue, 'Description:', descrRef.value);
 };
@@ -47,7 +48,7 @@ const onEditComplete = (event: Event) => {
 <template>
     <FloatLabel>
         <InputText
-            v-model="descrRef"
+            v-model="analysisMapStore.description"
             class="p-inputtext p-component"
             @keydown.enter="onEditComplete"
             @blur="onEditComplete"

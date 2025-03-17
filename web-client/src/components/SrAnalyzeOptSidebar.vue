@@ -3,7 +3,7 @@ import { onMounted,ref,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
 import { db } from '@/db/SlideRuleDb';
-import { useMapStore } from '@/stores/mapStore';
+import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrPlotConfig from "@/components/SrPlotConfig.vue";
@@ -13,7 +13,7 @@ import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
-const mapStore = useMapStore();
+const analysisMapStore = useAnalysisMapStore();
 const recTreeStore = useRecTreeStore();
 
 
@@ -118,7 +118,7 @@ const exportButtonClick = async () => {
                     <!-- SrPlotConfig for the main req_id -->
                     <div class="sr-scatterplot-cfg">
                         <SrPlotConfig
-                            v-if="mapStore.analysisMapInitialized" 
+                            v-if="analysisMapStore.analysisMapInitialized" 
                             :reqId="recTreeStore.selectedReqId"
                         />
                     </div>
@@ -126,7 +126,7 @@ const exportButtonClick = async () => {
                     <!-- SrPlotConfig for each overlayed req_id -->
                     <div class="sr-scatterplot-cfg" v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds" :key=overlayedReqId>
                         <SrPlotConfig
-                            v-if="mapStore.analysisMapInitialized" 
+                            v-if="analysisMapStore.analysisMapInitialized" 
                             :reqId="overlayedReqId"
                             :isOverlay="true" 
                         />
