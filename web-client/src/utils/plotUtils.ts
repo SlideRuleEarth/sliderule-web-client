@@ -570,6 +570,7 @@ export async function initChartStore() {
 export async function getScatterOptions(req_id:number): Promise<any> {
     const chartStore = useChartStore();
     const globalChartStore = useGlobalChartStore();
+    const atlChartFilterStore = useAtlChartFilterStore();
     const startTime = performance.now(); // Start time
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
@@ -583,6 +584,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         .getPropertyValue('--p-button-text-primary-color')
         .trim(); // Retrieve and trim the color value
 
+    //console.log(`getScatterOptions for reqId:${reqIdStr} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
@@ -636,33 +638,33 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     {
                         type: 'slider', // This creates a slider to zoom in the X-axis
                         xAxisIndex: 0,
-                        filterMode: 'none',
+                        filterMode: 'filter',
                         bottom: 1,
-                        start: useAtlChartFilterStore().xZoomStart, // Start zoom level
-                        end: useAtlChartFilterStore().xZoomEnd, // End zoom level
+                        start: atlChartFilterStore.xZoomStart, // Start zoom level
+                        end: atlChartFilterStore.xZoomEnd, // End zoom level
                     },
                     {
                         type: 'slider', // This creates a slider to zoom in the Y-axis
                         yAxisIndex: seriesData.length > 1 ? [0, 1] : 0, // Adjusting for multiple y-axes if necessary
-                        filterMode: 'none',
+                        filterMode: 'filter',
                         left: '95%',
                         width: 20,
-                        start: useAtlChartFilterStore().yZoomStart, // Start zoom level
-                        end: useAtlChartFilterStore().yZoomEnd, // End zoom level
+                        start: atlChartFilterStore.yZoomStart, // Start zoom level
+                        end: atlChartFilterStore.yZoomEnd, // End zoom level
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
                         xAxisIndex: 0,
-                        filterMode: 'none',
-                        start: useAtlChartFilterStore().xZoomStart, // Start zoom level
-                        end: useAtlChartFilterStore().xZoomEnd, // End zoom level
+                        filterMode: 'filter',
+                        start: atlChartFilterStore.xZoomStart, // Start zoom level
+                        end: atlChartFilterStore.xZoomEnd, // End zoom level
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
                         yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
-                        filterMode: 'none',
-                        start: useAtlChartFilterStore().yZoomStart, // Start zoom level
-                        end: useAtlChartFilterStore().yZoomEnd, // End zoom level
+                        filterMode: 'filter',
+                        start: atlChartFilterStore.yZoomStart, // Start zoom level
+                        end: atlChartFilterStore.yZoomEnd, // End zoom level
                     },
                 ],            
             };
@@ -682,6 +684,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
 
 export async function getScatterOptionsFor(reqId:number) {
     const atlChartFilterStore = useAtlChartFilterStore();
+    //console.log(`getScatterOptionsFor for reqId:${reqId} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
     const newScatterOptions = await getScatterOptions(reqId);
     if (!newScatterOptions) {
         atlChartFilterStore.setShowMessage(true);
@@ -696,7 +699,7 @@ export async function getScatterOptionsFor(reqId:number) {
         if(plotRef?.chart){
             plotRef.chart.setOption(newScatterOptions);
             //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
-            //const options = plotRef.chart.getOption();
+            const options = plotRef.chart.getOption();
             //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
         } else {
             console.error(`getScatterOptionsFor ${reqId} plotRef.chart is undefined`);
@@ -725,23 +728,42 @@ const initScatterPlotWith = async (reqId: number) => {
         console.warn(`appendSeries(${reqId.toString()}): plotRef or chart is undefined.`);
         return;
     }
+    // Save the current zoom state of the chart before applying new options
     const chart: ECharts = plotRef.chart;
     const options = chart.getOption() as EChartsOption;
+    //console.log(`initScatterPlotWith ${reqId} BEFORE options:`, options);
     const zoomCntrls = Array.isArray(options?.dataZoom) ? options.dataZoom : [options?.dataZoom];
     for(let zoomNdx = 0; zoomNdx < zoomCntrls.length; zoomNdx++) {
         const zoomCntrl = zoomCntrls[zoomNdx];//console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);            
         if(zoomCntrl) {
+            zoomCntrl.filterMode = 'filter'; 
+            //console.log(`initScatterPlotWith ALL ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrl);
             if(zoomCntrl.start){
                 console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].start:`, zoomCntrl.start);
-                atlChartFilterStore.xZoomStart = zoomCntrl.start;
+                if(zoomCntrl.xAxisIndex !== undefined){
+                    atlChartFilterStore.xZoomStart = zoomCntrl.start;
+                    //console.log(`initScatterPlotWith ${reqId} xZoomStart:`, atlChartFilterStore.xZoomStart);
+                }
+                if(zoomCntrl.yAxisIndex !== undefined){
+                    atlChartFilterStore.yZoomStart = zoomCntrl.start;
+                    //console.log(`initScatterPlotWith ${reqId} yZoomStart:`, atlChartFilterStore.yZoomStart);
+                }
             }
             if(zoomCntrl.end){
                 console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].end:`, zoomCntrl.end);
-                atlChartFilterStore.yZoomEnd = zoomCntrl.end;
+                if(zoomCntrl.xAxisIndex !== undefined){
+                    atlChartFilterStore.xZoomEnd = zoomCntrl.end;
+                    //console.log(`initScatterPlotWith ${reqId} xZoomEnd:`, atlChartFilterStore.xZoomEnd);
+                }
+                if(zoomCntrl.yAxisIndex !== undefined){
+                    atlChartFilterStore.yZoomEnd = zoomCntrl.end;
+                    //console.log(`initScatterPlotWith ${reqId} yZoomEnd:`, atlChartFilterStore.yZoomEnd);
+                }
             } 
         }
     }
-    
+    //console.log(`initScatterPlotWith for reqId:${reqId} SAVED VALUES: xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
+
     //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
     const msg = '';
     atlChartFilterStore.setShowMessage(false);
@@ -754,6 +776,7 @@ const initScatterPlotWith = async (reqId: number) => {
         try {
             atlChartFilterStore.setIsLoading();
             clearPlot();
+            //console.log(`initScatterPlotWith for reqId:${reqId} AFTER CLEARPLOT xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
             await getScatterOptionsFor(reqId)
         } catch (error) {
             console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
@@ -980,6 +1003,8 @@ async function appendSeries(reqId: number): Promise<void> {
             // If you want to ensure a merge, you can pass a second param:
             // }, { notMerge: false }
         });
+        //const options = chart.getOption() as EChartsOption;
+        //console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {
