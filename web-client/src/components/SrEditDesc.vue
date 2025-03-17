@@ -70,9 +70,8 @@ const onEditComplete = async (event: Event) => {
     //console.log('Edit completed, new value:', newValue, 'Description:', descrRef.value);
 };
 </script>
-
 <template>
-    <FloatLabel>
+    <FloatLabel class="full-width-label">
         <InputText
             v-model="descrRef"
             class="p-inputtext p-component"
@@ -82,6 +81,27 @@ const onEditComplete = async (event: Event) => {
         <label v-if="props.label !=''">{{ label }}</label>
     </FloatLabel>   
 </template>
+
+<style scoped>
+.full-width-label {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.p-inputtext {
+    width: 100%;
+    text-align: center;
+}
+
+label {
+    width: 100%;
+    text-align: center;
+    display: block;
+}
+
+</style>
 
 <style scoped>
 </style>
