@@ -18,11 +18,15 @@ export const useAnalysisMapStore = defineStore('analysisMapStore', () => {
         }
         return filteredPntData.value[reqId];
     };
+    const showTheTooltip = ref(false);
+    const analysisMapInitialized = ref(false);
 
     return {
         pntData,
         filteredPntData,
         getPntDataByReqId,
         getFilteredPntDataByReqId,
+        showTheTooltip,
+        analysisMapInitialized,
     };
 });

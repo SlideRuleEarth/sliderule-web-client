@@ -137,6 +137,7 @@
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
+
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
         recordsLayer.set('name', 'Records Layer'); // for empty requests need to draw poly in this layer
@@ -410,7 +411,7 @@
     <div class="sr-analysis-map-footer">
         <div>
             <Checkbox 
-                v-model="mapStore.showTheTooltip"
+                v-model="analysisMapStore.showTheTooltip"
                 binary
                 inputId="show-hide-tooltip"
                 size="small"

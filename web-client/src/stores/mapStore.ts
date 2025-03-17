@@ -57,8 +57,6 @@ export const useMapStore = defineStore('map', {
     extentToRestore: null as number[] | null,
     centerToRestore: null as number[] | null,
     zoomToRestore: null as number | null,
-    showTheTooltip: false as boolean,
-    analysisMapInitialized: false as boolean,
 }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -284,11 +282,6 @@ export const useMapStore = defineStore('map', {
     setZoomToRestore(zoom: number) {
         this.zoomToRestore = zoom;
     },
-    setMapInitialized(value: boolean) {
-        this.analysisMapInitialized = value;
-    },
-    getMapInitialized() {
-        return this.analysisMapInitialized;
-    },
+
   },
 });
