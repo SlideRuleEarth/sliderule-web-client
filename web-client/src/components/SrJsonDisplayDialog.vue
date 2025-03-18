@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import Dialog  from 'primevue/dialog'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -26,15 +27,18 @@ const prettyJson = computed(() => {
     return 'Invalid JSON'
   }
 })
+
 const highlightedJson = computed(() => {
   const result = hljs.highlight(prettyJson.value, { language: 'json' })
   return result.value
 })
 
-// Highlight JSON when dialog opens or data changes
-const highlightJson = () => {
-  if (jsonBlock.value) {
-    hljs.highlightElement(jsonBlock.value)
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(prettyJson.value)
+    console.log('Copied to clipboard')
+  } catch (err) {
+    console.error('Failed to copy:', err)
   }
 }
 
@@ -44,25 +48,35 @@ watch([modelValue, prettyJson], () => {
   }
 })
 
+const highlightJson = () => {
+  if (jsonBlock.value) {
+    hljs.highlightElement(jsonBlock.value)
+  }
+}
+
 onMounted(() => {
   if (modelValue.value) highlightJson()
 })
 </script>
 
 <template>
-    <Dialog 
-        v-model:visible="modelValue" 
-        :modal="true" 
-        :closable="true"
-        :style="{ width: width || '50vw' }"
-        >
-        <template #header>
-            <div class="dialog-title">{{ props.title || 'JSON Data' }}</div>
-        </template>
+<Dialog 
+    v-model:visible="modelValue" 
+    :modal="true" 
+    :closable="true"
+    :style="{ width: width || '50vw' }"
+>
+    <template #header>
+    <div class="dialog-header">
+        <Button label="Copy to clipboard" size="small" icon="pi pi-copy" @click="copyToClipboard" class="copy-btn" />
+        <div class="dialog-title">{{ props.title || 'JSON Data' }}</div>
+    </div>
+    </template>
 
-        <pre v-html="highlightedJson"></pre>
-    </Dialog>
+    <pre v-html="highlightedJson"></pre>
+</Dialog>
 </template>
+  
 
 <style scoped>
 pre {
@@ -72,24 +86,23 @@ pre {
   overflow-x: auto;
   font-size: 0.9rem;
 }
-.json-display {
-  background-color: #1e1e1e;
-  color: #dcdcdc;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  padding: 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  max-height: 60vh;
-  line-height: 1.4;
-  border: 1px solid #333;
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem; /* optional spacing */
 }
+
+.copy-btn {
+  flex-shrink: 0; /* prevents the button from shrinking */
+}
+
 .dialog-title {
-  width: 100%;
+  flex: 1;
   text-align: center;
   font-size: 1.2rem;
   font-weight: bold;
 }
-
 
 </style>
