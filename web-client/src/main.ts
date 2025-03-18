@@ -99,10 +99,7 @@ app.use(PrimeVue, {
       options: {
         prefix: 'p',
         darkModeSelector: '.sr-app-dark',
-        // cssLayer: {
-        //   name: 'primevue',
-        //   order: 'tailwind-base, primevue, tailwind-utilities'
-        // }      
+        cssLayer:false
       }
     },
     csp: {

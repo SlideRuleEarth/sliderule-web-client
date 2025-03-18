@@ -299,19 +299,17 @@ export const useRequestsStore = defineStore('requests', {
         childrenMap.get(key)!.push(node);
       }
     
-      // 5) Recursively transform into TreeNode objects:
-      function buildTree(parentId: number | undefined): TreeNode[] {
-        // Grab all nodes whose parent is parentId:
+      // 5) Recursively transform into TreeNode objects with hierarchical keys:
+      function buildTree(parentId: number | undefined, parentKey = ''): TreeNode[] {
         const children = childrenMap.get(parentId) || [];
-        // Sort them if desired (descending by reqId, etc.):
-        children.sort((a, b) => b.reqId - a.reqId);
+        children.sort((a, b) => b.reqId - a.reqId); // Optional: sort
     
-        return children.map((child) => {
-          // Recursively build this child’s sub‐nodes:
-          const childNodes = buildTree(child.reqId);
-
+        return children.map((child, index) => {
+          const currentKey = parentKey ? `${parentKey}-${index}` : `${index}`;
+          const childNodes = buildTree(child.reqId, currentKey);
+    
           return {
-            key: child.reqId.toString(),
+            key: currentKey,
             data: {
               reqId: child.reqId,
               status: child.data.status,
@@ -322,14 +320,12 @@ export const useRequestsStore = defineStore('requests', {
               elapsed_time: child.data.elapsed_time,
               parameters: child.data.parameters,
               svr_parms: child.data.svr_parms,
-              // You can include anything else you want displayed in your columns
             },
             children: childNodes
           } as TreeNode;
         });
       }
     
-      // Top-level rows are those with an undefined parentReqId:
       return buildTree(undefined);
     }
     

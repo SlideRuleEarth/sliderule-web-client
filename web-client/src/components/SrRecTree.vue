@@ -156,8 +156,7 @@ onUnmounted(() => {
       :rows="10"
       :rowsPerPageOptions="[3,5,10,15,20,25,50]"
     >
-        <Column expander  />
-        <Column field="reqId" header="ID" />
+        <Column field="reqId" header="ID" expander />
         <Column field="func" header="Api" />
         <Column field="status" header="Status" />
 
