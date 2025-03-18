@@ -36,6 +36,7 @@
     "echarts": "^5.5.1",
     "echarts-gl": "^2.0.9",
     "events": "^3.3.0",
+    "highlight.js": "^11.11.1",
     "lodash-es": "^4.17.21",
     "mitt": "^3.0.1",
     "ol": "^10.1.0",
