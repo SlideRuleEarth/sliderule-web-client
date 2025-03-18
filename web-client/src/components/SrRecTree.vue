@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
-import { type TreeNode } from 'primevue/treenode';
+import type { TreeNode } from 'primevue/treenode';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import { useToast } from "primevue/usetoast";
@@ -140,6 +140,7 @@ async function copyToClipboard(content: string, label: string = 'Content') {
 onMounted(async () => {
     requestsStore.watchReqTable();
     treeNodes.value = await requestsStore.getTreeTableNodes();
+    console.log('treeNodes.value:', treeNodes.value);
 });
 
 onUnmounted(() => {
@@ -149,12 +150,13 @@ onUnmounted(() => {
 
 <template>
     <TreeTable 
-      :value="treeNodes" 
+      :value="treeNodes"
+      size="small" 
       :paginator="true"
       :rows="10"
       :rowsPerPageOptions="[3,5,10,15,20,25,50]"
     >
-        <Column expander style="width: 1rem" />
+        <Column expander  />
         <Column field="reqId" header="ID" />
         <Column field="func" header="Api" />
         <Column field="status" header="Status" />
@@ -302,9 +304,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.sr-par-fmt {
-    margin-left: 1rem;
-}
 
 .error-message {
     color: red;
