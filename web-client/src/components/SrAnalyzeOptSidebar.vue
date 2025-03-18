@@ -183,6 +183,7 @@ const exportButtonClick = async () => {
         margin: 0rem;
         margin-top: 1.0rem;
         font-size: medium;
+        width: 100%;
     }
 
     .sr-export-button {
