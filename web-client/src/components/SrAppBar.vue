@@ -40,9 +40,6 @@ const emit = defineEmits(['version-button-click','request-button-click', 'popula
 const handleRequestButtonClick = () => {
     emit('request-button-click');
 };
-const handleRecordButtonClick = () => {
-    emit('record-button-click');
-};
 const handleRecTreeButtonClick = () => {
     emit('rectree-button-click');
 };
@@ -116,9 +113,9 @@ const mobileMenuItems = [
         command: handleRequestButtonClick
     },
     {
-        label: 'Records',
+        label: 'RecordTree',
         icon: 'pi pi-list',
-        command: handleRecordButtonClick
+        command: handleRecTreeButtonClick
     },
     {
         label: 'Analysis',
@@ -184,10 +181,7 @@ onMounted(() => {
             <Button icon="pi pi-sliders-h" label="Request" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRequestButtonClick"></Button>
-            <Button icon="pi pi-list" label="Records" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleRecordButtonClick"></Button>
-            <Button icon="pi pi-align-left" label="RecordTree" 
+            <Button icon="pi pi-align-left" label="Records" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRecTreeButtonClick"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" 
