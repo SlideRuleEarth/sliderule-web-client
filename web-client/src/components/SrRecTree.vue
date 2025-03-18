@@ -35,14 +35,22 @@ const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
 
 // Open the Req Parms dialog
-function openParmsDialog(params: string) {
-  currentParms.value = params;
+function openParmsDialog(params: string | object) {
+  if (typeof params === 'object') {
+    currentParms.value = JSON.stringify(params, null, 2);
+  } else {
+    currentParms.value = params;
+  }
   showParmsDialog.value = true;
 }
 
 // Open the Svr Parms dialog
-function openSvrParmsDialog(params: string) {
-  currentSvrParms.value = params;
+function openSvrParmsDialog(params: string | object) {
+  if (typeof params === 'object') {
+    currentSvrParms.value = JSON.stringify(params, null, 2);
+  } else {
+    currentSvrParms.value = params;
+  }
   showSvrParmsDialog.value = true;
 }
 
