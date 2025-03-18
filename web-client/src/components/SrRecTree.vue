@@ -126,6 +126,15 @@ const confirmDeleteAllReqs = async () => {
     }
 };
 
+async function copyToClipboard(content: string, label: string = 'Content') {
+  try {
+    await navigator.clipboard.writeText(content);
+    toast.add({ severity: 'success', summary: `${label} Copied`, detail: `${label} copied to clipboard.`, life: srToastStore.getLife() });
+  } catch (err) {
+    console.error('Failed to copy content:', err);
+    toast.add({ severity: 'error', summary: 'Copy Failed', detail: `Unable to copy ${label}`, life: srToastStore.getLife() });
+  }
+}
 
 
 onMounted(async () => {
@@ -157,8 +166,8 @@ onUnmounted(() => {
                     icon="pi pi-chart-line"
                     class="p-button-text" 
                     @click="analyze(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef.showTooltip($event, `Analyze ${slotProps.node.data.reqId}`)"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseover="tooltipRef?.value?.value?.showTooltip($event, `Analyze ${slotProps.node.data.reqId}`)"
+                    @mouseleave="tooltipRef?.value?.value?.hideTooltip"
                 ></Button>
             </template>
         </Column>
@@ -168,8 +177,8 @@ onUnmounted(() => {
             <template #header>
                 <i 
                   class="pi pi-pencil"
-                  @mouseover="tooltipRef.showTooltip($event, 'Editable Description')"
-                  @mouseleave="tooltipRef.hideTooltip"
+                  @mouseover="tooltipRef?.value?.showTooltip($event, 'Editable Description')"
+                  @mouseleave="tooltipRef?.value?.hideTooltip"
                 ></i>
             </template>
             <template #body="slotProps">
@@ -185,8 +194,8 @@ onUnmounted(() => {
                   label="View" 
                   class="p-button-text" 
                   @click="openParmsDialog(slotProps.node.data.parameters)"
-                  @mouseover="tooltipRef.showTooltip($event, 'View Request Parameters')"
-                  @mouseleave="tooltipRef.hideTooltip"
+                  @mouseover="tooltipRef?.value?.showTooltip($event, 'View Request Parameters')"
+                  @mouseleave="tooltipRef?.value?.hideTooltip"
                 ></Button>
             </template>
         </Column>
@@ -199,8 +208,8 @@ onUnmounted(() => {
                   label="View" 
                   class="p-button-text" 
                   @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
-                  @mouseover="tooltipRef.showTooltip($event, 'View Server Parameters')"
-                  @mouseleave="tooltipRef.hideTooltip"
+                  @mouseover="tooltipRef?.value?.showTooltip($event, 'View Server Parameters')"
+                  @mouseleave="tooltipRef?.value?.hideTooltip"
                 ></Button>
             </template>
         </Column>
@@ -223,8 +232,8 @@ onUnmounted(() => {
                     icon="pi pi-trash"
                     class="p-button-text" 
                     @click="confirmDeleteAllReqs()"
-                    @mouseover="tooltipRef.showTooltip($event, 'Delete ALL Requests')"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseover="tooltipRef?.value?.showTooltip($event, 'Delete ALL Requests')"
+                    @mouseleave="tooltipRef?.value?.hideTooltip"
                 ></Button>
             </template>
             <template #body="slotProps">
@@ -232,35 +241,55 @@ onUnmounted(() => {
                     icon="pi pi-trash"
                     class="p-button-text"
                     @click="deleteReqAndChildren(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef.showTooltip($event, 'Delete this request and any of its children')"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseover="tooltipRef?.value?.showTooltip($event, 'Delete this request and any of its children')"
+                    @mouseleave="tooltipRef?.value?.hideTooltip"
                 ></Button>
             </template>
         </Column>
     </TreeTable>
 
-    <!-- Dialog to show request parameters -->
+    <!-- Request Parameters Dialog -->
     <Dialog
-      header="Request Parameters"
-      v-model:visible="showParmsDialog"
-      modal
-      :draggable="false"
-      :closable="true"
-      :resizable="false"
+        header="Request Parameters"
+        v-model:visible="showParmsDialog"
+        modal
+        :draggable="false"
+        :closable="true"
+        :resizable="false"
     >
-      <pre>{{ currentParms }}</pre>
+        <template #header>
+            <div style="text-align: center; width: 100%;">Request Parameters</div>
+        </template>
+        <Button
+            icon="pi pi-copy"
+            label="Copy"
+            class="p-button-sm p-button-secondary"
+            style="position: absolute; top: 0.5rem; left: 0.5rem"
+            @click="copyToClipboard(currentParms, 'Request parameters copied')"
+        />
+        <pre>{{ currentParms }}</pre>
     </Dialog>
 
-    <!-- Dialog to show server parameters -->
+    <!-- Server Parameters Dialog -->
     <Dialog
-      header="Server Parameters"
-      v-model:visible="showSvrParmsDialog"
-      modal
-      :draggable="false"
-      :closable="true"
-      :resizable="false"
+        header="Server Parameters"
+        v-model:visible="showSvrParmsDialog"
+        modal
+        :draggable="false"
+        :closable="true"
+        :resizable="false"
     >
-      <pre>{{ currentSvrParms }}</pre>
+    <template #header>
+        <div style="text-align: center; width: 100%;">Server Parameters</div>
+    </template>
+    <Button
+        icon="pi pi-copy"
+        label="Copy"
+        class="p-button-sm p-button-secondary"
+        style="position: absolute; top: 0.5rem; left: 0.5rem"
+        @click="copyToClipboard(currentSvrParms)"
+    />
+    <pre>{{ currentSvrParms }}</pre>
     </Dialog>
 
     <!-- Custom Tooltip -->
