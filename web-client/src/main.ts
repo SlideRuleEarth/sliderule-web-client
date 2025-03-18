@@ -1,12 +1,12 @@
 import './assets/app.css'
-import Lara from '@primevue/themes/lara';
+import Lara from '@primeuix/themes/lara';
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
-import { definePreset } from '@primevue/themes';
+import { definePreset } from '@primeuix/themes';
 
 import Menubar from 'primevue/menubar';
 import ToastService from 'primevue/toastservice';
@@ -76,7 +76,6 @@ const SrPreset = definePreset(Lara, {
 });
 const pinia = createPinia();
 pinia.use(createPersistedState({
-  //auto: true, // all pinia stores are saved to the storage
   storage: sessionStorage // session is per tab and not persistent when tab is closed
 }))
 
@@ -100,10 +99,7 @@ app.use(PrimeVue, {
       options: {
         prefix: 'p',
         darkModeSelector: '.sr-app-dark',
-        // cssLayer: {
-        //   name: 'primevue',
-        //   order: 'tailwind-base, primevue, tailwind-utilities'
-        // }      
+        cssLayer:false
       }
     },
     csp: {

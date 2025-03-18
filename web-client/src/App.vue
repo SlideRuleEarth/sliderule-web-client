@@ -116,6 +116,10 @@ const recordButtonClick = () => {
   router.push('/record');
 };
 
+const rectreeButtonClick = () => {
+  router.push('/rectree');
+};
+
 const analysisButtonClick = async () => {
     try{
         if(recTreeStore.allReqIds.length===0){
@@ -161,6 +165,7 @@ const handleVersionButtonClick = () => {
       <SrAppBar 
         @request-button-click="requestButtonClick"
         @record-button-click="recordButtonClick"
+        @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
 		    @settings-button-click="settingsButtonClick"

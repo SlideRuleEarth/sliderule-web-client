@@ -5,6 +5,7 @@ import { liveQuery } from 'dexie';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
+import type { TreeNode } from 'primevue/treenode';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -246,7 +247,89 @@ export const useRequestsStore = defineStore('requests', {
         if (await this.getNumReqs() < this.helpfulReqAdviceCnt) {
             useSrToastStore().info('Helpful Advice', msg);
         }
-    },  
+    },
+
+    async getTreeTableNodes(): Promise<TreeNode[]> {
+      // 1) Get all request IDs in descending order:
+      const fetchedReqIds = await this.fetchReqIds();
+      fetchedReqIds.sort((a, b) => b - a);
+    
+      // 2) Pull from Dexie or wherever you store the data:
+      const requestsData: { [id: number]: SrRequestRecord | null } = {};
+      for (const reqId of fetchedReqIds) {
+        requestsData[reqId] = await db.table('requests').get(reqId);
+      }
+    
+      // 3) Build an array of raw “reqNodes,” each with its parentReqId:
+      type ReqNode = {
+        reqId: number;
+        parentReqId?: number;
+        data: SrRequestRecord;
+      };
+    
+      const reqNodes: ReqNode[] = [];
+      for (const id of fetchedReqIds) {
+        const record = requestsData[id];
+        const status = record?.status;
+        if (status !== 'success' && status !== 'imported') {
+          // Skip if you only want “success” or “imported”
+          continue;
+        }
+        if (!record) continue;
+    
+        const rc = await db.getRunContext(id);
+        const parentReqId = rc?.parentReqId; // Might be undefined for top-level
+    
+        reqNodes.push({
+          reqId: id,
+          parentReqId,
+          data: {
+            ...record,
+          }
+        });
+      }
+    
+      // 4) Group children by parentReqId:
+      const childrenMap = new Map<number | undefined, ReqNode[]>();
+      for (const node of reqNodes) {
+        const key = node.parentReqId ?? undefined;
+        if (!childrenMap.has(key)) {
+          childrenMap.set(key, []);
+        }
+        childrenMap.get(key)!.push(node);
+      }
+    
+      // 5) Recursively transform into TreeNode objects with hierarchical keys:
+      function buildTree(parentId: number | undefined, parentKey = ''): TreeNode[] {
+        const children = childrenMap.get(parentId) || [];
+        children.sort((a, b) => b.reqId - a.reqId); // Optional: sort
+    
+        return children.map((child, index) => {
+          const currentKey = parentKey ? `${parentKey}-${index}` : `${index}`;
+          const childNodes = buildTree(child.reqId, currentKey);
+    
+          return {
+            key: currentKey,
+            data: {
+              reqId: child.reqId,
+              status: child.data.status,
+              func: child.data.func,
+              description: child.data.description ?? '(No description)',
+              cnt: child.data.cnt,
+              num_bytes: child.data.num_bytes,
+              elapsed_time: child.data.elapsed_time,
+              parameters: child.data.parameters,
+              svr_parms: child.data.svr_parms,
+            },
+            children: childNodes
+          } as TreeNode;
+        });
+      }
+    
+      return buildTree(undefined);
+    }
+    
+    // ...    
   }
 
 });

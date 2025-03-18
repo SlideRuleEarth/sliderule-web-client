@@ -1156,9 +1156,6 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else if (func.includes('atl06')) {
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl06SymbolSize  ?? 3);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
-        if(reqIdStr == '329'){
-            console.trace('initialized symbol size for atl06 for reqId:', req_id);
-        }
     } else if (func.includes('atl08')) {
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
     } else if (func.includes('gedi')) {

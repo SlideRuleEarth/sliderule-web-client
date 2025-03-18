@@ -29,9 +29,9 @@ const router = createRouter({
       component: () => import('@/views/SettingsView.vue')
     },
     {
-      path: '/record',
-      name: 'record',
-      component: () => import('@/views/RecordView.vue')
+      path: '/rectree',
+      name: 'rectree',
+      component: () => import('@/views/RecTreeView.vue')
     },
     {
       path: '/request',

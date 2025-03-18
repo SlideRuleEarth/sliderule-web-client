@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
-import OverlayBadge from 'primevue/overlaybadge';
 import Menu from 'primevue/menu';
 import { ref, computed,onMounted } from 'vue';
 const build_env = import.meta.env.VITE_BUILD_ENV;
@@ -29,23 +28,20 @@ const docMenuItems = [
     }
 ];
 
-// Remove this unused function
-// const toggleMenu = (event: Event) => {
-//     menu.value?.toggle(event);
-// };
+
 
 const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
+const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
 
 
 const handleRequestButtonClick = () => {
     emit('request-button-click');
 };
-const handleRecordButtonClick = () => {
-    emit('record-button-click');
+const handleRecTreeButtonClick = () => {
+    emit('rectree-button-click');
 };
 const handleAnalysisButtonClick = () => {
     emit('analysis-button-click');
@@ -117,9 +113,9 @@ const mobileMenuItems = [
         command: handleRequestButtonClick
     },
     {
-        label: 'Records',
+        label: 'RecordTree',
         icon: 'pi pi-list',
-        command: handleRecordButtonClick
+        command: handleRecTreeButtonClick
     },
     {
         label: 'Analysis',
@@ -185,9 +181,9 @@ onMounted(() => {
             <Button icon="pi pi-sliders-h" label="Request" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleRequestButtonClick"></Button>
-            <Button icon="pi pi-list" label="Records" 
+            <Button icon="pi pi-align-left" label="Records" 
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleRecordButtonClick"></Button>
+                    @click="handleRecTreeButtonClick"></Button>
             <Button icon="pi pi-chart-line" label="Analysis" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleAnalysisButtonClick"></Button>
