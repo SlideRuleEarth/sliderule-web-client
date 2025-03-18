@@ -37,7 +37,7 @@ const analyze = async (id:number) => {
         console.log('Analyze ', id);
         if(recTreeStore.findAndSelectNode(id)){
             router.push(`/analyze/${id.toString()}`);
-            console.log('Router Push for Analyze request for id:', id, ' is successful');
+            //console.log('Router Push for Analyze request for id:', id, ' is successful');
         } else {
             console.error('Failed to set request id for analyze request id:', id);
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
@@ -132,6 +132,7 @@ const deleteReqAndChildren = async (id:number) => {
         toast.add({ severity: 'error', summary: 'Record Deletion Failed', detail: `Failed to delete record ${id}`, life: srToastStore.getLife() });
     }
     console.log('deleteReqAndChildren:', id, 'deleted:', deleteSuccessful);
+    return deleteSuccessful;
 }
 
 const exportFile = async (req_id:number) => {
@@ -184,7 +185,6 @@ onMounted(async () => {
     console.log('SrRecords mounted');
     requestsStore.watchReqTable();
     requestsStore.fetchReqs();
-    //atlChartFilterStore.reqIdMenuItems =  await requestsStore.getMenuItems();
 });
 
 onUnmounted(() => {

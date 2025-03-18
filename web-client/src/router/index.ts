@@ -34,6 +34,11 @@ const router = createRouter({
       component: () => import('@/views/RecordView.vue')
     },
     {
+      path: '/rectree',
+      name: 'rectree',
+      component: () => import('@/views/RecTreeView.vue')
+    },
+    {
       path: '/request',
       name: 'request',
       component: () => import('@/views/RequestView.vue') 
