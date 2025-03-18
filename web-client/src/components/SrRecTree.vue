@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import type { TreeNode } from 'primevue/treenode';
@@ -17,6 +17,8 @@ import SrCustomTooltip from './SrCustomTooltip.vue';
 import SrEditDesc from './SrEditDesc.vue';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { formatBytes } from '@/utils/SrParquetUtils';
+import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue';
+
 
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -33,6 +35,7 @@ const currentParms = ref('');
 // -- Dialog state for "svr_parms"
 const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
+
 
 // Open the Req Parms dialog
 function openParmsDialog(params: string | object) {
@@ -258,49 +261,19 @@ onUnmounted(() => {
     </TreeTable>
 
     <!-- Request Parameters Dialog -->
-    <Dialog
-        header="Request Parameters"
+    <SrJsonDisplayDialog
         v-model:visible="showParmsDialog"
-        modal
-        :draggable="false"
-        :closable="true"
-        :resizable="false"
-    >
-        <template #header>
-            <div style="text-align: center; width: 100%;">Request Parameters</div>
-        </template>
-        <Button
-            icon="pi pi-copy"
-            label="Copy"
-            class="p-button-sm p-button-secondary"
-            style="position: absolute; top: 0.5rem; left: 0.5rem"
-            @click="copyToClipboard(currentParms, 'Request parameters copied')"
-        />
-        <pre>{{ currentParms }}</pre>
-    </Dialog>
-
-    <!-- Server Parameters Dialog -->
-    <Dialog
-        header="Server Parameters"
-        v-model:visible="showSvrParmsDialog"
-        modal
-        :draggable="false"
-        :closable="true"
-        :resizable="false"
-    >
-    <template #header>
-        <div style="text-align: center; width: 100%;">Server Parameters</div>
-    </template>
-    <Button
-        icon="pi pi-copy"
-        label="Copy"
-        class="p-button-sm p-button-secondary"
-        style="position: absolute; top: 0.5rem; left: 0.5rem"
-        @click="copyToClipboard(currentSvrParms)"
+        :json-data="currentParms"
+        title="Request Parameters"
+        width="50vw"
     />
-    <pre>{{ currentSvrParms }}</pre>
-    </Dialog>
-
+    <!-- Server Parameters Dialog -->
+    <SrJsonDisplayDialog
+        v-model:visible="showSvrParmsDialog"
+        :json-data="currentSvrParms"
+        title="Server Parameters"
+        width="50vw"
+    />
     <!-- Custom Tooltip -->
     <SrCustomTooltip ref="tooltipRef"/>
 
