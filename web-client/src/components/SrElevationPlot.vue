@@ -388,8 +388,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     await initSymbolSize(runContext.reqId); // for new record
                     initializeColorEncoding(runContext.reqId);
-                    symbolStore.saveSize(parentReqIdStr); // save the symbol size for parent to restore
-                    symbolStore.setSize(parentReqIdStr,1); // set the symbol size for parent to 1 for overlayed
                     // The worker will now fetch the data from the server 
                     // and write the opfs file then update 
                     // the map selected layer and the chart
@@ -403,8 +401,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
-                symbolStore.saveSize(parentReqIdStr); // save the symbol size for parent to restore
-                symbolStore.setSize(parentReqIdStr,1); // set the symbol size for parent to 1 for overlayed
                 //await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
                 await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
@@ -414,7 +410,6 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
             const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr);
             //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
-            symbolStore.restoreSize(recTreeStore.selectedReqIdStr);
             if(sced && (sced != 'unset')){
                 //console.log('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
                 chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, sced);
