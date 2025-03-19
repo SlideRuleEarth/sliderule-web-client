@@ -3,15 +3,16 @@
         <div class="sr-card-header">Plot Config Defaults</div>
         <div class="sr-card-content">
             <div class="sr-form-grid" v-if="plotConfig">
-            <div class="sr-field">
+            <!-- 
+              <div class="sr-field">
                 <label for="isLarge">Is Large</label>
                 <ToggleButton v-model="plotConfig.isLarge" onLabel="Yes" offLabel="No" />
-            </div>
-    
-            <div class="sr-field">
+              </div>
+            -->
+            <!-- <div class="sr-field">
                 <label for="largeThreshold">Large Threshold</label>
                 <InputNumber v-model="plotConfig.largeThreshold" inputId="largeThreshold" :min="0" />
-            </div>
+            </div> -->
     
             <div class="sr-field">
                 <label for="progressiveChunkSize">Progressive Chunk Size</label>
@@ -64,9 +65,14 @@
             </div>
             </div>
         </div>
-        <div class="sr-card-footer" v-if="plotConfig">
-            <Button label="Save" icon="pi pi-save" @click="saveConfig" class="sr-button-primary" />
-            <Button label="Cancel" icon="pi pi-times" class="sr-button-secondary" @click="resetConfig" />
+        <div class="sr-card-footer">
+          <div class="sr-card-footer-left-side" v-if="plotConfig">
+              <Button label="Defaults" icon="pi pi-refresh" @click="restoreDefaults" size="small" class="sr-button-secondary" />
+          </div>
+          <div class="sr-card-footer-right-side" v-if="plotConfig">
+              <Button label="Save" icon="pi pi-save" @click="saveConfig" size="small"  class="sr-button-primary" />
+              <Button label="Cancel" icon="pi pi-times" size="small" class="sr-button-secondary" @click="handleCancel" />
+          </div>
         </div>
     </div>
 </template>
@@ -102,10 +108,16 @@
     }
   };
   
-  const resetConfig = () => {
-    fetchPlotConfig();
-  };
+  const restoreDefaults = async () => {
+    await db.restorePlotConfig();
+    await fetchPlotConfig();
+    alert('PlotConfig restored to defaults!');
+  }
   
+  const handleCancel = async () => {
+    await fetchPlotConfig();
+  };
+
   onMounted(fetchPlotConfig);
 </script>
 
@@ -141,22 +153,28 @@
     flex-direction: column;
   }
   
-  .sr-card-footer {
+  .sr-card-footer-left-side {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 1rem;
   }
+  .sr-card-footer-right-side {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
   
+  .sr-card-footer {
+    display: flex;
+    justify-content: space-between;
+  }
+
   .sr-button-primary {
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
+  
   }
   
   .sr-button-secondary {
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
   }
+
 </style>
   
