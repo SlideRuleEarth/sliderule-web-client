@@ -7,12 +7,10 @@ import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import { updateFilename } from '@/utils/SrParquetUtils';
 import { duckDbLoadOpfsParquetFile,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
-import { getHFieldNameForFuncStr } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore'; 
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { db } from '@/db/SlideRuleDb';
 import type { SrRegion } from '@/sliderule/icesat2'
-
 
 export interface SvrParms { // fill this out as neccessary
     server: {
@@ -31,9 +29,9 @@ const toast = useToast();
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
-
-
-
+const emit = defineEmits<{
+    (e: 'file-imported', reqId: string): void
+}>();
 
 const customUploader = async (event:any) => {
     //console.log('customUploader Import Parquet File customUploader event:',event);
@@ -78,6 +76,7 @@ const customUploader = async (event:any) => {
                 await db.updateRequestRecord(srReqRec); 
                 const msg = `File imported and copied to OPFS successfully!`;
                 console.log(msg);
+                emit('file-imported', srReqRec.req_id.toString());
                 alert(msg);
             } else {
                 console.error(`Failed to get summary for req_id: ${srReqRec.req_id}`);

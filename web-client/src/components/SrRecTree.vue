@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import type { TreeNode } from 'primevue/treenode';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
 import { useToast } from "primevue/usetoast";
 
 import { useRequestsStore } from "@/stores/requestsStore";
@@ -18,7 +17,7 @@ import SrEditDesc from './SrEditDesc.vue';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { formatBytes } from '@/utils/SrParquetUtils';
 import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue';
-
+import SrImportParquetFile from './SrImportParquetFile.vue';
 
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -147,6 +146,42 @@ async function copyToClipboard(content: string, label: string = 'Content') {
   }
 }
 
+const exportFile = async (req_id:number) => {
+    console.log('Exporting file for req_id', req_id);
+    try {
+        const fileName = await db.getFilename(req_id);
+        const opfsRoot = await navigator.storage.getDirectory();
+        const folderName = 'SlideRule'; 
+        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
+        const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        // Create a download link and click it programmatically
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke the object URL
+        URL.revokeObjectURL(url);
+        const msg = `File ${fileName} exported successfully!`;
+        console.log(msg);
+        alert(msg);
+
+    } catch (error) {
+        console.error(`Failed to calculate CS for id:${req_id}`, error);
+        alert(`Failed to calculate CS for ID:${req_id}`);
+        throw error;
+    }
+};
+
+const handleFileImported = async (reqId: string) => {
+    console.log('File import completed. Request ID:', reqId);
+    treeNodes.value = await requestsStore.getTreeTableNodes();
+};
+
 
 onMounted(async () => {
     requestsStore.watchReqTable();
@@ -237,6 +272,25 @@ onUnmounted(() => {
             </template>
         </Column>
         <Column field="elapsed_time" header="Elapsed Time" style="width: 10%" />
+        <Column field="Actions" header="" class="sr-export">
+                <template #header>
+                    <div 
+                        class="sr-file-import"
+                        @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
+                        @mouseleave="tooltipRef.hideTooltip"
+                    >
+                        <SrImportParquetFile  @file-imported="handleFileImported" />
+                    </div>
+                </template>
+                <template #body="slotProps">
+                    <i 
+                      class="pi pi-file-export sr-file-export-icon"
+                      @click="exportFile(slotProps.node.data.reqId)"
+                      @mouseover="tooltipRef.showTooltip($event, 'Export File')"
+                      @mouseleave="tooltipRef.hideTooltip"
+                    ></i>
+                </template>
+            </Column>
 
         <Column field="Actions" header="" class="sr-delete">
             <template #header>

@@ -4,7 +4,7 @@ import SrAdvancedConfig from './SrAdvancedConfig.vue';
 </script>
 <template>
     <div class="sr-adv-opt-panel">
-        <SrDebug />
         <SrAdvancedConfig />
+        <SrDebug />
     </div>
 </template>
