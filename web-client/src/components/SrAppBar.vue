@@ -360,23 +360,17 @@ onMounted(async () => {
     }
 }
 
-.sr-version-text {
-    display: flex;
-    align-items: center;
-    height: 2rem;
-    margin: 0.5rem;
-    font-weight: 600;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    background-color: var(--p-button-text-primary-color);
-    color: #333;
-    border-radius: 1rem;
-    padding: 0.5rem 0.75rem;
-}
-
 .mobile-menu-button {
     display: none;
     /* Hide by default for desktop */
+}
+
+:deep(.p-button.version){
+    border-radius: 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.0625rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
 }
 
 :deep(.p-button-rounded:hover) {
