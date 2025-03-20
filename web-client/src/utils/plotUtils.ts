@@ -651,6 +651,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         width: 20,
                         start: atlChartFilterStore.yZoomStart, // Start zoom level
                         end: atlChartFilterStore.yZoomEnd, // End zoom level
+                        showDataShadow: false,
                     },
                     {
                         type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
