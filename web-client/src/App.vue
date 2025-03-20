@@ -2,9 +2,9 @@
 import { ref,onMounted,watch } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
-import SrAppBar from "./components/SrAppBar.vue";
-import SrBuildDate from './components/SrBuildDate.vue';
-import SrUserAgent from './components/SrUserAgent.vue';
+import SrAppBar from '@/components/SrAppBar.vue';
+import SrBuildDate from '@/components/SrBuildDate.vue';
+import SrUserAgent from '@/components/SrUserAgent.vue';
 import Dialog from 'primevue/dialog';
 import router from './router/index.js';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -17,12 +17,14 @@ const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
 import { useRoute } from 'vue-router';
-import SrClearCache from './components/SrClearCache.vue';
-
+import SrClearCache from '@/components/SrClearCache.vue';
+import { useSysConfigStore } from '@/stores/sysConfigStore';
+import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
 const route = useRoute();
-const showVersionDialog = ref(false); // Reactive state for controlling dialog visibility
+const showServerVersionDialog = ref(false); // Reactive state for controlling dialog visibility
+const showClientVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
-
+const serverVersionInfo = ref(''); // Reactive state for server version info
 // Flag to indicate if the component has been mounted
 const isMounted = ref(false);
 
@@ -146,14 +148,21 @@ const settingsButtonClick = () => {
 };
 
 const aboutButtonClick = () => {
-  //router.push('/about');
-  window.location.href = 'https://slideruleearth.io';
+  showClientVersionDialog.value = true; // Show the dialog
 };
 
-// Function to handle the version button click and show the dialog
-const handleVersionButtonClick = () => {
-  showVersionDialog.value = true; // Show the dialog
+// Function to handle the server version button click and show the dialog
+const handleServerVersionButtonClick = async () => {
+  const info = await useSysConfigStore().fetchServerVersionInfo(); 
+  serverVersionInfo.value = JSON.stringify(info, null, 2);
+  showServerVersionDialog.value = true; // Show the dialog
 };
+
+// Function to handle the client version button click and show the dialog
+const handleClientVersionButtonClick = () => {
+  showClientVersionDialog.value = true; // Show the dialog
+};
+
 </script>
 
 <template>
@@ -168,8 +177,9 @@ const handleVersionButtonClick = () => {
         @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
-		    @settings-button-click="settingsButtonClick"
-        @version-button-click="handleVersionButtonClick"
+		@settings-button-click="settingsButtonClick"
+        @server-version-button-click="handleServerVersionButtonClick"
+        @client-version-button-click="handleClientVersionButtonClick"
       />
     </header>
     <div class="content">
@@ -177,13 +187,24 @@ const handleVersionButtonClick = () => {
     </div>
     
     <!-- Dialog for displaying version information -->
-    <Dialog v-model:visible="showVersionDialog" header="About This Application" :modal="true" :closable="true" style="width: 50vw;">
-      <div class="sr-about">
-        <SrBuildDate />
-        <SrUserAgent />
-        <SrClearCache />
-      </div>
+    <Dialog v-model:visible="showClientVersionDialog" :modal="true" :closable="true" style="width: 50vw;">
+        <template #header>
+            <h2 class="dialog-header">About This Client Application</h2>
+        </template>
+
+        <div class="sr-about">
+            <SrBuildDate />
+            <SrUserAgent />
+            <SrClearCache />
+        </div>
     </Dialog>
+    <SrJsonDisplayDialog 
+        v-model:visible="showServerVersionDialog"
+        :jsonData="serverVersionInfo" 
+        title="About the SlideRule Server"
+    >
+    </SrJsonDisplayDialog>
+
     <Dialog v-model:visible="showUnsupportedDialog" header="Browser/OS Support" :modal="true" :closable="true" style="width: 50vw;">
       <div class="sr-unsupported-panel">
         <div>
@@ -306,6 +327,13 @@ const handleVersionButtonClick = () => {
 
 .sr-yellow-txt {
   color: yellow;
+}
+.dialog-header {
+  width: 100%;
+  text-align: center;
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--p-primary-color);
 }
 
 </style>

@@ -2,14 +2,32 @@
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import { ref, computed,onMounted } from 'vue';
-const build_env = import.meta.env.VITE_BUILD_ENV;
-const docsMenu = ref<InstanceType<typeof Menu> | null>(null);
+import { useSysConfigStore } from '@/stores/sysConfigStore';
 
+const build_env = import.meta.env.VITE_BUILD_ENV;
+const sysConfigStore = useSysConfigStore();
+const serverVersion = ref<string>('v?.?.?');
+
+const docsMenu = ref<InstanceType<typeof Menu> | null>(null);
 const docMenuItems = [
     {
         label: 'Documentation',
         icon: 'pi pi-book',
         items: [
+            {
+                label: 'About SlideRule',
+                icon: 'pi pi-info-circle',
+                command: () => {
+                    window.open('https://slideruleearth.io');
+                }
+            },
+            {
+                label: 'SlideRule Python Client Doumentation',
+                icon: 'pi pi-book',
+                command: () => {
+                    window.open('https://slideruleearth.io/web/rtd/');
+                }
+            },
             {
                 label: 'ATLAS/ICESat-2 Photon Data User Guide',
                 icon: 'pi pi-book',
@@ -28,13 +46,40 @@ const docMenuItems = [
     }
 ];
 
-
+const aboutMenu = ref<InstanceType<typeof Menu> | null>(null);
+const aboutMenuItems = [
+    {
+        label: 'About SlideRule Web Client',
+        icon: 'pi pi-info-circle',
+        command: () => {
+            emit('client-version-button-click');
+        }
+    },
+    {
+        label: 'About SlideRule Server',
+        icon: 'pi pi-info-circle',
+        command: () => {
+            emit('server-version-button-click');
+        }
+    },
+    {
+        label: 'About SlideRule',
+        icon: 'pi pi-info-circle',
+        command: () => {
+            window.open('https://slideruleearth.io');
+        }
+    },
+];
 
 const toggleDocsMenu = (event: Event) => {
     docsMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
+const toggleAboutMenu = (event: Event) => {
+    aboutMenu.value?.toggle(event);
+};
+
+const emit = defineEmits(['server-version-button-click','client-version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
 
 
 const handleRequestButtonClick = () => {
@@ -46,17 +91,17 @@ const handleRecTreeButtonClick = () => {
 const handleAnalysisButtonClick = () => {
     emit('analysis-button-click');
 };
-const handleAboutButtonClick = () => {
-    emit('about-button-click');
-};
 const handleSettingsButtonClick = () => {
     emit('settings-button-click');
 };
-const handleVersionButtonClick = () => {
-    emit('version-button-click');
+const handleServerVersionButtonClick = () => {
+    emit('server-version-button-click');
+};
+const handleClientVersionButtonClick = () => {
+    emit('client-version-button-click');
 };
 
-function getVersionString(input: string): string {
+function getClientVersionString(input: string): string {
     // Find the index of the first "-"
     const dashIndex = input.indexOf('-');
 
@@ -87,11 +132,11 @@ function isThisClean(input: string): boolean {
     return !input.endsWith('dirty');
 }
 
-const formattedVersion = computed(() => {
+const formattedClientVersion = computed(() => {
     console.log('build_env:', build_env);
     //console.log('typeof build_env:', (typeof build_env));
     if (typeof build_env === 'string') {
-        const version = getVersionString(build_env);
+        const version = getClientVersionString(build_env);
         const formattedVersion = isThisClean(build_env) ? version : `${version}*`;
         console.log('formattedVersion:', formattedVersion);
         return formattedVersion
@@ -100,10 +145,11 @@ const formattedVersion = computed(() => {
     }
 });
 
-
-const buttonBadge = computed(() => {
-    return isThisClean(build_env) ? '' : 'Unstable test version';
+const testVersionWarning = computed(() => {
+   const tvw = isThisClean(build_env) ? '' : 'WebClient Test Version';
+   return tvw;
 });
+
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);
 
 const mobileMenuItems = [
@@ -135,7 +181,7 @@ const mobileMenuItems = [
     {
         label: 'About',
         icon: 'pi pi-info-circle',
-        command: handleAboutButtonClick
+        command: aboutMenuItems[0].command
     },
 ];
 
@@ -152,8 +198,9 @@ function setDarkMode() {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     setDarkMode();
+    serverVersion.value = await sysConfigStore.fetchServerVersion();
 });
 
 </script>
@@ -168,14 +215,22 @@ onMounted(() => {
             <span class = "sr-title">SlideRule</span>
             <Button
                 type="button"
-                :label=formattedVersion
-                class="p-button-rounded p-button-text desktop-only"
-                :badge=buttonBadge
+                :label=serverVersion
+                class=" p-button-text desktop-only version "
+                badge="server"
                 badgeSeverity="danger"
-                @click="handleVersionButtonClick"
-            >
-                
+                @click="handleServerVersionButtonClick"
+            ></Button>
+            <Button
+                type="button"
+                :label=formattedClientVersion
+                class="p-button-text desktop-only version"
+                badge="web_client"
+                badgeSeverity="danger"
+                @click="handleClientVersionButtonClick"
+            > 
             </Button>
+            <span class="sr-tvw">{{ testVersionWarning }}</span>
         </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="Request" 
@@ -194,9 +249,10 @@ onMounted(() => {
             <Button icon="pi pi-cog" label="Settings" 
                     class="p-button-rounded p-button-text desktop-only"
                     @click="handleSettingsButtonClick"></Button>
-            <Button icon="pi pi-info-circle" label="About" 
+            <Button icon="pi pi-info-circle" label="About"
                     class="p-button-rounded p-button-text desktop-only"
-                    @click="handleAboutButtonClick"></Button>
+                    @click="toggleAboutMenu"></Button>
+            <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
         </div>
     </div>
 </template>
@@ -256,7 +312,11 @@ onMounted(() => {
     /* Full width on smaller screens */
     min-width: 21rem;
 }
-
+.sr-tvw{
+    font-size:smaller;
+    color: red;
+    margin-left: 0.5rem;
+}
 @media (min-width: 600px) {
 
     /* Adjust the breakpoint as needed */
@@ -319,11 +379,39 @@ onMounted(() => {
     /* Hide by default for desktop */
 }
 
-/* Add this to your existing styles */
 :deep(.p-button-rounded:hover) {
     border-width: 1px;
-    border-color: var(--p-border-color); /* Change this to the desired border color */
-    box-shadow: 0 0 10px var(--p-border-shadow); /*  Add a glow effect */
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
 }
+
+:deep(.p-button-text:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
+:deep(.p-button.version) {
+    position: relative;
+    padding-top: 0.5rem;
+    padding-bottom: 0.0625rem;
+    padding-left: 0.25rem;
+    padding-right: 0rem;
+    font-size: 0.9rem;
+}
+
+:deep(.p-button.version .p-badge) {
+    position: absolute;
+    top: -0.2rem;                   /* Adjust vertical placement */
+    left: 50%;                     /* Center horizontally */
+    transform: translateX(-50%);   /* Perfect centering */
+    font-size: 0.6rem;
+    padding: 0.25rem 0.4rem;
+    color: var(--p-primary-300);
+    background-color: transparent;
+}
+
 
 </style>
