@@ -384,7 +384,7 @@ onMounted(async () => {
     padding-top: 0.5rem;
     padding-bottom: 0.0625rem;
     padding-left: 0.25rem;
-    padding-right: 0.25rem;
+    padding-right: 0.5rem;
     font-size: 0.9rem;
     border-radius: 0;
 }
