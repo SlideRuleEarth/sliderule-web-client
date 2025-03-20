@@ -60,6 +60,32 @@ export const useSysConfigStore = defineStore('sysConfig', {
         getVersion(): string {
             return this.version
         },
+        async fetchServerVersion(): Promise<string> {
+            const url = `https://${this.organization}.${this.domain}/source/version`;
+        
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        
+                const data = await response.json();
+                return data.server?.version ?? 'Unknown';
+            } catch (error) {
+                return 'Unknown';
+            }
+        },
+        async fetchServerVersionInfo(): Promise<string> {
+            const url = `https://${this.organization}.${this.domain}/source/version`;
+        
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        
+                const data = await response.json();
+                return data ?? 'Unknown';
+            } catch (error) {
+                return 'Unknown';
+            }
+        },
     },
 })
 
