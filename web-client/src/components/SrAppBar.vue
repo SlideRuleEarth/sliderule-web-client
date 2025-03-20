@@ -365,14 +365,6 @@ onMounted(async () => {
     /* Hide by default for desktop */
 }
 
-:deep(.p-button.version){
-    border-radius: 0;
-    padding-top: 0.5rem;
-    padding-bottom: 0.0625rem;
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
-}
-
 :deep(.p-button-rounded:hover) {
     border-width: 1px;
     border-color: var(--primary-color);
@@ -392,7 +384,7 @@ onMounted(async () => {
     padding-top: 0.5rem;
     padding-bottom: 0.0625rem;
     padding-left: 0.25rem;
-    padding-right: 0rem;
+    padding-right: 0.25rem;
     font-size: 0.9rem;
 }
 
