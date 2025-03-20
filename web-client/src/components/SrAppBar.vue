@@ -386,6 +386,7 @@ onMounted(async () => {
     padding-left: 0.25rem;
     padding-right: 0.25rem;
     font-size: 0.9rem;
+    border-radius: 0;
 }
 
 :deep(.p-button.version .p-badge) {
