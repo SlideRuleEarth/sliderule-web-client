@@ -3,7 +3,6 @@
     import Button from 'primevue/button';
     import { onMounted,onBeforeUnmount,ref,computed } from 'vue';
     import ProgressSpinner from 'primevue/progressspinner';
-    import { useMapStore } from '@/stores/mapStore';
     import { useRequestsStore } from "@/stores/requestsStore";
     import { useCurReqSumStore } from '@/stores/curReqSumStore';
     import { processRunSlideRuleClicked, processAbortClicked } from  "@/utils/workerDomUtils";    
@@ -84,7 +83,7 @@
                 <SrCustomTooltip ref="tooltipRef"/>
                <Button
                     v-show="showRunButton"
-                    class="sr-run-abort-button" 
+                    class="sr-run-abort-button p-button-rounded p-button-text" 
                     :class="{ 'abort-mode':  serverStateStore.isFetching }"
                     :label=" serverStateStore.isFetching ? 'Abort' : props.buttonLabel" 
                     @click="toggleRunAbort" 
@@ -142,6 +141,7 @@
     .sr-run-abort-button {
         height: 3rem;
         border-radius: 1rem;
+        background-color: #333;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -155,7 +155,17 @@
     }
 
     button.p-button.p-component.sr-run-abort-button:not(.abort-mode) {
-        color: #000000;
+        /* color: #000000; */
+        color: var(--p-button-text-primary-color);
+        border-color: var(--p-button-primary-border-color);
+        border-width: 1px;
+    }
+
+    :deep(.p-button-rounded:hover) {
+        border-width: 1px;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+        transition: box-shadow 0.3s ease;
     }
 
     .sr-msg-panel {

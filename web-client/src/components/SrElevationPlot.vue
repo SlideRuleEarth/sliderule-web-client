@@ -581,15 +581,19 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
                 @mouseleave="tooltipRef.hideTooltip"
             >
-                <ToggleButton 
+                <ToggleButton
+                    onIcon='pi pi-eye-slash'
+                    offIcon="pi pi-eye"
                     class="sr-show-hide-button"
-                    onLabel="Hide Atl03 Photons"
-                    offLabel="Show Atl03 Photons"
                     v-model="atlChartFilterStore.showPhotonCloud"
                     :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
                     size="small" 
+                    onLabel="Hide Photon Cloud"
+                    offLabel="Show Photon Cloud"
                     rounded
-                />
+                    variant="text"
+                >
+                </ToggleButton>
                 <SrRunControl 
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"
@@ -610,7 +614,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     <div class="sr-multiselect-col-req">
                         <SrReqDisplay
                             v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
-                            checkboxLabel='Show Photon Cloud Req Params'
+                            label='Show Photon Cloud Req Params'
                             :isForPhotonCloud="true"
                             :tooltipText="'The params that will be used for the Photon Cloud overlay'"
                         />
@@ -739,6 +743,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     width: auto;
     max-width: 10rem;
 }
+
 :deep(.sr-listbox-header-title) {
     display: flex;
     flex-direction: row;
@@ -750,6 +755,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     color: var(--p-text-color);
     border-radius: var(--p-border-radius);
 }
+
 :deep(.p-listbox-list-container) {
     width: 100%;
     min-width: 5rem;
@@ -757,6 +763,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     max-height: 10rem;
     margin: 0.25rem;
 }
+
 :deep(.p-listbox-option) {
   white-space: nowrap;
   overflow: hidden;
@@ -805,16 +812,25 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     min-width: 10rem;
 }
 
+
+:deep(.p-togglebutton-icon) {
+    color: var(--p-primary-color, white); /* fallback to white */
+}
+
+:deep(.p-togglebutton) {
+    color: var(--p-primary-color, white); /* fallback to white */
+}
+
 .sr-show-hide-button {
-    height: 3rem;
-    border-radius: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    min-width: 8rem;
-    background-color:var(--p-button-text-primary-color);
-    color:black;
+    margin: 1rem;
+    min-width:10rem;
+    border-radius: 2rem;
+}
+.sr-show-hide-button:hover {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
 }
 
 .sr-multiselect-container {

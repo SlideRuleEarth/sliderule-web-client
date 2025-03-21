@@ -3,7 +3,15 @@
         <SrAtl03CnfColors 
             reqIdStr="reqIdStr"
         />
-        <Button label="Manage Atl03 Cnf Colors" @click="showDialog = true" size="small" />
+        <Button 
+            icon="pi pi-cog"
+            class="sr-glow-button"
+            label="Manage Atl03 Cnf Colors" 
+            @click="showDialog = true" 
+            size="small" 
+            variant="text"
+            rounded
+        ></Button>
   
         <Dialog
             v-model:visible="showDialog"

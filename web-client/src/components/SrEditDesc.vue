@@ -47,7 +47,7 @@ const fetchDescription = async () => {
                 // Handle the case where no extLatLon is found
             }
         } else {
-            console.log('fetchDescription Description fetched:', descrRef.value);
+            //console.log('fetchDescription Description:', descrRef.value);
             // Update the store with the fetched description
         }
     } else {

@@ -4,7 +4,15 @@
             reqIdStr="reqIdStr"
         />
         <div class="sr-restore-defaults">
-            <Button label="Manage Atl08 Class Colors" @click="showDialog = true" size="small" />
+            <Button 
+                icon="pi pi-cog"
+                label="Manage Atl08 Class Colors" 
+                class="sr-glow-button"
+                @click="showDialog = true" 
+                size="small"
+                variant="text"
+                rounded
+            ></Button>
         </div>
   
         <Dialog

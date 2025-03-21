@@ -16,7 +16,15 @@
                 </template>
             </PickList>
             <div class="sr-restore-defaults">
-                <Button label="Restore Defaults" @click="restoreDefaultColors" />
+                <Button 
+                    icon="pi pi-refresh"
+                    class="sr-glow-button"
+                    size="small"
+                    label="Restore Defaults" 
+                    @click="restoreDefaultColors"
+                    variant="text"
+                    rounded
+                ></Button>
             </div>
         </Fieldset>
     </div>
@@ -142,4 +150,5 @@ h2 {
     justify-content: center;
     margin-top: 1rem;
 }
+
 </style>

@@ -19,7 +19,15 @@
             </div>
             <SrGradientLegend :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
         </Fieldset>
-        <Button class="sr-legend-restore-btn" size="small" label="Restore Defaults" @click="gradientDefaultsRestored" />
+        <Button 
+            icon="pi pi-refresh"
+            class="sr-glow-button"
+            size="small" 
+            label="Restore Defaults" 
+            @click="gradientDefaultsRestored"
+            variant="text"
+            rounded
+        ></Button>
     </div>
     <div v-else>Loading gradient color map...</div>
 </template>

@@ -16,12 +16,20 @@
         >
         </Listbox>
         <div class = "sr-cycles-btn-panel">
-            <Button class="sr-select-all-btn"
+            <Button 
+                class="sr-select-all-btn sr-glow-button"
+                icon="pi pi-filter"
+                variant="text"
+                rounded
                 label="Filter" 
                 @click="filterCycles"
                 size="small"
             ></Button>
-            <Button class="sr-select-all-btn"
+            <Button 
+                class="sr-select-all-btn  sr-glow-button"
+                icon="pi pi-clone"
+                variant="text"
+                rounded
                 label="All" 
                 @click="setAllCycles"
                 size="small"
@@ -148,5 +156,6 @@ function handleValueChange(value) {
     font-size: smaller;
     white-space: nowrap;
 }
+
 
 </style>
