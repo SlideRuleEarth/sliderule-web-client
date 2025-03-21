@@ -211,10 +211,12 @@ onUnmounted(() => {
                 <Button 
                     v-if="slotProps.node.data.status === 'success' || slotProps.node.data.status === 'imported'"
                     icon="pi pi-chart-line"
-                    class="p-button-text" 
+                    class="sr-glow-button p-button-icon-only"
                     @click="analyze(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef?.value?.value?.showTooltip($event, `Analyze ${slotProps.node.data.reqId}`)"
-                    @mouseleave="tooltipRef?.value?.value?.hideTooltip"
+                    @mouseover="tooltipRef?.showTooltip($event, `Analyze ${slotProps.node.data.reqId}`)"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
                 ></Button>
             </template>
         </Column>
@@ -224,8 +226,8 @@ onUnmounted(() => {
             <template #header>
                 <i 
                   class="pi pi-pencil"
-                  @mouseover="tooltipRef?.value?.showTooltip($event, 'Editable Description')"
-                  @mouseleave="tooltipRef?.value?.hideTooltip"
+                  @mouseover="tooltipRef?.showTooltip($event, 'Editable Description')"
+                  @mouseleave="tooltipRef?.hideTooltip"
                 ></i>
             </template>
             <template #body="slotProps">
@@ -237,12 +239,14 @@ onUnmounted(() => {
         <Column field="parameters" header="Req Parms" class="sr-par-fmt">
             <template #body="slotProps">
                 <Button 
-                  icon="pi pi-eye" 
-                  label="View" 
-                  class="p-button-text" 
-                  @click="openParmsDialog(slotProps.node.data.parameters)"
-                  @mouseover="tooltipRef?.value?.showTooltip($event, 'View Request Parameters')"
-                  @mouseleave="tooltipRef?.value?.hideTooltip"
+                    icon="pi pi-eye" 
+                    label="View" 
+                    class="sr-glow-button"
+                    @click="openParmsDialog(slotProps.node.data.parameters)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
                 ></Button>
             </template>
         </Column>
@@ -251,12 +255,14 @@ onUnmounted(() => {
         <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
             <template #body="slotProps">
                 <Button 
-                  icon="pi pi-eye" 
-                  label="View" 
-                  class="p-button-text" 
-                  @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
-                  @mouseover="tooltipRef?.value?.showTooltip($event, 'View Server Parameters')"
-                  @mouseleave="tooltipRef?.value?.hideTooltip"
+                    icon="pi pi-eye" 
+                    label="View" 
+                    class="sr-glow-button"
+                    @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
                 ></Button>
             </template>
         </Column>
@@ -273,42 +279,50 @@ onUnmounted(() => {
         </Column>
         <Column field="elapsed_time" header="Elapsed Time" style="width: 10%" />
         <Column field="Actions" header="" class="sr-export">
-                <template #header>
-                    <div 
-                        class="sr-file-import"
-                        @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
-                        @mouseleave="tooltipRef.hideTooltip"
-                    >
-                        <SrImportParquetFile  @file-imported="handleFileImported" />
-                    </div>
-                </template>
-                <template #body="slotProps">
-                    <i 
-                      class="pi pi-file-export sr-file-export-icon"
-                      @click="exportFile(slotProps.node.data.reqId)"
-                      @mouseover="tooltipRef.showTooltip($event, 'Export File')"
-                      @mouseleave="tooltipRef.hideTooltip"
-                    ></i>
-                </template>
-            </Column>
+            <template #header>
+                <div 
+                    class="sr-file-import"
+                    @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
+                    @mouseleave="tooltipRef.hideTooltip"
+                >
+                    <SrImportParquetFile :iconOnly="true" @file-imported="handleFileImported" />
+                </div>
+            </template>
+            <template #body="slotProps">
+                <Button
+                    icon="pi pi-file-export"
+                    class="sr-glow-button p-button-icon-only"
+                    @click="exportFile(slotProps.node.data.reqId)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Export File')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    aria-label="Export"
+                    variant="text"
+                    rounded
+                />                
+            </template>
+        </Column>
 
         <Column field="Actions" header="" class="sr-delete">
             <template #header>
                 <Button 
                     icon="pi pi-trash"
-                    class="p-button-text" 
+                    class="sr-glow-button p-button-icon-only"
                     @click="confirmDeleteAllReqs()"
-                    @mouseover="tooltipRef?.value?.showTooltip($event, 'Delete ALL Requests')"
-                    @mouseleave="tooltipRef?.value?.hideTooltip"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Delete ALL Requests')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
                 ></Button>
             </template>
             <template #body="slotProps">
                 <Button 
                     icon="pi pi-trash"
-                    class="p-button-text"
+                    class="sr-glow-button p-button-icon-only"
                     @click="deleteReqAndChildren(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef?.value?.showTooltip($event, 'Delete this request and any of its children')"
-                    @mouseleave="tooltipRef?.value?.hideTooltip"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Delete this request and any of its children')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
                 ></Button>
             </template>
         </Column>
@@ -338,6 +352,23 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
+
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
+:deep(.p-icon) {
+    color: var(--p-primary-color, white); /* fallback to white */
+}
+
+.p-button-sm .p-button-icon {
+    font-size: var(--p-button-sm-font-size);
+}
+
 
 .error-message {
     color: red;

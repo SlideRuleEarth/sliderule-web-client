@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -11,6 +11,13 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { db } from '@/db/SlideRuleDb';
 import type { SrRegion } from '@/sliderule/icesat2'
+
+const props = defineProps({
+    iconOnly: {
+        type: Boolean, 
+        default: false
+    }
+});
 
 export interface SvrParms { // fill this out as neccessary
     server: {
@@ -28,10 +35,18 @@ const toast = useToast();
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
+const tooltipRef = ref();
+const fileUploader = ref<any>(null);
+
 //////////////
 const emit = defineEmits<{
     (e: 'file-imported', reqId: string): void
 }>();
+
+onMounted(() => {
+    console.log('onMounted fileUploader:', fileUploader.value);
+    //console.log('onMounted props:', props);
+});
 
 const customUploader = async (event:any) => {
     //console.log('customUploader Import Parquet File customUploader event:',event);
@@ -128,20 +143,47 @@ const onClear = () => {
             </template>
         </SrToast>
         <div class="sr-file-import-panel">       
-            <FileUpload mode="basic" 
-                        name="SrFileUploadsImport[]"
-                        chooseLabel="Imp"
-                        class="p-button-icon-only p-button-text p-button-sm"
-                        chooseIcon="pi pi-file-import"
-                        :auto="true" 
-                        accept=".parquet" 
-                        :maxFileSize="10000000000" 
-                        customUpload 
-                        @uploader="customUploader"
-                        @select="onSelect"
-                        @error="onError"
-                        @clear="onClear"
-            />
+            <div class="sr-file-import-panel">
+                <FileUpload 
+                    ref="fileUploader"
+                    v-show="false"
+                    mode="basic"
+                    name="SrFileUploadsImport[]"
+                    :auto="true"
+                    accept=".parquet"
+                    :maxFileSize="10000000000"
+                    customUpload
+                    @uploader="customUploader"
+                    @select="onSelect"
+                    @error="onError"
+                    @clear="onClear"
+                />
+
+                <Button
+                    v-if="!props.iconOnly"
+                    icon="pi pi-file-import"
+                    class="sr-glow-button"
+                    label="Import"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Import a parquet file')"
+                    @mouseleave="tooltipRef?.hideTooltip()"
+                    @click="fileUploader?.choose()"
+                    aria-label="Import"
+                    variant="text"
+                    rounded
+                />
+
+                <Button
+                    v-else
+                    icon="pi pi-file-import"
+                    class="sr-glow-button p-button-icon-only"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Import a parquet file')"
+                    @mouseleave="tooltipRef?.hideTooltip()"
+                    @click="fileUploader?.choose()"
+                    aria-label="Import"
+                    variant="text"
+                    rounded
+                />
+            </div>
         </div>
     </div>
 </template>
@@ -168,6 +210,21 @@ const onClear = () => {
     text-align: left;
 }
 
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
+:deep(.p-icon) {
+    color: var(--p-primary-color, white); /* fallback to white */
+}
+
+.p-button-sm .p-button-icon {
+    font-size: var(--p-button-sm-font-size);
+}
+
 :deep(.p-progressbar-label){
     color: var(--p-text-color);
 }
@@ -187,15 +244,17 @@ const onClear = () => {
 }
 
 :deep(.p-icon) {
-    color: white; /* Changes the icon color to white */
+    color: var(--p-primary-color, white); /* fallback to white */
 }
+
 .p-button-sm .p-button-icon {
     font-size: var(--p-button-sm-font-size);
 }
 
 :deep(.pi-file-import) {
-    color: white; /* Changes the icon color to white */
+    color: var(--p-primary-color); 
 }
+
 
 .message-container {
     display: flex;

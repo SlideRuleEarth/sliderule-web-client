@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { ref, computed, onMounted } from 'vue';
+import Button from 'primevue/button';
 
 
 const advancedModeStore = useAdvancedModeStore();
@@ -31,8 +32,6 @@ const isButtonActive = computed(() => (mode: string) => {
     }
 });
 
-
-
 const buttonClass = computed(() => (mode: string) => [
     'sr-segment-button',
     { active: isButtonActive.value(mode) },
@@ -41,7 +40,7 @@ const buttonClass = computed(() => (mode: string) => [
 </script>
 
 <template>
-    <div class="sr-mode-box">
+    <div class="sr-mode-box p-button-rounded p-button-text">
         <div class="sr-segment-control" :class="{ 'is-loading': isLoading }">
             <div class="sr-segment-background" :class="{ 'right': advancedModeStore.getAdvanced() }"></div>
             <button 
@@ -122,6 +121,13 @@ const buttonClass = computed(() => (mode: string) => [
 .sr-segment-button:hover::after {
     opacity: 1;
 }
+
+/* :deep(.p-button-rounded:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+} */
 
 .sr-segment-button.active {
     color: var(--p-button-text-primary-color);

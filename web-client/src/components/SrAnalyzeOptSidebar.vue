@@ -11,6 +11,7 @@ import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const analysisMapStore = useAnalysisMapStore();
@@ -39,6 +40,9 @@ onMounted(async () => {
     isMounted.value = true;
 });
 
+const handleFileImported = async (reqId: string) => {
+    console.log('SrAnalyzeOptSidebar File import completed. Request ID:', reqId);
+};
 
 const exportButtonClick = async () => {
     let req_id = recTreeStore.selectedReqId;
@@ -91,10 +95,11 @@ const exportButtonClick = async () => {
                     />
                 </div>
                 <div class="sr-req-description">
+                    <SrImportParquetFile  @file-imported="handleFileImported"/>
                     <SrEditDesc :reqId="recTreeStore.selectedReqId"/>
                     <Button
                         icon="pi pi-file-export"
-                        class="sr-export-button"
+                        class="sr-import-export-btn"
                         label="Export"
                         @mouseover="tooltipRef.showTooltip($event, 'Export the parquet file of this record')"
                         @mouseleave="tooltipRef.hideTooltip()"
@@ -186,11 +191,18 @@ const exportButtonClick = async () => {
         width: 100%;
     }
 
-    .sr-export-button {
+    .sr-import-export-btn {
         margin: 1rem;
         width:10rem;
     }
 
+    :deep(.sr-import-export-btn:hover) {
+        border-width: 1px;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+        transition: box-shadow 0.3s ease;
+    }
+    
     .sr-sidebar-analysis-opt {
         display: flex;
         flex-direction: column;
