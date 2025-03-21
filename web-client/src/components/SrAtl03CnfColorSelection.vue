@@ -1,7 +1,14 @@
 <template>
     <Fieldset v-if="atl03CnfColorMapStore" legend="Atl03 Confidence Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
-            <Button label="Restore Defaults" @click="restoreDefaultAtl03CnfColorMap" />
+            <Button
+                icon="pi pi-refresh"
+                class="sr-glow-button" 
+                label="Restore Defaults" 
+                @click="restoreDefaultAtl03CnfColorMap"
+                variant="text"
+                rounded
+            ></Button>
         </div>
         <div class="sr-menu-container" v-for="(cnfValue, index) in atl03CnfColorMapStore.atl03CnfOptions" :key="index">
             <div class="color-preview" :style="{ backgroundColor: atl03CnfColorMapStore.getColorForAtl03CnfValue(cnfValue.value) }"></div>
@@ -87,4 +94,12 @@ const restoreDefaultAtl03CnfColorMap = () => {
     border: 1px solid var(--p-border-color);
     border-radius: 2px;
 }
+
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
 </style>

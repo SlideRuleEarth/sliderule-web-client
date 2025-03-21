@@ -10,7 +10,11 @@
             </div>
             <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
                 <div class="sr-cycles-legend-panel">
-                    <Button class="sr-reset-btn"
+                    <Button 
+                        class="sr-reset-btn sr-glow-button"
+                        icon="pi pi-refresh"
+                        variant="text"
+                        rounded
                         label="Reset" 
                         @click="resetFilter"
                         size="small"
@@ -235,6 +239,13 @@ function handleValueChange(value) {
     max-height: 10rem;
     margin: 0.25rem;
 }
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
 :deep(.p-listbox-option) {
   white-space: nowrap;
   overflow: hidden;

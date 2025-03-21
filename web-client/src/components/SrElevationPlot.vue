@@ -614,7 +614,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     <div class="sr-multiselect-col-req">
                         <SrReqDisplay
                             v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
-                            checkboxLabel='Show Photon Cloud Req Params'
+                            label='Show Photon Cloud Req Params'
                             :isForPhotonCloud="true"
                             :tooltipText="'The params that will be used for the Photon Cloud overlay'"
                         />

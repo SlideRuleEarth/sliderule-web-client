@@ -16,7 +16,15 @@
                 </template>
             </PickList>
             <div class="sr-restore-defaults">
-                <Button label="Restore Defaults" @click="restoreDefaultColors" />
+                <Button 
+                    icon="pi pi-refresh"
+                    class="sr-glow-button"
+                    size="small"
+                    label="Restore Defaults" 
+                    @click="restoreDefaultColors"
+                    variant="text"
+                    rounded
+                ></Button>
             </div>
         </Fieldset>
     </div>
@@ -142,4 +150,11 @@ h2 {
     justify-content: center;
     margin-top: 1rem;
 }
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
 </style>

@@ -14,7 +14,7 @@
         <SrJsonDisplayDialog
             v-model:visible="showParmsDialog"
             :json-data="reqParms"
-            :title="props.label"
+            :title="`endpoint = ${curAPI}`"
             width="50vw"
         />
         <SrCustomTooltip ref="tooltipRef"/>

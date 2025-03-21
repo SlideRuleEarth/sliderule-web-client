@@ -1,7 +1,14 @@
 <template>
     <Fieldset v-if="atl08ClassColorMapStore" legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
-            <Button label="Restore Defaults" @click="restoreDefaultAtl08ClassColorMap" />
+            <Button 
+                icon="pi pi-refresh"
+                label="Restore Defaults" 
+                class="sr-glow-button" 
+                @click="restoreDefaultAtl08ClassColorMap"
+                variant="text"
+                rounded
+            ></Button>
         </div>
         <div class="sr-menu-container" v-for="(classValue, index) in atl08ClassColorMapStore.atl08ClassOptions" :key="index">
             <div class="color-preview" :style="{ backgroundColor: atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
