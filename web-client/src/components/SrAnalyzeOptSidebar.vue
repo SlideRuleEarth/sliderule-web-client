@@ -114,7 +114,7 @@ const exportButtonClick = async () => {
             </div>
             <div class="sr-sidebar-analysis-opt">
                 <div class="sr-analysis-rec-parms">
-                    <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Show req parms for record:${recTreeStore.selectedReqId}`"/>
+                    <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Request Parameters Record:${recTreeStore.selectedReqId}`"/>
                 </div>
                 <div class="sr-filter-cntrl-container">
                     <SrFilterCntrl></SrFilterCntrl>

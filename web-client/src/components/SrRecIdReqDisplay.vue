@@ -1,35 +1,39 @@
 <template>
     <div class="sr-rec-req-display-panel">
-        <div class="sr-rec-req-display-panel-header"> 
-            <SrCheckbox
-                v-model="showReqParms"
-                :label=props.label
-                :insensitive=props.insensitive
-                :tooltipText=props.tooltipText
-                :tooltipUrl=props.tooltipUrl
-                :labelFontSize=props.labelFontSize
-                :labelOnRight=props.labelOnRight
-            />
-        </div>
-        <div class="sr-rec-req-display-parms" v-if="showReqParms">
-            <div><pre><code>endpoint = {{ curAPI }}<br>{{ reqParms }}</code></pre></div>
-        </div>
+        <Button 
+            icon="pi pi-eye" 
+            :label="props.label"
+            class="sr-glow-button"
+            @click="openParmsDialog(reqParms)"
+            @mouseover="tooltipRef?.showTooltip($event, props.tooltipText)"
+            @mouseleave="tooltipRef?.hideTooltip"
+            variant="text"
+            rounded
+            :disabled="props.insensitive"
+        ></Button>
+        <SrJsonDisplayDialog
+            v-model:visible="showParmsDialog"
+            :json-data="reqParms"
+            :title="props.label"
+            width="50vw"
+        />
+        <SrCustomTooltip ref="tooltipRef"/>
     </div>
   </template>
   
   <script setup lang="ts">
     import { ref,onMounted } from "vue";
-    import SrCheckbox from "./SrCheckbox.vue";
+    import Button from "primevue/button";
     import { db } from "@/db/SlideRuleDb";
+    import SrJsonDisplayDialog from "./SrJsonDisplayDialog.vue";
+    import SrCustomTooltip from "./SrCustomTooltip.vue";
+
     const props = withDefaults(
         defineProps<{
             reqId: number;
             label: string;
             insensitive?: boolean;
             tooltipText?: string;
-            tooltipUrl?: string;
-            labelFontSize?: string;
-            labelOnRight?: boolean;
         }>(),
         {
             reqId: 0,
@@ -42,10 +46,10 @@
         }
     );
 
-
-    const showReqParms = ref(false);
+    const showParmsDialog = ref(false);
     const reqParms = ref<string>('');
-    const curAPI = ref<string>('');;
+    const curAPI = ref<string>('');
+    const tooltipRef = ref();
 
     onMounted(async () => {
         if(props.reqId) {
@@ -56,25 +60,21 @@
             console.log('SrRecReqDisplay onMounted: no reqId');
         }
     });
+    // Open the Parms dialog
+    function openParmsDialog(params: string | object) {
+        if (typeof params === 'object') {
+            reqParms.value = JSON.stringify(params, null, 2);
+        } else {
+            reqParms.value = params;
+        }
+        showParmsDialog.value = true;
+    }
 
   </script>
   
   <style scoped>
   /* Style your button and component here */
   .sr-rec-req-display-panel {
-    display: flex;
-    flex-direction: column;
-    padding: 0rem;
-    margin-top: 0rem;
-    max-height: 30rem;
-    overflow-y: auto;
-  }
-  .sr-rec-req-display-panel-header {
-    display: flex;
-    margin-top: 0;
-    font-size: medium;
-    font-weight: bold;
-    justify-content: flex-start;
   }
 
 .sr-rec-req-display-parms {
@@ -92,5 +92,13 @@
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
-  </style>
+
+:deep(.sr-glow-button:hover) {
+    border-width: 1px;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
+    transition: box-shadow 0.3s ease;
+}
+
+</style>
   

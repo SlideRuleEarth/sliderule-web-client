@@ -83,7 +83,7 @@
         <div>
             <SrRecIdReqDisplay 
                 :reqId="props.reqId"
-                :label="`Request Params`"
+                label="Request Parameters"
                 :tooltipText="reqParamsToolTipText"
                 
             />
