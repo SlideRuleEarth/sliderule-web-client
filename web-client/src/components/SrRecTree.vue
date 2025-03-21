@@ -353,14 +353,6 @@ onUnmounted(() => {
 
 <style scoped>
 
-
-:deep(.sr-glow-button:hover) {
-    border-width: 1px;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
-    transition: box-shadow 0.3s ease;
-}
-
 :deep(.p-icon) {
     color: var(--p-primary-color, white); /* fallback to white */
 }

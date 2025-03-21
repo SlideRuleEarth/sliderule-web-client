@@ -107,12 +107,7 @@ function onDialogHide() {
     border-radius: var(--p-border-radius);
     position: relative; /* Enable positioning for the legend */
 }
-:deep(.sr-glow-button:hover) {
-    border-width: 1px;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
-    transition: box-shadow 0.3s ease;
-}
+
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {
     font-size: small;

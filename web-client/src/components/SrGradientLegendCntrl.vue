@@ -120,12 +120,7 @@ const gradientDefaultsRestored = async () => {
     margin-top: 0.5rem;
     font-size: small;
 }
-:deep(.sr-glow-button:hover) {
-    border-width: 1px;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
-    transition: box-shadow 0.3s ease;
-}
+
 .sr-controls-panel {
     display: flex;
     flex-direction: column;

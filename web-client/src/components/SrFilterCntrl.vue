@@ -239,12 +239,6 @@ function handleValueChange(value) {
     max-height: 10rem;
     margin: 0.25rem;
 }
-:deep(.sr-glow-button:hover) {
-    border-width: 1px;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
-    transition: box-shadow 0.3s ease;
-}
 
 :deep(.p-listbox-option) {
   white-space: nowrap;
