@@ -3,7 +3,7 @@ import { use } from "echarts/core";
 import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
+import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent, ToolboxComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
@@ -50,11 +50,18 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const analysisMapStore = useAnalysisMapStore();
-const symbolStore = useSymbolStore();
 const loadingComponent = ref(true);
+const dialogsInitialized = ref(false); // Track if dialogs have been initialized
 
-
-use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
+use([
+    CanvasRenderer, 
+    ScatterChart, 
+    TitleComponent, 
+    TooltipComponent, 
+    LegendComponent, 
+    DataZoomComponent, 
+    ToolboxComponent
+]);
 
 provide(THEME_KEY, "dark");
 const plotRef = ref<InstanceType<typeof VChart> | null>(null);
@@ -287,10 +294,12 @@ const photonCloudBtnTooltip = computed(() => {
 const handleChartFinished = () => {
     //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
     if(chartWrapperRef.value){
-        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+        if( (dialogsInitialized.value == false) && 
+            (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0)){
             initMainLegendPosition();
             initOverlayLegendPosition();
             chartReady.value = true;
+            dialogsInitialized.value = true; // Mark dialogs as initialized
         } else {
             console.warn('handleChartFinished - no Y data selected');
         }
@@ -299,12 +308,11 @@ const handleChartFinished = () => {
     }
 };
 
-onMounted(async () => {
-    try {
-        //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
-        webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
-        console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
-        // Get the computed style of the document's root element
+
+async function initPlot(){
+    console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+    try{
+    // Get the computed style of the document's root element
         // Extract the font size from the computed style
         // Log the font size to the console
         //console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
@@ -328,7 +336,20 @@ onMounted(async () => {
         } else {
             console.warn('reqId is undefined');
         }        
+    } catch (error) {
+        console.error('Error initializing plot:', error);
+    } finally {
+        // Final setup after initialization
+    }
 
+}
+
+onMounted(async () => {
+    try {
+        //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
+        webGLSupported.value = !!window.WebGLRenderingContext; // Should log `true` if WebGL is supported
+        globalChartStore.titleOfElevationPlot = ' Highlighted Track(s)';
+        await initPlot();
         //enableTouchDragging(); // this is experimental
         requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
     } catch (error) {
@@ -351,17 +372,40 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     }
 });
 
-watch(() => plotRef.value, async (newPlotRef) => {
-    if (newPlotRef) {
-        console.warn('SrElevationPlot watch plotRef changed:', newPlotRef);
-        atlChartFilterStore.setPlotRef(plotRef.value);
-        if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+watch(() => plotRef.value, async (newValue,oldValue) => {
+  if (!newValue){
+    console.warn(`SrElevationPlot watch plotRef.value - newValue {newValue} is null or undefined, cannot proceed oldValue`,oldValue);
+    return;
+  } 
+
+  // Cast to expose .chart, and safely access .value
+  const chartInstance = (newValue as InstanceType<typeof VChart>).chart;
+
+  if (chartInstance) {
+    // chartInstance is type EChartsType, NOT a ref
+    chartInstance.on('restore', () => {
+        (async () => {
+            console.log('Zoom or settings were reset!');
+            dialogsInitialized.value = false; // Reset dialogsInitialized to false to re-initialize dialogs
+            await initPlot(); // Re-initialize the plot to reset any settings
+            if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
             await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
-        } else {
-            console.warn('SrElevationPlot watch plotRef.value - no Y data selected');
-        }
+            } else {
+            console.warn('No Y data selected');
+            }
+        })();
+    });
+    atlChartFilterStore.setPlotRef(newValue);
+    if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
+      await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
+    } else {
+      console.warn('No Y data selected');
     }
+  } else {
+    console.warn('Chart instance not ready yet');
+  }
 });
+
 const messageClass = computed(() => {
   return {
     'message': true,

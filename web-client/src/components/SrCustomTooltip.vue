@@ -1,19 +1,17 @@
 <template>
+  <Teleport to="body">
     <div class="tooltip" v-if="visible" :style="tooltipStyle">{{ text }}</div>
+  </Teleport>
 </template>
   
   <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
-  import { getCharacterWidth } from '@/utils/fontUtils';
+  import { ref  } from 'vue';
+  import { Teleport } from 'vue';
   
   const visible = ref(false);
   const text = ref('');
   const tooltipStyle = ref({});
-  const maxToolTipWidth = 15; // in rem
-  const maxToolTipWidthPx = maxToolTipWidth * parseFloat(getComputedStyle(document.documentElement).fontSize);
-  onMounted(() => {
-
-  });
+  
 
   // Define the functions that will control tooltip visibility and position
   const showTooltip = (event: MouseEvent, content: string | undefined) => {
@@ -28,35 +26,36 @@
 
     const { clientX: x, clientY: y } = event;
     const tooltipOffset = 10; // distance from the cursor
-    
-    // Ensure `content` is a valid string before accessing `.length`
-    const tooltipWidth = (content?.length ?? 0) * parseFloat(getComputedStyle(document.documentElement).fontSize);
+ 
+    const fontSizePx = parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
+    const tooltipWidth = (content?.length ?? 0) * fontSizePx * 0.6; // heuristic
+    const tooltipHeight = 24; // better estimate
 
-    const tooltipHeight = 10; // estimated or actual height of your tooltip
-
-    // Get the window's dimensions
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
-    // Calculate the desired position
-    let calculatedLeft = x + tooltipOffset;
-    let calculatedTop = y + tooltipOffset;
+    let left = x + tooltipOffset;
+    let top = y + tooltipOffset;
 
-    // Adjust position if the tooltip would be clipped horizontally
-    if (calculatedLeft + tooltipWidth > windowWidth) {
-      calculatedLeft = x - tooltipWidth - tooltipOffset;
+    if (left + tooltipWidth > windowWidth) {
+        left = x - tooltipWidth - tooltipOffset;
+    }
+    if (top + tooltipHeight > windowHeight) {
+        top = y - tooltipHeight - tooltipOffset;
     }
 
-    // Adjust position if the tooltip would be clipped vertically
-    if (calculatedTop + tooltipHeight > windowHeight) {
-      calculatedTop = y - tooltipHeight - tooltipOffset;
-    }
-
+    // Prevent negative values
+    left = Math.max(0, left);
+    top = Math.max(0, top);
     // Apply the calculated position
     tooltipStyle.value = {
-      top: `${calculatedTop}px`,
-      left: `${calculatedLeft}px`,
+      top: `${top}px`,
+      left: `${left}px`,
     };
+    // console.log(`Tooltip {content} position:`, {
+    //   top: `${top}px`,
+    //   left: `${left}px`
+    // });
   };
 
   
