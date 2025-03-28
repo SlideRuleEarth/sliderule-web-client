@@ -601,6 +601,17 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     text: globalChartStore.titleOfElevationPlot,
                     left: "center"
                 },
+                toolbox: {
+                    show: true,
+                    left: 100,
+                    top: 5,
+                    feature: {
+                        saveAsImage: {},
+                        restore: {},
+                        dataZoom: {},
+                        dataView: { readOnly: true },
+                    }
+                },
                 tooltip: {
                     trigger: "item",
                     formatter: (params: any) => formatTooltip(params),

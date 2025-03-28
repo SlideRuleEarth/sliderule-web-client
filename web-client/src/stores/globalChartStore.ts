@@ -30,6 +30,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const max_pnts_on_plot = ref<number>(50000);
     const chunk_size_for_plot = ref<number>(10000);
     const selected_y_atc_label = ref<string>('y_atc');
+    const titleOfElevationPlot = ref<string>('Highlighted Track(s)'); // Default title for the elevation plot
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -396,7 +397,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         hasScBackward,
         scrollX,
         scrollY,
-        titleOfElevationPlot: ref('Highlighted Track'),
+        titleOfElevationPlot,
         setSelectedElevationRec,
         getSelectedElevationRec,
         use_y_atc_filter,

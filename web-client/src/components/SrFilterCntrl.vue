@@ -1,60 +1,68 @@
 <template>
-    <Card>
-        <template #title>
-            <div class="sr-card-title-center">Highlighted Track</div>
-        </template>
-        <template #content>
-            <div class="sr-highlighted-track-details">
-                <p class = "sr-highlighted-track-details-1"> {{ highlightedTrackDetails1 }} </p>
-                <p class = "sr-highlighted-track-details-2"> {{ highlightedTrackDetails2 }} </p>
-            </div>
-            <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
-                <div class="sr-cycles-legend-panel">
-                    <Button 
-                        class="sr-reset-btn sr-glow-button"
-                        icon="pi pi-refresh"
-                        variant="text"
-                        rounded
-                        label="Reset" 
-                        @click="resetFilter"
-                        size="small"
-                    ></Button>
-                    <div class="sr-select-boxes">
-                        <div class="sr-rgt-y-atc">
-                            <div class="sr-select-box">
-                                <div class="sr-header">
-                                    <p class="sr-select-box-hdr">Rgts</p>
+    <div>
+        <SrCustomTooltip ref="tooltipRef" />
+        <Card>
+            <template #title>
+                <div class="sr-card-title-center">
+                    <SrElTitleEdit 
+                        @mouseover="handleMouseOver"
+                        @mouseleave="handleMouseLeave"
+                    />
+                </div>
+            </template>
+            <template #content>
+                <div class="sr-highlighted-track-details">
+                    <p class = "sr-highlighted-track-details-1"> {{ highlightedTrackDetails1 }} </p>
+                    <p class = "sr-highlighted-track-details-2"> {{ highlightedTrackDetails2 }} </p>
+                </div>
+                <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
+                    <div class="sr-cycles-legend-panel">
+                        <Button 
+                            class="sr-reset-btn sr-glow-button"
+                            icon="pi pi-refresh"
+                            variant="text"
+                            rounded
+                            label="Reset" 
+                            @click="resetFilter"
+                            size="small"
+                        ></Button>
+                        <div class="sr-select-boxes">
+                            <div class="sr-rgt-y-atc">
+                                <div class="sr-select-box">
+                                    <div class="sr-header">
+                                        <p class="sr-select-box-hdr">Rgts</p>
+                                    </div>
+                                    <Listbox 
+                                        class="sr-select-lists"
+                                        v-model="selectedRgtReactive" 
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        :multiple="false"
+                                        :options="computedRgtOptions"
+                                        @change="handleValueChange"
+                                    >
+                                    </Listbox>
                                 </div>
-                                <Listbox 
-                                    class="sr-select-lists"
-                                    v-model="selectedRgtReactive" 
-                                    optionLabel="label"
-                                    optionValue="value"
-                                    :multiple="false"
-                                    :options="computedRgtOptions"
-                                    @change="handleValueChange"
-                                >
-                                </Listbox>
+                        </div>
+                            <SrCycleSelect />
+                        </div>
+                        <div class="sr-beam-y-atc">
+                            <div>
+                                <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
                             </div>
-                       </div>
-                        <SrCycleSelect />
-                    </div>
-                    <div class="sr-beam-y-atc">
-                        <div>
-                            <SrBeamPattern :reqIdStr="recTreeStore.selectedReqIdStr"/>
-                        </div>
-                        <div>
-                            <SrYatcFilterCntrl />
+                            <div>
+                                <SrYatcFilterCntrl />
+                            </div>
                         </div>
                     </div>
-                 </div>
-            </Fieldset>
-        </template>                    
-    </Card>
+                </Fieldset>
+            </template>                    
+        </Card>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { resetFilter } from '@/utils/SrMapUtils';
@@ -66,9 +74,12 @@ import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue';
 import SrCycleSelect from '@/components/SrCycleSelect.vue';
 import Fieldset from "primevue/fieldset";
 import Card from 'primevue/card';
+import SrElTitleEdit from '@/components/SrElTitleEdit.vue';
+import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 
 const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
+const tooltipRef = ref();
 
 const computedScOrientLabels = computed(() => {
     return globalChartStore.getScOrientsLabels();
@@ -91,9 +102,23 @@ const computedRgtOptions = computed(() => {
     //console.log('SrFilterCntrl computedRgtOptions:',rgtOptions);
     return rgtOptions;
 });
+function handleMouseOver(e: MouseEvent) {
+    //console.log('tooltipRef in handleMouseOver:', tooltipRef.value);
+    //console.log(`Showing tooltip at (${e.x}, ${e.y})` );
+
+    tooltipRef.value?.showTooltip?.(
+        e,
+        'This is the title of the elevation plot. You can edit it. It will reset when you reload the page'
+    );
+}
+
+function handleMouseLeave() {
+    //console.log('tooltipRef in handleMouseLeave:', tooltipRef.value);
+    tooltipRef.value?.hideTooltip?.();
+}
 
 function handleValueChange(value) {
-    console.log('SrFilterCntrl handleValueChange:', value);
+    //console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
         nextTick(() => {
@@ -102,7 +127,7 @@ function handleValueChange(value) {
     } else {
         console.warn('SrFilterCntrl:handleValueChange - RGT reqId is undefined');
     }
-    console.log('SrFilterCntrl:handleValueChange:- RGT:', value);
+    //console.log('SrFilterCntrl:handleValueChange:- RGT:', value);
 }
 
 </script>
