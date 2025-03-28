@@ -57,13 +57,13 @@ const computedCycleOptions = computed(() => {
 
 
 async function filterCycles() {
-    console.log('filterCycles:', selectedCyclesReactive.value);
+    //console.log('filterCycles:', selectedCyclesReactive.value);
     resetFilterCycleOptions();
 }
 
 async function setAllCycles() {
-    console.log('setAllCycles:', selectedCyclesReactive.value);
-    resetCycleOptions();
+    //console.log('setAllCycles:', selectedCyclesReactive.value);
+    selectedCyclesReactive.value = computedCycleOptions.value.map(option => option.value); // Select all cycles
 }
 
 onMounted(() => {
