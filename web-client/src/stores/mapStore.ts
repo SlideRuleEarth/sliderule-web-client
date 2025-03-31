@@ -239,7 +239,7 @@ export const useMapStore = defineStore('map', {
     }, 
     setSelectedBaseLayer(baseLayer: string) {
         this.selectedBaseLayer = baseLayer;
-        console.log('setSelectedBaseLayer:', baseLayer);
+        //console.trace('setSelectedBaseLayer:', baseLayer);
     },
     getSelectedBaseLayer() {
       console.log('getSelectedBaseLayer:', this.selectedBaseLayer);

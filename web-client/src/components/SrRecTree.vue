@@ -186,7 +186,7 @@ const handleFileImported = async (reqId: string) => {
 onMounted(async () => {
     requestsStore.watchReqTable();
     treeNodes.value = await requestsStore.getTreeTableNodes();
-    console.log('treeNodes.value:', treeNodes.value);
+    //console.log('treeNodes.value:', treeNodes.value);
 });
 
 onUnmounted(() => {

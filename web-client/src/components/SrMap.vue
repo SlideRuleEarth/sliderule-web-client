@@ -25,7 +25,7 @@
     import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { checkAreaOfConvexHullWarning } from "@/utils/SrMapUtils";
+    import { checkAreaOfConvexHullWarning,updateSrViewName } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -476,7 +476,7 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
-                await updateThisMapView("SrMap onMounted",canRestoreZoomCenter(map));
+                await updateReqMapView("SrMap onMounted",canRestoreZoomCenter(map));
 
                 addFeatureClickListener(map,onFeatureClick);
             } else {
@@ -582,8 +582,8 @@
         }
     }
 
-    const updateThisMapView = async (reason:string, restoreView:boolean=false) => {
-        console.log(`****** SrMap updateThisMapView for ${reason} ******`);
+    const updateReqMapView = async (reason:string, restoreView:boolean=false) => {
+        console.log(`****** SrMap updateReqMapView for ${reason} ******`);
         const map = mapRef.value?.map;
         try{
             if(map){
@@ -591,7 +591,6 @@
                 const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
                 if(srViewKey.value){
                     await updateMapView(map,srViewKey.value,reason,restoreView);
-                    //console.log(`${newProj.getCode()} using our BB:${srViewObj.bbox}`);
                     map.addLayer(drawVectorLayer);
                     map.addLayer(recordsLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
@@ -623,7 +622,7 @@
             try{
                 if(map){
                     saveMapZoomState(map);
-                    await updateThisMapView("handleUpdateSrView",true);
+                    await updateReqMapView("handleUpdateSrView",true);
                 } else {
                     console.error("SrMap Error:map is null");
                 }
@@ -637,6 +636,13 @@
 
     const handleUpdateBaseLayer = async () => {
         const baseLayer = mapStore.getSelectedBaseLayer();
+        const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
+        if(srViewKey.value){
+            await updateSrViewName(srViewKey.value); // Update the SrViewName in the DB based on the current selection
+        } else {
+            console.error("SrMap Error: srViewKey is null, can't update base layer");
+            return;
+        }
         console.log(`handleUpdateBaseLayer: |${baseLayer}|`);
         const map = mapRef.value?.map;
         try{
@@ -656,7 +662,7 @@
                     console.error("SrMap Error: zoom is null");
                 }
                 saveMapZoomState(map);
-                await updateThisMapView("handleUpdateBaseLayer",true);
+                await updateReqMapView("handleUpdateBaseLayer",true);
             } else {
                 console.error("SrMap Error:map is null");
             }

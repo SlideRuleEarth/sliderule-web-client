@@ -939,6 +939,17 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number,layerName:string='
     return poly;
 }
 
+export async function updateSrViewName(srViewName:string): Promise<void> {
+    
+    if (srViewName) {
+        await db.updateRequestRecord({req_id:useRecTreeStore().selectedReqId ,srViewName: srViewName});
+        console.log(`updateSrViewName: Updated srViewName to ${srViewName} for req_id: ${useRecTreeStore().selectedReqId}`);
+    } else {
+        console.error("SrMap Error: srViewKey is null when trying to handleUpdateBaseLayer");
+    }
+    return
+}
+
 export async function updateMapView(map:OLMap, 
                                     srViewKey:string, 
                                     reason:string, 

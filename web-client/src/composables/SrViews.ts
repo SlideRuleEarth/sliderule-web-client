@@ -53,7 +53,7 @@ export const srViews = ref<{ [key: string]: SrView }>({
   },
   "North NSIDC": {
     hide: true,
-    view: "North NDIC",
+    view: "North NSDIC",
     projectionName: "EPSG:3413",
     baseLayerName: "Arctic Ocean Base",
   },  

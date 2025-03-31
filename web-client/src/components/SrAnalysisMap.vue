@@ -19,27 +19,30 @@
     import { toLonLat } from 'ol/proj';
     import { format } from 'ol/coordinate';
     import { updateMapView, renderSvrReqPoly, resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
-    import SrRecSelectControl from "./SrRecSelectControl.vue";
+    import SrRecSelectControl from "@/components/SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
-    import SrColMapSelControl from "./SrColMapSelControl.vue";
+    import SrColMapSelControl from "@/components/SrColMapSelControl.vue";
     import { useSrToastStore } from "@/stores/srToastStore";
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
     import { Vector as VectorSource } from 'ol/source';
     import VectorLayer from "ol/layer/Vector";
     import { updateMapAndPlot } from "@/utils/SrMapUtils";
     import { useDeckStore } from "@/stores/deckStore"; 
-    import SrProgressSpinnerControl from "./SrProgressSpinnerControl.vue"; 
+    import SrProgressSpinnerControl from "@/components/SrProgressSpinnerControl.vue"; 
     import { Layer as OLlayer } from 'ol/layer';
     import { Deck } from '@deck.gl/core';
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
     import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
-    import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
+    import { setCyclesGtsSpotsFromFileUsingRgtYatc,updateSrViewName } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
+    import SrBaseLayerControl from "@/components/SrBaseLayerControl.vue";
+    import { findSrViewKey, srViews, getDefaultBaseLayerForView } from "@/composables/SrViews";
+    import { addLayersForCurrentView } from "@/composables/SrLayers";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -150,8 +153,26 @@
         register(proj4);
         const map = mapRef.value?.map;
         if(!map){
-            console.error("Error: map is null");
+            console.error("SrAnalysisMap onMounted Error: map is null");
             return;
+        }
+        let srViewName = await db.getSrViewName(props.selectedReqId);
+        //console.log(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
+        const viewObj = srViews.value[srViewName];
+        //console.log(`SrAnalysisMap onMounted: retrieved viewObj.view: ${viewObj?.view} viewObj.baseLayer:${viewObj?.baseLayerName} srViewName:${srViewName} for reqId:${props.selectedReqId}`);
+        if(!viewObj){
+            console.error(`SrAnalysisMap onMounted Error: No view found for srViewName: ${srViewName}`);
+            return;
+        }
+        mapStore.setSelectedView(viewObj.view); // Set the selected view in the map store
+        const selectedView = mapStore.getSelectedView(); // Get the selected view
+        //console.log(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
+        
+        if(viewObj.baseLayerName){
+            mapStore.setSelectedBaseLayer(viewObj.baseLayerName);
+            //console.log(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
+        } else {
+            console.error("SrAnalysisMap onMounted Error: defaulted baseLayer is null");
         }
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
@@ -199,6 +220,39 @@
             console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");
         }
     };
+    function handleBaseLayerControlCreated(baseLayerControl: any) {
+        //console.log(baseLayerControl);
+        const map = mapRef.value?.map;
+        if(map){
+            //console.log("adding baseLayerControl");
+            map.addControl(baseLayerControl);
+        } else {
+            console.error("Error:map is null");
+        }
+    };
+
+    const handleUpdateBaseLayer = async () => {
+        //console.log("SrAnalysisMap handleUpdateBaseLayer called");
+        const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
+        if(srViewKey.value){
+            await updateSrViewName(srViewKey.value); // Update the SrViewName in the DB based on the current selection
+            //console.log("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
+        } else {
+            console.error("SrAnalysisMap Error: srViewKey is null, can't update base layer");
+            return;
+        }
+        //console.log(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
+        const map = mapRef.value?.map;
+        try{
+            if(map){
+                await updateAnalysisMapView("SrAnalysisMap handleUpdateBaseLayer");
+            } else {
+                console.error("SrAnalysisMap Error:map is null");
+            }
+        } catch (error) {
+            console.error(`SrAnalysisMap Error: handleUpdateBaseLayer failed:`,error);
+        } 
+    }
 
     function createDeckInstance(map:OLMap): void{
         //console.log('createDeckInstance');
@@ -287,32 +341,39 @@
 
         try {
             if(map){
-                await updateMapView(map, srViewName, reason, false, props.selectedReqId);
-                const summary = await readOrCacheSummary(props.selectedReqId);
-                if(!summary){
-                    console.error(`Error: No summary for reqId:${props.selectedReqId} srViewName:${srViewName}`);
-                    return;
-                }
-                console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
-                const numPointsStr = summary.numPoints; // it is a string BIG INT!
-                const numPoints = parseInt(String(numPointsStr));
-                if(numPoints > 0){
-                    zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
-                } else {
-                    console.warn(`Warn: No points for reqId:${props.selectedReqId} srViewName:${srViewName}`);
-                    useSrToastStore().warn('There are no data points in this region', 'Click Request then increase the area of the polygon',10000);
-                    map.addLayer(recordsLayer);
-                    //dumpMapLayers(map,'SrAnalysisMap');
-                    const poly = renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
-                    //const extent = getSrRegionExtents(poly);
-                    //const center = getApproxCenterUsingBounds(extent);
-                    //useMapStore().setCenterToRestore(center);
+                const srViewObj = mapStore.getSrViewObj();// Fixed memory references
+                const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
+                if(srViewKey.value){
+                    await updateMapView(map, srViewKey.value, reason, false, props.selectedReqId);
+                    addLayersForCurrentView(map,srViewObj.projectionName);      
+                    const summary = await readOrCacheSummary(props.selectedReqId);
+                    if(!summary){
+                        console.error(`Error: No summary for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                        return;
+                    }
+                    //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
+                    const numPointsStr = summary.numPoints; // it is a string BIG INT!
+                    const numPoints = parseInt(String(numPointsStr));
+                    if(numPoints > 0){
+                        zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
+                    } else {
+                        console.warn(`Warn: No points for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                        useSrToastStore().warn('There are no data points in this region', 'Click Request then increase the area of the polygon',10000);
+                        map.addLayer(recordsLayer);
+                        //dumpMapLayers(map,'SrAnalysisMap');
+                        const poly = renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
+                        //const extent = getSrRegionExtents(poly);
+                        //const center = getApproxCenterUsingBounds(extent);
+                        //useMapStore().setCenterToRestore(center);
 
+                    }
+                    deckStore.clearDeckInstance(); // Clear any existing instance first
+                    createDeckInstance(map); 
+                    addDeckLayerToMap(map);        
+                    await updateMapAndPlot();
+                } else {
+                    console.error("SrMap Error: srViewKey is null");
                 }
-                deckStore.clearDeckInstance(); // Clear any existing instance first
-                createDeckInstance(map); 
-                addDeckLayerToMap(map);        
-                await updateMapAndPlot();
 
             } else {
                 console.error("SrMap Error:map is null");
@@ -400,6 +461,10 @@
                 @progress-spinner-control-created="handleProgressSpinnerControlCreated" 
                 v-model="mapRef" 
                 :selectedReqId="props.selectedReqId"
+            />
+            <SrBaseLayerControl 
+                @baselayer-control-created="handleBaseLayerControlCreated" 
+                @update-baselayer="handleUpdateBaseLayer" 
             />
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
@@ -615,13 +680,13 @@
 
 
 :deep(.sr-col-menu-sel-control .sr-select-menu-default) {
-    font-size: small;
+    font-size:smaller;
     width: 5rem; 
-    margin:0rem;
-    padding: 0rem;
-    height: 1.75rem;
+    margin:0.0625rem;
+    padding: 0.0625rem;
+    height: 1.5rem;
     color: black; 
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 :deep(.sr-menu-input-wrapper){
@@ -693,8 +758,8 @@
   height: 1.5rem;
 }
 
-  :deep(.ol-zoom .ol-zoom-in) ,
-  :deep(.ol-zoom .ol-zoom-out) {
+:deep(.ol-zoom .ol-zoom-in) ,
+:deep(.ol-zoom .ol-zoom-out) {
   position: relative;
   margin: 1px;
   border-radius: var(--p-border-radius);
@@ -731,9 +796,34 @@
   border-top: 1px dashed rgb(200, 200, 200);
 }
 
+:deep( .ol-control.sr-baselayer-control ){
+  top: 0.25rem;
+  bottom: auto;
+  right: 3rem;
+  left: auto;
+  border-radius: var(--p-border-radius);
+  color: white;
+  max-width: 30rem; 
+  background: rgba(255, 255, 255, 0.25);
+
+}
+
 /* recommended by deck.gl for performance reasons */
 .overlays canvas {
   mix-blend-mode: multiply;
 }
 
+
+:deep(.sr-select-menu-default,
+.sr-select-menu-default-insensitive) {
+    width: 100%;
+    padding: 0.125rem .125rem 0.125rem 0.125rem; /* Top Right Bottom Left */
+    color: white;
+    background-color: #2c2c2c;
+    border: 2px solid #3a3a3a;
+    border-radius: 0.5rem;
+    font-family: var(--p-font-family);
+    font-size: small;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
 </style>
