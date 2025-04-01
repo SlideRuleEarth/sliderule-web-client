@@ -292,8 +292,8 @@ const photonCloudBtnTooltip = computed(() => {
 });
 
 const handleChartFinished = () => {
-    //console.log('handleChartFinished ECharts update finished event -- chartWrapperRef:', chartWrapperRef.value);
     if(chartWrapperRef.value){
+        console.log('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
         if( (dialogsInitialized.value == false) && 
             (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0)){
             initMainLegendPosition();
@@ -389,28 +389,28 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
             dialogsInitialized.value = false; // Reset dialogsInitialized to false to re-initialize dialogs
             await initPlot(); // Re-initialize the plot to reset any settings
             if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
-            await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
+                await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
             } else {
-            console.warn('No Y data selected');
+                console.warn('No Y data selected');
             }
         })();
     });
     atlChartFilterStore.setPlotRef(newValue);
     if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
-      await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
+        await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
     } else {
-      console.warn('No Y data selected');
+        console.warn('No Y data selected');
     }
   } else {
-    console.warn('Chart instance not ready yet');
+        console.warn('Chart instance not ready yet');
   }
 });
 
 const messageClass = computed(() => {
   return {
-    'message': true,
-    'message-red': !atlChartFilterStore.getIsWarning(),
-    'message-yellow': atlChartFilterStore.getIsWarning()
+        'message': true,
+        'message-red': !atlChartFilterStore.getIsWarning(),
+        'message-yellow': atlChartFilterStore.getIsWarning()
   };
 });
 

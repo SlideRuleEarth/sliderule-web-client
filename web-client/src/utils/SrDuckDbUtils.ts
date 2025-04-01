@@ -17,6 +17,9 @@ import { isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from './spotUtils';
 import { type SrPosition, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
+import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
+import { use } from 'echarts';
+
 
 interface SummaryRowData {
     minLat: number;
@@ -29,11 +32,11 @@ interface SummaryRowData {
     highHMean: number;
     numPoints: number;
 }
+//const fncs = useFieldNameCacheStore();
 const srMutex = new SrMutex();
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
-        const height_fieldname = getHFieldName(req_id);
-        const summary = await _duckDbReadOrCacheSummary(req_id,height_fieldname);
+        const summary = await _duckDbReadOrCacheSummary(req_id);
         //console.log('readOrCacheSummary req_id:', req_id,'hfn:',height_fieldname, ' summary.extHMean:', summary?.extHMean);
         return summary;
     } catch (error) {
@@ -45,64 +48,15 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
 export async function getDefaultElOptions(reqId:number) : Promise<string[]>{
     try{
         const funcStr = useRecTreeStore().findApiForReqId(reqId);
-        if (funcStr === 'atl06p') {
-            return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
-        } else if (funcStr === 'atl06sp') {
-            return ['h_li','y_atc','cycle'];
-        } else if (funcStr=== 'atl03vp'){
-            return ['segment_ph_cnt'];
-        } else if (funcStr=== 'atl03sp'){
-            return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
-        } else if (funcStr==='atl08p'){
-            return ['h_mean_canopy'];
-        } else if (funcStr===('gedi02ap')) {
-            return ['elevation_hr'];
-        } else if (funcStr===('gedi04ap')) {
-            return ['agbd'];
-        } else if(funcStr===('gedi01bp')) {
-            return ['elevation_start'];
-        } else {
-            throw new Error(`Unknown height fieldname for reqId:${reqId} - ${funcStr} in getHFieldName`);
-        }  
+        return useFieldNameCacheStore().getDefaultElOptions(funcStr);
     } catch (error) {
         console.error('getDefaultElOptions error:',error);
         throw error;  
     }
 }
 
-export function getHFieldNameForFuncStr(funcStr:string): string {
-    if (funcStr === 'atl06p') {
-        return 'h_mean';
-    } else if (funcStr === 'atl06sp') {
-        return 'h_li';
-    } else if (funcStr=== 'atl03vp'){
-        return 'segment_ph_cnt';
-    } else if (funcStr=== 'atl03sp'){
-        return 'height';
-    } else if (funcStr==='atl08p'){
-        return 'h_mean_canopy';
-    } else if (funcStr===('gedi02ap')) {
-        return 'elevation_hr';
-    } else if (funcStr===('gedi04ap')) {
-        return 'agbd';
-    } else if(funcStr===('gedi01bp')) {
-        return 'elevation_start';
-    } else {
-        throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
-    }
-}
-export function getHFieldName(reqId:number): string {
-    const funcStr = useRecTreeStore().findApiForReqId(reqId);
-    try{
-        return getHFieldNameForFuncStr(funcStr);
-    } catch (error) {
-        console.error(`getHFieldName for ${reqId} error:`,error);
-        throw error;
-    }
-}
-
-
 async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
+    console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
     const startTime = performance.now(); // Start time
     try {
         const chartStore = useChartStore();
@@ -110,7 +64,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
         const reqId = parseInt(reqIdStr);
         // Get the height field name
-        const heightFieldname = getHFieldName(reqId);
+        const heightFieldname = useFieldNameCacheStore().getHFieldName(reqId);
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
@@ -139,11 +93,15 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
     }
 }
 
-async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: string): Promise<SrRequestSummary | undefined> {
+async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSummary | undefined> {
     const startTime = performance.now(); // Start time
     let summary: SrRequestSummary | undefined = undefined;
     const unlock = await srMutex.lock();
     try {
+        const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
+        const lat_fieldname = useFieldNameCacheStore().getLatFieldName(req_id);
+        const lon_fieldname = useFieldNameCacheStore().getLonFieldName(req_id);
+
         const filename = await indexedDb.getFilename(req_id);
         summary = await indexedDb.getWorkerSummary(req_id);
         //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
@@ -163,10 +121,10 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
                 //console.log('_duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
                 const results = await duckDbClient.query(`
                     SELECT
-                        MIN(latitude) FILTER (WHERE NOT isnan(latitude)) AS minLat,
-                        MAX(latitude) FILTER (WHERE NOT isnan(latitude)) AS maxLat,
-                        MIN(longitude) FILTER (WHERE NOT isnan(longitude)) AS minLon,
-                        MAX(longitude) FILTER (WHERE NOT isnan(longitude)) AS maxLon,
+                        MIN(${duckDbClient.escape(lat_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lat_fieldname)})) AS minLat,
+                        MAX(${duckDbClient.escape(lat_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lat_fieldname)})) AS maxLat,
+                        MIN(${duckDbClient.escape(lon_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lon_fieldname)})) AS minLon,
+                        MAX(${duckDbClient.escape(lon_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lon_fieldname)})) AS maxLon,
                         MIN(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS minHMean,
                         MAX(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS maxHMean,
                         PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) 
@@ -211,7 +169,7 @@ async function _duckDbReadOrCacheSummary(req_id: number, height_fieldname: strin
                     numPoints = row.numPoints;
                     summary = { req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints };
                     await indexedDb.addNewSummary(summary);
-                    await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints});
+                    await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints},false);
                     useCurReqSumStore().setSummary(summary);
                     if(numPoints <= 0){
                         console.warn('No points returned: numPoints is zero');
@@ -440,7 +398,14 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
 
                 if (firstRec) {
                     // Precompute position data for all rows
-                    positions = rows.map(d => [d.longitude, d.latitude, 0] as SrPosition);
+                    const lat_fieldname = useFieldNameCacheStore().getLatFieldName(req_id);
+                    const lon_fieldname = useFieldNameCacheStore().getLonFieldName(req_id);
+                    const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
+                    positions = rows.map(d => [
+                        d[lon_fieldname],
+                        d[lat_fieldname],
+                        d[height_fieldname] ?? 0
+                    ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
                     useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);
@@ -455,7 +420,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
         }
 
         if (numRows > 0 && firstRec) {
-            const height_fieldname = getHFieldName(req_id);
+            const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
 
             if (summary?.extHMean) {
@@ -465,7 +430,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                     extHMean: summary.extHMean,
                     numPoints: summary.numPoints
                 });
-
+                //console.log('duckDbReadAndUpdateElevationData',height_fieldname,'positions:', positions);
                 updateDeckLayerWithObject(name, rows, summary.extHMean, height_fieldname, positions, projName);
                 
             } else {
@@ -534,7 +499,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             use_y_atc_filter = false;
         }
 
-        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08')) {
+        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24')) {
             queryStr = `
                 SELECT * FROM read_parquet('${filename}') 
                 WHERE rgt = ${rgt}
@@ -564,9 +529,15 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                     rowChunks.push(...rowChunk);
                     filteredPntData.currentPnts = numRows;
                     // **Precompute positions and store them**
-                    rowChunk.forEach(d => {
-                        positions.push([d.longitude, d.latitude, 0]);
-                    });
+                    if(func.includes('atl24')){
+                        rowChunk.forEach(d => {
+                            positions.push([d.lon_ph, d.lat_ph, 0]);
+                        });
+                    } else {
+                        rowChunk.forEach(d => {
+                            positions.push([d.longitude, d.latitude, 0]);
+                        });
+                    }
                 }
             }
 
@@ -581,7 +552,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
         if (numRows > 0) {
             const srViewName = await indexedDb.getSrViewName(req_id);
             const projName = srViews.value[srViewName].projectionName;
-            const height_fieldname = getHFieldName(req_id);
+            const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
             if (summary?.extHMean) {
                 useCurReqSumStore().setSummary({
@@ -789,7 +760,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
 
 export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
     const startTime = performance.now(); // Start time
-
+    const time_fieldname = useFieldNameCacheStore().getTimeFieldName(req_id);
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
 
@@ -805,7 +776,7 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
         const query = `
             SELECT 
                 cycle,
-                ANY_VALUE(time) AS time,  -- We only need any single time
+                ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time,  -- We only need any single time
             FROM '${fileName}'
             GROUP BY cycle
             ORDER BY cycle ASC;
@@ -856,6 +827,7 @@ export async function getAllFilteredCycleOptionsFromFile(
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
+    const time_fieldname = useFieldNameCacheStore().getTimeFieldName(req_id);
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
     const cycles: SrListNumberItem[] = [];
@@ -869,7 +841,7 @@ export async function getAllFilteredCycleOptionsFromFile(
         const query = `
             SELECT 
             cycle, 
-            ANY_VALUE(time) AS time 
+            ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time 
             FROM '${fileName}'
             ${whereClause}
             GROUP BY cycle 
@@ -992,10 +964,11 @@ export async function fetchScatterData(
     normalizedMinMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
 }> {
+    const timeField = useFieldNameCacheStore().getTimeFieldName(parseInt(reqIdStr));
     //console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
     // Ensure 'time' is in the y array
-    if (!y.includes('time')) {
-        y = [...y, 'time'];
+    if (!y.includes(timeField)) {
+        y = [...y, timeField];
     }
     // Ensure 'cycle' is in the y array
     if (!y.includes('cycle')) {
@@ -1029,7 +1002,7 @@ export async function fetchScatterData(
         //    e.g. y = [...y, x] or make a separate check for x.
         // Only apply NOT isnan(...) to columns that are not "time"
         const yNanClause = y
-            .filter((col) => col !== 'time')
+            .filter((col) => col !== timeField)
             .map((col) => `NOT isnan(${col})`)
             .join(' AND ');
 

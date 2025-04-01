@@ -223,7 +223,7 @@ onmessage = async (event) => {
                 'arrowrec.eof': async (result:any) => {
                     arrowCbNdx++;
                     //console.log('arrowrec.eof arrowCbNdx:',arrowCbNdx,' result:', result);
-                    await db.updateRequestRecord( {req_id:reqID, status: 'Success',status_details: 'EOF checksum present.',checksum: result.checksum});
+                    await db.updateRequestRecord( {req_id:reqID, status: 'Success',status_details: 'EOF checksum present.',checksum: result.checksum},true);
                     num_EOF_recs_processed++;
                 },
                 exceptrec: async (result:any) => {

@@ -218,6 +218,9 @@ export const useChartStore = defineStore('chartStore', {
             } else if(func.includes('atl08')) {
                 const ret = ['solid'];
                 return ret.concat(this.getYDataOptions(reqIdStr));
+            } else if(func.includes('atl24')) {
+                const ret = ['solid'];
+                return ret.concat(this.getYDataOptions(reqIdStr));
             } else {
                 console.error('getColorEncodeOptionsForFunc() unknown function:', func);
                 return [];
@@ -262,6 +265,8 @@ export const useChartStore = defineStore('chartStore', {
             } else if (func.includes('atl06')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl08')) {
+                this.setXDataForChart(reqIdStr,'x_atc');
+            } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else {
                 console.error('setXDataForChartFromFunc() unknown function:', func);

@@ -2,7 +2,7 @@ import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
 import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import type { SrSvrParmsUsed } from '@/types/SrTypes';
+import type { SrSvrParmsUsed, SrSvrParmsPolyOnly } from '@/types/SrTypes';
 import type { SrRegion } from '@/sliderule/icesat2';
 
 export const DEFAULT_DESCRIPTION = '';
@@ -113,6 +113,19 @@ export function hashPoly(poly: {lat: number, lon:number}[]): string {
     return Math.round(value * factor) / factor;
   }
   
+function getServerParams(request:SrRequestRecord): SrSvrParmsUsed|SrSvrParmsPolyOnly|NullReqParams {
+    try {
+        if (request.svr_parms) {
+            return request.svr_parms as SrSvrParmsUsed;
+        } else {
+            console.error(`No svr_parms found for req_id ${request.req_id}`);
+            return {} as NullReqParams;
+        }
+    } catch (error) {
+        console.error(`Failed to get svr_parms for req_id ${request.req_id}:`, error);
+        throw error;
+    }
+}
 
 export class SlideRuleDexie extends Dexie {
     // 'requests' are added by dexie when declaring the stores()
@@ -743,11 +756,16 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+
     async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams> {
         try {
             const request = await this.requests.get(req_id);
             if (request) {
-                return request.svr_parms as SrSvrParmsUsed;
+                if(request.func === 'atl24x'){
+                    return request.svr_parms as SrSvrParmsPolyOnly;
+                } else {
+                    return request.svr_parms as SrSvrParmsUsed;
+                }
             } else {
                 console.error(`No request found with req_id ${req_id}`);
                 return {} as NullReqParams;
@@ -760,16 +778,25 @@ export class SlideRuleDexie extends Dexie {
 
     async getSvrReqPoly(req_id:number): Promise<SrRegion> {
         try {
-            const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
+            const request = await this.requests.get(req_id);
+
+            const svrParmsUsedStr = getServerParams(request as SrRequestRecord);
+
+            //const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
+            //console.log('svrParmsUsedStr:',svrParmsUsedStr);
             if(svrParmsUsedStr){
+
                 const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
-                if(svrParmsUsed.server.rqst.parms){
+                
+                if(svrParmsUsed.server){
                     if(svrParmsUsed.server.rqst.parms){
                         return svrParmsUsed.server.rqst.parms.poly;
                     } else {
                         console.error(`No svr_parms found with req_id ${req_id}`);
                         return {} as SrRegion;
                     }
+                } else if(svrParmsUsed.poly){
+                    return svrParmsUsed.poly; //atl24x with new server format
                 } else {
                     console.error(`No svr_parms found with req_id ${req_id}`);
                     return {} as SrRegion;
@@ -840,7 +867,7 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    async updateRequestRecord(updateParams: Partial<SrRequestRecord>, updateTime=true): Promise<void> {
+    async updateRequestRecord(updateParams: Partial<SrRequestRecord>, updateTime=false): Promise<void> {
         const { req_id } = updateParams;
         if (!req_id) {
             console.error('Request ID is required to update. updateParams:', updateParams);

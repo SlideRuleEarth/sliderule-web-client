@@ -71,9 +71,19 @@ export interface Region {
   }
   
   export interface SrSvrParmsUsed {
-    server: Server;
-    recordinfo: RecordInfo;
+    server?: Server;
+    poly?: LatLon[]; // supports atl24x and new format TBD update this for other APIs when server is updated
+    recordinfo?: RecordInfo;
   }
+
+  interface LatLon {
+    lat: number;
+    lon: number;
+  }
+  
+  export interface SrSvrParmsPolyOnly {
+  }
+  
   export interface SrMenuNumberItem {
     label: string;
     value: number;
@@ -104,7 +114,7 @@ export type SrRGBAColor = [number, number, number, number];
 export type SrPosition = [number, number, number];
 
 // Define a type for the valid API names
-export const API_NAMES = ['atl06p', 'atl06sp', 'atl08sp', 'atl03sp', 'atl03vp', 'gedi01bp', 'gedi02ap', 'gedi04ap'] as const;
+export const API_NAMES = ['atl06p', 'atl06sp', 'atl08sp', 'atl03sp', 'atl03vp', 'atl24x', 'gedi01bp', 'gedi02ap', 'gedi04ap'] as const;
 export type ApiName = (typeof API_NAMES)[number];
 
 export function isValidAPI(api: string): api is ApiName {

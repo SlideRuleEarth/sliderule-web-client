@@ -21,7 +21,6 @@
     import { updateMapView, renderSvrReqPoly, resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
     import SrRecSelectControl from "@/components/SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
-    import { getHFieldName } from "@/utils/SrDuckDbUtils";
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrColMapSelControl from "@/components/SrColMapSelControl.vue";
     import { useSrToastStore } from "@/stores/srToastStore";
@@ -43,6 +42,7 @@
     import SrBaseLayerControl from "@/components/SrBaseLayerControl.vue";
     import { findSrViewKey, srViews, getDefaultBaseLayerForView } from "@/composables/SrViews";
     import { addLayersForCurrentView } from "@/composables/SrLayers";
+    import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -64,6 +64,7 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
+    const fncs = useFieldNameCacheStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const controls = ref([]);
     const tooltipRef = ref();
@@ -84,7 +85,7 @@
         return elevationIsLoading.value ? "Loading" : "Loaded";
     }); 
     const computedHFieldName = computed(() => {
-        return getHFieldName(recTreeStore.selectedReqId);
+        return fncs.getHFieldName(recTreeStore.selectedReqId);
     });
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
