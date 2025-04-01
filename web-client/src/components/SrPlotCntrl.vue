@@ -165,7 +165,7 @@ const shouldDisplayGradientColorLegend = computed(() => {
             if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl03_cnf'){
                 should = true;
             }
-        } else if(func.includes('atl06') || func.includes('atl08')){
+        } else if(func.includes('atl06') || func.includes('atl08') || func.includes('atl24')){
             if(selectedColorEncodeData !== 'solid'){
                 should = true;
             }
@@ -202,7 +202,7 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
 });
 
 const isTimeSeries = computed(() => {
-    if(activeTabStore.activeTabLabel !== 'Time Series'){
+    if(activeTabStore.activeTabLabel === 'Time Series'){
         return true;
     } else {
         return false;
@@ -215,7 +215,7 @@ onMounted(async () => {
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
     //console.log('computedFunc:', computedFunc.value);
-    if(!isTimeSeries.value){
+    if(isTimeSeries.value){
         chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
     }
 });

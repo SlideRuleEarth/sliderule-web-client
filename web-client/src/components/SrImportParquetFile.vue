@@ -79,7 +79,7 @@ const customUploader = async (event:any) => {
             const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
             srReqRec.svr_parms = svr_parms_str;
             console.log('customUploader srReqRec:', srReqRec);
-            await db.updateRequestRecord(srReqRec); 
+            await db.updateRequestRecord(srReqRec,true); 
             // console.log('Updated srReqRec:', srReqRec);
             // console.log('svr_parms:', svr_parms);
             await recTreeStore.updateRecMenu('From customUploader',srReqRec.req_id);// update the menu to include new item
@@ -88,7 +88,7 @@ const customUploader = async (event:any) => {
             console.log('Summary:', summary);
             if(summary){
                 srReqRec.cnt = summary.numPoints;
-                await db.updateRequestRecord(srReqRec); 
+                await db.updateRequestRecord(srReqRec,true); 
                 const msg = `File imported and copied to OPFS successfully!`;
                 console.log(msg);
                 emit('file-imported', srReqRec.req_id.toString());

@@ -476,7 +476,7 @@ function createDeckLayer(
     const elevationColorMapStore = useElevationColorMapStore();
     const deckStore = useDeckStore();
     const highlightPntSize = deckStore.getPointSize() + 1;
-
+    //console.log(`createDeckLayer ${name} positions:`, positions);
     // Precompute color for each data point once.
     const precomputedColors: SrRGBAColor[] = elevationData.map(d => {
         let color: [number, number, number, number] = [255, 255, 255, 255]; // default (white)
@@ -942,7 +942,7 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number,layerName:string='
 export async function updateSrViewName(srViewName:string): Promise<void> {
     
     if (srViewName) {
-        await db.updateRequestRecord({req_id:useRecTreeStore().selectedReqId ,srViewName: srViewName});
+        await db.updateRequestRecord({req_id:useRecTreeStore().selectedReqId ,srViewName: srViewName},false);
         console.log(`updateSrViewName: Updated srViewName to ${srViewName} for req_id: ${useRecTreeStore().selectedReqId}`);
     } else {
         console.error("SrMap Error: srViewKey is null when trying to handleUpdateBaseLayer");

@@ -15,9 +15,11 @@
 import { onMounted, ref } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
-import { getHFieldNameForFuncStr } from "@/utils/SrDuckDbUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
+
 const recTreeStore = useRecTreeStore();
+const fncs = useFieldNameCacheStore();
 
 // Props definition
 const props = withDefaults(
@@ -36,7 +38,7 @@ const props = withDefaults(
 const chartStore = useChartStore();
 
 const computedDisplayIt = computed(() => {
-  return ( chartStore.getMinValue(props.reqIdStr, computedHFieldName) !== null && chartStore.getMaxValue(props.reqIdStr, computedHFieldName) !== null);
+  return ( chartStore.getMinValue(props.reqIdStr, computedHFieldName.value) !== null && chartStore.getMaxValue(props.reqIdStr, computedHFieldName.value) !== null);
 });
 
 const computedSolidColor = computed(() => {
@@ -44,11 +46,11 @@ const computedSolidColor = computed(() => {
 })
 
 const computedReqId = computed(() => {
-  return Number(props.reqId);
+  return Number(props.reqIdStr);
 });
 
 const computedHFieldName = computed(() => {
-  return getHFieldNameForFuncStr(recTreeStore.selectedApi);
+  return fncs.getHFieldName(computedReqId.value);
 });
 
 const computedTitle = computed(() => {

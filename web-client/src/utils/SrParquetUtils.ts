@@ -237,14 +237,14 @@ export function updateFilename(req_id: number, filename: string): { func: string
     return { func, newFilename };
 }
 
-export function elIsLoaded():boolean {
-   return (
-        (useMapStore().getTotalRows() > 0) &&
-        (   (useMapStore().getCurrentRows() >= useMapStore().getTotalRows()) ||
-            (useMapStore().getCurrentRows() >= useSrParquetCfgStore().getMaxNumPntsToDisplay())
-        )
-    );
-}
+// export function elIsLoaded():boolean {
+//    return (
+//         (useMapStore().getTotalRows() > 0) &&
+//         (   (useMapStore().getCurrentRows() >= useMapStore().getTotalRows()) ||
+//             (useMapStore().getCurrentRows() >= useSrParquetCfgStore().getMaxNumPntsToDisplay())
+//         )
+//     );
+// }
 
 export const nukeSlideRuleFolder = async () => {
     const folderName = 'SlideRule';

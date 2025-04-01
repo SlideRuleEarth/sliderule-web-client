@@ -75,7 +75,7 @@ export async function abortedMsg(req_id:number, msg: string): Promise<WorkerMess
     const workerAbortedMsg: WorkerMessage =  { req_id:req_id, status: 'aborted', msg:`Aborting req_id: ${req_id}`};
     try{
         // initialize request record in db
-        await db.updateRequestRecord( {req_id:req_id, status: 'aborted',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'aborted',status_details: msg},true);
     } catch (error) {
         console.error('Failed to update request status to aborted:', error, ' for req_id:', req_id);
     }
@@ -105,7 +105,7 @@ export async function errorMsg(req_id:number=0, workerError: WorkerError): Promi
     const workerErrorMsg: WorkerMessage = { req_id:req_id, status: 'error', error: workerError };
     if(req_id > 0) {
         try{
-            await db.updateRequestRecord( {req_id:req_id, status: 'error',status_details: workerError.message});
+            await db.updateRequestRecord( {req_id:req_id, status: 'error',status_details: workerError.message},true);
         } catch (error) {
             console.error('Failed to update request status to error:', error, ' for req_id:', req_id);
         }
@@ -118,7 +118,7 @@ export async function errorMsg(req_id:number=0, workerError: WorkerError): Promi
 export async function successMsg(req_id:number, msg:string): Promise<WorkerMessage> {
     const workerSuccessMsg: WorkerMessage = { req_id:req_id, status: 'success', msg:msg };
     try{
-        await db.updateRequestRecord( {req_id:req_id, status: 'success',status_details: msg});
+        await db.updateRequestRecord( {req_id:req_id, status: 'success',status_details: msg},true);
     } catch (error) {
         console.error('Failed to update request status to success:', error, ' for req_id:', req_id);
     }

@@ -11,6 +11,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         atl08sp: 10000,
         atl03sp: 350,
         atl03vp: 350,
+        atl24x:  1000,
         gedi01bp: 350,//TBD find out what to use for Gedi this is a placeholder 
         gedi02ap: 350,
         gedi04ap: 350,
@@ -23,6 +24,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         atl08sp: 5000,
         atl03sp: 100,
         atl03vp: 100,
+        atl24x:  750,
         gedi01bp: 350,//TBD find out what to use for Gedi this is a placeholder 
         gedi02ap: 350,
         gedi04ap: 350,

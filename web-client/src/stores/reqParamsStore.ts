@@ -26,8 +26,7 @@ const createReqParamsStore = (id: string) =>
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
         iceSat2SelectedAPI: 'atl06p' as string,
-        //iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24s'] as string[],
-        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p'] as string[],
+        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03vp','atl08p','atl24x'] as string[],
         gediSelectedAPI: 'gedi01bp' as string,
         gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
         using_worker: false,
@@ -314,17 +313,19 @@ const createReqParamsStore = (id: string) =>
               this.setAsset('gedil4a');
             }
           }
-          req.asset = this.getAsset();
           if(this.iceSat2SelectedAPI==='atl08p') {
             req.phoreal = {};
           }
-          if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
-            req.srt = -1; // and not [-1]
+          if(this.iceSat2SelectedAPI === 'atl24x'){
+            req.atl24 = {"confidence_threshold": 0.60}; // default confidence threshold for ATL24
           } else {
-            if(this.surfaceReferenceType.length>0){
-            req.srt = this.getSrt();
-            req.srt = this.getSrt();
-              req.srt = this.getSrt();
+            req.asset = this.getAsset();
+            if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+              req.srt = -1; // and not [-1]
+            } else {
+              if(this.surfaceReferenceType.length>1){
+                req.srt = this.getSrt();
+              }
             }
           }
           if(this.signalConfidenceNumber.length>0){

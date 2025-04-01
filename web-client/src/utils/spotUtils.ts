@@ -1,4 +1,3 @@
-
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -214,7 +213,7 @@ export function createWhereClause(reqId:number){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
             }
         }
-    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08'))) {
+    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('atl24'))) {
         if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if( rgt >= 0){
@@ -238,7 +237,7 @@ export function createWhereClause(reqId:number){
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    console.log('createWhereClause: reqId:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'use_y_atc_filter:', use_y_atc_filter, 'y_atc_is_valid:', y_atc_is_valid, 'selected_y_atc:', selected_y_atc, 'y_atc_margin:', y_atc_margin, 'whereStr:', whereStr);
+    //console.log('createWhereClause: reqId:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'use_y_atc_filter:', use_y_atc_filter, 'y_atc_is_valid:', y_atc_is_valid, 'selected_y_atc:', selected_y_atc, 'y_atc_margin:', y_atc_margin, 'whereStr:', whereStr);
     return whereStr;
 }
 

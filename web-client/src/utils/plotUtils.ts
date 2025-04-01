@@ -20,6 +20,7 @@ import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
+import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -82,19 +83,7 @@ export interface SrScatterSeriesData{
 
 export function getDefaultColorEncoding(reqId:number) {
     const func = useRecTreeStore().findApiForReqId(reqId);
-    if(func.includes('atl03sp')) {
-        return 'atl03_cnf';
-    } else if(func.includes('atl03vp')) {
-        return 'segment_ph_cnt';
-    } else if(func.includes('atl08')) {
-        return 'h_mean_canopy';
-    } else if(func.includes('atl06sp')) {
-        return 'h_li';
-    } else if(func.includes('atl06')) {
-        return 'h_mean';
-    } else {
-        return 'solid';
-    }
+    return useFieldNameCacheStore().getDefaultColorEncoding(func);
 }
 
 export function initializeColorEncoding(reqId:number){
@@ -400,18 +389,38 @@ async function getSeriesForAtl08(
     x: string,
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-return getGenericSeries({
-    reqIdStr,
-    fileName,
-    x,
-    y,
-    fetchOptions,
-    fetchData: fetchScatterData,         // function to fetch data
-    minMaxProperty: 'normalizedMinMaxValues', // note the difference
-    zValue: 10,                               // z value for ATL06
-    functionName: 'getSeriesForAtl08',
-});
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+    return getGenericSeries({
+        reqIdStr,
+        fileName,
+        x,
+        y,
+        fetchOptions,
+        fetchData: fetchScatterData,         // function to fetch data
+        minMaxProperty: 'normalizedMinMaxValues', 
+        zValue: 10,                               // z value for ATL06
+        functionName: 'getSeriesForAtl08',
+    });
+}
+
+async function getSeriesForAtl24(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+    return getGenericSeries({
+        reqIdStr,
+        fileName,
+        x,
+        y,
+        fetchOptions,
+        fetchData: fetchScatterData,         // function to fetch data
+        minMaxProperty: 'normalizedMinMaxValues', 
+        zValue: 10,                               // z value for ATL24
+        functionName: 'getSeriesForAtl24',
+    });
 }
 
 export function clearPlot() {
@@ -455,7 +464,7 @@ export function formatTooltip(params: any) {
 
 async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now(); 
     const fileName = chartStore.getFile(reqIdStr);
     const reqId = Number(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
@@ -472,6 +481,8 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
             } else if(func.includes('atl08')){
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl24')){
+                seriesData = await getSeriesForAtl24(reqIdStr, fileName, x, y);
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
@@ -485,7 +496,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     } catch (error) {
         console.error('getSeriesFor Error:', error);
     } finally {
-        const endTime = performance.now(); // End time
+        const endTime = performance.now(); 
         console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds. seriesData.length:`, seriesData.length);
         //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
     }
@@ -550,7 +561,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
 }
 
 export async function initChartStore() {
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now(); 
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
     for (const reqIdItem of recTreeStore.reqIdMenuItems) {
@@ -562,7 +573,7 @@ export async function initChartStore() {
         }
         await initSymbolSize(reqId);
     }
-    const endTime = performance.now(); // End time
+    const endTime = performance.now(); 
     console.log(`initChartStore took ${endTime - startTime} milliseconds.`);
 }
 
@@ -571,7 +582,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const chartStore = useChartStore();
     const globalChartStore = useGlobalChartStore();
     const atlChartFilterStore = useAtlChartFilterStore();
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now(); 
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
@@ -688,7 +699,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
         console.error('getScatterOptions Error:', error);
     } finally {
         //console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
-        const endTime = performance.now(); // End time
+        const endTime = performance.now(); 
         console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`,options);
         return options;
     }
@@ -1097,7 +1108,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
 }
 
 export async function updatePlotAndSelectedTrackMapLayer(msg:string){
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now(); 
     console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const globalChartStore = useGlobalChartStore();
@@ -1116,7 +1127,7 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
         console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
         console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
     }
-    const endTime = performance.now(); // End time
+    const endTime = performance.now(); 
     console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
 }
 let updatePlotTimeoutId: number | undefined;
@@ -1169,6 +1180,8 @@ export async function initSymbolSize(req_id: number):Promise<number>{
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl06SymbolSize  ?? 3);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
     } else if (func.includes('atl08')) {
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
+    } else if (func.includes('atl24')) {
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
     } else if (func.includes('gedi')) {
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
