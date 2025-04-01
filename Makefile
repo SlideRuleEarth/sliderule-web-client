@@ -36,6 +36,9 @@ live-update-testsliderule: ## Update the web client at testsliderule.org with ne
 live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
 	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
 
+live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
+	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
+
 build: ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
@@ -93,6 +96,13 @@ deploy-client-to-client-dot-testsliderule: ## Deploy the web client to the tests
 
 destroy-client-dot-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient-dot DOMAIN_APEX=testsliderule.org
+
+deploy-client-to-client-dot-slideruleearth: ## Deploy the web client to the client.slideruleearth.io cloudfront and update the s3 bucket
+	make deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io && \
+	make live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io
+
+destroy-client-dot-slideruleearth: ## Destroy the web client from the client.slideruleearth.io cloudfront and remove the S3 bucket
+	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io
 
 deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org  

@@ -4,6 +4,7 @@ data "aws_route53_zone" "public" {
 }
 
 resource "aws_acm_certificate" "mysite" {
+  //provider                  = aws.us_east_1
   domain_name               = "${var.domainApex}"  # Root domain
   subject_alternative_names = ["*.${var.domainApex}"]  # Wildcard domain for subdomains
   validation_method         = "DNS"
@@ -34,6 +35,7 @@ resource "aws_route53_record" "cert_validation_wildcard" {
 
 # ACM Certificate Validation for both records
 resource "aws_acm_certificate_validation" "cert" {
+  //provider                = aws.us_east_1
   certificate_arn         = aws_acm_certificate.mysite.arn
   validation_record_fqdns = [
     aws_route53_record.cert_validation_root.fqdn,
