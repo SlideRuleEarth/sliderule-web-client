@@ -111,7 +111,7 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
                 return;
             }
             atl24ClassColorMap.value[ndx] = namedColorValue;
-            await db.addOrUpdateAtl24ClassColor(value,namedColorValue);
+            await db.addOrUpdateAtl24ClassColor(ndx,namedColorValue);
         }
 
         return {

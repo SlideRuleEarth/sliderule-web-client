@@ -529,7 +529,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Check the number range
             if (number < 0 || number > 2) {
-                throw new Error('Number must be between 0 and 2.');
+                throw new Error('Number must be between 0 and 2. number:' + number);
             }
 
             // Check if there's already an entry for the given number
