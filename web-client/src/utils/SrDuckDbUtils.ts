@@ -499,7 +499,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             use_y_atc_filter = false;
         }
 
-        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24')) {
+        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24') || func.includes('atl03x')) {
             queryStr = `
                 SELECT * FROM read_parquet('${filename}') 
                 WHERE rgt = ${rgt}

@@ -26,7 +26,7 @@ function getDefaultElOptions(funcStr: string): string[] {
         case 'atl06sp': return ['h_li','y_atc','cycle'];
         case 'atl03vp': return ['segment_ph_cnt'];
         case 'atl03sp': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
-        case 'atl03x': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
+        case 'atl03x': return ['height','yapc_score','atl03_cnf','atl24_class','y_atc','cycle'];
         case 'atl08p': return ['h_mean_canopy','y_atc','cycle'];
         case 'atl24x': return ['ortho_h','confidence','y_atc','cycle'];
         case 'gedi02ap': return['elevation_hr'];
@@ -46,7 +46,7 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
-    return funcStr === 'atl24x' ? 'time_ns' : 'time';
+    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
 }
 
 function getDefaultColorEncoding(funcStr: string): string {

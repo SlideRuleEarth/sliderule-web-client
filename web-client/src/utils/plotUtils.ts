@@ -356,51 +356,7 @@ export async function getSeriesForAtl03x(
     const chartStore = useChartStore();
     const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
     const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
-    const fetchOptions: FetchScatterDataOptions = {
-        normalizeX: false,
-        extraSelectColumns: ['segment_dist'],
-        /**
-         * handleMinMaxRow:
-         * Called once for the “min/max” result row. We replicate the logic:
-         *    minX = 0
-         *    maxX = max_x + max_segment_dist - min_segment_dist - min_x
-         * Store it in chartStore, or anywhere you like.
-         */
-        handleMinMaxRow: (reqId, row) => {
-            chartStore.setMinX(reqId, 0);
-            chartStore.setMaxX(
-                reqId,
-                row.max_x + row.max_segment_dist - row.min_segment_dist - row.min_x
-            );
-        },
-
-        /**
-         * transformRow:
-         * Called for each record in the main query. Return an array of numbers:
-         *  e.g. [ xOffset, y1, y2?, atl03_cnf, atl08_class, yapc_score ]
-         *
-         * xOffset = row[x] + row.segment_dist - min_segment_dist
-         * (We rely on the minMaxValues passed in. By default, fetchScatterData
-         * fills minMaxValues['segment_dist'] from the MIN/MAX query.)
-         */
-        transformRow: (row, xCol, yCols, minMaxValues,dataOrderNdx,orderNdx) => {
-            // figure out the offset for X
-            const segMin = minMaxValues['segment_dist']?.min || 0;
-            const xVal = row[xCol] + row.segment_dist - segMin;
-            orderNdx = setDataOrder(dataOrderNdx,'x',orderNdx);
-
-            // Start with [xVal], then push each y
-            const out = [xVal];
-            for (const yName of yCols) {
-                // If one of the yCols is actually "segment_dist" skip it.
-                if (yName !== 'segment_dist') {
-                    out.push(row[yName]);
-                    orderNdx = setDataOrder(dataOrderNdx,yName,orderNdx);
-                }
-            }
-            return [out,orderNdx];
-        },
-    };
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
     const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){

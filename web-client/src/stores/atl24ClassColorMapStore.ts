@@ -65,8 +65,14 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
         }
 
         const getColorForAtl24ClassValue = (value:number) => { // value is the atl24_class value 0 to 4
-            const ndx = value;
-            if(ndx < 0 || ndx > 4){
+            let ndx = value;
+            if(value == 0){
+                ndx = 0; // unclassified
+            } else if(value == 40){
+                ndx = 1; // bathymetry
+            } else if(value == 41){
+                ndx = 2; // sea surface
+            } else {
                 console.error('getRGBColorForAtl24ClassValue invalid value:',value);
                 return 'White'; // Return White for invalid values
             }
