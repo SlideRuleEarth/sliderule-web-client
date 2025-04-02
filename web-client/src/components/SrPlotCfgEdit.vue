@@ -82,7 +82,6 @@
   import InputNumber from 'primevue/inputnumber';
   import InputText from 'primevue/inputtext';
   import Dropdown from 'primevue/dropdown';
-  import ToggleButton from 'primevue/togglebutton';
   import Button from 'primevue/button';
   import { db } from '@/db/SlideRuleDb';
   import type { SrPlotConfig } from '@/db/SlideRuleDb';
@@ -167,13 +166,6 @@
   .sr-card-footer {
     display: flex;
     justify-content: space-between;
-  }
-
-  .sr-button-primary {
-  
-  }
-  
-  .sr-button-secondary {
   }
 
 </style>

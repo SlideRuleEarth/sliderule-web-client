@@ -200,11 +200,14 @@ const createReqParamsStore = (id: string) =>
         target_numAtl06pRecs: 0,
         useChecksum: false,
         enableSurfaceElevation: false,
+        enableAtl24Classification: false,
+        atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
+        atl24_class_ph_Options: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
     }),
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine
-
+            const parentApi = await db.getFunc(parentReqId);
             this.setMissionValue("ICESat-2");
             this.setIceSat2API("atl03sp");
             this.setEnableGranuleSelection(true);//tracks and beams
@@ -220,8 +223,16 @@ const createReqParamsStore = (id: string) =>
             }
             this.setSrt([-1]);
             this.signalConfidenceNumber = [0,1,2,3,4];
-            this.enableAtl08Classification = true;
-            this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+            if(parentApi === 'atl24x'){
+              this.setIceSat2API("atl03x");
+              this.enableAtl24Classification = true;
+              this.enableAtl08Classification = false;
+              this.atl24_class_ph = this.atl24_class_ph_Options;
+            } else {
+              this.enableAtl24Classification = false;
+              this.enableAtl08Classification = true;
+              this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+            }
             this.enableYAPC = true;
             this.YAPCVersion = '0';
             this.setUseRgt(true);
@@ -414,6 +425,14 @@ const createReqParamsStore = (id: string) =>
               req.atl08_class = this.atl08LandType;
             }
           }
+
+          if(this.enableAtl24Classification) {
+            if (!req.atl24) req.atl24 = {}; 
+            if(this.atl24_class_ph.length>0){
+              req.atl24.class_ph = this.atl24_class_ph;
+            }
+          }
+
           if(this.enableYAPC) {
             const yapc:YapcConfig = {
               version: Number(this.getYAPCVersion()),

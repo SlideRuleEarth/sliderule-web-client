@@ -9,6 +9,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl06sp': return 'h_li';
         case 'atl03vp': return 'segment_ph_cnt';
         case 'atl03sp': return 'height';
+        case 'atl03x': return 'height';
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
         case 'gedi02ap': return 'elevation_hr';
@@ -25,8 +26,9 @@ function getDefaultElOptions(funcStr: string): string[] {
         case 'atl06sp': return ['h_li','y_atc','cycle'];
         case 'atl03vp': return ['segment_ph_cnt'];
         case 'atl03sp': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
+        case 'atl03x': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
         case 'atl08p': return ['h_mean_canopy','y_atc','cycle'];
-        case 'atl24x': return ['ortho_h','y_atc','cycle'];
+        case 'atl24x': return ['ortho_h','confidence','y_atc','cycle'];
         case 'gedi02ap': return['elevation_hr'];
         case 'gedi04ap': return  ['agbd'];
         case 'gedi01bp': return ['elevation_start'];
@@ -48,11 +50,15 @@ function getTimeFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getDefaultColorEncoding(funcStr: string): string {
-    try{
-       return getHFieldNameForAPIStr(funcStr); 
+    try {
+        if (funcStr === 'atl03sp'){
+            return 'atl03_cnf';
+        } else {
+            return getHFieldNameForAPIStr(funcStr);
+        } 
     }
     catch (error) {
-        return 'h_mean';
+        return 'solid';
     }
 }
 
