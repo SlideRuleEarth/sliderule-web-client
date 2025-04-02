@@ -27,24 +27,29 @@ const fetchDescription = async () => {
         descrRef.value = await db.getDescription(props.reqId);
         //console.log('fetchDescription called with reqId:', props.reqId,'descrRef.value:', descrRef.value);
         if(!descrRef.value) {
-            const summary = await db.getWorkerSummary(props.reqId);
-            if (summary && summary.extLatLon) {
-                const c = getCenter(summary.extLatLon);
-                    // Fetch address data from OpenStreetMap
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lon}`
-                );
-                const data = await response.json();
-                const descr = data.display_name;
-                console.log('fetchDescription New Description:', descr);
-                // If display_name is available, update the request record
-                if (data && descr) {
-                    descrRef.value = descr;
-                    db.updateRequest(props.reqId, {description: descrRef.value} );
+            const status = await db.getStatus(props.reqId);
+            if(status === 'success' || status === 'imported') {
+                const summary = await db.getWorkerSummary(props.reqId);
+                if (summary && summary.extLatLon) {
+                    const c = getCenter(summary.extLatLon);
+                        // Fetch address data from OpenStreetMap
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lon}`
+                    );
+                    const data = await response.json();
+                    const descr = data.display_name;
+                    console.log('fetchDescription New Description:', descr);
+                    // If display_name is available, update the request record
+                    if (data && descr) {
+                        descrRef.value = descr;
+                        db.updateRequest(props.reqId, {description: descrRef.value} );
+                    }
+                } else {
+                    console.error('fetchDescription No extLatLon found for reqId:', props.reqId);
+                    // Handle the case where no extLatLon is found
                 }
             } else {
-                console.error('fetchDescription No extLatLon found for reqId:', props.reqId);
-                // Handle the case where no extLatLon is found
+                console.warn('fetchDescription No description available for status:', status);
             }
         } else {
             //console.log('fetchDescription Description:', descrRef.value);
