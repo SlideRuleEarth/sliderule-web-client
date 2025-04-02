@@ -48,6 +48,13 @@
                         @restore-atl08-color-defaults-click="restoreAtl08DefaultColorsAndUpdatePlot" 
                         @atl08-class-color-changed="handleAtl08ClassColorChanged" 
                     />
+                    <SrAtl24ColorLegend 
+                        reqIdStr="reqIdStr"
+                        v-if="shouldDisplayAtl24ColorLegend"
+                        @restore-atl24-color-defaults-click="restoreAtl24DefaultColorsAndUpdatePlot" 
+                        @atl24-class-color-changed="handleAtl24ClassColorChanged" 
+                    />
+
                     <SrGradientLegendCntrl 
                         v-if="shouldDisplayGradientColorLegend"
                         :label="gradientLabel"
@@ -111,11 +118,13 @@ import { OverlayBadge } from 'primevue';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
+import { useAtl24ClassColorMapStore } from '@/stores/atl24ClassColorMapStore';
 import { initDataBindingsToChartStore, yDataSelectedReactive, yColorEncodeSelectedReactive, solidColorSelectedReactive, initializeColorEncoding, showYDataMenuReactive } from '@/utils/plotUtils';
 import { computed, onMounted, ref } from 'vue';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrAtl03ColorLegend from '@/components/SrAtl03ColorLegend.vue';
 import SrAtl08ColorLegend from '@/components/SrAtl08ColorLegend.vue';
+import SrAtl24ColorLegend from '@/components/SrAtl24ColorLegend.vue';
 import SrGradientLegendCntrl from '@/components/SrGradientLegendCntrl.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
@@ -139,6 +148,7 @@ const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 
 const chartStore = useChartStore();
 const colorMapStore = useColorMapStore();
 const atl08ClassColorMapStore = ref<any>(null);
+const atl24ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
 const activeTabStore = useActiveTabStore();
 const reqIdStr = computed(() => props.reqId.toString());
@@ -201,6 +211,19 @@ const shouldDisplayAtl08ColorLegend = computed(() => {
     return should;
 });
 
+
+const shouldDisplayAtl24ColorLegend = computed(() => {
+    const func = recTreeStore.findApiForReqId(props.reqId);
+    const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(reqIdStr.value);
+    let should = false;
+    if(func.includes('atl03') && selectedColorEncodeData === 'atl24_class'){
+        should = true;
+    }
+    //console.log('func',func, 'selectedColorEncodeData:',selectedColorEncodeData,' computed: shouldDisplayAtl08ColorLegend:', should);
+    return should;
+});
+
+
 const isTimeSeries = computed(() => {
     if(activeTabStore.activeTabLabel === 'Time Series'){
         return true;
@@ -212,6 +235,7 @@ const isTimeSeries = computed(() => {
 onMounted(async () => {
     atl03CnfColorMapStore = await useAtl03CnfColorMapStore(props.reqId.toString());
     atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
+    atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
     initializeColorEncoding(props.reqId);
     //console.log('computedFunc:', computedFunc.value);
@@ -230,6 +254,12 @@ async function restoreAtl08DefaultColorsAndUpdatePlot() {
     //console.log('restoreAtl08DefaultColorsAndUpdatePlot');
     await atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
     await callPlotUpdateDebounced('from restoreAtl08DefaultColorsAndUpdatePlot');
+}
+
+async function restoreAtl24DefaultColorsAndUpdatePlot() {
+    //console.log('restoreAtl08DefaultColorsAndUpdatePlot');
+    await atl24ClassColorMapStore.value?.restoreDefaultAtl24ClassColorMap();
+    await callPlotUpdateDebounced('from restoreAtl24DefaultColorsAndUpdatePlot');
 }
 
 async function gradientDefaultColorMapRestored() {
@@ -285,6 +315,12 @@ const handleAtl08ClassColorChanged = async () => {
     console.log('handleAtl08ClassColorChanged');
     atl08ClassColorMapStore.value?.resetAtl08ClassColorCaches();
     await callPlotUpdateDebounced('from handleAtl08ClassColorChanged');
+};
+
+const handleAtl24ClassColorChanged = async () => {
+    console.log('handleAtl24ClassColorChanged');
+    atl24ClassColorMapStore.value?.resetAtl24ClassColorCaches();
+    await callPlotUpdateDebounced('from handleAtl24ClassColorChanged');
 };
 
 </script>

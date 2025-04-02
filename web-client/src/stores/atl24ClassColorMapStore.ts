@@ -12,8 +12,8 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
         const atl24ClassColorMap = ref([] as string[]);
         const atl24ClassOptions = [
             {label:'atl24_unclassified',value:0}, 
-            {label:'atl24_bathymetry',value:1}, 
-            {label:'atl24_sea_surface',value:2}, 
+            {label:'atl24_bathymetry',value:40}, 
+            {label:'atl24_sea_surface',value:41}, 
         ] as {label:string,value:number}[];
 
         async function initializeColorMapStore() {
@@ -73,7 +73,7 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
             } else if(value == 41){
                 ndx = 2; // sea surface
             } else {
-                console.error('getRGBColorForAtl24ClassValue invalid value:',value);
+                console.error('getColorForAtl24ClassValue invalid value:',value);
                 return 'White'; // Return White for invalid values
             }
             const c = atl24ClassColorMap.value[ndx];
