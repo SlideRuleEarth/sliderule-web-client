@@ -25,8 +25,8 @@
         >
             <SrAtl24ClassColorSelection
                 :reqIdStr="reqIdStr"
-                @selectionChanged="atl24ClassColorChanged"
-                @defaultsChanged="atl24ClassColorChanged"
+                @atl24selectionChanged="atl24ClassColorChanged"
+                @atl24defaultsChanged="atl24ClassColorChanged"
             />
         </Dialog>        
     </div>

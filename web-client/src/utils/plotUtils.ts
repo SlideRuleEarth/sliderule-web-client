@@ -859,7 +859,6 @@ function removeUnusedOptions(options:any):any {
     if (!options) {
         return {};
     }
-    delete options.toolbox;
     delete options.visualMap;
     delete options.timeline;
     delete options.calendar;

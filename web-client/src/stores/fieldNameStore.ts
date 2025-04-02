@@ -53,6 +53,8 @@ function getDefaultColorEncoding(funcStr: string): string {
     try {
         if (funcStr === 'atl03sp'){
             return 'atl03_cnf';
+        } else if (funcStr === 'atl03x'){
+            return 'atl24_class';           
         } else {
             return getHFieldNameForAPIStr(funcStr);
         } 

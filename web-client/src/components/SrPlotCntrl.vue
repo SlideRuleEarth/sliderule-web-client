@@ -172,7 +172,7 @@ const shouldDisplayGradientColorLegend = computed(() => {
     let should = false;
     if(selectedColorEncodeData && (selectedColorEncodeData !== 'unset')){
         if(func.includes('atl03')){
-            if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl03_cnf'){
+            if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl24_class' && selectedColorEncodeData !== 'atl03_cnf'){
                 should = true;
             }
         } else if(func.includes('atl06') || func.includes('atl08') || func.includes('atl24')){

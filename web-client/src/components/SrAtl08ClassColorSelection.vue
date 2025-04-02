@@ -43,17 +43,17 @@ const props = defineProps({
 
 const atl08ClassColorMapStore = ref<any>(null);
 const colorMapStore = useColorMapStore();
-const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
+const emit = defineEmits(['atl08selectionChanged', 'atl08defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
     console.log(`Selection changed for ${label}: ${color}`);
-    emit('selectionChanged', { label, color });
+    emit('atl08selectionChanged', { label, color });
 };
 
 const restoreDefaultAtl08ClassColorMap = () => {
     atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
-    emit('defaultsChanged', {});
+    emit('atl08defaultsChanged', {});
 };
 
 onMounted( async () => {

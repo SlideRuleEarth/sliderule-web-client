@@ -43,17 +43,17 @@ const props = defineProps({
 
 const atl24ClassColorMapStore = ref<any>(null);
 const colorMapStore = useColorMapStore();
-const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
+const emit = defineEmits(['atl24selectionChanged', 'atl24defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
     console.log(`Selection changed for ${label}: ${color}`);
-    emit('selectionChanged', { label, color });
+    emit('atl24selectionChanged', { label, color });
 };
 
 const restoreDefaultAtl24ClassColorMap = () => {
     atl24ClassColorMapStore.value?.restoreDefaultAtl24ClassColorMap();
-    emit('defaultsChanged', {});
+    emit('atl24defaultsChanged', {});
 };
 
 onMounted( async () => {

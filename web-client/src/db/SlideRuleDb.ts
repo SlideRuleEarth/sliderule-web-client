@@ -439,9 +439,9 @@ export class SlideRuleDexie extends Dexie {
     async restoreDefaultAtl24ClassColors(): Promise<void> {
         try {
             const defaultAtl24ClassColors: Atl03Color[] = [
-                { number: 0, color: 'slategray' }, // unclassified
-                { number: 1, color: 'green' }, // bathymetry
-                { number: 2, color: 'blue' },  // sea_surface
+                { number: 0, color: 'purple' }, // unclassified
+                { number: 1, color: 'greenyellow' }, // bathymetry
+                { number: 2, color: 'lightblue' },  // sea_surface
             ];
         
             // Clear existing entries in the table

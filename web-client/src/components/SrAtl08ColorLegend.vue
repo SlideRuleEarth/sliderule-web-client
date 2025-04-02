@@ -25,8 +25,8 @@
         >
             <SrAtl08ClassColorSelection
                 :reqIdStr="reqIdStr"
-                @selectionChanged="atl08ClassColorChanged"
-                @defaultsChanged="atl08ClassColorChanged"
+                @atl08selectionChanged="atl08ClassColorChanged"
+                @atl08defaultsChanged="atl08ClassColorChanged"
             />
         </Dialog>        
     </div>
@@ -34,11 +34,10 @@
   
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
-import { useColorMapStore } from '@/stores/colorMapStore';
 import SrAtl08Colors from '@/components/SrAtl08Colors.vue';
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
@@ -48,7 +47,6 @@ const props = defineProps({
         required: true
     }
 });
-const colorMapStore = useColorMapStore();
 
 // Dialog visibility state
 const showDialog = ref(false);

@@ -43,7 +43,7 @@ const props = defineProps({
 
 const colorMapStore = useColorMapStore();
 let atl03CnfColorMapStore = ref<any>(null);
-const emit = defineEmits(['selectionChanged', 'defaultsChanged']);
+const emit = defineEmits(['atl03selectionChanged', 'atl03defaultsChanged']);
 
 // Initialize the store
 onMounted(async () => {
@@ -52,13 +52,13 @@ onMounted(async () => {
 
 // Handle menu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
-    emit('selectionChanged', { label, color });
+    emit('atl03selectionChanged', { label, color });
 };
 
 const restoreDefaultAtl03CnfColorMap = () => {
     if(atl03CnfColorMapStore.value){
         atl03CnfColorMapStore.value.restoreDefaultAtl03CnfColorMap();
-        emit('defaultsChanged', {});
+        emit('atl03defaultsChanged', {});
     } else {
         console.error('atl03CnfColorMapStore is not initialized');
     }

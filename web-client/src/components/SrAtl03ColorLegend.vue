@@ -23,8 +23,8 @@
         >
             <SrAtl03CnfColorSelection
                 :reqIdStr="reqIdStr"
-                @selectionChanged="atl03CnfColorChanged"
-                @defaultsChanged="atl03CnfColorChanged"
+                @atl03selectionChanged="atl03CnfColorChanged"
+                @atl03defaultsChanged="atl03CnfColorChanged"
             />
         </Dialog>
     </div>
