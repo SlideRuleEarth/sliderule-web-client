@@ -88,6 +88,8 @@ export interface SrPlotConfig {
     defaultAtl03vpSymbolSize: number;
     defaultGradientColorMapName: string;
     defaultGradientNumShades: number;
+    defaultAtl24SymbolSize: number;
+    defaultAtl03xSymbolSize: number;
 }
 
 export function hashPoly(poly: {lat: number, lon:number}[]): string {
@@ -135,17 +137,19 @@ export class SlideRuleDexie extends Dexie {
     colors!: Table<SrColors>;
     atl03CnfColors!: Table<Atl03Color>;
     atl08ClassColors!: Table<Atl03Color>;
+    atl24ClassColors!: Table<Atl03Color>;
     runContexts!: Table<SrRunContextRecord>;
     plotConfig!: Table<SrPlotConfig>;
 
     constructor() {
         super('SlideRuleDataBase');
-        this.version(10).stores({
+        this.version(11).stores({
             requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
             summary: '++db_id, &req_id',
             colors: '&color',
             atl03CnfColors: 'number',
             atl08ClassColors: 'number',
+            atl24ClassColors: 'number',
             //find runContexts by (parentReqId + rgt + cycle + beam +track) in one go, define a compound index:
             runContexts: `
                 ++id, 
@@ -157,6 +161,17 @@ export class SlideRuleDexie extends Dexie {
                 track, 
                 [parentReqId+rgt+cycle+beam+track]`,
             plotConfig: 'id',  // single record table
+        }).upgrade(async (tx) => {
+            const table = tx.table<SrPlotConfig>('plotConfig');
+            await table.toCollection().modify((rec) => {
+                // If the record does not have the new fields, add them with defaults
+                if (rec.defaultAtl24SymbolSize === undefined) {
+                    rec.defaultAtl24SymbolSize = 4;
+                }
+                if (rec.defaultAtl03xSymbolSize === undefined) {
+                    rec.defaultAtl03xSymbolSize = 3;
+                }
+            });
         });
 
         this._initializeDefaultColors();
@@ -177,6 +192,13 @@ export class SlideRuleDexie extends Dexie {
             if (atl08ClassColorCount === 0) {
                 await this.restoreDefaultAtl08ClassColors();
             }
+
+            // Check and populate atl24ClassColors
+            const atl24ClassColorCount = await this.atl24ClassColors.count();
+            if (atl24ClassColorCount === 0) {
+                await this.restoreDefaultAtl24ClassColors();
+            }
+
             
             const plotConfig = await this.plotConfig.get(1);
             const gradientNumShades = plotConfig?.defaultGradientNumShades;
@@ -232,6 +254,8 @@ export class SlideRuleDexie extends Dexie {
                 defaultAtl03vpSymbolSize: 4,
                 defaultGradientColorMapName: 'viridis',
                 defaultGradientNumShades: 512,
+                defaultAtl24SymbolSize: 4,
+                defaultAtl03xSymbolSize: 3,
             });
 
             console.warn('plotConfig table restored to default values.');
@@ -410,7 +434,32 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         }
     }
-    
+
+    // Function to restore default colors for atl24ClassColors
+    async restoreDefaultAtl24ClassColors(): Promise<void> {
+        try {
+            const defaultAtl24ClassColors: Atl03Color[] = [
+                { number: 0, color: 'purple' }, // unclassified
+                { number: 1, color: 'greenyellow' }, // bathymetry
+                { number: 2, color: 'lightblue' },  // sea_surface
+            ];
+        
+            // Clear existing entries in the table
+            await this.atl24ClassColors.clear();
+            console.log('atl24ClassColors table cleared.');
+        
+            // Add default entries
+            for (const colorEntry of defaultAtl24ClassColors) {
+                await this.atl24ClassColors.add(colorEntry);
+            }
+        
+            console.log('Default atl24ClassColors restored:', defaultAtl24ClassColors);
+        } catch (error) {
+            console.error('Failed to restore default atl24ClassColors:', error);
+            throw error;
+        }
+    }
+  
     // Method to add or update a color for a given number in atl03CnfColors
     async addOrUpdateAtl03CnfColor(number: number, color: string): Promise<void> {
         try {
@@ -475,6 +524,37 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    // Method to add or update a color for a given number in atl24ClassColors
+    async addOrUpdateAtl24ClassColor(number: number, color: string): Promise<void> {
+        try {
+            // Check the number range
+            if (number < 0 || number > 2) {
+                throw new Error('Number must be between 0 and 2. number:' + number);
+            }
+
+            // Check if there's already an entry for the given number
+            const existingNumberEntry = await this.atl24ClassColors.where('number').equals(number).first();
+
+            if (existingNumberEntry) {
+                // If an entry exists with the same number, update the color
+                await this.atl24ClassColors.put({ color,number });
+                console.log(`Number updated in atl24ClassColors: ${color},${number}`);
+            } else {
+                // If no entry exists with the same number, check the size limit before adding
+                const count = await this.atl24ClassColors.count();
+                if (count >= 3) {
+                    throw new Error('Cannot add more than 3 colors to atl24ClassColors table.');
+                }
+
+                // Add the new number-color pair
+                await this.atl24ClassColors.add({ number, color });
+                console.log(`Number and color added to at24ClassColors: ${number}, ${color}`);
+            }
+        } catch (error) {
+            console.error('Failed to add or update number and color in atl24ClassColors:', error);
+            throw error;
+        }
+    }
 
     // Method to get all color-number pairs from atl03CnfColors in ascending order by number
     async getAllAtl03CnfColorNumberPairs(): Promise<Atl03Color[]> {
@@ -498,6 +578,19 @@ export class SlideRuleDexie extends Dexie {
             return colorRecords;
         } catch (error) {
             console.error('Failed to retrieve all atl08ClassColors:', error);
+            throw error;
+        }
+    }
+
+    // Method to get all color-number pairs from atl24ClassColors in ascending order by number
+    async getAllAtl24ClassColorNumberPairs(): Promise<Atl03Color[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl24ClassColors.orderBy('number').toArray();
+            //console.log('Retrieved all atl24ClassColors in ascending order:', colorRecords);
+            return colorRecords;
+        } catch (error) {
+            console.error('Failed to retrieve all atl24ClassColors:', error);
             throw error;
         }
     }
@@ -537,6 +630,23 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    // Method to get an ordered list of colors from atl24ClassColors sorted by ascending number
+    async getAllAtl24ClassColors(): Promise<string[]> {
+        try {
+            // Use orderBy to sort the results by the 'number' field in ascending order
+            const colorRecords = await this.atl24ClassColors.orderBy('number').toArray();
+            
+            // Map the sorted records to get an array of colors
+            const colors = colorRecords.map(record => record.color);
+            
+            //console.log('Retrieved ordered list of colors:', colors);
+            return colors;
+        } catch (error) {
+            console.error('Failed to retrieve ordered list of colors:', error);
+            throw error;
+        }
+    }
+
     // Method to delete a color-number pair by color from atl03CnfColors
     async deleteAtl03CnfColor(color: string): Promise<void> {
         try {
@@ -559,6 +669,16 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
+    // Method to delete a color-number pair by color from atl24ClassColors
+    async deleteAtl24ClassColor(color: string): Promise<void> {
+        try {
+            await this.atl24ClassColors.where('color').equals(color).delete();
+            console.log(`Color deleted from atl24ClassColors: ${color}`);
+        } catch (error) {
+            console.error(`Failed to delete color from atl24ClassColors: ${color}`, error);
+            throw error;
+        }
+    }
 
     private _useMiddleware(): void {
         this.use({
@@ -1092,7 +1212,7 @@ export class SlideRuleDexie extends Dexie {
 
     async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
-            const found = await this.runContexts
+            const candidates = await this.runContexts
                 .where('[parentReqId+rgt+cycle+beam+track]')
                 .equals([
                     runContext.parentReqId, 
@@ -1102,21 +1222,30 @@ export class SlideRuleDexie extends Dexie {
                     runContext.trackFilter.track
                 ])
                 .toArray();
-          
-            if (found.length <= 0) {
+    
+            if (candidates.length === 0) {
                 console.log(`No matching record found for run context:`, runContext);
                 return undefined;
+            } else {
+                console.log(`Found ${candidates.length} candidate(s) for run context:`, runContext);
             }
-            if (found.length > 1) {
-                console.warn(`Multiple matching records found for run context:`, runContext);
+    
+            // Filter candidates by checking if corresponding request has func === 'atl03x'
+            for (const rec of candidates) {
+                const req = await this.requests.get(rec.reqId);
+                if (req?.func === 'atl03x') {
+                    return rec.reqId;
+                }
             }
-            return found[0].reqId;
+    
+            console.log(`No atl03x func match found in ${candidates.length} candidate(s) for run context:`, runContext);
+            return undefined;
         } catch (error) {
-            console.error(`Failed to find matching record for run context:`, error);
+            console.error(`Failed to find matching atl03x record for run context:`, error);
             throw error;
         }
     }
-    
+        
     async addSrRunContext(runContext: SrRunContext): Promise<void> {
         try {
             const thisRunContextRecord: SrRunContextRecord = {

@@ -36,7 +36,7 @@ export async function checkDoneProcessing(  thisReqID:number,
         if(got_all_cbs || abortRequested){
             let status_details = 'No data returned from SlideRule.';
             if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
-                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  exceptions:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
+                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt notifications: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  notifications:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
             }
             let msg='';
             if(abortRequested){ // Abort requested
@@ -249,7 +249,7 @@ onmessage = async (event) => {
                         {
                             //console.warn('RTE_TIMEOUT: exceptrec result:', result.text);
                             postMessage(await serverMsg(reqID,`RTE_TIMEOUT msg: ${result.text}`));
-                            const msg =  `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
+                            const msg =  `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} notifications.`;
                             postMessage(await progressMsg(reqID, 
                                             {   
                                                 read_state:read_state,
@@ -287,7 +287,7 @@ onmessage = async (event) => {
                     num_svr_exceptions++;
                     if(num_svr_exceptions > exceptionsProgThresh){
                         exceptionsProgThresh = num_svr_exceptions + exceptionsProgThreshInc;
-                        const msg =  `Received ${num_svr_exceptions}/${target_numSvrExceptions} exceptions.`;
+                        const msg =  `Received ${num_svr_exceptions}/${target_numSvrExceptions} notifications.`;
                         postMessage(await progressMsg(reqID, 
                                         {
                                             read_state:read_state,
@@ -358,7 +358,7 @@ onmessage = async (event) => {
                                 postMessage(await errorMsg(reqID, { type: 'runWorkerError', code: 'WEBWORKER', message: 'Failed to get result from SlideRule.' }));
                             }
                             console.log(cmd.func,'  Done Reading: result:', result);
-                            const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} exceptions. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
+                            const msg =  `Done Reading; received  ${num_svr_exceptions}/${target_numSvrExceptions} notifications. num_arrow_data_recs:${num_arrow_dataFile_data_recs_processed+num_arrow_metaFile_data_recs_processed} num_arrow_meta_recs:${num_arrow_dataFile_meta_recs_processed+num_arrow_metaFile_meta_recs_processed}.`;
 
                             read_state = 'done_reading';
                             postMessage(await progressMsg(reqID, 

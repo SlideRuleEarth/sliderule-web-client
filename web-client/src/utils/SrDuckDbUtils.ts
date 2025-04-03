@@ -45,17 +45,17 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
     }
 }
 
-export async function getDefaultElOptions(reqId:number) : Promise<string[]>{
+export async function getDefaultElOptions(reqId:number,parentFuncStr?:string) : Promise<string[]>{
     try{
         const funcStr = useRecTreeStore().findApiForReqId(reqId);
-        return useFieldNameCacheStore().getDefaultElOptions(funcStr);
+        return useFieldNameCacheStore().getDefaultElOptions(funcStr,parentFuncStr);
     } catch (error) {
         console.error('getDefaultElOptions error:',error);
         throw error;  
     }
 }
 
-async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]) {
+async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[], parentFuncStr?:string): Promise<void> {
     console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
     const startTime = performance.now(); // Start time
     try {
@@ -72,7 +72,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
         // Retrieve the existing Y data for the chart
 
-        const defElOptions = await getDefaultElOptions(reqId);
+        const defElOptions = await getDefaultElOptions(reqId,parentFuncStr);
         for(const elevationOption of defElOptions){
             const existingYdata = chartStore.getYDataOptions(reqIdStr);
             // Check if the elevation option is already in the Y data
@@ -218,7 +218,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     return sample_fraction;
 }
 
-export async function prepareDbForReqId(reqId: number): Promise<void> {
+export async function prepareDbForReqId(reqId: number,parentFuncStr?:string): Promise<void> {
     const startTime = performance.now(); // Start time
     try{
         const fileName = await indexedDb.getFilename(reqId);
@@ -227,7 +227,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
         await updateAllFilterOptions(reqId);
-        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
+        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames, parentFuncStr);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
         throw error;
@@ -404,7 +404,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
-                        d[height_fieldname] ?? 0
+                        0 // always make this 0 so the tracks are flat
+                        //d[height_fieldname] ?? 0
                     ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
@@ -499,7 +500,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             use_y_atc_filter = false;
         }
 
-        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24')) {
+        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24') || func.includes('atl03x')) {
             queryStr = `
                 SELECT * FROM read_parquet('${filename}') 
                 WHERE rgt = ${rgt}
@@ -937,6 +938,11 @@ export interface FetchScatterDataOptions {
      * Whether to normalize `x` to `[0..(max-min)]` or leave it as is.
      */
     normalizeX?: boolean;
+
+    /**
+     * Optional min axis value used by base API. overlayed should use this
+     */
+    parentMinX?: number;
 }
 export interface SrScatterChartDataArray {
     data: number[][]; 
@@ -1044,6 +1050,11 @@ export async function fetchScatterData(
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
         //console.log('fetchScatterData minMaxQuery:', minMaxQuery);
         //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
+        let minXtoUse;
+        if(options.parentMinX){
+            minXtoUse = options.parentMinX;
+        }
+        console.log('fetchScatterData options.parentMinX:',options.parentMinX,'minXtoUse:', minXtoUse);
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
             for (const row of rowChunk) {
@@ -1055,14 +1066,27 @@ export async function fetchScatterData(
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
-                    // Example usage: set min/max in the store
-                    useChartStore().setMinX(reqIdStr, 0);
-                    useChartStore().setMaxX(reqIdStr, row.max_x - row.min_x);
+                    if(options.parentMinX){
+                        minXtoUse = options.parentMinX;
+                    } else {
+                        minXtoUse = row.min_x;
+                    }
+                    if(minXtoUse === row.min_x){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                    } else {
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                    }
+                    // set min/max in the store
+                    useChartStore().setRawMinX(reqIdStr, row.min_x);
+                    useChartStore().setMinX(reqIdStr, row.min_x - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, row.max_x - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
                 if (!isNaN(row.min_x) && !isNaN(row.max_x)) {
                     minMaxValues['x'] = { min: row.min_x, max: row.max_x };
+                } else {
+                    console.error('fetchScatterData: min/max x is NaN:', row.min_x, row.max_x);
                 }
 
                 y.forEach((yName) => {
@@ -1129,7 +1153,7 @@ export async function fetchScatterData(
                     );
                 } else {
                     // Default transformation:
-                    const xVal = normalizeX ? row[x] - minMaxValues['x'].min : row[x];
+                    const xVal = normalizeX ? row[x] - minXtoUse : row[x];
                     rowValues = [xVal];
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
 

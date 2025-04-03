@@ -17,6 +17,7 @@ import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
+import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
@@ -81,15 +82,15 @@ export interface SrScatterSeriesData{
   max: number | null;  
 };
 
-export function getDefaultColorEncoding(reqId:number) {
+export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
     const func = useRecTreeStore().findApiForReqId(reqId);
-    return useFieldNameCacheStore().getDefaultColorEncoding(func);
+    return useFieldNameCacheStore().getDefaultColorEncoding(func,parentFuncStr);
 }
 
-export function initializeColorEncoding(reqId:number){
+export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
-    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId));
+    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
     //console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
@@ -197,6 +198,8 @@ async function getGenericSeries({
         atl03CnfColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr);
         atl08ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
+        const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
+        atl24ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
             console.warn(`${functionName} ${reqIdStr}: chartData or minMax is empty, skipping processing.`);
             return yItems;
@@ -342,7 +345,44 @@ export async function getSeriesForAtl03sp(
         functionName: 'getSeriesForAtl03sp', // for the log
     });
 }
-  
+
+export async function getSeriesForAtl03x(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[],
+    parentMinX?: number
+): Promise<SrScatterSeriesData[]> {
+    //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+    const chartStore = useChartStore();
+    const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
+    const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true, parentMinX: parentMinX};
+    const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
+    let thisColorFunction; // generic will set it if is not set here
+    if(cedk === 'atl03_cnf'){
+        thisColorFunction = atl03CnfColorMapStore.cachedColorFunction;
+        // test the color function
+        //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+        //const c1 = thisColorFunction({data:[-2]});
+    } else if(cedk === 'atl24_class'){
+        thisColorFunction = atl24ClassColorMapStore.getColorUsingAtl24_class;
+    }
+    //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);   
+    return getGenericSeries({
+        reqIdStr,
+        fileName,
+        x,
+        y,
+        fetchOptions,             // pass the specialized logic above
+        fetchData: fetchScatterData,
+        minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
+        colorFunction: thisColorFunction, 
+        zValue: 0,
+        functionName: 'getSeriesForAtl03x', // for the log
+    });
+}
+
 async function getSeriesForAtl03vp(
     reqIdStr: string,
     fileName: string,
@@ -462,21 +502,35 @@ export function formatTooltip(params: any) {
     .join('<br>');
 }
 
-async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
+async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();
     const startTime = performance.now(); 
     const fileName = chartStore.getFile(reqIdStr);
     const reqId = Number(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
+    //const colNames = await duckDbClient.queryForColNames(fileName);
     const y = chartStore.getYDataOptions(reqIdStr);
+    console.log('getSeriesFor Using y:',y);
     let seriesData = [] as SrScatterSeriesData[];
+    let minXToUse;
+    if(isOverlay){
+        const rc = await indexedDb.getRunContext(reqId);
+        if(rc){
+            if(rc.parentReqId){
+                minXToUse = chartStore.getRawMinX(rc.parentReqId.toString());
+                console.log(`getSeriesFor ${reqIdStr} isOverlay: true, minXToUse (from parent:${rc.parentReqId}): ${minXToUse}`);
+            }
+        }
+    }
     try{
         if(fileName){
             if(func==='atl03sp'){
                 seriesData = await getSeriesForAtl03sp(reqIdStr, fileName, x, y);
             } else if(func==='atl03vp'){
                 seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
+            } else if(func==='atl03x'){
+                seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y, minXToUse);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
             } else if(func.includes('atl08')){
@@ -614,8 +668,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 toolbox: {
                     show: true,
-                    left: 100,
-                    top: 5,
+                    orient: "vertical",
+                    left: 0,
+                    top: 50,
                     feature: {
                         saveAsImage: {},
                         restore: {},
@@ -818,7 +873,6 @@ function removeUnusedOptions(options:any):any {
     if (!options) {
         return {};
     }
-    delete options.toolbox;
     delete options.visualMap;
     delete options.timeline;
     delete options.calendar;
@@ -841,14 +895,14 @@ async function appendSeries(reqId: number): Promise<void> {
         const filteredOptions = removeUnusedOptions(existingOptions);
         //console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
-        const seriesData = await getSeriesFor(reqIdStr);
+        const seriesData = await getSeriesFor(reqIdStr,true);//isOverlay=true
         if (!seriesData.length) {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
         //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
         // Define the fields that should share a single axis
-        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li'];
+        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li', 'ortho_h'];
 
         // Separate series into "height" group and "non-height" group
         const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));
@@ -1097,7 +1151,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){ // Use the cached request
             runContext.reqId = reqId;
-            //console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
+            console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
@@ -1170,7 +1224,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     const chartStore = useChartStore();
     const symbolStore = useSymbolStore(); 
     const func = await indexedDb.getFunc(req_id);//must use db
-    if (func.includes('atl03sp')) {
+    if (func.includes('atl03sp') || func.includes('atl03x')) {
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {

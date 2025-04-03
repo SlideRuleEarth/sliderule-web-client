@@ -1,28 +1,28 @@
 <template>
-    <Fieldset v-if="atl08ClassColorMapStore" legend="Atl08 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
+    <Fieldset v-if="atl24ClassColorMapStore" legend="Atl24 Class Colors" class="sr-legend-box" :toggleable="true" :collapsed="false">
         <div class="sr-restore-defaults">
             <Button 
                 icon="pi pi-refresh"
                 label="Restore Defaults" 
                 class="sr-glow-button" 
-                @click="restoreDefaultAtl08ClassColorMap"
+                @click="restoreDefaultAtl24ClassColorMap"
                 variant="text"
                 rounded
             ></Button>
         </div>
-        <div class="sr-menu-container" v-for="(classValue, index) in atl08ClassColorMapStore.atl08ClassOptions" :key="index">
-            <div class="color-preview" :style="{ backgroundColor: atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value) }"></div>
+        <div class="sr-menu-container" v-for="(classValue, index) in atl24ClassColorMapStore.atl24ClassOptions" :key="index">
+            <div class="color-preview" :style="{ backgroundColor: atl24ClassColorMapStore.getColorForAtl24ClassValue(classValue.value) }"></div>
             <SrMenu
                 :label="`${classValue.label} (${classValue.value})`"
                 :menuOptions="colorMapStore.getNamedColorPalette()"
-                :setSelectedMenuItem="(color: string) => atl08ClassColorMapStore.setColorForAtl08ClassValue(classValue.value, color)"
-                :getSelectedMenuItem="() => atl08ClassColorMapStore.getColorForAtl08ClassValue(classValue.value)"
+                :setSelectedMenuItem="(color: string) => atl24ClassColorMapStore.setColorForAtl24ClassValue(classValue.value, color)"
+                :getSelectedMenuItem="() => atl24ClassColorMapStore.getColorForAtl24ClassValue(classValue.value)"
                 @update:modelValue="handleSelectionChanged(classValue.label, $event)"
             />
         </div>
     </Fieldset>
     <div v-else>
-        Loading atl08ClassColorMap...
+        Loading atl24ClassColorMap...
     </div>
 </template>
 
@@ -30,7 +30,7 @@
 import SrMenu from './SrMenu.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
+import { useAtl24ClassColorMapStore } from '@/stores/atl24ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { onMounted, ref } from 'vue';
 
@@ -41,24 +41,24 @@ const props = defineProps({
     }
 });
 
-const atl08ClassColorMapStore = ref<any>(null);
+const atl24ClassColorMapStore = ref<any>(null);
 const colorMapStore = useColorMapStore();
-const emit = defineEmits(['atl08selectionChanged', 'atl08defaultsChanged']);
+const emit = defineEmits(['atl24selectionChanged', 'atl24defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
     console.log(`Selection changed for ${label}: ${color}`);
-    emit('atl08selectionChanged', { label, color });
+    emit('atl24selectionChanged', { label, color });
 };
 
-const restoreDefaultAtl08ClassColorMap = () => {
-    atl08ClassColorMapStore.value?.restoreDefaultAtl08ClassColorMap();
-    emit('atl08defaultsChanged', {});
+const restoreDefaultAtl24ClassColorMap = () => {
+    atl24ClassColorMapStore.value?.restoreDefaultAtl24ClassColorMap();
+    emit('atl24defaultsChanged', {});
 };
 
 onMounted( async () => {
-    console.log('SrAtl08ClassColorSelection mounted');
-    atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr);
+    console.log('SrAtl24ClassColorSelection mounted');
+    atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqIdStr);
 });
 
 </script>

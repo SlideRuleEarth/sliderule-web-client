@@ -10,6 +10,7 @@ interface ChartState {
     max_x: number;
     min_y: number;
     max_y: number;
+    raw_min_x: number;
     elevationDataOptions: string[];
     yDataOptions: string[];
     selectedYData: string;
@@ -56,6 +57,7 @@ export const useChartStore = defineStore('chartStore', {
                     max_x: 0,
                     min_y: 0,
                     max_y: 0,
+                    raw_min_x: 0,
                     elevationDataOptions: [ 'not_set' ],
                     yDataOptions: [],
                     selectedYData: '',
@@ -89,6 +91,14 @@ export const useChartStore = defineStore('chartStore', {
         getMinX(reqIdStr: string) {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].min_x;
+        },
+        setRawMinX(reqIdStr: string, min_x: number) {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].raw_min_x = min_x;
+        },
+        getRawMinX(reqIdStr: string) {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].raw_min_x;
         },
         setMaxX(reqIdStr: string, max_x: number) {
             this.ensureState(reqIdStr);
@@ -209,6 +219,8 @@ export const useChartStore = defineStore('chartStore', {
         getColorEncodeOptionsForFunc(reqIdStr: string,func: string): string[] {
             if(func.includes('atl03sp')) {
                 return this.getYDataOptions(reqIdStr);
+            } else if(func.includes('atl03x')) {
+                return this.getYDataOptions(reqIdStr);
             } else if(func.includes('atl03vp')) {
                 const ret = ['solid'];
                 return ret.concat(this.getYDataOptions(reqIdStr));
@@ -260,6 +272,8 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             if (func.includes('atl03sp')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
+            } else if (func.includes('atl03x')) {
+                this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl03vp')) {
                 this.setXDataForChart(reqIdStr,'segment_dist_x');
             } else if (func.includes('atl06')) {
@@ -269,7 +283,7 @@ export const useChartStore = defineStore('chartStore', {
             } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else {
-                console.error('setXDataForChartFromFunc() unknown function:', func);
+                console.error('setXDataForChartUsingFunc() unknown function:', func);
             }
         },
         getFile(reqIdStr: string) {

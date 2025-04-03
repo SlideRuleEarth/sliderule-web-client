@@ -1,12 +1,12 @@
 <template>
     <div class="sr-legend">
-        <SrAtl08Colors 
+        <SrAtl24Colors 
             reqIdStr="reqIdStr"
         />
         <div class="sr-restore-defaults">
             <Button 
                 icon="pi pi-cog"
-                label="Manage Atl08 Class Colors" 
+                label="Manage Atl24 Class Colors" 
                 class="sr-glow-button"
                 @click="showDialog = true" 
                 size="small"
@@ -20,13 +20,13 @@
             :modal="true"
             :draggable="false"
             :resizable="false"
-            header="Manage Atl08 Class Colors"
+            header="Manage Atl24 Class Colors"
             @hide="onDialogHide"
         >
-            <SrAtl08ClassColorSelection
+            <SrAtl24ClassColorSelection
                 :reqIdStr="reqIdStr"
-                @atl08selectionChanged="atl08ClassColorChanged"
-                @atl08defaultsChanged="atl08ClassColorChanged"
+                @atl24selectionChanged="atl24ClassColorChanged"
+                @atl24defaultsChanged="atl24ClassColorChanged"
             />
         </Dialog>        
     </div>
@@ -37,10 +37,10 @@
 import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
-import SrAtl08Colors from '@/components/SrAtl08Colors.vue';
+import SrAtl24ClassColorSelection from '@/components/SrAtl24ClassColorSelection.vue';
+import SrAtl24Colors from '@/components/SrAtl24Colors.vue';
 
-const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged']);
+const emit = defineEmits(['restore-atl24-color-defaults-click', 'atl24ClassColorChanged']);
 const props = defineProps({
     reqIdStr: {
         type: String,
@@ -55,15 +55,9 @@ onMounted(async () => {
 
 });
 
-// const atl08ClassOptions = computed(() => colorMapStore.atl08ClassOptions);
-// // Function to format the label
-// const formatLabel = (label: string): string => {
-//   return label.replace(/^atl08_/, '').replace(/_/g, ' ');
-// };
-
 // Emitted when a color changes
-const atl08ClassColorChanged = (event: { label: string; color: string }) => {
-    emit('atl08ClassColorChanged', event);
+const atl24ClassColorChanged = (event: { label: string; color: string }) => {
+    emit('atl24ClassColorChanged', event);
 };
 
 function onDialogHide() {

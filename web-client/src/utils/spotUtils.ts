@@ -213,7 +213,7 @@ export function createWhereClause(reqId:number){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
             }
         }
-    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('atl24'))) {
+    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('atl24')) || (func === 'atl03x')) {
         if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if( rgt >= 0){

@@ -249,7 +249,7 @@ export const useRequestsStore = defineStore('requests', {
         }
     },
 
-    async getTreeTableNodes(): Promise<TreeNode[]> {
+    async getTreeTableNodes(onlySuccessful:boolean=true): Promise<TreeNode[]> {
       // 1) Get all request IDs in descending order:
       const fetchedReqIds = await this.fetchReqIds();
       fetchedReqIds.sort((a, b) => b - a);
@@ -271,7 +271,7 @@ export const useRequestsStore = defineStore('requests', {
       for (const id of fetchedReqIds) {
         const record = requestsData[id];
         const status = record?.status;
-        if (status !== 'success' && status !== 'imported') {
+        if (onlySuccessful && (status !== 'success' && status !== 'imported')) {
           // Skip if you only want “success” or “imported”
           continue;
         }

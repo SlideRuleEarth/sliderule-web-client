@@ -134,7 +134,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                 if(workerMsg.msg){
                     requestsStore.setSvrMsg(workerMsg.msg);
                     const targetMsg = workerMsg.progress.target_numSvrExceptions ? `/${workerMsg.progress.target_numSvrExceptions}` : ''; 
-                    requestsStore.setConsoleMsg(`Received ${workerMsg.progress.numSvrExceptions} ${targetMsg} exceptions`);
+                    requestsStore.setConsoleMsg(`Received ${workerMsg.progress.numSvrExceptions} ${targetMsg} notifications`);
                 }
             }
             break;

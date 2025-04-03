@@ -18,6 +18,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { formatBytes } from '@/utils/SrParquetUtils';
 import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue';
 import SrImportParquetFile from './SrImportParquetFile.vue';
+import ToggleButton from 'primevue/togglebutton';
 
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -35,6 +36,7 @@ const currentParms = ref('');
 const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
 
+const onlySuccess = ref(false);
 
 // Open the Req Parms dialog
 function openParmsDialog(params: string | object) {
@@ -116,7 +118,7 @@ const deleteReqAndChildren = async (id:number) => {
     if (!deleteSuccessful) {
         toast.add({ severity: 'error', summary: 'Record Deletion Failed', detail: `Failed to delete record ${id}`, life: srToastStore.getLife() });
     }
-    treeNodes.value = await requestsStore.getTreeTableNodes();
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     await recTreeStore.loadTreeData();
     recTreeStore.initToFirstRecord();
     return deleteSuccessful;
@@ -124,9 +126,13 @@ const deleteReqAndChildren = async (id:number) => {
 
 const deleteAllReqs = async () => {
     cleanupAllRequests();
-    treeNodes.value = await requestsStore.getTreeTableNodes();
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     await recTreeStore.loadTreeData();
     recTreeStore.initToFirstRecord();
+};
+
+const handleToggle = async () => {
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
 };
 
 const confirmDeleteAllReqs = async () => {
@@ -136,15 +142,6 @@ const confirmDeleteAllReqs = async () => {
     }
 };
 
-async function copyToClipboard(content: string, label: string = 'Content') {
-  try {
-    await navigator.clipboard.writeText(content);
-    toast.add({ severity: 'success', summary: `${label} Copied`, detail: `${label} copied to clipboard.`, life: srToastStore.getLife() });
-  } catch (err) {
-    console.error('Failed to copy content:', err);
-    toast.add({ severity: 'error', summary: 'Copy Failed', detail: `Unable to copy ${label}`, life: srToastStore.getLife() });
-  }
-}
 
 const exportFile = async (req_id:number) => {
     console.log('Exporting file for req_id', req_id);
@@ -179,29 +176,42 @@ const exportFile = async (req_id:number) => {
 
 const handleFileImported = async (reqId: string) => {
     console.log('File import completed. Request ID:', reqId);
-    treeNodes.value = await requestsStore.getTreeTableNodes();
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
 };
+
 
 
 onMounted(async () => {
     requestsStore.watchReqTable();
-    treeNodes.value = await requestsStore.getTreeTableNodes();
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     //console.log('treeNodes.value:', treeNodes.value);
 });
 
 onUnmounted(() => {
     requestsStore.unWatchReqTable();
 });
+
+
 </script>
 
 <template>
     <TreeTable 
       :value="treeNodes"
       size="small" 
-      :paginator="true"
+      paginator
       :rows="10"
       :rowsPerPageOptions="[3,5,10,15,20,25,50]"
     >
+    <template #paginatorstart>
+    <ToggleButton
+        v-model="onlySuccess"
+        @change="handleToggle"
+        onLabel="Only Successful"
+        offLabel="Show All"
+        :onIcon="'pi pi-check'"
+        :offIcon="'pi pi-times'"
+    />
+  </template>
         <Column field="reqId" header="ID" expander />
         <Column field="func" header="Api" />
         <Column field="status" header="Status" />
