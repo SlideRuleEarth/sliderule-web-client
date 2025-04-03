@@ -294,15 +294,14 @@ const photonCloudBtnTooltip = computed(() => {
 
 const handleChartFinished = () => {
     if(chartWrapperRef.value){
-        console.log('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
+        //console.log('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
         if( (dialogsInitialized.value == false) && 
             (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0)){
+            console.log('handleChartFinished - initializing dialogs');
             initMainLegendPosition();
             initOverlayLegendPosition();
             chartReady.value = true;
             dialogsInitialized.value = true; // Mark dialogs as initialized
-        } else {
-            console.warn('handleChartFinished - no Y data selected');
         }
     } else {
         console.warn('handleChartFinished - chartWrapperRef is null');

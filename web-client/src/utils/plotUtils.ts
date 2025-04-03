@@ -666,8 +666,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 toolbox: {
                     show: true,
-                    left: 100,
-                    top: 5,
+                    orient: "vertical",
+                    left: 0,
+                    top: 50,
                     feature: {
                         saveAsImage: {},
                         restore: {},
