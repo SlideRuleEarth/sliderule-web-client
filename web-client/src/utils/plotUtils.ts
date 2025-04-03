@@ -82,15 +82,15 @@ export interface SrScatterSeriesData{
   max: number | null;  
 };
 
-export function getDefaultColorEncoding(reqId:number) {
+export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
     const func = useRecTreeStore().findApiForReqId(reqId);
-    return useFieldNameCacheStore().getDefaultColorEncoding(func);
+    return useFieldNameCacheStore().getDefaultColorEncoding(func,parentFuncStr);
 }
 
-export function initializeColorEncoding(reqId:number){
+export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
-    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId));
+    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
     //console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
@@ -351,13 +351,13 @@ export async function getSeriesForAtl03x(
     fileName: string,
     x: string,
     y: string[],
-    thisBaseMinX?: number
+    parentMinX?: number
 ): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
     const chartStore = useChartStore();
     const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
     const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
-    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true, baseMinX: thisBaseMinX};
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true, parentMinX: parentMinX};
     const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){
@@ -509,7 +509,9 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     const reqId = Number(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
+    //const colNames = await duckDbClient.queryForColNames(fileName);
     const y = chartStore.getYDataOptions(reqIdStr);
+    console.log('getSeriesFor Using y:',y);
     let seriesData = [] as SrScatterSeriesData[];
     let minXToUse;
     if(isOverlay){
@@ -1149,7 +1151,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){ // Use the cached request
             runContext.reqId = reqId;
-            //console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
+            console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
         } else {
             console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);

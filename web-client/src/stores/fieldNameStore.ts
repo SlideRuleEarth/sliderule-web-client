@@ -20,13 +20,18 @@ function getHFieldNameForAPIStr(funcStr: string): string {
     }
 }
 
-function getDefaultElOptions(funcStr: string): string[] {
+function getDefaultElOptions(funcStr: string,parentFuncStr?:string): string[] {
     switch (funcStr) {
         case 'atl06p': return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
         case 'atl06sp': return ['h_li','y_atc','cycle'];
         case 'atl03vp': return ['segment_ph_cnt'];
         case 'atl03sp': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
-        case 'atl03x': return ['height','yapc_score','atl03_cnf','atl24_class','y_atc','cycle'];
+        case 'atl03x': 
+        {
+            if(parentFuncStr === 'atl24x') return ['height','yapc_score','atl24_class','y_atc','cycle'];
+            else
+            return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
+        }
         case 'atl08p': return ['h_mean_canopy','y_atc','cycle'];
         case 'atl24x': return ['ortho_h','confidence','y_atc','cycle'];
         case 'gedi02ap': return['elevation_hr'];
@@ -49,12 +54,14 @@ function getTimeFieldNameForAPIStr(funcStr: string): string {
     return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
 }
 
-function getDefaultColorEncoding(funcStr: string): string {
+function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string {
     try {
+        //console.log('getDefaultColorEncoding',funcStr,parentFuncStr);
         if (funcStr === 'atl03sp'){
             return 'atl03_cnf';
         } else if (funcStr === 'atl03x'){
-            return 'atl24_class';           
+            if(parentFuncStr === 'atl24x') return 'atl24_class';
+            else return 'atl03_cnf';
         } else {
             return getHFieldNameForAPIStr(funcStr);
         } 

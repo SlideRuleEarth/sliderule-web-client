@@ -237,7 +237,12 @@ onMounted(async () => {
     atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString());
     atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqId.toString());
     initDataBindingsToChartStore([reqIdStr.value]);
-    initializeColorEncoding(props.reqId);
+    let parentFuncStr;
+    if(props.isOverlay){
+        // selected reqId is parent
+        parentFuncStr = recTreeStore.findApiForReqId(recTreeStore.selectedReqId);
+    }
+    initializeColorEncoding(props.reqId,parentFuncStr);
     //console.log('computedFunc:', computedFunc.value);
     if(isTimeSeries.value){
         chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')

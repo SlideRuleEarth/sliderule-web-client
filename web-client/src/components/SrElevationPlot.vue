@@ -32,7 +32,6 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
-import { useSymbolStore } from "@/stores/symbolStore";
 
 
 const tooltipRef = ref();
@@ -386,6 +385,10 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
     chartInstance.on('restore', () => {
         (async () => {
             console.log('Zoom or settings were reset!');
+            atlChartFilterStore.xZoomStart = 0;
+            atlChartFilterStore.xZoomEnd = 100;
+            atlChartFilterStore.yZoomStart = 0;
+            atlChartFilterStore.yZoomEnd = 100;
             dialogsInitialized.value = false; // Reset dialogsInitialized to false to re-initialize dialogs
             await initPlot(); // Re-initialize the plot to reset any settings
             if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
@@ -420,7 +423,11 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
             const parentReqIdStr = runContext.parentReqId.toString();
-            if(runContext.reqId <= 0){ // need to fetch the data
+            const parentFuncStr = recTreeStore.findApiForReqId(runContext.parentReqId);
+            console.log("rc:",runContext, "parentFuncStr:", parentFuncStr);
+            // atl03sp is decrepcated here so fetch and use atl03x instead even if the old one exists
+            const isAtl03sp = (recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp');
+            if((runContext.reqId <= 0) || (isAtl03sp)){ // need to fetch the data
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext); // worker is started here
@@ -431,7 +438,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     await initSymbolSize(runContext.reqId); // for new record
-                    initializeColorEncoding(runContext.reqId);
+                    initializeColorEncoding(runContext.reqId,parentFuncStr);
                     // The worker will now fetch the data from the server 
                     // and write the opfs file then update 
                     // the map selected layer and the chart
@@ -439,12 +446,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
-                initializeColorEncoding(runContext.reqId);
+                initializeColorEncoding(runContext.reqId,parentFuncStr);
                 const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr);
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
-                await prepareDbForReqId(runContext.reqId);            
+                await prepareDbForReqId(runContext.reqId,parentFuncStr);            
                 //await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
                 await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }

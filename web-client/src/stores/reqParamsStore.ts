@@ -209,7 +209,7 @@ const createReqParamsStore = (id: string) =>
             // set things the user may have changed in this routine
             const parentApi = await db.getFunc(parentReqId);
             this.setMissionValue("ICESat-2");
-            this.setIceSat2API("atl03sp");
+            this.setIceSat2API("atl03x");
             this.setEnableGranuleSelection(true);//tracks and beams
             this.setUseRgt(true);
             this.setUseCycle(true);
@@ -224,7 +224,6 @@ const createReqParamsStore = (id: string) =>
             this.setSrt([-1]);
             this.signalConfidenceNumber = [0,1,2,3,4];
             if(parentApi === 'atl24x'){
-              this.setIceSat2API("atl03x");
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
               this.atl24_class_ph = this.atl24_class_ph_Options;

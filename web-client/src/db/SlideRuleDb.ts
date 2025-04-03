@@ -1212,7 +1212,7 @@ export class SlideRuleDexie extends Dexie {
 
     async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
         try {
-            const found = await this.runContexts
+            const candidates = await this.runContexts
                 .where('[parentReqId+rgt+cycle+beam+track]')
                 .equals([
                     runContext.parentReqId, 
@@ -1222,21 +1222,30 @@ export class SlideRuleDexie extends Dexie {
                     runContext.trackFilter.track
                 ])
                 .toArray();
-          
-            if (found.length <= 0) {
+    
+            if (candidates.length === 0) {
                 console.log(`No matching record found for run context:`, runContext);
                 return undefined;
+            } else {
+                console.log(`Found ${candidates.length} candidate(s) for run context:`, runContext);
             }
-            if (found.length > 1) {
-                console.warn(`Multiple matching records found for run context:`, runContext);
+    
+            // Filter candidates by checking if corresponding request has func === 'atl03x'
+            for (const rec of candidates) {
+                const req = await this.requests.get(rec.reqId);
+                if (req?.func === 'atl03x') {
+                    return rec.reqId;
+                }
             }
-            return found[0].reqId;
+    
+            console.log(`No atl03x func match found in ${candidates.length} candidate(s) for run context:`, runContext);
+            return undefined;
         } catch (error) {
-            console.error(`Failed to find matching record for run context:`, error);
+            console.error(`Failed to find matching atl03x record for run context:`, error);
             throw error;
         }
     }
-    
+        
     async addSrRunContext(runContext: SrRunContext): Promise<void> {
         try {
             const thisRunContextRecord: SrRunContextRecord = {
