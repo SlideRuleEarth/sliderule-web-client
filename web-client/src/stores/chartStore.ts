@@ -10,6 +10,7 @@ interface ChartState {
     max_x: number;
     min_y: number;
     max_y: number;
+    raw_min_x: number;
     elevationDataOptions: string[];
     yDataOptions: string[];
     selectedYData: string;
@@ -56,6 +57,7 @@ export const useChartStore = defineStore('chartStore', {
                     max_x: 0,
                     min_y: 0,
                     max_y: 0,
+                    raw_min_x: 0,
                     elevationDataOptions: [ 'not_set' ],
                     yDataOptions: [],
                     selectedYData: '',
@@ -89,6 +91,14 @@ export const useChartStore = defineStore('chartStore', {
         getMinX(reqIdStr: string) {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].min_x;
+        },
+        setRawMinX(reqIdStr: string, min_x: number) {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].raw_min_x = min_x;
+        },
+        getRawMinX(reqIdStr: string) {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].raw_min_x;
         },
         setMaxX(reqIdStr: string, max_x: number) {
             this.ensureState(reqIdStr);

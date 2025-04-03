@@ -350,13 +350,14 @@ export async function getSeriesForAtl03x(
     reqIdStr: string,
     fileName: string,
     x: string,
-    y: string[]
+    y: string[],
+    thisBaseMinX?: number
 ): Promise<SrScatterSeriesData[]> {
     //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
     const chartStore = useChartStore();
     const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
     const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
-    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true, baseMinX: thisBaseMinX};
     const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
     if(cedk === 'atl03_cnf'){
@@ -378,7 +379,7 @@ export async function getSeriesForAtl03x(
         minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
         colorFunction: thisColorFunction, 
         zValue: 0,
-        functionName: 'getSeriesForAtl03sp', // for the log
+        functionName: 'getSeriesForAtl03x', // for the log
     });
 }
 
@@ -501,7 +502,7 @@ export function formatTooltip(params: any) {
     .join('<br>');
 }
 
-async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
+async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatterSeriesData[]>{
     const chartStore = useChartStore();
     const startTime = performance.now(); 
     const fileName = chartStore.getFile(reqIdStr);
@@ -510,6 +511,16 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
     const x = chartStore.getXDataForChart(reqIdStr);
     const y = chartStore.getYDataOptions(reqIdStr);
     let seriesData = [] as SrScatterSeriesData[];
+    let minXToUse;
+    if(isOverlay){
+        const rc = await indexedDb.getRunContext(reqId);
+        if(rc){
+            if(rc.parentReqId){
+                minXToUse = chartStore.getRawMinX(rc.parentReqId.toString());
+                console.log(`getSeriesFor ${reqIdStr} isOverlay: true, minXToUse (from parent:${rc.parentReqId}): ${minXToUse}`);
+            }
+        }
+    }
     try{
         if(fileName){
             if(func==='atl03sp'){
@@ -517,7 +528,7 @@ async function getSeriesFor(reqIdStr:string) : Promise<SrScatterSeriesData[]>{
             } else if(func==='atl03vp'){
                 seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
             } else if(func==='atl03x'){
-                seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y);
+                seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y, minXToUse);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
             } else if(func.includes('atl08')){
@@ -881,14 +892,14 @@ async function appendSeries(reqId: number): Promise<void> {
         const filteredOptions = removeUnusedOptions(existingOptions);
         //console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
         // Fetch series data for the given reqIdStr
-        const seriesData = await getSeriesFor(reqIdStr);
+        const seriesData = await getSeriesFor(reqIdStr,true);//isOverlay=true
         if (!seriesData.length) {
             console.warn(`appendSeries(${reqIdStr}): No series data found.`);
             return;
         }
         //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
         // Define the fields that should share a single axis
-        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li'];
+        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li', 'ortho_h'];
 
         // Separate series into "height" group and "non-height" group
         const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));

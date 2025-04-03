@@ -937,6 +937,11 @@ export interface FetchScatterDataOptions {
      * Whether to normalize `x` to `[0..(max-min)]` or leave it as is.
      */
     normalizeX?: boolean;
+
+    /**
+     * Optional min axis value used by base API. overlayed should use this
+     */
+    baseMinX?: number;
 }
 export interface SrScatterChartDataArray {
     data: number[][]; 
@@ -1044,6 +1049,11 @@ export async function fetchScatterData(
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
         //console.log('fetchScatterData minMaxQuery:', minMaxQuery);
         //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
+        let minXtoUse;
+        if(options.baseMinX){
+            minXtoUse = options.baseMinX;
+        }
+        console.log('fetchScatterData options.baseMinX:',options.baseMinX,'minXtoUse:', minXtoUse);
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
             for (const row of rowChunk) {
@@ -1055,9 +1065,20 @@ export async function fetchScatterData(
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
-                    // Example usage: set min/max in the store
-                    useChartStore().setMinX(reqIdStr, 0);
-                    useChartStore().setMaxX(reqIdStr, row.max_x - row.min_x);
+                    if(options.baseMinX){
+                        minXtoUse = options.baseMinX;
+                    } else {
+                        minXtoUse = row.min_x;
+                    }
+                    if(minXtoUse === row.min_x){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                    } else {
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                    }
+                    // set min/max in the store
+                    useChartStore().setRawMinX(reqIdStr, row.min_x);
+                    useChartStore().setMinX(reqIdStr, row.min_x - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, row.max_x - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
@@ -1129,7 +1150,7 @@ export async function fetchScatterData(
                     );
                 } else {
                     // Default transformation:
-                    const xVal = normalizeX ? row[x] - minMaxValues['x'].min : row[x];
+                    const xVal = normalizeX ? row[x] - minXtoUse : row[x];
                     rowValues = [xVal];
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
 
