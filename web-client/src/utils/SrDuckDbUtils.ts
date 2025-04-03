@@ -404,7 +404,8 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
-                        d[height_fieldname] ?? 0
+                        0 // always make this 0 so the tracks are flat
+                        //d[height_fieldname] ?? 0
                     ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
