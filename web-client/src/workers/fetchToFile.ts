@@ -36,7 +36,7 @@ export async function checkDoneProcessing(  thisReqID:number,
         if(got_all_cbs || abortRequested){
             let status_details = 'No data returned from SlideRule.';
             if( (target_numArrowDataRecs > 0) || (target_numArrowMetaRecs > 0) || (target_numSvrExceptions > 0)){
-                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt Exceptions: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  notifications:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
+                status_details = `Received tgt arrow.data:${target_numArrowDataRecs} tgt arrow.meta:${target_numArrowMetaRecs} tgt notifications: ${target_numSvrExceptions}  arrow.data:${num_arrow_data_recs_processed} arrow.meta:${num_arrow_meta_recs_processed}  notifications:${num_svr_exceptions} num_checks:${num_checks} num_post_done_checks:${num_post_done_checks}`;
             }
             let msg='';
             if(abortRequested){ // Abort requested
