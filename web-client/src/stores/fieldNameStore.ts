@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path if needed
-import { get } from 'lodash';
+import { db } from '@/db/SlideRuleDb';
+import type { SrMetaData, SrSvrParmsUsed } from '@/types/SrTypes';
+import { useChartStore } from './chartStore';
 
 function getHFieldNameForAPIStr(funcStr: string): string {
     switch (funcStr) {
@@ -20,26 +22,48 @@ function getHFieldNameForAPIStr(funcStr: string): string {
     }
 }
 
-function getDefaultElOptions(funcStr: string,parentFuncStr?:string): string[] {
+function getDefaultElOptions(reqId:number): string[] {
+    //We dont want to include all the fields in the file just the relavent ones
+    
+    //console.log(`getDefaultElOptions request for ${reqId}`);
+    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    let options=[] as string[];
     switch (funcStr) {
-        case 'atl06p': return ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
-        case 'atl06sp': return ['h_li','y_atc','cycle'];
-        case 'atl03vp': return ['segment_ph_cnt'];
-        case 'atl03sp': return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
-        case 'atl03x': 
-        {
-            if(parentFuncStr === 'atl24x') return ['height','yapc_score','atl24_class','y_atc','cycle'];
-            else
-            return ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
-        }
-        case 'atl08p': return ['h_mean_canopy','y_atc','cycle'];
-        case 'atl24x': return ['ortho_h','confidence','y_atc','cycle'];
-        case 'gedi02ap': return['elevation_hr'];
-        case 'gedi04ap': return  ['agbd'];
-        case 'gedi01bp': return ['elevation_start'];
+        case 'atl06p':  options = ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
+            break;
+        case 'atl06sp': options = ['h_li','y_atc','cycle'];
+            break;
+        case 'atl03vp': options = ['segment_ph_cnt'];
+            break;
+        case 'atl03sp': options = ['height','yapc_score','atl03_cnf','atl08_class','y_atc','cycle'];
+            break;
+        case 'atl03x':  options = ['height','yapc_score','atl03_cnf','y_atc','cycle'];
+            break;
+        case 'atl08p':  options = ['h_mean_canopy','y_atc','cycle'];
+            break;
+        case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
+            break;
+        case 'gedi02ap': options = ['elevation_hr'];
+            break;
+        case 'gedi04ap': options = ['agbd'];
+            break;
+        case 'gedi01bp': options = ['elevation_start'];
         default:
-            throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
+            console.error('Unknown funcStr:',funcStr)
+            //throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
+            break;
     }
+    const fieldNames = useChartStore().getElevationDataOptions(reqId.toString())
+    if(fieldNames.includes('atl24_class')){
+        console.log('getDefaultElOptions adding atl24_class, it is in fieldNames:',fieldNames);
+        options.push('atl24_class');
+    }
+    if(fieldNames.includes('atl08_class')){
+        console.log('getDefaultElOptions adding atl08_class, it is in fieldNames:',fieldNames);
+        options.push('atl08_class');
+    }
+    console.log(`getDefaultElOptions request for ${reqId} funcStr:${funcStr} options:`,options);
+    return options;
 }
 
 function getLatFieldNameForAPIStr(funcStr: string): string {

@@ -69,7 +69,7 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
         const getColorForAtl08ClassValue = (value:number) => { // value is the atl08_class value 0 to 4
             const ndx = value;
             if(ndx < 0 || ndx > 4){
-                console.error('getRGBColorForAtl08ClassValue invalid value:',value);
+                console.error('getColorForAtl08ClassValue invalid value:',value);
                 return 'White'; // Return White for invalid values
             }
             const c = atl08ClassColorMap.value[ndx];

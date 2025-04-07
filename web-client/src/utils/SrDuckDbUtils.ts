@@ -45,34 +45,24 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
     }
 }
 
-export async function getDefaultElOptions(reqId:number,parentFuncStr?:string) : Promise<string[]>{
-    try{
-        const funcStr = useRecTreeStore().findApiForReqId(reqId);
-        return useFieldNameCacheStore().getDefaultElOptions(funcStr,parentFuncStr);
-    } catch (error) {
-        console.error('getDefaultElOptions error:',error);
-        throw error;  
-    }
-}
-
-async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[], parentFuncStr?:string): Promise<void> {
+function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]): void {
     console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
     const startTime = performance.now(); // Start time
+    const chartStore = useChartStore();
     try {
-        const chartStore = useChartStore();
+        const fncs = useFieldNameCacheStore();
         // Update elevation data options in the chart store
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
         const reqId = parseInt(reqIdStr);
         // Get the height field name
-        const heightFieldname = useFieldNameCacheStore().getHFieldName(reqId);
+        const heightFieldname = fncs.getHFieldName(reqId);
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
         // Update the index of the elevation data options for height
         chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
         // Retrieve the existing Y data for the chart
-
-        const defElOptions = await getDefaultElOptions(reqId,parentFuncStr);
+        const defElOptions = fncs.getDefaultElOptions(reqId);
         for(const elevationOption of defElOptions){
             const existingYdata = chartStore.getYDataOptions(reqIdStr);
             // Check if the elevation option is already in the Y data
@@ -89,7 +79,7 @@ async function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldName
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`setElevationDataOptionsFromFieldNames took ${endTime - startTime} milliseconds.`);
+        console.log(`setElevationDataOptionsFromFieldNames using reqId:${reqIdStr} fieldNames:${fieldNames} selectedYData:${chartStore.getSelectedYData(reqIdStr)} took ${endTime - startTime} milliseconds.`);
     }
 }
 
@@ -218,7 +208,7 @@ const computeSamplingRate = async(req_id:number): Promise<number> => {
     return sample_fraction;
 }
 
-export async function prepareDbForReqId(reqId: number,parentFuncStr?:string): Promise<void> {
+export async function prepareDbForReqId(reqId: number): Promise<void> {
     const startTime = performance.now(); // Start time
     try{
         const fileName = await indexedDb.getFilename(reqId);
@@ -227,7 +217,8 @@ export async function prepareDbForReqId(reqId: number,parentFuncStr?:string): Pr
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
         await updateAllFilterOptions(reqId);
-        await setElevationDataOptionsFromFieldNames(reqId.toString(), colNames, parentFuncStr);
+        console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
+        setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
         throw error;
@@ -1201,6 +1192,7 @@ export async function fetchScatterData(
 
     } catch (error) {
         console.error('fetchScatterData Error:', error);
+        console.trace('fetchScatterData Error:', error);
         return { chartData: {}, minMaxValues: {}, normalizedMinMaxValues: {}, dataOrderNdx: {} };
     } finally {
         const endTime = performance.now();

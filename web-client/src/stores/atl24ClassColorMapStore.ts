@@ -39,7 +39,7 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
 
         function createDiscreteColorFunction(
             getColorFunction: (value: number) => string,
-            ndx_name: string
+            ndx_name: string,
         ){
             const colorCache: Record<number, string> = {};
             let ndx: number = -1;
@@ -58,7 +58,6 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
             colorFunction.resetCache = () => {
                 Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
                 ndx = -1; // Reset index so it is recalculated
-                console.log(`Cache for ${ndx_name} reset.`);
             };
 
             return colorFunction;

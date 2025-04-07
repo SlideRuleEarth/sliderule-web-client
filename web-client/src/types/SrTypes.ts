@@ -69,13 +69,23 @@ export interface Region {
     x: string;
     y: string;
   }
-  
-  export interface SrSvrParmsUsed {
-    server?: Server;
-    poly?: LatLon[]; // supports atl24x and new format TBD update this for other APIs when server is updated
-    recordinfo?: RecordInfo;
+  export interface SrRequestPayload {
+    atl24?: {};
+    atl08?: {};
   }
-
+  
+  export interface SrSvrParmsUsed extends SrRequestPayload {
+    server?: Server;
+    poly?: LatLon[]; // supports atl24x and new format TBD
+    recordinfo?: RecordInfo;
+    atl24?: {};
+    atl08?: {};
+  }
+  
+  export interface SrMetaData {
+    SrSvrParmsUsed: SrRequestPayload;
+  }
+  
   interface LatLon {
     lat: number;
     lon: number;

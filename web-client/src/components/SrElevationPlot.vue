@@ -330,8 +330,8 @@ async function initPlot(){
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
             initializeColorEncoding(reqId);
-            // set this so if the user looks at it, it will be there
-            await useAutoReqParamsStore().presetForScatterPlotOverlay(reqId);
+            const parentReqId = recTreeStore.selectedReqId;
+            await useAutoReqParamsStore().presetForScatterPlotOverlay(parentReqId);
         } else {
             console.warn('reqId is undefined');
         }        
@@ -451,8 +451,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
-                await prepareDbForReqId(runContext.reqId,parentFuncStr);            
-                //await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                await prepareDbForReqId(runContext.reqId);            
                 await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
