@@ -488,7 +488,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3);
         } else {
             if(!func.includes('atl08')){
-                console.error('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
+                console.warn('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
             }
             use_y_atc_filter = false;
         }

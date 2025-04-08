@@ -213,7 +213,8 @@ const initOverlayLegendPosition = () => {
 
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03')){
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+        chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl03_cnf'){
         shouldDisplay = true;
     } else {
         if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
@@ -227,12 +228,17 @@ const shouldDisplayAtl03Colors = computed(() => {
 });
 const shouldDisplayAtl08Colors = computed(() => {
     let shouldDisplay = false;
-    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-        if(reqIdStr){
-            shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+        chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl08_class'){
+        shouldDisplay = true;
+    } else {
+        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+            if(reqIdStr){
+                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
+            }
         }
-    }   
+    }
     return shouldDisplay;
 });
 
