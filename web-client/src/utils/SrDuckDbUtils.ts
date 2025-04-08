@@ -46,7 +46,7 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
 }
 
 function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]): void {
-    console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
+    //console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
     const startTime = performance.now(); // Start time
     const chartStore = useChartStore();
     try {
@@ -217,7 +217,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
         await updateAllFilterOptions(reqId);
-        console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
+        //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
         setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
@@ -487,7 +487,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             min_y_atc = (globalChartStore.selected_y_atc - y_atc_margin).toFixed(3);
             max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3);
         } else {
-            console.error('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
+            if(!func.includes('atl08')){
+                console.error('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
+            }
             use_y_atc_filter = false;
         }
 

@@ -1083,7 +1083,7 @@ async function appendSeries(reqId: number): Promise<void> {
             // }, { notMerge: false }
         });
         const options = chart.getOption() as EChartsOption;
-        console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
+        //console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {

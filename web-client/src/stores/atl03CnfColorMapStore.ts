@@ -48,7 +48,7 @@ export async function useAtl03CnfColorMapStore(reqIdStr: string) {
             if (ndx < 0) {
                 // the index can change so look it up 
                 ndx = dataOrderNdx['atl03_cnf']
-                console.log('cachedColorFunction :','ndx:',ndx,'dataOrderNdx:',dataOrderNdx);
+                //console.log('cachedColorFunction :','ndx:',ndx,'dataOrderNdx:',dataOrderNdx);
             }
             const value = params.data[ndx];//grab the atl03_cnf value from the data array using the dataOrderNdx
             if (colorCache[value] === undefined) {
