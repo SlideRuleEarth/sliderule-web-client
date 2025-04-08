@@ -248,7 +248,8 @@ const computedDataKey = computed(() => {
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if((chartReady.value) && (computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
+    if(((computedDataKey.value != 'solid') &&  computedDataKey.value != 'atl08_class' &&  computedDataKey.value != 'atl03_cnf'))
+    {
         shouldDisplay = true;
     }
     return shouldDisplay;
