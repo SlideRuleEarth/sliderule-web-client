@@ -213,7 +213,8 @@ const initOverlayLegendPosition = () => {
 
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId) === 'atl03sp'){
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+        chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl03_cnf'){
         shouldDisplay = true;
     } else {
         if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
@@ -227,12 +228,17 @@ const shouldDisplayAtl03Colors = computed(() => {
 });
 const shouldDisplayAtl08Colors = computed(() => {
     let shouldDisplay = false;
-    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-        const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-        if(reqIdStr){
-            shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+        chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl08_class'){
+        shouldDisplay = true;
+    } else {
+        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+            if(reqIdStr){
+                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl08_class';
+            }
         }
-    }   
+    }
     return shouldDisplay;
 });
 
@@ -242,7 +248,8 @@ const computedDataKey = computed(() => {
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if((chartReady.value) && (computedDataKey.value!='solid') && !(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03'))){
+    if(((computedDataKey.value != 'solid') &&  computedDataKey.value != 'atl08_class' &&  computedDataKey.value != 'atl03_cnf'))
+    {
         shouldDisplay = true;
     }
     return shouldDisplay;
@@ -330,8 +337,8 @@ async function initPlot(){
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
             initializeColorEncoding(reqId);
-            // set this so if the user looks at it, it will be there
-            await useAutoReqParamsStore().presetForScatterPlotOverlay(reqId);
+            const parentReqId = recTreeStore.selectedReqId;
+            await useAutoReqParamsStore().presetForScatterPlotOverlay(parentReqId);
         } else {
             console.warn('reqId is undefined');
         }        
@@ -451,8 +458,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
-                await prepareDbForReqId(runContext.reqId,parentFuncStr);            
-                //await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                await prepareDbForReqId(runContext.reqId);            
                 await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
@@ -664,7 +670,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     </div>
                     <div class="sr-multiselect-col-req">
                         <SrReqDisplay
-                            v-if="(atlChartFilterStore.selectedOverlayedReqIds.length === 0)"
+                            v-if="((atlChartFilterStore.selectedOverlayedReqIds.length === 0) && (!recTreeStore.selectedApi.includes('atl03')))"
                             label='Show Photon Cloud Req Params'
                             :isForPhotonCloud="true"
                             :tooltipText="'The params that will be used for the Photon Cloud overlay'"

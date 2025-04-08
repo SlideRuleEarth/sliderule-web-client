@@ -51,13 +51,6 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     const treeData = ref<SrPrimeTreeNode[]>([]);
     const selectedValue = ref<Record<string, boolean>>({'0':false});
     const reqIdMenuItems = ref<SrMenuNumberItem[]>([]);
-    //const readyToPlot = ref<boolean>(false);
-    // Getters
-
-    // const getReadyToPlot = ():boolean => {
-    //     return readyToPlot.value;
-    // };
-
     const selectedNodeKey:ComputedRef<string> = computed(() => {
         const keys = Object.keys(selectedValue.value)
         return keys.length ? keys[0] : '0';
@@ -218,7 +211,5 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         updateRecMenu,
         initToFirstRecord,
         findApiForReqId,
-        //getReadyToPlot,
-        //setReadyToPlot,
     };
 });

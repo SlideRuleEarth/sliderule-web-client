@@ -91,7 +91,7 @@ export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
     chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
-    //console.log(`initializeColorEncoding ${reqIdStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+    //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
@@ -357,6 +357,7 @@ export async function getSeriesForAtl03x(
     const chartStore = useChartStore();
     const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr);
     const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
+    const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr);
     const fetchOptions:FetchScatterDataOptions  = {normalizeX: true, parentMinX: parentMinX};
     const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
     let thisColorFunction; // generic will set it if is not set here
@@ -365,6 +366,8 @@ export async function getSeriesForAtl03x(
         // test the color function
         //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
         //const c1 = thisColorFunction({data:[-2]});
+    } else if(cedk === 'atl08_class'){
+        thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class;
     } else if(cedk === 'atl24_class'){
         thisColorFunction = atl24ClassColorMapStore.getColorUsingAtl24_class;
     }
@@ -509,7 +512,6 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     const reqId = Number(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
-    //const colNames = await duckDbClient.queryForColNames(fileName);
     const y = chartStore.getYDataOptions(reqIdStr);
     console.log('getSeriesFor Using y:',y);
     let seriesData = [] as SrScatterSeriesData[];
@@ -1080,7 +1082,7 @@ async function appendSeries(reqId: number): Promise<void> {
             // If you want to ensure a merge, you can pass a second param:
             // }, { notMerge: false }
         });
-        //const options = chart.getOption() as EChartsOption;
+        const options = chart.getOption() as EChartsOption;
         //console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
