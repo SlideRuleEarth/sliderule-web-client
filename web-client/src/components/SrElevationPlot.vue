@@ -213,7 +213,7 @@ const initOverlayLegendPosition = () => {
 
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId) === 'atl03sp'){
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03')){
         shouldDisplay = true;
     } else {
         if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
