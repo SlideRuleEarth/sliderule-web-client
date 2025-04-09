@@ -90,6 +90,14 @@ export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
 export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
+    if(parentFuncStr){ // is overlayed
+        if(parentFuncStr === 'atl24x'){ // Hack to hide until server supports both height standards
+            chartStore.setSolidSymbolColor(useRecTreeStore().selectedReqIdStr, 'black');
+        } else {
+            chartStore.setSolidSymbolColor(useRecTreeStore().selectedReqIdStr, 'red');
+        }
+    }
+
     chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
     //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }

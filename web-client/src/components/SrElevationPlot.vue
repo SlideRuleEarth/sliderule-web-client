@@ -24,6 +24,7 @@ import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useAnalysisMapStore } from "@/stores/analysisMapStore";
 import SrAtl03CnfColors from "@/components/SrAtl03CnfColors.vue";
 import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
+import SrAtl24Colors from "./SrAtl24Colors.vue";
 import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
@@ -32,6 +33,7 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
+import { is } from "cypress/types/bluebird";
 
 
 const tooltipRef = ref();
@@ -242,13 +244,29 @@ const shouldDisplayAtl08Colors = computed(() => {
     return shouldDisplay;
 });
 
+const shouldDisplayAtl24Colors = computed(() => {
+    let shouldDisplay = false;
+    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+        chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl24_class'){
+        shouldDisplay = true;
+    } else {
+        if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
+            const reqIdStr = atlChartFilterStore.selectedOverlayedReqIds[0].toString();
+            if(reqIdStr){
+                shouldDisplay = chartStore.getSelectedColorEncodeData(reqIdStr) === 'atl24_class';
+            }
+        }
+    }
+    return shouldDisplay;
+});
+
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if(((computedDataKey.value != 'solid') &&  computedDataKey.value != 'atl08_class' &&  computedDataKey.value != 'atl03_cnf'))
+    if(((computedDataKey.value != 'solid') &&  computedDataKey.value != 'atl08_class' &&  computedDataKey.value != 'atl03_cnf' &&  computedDataKey.value != 'atl24_class'))
     {
         shouldDisplay = true;
     }
@@ -256,7 +274,7 @@ const shouldDisplayMainGradient = computed(() => {
 });
 
 const shouldDisplayMainSolidColorLegend = computed(() => {
-    return (computedDataKey.value === 'solid');
+    return ((computedDataKey.value === 'solid') && (!isAtl24WithPhotonCloud.value));
 });
 
 const overlayReqIdStr = computed(() => {
@@ -283,6 +301,9 @@ const shouldDisplayOverlayGradient =computed(() => {
             (computedOverlayDataKey.value!='atl24_class');
 });
 
+const isAtl24WithPhotonCloud = computed(() => { // hack needed until sever supports both heights
+    return ((atlChartFilterStore.selectedOverlayedReqIds.length > 0) && (recTreeStore.selectedApi==='atl24x'));
+});
 
 const PC_OnTooltip = computed(() => { 
     return (globalChartStore.use_y_atc_filter ? 
@@ -625,6 +646,23 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                             />
                         </template>
                     </Dialog>
+                    <Dialog
+                        v-model:visible="shouldDisplayAtl24Colors"
+                        :closable="false"
+                        :draggable="true"
+                        :modal="false"
+                        class="sr-floating-dialog"
+                        appendTo="self"
+                        :style="overlayLegendDialogStyle" 
+                    >
+                        <template #header>
+                            <SrAtl24Colors
+                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                class="chart-overlay"
+                                v-if="shouldDisplayAtl24Colors" 
+                            />
+                        </template>
+                    </Dialog>
                 </div> 
             </div>
         </div> 
@@ -660,7 +698,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
 
                 <div class= "sr-multiselect-col">
                     <SrPlotCntrl
-                        v-if="(recTreeStore.selectedReqId > 0)"
+                        v-if="((recTreeStore.selectedReqId > 0) && (!isAtl24WithPhotonCloud))"
                         :reqId="recTreeStore.selectedReqId" 
                     />
                 </div>
