@@ -13,12 +13,21 @@
                     :disabled="props.insensitive" 
                     :style="{ width: props.sliderWidth }"
                 />
-                <InputText 
-                    v-model="formattedValue" 
-                    class="sr-slider-input-text" 
-                    :inputId="inputId" 
+                <InputNumber 
+                    v-model="innerValue"
+                    :inputId="inputId"
                     :disabled="props.insensitive"
-                    :style="{ width: props.inputWidth }" 
+                    :min="props.min"
+                    :max="props.max"
+                    :step="sliderStepSize"
+                    :style="{ width: props.inputWidth, maxWidth: props.inputWidth }"
+                    :useGrouping="true"
+                    :format="true"
+                    :locale="'en-US'"
+                    :maxFractionDigits="props.decimalPlaces"
+                    :minFractionDigits="props.decimalPlaces"
+                    class="sr-slider-input-num"
+                    size="small"
                 />
                 <span class="sr-units-label">{{ props.unitsLabel }}</span>
             </div>
@@ -27,186 +36,57 @@
 </template>
   
 <script setup lang="ts">
-    import {useToast} from "primevue/usetoast";
-    import { ref, watch, computed, onMounted,  } from 'vue';
-    import InputText from 'primevue/inputtext';
-    import Slider from 'primevue/slider';
-    import { watchDebounced } from '@vueuse/core'
-    import { useDebounceFn } from '@vueuse/core';
-    import { useSrToastStore } from "@/stores/srToastStore.js";
-    import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+import { ref, watch, onMounted } from 'vue';
+import InputNumber from 'primevue/inputnumber';
+import Slider from 'primevue/slider';
+import { watchDebounced } from '@vueuse/core';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
-    const srToastStore = useSrToastStore();
-    const toast = useToast();
+const props = defineProps({
+    modelValue: Number,
+    insensitive: { type: Boolean, default: false },
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 100 },
+    sliderMin: { type: Number, default: 0 },
+    sliderMax: { type: Number, default: 100 },
+    defaultValue: { type: Number, default: 0 },
+    label: { type: String, default: 'Label' },
+    unitsLabel: { type: String, default: '' },
+    id: { type: String, default: 'sr-slider-input-' + Math.random().toString(36).substring(2, 9) },
+    decimalPlaces: { type: Number, default: 0 },
+    tooltipText: { type: String, default: 'tooltip text' },
+    tooltipUrl: { type: String, default: '' },
+    inputWidth: { type: [String, Number], default: '6rem' },
+    sliderWidth: { type: [String, Number], default: '12rem' }
+});
 
-    const props = defineProps({
-        modelValue: {
-            type: Number,
-            required: true
-        },
-        insensitive: {
-            type: Boolean,
-            default: false
-        },
-        min: {
-            type: Number,
-            default: 0
-        },
-        max: {
-            type: Number,
-            default: 100
-        },
-        sliderMin: {
-            type: Number,
-            default: 0 // or some narrower subrange
-        },
-        sliderMax: {
-            type: Number,
-            default: 100 // or whatever narrower portion
-        },
-        defaultValue: {
-            type: Number,
-            default: 0
-        },
-        label: {
-            type: String,
-            default: 'Label'
-        },
-        unitsLabel: {
-            type: String,
-            default: ''
-        },
-        id: {
-            type: String,
-            default: 'sr-slider-input-' + Math.random().toString(36).substring(2, 9)
-        },
-        decimalPlaces: {
-            type: Number,
-            default: 0 // Default to 0 decimal places
-        },
-        tooltipText: {
-            type: String,
-            default: 'tooltip text'
-        },
-        tooltipUrl: {
-            type: String,
-            default: ''
-        },
-        inputWidth: {
-            type: [String, Number],
-            default: '6rem'
-        },
-        sliderWidth: {
-            type: [String, Number],
-            default: '12rem'
-        }
+const emit = defineEmits(['update:modelValue']);
 
-    });
-    const modelValueComputed = computed(() => props.modelValue);
+const innerValue = ref(props.defaultValue);
+const sliderStepSize = ref(Math.pow(10, -props.decimalPlaces));
 
-    // Compute the step size based on decimalPlaces
-    const sliderStepSize = ref(Math.pow(10, -props.decimalPlaces));
+onMounted(() => {
+    sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
+    innerValue.value = props.modelValue ?? props.defaultValue;
+});
 
-    // Initialize sliderStepSize as a ref with a default value
-    onMounted(() => {
-        //console.log(`label:${props.label} tooltip:${props.tooltipText} insensitive: ${props.insensitive}`);
-        sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
-        innerValue.value = props.modelValue;
-        //console.log(`${props.label} Slider Step Size: ${sliderStepSize.value}`);
-    });
+watch(() => props.decimalPlaces, (newDecimalPlaces) => {
+    sliderStepSize.value = Math.pow(10, -newDecimalPlaces);
+});
 
-    const emit = defineEmits(['update:modelValue']);
+watchDebounced(() => props.modelValue, (newVal) => {
+    innerValue.value = newVal ?? props.defaultValue;
+}, { debounce: 500, maxWait: 1000 });
 
-    const innerValue = ref(props.defaultValue);
+watchDebounced(innerValue, (newVal) => {
+    emit('update:modelValue', newVal);
+}, { debounce: 500, maxWait: 1000 });
 
-    //const modelValueChanged = (newValue, oldValue) => {
-    const modelValueChanged = (newValue:any) => {
-        //console.log(`Model value changed from ${oldValue} to ${newValue}`);
-        innerValue.value = newValue;
-    };
+const inputId = props.label && props.label.trim() !== ''
+    ? `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`
+    : props.id;
 
-    watchDebounced(modelValueComputed, 
-        modelValueChanged,
-        { debounce: 500, maxWait: 1000 },
-    );
-
-    //const onInnerValueChange = (newValue, oldValue) => {
-    const onInnerValueChange = (newValue:any) => {
-        //console.log(`Inner value changed from ${oldValue} to ${newValue}`);
-        emit('update:modelValue', newValue );
-    };
-    
-    watchDebounced(innerValue, 
-        onInnerValueChange,
-        { debounce: 500, maxWait: 1000 },
-    );
-
-    watch(sliderStepSize, (newValue) => {
-        console.log(`${props.label} Updated Slider Step Size: ${newValue}`);
-    });
-
-    watch(() => props.decimalPlaces, (newDecimalPlaces) => {
-        sliderStepSize.value = Math.pow(10, -newDecimalPlaces);
-        //console.log('Updated Slider Step Size:', sliderStepSize.value);
-    });
-
-    const updateInnerValue = useDebounceFn((newValue) => {
-        innerValue.value = newValue;
-    }, 500, {maxWait: 1000}); // Adjust the debounce time (500ms) as needed
-
-    const formattedValue = computed({
-        get: () => 
-        {
-            if (props.insensitive) {
-                return '';
-            } else {
-                // Otherwise, return the formatted number
-                return new Intl.NumberFormat('en-US', { minimumFractionDigits: props.decimalPlaces, maximumFractionDigits: props.decimalPlaces }).format(innerValue.value);
-            }
-        },
-        set: (val) => {
-            // Check if the input is a number
-            let numericValue = parseFloat(val);
-            //console.log('val:', val)
-            //console.log('numericValue:', numericValue)
-            if (isNaN(numericValue)) {
-                console.error('Bad numericValue:',numericValue)
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be a number',  life: srToastStore.getLife()});
-                // Handle non-numeric input - reset to the last valid value
-                numericValue = innerValue.value;
-            } else {
-                if(numericValue > props.max) {
-                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be less than or equal to ' + props.max,  life: srToastStore.getLife()});
-                    numericValue = innerValue.value;
-                } else if (numericValue < props.min) {
-                    toast.add({ severity: 'error', summary: 'Error', detail: 'Input must be greater than or equal to ' + props.min,  life: srToastStore.getLife()});
-                    numericValue = innerValue.value;
-                }
-                //console.log('Good numericValue:',numericValue)
-                // Round to the allowed number of decimal places
-                numericValue = parseFloat(numericValue.toFixed(props.decimalPlaces));
-
-                // Clamp the value within the min and max range
-                numericValue = Math.min(Math.max(numericValue, props.min), props.max);
-            }
-
-            // Use the debounced method to update innerValue
-            updateInnerValue(numericValue);
-        }
-    });
-
-    // const openTooltipUrl = () => {
-    //     //console.log('openTooltipUrl:', props.tooltipUrl);
-    //     if (props.tooltipUrl) {
-    //         window.open(props.tooltipUrl, '_blank')?.focus();
-    //     } else {
-    //         console.warn('No tooltip URL provided');
-    //     }
-    // };
-    // Method to generate the ID for the Slider element using the label and prefix if possible
-    const inputId = props.label && props.label.trim() !== '' ? 
-        `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}` : props.id;
-    const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
+const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
 </script>
 
 <style scoped>
@@ -239,14 +119,19 @@
     margin-left: 0.25rem;
 }
 
-.sr-slider-input-text {
-    width: 6em; /* Adjust as needed for 6 digits */
+.sr-slider-input-num {
+    width: 100%;
     text-align: right;
-    padding: 0.25rem;
-    font-size: small;
+    padding: 0.125rem;
+    font-size:x-small;
     background: transparent;
     border-color: transparent;
 }
+:deep(.p-inputtext-sm){
+    width: 100%;
+    font-size: small;
+}
+
 .sr-units-label {
     font-size: 0.8rem; /* Adjust as needed */
     margin-left: 0.25rem; /* Adjust spacing if necessary */
