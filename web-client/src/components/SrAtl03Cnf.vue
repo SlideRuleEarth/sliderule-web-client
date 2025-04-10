@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import SrMultiSelectNumber from './SrMultiSelectNumber.vue';
-import SrCheckbox from './SrCheckbox.vue';
-import { useReqParamsStore } from '../stores/reqParamsStore';
+import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
+import SrCheckbox from '@/components/SrCheckbox.vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+import SrSurfaceRefType from '@/components/SrSurfaceRefType.vue';
 const reqParamsStore = useReqParamsStore();
 
 </script>
@@ -18,17 +19,8 @@ const reqParamsStore = useReqParamsStore();
             />
         </div>
         <div class="sr-atl03-cnf-body">
-            <SrMultiSelectNumber
+            <SrSurfaceRefType
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
-                label="Surface Reference Type"
-                ariaLabel="Select Reference Surface Type"
-                :menuOptions="reqParamsStore.surfaceReferenceTypeOptions"
-                @update:value="reqParamsStore.surfaceReferenceType = $event"
-                :default="[
-                    reqParamsStore.surfaceReferenceTypeOptions[0],
-                ]"
-                tooltipText="srt: The surface type used in the ATL03 photon classification"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
             />
             <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
