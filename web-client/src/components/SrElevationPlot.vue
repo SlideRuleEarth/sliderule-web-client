@@ -308,7 +308,7 @@ const isAtl24WithPhotonCloud = computed(() => { // hack needed until sever suppo
 const PC_OnTooltip = computed(() => { 
     return (globalChartStore.use_y_atc_filter ? 
         'Disabled when off pointing filter in ON' : 
-        'Click to show atl03 photon cloud');
+        'Click to display Atl03 Photon Cloud');
 });
 
 const photonCloudBtnTooltip = computed(() => {
@@ -673,22 +673,25 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             <div 
                 class="sr-run-control" 
                 v-if="!recTreeStore.selectedApi?.includes('atl03')"
-                @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
-                @mouseleave="tooltipRef.hideTooltip"
             >
-                <ToggleButton
-                    onIcon='pi pi-eye-slash'
-                    offIcon="pi pi-eye"
-                    class="sr-show-hide-button"
-                    v-model="atlChartFilterStore.showPhotonCloud"
-                    :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
-                    size="small" 
-                    onLabel="Hide Photon Cloud"
-                    offLabel="Show Photon Cloud"
-                    rounded
-                    variant="text"
+                <div
+                    @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
+                    @mouseleave="tooltipRef.hideTooltip"
                 >
-                </ToggleButton>
+                    <ToggleButton
+                        onIcon='pi pi-eye-slash'
+                        offIcon="pi pi-eye"
+                        class="sr-show-hide-button"
+                        v-model="atlChartFilterStore.showPhotonCloud"
+                        :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
+                        size="small" 
+                        onLabel="Hide Photon Cloud"
+                        offLabel="Show Photon Cloud"
+                        rounded
+                        variant="text"
+                    >
+                    </ToggleButton>
+                </div>
                 <SrRunControl 
                     :includeAdvToggle="false"
                     buttonLabel="Photon Cloud"

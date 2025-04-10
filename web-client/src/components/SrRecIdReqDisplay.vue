@@ -11,13 +11,13 @@
             rounded
             :disabled="props.insensitive"
         ></Button>
+        <SrCustomTooltip ref="tooltipRef"/>
         <SrJsonDisplayDialog
             v-model:visible="showParmsDialog"
             :json-data="reqParms"
             :title="`endpoint = ${curAPI}`"
             width="50vw"
         />
-        <SrCustomTooltip ref="tooltipRef"/>
     </div>
   </template>
   
