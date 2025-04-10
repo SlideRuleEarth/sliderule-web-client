@@ -174,7 +174,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         const summary = await readOrCacheSummary(workerMsg.req_id);
                         if(numBytes > 0){
                             successMsg = `Record ${workerMsg.req_id} created with ${formatBigIntWithCommas(summary?.numPoints ?? 0n)} points\n size:${formatBytes(numBytes)}.\nClick on another track to plot the elevation of that track.`;
-                            useSrToastStore().success('Success',successMsg,15000); // 15 seconds
+                            useSrToastStore().success('Success',successMsg,5000); // 5 seconds
                         } else {
                             successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
                             useSrToastStore().warn('No data found',successMsg);
