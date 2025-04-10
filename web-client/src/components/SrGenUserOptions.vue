@@ -38,14 +38,18 @@ const reqParamsStore = useReqParamsStore();
     />
     <SrResources v-if="reqParamsStore.ignorePolygon"/>
     <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="false">
-        <SrSliderInput
-            v-model="reqParamsStore.totalTimeoutValue"
-            label="Server Timeout"
+        <SrSwitchedSliderInput
+            v-model="reqParamsStore.serverTimeoutValue"
+            :getCheckboxValue="reqParamsStore.getUseServerTimeout"
+            :setCheckboxValue="reqParamsStore.setUseServerTimeout"
+            :getValue="reqParamsStore.getServerTimeout"
+            :setValue="reqParamsStore.setServerTimeout"
+            label="Server Timeout Override"
             :min="60"
             :max="1000000"
             :sliderMin="0"
             :sliderMax="3600"
-            :defaultValue="reqParamsStore.totalTimeoutValue" 
+            :defaultValue="reqParamsStore.serverTimeoutValue" 
             :decimalPlaces="0"
             tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"

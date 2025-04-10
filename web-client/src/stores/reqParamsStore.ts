@@ -55,7 +55,8 @@ const createReqParamsStore = (id: string) =>
         minDate: new Date('2018-10-01T00:00:00Z'),
         t0Value: new Date('2018-10-01T00:00:00Z'), // Sets to 2018-10-01 UTC, mission start
         t1Value: new Date(),
-        totalTimeoutValue: -1, // this needs to be > the default in the server
+        useServerTimeout: false,
+        serverTimeoutValue: 600, 
         useReqTimeout: false,
         reqTimeoutValue: 600, // this needs to match the default in the server
         useNodeTimeout: false,
@@ -453,28 +454,22 @@ const createReqParamsStore = (id: string) =>
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }
-          if(this.useGlobalTimeout()) {
-            if(this.totalTimeoutValue > 0) {
-              req.timeout = this.totalTimeoutValue;
-            }
-          } else {
-            if(this.useReqTimeout) {
-              req['rqst-timeout'] = this.reqTimeoutValue;
-            }
-            if(this.useNodeTimeout) {
-              req['node-timeout'] = this.nodeTimeoutValue;
-            }
-            if(this.useReadTimeout) {
-              req['read-timeout'] = this.readTimeoutValue;
-            }
+          if(this.useServerTimeout) {
+            req.timeout = this.serverTimeoutValue;
+          } 
+          if(this.useReqTimeout) {
+            req['rqst-timeout'] = this.reqTimeoutValue;
           }
+          if(this.useNodeTimeout) {
+            req['node-timeout'] = this.nodeTimeoutValue;
+          }
+          if(this.useReadTimeout) {
+            req['read-timeout'] = this.readTimeoutValue;
+          }
+          
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
-        },
-        // setSrt(srt: number[]) {
-        //   this.surfaceReferenceType = srt.map(v => ({ name: `Dynamic (${v})`, value: v }));
-        // },
-        
+        },        
         getSrt(): number[] {
           return this.surfaceReferenceType.map(item => item.value);
         },
@@ -688,14 +683,28 @@ const createReqParamsStore = (id: string) =>
         setReadTimeout(readTimeoutValue:number) {
           this.readTimeoutValue = readTimeoutValue;
         },
-        restoreTimeouts() {
-          this.totalTimeoutValue = -1;
+        restoreTimeouts() {// TBD use defaults api
+          this.serverTimeoutValue = 600; 
+          this.reqTimeoutValue = 600;
+          this.nodeTimeoutValue = 600;
+          this.readTimeoutValue = 600;
+          this.useServerTimeout = false;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
         },
-        useGlobalTimeout(): boolean {
-          return (!this.useReqTimeout && !this.useNodeTimeout && !this.useReadTimeout);
+
+        getUseServerTimeout(): boolean {
+          return this.useServerTimeout;
+        },
+        setUseServerTimeout(useServerTimeout:boolean) {
+          this.useServerTimeout = useServerTimeout;
+        },
+        getServerTimeout(): number {
+          return this.serverTimeoutValue; 
+        },
+        setServerTimeout(serverTimeoutValue:number) {
+          this.serverTimeoutValue = serverTimeoutValue;
         },
         getYAPCScore():number {
           return this.YAPCScore;
