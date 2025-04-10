@@ -1,17 +1,20 @@
 <template>
     <div class="sr-slider-input-wrapper">
         <div class="sr-slider-col">
+            <label :for="inputId" class="sr-visually-hidden">{{ label }}</label>
             <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="props.insensitive"/>
             <div class="sr-slider-input-row">
                 <Slider 
                     v-model="innerValue" 
                     :name="sliderName" 
-                    :min="sliderMin" 
-                    :max="sliderMax" 
+                    :min="effectiveSliderMin" 
+                    :max="effectiveSliderMax" 
                     :step="sliderStepSize" 
                     class="sr-slider" 
                     :disabled="props.insensitive" 
                     :style="{ width: props.sliderWidth }"
+                    @blur="handleBlur('slider')"
+                    @change="handleChange('slider')"
                 />
                 <InputNumber 
                     v-model="innerValue"
@@ -28,6 +31,8 @@
                     :minFractionDigits="props.decimalPlaces"
                     class="sr-slider-input-num"
                     size="small"
+                    @blur="handleBlur('input')"
+                    @change="handleChange('input')"
                 />
                 <span class="sr-units-label">{{ props.unitsLabel }}</span>
             </div>
@@ -36,7 +41,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, computed } from 'vue';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import { watchDebounced } from '@vueuse/core';
@@ -47,8 +52,8 @@ const props = defineProps({
     insensitive: { type: Boolean, default: false },
     min: { type: Number, default: 0 },
     max: { type: Number, default: 100 },
-    sliderMin: { type: Number, default: 0 },
-    sliderMax: { type: Number, default: 100 },
+    sliderMin: { type: Number },
+    sliderMax: { type: Number },
     defaultValue: { type: Number, default: 0 },
     label: { type: String, default: 'Label' },
     unitsLabel: { type: String, default: '' },
@@ -60,33 +65,38 @@ const props = defineProps({
     sliderWidth: { type: [String, Number], default: '12rem' }
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'blur', 'change']);
+const effectiveSliderMin = computed(() => props.sliderMin ?? props.min);
+const effectiveSliderMax = computed(() => props.sliderMax ?? props.max);
+const innerValue = ref(props.modelValue ?? props.defaultValue);
+const sliderStepSize = computed(() => Math.pow(10, -props.decimalPlaces));
 
-const innerValue = ref(props.defaultValue);
-const sliderStepSize = ref(Math.pow(10, -props.decimalPlaces));
+const handleBlur = (source: 'slider' | 'input') => (event: FocusEvent) => {
+  emit('blur', { source, event });
+};
 
-onMounted(() => {
-    sliderStepSize.value = Math.pow(10, -props.decimalPlaces);
-    innerValue.value = props.modelValue ?? props.defaultValue;
+const handleChange = (source: 'slider' | 'input') => (event: Event) => {
+  emit('change', { source, value: innerValue.value });
+};
+
+
+watch(() => props.modelValue, (newVal) => {
+  const sanitized = typeof newVal === 'number' && !isNaN(newVal) ? newVal : props.defaultValue;
+  if (sanitized !== innerValue.value) {
+    innerValue.value = sanitized;
+  }
 });
 
-watch(() => props.decimalPlaces, (newDecimalPlaces) => {
-    sliderStepSize.value = Math.pow(10, -newDecimalPlaces);
-});
-
-watchDebounced(() => props.modelValue, (newVal) => {
-    innerValue.value = newVal ?? props.defaultValue;
-}, { debounce: 500, maxWait: 1000 });
 
 watchDebounced(innerValue, (newVal) => {
     emit('update:modelValue', newVal);
 }, { debounce: 500, maxWait: 1000 });
 
-const inputId = props.label && props.label.trim() !== ''
-    ? `sr-slider-input-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`
-    : props.id;
+const normalizeLabel = (label: string) =>
+  label.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-');
 
-const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
+const inputId = props.label.trim() ? `sr-slider-input-${normalizeLabel(props.label)}` : props.id;
+const sliderName = `sr-slider-${normalizeLabel(props.label)}`;
 </script>
 
 <style scoped>
@@ -95,17 +105,7 @@ const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/
     border-radius: var(--p-border-radius);
     margin: 0.25rem;
 }
-.sr-slider-col {
-    display: flex;
-    flex-direction: column;
-    align-items: self-start;
-    justify-content: left;
-}
-.sr-slider-label-icon-row {
-    display: flex;
-    justify-content: left;
-    align-items: center;
-}
+
 .sr-slider-input-row {
     display: flex;
     justify-content: space-between;
@@ -135,6 +135,18 @@ const sliderName = `sr-slider-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/
 .sr-units-label {
     font-size: 0.8rem; /* Adjust as needed */
     margin-left: 0.25rem; /* Adjust spacing if necessary */
+}
+
+.sr-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 </style>

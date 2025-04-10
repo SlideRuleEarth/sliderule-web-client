@@ -4,7 +4,18 @@
             <SrCheckbox v-model="computedCheckboxValue" label=""  :insensitive="props.insensitive"/>
             <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         </div>
-        <SrSliderInput v-model="innerModelValue" label="" :id="inputId" :min="min"  :max="max" :decimalPlaces="decimalPlaces" :insensitive="!computedCheckboxValue || insensitive" :tooltipText="tooltipText"  />
+        <SrSliderInput 
+            v-model="innerModelValue" 
+            label="" 
+            :id="inputId" 
+            :min="min"  
+            :max="max"
+            :sliderMin="sliderMin"
+            :sliderMax="sliderMax" 
+            :decimalPlaces="decimalPlaces" 
+            :insensitive="!computedCheckboxValue || insensitive" 
+            :tooltipText="tooltipText"  
+        />
     </div>
 </template>
   
@@ -38,6 +49,8 @@
             type: Number,
             default: 100.0
         },
+        sliderMin: { type: Number },
+        sliderMax: { type: Number },
         label: {
             type: String,
             default: ''
