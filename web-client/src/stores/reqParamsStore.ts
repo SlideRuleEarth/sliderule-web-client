@@ -79,7 +79,7 @@ const createReqParamsStore = (id: string) =>
           { name: 'Land Ice', value: 3 },
           { name: 'Inland Water',value: 4 },
         ] as SrMultiSelectNumberItem[],
-        surfaceReferenceType: [-1] as number[], // TBD change this to [] when the server is updated
+        surfaceReferenceType: [{ name: 'Dynamic', value: -1 }] as SrMultiSelectNumberItem[], 
         signalConfidenceNumberOptions: 
         [
           { name: 'TEP', value: -2 },
@@ -221,7 +221,7 @@ const createReqParamsStore = (id: string) =>
             } else {
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
             }
-            this.setSrt([-1]);
+            //this.setSrt([-1]);
             this.signalConfidenceNumber = [0,1,2,3,4];
             if(parentApi === 'atl24x'){
               this.enableAtl24Classification = true;
@@ -330,10 +330,10 @@ const createReqParamsStore = (id: string) =>
             req.atl24 = {"confidence_threshold": 0.60}; // default confidence threshold for ATL24
           } else {
             req.asset = this.getAsset();
-            if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0]===-1){
+            if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
               req.srt = -1; // and not [-1]
             } else {
-              if(this.surfaceReferenceType.length>1){
+              if(this.surfaceReferenceType.length>=1){
                 req.srt = this.getSrt();
               }
             }
@@ -386,12 +386,6 @@ const createReqParamsStore = (id: string) =>
           }
         
           if (this.getEnableGranuleSelection()) {
-            if (this.tracks.length > 0) {
-              req.track = this.tracks.map(track => track.value)[0];
-              if(this.tracks.length > 1){
-                console.error('getAtlReqParams: tracks.length > 1:', this.tracks);
-              }
-            }
             if (this.beams.length > 0) {
               req.beams = this.beams.map(beam => beam.value);
             }
@@ -477,11 +471,12 @@ const createReqParamsStore = (id: string) =>
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
         },
-        setSrt(srt:number[]) {
-          this.surfaceReferenceType = srt;
-        },
+        // setSrt(srt: number[]) {
+        //   this.surfaceReferenceType = srt.map(v => ({ name: `Dynamic (${v})`, value: v }));
+        // },
+        
         getSrt(): number[] {
-          return this.surfaceReferenceType;       
+          return this.surfaceReferenceType.map(item => item.value);
         },
         getSurfaceReferenceType(name: string): number {
           const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import SrMenu from './SrMenu.vue';
-import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
-import SrSliderInput from './SrSliderInput.vue';
-import SrCheckbox from './SrCheckbox.vue';
-import SrGeoJsonFileUpload from './SrGeoJsonFileUpload.vue';
-import SrResources from './SrResources.vue';
+import SrMenu from '@/components/SrMenu.vue';
+import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
+import SrSliderInput from '@/components/SrSliderInput.vue';
+import SrCheckbox from '@/components/SrCheckbox.vue';
+import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue';
+import SrResources from '@/components/SrResources.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useMapStore } from '@/stores/mapStore';
@@ -43,6 +43,8 @@ const reqParamsStore = useReqParamsStore();
             label="Server Timeout"
             :min="60"
             :max="1000000"
+            :sliderMin="0"
+            :sliderMax="3600"
             :defaultValue="reqParamsStore.totalTimeoutValue" 
             :decimalPlaces="0"
             tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
@@ -57,6 +59,8 @@ const reqParamsStore = useReqParamsStore();
             label="rqst-timeout"
             :min="1"
             :max="1000000" 
+            :sliderMin="0"
+            :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="total time in seconds for request to be processed"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
@@ -70,6 +74,8 @@ const reqParamsStore = useReqParamsStore();
             label="node-timeout"
             :min="1"
             :max="100000" 
+            :sliderMin="0"
+            :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
@@ -83,6 +89,8 @@ const reqParamsStore = useReqParamsStore();
             label="read-timeout"
             :min="1"
             :max="1000000" 
+            :sliderMin="0"
+            :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="time in seconds for a single read of an asset to take"
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
