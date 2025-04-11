@@ -12,6 +12,8 @@ import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from './globalChartStore';
 import { type ApiName, isValidAPI } from '@/types/SrTypes'
+import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
+import { useSlideruleDefaults } from './defaultsStore';
 interface YapcConfig {
   version: number;
   score: number;
@@ -56,16 +58,18 @@ const createReqParamsStore = (id: string) =>
         t0Value: new Date('2018-10-01T00:00:00Z'), // Sets to 2018-10-01 UTC, mission start
         t1Value: new Date(),
         useServerTimeout: false,
-        serverTimeoutValue: 600, 
+        serverTimeoutValue:  601, //600, 
         useReqTimeout: false,
-        reqTimeoutValue: 600, // this needs to match the default in the server
+        reqTimeoutValue: 601,//600, 
         useNodeTimeout: false,
-        nodeTimeoutValue: 600,
+        nodeTimeoutValue: 601,//600,
         useReadTimeout: false,
-        readTimeoutValue: 600,
-        enableExtents: false,
-        lengthValue: -1.0,
-        stepValue: -1.0,
+        readTimeoutValue: 601,
+        //enableExtents: false,
+        useLength:false,
+        lengthValue: 41,
+        useStep:false,
+        stepValue: 21,
         confidenceValue: 4,
         iterationsValue: 6,
         spreadValue: 20.0,
@@ -114,11 +118,13 @@ const createReqParamsStore = (id: string) =>
         ] as SrMultiSelectTextItem[],
         distanceIn: { name: 'meters', value: 'meters' },
         passInvalid: false,
+        useAlongTrackSpread: false,
         alongTrackSpread: -1.0,
+        useMinimumPhotonCount: false,
         minimumPhotonCount: -1,
         maxIterations: -1,
         minWindowHeight: -1.0,
-        maxRobustDispersion: -1.0,
+        maxRobustDispersion: -1,
         binSize: 0.0,
         geoLocation: {name: "mean", value: "mean"},
         geoLocationOptions: [
@@ -194,7 +200,7 @@ const createReqParamsStore = (id: string) =>
         usesYAPCWindowWidth: false,
         YAPCWindowWidth: 0.0,
         usesYAPCVersion: false,
-        YAPCVersion: '0' as string,
+        YAPCVersion: 0 as number,
         YAPCVersionOptions: ['0','1','2','3'],
         resources: [] as string[],
         target_numAtl06Recs: 0,
@@ -204,6 +210,7 @@ const createReqParamsStore = (id: string) =>
         enableAtl24Classification: false,
         atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
         atl24_class_ph_Options: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
+        defaultsFetched: false,
     }),
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -234,7 +241,7 @@ const createReqParamsStore = (id: string) =>
               this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
             }
             this.enableYAPC = true;
-            this.YAPCVersion = '0';
+            this.YAPCVersion = 0;
             this.setUseRgt(true);
             //TBD maybe when svr params is fixed it will include rgt. so use that instead of this
             this.setSelectedTrackOptions(useGlobalChartStore().getSelectedTrackOptions());
@@ -369,10 +376,10 @@ const createReqParamsStore = (id: string) =>
           if(this.passInvalid) {
             req.pass_invalid = true;
           } else {
-            if(this.getAlongTrackSpread() >= 0.0){
+            if(this.getUseAlongTrackSpread()){
               req.ats = this.alongTrackSpread;
             }
-            if(this.minimumPhotonCount > 0){ 
+            if(this.getUseMinimumPhotonCount()){ 
               req.cnt = this.minimumPhotonCount;
             }
           }
@@ -428,17 +435,24 @@ const createReqParamsStore = (id: string) =>
           }
 
           if(this.enableYAPC) {
-            const yapc:YapcConfig = {
-              version: Number(this.getYAPCVersion()),
-              score: this.getYAPCScore(),
-            };
+            // const yapc:YapcConfig = {
+            //   version: Number(this.getYAPCVersion()),
+            //   score: this.getYAPCScore(),
+            // };
+            let yapc = {} as Icesat2ConfigYapc;
+            yapc.version = this.getYAPCVersion();
+            yapc.score = this.YAPCScore;
             if(this.usesYAPCKnn) {
               yapc.knn = this.YAPCKnn
             }
             if(this.usesYAPCWindowHeight) {
-              yapc.win_h= this.YAPCWindowHeight
+              yapc.win_h = this.YAPCWindowHeight
+            }
+            if(this.usesYAPCWindowWidth) {
+              yapc.win_x = this.YAPCWindowWidth
             }
             req.yapc = yapc;
+            //console.log('using req.yapc:',req.yapc)
           }
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
@@ -484,6 +498,18 @@ const createReqParamsStore = (id: string) =>
           } else {
             timeout = 600*1000+5000; // default to 10 minutes 5 seconds. TBD use server defaults api to set this
           } 
+          if(this.useNodeTimeout && this.getNodeTimeout()>0){
+            const nodeTimeSetting = this.getNodeTimeout()*1000 + 5000;
+            if(nodeTimeSetting > timeout){
+              timeout = nodeTimeSetting;
+            }
+          }
+          if(this.useReadTimeout && this.getReadTimeout()>0){
+            const readTimeSetting = this.getReadTimeout()*1000 + 5000;
+            if(readTimeSetting > timeout){
+              timeout = readTimeSetting;
+            }
+          }
           console.log('getWorkerThreadTimeout this.getReqTimeout:', this.getReqTimeout(), 'timeout:', timeout); 
           return timeout;      
         },
@@ -611,11 +637,23 @@ const createReqParamsStore = (id: string) =>
         setMinWindowHeight(minWindowHeight:number) {
           this.minWindowHeight = minWindowHeight;
         },
+        setUseLength(useLength:boolean){
+          this.useLength = useLength;
+        },
+        getUseLength(){
+          return this.useLength;
+        },
         getLengthValue(): number {
           return this.lengthValue;
         },
         setLengthValue(lengthValue:number) {
           this.lengthValue = lengthValue;
+        },
+        setUseStep(useStep:boolean){
+          this.useStep = useStep;
+        },
+        getUseStep(){
+          return this.useStep;
         },
         getStepValue(): number {
           return this.stepValue;
@@ -635,11 +673,23 @@ const createReqParamsStore = (id: string) =>
         setMaxIterations(maxIterations:number) {
           this.maxIterations = maxIterations;
         },
+        getUseAlongTrackSpread(): boolean{
+          return this.useAlongTrackSpread;
+        },
+        setUseAlongTrackSpread(ats:boolean){
+          this.useAlongTrackSpread;
+        },
         getAlongTrackSpread():number {
           return this.alongTrackSpread;
         },
         setAlongTrackSpread(alongTrackSpread:number) {
           this.alongTrackSpread = alongTrackSpread;
+        },
+        getUseMinimumPhotonCount(): boolean{
+          return this.useMinimumPhotonCount;
+        },
+        setUseMinimumPhotonCount(useMinimumPhotonCount:boolean){
+          this.useMinimumPhotonCount = useMinimumPhotonCount;
         },
         getMinimumPhotonCount(): number {
           return this.minimumPhotonCount;
@@ -683,17 +733,40 @@ const createReqParamsStore = (id: string) =>
         setReadTimeout(readTimeoutValue:number) {
           this.readTimeoutValue = readTimeoutValue;
         },
-        restoreTimeouts() {// TBD use defaults api
-          this.serverTimeoutValue = 600; 
-          this.reqTimeoutValue = 600;
-          this.nodeTimeoutValue = 600;
-          this.readTimeoutValue = 600;
+        async restoreTimeouts() {
           this.useServerTimeout = false;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
+          const sto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'timeout');
+          if(sto){
+              this.setServerTimeout(sto);
+          } else {
+              console.warn('No default server timeout found, setting to fallback default of 601 seconds');
+              this.setServerTimeout(601); // fallback default
+          }
+          const nto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'node_timeout');
+          if(nto){
+              this.setNodeTimeout(nto);
+          } else {
+              console.warn('No default node timeout found, setting to fallback default of 601 seconds');
+              this.setNodeTimeout(601); // fallback default
+          }
+          const rto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'read_timeout');
+          if(rto){
+              this.setReadTimeout(rto);
+          } else {
+              console.warn('No default read timeout found, setting to fallback default of 601 seconds');
+              this.setReadTimeout(601); // fallback default
+          }
+          const rqto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'rqst_timeout');
+          if(rqto){
+              this.setReqTimeout(rqto);
+          } else {
+              console.warn('No default request timeout found, setting to fallback default of 601 seconds');
+              this.setReqTimeout(601); // fallback default
+          }
         },
-
         getUseServerTimeout(): boolean {
           return this.useServerTimeout;
         },
@@ -710,6 +783,7 @@ const createReqParamsStore = (id: string) =>
           return this.YAPCScore;
         },
         setYAPCScore(value:number) {
+          //console.trace('setYAPCScore')
           this.YAPCScore = value;
         },
         getUseYAPCScore():boolean {
@@ -754,11 +828,25 @@ const createReqParamsStore = (id: string) =>
         setYAPCWindowWidth(value:number) {
           this.YAPCWindowWidth = value;
         },
-        getYAPCVersion():string {
+        getYAPCVersion():number {
           return this.YAPCVersion;
         },
-        setYAPCVersion(value:string) {
+        setYAPCVersion(value:number) {
           this.YAPCVersion = value;
+        },
+
+        async initYapcDefaults(){
+          const yapc = await useSlideruleDefaults().getNestedMissionDefault<object>(this.missionValue,'yapc') as Icesat2ConfigYapc;
+          console.log('yapc:',yapc);
+          if (yapc) {
+            this.setYAPCVersion(yapc['version']); //3
+            console.log('yapc[score]:',yapc['score']);
+            this.setYAPCScore(yapc['score']); //0
+            this.setYAPCKnn(yapc['knn']); //0
+            this.setYAPCWindowHeight(yapc['win_h']); //10
+            this.setYAPCWindowWidth(yapc['win_x']); //10
+          }
+                  
         },
         getMissionValue() : string {
           return this.missionValue;
@@ -832,19 +920,12 @@ const createReqParamsStore = (id: string) =>
         setEnableSurfaceElevation(enableSurfaceElevation:boolean) {
           this.enableSurfaceElevation = enableSurfaceElevation;
         },
-        getEnableExtents(): boolean {
-          return this.enableExtents;
-        },
-        setEnableExtents(enableExtents:boolean) {
-          this.enableExtents = enableExtents;
-        },
         setPoly(poly: SrRegion) {
           this.poly = poly;
         },
         setCmr(cmr: { polygon: SrRegion }) {
           this.poly = cmr.polygon;
-        }
-        
+        },
     },
 })
 const theReqParamsStore = createReqParamsStore('reqParamsStore');

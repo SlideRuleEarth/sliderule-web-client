@@ -26,7 +26,7 @@
     
             <div class="sr-field">
                 <label for="progressiveChunkMode">Progressive Chunk Mode</label>
-                <Dropdown v-model="plotConfig.progressiveChunkMode" :options="chunkModes" optionLabel="label" optionValue="value" />
+                <Select v-model="plotConfig.progressiveChunkMode" :options="chunkModes" optionLabel="label" optionValue="value" />
             </div>
     
             <div class="sr-field">
@@ -81,7 +81,7 @@
   import { ref, onMounted } from 'vue';
   import InputNumber from 'primevue/inputnumber';
   import InputText from 'primevue/inputtext';
-  import Dropdown from 'primevue/dropdown';
+  import Select from 'primevue/select';
   import Button from 'primevue/button';
   import { db } from '@/db/SlideRuleDb';
   import type { SrPlotConfig } from '@/db/SlideRuleDb';

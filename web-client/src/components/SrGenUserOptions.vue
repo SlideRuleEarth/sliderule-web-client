@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import SrMenu from '@/components/SrMenu.vue';
 import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
-import SrSliderInput from '@/components/SrSliderInput.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue';
 import SrResources from '@/components/SrResources.vue';
@@ -9,10 +8,15 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useMapStore } from '@/stores/mapStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { onMounted } from 'vue';
 
 const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
+onMounted(async () => {
+    // Initialize any required state or fetch data if needed
+    await reqParamsStore.restoreTimeouts();
+});
 
 </script>
 

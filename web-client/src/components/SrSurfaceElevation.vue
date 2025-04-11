@@ -3,15 +3,31 @@
 import SrSliderInput from './SrSliderInput.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 import SrCheckbox from './SrCheckbox.vue';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { onMounted } from 'vue';
 
 const reqParamsStore = useReqParamsStore();
-function presetValues() {
+async function presetValues() {
     if (!reqParamsStore.enableSurfaceElevation) {
-        reqParamsStore.maxIterations = 3;
-        reqParamsStore.minWindowHeight = 3;
-        reqParamsStore.maxRobustDispersion = -1;
+        const min_window_height = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'H_min_win');
+        if(min_window_height){
+            reqParamsStore.minWindowHeight = min_window_height;
+        }
+        const sigma_r_max = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'sigma_r_max');
+        if(sigma_r_max){
+            reqParamsStore.setSigmaRmax(sigma_r_max);
+        }
+        const maxIterations = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'maxi');
+        if(maxIterations){
+            reqParamsStore.setMaxIterations(maxIterations);
+        }
     }
 }
+
+onMounted(async () => {
+
+})
+
 </script>
 <template>
     <div class="sr-surface-elevation-container">

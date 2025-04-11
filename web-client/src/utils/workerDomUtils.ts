@@ -382,15 +382,20 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             if(!reqParamsStore){
                 throw new Error('runSlideRuleClicked reqParamsStore was undefined');
             }
-            if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
-                console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
-                if (rc === null) {
-                    useSrToastStore().error('Error', 'You must define a geographic region.');
-                    requestsStore.setConsoleMsg('You need to supply a geographic region...');
-                } else {
-                    console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+            if(!reqParamsStore.enableGranuleSelection){ // granule selection is not enabled
+                if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
+                    console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                    if (rc === null) {
+                        useSrToastStore().error('Error', 'You must define a geographic region or a resource or use advanced filters');
+                        useSrToastStore().info('Helpful Advice', 'To start: Try zooming in and selecting a geographic region about 10x10 km or smaller');
+                        requestsStore.setConsoleMsg('You need to supply a geographic region or a resource or advanced filters...');
+                    } else {
+                        console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                    }
+                    return;
                 }
-                return;
+            } else {
+                // with granule selection enabled, polygon is not required
             }
             const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
             if (srViewKey.value) {
