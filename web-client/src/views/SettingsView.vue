@@ -4,7 +4,6 @@ import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
-import SrColorPalette from '@/components/SrColorPalette.vue';
 import SrClearCache from '@/components/SrClearCache.vue';
 import SrSysConfig from '@/components/SrSysConfig.vue';
 import SrStorageUsage from '@/components/SrStorageUsage.vue';
@@ -55,12 +54,12 @@ import Card from 'primevue/card';
                     </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="4">
+                <!-- <AccordionPanel value="4">
                     <AccordionHeader>Color Defaults</AccordionHeader>
                     <AccordionContent>
                         <SrColorPalette />
                     </AccordionContent>
-                </AccordionPanel>
+                </AccordionPanel> -->
 
             </Accordion>
         </div>

@@ -890,6 +890,7 @@ const createReqParamsStore = (id: string) =>
           } else if (this.missionValue === 'GEDI' && isValidAPI(this.gediSelectedAPI)) {
             return this.gediSelectedAPI as ApiName;
           }
+          console.error('getCurAPIObj: mission not recognized or API not valid mission:', this.missionValue,'iceSat2API:', this.iceSat2SelectedAPI, 'gediAPI:', this.gediSelectedAPI);
           return null; // Explicitly return `null` instead of `''`
         },    
         setConvexHull(convexHull: SrRegion) {
