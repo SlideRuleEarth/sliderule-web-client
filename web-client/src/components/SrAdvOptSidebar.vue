@@ -8,7 +8,6 @@
     import { useServerStateStore } from '@/stores/serverStateStore';
     
     onMounted(async () => {
-        //console.log('SrAdvOptSidebar onMounted totalTimeoutValue:',reqParamsStore.totalTimeoutValue);
        useServerStateStore().isAborting = false;
     });
 

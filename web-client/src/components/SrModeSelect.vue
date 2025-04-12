@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
 import { ref, computed, onMounted } from 'vue';
-import Button from 'primevue/button';
 
 
 const advancedModeStore = useAdvancedModeStore();

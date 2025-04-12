@@ -46,18 +46,6 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             />
         </div>
         <div class="sr-granule-tracks-beams-div"> 
-            <!-- <SrReqTracks/>
-            <SrReqBeams/> -->
-            <SrListbox id="tracks" 
-                :insensitive="!reqParamsStore.enableGranuleSelection"
-                label="Track(s)" 
-                v-model="reqParamsStore.tracks"
-                :getSelectedMenuItem="reqParamsStore.getSelectedTrackOptions"
-                :setSelectedMenuItem="reqParamsStore.setSelectedTrackOptions"
-                :menuOptions="tracksOptions" 
-                tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
-                @update:modelValue="TracksSelection"
-            />
             <SrListbox id="beams" 
                 :insensitive="!reqParamsStore.enableGranuleSelection"
                 label="Beam(s)" 

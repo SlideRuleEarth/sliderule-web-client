@@ -168,7 +168,7 @@ const handleClientVersionButtonClick = () => {
 <template>
   <div class="app-layout">
     <div>
-      <SrToast position="top-center"/>
+      <SrToast position="top-left" />
     </div>  
     <header class="app-header">
       <SrAppBar 

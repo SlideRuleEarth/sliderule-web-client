@@ -4,7 +4,17 @@ import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrMenu from './SrMenu.vue';
 import SrCheckBox from './SrCheckbox.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
+import { onMounted } from 'vue';
 const reqParamsStore = useReqParamsStore();
+
+onMounted(async () => {
+  await reqParamsStore.initYapcDefaults();
+});
+
+async function initYapc(){
+  //console.log('initYapc');
+  await reqParamsStore.initYapcDefaults();
+}
 
 </script>
 
@@ -16,7 +26,8 @@ const reqParamsStore = useReqParamsStore();
           label="YAPC" 
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" 
-          labelFontSize="large"          
+          labelFontSize="large"
+          @update:modelValue=initYapc          
       />
     </div>
     <div class="sr-yapc-version-header">

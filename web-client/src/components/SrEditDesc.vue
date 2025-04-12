@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { db } from '@/db/SlideRuleDb';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import FloatLabel from 'primevue/floatlabel';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -23,7 +23,7 @@ const descrRef = ref('');
 // Watch for changes in the reqId and fetch the description asynchronously
 const fetchDescription = async () => {
     //console.log('fetchDescription called with reqId:', props.reqId);
-    if (props.reqId !== 0) {
+    if (props.reqId > 0) {
         descrRef.value = await db.getDescription(props.reqId);
         //console.log('fetchDescription called with reqId:', props.reqId,'descrRef.value:', descrRef.value);
         if(!descrRef.value) {
@@ -45,7 +45,7 @@ const fetchDescription = async () => {
                         db.updateRequest(props.reqId, {description: descrRef.value} );
                     }
                 } else {
-                    console.error('fetchDescription No extLatLon found for reqId:', props.reqId);
+                    console.warn('fetchDescription No extLatLon found for reqId:', props.reqId);
                     // Handle the case where no extLatLon is found
                 }
             } else {
@@ -78,6 +78,7 @@ const onEditComplete = async (event: Event) => {
 <template>
     <FloatLabel class="full-width-label">
         <InputText
+            v-if="props.reqId > 0"
             v-model="descrRef"
             class="p-inputtext p-component"
             @keydown.enter="onEditComplete"

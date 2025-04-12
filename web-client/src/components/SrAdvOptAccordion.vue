@@ -31,12 +31,12 @@ const props = defineProps<Props>();
 const expandedPanels = ref<number[]>([]);
 
 const onPanelOpen = (value:any) => {
-    console.log('onPanelOpen', value, "type: ", typeof value);
+    //console.log('onPanelOpen', value, "type: ", typeof value);
     expandedPanels.value.push(value.index);
 };
 
 const onPanelClose = (value:any) => {
-    console.log('onPanelClose', value, "type: ", typeof value);
+    //console.log('onPanelClose', value, "type: ", typeof value);
     expandedPanels.value = expandedPanels.value.filter((p) => p !== value.index);
 };
 

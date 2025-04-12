@@ -1,23 +1,38 @@
 <script setup lang="ts">
 
-import SrSliderInput from './SrSliderInput.vue';
+import SrSwitchedSliderInput from './SrSwitchedSliderInput.vue';
 import SrMenuInput from './SrMenuInput.vue';
 import SrCheckbox from './SrCheckbox.vue';
-import { useReqParamsStore } from '../stores/reqParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { onMounted } from 'vue';
 
 const reqParamsStore = useReqParamsStore();
+
+onMounted(async () => {
+    const len = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'len');
+    if(len){
+        reqParamsStore.setLengthValue(len);
+    }
+    const res = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'res');
+    if(res){
+        reqParamsStore.setStepValue(res);
+    }
+    const ats = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'ats');
+    if (ats) {
+        reqParamsStore.setAlongTrackSpread(ats);
+    }
+    const cnt = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'cnt');
+    if (cnt) {
+        reqParamsStore.setMinimumPhotonCount(cnt);
+    }
+});
 
 </script>
 <template>
     <div class="sr-extents-container">
         <div class="sr-extents-top-header">
-            <SrCheckbox
-                label="Extents" 
-                labelFontSize="larger"
-                v-model="reqParamsStore.enableExtents"
-                tooltipText="Selected photons are collected into extents, each of which may be suitable for elevation fitting. The API may also select photons based on their along-track distance, or based on the segment-id parameters in the ATL03 product." 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters" 
-        />
+            <span class="sr-extents-hdr">Extents</span>
         </div>
         <div class="sr-ext-distance-container">
             <div class="sr-ext-distance-header-container">
@@ -25,7 +40,6 @@ const reqParamsStore = useReqParamsStore();
                         v-model="reqParamsStore.distanceIn"
                         label = "Distance In"
                         labelFontSize="large"
-                        :insensitive="!reqParamsStore.enableExtents"
                         :justify_center='false'
                         aria-label="Select Distance in"
                         :menuOptions="reqParamsStore.distanceInOptions"
@@ -34,44 +48,56 @@ const reqParamsStore = useReqParamsStore();
                 />
                 </div>
             <div class="sr-ext-distance-body-container">
-                <SrSliderInput
+                <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='meters'"
                     v-model="reqParamsStore.lengthValue"
                     label="Length in meters"
-                    :insensitive="!reqParamsStore.enableExtents"
-                    :min="5"
+                    :getCheckboxValue="reqParamsStore.getUseLength"
+                    :setCheckboxValue="reqParamsStore.setUseLength"
+                    :getValue="reqParamsStore.getLengthValue"
+                    :setValue="reqParamsStore.setLengthValue"
+                    :min="1"
                     :max="200" 
                     :decimal-places="0"                  
                     tooltipText="len: The length of the extent in meters"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
-                <SrSliderInput
+                <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='meters'"
                     v-model="reqParamsStore.stepValue"
                     label="Step Size (meters)"
-                    :insensitive="!reqParamsStore.enableExtents"
-                    :min="5"
+                    :getCheckboxValue="reqParamsStore.getUseStep"
+                    :setCheckboxValue="reqParamsStore.setUseStep"
+                    :getValue="reqParamsStore.getStepValue"
+                    :setValue="reqParamsStore.setStepValue"
+                    :min="1"
                     :max="100" 
                     :decimal-places="0"
                     tooltipText="res: The Step Size of the extent in meters"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
-                <SrSliderInput
+                <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='segments'"
                     v-model="reqParamsStore.lengthValue"
                     label="Length in segments"
-                    :insensitive="!reqParamsStore.enableExtents"
-                    :min="5"
+                    :getCheckboxValue="reqParamsStore.getUseLength"
+                    :setCheckboxValue="reqParamsStore.setUseLength"
+                    :getValue="reqParamsStore.getLengthValue"
+                    :setValue="reqParamsStore.setLengthValue"
+                    :min="1"
                     :max="200" 
                     :decimal-places="0"                  
                     tooltipText="len: The length of the extent in segments"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
-                <SrSliderInput
+                <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='segments'"
                     v-model="reqParamsStore.stepValue"
                     label="Step Size (segments)"
-                    :insensitive="!reqParamsStore.enableExtents"
+                    :getCheckboxValue="reqParamsStore.getUseStep"
+                    :setCheckboxValue="reqParamsStore.setUseStep"
+                    :getValue="reqParamsStore.getStepValue"
+                    :setValue="reqParamsStore.setStepValue"
                     :min="1"
                     :max="100" 
                     :decimal-places="0"
@@ -85,27 +111,34 @@ const reqParamsStore = useReqParamsStore();
                 <SrCheckbox
                     label="Pass Invalid"
                     labelFontSize="large"
-                    :insensitive="!reqParamsStore.enableExtents"
                     v-model="reqParamsStore.passInvalid"
                     tooltipText="pass_invalid: indicating whether or not extents that fail validation checks are still used and returned in the results" 
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
             </div> 
             <div>
-                <SrSliderInput
-                    :insensitive="!(reqParamsStore.passInvalid && reqParamsStore.enableExtents)"
+                <SrSwitchedSliderInput
+                    :insensitive="(reqParamsStore.passInvalid)"
                     v-model="reqParamsStore.alongTrackSpread"
                     label="Along Track Spread"
+                    :getCheckboxValue="reqParamsStore.getUseAlongTrackSpread"
+                    :setCheckboxValue="reqParamsStore.setUseAlongTrackSpread"
+                    :getValue="reqParamsStore.getAlongTrackSpread"
+                    :setValue="reqParamsStore.setAlongTrackSpread"
                     :min="0"
                     :max="200" 
                     :decimal-places="0"
                     tooltipText="ats: minimum along track spread"
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
                 />
-                <SrSliderInput
-                :insensitive="!(reqParamsStore.passInvalid && reqParamsStore.enableExtents)"
-                v-model="reqParamsStore.minimumPhotonCount"
+                <SrSwitchedSliderInput
+                    :insensitive="(reqParamsStore.passInvalid)"
+                    v-model="reqParamsStore.minimumPhotonCount"
                     label="Minimum Photon Count"
+                    :getCheckboxValue="reqParamsStore.getUseMinimumPhotonCount"
+                    :setCheckboxValue="reqParamsStore.setUseMinimumPhotonCount"
+                    :getValue="reqParamsStore.getMinimumPhotonCount"
+                    :setValue="reqParamsStore.setMinimumPhotonCount"
                     :min="0"
                     :max="200" 
                     :decimal-places="0"
@@ -134,6 +167,10 @@ const reqParamsStore = useReqParamsStore();
     align-items: center;
     background-color: transparent;
     margin-bottom: 1.5rem;
+}
+.sr-extents-hdr{
+    font-size: large;
+    font-weight: bold;
 }
 .sr-ext-distance-container{
     display: flex;

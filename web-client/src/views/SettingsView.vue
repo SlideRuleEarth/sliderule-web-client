@@ -4,11 +4,11 @@ import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
-import SrColorPalette from '@/components/SrColorPalette.vue';
 import SrClearCache from '@/components/SrClearCache.vue';
 import SrSysConfig from '@/components/SrSysConfig.vue';
 import SrStorageUsage from '@/components/SrStorageUsage.vue';
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue';
+import SrDefaults from '@/components/SrDefaults.vue';
 import Card from 'primevue/card';
 
 </script>
@@ -48,11 +48,18 @@ import Card from 'primevue/card';
                 </AccordionPanel>
 
                 <AccordionPanel value="3">
+                    <AccordionHeader>Defaults</AccordionHeader>
+                    <AccordionContent>
+                        <SrDefaults />
+                    </AccordionContent>
+                </AccordionPanel>
+
+                <!-- <AccordionPanel value="4">
                     <AccordionHeader>Color Defaults</AccordionHeader>
                     <AccordionContent>
                         <SrColorPalette />
                     </AccordionContent>
-                </AccordionPanel>
+                </AccordionPanel> -->
 
             </Accordion>
         </div>

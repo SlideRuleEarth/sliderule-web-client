@@ -1,5 +1,6 @@
 <template>
     <div class="sr-req-display-panel">
+        <SrCustomTooltip ref="tooltipRef" />
         <Button 
             icon="pi pi-eye" 
             :label="props.label"
@@ -16,7 +17,6 @@
             :title="`endpoint = ${curAPI}`"
             width="50vw"
         />
-        <SrCustomTooltip ref="tooltipRef"/>
        
     </div>
   </template>

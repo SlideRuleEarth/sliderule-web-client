@@ -36,8 +36,6 @@ import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
-import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue';
-import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.vue';
 
 
 interface AtColorChangeEvent {
@@ -77,8 +75,6 @@ const cssColorNames = [
 
 const colorMapStore = useColorMapStore();
 
-
-
 // Initialize the source and target lists for the PickList
 const srColorTable = ref([
     cssColorNames.map(color => ({ label: color, value: color })),
@@ -91,21 +87,9 @@ onMounted(() => {
 });
 
 const restoreDefaultColors = async () => {
-    await restoreDefaultColors();
+    await colorMapStore.restoreDefaultColors();
     console.log('SrColorPalette colors:', srColorTable.value);
 };  
-
-const atl03CnfColorChanged = async (colorKey:string): Promise<void> =>{
-    console.log(`atl03CnfColorChanged:`,colorKey);
-};
-
-const atl08ClassColorChanged = async ({ label, color }:AtColorChangeEvent): Promise<void> => {
-    console.log(`atl08ClassColorChanged received selection change: ${label} with color ${color}`);
-};
-
-const yapcColorChanged = async (colorKey:string): Promise<void> =>{
-    console.log(`yapcColorChanged:`,colorKey);
-};
 
 </script>
 
