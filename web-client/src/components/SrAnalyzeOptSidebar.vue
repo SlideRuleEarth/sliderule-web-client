@@ -2,7 +2,6 @@
 import { onMounted,ref,computed } from 'vue';
 import SrAnalysisMap from '@/components/SrAnalysisMap.vue';
 import SrRecIdReqDisplay from '@/components/SrRecIdReqDisplay.vue';
-import { db } from '@/db/SlideRuleDb';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrEditDesc from '@/components/SrEditDesc.vue';
@@ -12,6 +11,7 @@ import Button from 'primevue/button';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
+import SrExportDialog from '@/components/SrExportDialog.vue';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const analysisMapStore = useAnalysisMapStore();
@@ -27,10 +27,15 @@ const props = defineProps({
 const tooltipRef = ref();
 const loadingThisSFC = ref(true);
 const isMounted = ref(false);
+const showExportDialog = ref(false);
 
 const computedInitializing = computed(() => {
     return !isMounted.value || loadingThisSFC.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
 });
+
+const exportButtonClick = () => {
+    showExportDialog.value = true;
+};
 
 
 onMounted(async () => {
@@ -43,41 +48,6 @@ onMounted(async () => {
 const handleFileImported = async (reqId: string) => {
     console.log('SrAnalyzeOptSidebar File import completed. Request ID:', reqId);
 };
-
-const exportButtonClick = async () => {
-    let req_id = recTreeStore.selectedReqId;
-    try {
-        if(req_id>0){
-            const fileName = await db.getFilename(req_id);
-            const opfsRoot = await navigator.storage.getDirectory();
-            const folderName = 'SlideRule'; 
-            const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-            const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
-            const file = await fileHandle.getFile();
-            const url = URL.createObjectURL(file);
-            // Create a download link and click it programmatically
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            // Revoke the object URL
-            URL.revokeObjectURL(url);
-            const msg = `File ${fileName} exported successfully!`;
-            console.log(msg);
-            alert(msg);
-        } else {
-            console.error("useAtlChartFilterStore().selectedReqIdMenuItem is undefined")
-        }
-    } catch (error) {
-        console.error(`Failed to expport req_id:${req_id}`, error);
-        alert(`Failed to export file for req_id:${req_id}`);
-        throw error;
-    }
-};
-
 
 </script>
 
@@ -109,7 +79,10 @@ const exportButtonClick = async () => {
                         variant="text"
                     >
                     </Button>
-
+                    <SrExportDialog
+                        v-model="showExportDialog"
+                        :reqId="recTreeStore.selectedReqId"
+                    />
                 </div>
             </div>
             <div class="sr-sidebar-analysis-opt">
