@@ -41,6 +41,7 @@ const reqParamsStore = useReqParamsStore();
             <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
                 label="Quality PH"
+                placeholder="Select Quality PH"
                 ariaLabel="Quality PH"
                 :menuOptions="reqParamsStore.qualityPHOptions"
                 :default="reqParamsStore.qualityPHNumber"

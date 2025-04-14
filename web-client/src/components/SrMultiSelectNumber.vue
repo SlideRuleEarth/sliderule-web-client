@@ -1,7 +1,16 @@
 <template>
     <div class="sr-menu-label-wrapper">
         <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <MultiSelect  v-model="selectedMenuItems" :options="props.menuOptions" optionLabel="name" :placeholder="props.label" class="sr-multi-selector" :disabled="props.insensitive" /> 
+        <MultiSelect  
+            v-model="selectedMenuItems" 
+            :options="props.menuOptions" 
+            optionLabel="name" 
+            :placeholder="props.menuPlaceholder"
+            class="sr-multi-selector" 
+            :disabled="props.insensitive" 
+            :maxSelectedLabels="1"
+            size="small"ß
+        /> 
     </div>
 </template>  
 
@@ -20,6 +29,10 @@
             type: String,
             required: true
         },
+            menuPlaceholder: {
+            type: String,
+            default: 'Select...'
+        },        
         menuOptions: {
             type: Array as () => SrMultiSelectNumberItem[],
             required: true
