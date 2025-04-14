@@ -35,6 +35,9 @@
 </template>
 
 <script setup lang="ts">
+
+declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
+
 import { ref, watch, computed, onMounted } from 'vue';
 import Dialog from 'primevue/dialog';
 import RadioButton from 'primevue/radiobutton';
@@ -44,6 +47,16 @@ import { useToast } from 'primevue/usetoast';
 import { db } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+interface SaveFilePickerOptions {
+    suggestedName?: string;
+    types?: FilePickerAcceptType[];
+    excludeAcceptAllOption?: boolean;
+}
+
+interface FilePickerAcceptType {
+    description?: string;
+    accept: Record<string, string[]>;
+}
 
 const props = defineProps<{
     reqId: number;
@@ -155,8 +168,22 @@ async function exportParquet(fileName: string) {
     const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
     const fileHandle = await directoryHandle.getFileHandle(fileName, { create: false });
     const file = await fileHandle.getFile();
-    const url = URL.createObjectURL(file);
-    triggerDownload(url, `${fileName}.parquet`);
+
+    const blob = new Blob([await file.arrayBuffer()], { type: 'application/octet-stream' });
+
+    const picker = await showSaveFilePicker({
+        suggestedName: `${fileName}.parquet`,
+        types: [
+            {
+                description: 'Parquet Files',
+                accept: { 'application/octet-stream': ['.parquet'] },
+            },
+        ],
+    });
+
+    const stream = await picker.createWritable();
+    await stream.write(blob);
+    await stream.close();
 }
 
 async function exportCsvStreamed(fileName: string) {
@@ -165,21 +192,34 @@ async function exportCsvStreamed(fileName: string) {
 
     const columns = headerCols.value;
     const encoder = new TextEncoder();
-    const parts: Uint8Array[] = [];
-    parts.push(encoder.encode(columns.join(',') + '\n'));
-
     const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
 
+    const picker = await showSaveFilePicker({
+        suggestedName: `${fileName}.csv`,
+        types: [
+            {
+                description: 'CSV Files',
+                accept: { 'text/csv': ['.csv'] },
+            },
+        ],
+    });
+
+    const writable = await picker.createWritable();
+
+    // Write header
+    await writable.write(encoder.encode(columns.join(',') + '\n'));
+
+    // Write row chunks
     for await (const rows of readRows(1000)) {
         const chunk = rows.map(row =>
             columns.map(col => safeCsvCell(row[col])).join(',')
         ).join('\n') + '\n';
-        parts.push(encoder.encode(chunk));
-        await new Promise(r => setTimeout(r, 0)); // allow UI to stay responsive
+
+        await writable.write(encoder.encode(chunk));
+        await new Promise(r => setTimeout(r, 0));
     }
 
-    const blob = new Blob(parts, { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `${fileName}.csv`);
+    await writable.close();
 }
+
 </script>
