@@ -1,23 +1,30 @@
 <template>
-    <Dialog v-model:visible="visible" modal header="Export Format" :style="{ width: '25rem' }">
-        <div v-if="!exporting" class="flex flex-col gap-4">
-            <div class="flex align-items-center gap-2" v-for="fmt in formats" :key="fmt.value">
-                <RadioButton
-                    :inputId="fmt.value"
-                    name="exportFormat"
-                    :value="fmt.value"
+    <Dialog v-model:visible="visible" modal :style="{ width: '25rem' }">
+        <template #header>
+            <div class="dialog-title">Export Format</div>
+        </template>
+
+        <div v-if="!exporting" class="dialog-body">
+            <div class="dropdown-wrapper">
+                <label for="formatSelect">Select Format</label>
+                <Select
+                    id="formatSelect"
                     v-model="selectedFormat"
+                    :options="formats"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Choose export format"
+                    class="w-full"
                 />
-                <label :for="fmt.value">{{ fmt.label }}</label>
             </div>
 
-            <div v-if="rowCount !== null" class="text-sm text-gray-500 mt-2 ml-1">
+            <div v-if="rowCount !== null" class="size-info">
                 Estimated rows: {{ rowCount.toLocaleString() }}<br />
-                Approx. CSV size: {{ estimatedSizeMB }} MB
+                Approx. CSV size: ~{{ roundedSizeMB }} MB
             </div>
         </div>
 
-        <div v-else class="flex flex-col items-center justify-center gap-3 py-5">
+        <div v-else class="exporting-body">
             <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
             <span class="text-center">Exporting {{ selectedFormat?.toUpperCase() }}…</span>
         </div>
@@ -35,18 +42,18 @@
 </template>
 
 <script setup lang="ts">
-
-declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
-
 import { ref, watch, computed, onMounted } from 'vue';
 import Dialog from 'primevue/dialog';
-import RadioButton from 'primevue/radiobutton';
+import Select from 'primevue/select';
 import Button from 'primevue/button';
 import ProgressSpinner from 'primevue/progressspinner';
 import { useToast } from 'primevue/usetoast';
 import { db } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+
+declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
+
 interface SaveFilePickerOptions {
     suggestedName?: string;
     types?: FilePickerAcceptType[];
@@ -62,6 +69,7 @@ const props = defineProps<{
     reqId: number;
     modelValue: boolean;
 }>();
+
 const emit = defineEmits<{
     (e: 'update:modelValue', value: boolean): void;
 }>();
@@ -84,6 +92,11 @@ const estimatedSizeMB = computed(() => {
         return ((rows * headerCols.value.length * 10) / 1_000_000).toFixed(2);
     }
     return '--';
+});
+
+const roundedSizeMB = computed(() => {
+    const est = Number(estimatedSizeMB.value);
+    return isNaN(est) ? '--' : Math.round(est);
 });
 
 watch(() => props.modelValue, (val) => (visible.value = val));
@@ -154,14 +167,6 @@ function safeCsvCell(val: any): string {
     return JSON.stringify(val);
 }
 
-function triggerDownload(url: string, filename: string) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
 async function exportParquet(fileName: string) {
     const opfsRoot = await navigator.storage.getDirectory();
     const folderName = 'SlideRule';
@@ -205,11 +210,8 @@ async function exportCsvStreamed(fileName: string) {
     });
 
     const writable = await picker.createWritable();
-
-    // Write header
     await writable.write(encoder.encode(columns.join(',') + '\n'));
 
-    // Write row chunks
     for await (const rows of readRows(1000)) {
         const chunk = rows.map(row =>
             columns.map(col => safeCsvCell(row[col])).join(',')
@@ -221,5 +223,79 @@ async function exportCsvStreamed(fileName: string) {
 
     await writable.close();
 }
-
 </script>
+
+<style scoped>
+.dialog-title {
+    width: 100%;
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding-top: 0.25rem;
+    color: var(--text-color, #111827);
+}
+
+.dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.dropdown-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dropdown-wrapper label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--label-color, #374151);
+}
+
+.size-info {
+    font-size: 0.875rem;
+    color: var(--info-color, #6b7280);
+    padding-left: 0.25rem;
+}
+
+.exporting-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.25rem 0;
+    animation: pulse 1.2s infinite ease-in-out;
+}
+
+:deep(.p-select) {
+    width: 100%;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.05);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .dialog-title {
+        color: #ffffff;
+    }
+
+    .dropdown-wrapper label {
+        color: #cbd5e1;
+    }
+
+    .size-info {
+        color: #94a3b8;
+    }
+}
+</style>
