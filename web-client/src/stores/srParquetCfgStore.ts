@@ -8,6 +8,7 @@ export const useSrParquetCfgStore = defineStore("srParquetCfg", {
         ],
         maxNumPntsToDisplay: 50000,
         chunkSizeToRead: 10000,
+        selectedExportFormat: 'parquet',
     }),
     actions:{
         setParquetReader(parquetReader: {name:string, value:string}) {
@@ -27,6 +28,12 @@ export const useSrParquetCfgStore = defineStore("srParquetCfg", {
         },
         getChunkSizeToRead() {
             return this.chunkSizeToRead;
+        },
+        setSelectedExportFormat(selectedExportFormat: string) {
+            this.selectedExportFormat = selectedExportFormat
+        },
+        getSelectedExportFormat() {
+            return this.selectedExportFormat;
         }
 
     }
