@@ -1,7 +1,16 @@
 <template>
     <div class="sr-menu-label-wrapper">
         <SrLabelInfoIconButton v-if="label" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <MultiSelect v-model="selectedMenuItems" :options="menuOptions" optionLabel="name" :placeholder="menuPlaceholder" class="sr-multi-selector" :disabled="insensitive" /> 
+        <MultiSelect 
+            v-model="selectedMenuItems" 
+            :options="menuOptions" 
+            optionLabel="name" 
+            :placeholder="menuPlaceholder" 
+            class="sr-multi-selector" 
+            :disabled="insensitive" 
+            :maxSelectedLabels="1"
+            size="small"ß
+        /> 
     </div>
 </template>
 
