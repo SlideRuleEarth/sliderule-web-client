@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { db } from '@/db/SlideRuleDb';
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import InputText from 'primevue/inputtext';
 import FloatLabel from 'primevue/floatlabel';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { getCenter } from '@/utils/geoUtils';
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 
 // Define props first
 const props = defineProps({
@@ -19,6 +20,7 @@ const props = defineProps({
 });
 
 const descrRef = ref('');
+const tooltipRef = ref();
 
 // Watch for changes in the reqId and fetch the description asynchronously
 const fetchDescription = async () => {
@@ -65,6 +67,13 @@ onMounted(fetchDescription);
 
 // Also, watch for changes in the `reqId` prop to re-fetch the description if needed
 watch(() => props.reqId, fetchDescription);
+const showTooltip = (event: MouseEvent) => {
+    tooltipRef.value?.showTooltip(event, descrRef.value);
+};
+
+const hideTooltip = () => {
+    tooltipRef.value?.hideTooltip();
+};
 
 const onEditComplete = async (event: Event) => {
     const inputElement = event.target as HTMLInputElement;
@@ -77,12 +86,15 @@ const onEditComplete = async (event: Event) => {
 </script>
 <template>
     <FloatLabel class="full-width-label">
+        <SrCustomTooltip  ref="tooltipRef" />        
         <InputText
             v-if="props.reqId > 0"
             v-model="descrRef"
             class="p-inputtext p-component"
             @keydown.enter="onEditComplete"
             @blur="onEditComplete"
+            @mouseover="showTooltip"
+            @mouseleave="hideTooltip"
         />
         <label v-if="props.label !=''">{{ label }}</label>
     </FloatLabel>   
