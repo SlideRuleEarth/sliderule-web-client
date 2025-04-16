@@ -325,7 +325,7 @@ export class DuckDBClient {
     
 
   // Method to insert a Parquet file from OPFS
-  async insertOpfsParquet(name: string) {
+  async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
     try {
       // Check if the file is already loaded
@@ -336,7 +336,7 @@ export class DuckDBClient {
   
       const duckDB = await this.duckDB();
       const opfsRoot = await navigator.storage.getDirectory();
-      const folderName = 'SlideRule'; 
+      const folderName = folder; 
       const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
       const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
       const file = await fileHandle.getFile();
@@ -382,24 +382,25 @@ export class DuckDBClient {
         const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
         const result = await conn.query(query);
         if (result && result.numRows > 0) {
+            const kk = result.getChild("key");
+            const kv = result.getChild("value");
             for (let i = 0; i < result.numRows; i++) {
-                const kk = result.getChild("key");
-                const kv = result.getChild("value");
                 if (kk && kv) {
                     const keyArray = kk.get(i) as Uint8Array;
                     const keyString = new TextDecoder().decode(keyArray);
+                    const valueArray = kv.get(i) as Uint8Array;
+                    const valueString = new TextDecoder().decode(valueArray);
+                    console.log("Key:", keyString, "Value:", valueString);
                     if (keyString === 'sliderule') {
-                        const valueArray = kv.get(i) as Uint8Array;
-                        const valueString = new TextDecoder().decode(valueArray);
                         //console.log("Raw Sliderule Metadata:", valueString);
                         try {
-                          const parsedMetadata = JSON.parse(valueString);
-                          const formattedMetadata = JSON.stringify(parsedMetadata, null, 2);  // Format with 2 spaces for readability
-                          //console.log("Formatted Sliderule Metadata:", formattedMetadata);
-                          return formattedMetadata;
+                            const parsedMetadata = JSON.parse(valueString);
+                            const formattedMetadata = JSON.stringify(parsedMetadata, null, 2);  // Format with 2 spaces for readability
+                            //console.log("Formatted Sliderule Metadata:", formattedMetadata);
+                            return formattedMetadata;
                         } catch (parseError) {
-                          console.error("Error parsing JSON metadata:", parseError);
-                          return undefined;
+                            console.error("Error parsing JSON metadata:", parseError);
+                            return undefined;
                         }
                     }
                 } else {
@@ -418,6 +419,43 @@ export class DuckDBClient {
         await conn.close();
     }
   }
+
+    // Method to extract all key-value pairs from Parquet metadata
+    async getAllParquetMetadata(parquetFilePath: string): Promise<Record<string, string> | undefined> {
+
+        const conn = await this._db!.connect();
+        try {
+            const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
+            const result = await conn.query(query);
+            const metadata: Record<string, string> = {};
+
+            if (result && result.numRows > 0) {
+                const kk = result.getChild("key");
+                const kv = result.getChild("value");
+                for (let i = 0; i < result.numRows; i++) {
+                    if (kk && kv) {
+                        const keyArray = kk.get(i) as Uint8Array;
+                        const valueArray = kv.get(i) as Uint8Array;
+                        const keyString = new TextDecoder().decode(keyArray);
+                        const valueString = new TextDecoder().decode(valueArray);
+                        metadata[keyString] = valueString;
+                    } else {
+                        console.warn("Key or Value is undefined at index", i);
+                    }
+                }
+                return metadata;
+            } else {
+                console.log("No metadata found for the specified Parquet file.", parquetFilePath);
+                return undefined;
+            }
+        } catch (error) {
+            console.error(`Error reading ${parquetFilePath} Parquet metadata:`, error);
+            throw error;
+        } finally {
+            await conn.close();
+        }
+    }
+
 
 }
 
