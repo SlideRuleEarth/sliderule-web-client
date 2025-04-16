@@ -2,14 +2,24 @@
 import Fieldset from "primevue/fieldset";
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
-import { callPlotUpdateDebounced } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, refreshScatterPlot } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
-import { onMounted, computed } from "vue";
+import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
 import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
+import { useGlobalChartStore } from "@/stores/globalChartStore";
+import { useRequestsStore } from "@/stores/requestsStore";
+import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
+import { useToast } from "primevue";
+import { glob } from "fs";
 
+const globalChartStore = useGlobalChartStore();
+const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
+const toast = useToast();
+const chartStore = useChartStore();
+const fieldNameCacheStore = useFieldNameCacheStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -54,6 +64,43 @@ onMounted(() => {
 });
 
 
+
+watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
+    if (!oldValue && newVal) {
+        console.log('SrPlotConfig watch enableLocationFinder:', newVal);
+
+        const latField = fieldNameCacheStore.getLatFieldName(props.reqId);
+        const lonField = fieldNameCacheStore.getLonFieldName(props.reqId);
+        const selectedElRec = globalChartStore.getSelectedElevationRec();
+        if(selectedElRec){
+            // initialize to selected point on map then update later from plot tooltip formatter
+            globalChartStore.locationFinderLat = selectedElRec[latField];
+            globalChartStore.locationFinderLon = selectedElRec[lonField];    
+        }
+        const reqIdStr = props.reqId.toString();
+        const currentYData = chartStore.getYDataOptions(reqIdStr);
+
+        const newFields = [latField, lonField].filter(
+            field => !currentYData.includes(field)
+        );
+
+        if (newFields.length > 0) {
+            chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
+            await refreshScatterPlot('enabled location finder');
+        }
+
+        if (await requestsStore.needAdvice()) {
+            toast.add({
+                severity: 'info',
+                summary: 'Location Finder',
+                detail: 'Click on a plot point to see where on the map it is.',
+                life: 3000
+            });
+        }
+    }
+});
+
+
 </script>
 <template>
 <Fieldset   
@@ -69,7 +116,7 @@ onMounted(() => {
                 :id="`srYdataItems-${reqId}`"
                 v-model="yDataBindingsReactive[computedReqIdStr]"
                 size="small" 
-                :options="useChartStore().getElevationDataOptions(computedReqIdStr)"
+                :options="chartStore.getElevationDataOptions(computedReqIdStr)"
                 display="chip"
                 @update:modelValue="onMainYDataSelectionChange"
             />

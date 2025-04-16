@@ -40,9 +40,10 @@
     import Checkbox from 'primevue/checkbox';
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
     import SrBaseLayerControl from "@/components/SrBaseLayerControl.vue";
-    import { findSrViewKey, srViews, getDefaultBaseLayerForView } from "@/composables/SrViews";
+    import { findSrViewKey, srViews } from "@/composables/SrViews";
     import { addLayersForCurrentView } from "@/composables/SrLayers";
     import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
+    import SrLocationFinder from "@/components/SrLocationFinder.vue";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -74,7 +75,15 @@
     const recordsLayer = new VectorLayer({
         source: recordsVectorSource,
     });
-
+    
+    const mapRefComputed = computed(() => {
+        return mapRef.value?.map;
+    });
+    
+    const locationFinderReady = computed(() => {
+        return ((mapRefComputed != null) && (mapRefComputed!=undefined)  && (globalChartStore.getSelectedElevationRec() !== null));
+    });
+    
 
     const handleEvent = (event: any) => {
         console.log(event);
@@ -467,6 +476,8 @@
                 @baselayer-control-created="handleBaseLayerControlCreated" 
                 @update-baselayer="handleUpdateBaseLayer" 
             />
+            <SrLocationFinder v-if="locationFinderReady && mapRef?.map" :map="mapRef.map" />
+
         </Map.OlMap>
         <div class="sr-tooltip-style" id="tooltip">
             <SrCustomTooltip 
@@ -482,26 +493,39 @@
                 inputId="show-hide-tooltip"
                 size="small"
             />
-            <label for="show-hide-tooltip" class="sr-check-label" >Show Map Tooltip</label>
+            <label for="show-hide-tooltip" class="sr-check-label" >Map Tooltip</label>
         </div>
-        <div>
-            <div
-                @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
-                @mouseleave="tooltipRef.hideTooltip"
-            >
-                <Checkbox 
-                    v-model="globalChartStore.use_y_atc_filter" 
-                    binary 
-                    inputId="enable-off-filter"
-                    size="small"
-                    @update:model-value="handleOffPntEnable"
-                    :disabled="atlChartFilterStore.showPhotonCloud"
-                />               
-                <label 
-                    for="enable-off-filter" 
-                    class="sr-check-label">Enable off pointing filter
-                </label>
-            </div>
+        <div
+            @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
+            @mouseleave="tooltipRef.hideTooltip"
+        >
+            <Checkbox 
+                v-model="globalChartStore.use_y_atc_filter" 
+                binary 
+                inputId="enable-off-filter"
+                size="small"
+                @update:model-value="handleOffPntEnable"
+                :disabled="atlChartFilterStore.showPhotonCloud"
+            />               
+            <label 
+                for="enable-off-filter" 
+                class="sr-check-label">Off Pointing Filter
+            </label>
+        </div>
+        <div
+            @mouseover="tooltipRef.showTooltip($event,'Enable Location Finder to be able to location points from the plot on the map')"
+            @mouseleave="tooltipRef.hideTooltip"
+        >
+            <Checkbox 
+                v-model="globalChartStore.enableLocationFinder" 
+                binary 
+                inputId="enable-location-finder"
+                size="small"
+            />               
+            <label 
+                for="enable-location-finder" 
+                class="sr-check-label">Location Finder
+            </label>
         </div>
         <div>
             <div class="sr-spinner">

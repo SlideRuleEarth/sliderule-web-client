@@ -248,6 +248,12 @@ export const useRequestsStore = defineStore('requests', {
             useSrToastStore().info('Helpful Advice', msg);
         }
     },
+    async needAdvice(): Promise<boolean> {
+      if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
+        return true;
+      }
+      return false;
+    },
 
     async getTreeTableNodes(onlySuccessful:boolean=true): Promise<TreeNode[]> {
       // 1) Get all request IDs in descending order:

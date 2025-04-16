@@ -25,6 +25,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const hasScBackward = ref<boolean>(false);
     const selectedElevationRec = ref<ElevationDataItem | null>(null);
     const use_y_atc_filter = ref<boolean>(false);
+    const enableLocationFinder = ref<boolean>(false);
+    const locationFinderLat = ref<number>(0.0);
+    const locationFinderLon = ref<number>(0.0);
     const selected_y_atc = ref<number>(0.0);
     const y_atc_margin = ref<number>(50.0);
     const max_pnts_on_plot = ref<number>(50000);
@@ -407,5 +410,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         generateNameSuffix,
         max_pnts_on_plot,
         chunk_size_for_plot,
+        enableLocationFinder,
+        locationFinderLat,
+        locationFinderLon,
     };
 });

@@ -489,28 +489,31 @@ export function clearPlot() {
     }
 }
 
-// const formatTooltip = (params: any) => {
-//     //console.log('formatTooltip params:', params );
-//     const paramsData = params.data;
-//     const paramsDim = params.dimensionNames as any[];
-//     let ndx = 0;
-//     return paramsDim.map((dim: any) => `${dim}: ${paramsData[ndx++]}`).join('<br>');
-// };
+function filterDataForPos(label:any, data:any,lat:string,lon:string) {
+    //console.log('filterDataForPos label:', label, 'data:', data);
+    //console.log('filterDataForPos BEFORE lat:',  useGlobalChartStore().locationFinderLat, 'lon:', useGlobalChartStore().locationFinderLon);
+    if(label === lat){
+        useGlobalChartStore().locationFinderLat = data;
+    } else if(label === lon){
+        useGlobalChartStore().locationFinderLon = data;
+    }
+    //console.log('filterDataForPos AFTER  lat:',  useGlobalChartStore().locationFinderLat, 'lon:', useGlobalChartStore().locationFinderLon);
+}
 
-// formatTooltip.ts
-
-
-export function formatTooltip(params: any) {
+export function formatTooltip(params: any,latFieldName:string,lonFieldName:string) {
   const paramsData = params.data;
   const paramsDim = params.dimensionNames as string[];
   let ndx = 0;
 
-  return paramsDim
+  const parms = paramsDim
     .map((dim) => {
       const val = paramsData[ndx++];
+      filterDataForPos(dim, val,latFieldName,lonFieldName);
       return formatKeyValuePair(dim, val);
     })
     .join('<br>');
+    console.log('formatTooltip parms:', parms);
+    return parms;
 }
 
 async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatterSeriesData[]>{
@@ -654,6 +657,8 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const rgt = globalChartStore.getRgt();
     const cycles = useGlobalChartStore().getCycles();
     const spots = globalChartStore.getSpots();
+    const latFieldName = useFieldNameCacheStore().getLatFieldName(req_id);
+    const lonFieldName = useFieldNameCacheStore().getLonFieldName(req_id);
     // Get the CSS variable value dynamically
     const primaryButtonColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--p-button-text-primary-color')
@@ -690,7 +695,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 tooltip: {
                     trigger: "item",
-                    formatter: (params: any) => formatTooltip(params),
+                    formatter: (params: any) => formatTooltip(params,latFieldName,lonFieldName),
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
