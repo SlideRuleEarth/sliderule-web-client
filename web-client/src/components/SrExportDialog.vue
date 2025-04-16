@@ -116,7 +116,7 @@ watch(visible, async (val) => {
             if (!fileName) return;
             const duck = await createDuckDbClient();
             await duck.insertOpfsParquet(fileName);
-            rowCount.value = await duck.getTotalRowCount(`SELECT * FROM "${fileName}"`);
+            rowCount.value = await duck.getTotalRowCount(`"${fileName}"`);
             headerCols.value = await duck.queryForColNames(fileName);
         } catch (err) {
             console.warn('Failed to pre-fetch metadata:', err);
@@ -177,7 +177,7 @@ async function exportParquet(fileName: string) {
     const blob = new Blob([await file.arrayBuffer()], { type: 'application/octet-stream' });
 
     const picker = await showSaveFilePicker({
-        suggestedName: `${fileName}.parquet`,
+        suggestedName: `${fileName}`,
         types: [
             {
                 description: 'Parquet Files',
