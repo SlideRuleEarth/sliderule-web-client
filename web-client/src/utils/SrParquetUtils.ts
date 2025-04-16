@@ -230,7 +230,7 @@ export function updateFilename(req_id: number, filename: string): { func: string
     } else {
         func = 'Imported';
         suffix = filename;
-      }
+    }
 
     // Construct the new filename
     const newFilename = `${func}_${req_id}_${suffix}`;
