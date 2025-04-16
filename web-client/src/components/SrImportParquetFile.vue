@@ -4,122 +4,187 @@ import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
-import { useToast } from "primevue/usetoast";
+import { useToast } from 'primevue/usetoast';
 import { updateFilename } from '@/utils/SrParquetUtils';
-import { duckDbLoadOpfsParquetFile,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
-import { useRequestsStore } from '@/stores/requestsStore'; 
+import { duckDbLoadOpfsParquetFile, readOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { useRequestsStore } from '@/stores/requestsStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { db } from '@/db/SlideRuleDb';
-import type { SrRegion } from '@/sliderule/icesat2'
+import { db as indexedDb } from '@/db/SlideRuleDb';
+import { createDuckDbClient } from '@/utils/SrDuckDb';
+import type { SrRegion } from '@/sliderule/icesat2';
+
+const toast = useToast();
 
 const props = defineProps({
     iconOnly: {
-        type: Boolean, 
+        type: Boolean,
         default: false
     }
 });
 
-export interface SvrParms { // fill this out as neccessary
+export interface SvrParms {
     server: {
         rqst: {
             parms: {
                 poly: SrRegion;
-            }
-        }
-    }
+            };
+        };
+    };
 }
+
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
-const toast = useToast();
 
-////////////// upload toast items
 const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 const tooltipRef = ref();
 const fileUploader = ref<any>(null);
 
-//////////////
 const emit = defineEmits<{
-    (e: 'file-imported', reqId: string): void
+    (e: 'file-imported', reqId: string): void;
 }>();
 
 onMounted(() => {
     console.log('onMounted fileUploader:', fileUploader.value);
-    //console.log('onMounted props:', props);
 });
 
-const customUploader = async (event:any) => {
-    //console.log('customUploader Import Parquet File customUploader event:',event);
-     try {
-        // Step 1: Open file picker dialog for the user to select a file
-        const file = event.files[0];
-        // Step 2: Get access to the OPFS directory
+async function writeToOPFSFile(directoryHandle: FileSystemDirectoryHandle, fileName: string, file: File): Promise<FileSystemFileHandle> {
+    const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(file);
+    await writable.close();
+    return fileHandle;
+}
+
+const customUploader = async (event: any) => {
+    const file = event.files?.[0];
+    if (!file) {
+        toast.add({
+            severity: 'error',
+            summary: 'No File Selected',
+            detail: 'Please select a valid Parquet file.',
+            life: 4000
+        });
+        return;
+    }
+
+    try {
+        upload_progress.value = 10;
+        toast.removeGroup('headless'); // just in case a stale one is lingering
+        toast.add({
+            severity: 'info',
+            summary: 'Uploading File',
+            detail: 'SlideRule Parquet file is being uploaded...',
+            group: 'headless',
+            life: 999999,
+            data: { progressRef: upload_progress }  // <-- pass progressRef
+        }as any);
+
+
         const opfsRoot = await navigator.storage.getDirectory();
-        const folderName = 'SlideRule'; 
-        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true }); // Create folder if not exists
+        const tmpDirectoryHandle = await opfsRoot.getDirectoryHandle('tmp', { create: true });
+        const tmpFileHandle = await writeToOPFSFile(tmpDirectoryHandle, file.name, file);
+        const tmpOpfsFile = await tmpFileHandle.getFile();
 
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(tmpOpfsFile.name, 'tmp');
 
+        const metadata = await duckDbClient.getAllParquetMetadata(tmpOpfsFile.name);
+        console.log('customUploader metadata:', metadata);
+
+        if (!metadata || !('sliderule' in metadata)) {
+            toast.add({
+                severity: 'error',
+                summary: 'Invalid File Format',
+                detail: 'The selected file does not contain SlideRule metadata and cannot be imported.',
+                life: 5000
+            });
+            await tmpDirectoryHandle.removeEntry(tmpOpfsFile.name);
+            return;
+        }
+
+        if ('geo' in metadata) {
+            toast.add({
+                severity: 'error',
+                summary: 'Unsupported File Format',
+                detail: `The selected file: ${tmpOpfsFile.name} is a SlideRule "geo" parquet file. At this time only SlideRule "vanilla" parquet files can be imported.`,
+            });
+            await tmpDirectoryHandle.removeEntry(tmpOpfsFile.name);
+            return;
+        }
+
+        upload_progress.value = 30;
+
+        const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule', { create: true });
         const srReqRec = await requestsStore.createNewSrRequestRecord();
-        if(srReqRec && srReqRec.req_id) {
-            const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
-            srReqRec.file = newFilename;
-            srReqRec.func = func;
-            srReqRec.status = 'imported';
-            srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
-            await db.updateRequestRecord(srReqRec);
-            // Step 3: Create a file handle in the OPFS with the same name as the selected file
-            const opfsFileHandle = await directoryHandle.getFileHandle(newFilename, { create: true });
 
-            // Step 4: Write the contents of the selected file into the OPFS file
-            const writableStream = await opfsFileHandle.createWritable();
-            await writableStream.write(file);
-            await writableStream.close();
-            const opfsFile = await opfsFileHandle.getFile();
-            srReqRec.num_bytes  = opfsFile.size;
-            const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
-            srReqRec.svr_parms = svr_parms_str;
-            console.log('customUploader srReqRec:', srReqRec);
-            await db.updateRequestRecord(srReqRec,true); 
-            // console.log('Updated srReqRec:', srReqRec);
-            // console.log('svr_parms:', svr_parms);
-            await recTreeStore.updateRecMenu('From customUploader',srReqRec.req_id);// update the menu to include new item
-            await readOrCacheSummary(srReqRec.req_id);
-            const summary = await db.getWorkerSummary(srReqRec.req_id);
-            console.log('Summary:', summary);
-            if(summary){
-                srReqRec.cnt = summary.numPoints;
-                await db.updateRequestRecord(srReqRec,true); 
-                const msg = `File imported and copied to OPFS successfully!`;
-                console.log(msg);
-                emit('file-imported', srReqRec.req_id.toString());
-                alert(msg);
-            } else {
-                console.error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-                alert(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-            }
+        if (!srReqRec || !srReqRec.req_id) {
+            alert('Failed to create new SlideRule request record');
+            return;
+        }
+
+        const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
+        srReqRec.file = newFilename;
+        srReqRec.func = func;
+        srReqRec.status = 'imported';
+        srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
+
+        const newFileHandle = await writeToOPFSFile(directoryHandle, newFilename, file);
+        const opfsFile = await newFileHandle.getFile();
+        srReqRec.num_bytes = opfsFile.size;
+
+        upload_progress.value = 60;
+
+        const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
+        srReqRec.svr_parms = svr_parms_str;
+
+        await indexedDb.updateRequestRecord(srReqRec, true);
+        await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);
+        await readOrCacheSummary(srReqRec.req_id);
+
+        const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
+        if (summary) {
+            srReqRec.cnt = summary.numPoints;
+            await indexedDb.updateRequestRecord(srReqRec, true);
+
+            upload_progress.value = 100;
+            toast.add({
+                severity: 'success',
+                summary: 'Import Complete',
+                detail: 'File imported and copied to OPFS successfully!',
+                life: 5000
+            });
+            emit('file-imported', srReqRec.req_id.toString());
         } else {
-            console.error(`Failed File create new SlideRule request record`);
-            alert(`Failed to import File. Unable to create new SlideRule request record`);
+            alert(`Failed to get summary for req_id: ${srReqRec.req_id}`);
         }
     } catch (error) {
-        console.error(`Failed to import and copy file`, error);
-        alert(`Failed to import and copy file`);
-        throw error;
+        console.error('File import failed:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Import Failed',
+            detail: 'There was a problem importing the file.',
+        });
+    } finally {
+        setTimeout(() => {
+            upload_progress.value = 0;
+            toast.removeGroup('headless');
+        }, 2000);
     }
 };
 
-const onSelect = (e:any) => {
-    console.log('onSelect e:',e);
+const onSelect = (e: any) => {
+    console.log('onSelect e:', e);
 };
 
-const onError = (e:any) => {
-    console.log('onError e:',e);
+const onError = (e: any) => {
+    console.log('onError e:', e);
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
+
 const onClear = () => {
     console.log('onClear');
 };
-
 </script>
 
 <template>
@@ -132,8 +197,8 @@ const onClear = () => {
                         <p class="summary">{{ message.summary }}</p>
                         <p class="detail">{{ message.detail }}</p>
                         <div class="progress-container">
-                            <ProgressBar :value="upload_progress" :showValue="false" class="progress-bar"></ProgressBar>
-                            <label class="upload-percentage">{{ upload_progress }}% uploaded...</label>
+                            <ProgressBar :value="message.data.progressRef" :showValue="false" class="progress-bar" />
+                            <label class="upload-percentage">{{ message.data.progressRef }}% uploaded...</label>
                         </div>
                         <div class="button-container">
                             <Button label="Done" text class="done-btn" @click="closeCallback"></Button>

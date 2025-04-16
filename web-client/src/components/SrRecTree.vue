@@ -19,6 +19,7 @@ import { formatBytes } from '@/utils/SrParquetUtils';
 import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue';
 import SrImportParquetFile from './SrImportParquetFile.vue';
 import ToggleButton from 'primevue/togglebutton';
+import SrExportDialog from '@/components/SrExportDialog.vue';
 
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -37,6 +38,9 @@ const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
 
 const onlySuccess = ref(false);
+
+const exportReqId = ref(0);
+const showExportDialog = ref(false);
 
 // Open the Req Parms dialog
 function openParmsDialog(params: string | object) {
@@ -142,36 +146,10 @@ const confirmDeleteAllReqs = async () => {
     }
 };
 
-
 const exportFile = async (req_id:number) => {
     console.log('Exporting file for req_id', req_id);
-    try {
-        const fileName = await db.getFilename(req_id);
-        const opfsRoot = await navigator.storage.getDirectory();
-        const folderName = 'SlideRule'; 
-        const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-        const fileHandle = await directoryHandle.getFileHandle(fileName, {create:false});
-        const file = await fileHandle.getFile();
-        const url = URL.createObjectURL(file);
-        // Create a download link and click it programmatically
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Revoke the object URL
-        URL.revokeObjectURL(url);
-        const msg = `File ${fileName} exported successfully!`;
-        console.log(msg);
-        alert(msg);
-
-    } catch (error) {
-        console.error(`Failed to calculate CS for id:${req_id}`, error);
-        alert(`Failed to calculate CS for ID:${req_id}`);
-        throw error;
-    }
+    exportReqId.value = req_id;
+    showExportDialog.value = true;
 };
 
 const handleFileImported = async (reqId: string) => {
@@ -195,6 +173,10 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <SrExportDialog
+        v-model="showExportDialog"
+        :reqId="exportReqId"
+    />
     <TreeTable 
       :value="treeNodes"
       size="small" 
