@@ -41,7 +41,7 @@ function updatePosition(lat: number, lon: number) {
     highlightEl.classList.add('active');
     setTimeout(() => highlightEl?.classList.remove('active'), 1000);
 
-    console.log('Highlight marker fixed position (body):', { globalX, globalY });
+    //console.log('Highlight marker fixed position (body):', { globalX, globalY });
 }
 
 function hideMarker() {
@@ -53,7 +53,7 @@ function hideMarker() {
 
 onMounted(() => {
     if (!props.map) return;
-
+    globalChartStore.enableLocationFinder = false;
     highlightEl = document.createElement('div');
     highlightEl.className = 'map-highlight-marker';
     document.body.appendChild(highlightEl);
