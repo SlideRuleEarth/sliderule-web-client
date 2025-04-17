@@ -184,7 +184,7 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
     }
 }
 
-const computeSamplingRate = async(req_id:number): Promise<number> => {
+export const computeSamplingRate = async(req_id:number): Promise<number> => {
     let sample_fraction = 1.0;
     try{
         const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();

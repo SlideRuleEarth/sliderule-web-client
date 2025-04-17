@@ -6,6 +6,7 @@
                 <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
                 <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                 <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
+                <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
             </TabList>
 
             <TabPanels>
@@ -27,6 +28,9 @@
                     <!-- Similarly only render SrDuckDbShell if active tab is '1' AND chartStore has a query -->
                     <SrDuckDbShell v-if="shouldDisplayShell" />
                 </TabPanel>
+                <TabPanel value="3">
+                    <Sr3DView v-if="shouldDisplay3DView" :reqId="recTreeStore.selectedReqId" />
+                </TabPanel>
             </TabPanels>
         </Tabs>
     </div>
@@ -47,6 +51,7 @@
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from './SrTimeSeries.vue';
+    import Sr3DView from './SrECharts3DView.vue';
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
@@ -84,6 +89,13 @@
         );
     });
 
+    const shouldDisplay3DView = computed(() => {
+        return (
+            activeTabStore.getActiveTab === '3' && // Only show on tab 3
+            recTreeStore.selectedReqId > 0 &&
+            recTreeStore.allReqIds.includes(reqId.value)
+        );
+    });
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
         activeTabStore.setActiveTab('0');
