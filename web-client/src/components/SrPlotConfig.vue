@@ -12,7 +12,6 @@ import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
 import { useToast } from "primevue";
-import { glob } from "fs";
 
 const globalChartStore = useGlobalChartStore();
 const requestsStore = useRequestsStore();

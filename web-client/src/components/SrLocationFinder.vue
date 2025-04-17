@@ -1,18 +1,7 @@
-<template>
-    <!-- This component only renders to the map, nothing in DOM -->
-</template>
 <script setup lang="ts">
 import { watch, onMounted, onUnmounted } from 'vue';
 import type OLMap from 'ol/Map';
-import { Vector as VectorSource } from 'ol/source';
-import { Vector as VectorLayer } from 'ol/layer';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
-import Style from 'ol/style/Style';
-import CircleStyle from 'ol/style/Circle';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 const props = defineProps<{
@@ -20,99 +9,92 @@ const props = defineProps<{
 }>();
 
 const globalChartStore = useGlobalChartStore();
+let highlightEl: HTMLDivElement | null = null;
 
-let highlightLayer: VectorLayer<VectorSource> | null = null;
-let locationFeature: Feature<Point> | null = null;
+function updatePosition(lat: number, lon: number) {
+    if (!props.map || !highlightEl) return;
 
-function createPulseStyle(): Style[] {
-    const core = new Style({
-        image: new CircleStyle({
-            radius: 6,
-            fill: new Fill({ color: 'rgba(255, 255, 0, 1)' }),
-            stroke: new Stroke({ color: 'orange', width: 2 }),
-        }),
-    });
+    const coord = fromLonLat([lon, lat], props.map.getView().getProjection());
+    const pixel = props.map.getPixelFromCoordinate(coord);
+    if (!pixel) return;
 
-    const pulse = new Style({
-        image: new CircleStyle({
-            radius: 15,
-            fill: new Fill({ color: 'rgba(255, 200, 0, 0.3)' }),
-        }),
-    });
+    const [x, y] = pixel;
+    const mapRect = props.map.getTargetElement().getBoundingClientRect();
 
-    return [pulse, core];
+    const globalX = mapRect.left + x;
+    const globalY = mapRect.top + y;
+
+    highlightEl.style.left = `${globalX}px`;
+    highlightEl.style.top = `${globalY}px`;
+
+    // Optional pulse effect
+    highlightEl.classList.add('active');
+    setTimeout(() => highlightEl?.classList.remove('active'), 400);
+
+    console.log('Highlight marker fixed position (body):', { globalX, globalY });
 }
-
-function updateHighlight(lat: number, lon: number) {
-    const coord = fromLonLat([lon, lat]);
-    console.log('SrLocationFinder updateHighlight lat:', lat, 'lon:', lon, 'coord:', coord);
-    if(props.map){
-        if(highlightLayer){
-            props.map.removeLayer(highlightLayer);     // if already added
-            props.map.addLayer(highlightLayer);        // re-add to top so it will be seen
-        } else {
-            console.error('SrLocationFinder highlightLayer is null');
-            return;
-        }
-    } else {
-        console.error('SrLocationFinder map is null');
-        return;
-    }
-    if (!locationFeature) {
-        locationFeature = new Feature(new Point(coord));
-        locationFeature.setStyle(createPulseStyle());
-        highlightLayer?.getSource()?.addFeature(locationFeature);
-    } else {
-        const geom = locationFeature.getGeometry() as Point;
-        geom.setCoordinates(coord);
-        locationFeature.setStyle(createPulseStyle()); // optional: re-apply style
-        locationFeature.changed(); // ✅ force OL to re-render it
-    }
-}
-
 
 onMounted(() => {
-    console.log('SrLocationFinder mounted props.map:', props.map);
     if (!props.map) return;
 
-    const source = new VectorSource();
-    highlightLayer = new VectorLayer({ source });
-    props.map.addLayer(highlightLayer);
+    highlightEl = document.createElement('div');
+    highlightEl.className = 'map-highlight-marker';
+    document.body.appendChild(highlightEl);
+
+    console.log('Highlight marker appended to <body>', highlightEl);
 
     watch(
         () => globalChartStore.enableLocationFinder,
         (enabled) => {
+            if (!highlightEl) return;
             if (enabled) {
-                updateHighlight(globalChartStore.locationFinderLat, globalChartStore.locationFinderLon);
+                updatePosition(globalChartStore.locationFinderLat, globalChartStore.locationFinderLon);
             } else {
-                console.log('SrLocationFinder watch enableLocationFinder:', enabled);
-                highlightLayer?.getSource()?.clear();
-                locationFeature = null;
+                highlightEl.style.left = '-9999px';
+                highlightEl.style.top = '-9999px';
             }
         },
-        { immediate: false }
+        { immediate: true }
     );
+
     watch(
-    () => [globalChartStore.locationFinderLat, globalChartStore.locationFinderLon],
-    ([lat, lon]) => {
-        if (globalChartStore.enableLocationFinder) {
-            console.log('SrLocationFinder watch locationFinderLat:', lat, 'locationFinderLon:', lon);
-            updateHighlight(lat, lon);
+        () => [globalChartStore.locationFinderLat, globalChartStore.locationFinderLon],
+        ([lat, lon]) => {
+            if (globalChartStore.enableLocationFinder) {
+                updatePosition(lat, lon);
+            }
         }
-    }
-);
-
-
+    );
 });
 
 onUnmounted(() => {
-    if (props.map && highlightLayer) {
-        props.map.removeLayer(highlightLayer);
+    if (highlightEl) {
+        highlightEl.remove();
+        highlightEl = null;
     }
 });
 </script>
 
-<style scoped>
-/* Optional: you could animate the pulse with a repeating effect using canvas updates,
-   but here we layer styles instead for performance */
+<template>
+    <!-- No DOM rendered by this component -->
+</template>
+
+<style>
+.map-highlight-marker {
+    position: fixed !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 0, 0.9) !important;
+    border: 3px solid orange !important;
+    pointer-events: none !important;
+    transform: translate(-50%, -50%) !important;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    z-index: 999999 !important;
+}
+
+.map-highlight-marker.active {
+    transform: translate(-50%, -50%) scale(1.8) !important;
+    opacity: 1 !important;
+}
 </style>

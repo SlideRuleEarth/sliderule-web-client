@@ -512,7 +512,7 @@ export function formatTooltip(params: any,latFieldName:string,lonFieldName:strin
       return formatKeyValuePair(dim, val);
     })
     .join('<br>');
-    console.log('formatTooltip parms:', parms);
+    //console.log('formatTooltip parms:', parms);
     return parms;
 }
 
