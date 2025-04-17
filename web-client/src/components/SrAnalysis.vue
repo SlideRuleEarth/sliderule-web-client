@@ -29,7 +29,7 @@
                     <SrDuckDbShell v-if="shouldDisplayShell" />
                 </TabPanel>
                 <TabPanel value="3">
-                    <Sr3DView v-if="shouldDisplay3DView" :reqId="recTreeStore.selectedReqId" />
+                    <SrDeck3DView v-if="shouldDisplay3DView" :reqId="recTreeStore.selectedReqId" />
                 </TabPanel>
             </TabPanels>
         </Tabs>
@@ -51,7 +51,7 @@
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from './SrTimeSeries.vue';
-    import Sr3DView from './SrECharts3DView.vue';
+    import SrDeck3DView from './SrDeck3DView.vue';
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
