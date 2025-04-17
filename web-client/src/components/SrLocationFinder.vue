@@ -29,7 +29,7 @@ function updatePosition(lat: number, lon: number) {
 
     // Optional pulse effect
     highlightEl.classList.add('active');
-    setTimeout(() => highlightEl?.classList.remove('active'), 400);
+    setTimeout(() => highlightEl?.classList.remove('active'), 1000);
 
     console.log('Highlight marker fixed position (body):', { globalX, globalY });
 }
@@ -80,13 +80,14 @@ onUnmounted(() => {
 </template>
 
 <style>
+/* using !important instead of :deep because we had to append marker to the <body> */
 .map-highlight-marker {
     position: fixed !important;
-    width: 24px !important;
-    height: 24px !important;
+    width: 8px !important;
+    height: 8px !important;
     border-radius: 50% !important;
-    background: rgba(255, 255, 0, 0.9) !important;
-    border: 3px solid orange !important;
+    background: rgba(255, 0, 0, 0.8) !important;
+    border: 2px solid var(--p-primary-400) !important;
     pointer-events: none !important;
     transform: translate(-50%, -50%) !important;
     transition: transform 0.2s ease, opacity 0.2s ease;
@@ -94,7 +95,7 @@ onUnmounted(() => {
 }
 
 .map-highlight-marker.active {
-    transform: translate(-50%, -50%) scale(1.8) !important;
+    transform: translate(-50%, -50%) scale(3.0) !important;
     opacity: 1 !important;
 }
 </style>
