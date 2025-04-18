@@ -116,7 +116,7 @@ watch(visible, async (val) => {
             if (!fileName) return;
             const duck = await createDuckDbClient();
             await duck.insertOpfsParquet(fileName);
-            rowCount.value = await duck.getTotalRowCount(`"${fileName}"`);
+            rowCount.value = await duck.getTotalRowCount(`SELECT * FROM "${fileName}"`);
             headerCols.value = await duck.queryForColNames(fileName);
         } catch (err) {
             console.warn('Failed to pre-fetch metadata:', err);
@@ -198,7 +198,7 @@ async function exportCsvStreamed(fileName: string) {
     const columns = headerCols.value;
     const encoder = new TextEncoder();
     const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
-
+    console.log(`Exporting ${fileName} with columns:`, columns, 'and row count:', rowCount.value);
     const picker = await showSaveFilePicker({
         suggestedName: `${fileName}.csv`,
         types: [
