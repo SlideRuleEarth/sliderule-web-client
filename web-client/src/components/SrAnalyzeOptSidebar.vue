@@ -71,7 +71,7 @@ const handleFileImported = async (reqId: string) => {
                         icon="pi pi-file-export"
                         class="sr-import-export-btn"
                         label="Export"
-                        @mouseover="tooltipRef.showTooltip($event, 'Export the parquet file of this record')"
+                        @mouseover="tooltipRef.showTooltip($event, 'Export this record')"
                         @mouseleave="tooltipRef.hideTooltip()"
                         @click="exportButtonClick"
                         rounded 
