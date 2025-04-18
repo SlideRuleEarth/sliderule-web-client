@@ -513,7 +513,7 @@
             </label>
         </div>
         <div
-            @mouseover="tooltipRef.showTooltip($event,'Enable Location Finder to be able to location points from the plot on the map')"
+            @mouseover="tooltipRef.showTooltip($event,'Enable Link to Elevation Plot to be able to location points from the plot on the map')"
             @mouseleave="tooltipRef.hideTooltip"
         >
             <Checkbox 
@@ -524,7 +524,7 @@
             />               
             <label 
                 for="enable-location-finder" 
-                class="sr-check-label">Location Finder
+                class="sr-check-label">Link to Elevation Plot
             </label>
         </div>
         <div>

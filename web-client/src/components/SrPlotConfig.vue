@@ -85,13 +85,13 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
 
         if (newFields.length > 0) {
             chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
-            await refreshScatterPlot('enabled location finder');
+            await refreshScatterPlot('enabled Link to Elevation Plot');
         }
 
         if (await requestsStore.needAdvice()) {
             toast.add({
                 severity: 'info',
-                summary: 'Location Finder',
+                summary: 'Link to Elevation Plot',
                 detail: 'Click on a plot point to see where on the map it is.',
                 life: 3000
             });
