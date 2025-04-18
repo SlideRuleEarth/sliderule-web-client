@@ -23,14 +23,23 @@ const scale = 100;
 const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
 const fieldStore = useFieldNameCacheStore();
-const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
-const reqId = computed(() => recTreeStore.selectedReqId);
 
-const gradientStore = useGradientColorMapStore(reqIdStr.value);
-gradientStore.initializeColorMapStore();
-const colorGradient = gradientStore.getGradientColorMap();
+const reqId = computed(() => recTreeStore.selectedReqId);
+const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
+
+// 👇 Reactive gradient store
+const gradientStore = ref(useGradientColorMapStore(reqIdStr.value));
+const colorGradient = computed(() => gradientStore.value.getGradientColorMap());
 
 const deckInstance = ref<Deck<OrbitView[]> | null>(null);
+
+// 🔁 Watch for reqIdStr changes to update gradientStore
+watch(reqIdStr, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        gradientStore.value = useGradientColorMapStore(newVal);
+        gradientStore.value.initializeColorMapStore();
+    }
+});
 
 async function updatePointCloud() {
     try {
@@ -74,8 +83,8 @@ async function updatePointCloud() {
                 const y = scale * (d[latField] - latMin) / latRange;
                 const z = scale * (d[heightField] - elevMin) / elevRange;
                 const zNorm = z / scale;
-                const index = Math.floor(zNorm * (colorGradient.length - 1));
-                const rgba = colorGradient[Math.max(0, Math.min(index, colorGradient.length - 1))];
+                const index = Math.floor(zNorm * (colorGradient.value.length - 1));
+                const rgba = colorGradient.value[Math.max(0, Math.min(index, colorGradient.value.length - 1))];
                 const match = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
                 const color = match
                     ? [
@@ -98,7 +107,6 @@ async function updatePointCloud() {
                 pickable: true,
             });
 
-            // 🧼 Replace existing layer(s) on the existing Deck instance
             if (deckInstance.value) {
                 deckInstance.value.setProps({ layers: [layer] });
             }
@@ -115,6 +123,8 @@ async function updatePointCloud() {
 
 onMounted(async () => {
     await nextTick();
+
+    gradientStore.value.initializeColorMapStore();
 
     deckInstance.value = new DeckImpl<OrbitView[]>({
         parent: deckContainer.value!,
@@ -149,7 +159,7 @@ onMounted(async () => {
     updatePointCloud();
 });
 
-// 🔁 Watch for reqId changes and refresh point cloud
+// 🔁 Watch for reqId changes to update the point cloud
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
         await updatePointCloud();
