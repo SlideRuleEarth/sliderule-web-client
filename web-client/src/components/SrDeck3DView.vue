@@ -1,15 +1,14 @@
 <template>
-    <div style="position: absolute; top: 0; right: 0; color: white; padding: 0.5rem;">
+    <!-- <div style="position: absolute; top: 0; right: 0; color: white; padding: 0.5rem;">
         Zoom: {{ zoomRef.toFixed(2) }}
-    </div>
-    
+    </div> -->   
     <div ref="deckContainer" class="deck-canvas" />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import { Deck } from '@deck.gl/core';
-import { ScatterplotLayer } from '@deck.gl/layers';
+import { PointCloudLayer } from '@deck.gl/layers';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
@@ -17,46 +16,44 @@ import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
+import { useRecTreeStore } from '@/stores/recTreeStore';
 
-const props = defineProps({
-    reqId: {
-        type: Number,
-        required: true,
-    },
-});
 
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
-
+const recTreeStore = useRecTreeStore();
 const scale = 100;
+const toast = useSrToastStore();
+const fieldStore = useFieldNameCacheStore();
+const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
+const reqId = computed(() => recTreeStore.selectedReqId);
+const gradientStore = useGradientColorMapStore(reqIdStr.value);
+gradientStore.initializeColorMapStore();
+const colorGradient = gradientStore.getGradientColorMap();
+
+
 
 onMounted(async () => {
     await nextTick();
-    const toast = useSrToastStore();
-    const fieldStore = useFieldNameCacheStore();
-    const reqIdStr = props.reqId.toString();
-    const gradientStore = useGradientColorMapStore(reqIdStr);
-    gradientStore.initializeColorMapStore();
-    const colorGradient = gradientStore.getGradientColorMap();
 
     if (!colorGradient || colorGradient.length === 0) {
         throw new Error('Gradient color map is empty or not initialized');
     }
 
     try {
-        const status = await indexedDb.getStatus(props.reqId);
+        const status = await indexedDb.getStatus(reqId.value);
         if (status === 'error') {
             console.error('Sr3DView: request status is error — skipping');
             return;
         }
 
-        const fileName = await indexedDb.getFilename(props.reqId);
+        const fileName = await indexedDb.getFilename(reqId.value);
         if (!fileName) throw new Error('Filename not found');
 
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
 
-        const sample_fraction = await computeSamplingRate(props.reqId);
+        const sample_fraction = await computeSamplingRate(reqId.value);
         const result = await duckDbClient.queryChunkSampled(
             `SELECT * FROM read_parquet('${fileName}')`,
             sample_fraction
@@ -64,9 +61,9 @@ onMounted(async () => {
 
         const { value: rows = [], done } = await result.readRows().next();
         if (!done && rows.length > 0) {
-            const latField = fieldStore.getLatFieldName(props.reqId);
-            const lonField = fieldStore.getLonFieldName(props.reqId);
-            const heightField = fieldStore.getHFieldName(props.reqId);
+            const latField = fieldStore.getLatFieldName(reqId.value);
+            const lonField = fieldStore.getLonFieldName(reqId.value);
+            const heightField = fieldStore.getHFieldName(reqId.value);
 
             const lonMin = Math.min(...rows.map(d => d[lonField]));
             const lonMax = Math.max(...rows.map(d => d[lonField]));
@@ -79,37 +76,35 @@ onMounted(async () => {
             const latRange = latMax - latMin;
             const elevRange = elevMax - elevMin;
 
-            const scatterData = rows.map((d) => {
+            const pointCloudData = rows.map((d) => {
                 const x = scale * (d[lonField] - lonMin) / lonRange;
                 const y = scale * (d[latField] - latMin) / latRange;
                 const z = scale * (d[heightField] - elevMin) / elevRange;
-                return [x, y, z];
-            }).filter(([x, y, z]) => isFinite(x) && isFinite(y) && isFinite(z));
+                const zNorm = z / scale;
+                const index = Math.floor(zNorm * (colorGradient.length - 1));
+                const rgba = colorGradient[Math.max(0, Math.min(index, colorGradient.length - 1))];
+                const match = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+                const color = match
+                    ? [
+                          parseInt(match[1]),
+                          parseInt(match[2]),
+                          parseInt(match[3]),
+                          Math.round(parseFloat(match[4]) * 255),
+                      ]
+                    : [255, 255, 255, 255];
+                return { position: [x, y, z], color };
+            }).filter(p => p.position.every(isFinite));
 
             const center = [scale / 2, scale / 2, scale / 2];
             const zoom = 5;
 
-            const layer = new ScatterplotLayer({
-                id: 'scatter-3d',
-                data: scatterData,
-                getPosition: (d) => d,
-                getRadius: 1,
-                radiusUnits: 'common',
-                getFillColor: (d) => {
-                    const z = d[2] / scale;
-                    const index = Math.floor(z * (colorGradient.length - 1));
-                    const rgba = colorGradient[Math.max(0, Math.min(index, colorGradient.length - 1))];
-                    const match = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-                    if (match) {
-                        const r = parseInt(match[1]);
-                        const g = parseInt(match[2]);
-                        const b = parseInt(match[3]);
-                        const a = Math.round(parseFloat(match[4]) * 255);
-                        return [r, g, b, a];
-                    }
-                    return [255, 255, 255, 255];
-                },
-                opacity: 0.9,
+            const layer = new PointCloudLayer({
+                id: 'point-cloud-layer',
+                data: pointCloudData,
+                getPosition: d => d.position,
+                getColor: d => d.color,
+                pointSize: 2,
+                opacity: 0.95,
                 pickable: true,
             });
 
@@ -133,17 +128,17 @@ onMounted(async () => {
                 layers: [layer],
                 onViewStateChange: ({ viewState }) => {
                     zoomRef.value = viewState.zoom;
-                    const { zoom, target, rotationX, rotationOrbit } = viewState;
-                    console.log(`Zoom: ${zoom.toFixed(2)}`);
-                    console.log(`Target: ${target.map(n => n.toFixed(3)).join(', ')}`);
-                    console.log(`RotationX: ${rotationX?.toFixed(2)}`);
-                    console.log(`RotationOrbit: ${rotationOrbit?.toFixed(2)}`);
-                },
-                onAfterRender: () => {
-                    console.log('Deck rendered frame');
+                    // const { zoom, target, rotationX, rotationOrbit } = viewState;
+                    // console.log(`Zoom: ${zoom.toFixed(2)}`);
+                    // console.log(`Target: ${target.map(n => n.toFixed(3)).join(', ')}`);
+                    // console.log(`RotationX: ${rotationX?.toFixed(2)}`);
+                    // console.log(`RotationOrbit: ${rotationOrbit?.toFixed(2)}`);
                 },
                 onClick: (info) => {
                     console.log('Clicked:', info.object);
+                },
+                onAfterRender: () => {
+                    console.log('Deck rendered frame');
                 },
                 debug: true,
             });
