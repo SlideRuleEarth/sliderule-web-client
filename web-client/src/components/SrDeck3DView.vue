@@ -28,16 +28,10 @@ const props = defineProps({
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
 
-function computeZoomToFitBoundingSphere(boundingRadius: number, fovyDeg = 50): number {
-    const fovy = (fovyDeg * Math.PI) / 180;
-    const halfFovy = fovy / 2;
-    const distance = boundingRadius / Math.tan(halfFovy); // camera distance to fit radius
-    return Math.log2(1 / distance); // Deck.gl zoom scale is log2-based
-}
+const scale = 100;
 
 onMounted(async () => {
     await nextTick();
-    const startTime = performance.now();
     const toast = useSrToastStore();
     const fieldStore = useFieldNameCacheStore();
     const reqIdStr = props.reqId.toString();
@@ -69,7 +63,6 @@ onMounted(async () => {
         );
 
         const { value: rows = [], done } = await result.readRows().next();
-        console.log('rows.length:', rows.length);
         if (!done && rows.length > 0) {
             const latField = fieldStore.getLatFieldName(props.reqId);
             const lonField = fieldStore.getLonFieldName(props.reqId);
@@ -81,34 +74,29 @@ onMounted(async () => {
             const latMax = Math.max(...rows.map(d => d[latField]));
             const elevMin = Math.min(...rows.map(d => d[heightField]));
             const elevMax = Math.max(...rows.map(d => d[heightField]));
-            console.log('lonMin:', lonMin, 'lonMax:', lonMax, 'latMin:', latMin, 'latMax:', latMax, 'elevMin:', elevMin, 'elevMax:', elevMax);
-            console.log('lonField:', lonField, 'latField:', latField, 'heightField:', heightField);
+
             const lonRange = lonMax - lonMin;
             const latRange = latMax - latMin;
             const elevRange = elevMax - elevMin;
-            console.log('lonRange:', lonRange, 'latRange:', latRange, 'elevRange:', elevRange);
+
             const scatterData = rows.map((d) => {
-                const x = (d[lonField] - lonMin) / lonRange;
-                const y = (d[latField] - latMin) / latRange;
-                const z = (d[heightField] - elevMin) / elevRange;
+                const x = scale * (d[lonField] - lonMin) / lonRange;
+                const y = scale * (d[latField] - latMin) / latRange;
+                const z = scale * (d[heightField] - elevMin) / elevRange;
                 return [x, y, z];
             }).filter(([x, y, z]) => isFinite(x) && isFinite(y) && isFinite(z));
-            //console.log('Sr3DView scatterData:', scatterData);
-            // compute bounding radius (diagonal from center to cube corner)
-            const boundingRadius = Math.sqrt(0.5 ** 2 + 0.5 ** 2 + 0.5 ** 2); // ≈ 0.866
-            const zoom = computeZoomToFitBoundingSphere(boundingRadius * 1.2); // 1.2 = padding factor
-            console.log('computed zoom:', zoom);
+
+            const center = [scale / 2, scale / 2, scale / 2];
+            const zoom = 5;
 
             const layer = new ScatterplotLayer({
                 id: 'scatter-3d',
                 data: scatterData,
                 getPosition: (d) => d,
-                // getRadius: 2,
-                // radiusUnits: 'pixels',
-                getRadius: 0.005,
+                getRadius: 1,
                 radiusUnits: 'common',
                 getFillColor: (d) => {
-                    const z = d[2];
+                    const z = d[2] / scale;
                     const index = Math.floor(z * (colorGradient.length - 1));
                     const rgba = colorGradient[Math.max(0, Math.min(index, colorGradient.length - 1))];
                     const match = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
@@ -124,46 +112,40 @@ onMounted(async () => {
                 opacity: 0.9,
                 pickable: true,
             });
-            const center = [
-                (lonRange > 0 ? 0.5 : 0),
-                (latRange > 0 ? 0.5 : 0),
-                (elevRange > 0 ? 0.5 : 0),
-            ];
-            console.log('center:', center);
+
             new Deck({
                 parent: deckContainer.value!,
                 views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
                 controller: {
                     type: OrbitController,
-                    autoRotate: true,
+                    autoRotate: false,
+                    inertia: 0,
+                    zoomSpeed: 0.02,
+                    rotateSpeed: 0.3,
+                    panSpeed: 0.5,
                 } as any,
-                // initialViewState: {
-                //     target: center,
-                //     zoom,
-                //     rotationX: 45,
-                //     rotationOrbit: 45,
-                // } as any,
                 initialViewState: {
-                    target: [1.353, 0.893, -0.94],
-                    zoom: 7.8,
-                    rotationX: 42.96,
-                    rotationOrbit: 20.0,
+                    target: center,
+                    zoom,
+                    rotationX: 45,
+                    rotationOrbit: 30,
                 } as any,
                 layers: [layer],
                 onViewStateChange: ({ viewState }) => {
+                    zoomRef.value = viewState.zoom;
                     const { zoom, target, rotationX, rotationOrbit } = viewState;
-                    console.log('Zoom:', zoom.toFixed(2));
-                    console.log('Target:', target.map(n => n.toFixed(3)).join(', '));
-                    console.log('RotationX:', rotationX?.toFixed(2));
-                    console.log('RotationOrbit:', rotationOrbit?.toFixed(2));
+                    console.log(`Zoom: ${zoom.toFixed(2)}`);
+                    console.log(`Target: ${target.map(n => n.toFixed(3)).join(', ')}`);
+                    console.log(`RotationX: ${rotationX?.toFixed(2)}`);
+                    console.log(`RotationOrbit: ${rotationOrbit?.toFixed(2)}`);
                 },
-
                 onAfterRender: () => {
                     console.log('Deck rendered frame');
                 },
                 onClick: (info) => {
                     console.log('Clicked:', info.object);
                 },
+                debug: true,
             });
         } else {
             toast.warn('No Data Processed', 'No elevation data returned.');
@@ -172,11 +154,12 @@ onMounted(async () => {
         console.error('Error loading 3D view:', err);
         toast.error('Error', 'Failed to load elevation data.');
     } finally {
-        const endTime = performance.now();
-        console.log(`Sr3DView took ${endTime - startTime} ms`);
+        console.log(`Sr3DView completed.`);
     }
 });
 </script>
+
+
 
 <style scoped>
 .deck-canvas {
