@@ -219,7 +219,7 @@ export class DuckDBClient {
       await conn.close();
       const endTime = performance.now(); // End time
       const duration = endTime - startTime; // Duration in milliseconds
-      console.log(`getTotalRowCount took ${duration} milliseconds.`);
+      console.log(`getTotalRowCount took ${duration} milliseconds for query: ${query}`);
     }
   }
   
