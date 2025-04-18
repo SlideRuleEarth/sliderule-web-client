@@ -51,6 +51,7 @@ import { useToast } from 'primevue/usetoast';
 import { db } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import {getFetchUrlAndOptions} from "@/utils/fetchUtils";
 
 declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
 
@@ -77,13 +78,14 @@ const emit = defineEmits<{
 const toast = useToast();
 const visible = ref(props.modelValue);
 const exporting = ref(false);
-const selectedFormat = ref<'csv' | 'parquet' | null>(null);
+const selectedFormat = ref<'csv' | 'parquet' | 'geoparquet' | null>(null);
 const headerCols = ref<string[]>([]);
 const rowCount = ref<number | null>(null);
 
 const formats = [
     { label: 'CSV', value: 'csv' },
     { label: 'Parquet', value: 'parquet' },
+    { label: 'GeoParquet', value: 'geoparquet' },
 ];
 
 const estimatedSizeMB = computed(() => {
@@ -104,7 +106,8 @@ watch(visible, (val) => emit('update:modelValue', val));
 
 onMounted(() => {
     const saved = useSrParquetCfgStore().getSelectedExportFormat();
-    if (saved === 'csv' || saved === 'parquet') {
+    if (saved === 'csv' || saved === 'parquet' || saved === 'geoparquet') {
+          0
         selectedFormat.value = saved;
     }
 });
@@ -137,8 +140,10 @@ const handleExport = async () => {
 
         if (selectedFormat.value === 'csv') {
             await exportCsvStreamed(fileName);
-        } else {
+        } else if(selectedFormat.value === 'parquet') {
             await exportParquet(fileName);
+        } else if(selectedFormat.value === 'geoparquet') {
+            await exportGeoParquet(fileName);
         }
 
         toast.add({
@@ -168,6 +173,7 @@ function safeCsvCell(val: any): string {
 }
 
 async function exportParquet(fileName: string) {
+    console.log('exportParquet fileName:', fileName);
     const opfsRoot = await navigator.storage.getDirectory();
     const folderName = 'SlideRule';
     const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
@@ -190,6 +196,61 @@ async function exportParquet(fileName: string) {
     await stream.write(blob);
     await stream.close();
 }
+
+async function exportGeoParquet(fileName: string) {
+    const urlOptions = await getFetchUrlAndOptions(props.reqId, true, true);
+    const url = urlOptions.url;
+    const options = urlOptions.options;
+    console.log('exportGeoParquet url:', url, 'options:', options, 'reqId:', props.reqId, 'fileName:', fileName);
+
+    const picker = await showSaveFilePicker({
+        suggestedName: `${fileName}_GEO`,
+        types: [
+            {
+                description: 'GeoParquet Files',
+                accept: { 'application/octet-stream': ['.parquet'] },
+            },
+        ],
+    });
+
+    const stream = await picker.createWritable();
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: options.body,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+            },
+        });
+
+        if (!response.ok || !response.body) {
+            throw new Error(`Export failed with status ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const writer = stream.getWriter();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) await writer.write(value);
+        }
+
+        await writer.close();
+    } catch (error) {
+        console.error('Failed to fetch and save GeoParquet:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Export Error',
+            detail: error instanceof Error ? error.message : 'Unknown error',
+            life: 5000,
+        });
+        await stream.abort();
+    }
+}
+
 
 async function exportCsvStreamed(fileName: string) {
     const duck = await createDuckDbClient();
