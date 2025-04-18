@@ -1,13 +1,11 @@
 <template>
-    <!-- <div style="position: absolute; top: 0; right: 0; color: white; padding: 0.5rem;">
-        Zoom: {{ zoomRef.toFixed(2) }}
-    </div> -->   
     <div ref="deckContainer" class="deck-canvas" />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from 'vue';
-import { Deck } from '@deck.gl/core';
+import { ref, onMounted, nextTick, computed, watch } from 'vue';
+import type { Deck } from '@deck.gl/core';
+import { Deck as DeckImpl } from '@deck.gl/core';
 import { PointCloudLayer } from '@deck.gl/layers';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
@@ -18,28 +16,23 @@ import { db as indexedDb } from '@/db/SlideRuleDb';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
-
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
-const recTreeStore = useRecTreeStore();
 const scale = 100;
+
+const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
 const fieldStore = useFieldNameCacheStore();
 const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
 const reqId = computed(() => recTreeStore.selectedReqId);
+
 const gradientStore = useGradientColorMapStore(reqIdStr.value);
 gradientStore.initializeColorMapStore();
 const colorGradient = gradientStore.getGradientColorMap();
 
+const deckInstance = ref<Deck<OrbitView[]> | null>(null);
 
-
-onMounted(async () => {
-    await nextTick();
-
-    if (!colorGradient || colorGradient.length === 0) {
-        throw new Error('Gradient color map is empty or not initialized');
-    }
-
+async function updatePointCloud() {
     try {
         const status = await indexedDb.getStatus(reqId.value);
         if (status === 'error') {
@@ -95,9 +88,6 @@ onMounted(async () => {
                 return { position: [x, y, z], color };
             }).filter(p => p.position.every(isFinite));
 
-            const center = [scale / 2, scale / 2, scale / 2];
-            const zoom = 5;
-
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
@@ -108,40 +98,10 @@ onMounted(async () => {
                 pickable: true,
             });
 
-            new Deck({
-                parent: deckContainer.value!,
-                views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
-                controller: {
-                    type: OrbitController,
-                    autoRotate: false,
-                    inertia: 0,
-                    zoomSpeed: 0.02,
-                    rotateSpeed: 0.3,
-                    panSpeed: 0.5,
-                } as any,
-                initialViewState: {
-                    target: center,
-                    zoom,
-                    rotationX: 45,
-                    rotationOrbit: 30,
-                } as any,
-                layers: [layer],
-                onViewStateChange: ({ viewState }) => {
-                    zoomRef.value = viewState.zoom;
-                    // const { zoom, target, rotationX, rotationOrbit } = viewState;
-                    // console.log(`Zoom: ${zoom.toFixed(2)}`);
-                    // console.log(`Target: ${target.map(n => n.toFixed(3)).join(', ')}`);
-                    // console.log(`RotationX: ${rotationX?.toFixed(2)}`);
-                    // console.log(`RotationOrbit: ${rotationOrbit?.toFixed(2)}`);
-                },
-                onClick: (info) => {
-                    console.log('Clicked:', info.object);
-                },
-                onAfterRender: () => {
-                    console.log('Deck rendered frame');
-                },
-                debug: true,
-            });
+            // 🧼 Replace existing layer(s) on the existing Deck instance
+            if (deckInstance.value) {
+                deckInstance.value.setProps({ layers: [layer] });
+            }
         } else {
             toast.warn('No Data Processed', 'No elevation data returned.');
         }
@@ -151,10 +111,51 @@ onMounted(async () => {
     } finally {
         console.log(`Sr3DView completed.`);
     }
+}
+
+onMounted(async () => {
+    await nextTick();
+
+    deckInstance.value = new DeckImpl<OrbitView[]>({
+        parent: deckContainer.value!,
+        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
+        controller: {
+            type: OrbitController,
+            autoRotate: false,
+            inertia: 0,
+            zoomSpeed: 0.02,
+            rotateSpeed: 0.3,
+            panSpeed: 0.5,
+        } as any,
+        initialViewState: {
+            target: [scale / 2, scale / 2, scale / 2],
+            zoom: 5,
+            rotationX: 45,
+            rotationOrbit: 30,
+        } as any,
+        layers: [],
+        onViewStateChange: ({ viewState }) => {
+            zoomRef.value = viewState.zoom;
+        },
+        onClick: (info) => {
+            console.log('Clicked:', info.object);
+        },
+        onAfterRender: () => {
+            console.log('Deck rendered frame');
+        },
+        debug: true,
+    });
+
+    updatePointCloud();
+});
+
+// 🔁 Watch for reqId changes and refresh point cloud
+watch(reqId, async (newVal, oldVal) => {
+    if (newVal && newVal !== oldVal) {
+        await updatePointCloud();
+    }
 });
 </script>
-
-
 
 <style scoped>
 .deck-canvas {
@@ -163,4 +164,3 @@ onMounted(async () => {
     background: #111;
 }
 </style>
-

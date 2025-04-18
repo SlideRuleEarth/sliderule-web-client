@@ -29,7 +29,7 @@
                     <SrDuckDbShell v-if="shouldDisplayShell" />
                 </TabPanel>
                 <TabPanel value="3">
-                    <SrDeck3DView v-if="shouldDisplay3DView" :reqId="recTreeStore.selectedReqId" />
+                    <SrDeck3DView v-if="shouldDisplay3DView" />
                 </TabPanel>
             </TabPanels>
         </Tabs>
