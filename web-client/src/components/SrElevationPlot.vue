@@ -33,7 +33,6 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
-import { is } from "cypress/types/bluebird";
 
 
 const tooltipRef = ref();

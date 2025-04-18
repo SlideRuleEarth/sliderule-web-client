@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const useActiveTabStore = defineStore('activeTabStore', () => {
-    const tabLabels: string[] = ['Elevation Plot', 'Time Series', 'Table'];
+    const tabLabels: string[] = ['Elevation Plot', 'Time Series', 'Table', '3-D View'];
     const activeTab = ref<string>('0'); // Store activeTab as a string
     // Getter: Get the active tab index as a string
     const getActiveTab = computed<string>(() => activeTab.value);
