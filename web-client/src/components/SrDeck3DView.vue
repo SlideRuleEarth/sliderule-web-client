@@ -15,6 +15,9 @@ import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { updateMapAndPlot } from '@/utils/SrMapUtils';
+
+
 
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
@@ -242,6 +245,7 @@ async function updatePointCloud() {
 }
 
 onMounted(async () => {
+    updateMapAndPlot(false);
     await nextTick();
     gradientStore.value.initializeColorMapStore();
     await nextTick();
@@ -255,6 +259,7 @@ onMounted(async () => {
 
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
+        updateMapAndPlot(false);// in parallel
         await updatePointCloud();
     }
 });
