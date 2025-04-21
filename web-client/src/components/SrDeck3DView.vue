@@ -18,6 +18,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
+const fitZoom = ref(0);
 const scale = 100;
 
 const recTreeStore = useRecTreeStore();
@@ -31,6 +32,10 @@ const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
 const gradientStore = ref(useGradientColorMapStore(reqIdStr.value));
 const colorGradient = computed(() => gradientStore.value.getGradientColorMap());
 
+const centroid = ref([scale/2, scale/2, scale/2]);
+
+//const pointCloudData = ref<{ position: [number, number, number], color: [number, number, number, number] }[]>([]);
+
 const deckInstance = ref<Deck<OrbitView[]> | null>(null);
 
 // 🔁 Watch for reqIdStr changes to update gradientStore
@@ -40,6 +45,60 @@ watch(reqIdStr, (newVal, oldVal) => {
         gradientStore.value.initializeColorMapStore();
     }
 });
+
+function computeCentroid(position: [number, number, number] []) {
+    // Compute centroid
+    const n = position.length;
+    const sum = position.reduce(
+        (acc, p) => {
+        acc[0] += p[0];
+        acc[1] += p[1];
+        acc[2] += p[2];
+        return acc;
+        },
+        [0, 0, 0]
+    );
+    centroid.value = sum.map(c => c / n) as [number, number, number];
+    return centroid;
+}
+
+function initDeckInstance(){
+    if (deckInstance.value) {
+        deckInstance.value.finalize();
+        deckInstance.value = null;
+    }    
+    deckInstance.value = new DeckImpl<OrbitView[]>({
+        parent: deckContainer.value!,
+        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
+        controller: {
+            type: OrbitController,
+            autoRotate: false,
+            inertia: 0,
+            zoomSpeed: 0.02,
+            rotateSpeed: 0.3,
+            panSpeed: 0.5,
+        } as any,
+        initialViewState: {
+            target: centroid.value,
+            zoom: 5,
+            rotationX: 45,
+            rotationOrbit: 30,
+        } as any,
+        layers: [],
+        onViewStateChange: ({ viewState }) => {
+            zoomRef.value = viewState.zoom;
+            //console.log(`fitZoom: ${fitZoom.value} zoom: ${zoomRef.value}`);
+        },
+        onClick: (info) => {
+            console.log('Clicked:', info.object);
+        },
+        onAfterRender: () => {
+            //console.log('Deck rendered frame');
+        },
+        debug: true,
+    });
+
+}
 
 async function updatePointCloud() {
     try {
@@ -95,14 +154,21 @@ async function updatePointCloud() {
                       ]
                     : [255, 255, 255, 255];
                 return { position: [x, y, z], color };
-            }).filter(p => p.position.every(isFinite));
+            }).filter(p => p.position.every(isFinite)); 
+            computeCentroid(pointCloudData.map(p => p.position)as [number, number, number][]);
+            const { width, height } = deckContainer.value!.getBoundingClientRect();
+            const containerSize = Math.min(width, height);
 
+            // 2. Compute the “fit” zoom
+            const worldSize = scale;  // because you normalized all axes to [0…scale]
+            fitZoom.value = Math.log2(containerSize / worldSize);
+            initDeckInstance();
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
                 getPosition: d => d.position,
                 getColor: d => d.color,
-                pointSize: 2,
+                pointSize: 0.5,
                 opacity: 0.95,
                 pickable: true,
             });
@@ -126,37 +192,8 @@ onMounted(async () => {
 
     gradientStore.value.initializeColorMapStore();
 
-    deckInstance.value = new DeckImpl<OrbitView[]>({
-        parent: deckContainer.value!,
-        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
-        controller: {
-            type: OrbitController,
-            autoRotate: false,
-            inertia: 0,
-            zoomSpeed: 0.02,
-            rotateSpeed: 0.3,
-            panSpeed: 0.5,
-        } as any,
-        initialViewState: {
-            target: [scale / 2, scale / 2, scale / 2],
-            zoom: 5,
-            rotationX: 45,
-            rotationOrbit: 30,
-        } as any,
-        layers: [],
-        onViewStateChange: ({ viewState }) => {
-            zoomRef.value = viewState.zoom;
-        },
-        onClick: (info) => {
-            console.log('Clicked:', info.object);
-        },
-        onAfterRender: () => {
-            console.log('Deck rendered frame');
-        },
-        debug: true,
-    });
-
     updatePointCloud();
+    toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.');
 });
 
 // 🔁 Watch for reqId changes to update the point cloud
