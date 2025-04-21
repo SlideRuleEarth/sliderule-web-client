@@ -37,7 +37,7 @@
 </template>
   
 <script setup lang="ts">
-    import { computed, onMounted } from 'vue'
+    import { computed, onMounted, onUnmounted } from 'vue'
     import Tabs from 'primevue/tabs';
     import TabList from 'primevue/tablist';
     import Tab from 'primevue/tab';
@@ -100,6 +100,12 @@
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
         activeTabStore.setActiveTab('0');
     });
+
+    onUnmounted(() => {
+        console.log('onUnmounted for SrAnalysis');
+        activeTabStore.setActiveTab('0'); // reset when we leave this component
+    });
+
 </script>
 
 <style scoped>
