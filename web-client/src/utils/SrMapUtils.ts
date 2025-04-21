@@ -1167,7 +1167,7 @@ const updateElevationMap = async (req_id: number) => {
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
 };
 
-export async function updateMapAndPlot(): Promise<void> {
+export async function updateMapAndPlot(withHighlight:boolean = true): Promise<void> {
     const startTime = performance.now(); // Start time
   
     const atlChartFilterStore = useAtlChartFilterStore();
@@ -1177,7 +1177,9 @@ export async function updateMapAndPlot(): Promise<void> {
         if(req_id > 0){
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await updateElevationMap(req_id);
-            await updatePlotAndSelectedTrackMapLayer("updateMapAndPlot");
+            if(withHighlight){
+                await updatePlotAndSelectedTrackMapLayer("updateMapAndPlot");
+            }
         }
         //console.log('onMounted recTreeStore.reqIdMenuItems:', recTreeStore.reqIdMenuItems);
     } catch (error) {

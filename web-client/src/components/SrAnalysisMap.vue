@@ -44,6 +44,7 @@
     import { addLayersForCurrentView } from "@/composables/SrLayers";
     import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
     import SrLocationFinder from "@/components/SrLocationFinder.vue";
+    import { useActiveTabStore } from "@/stores/activeTabStore";
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -67,10 +68,14 @@
     const globalChartStore = useGlobalChartStore();
     const fncs = useFieldNameCacheStore();
     const atlChartFilterStore = useAtlChartFilterStore();
+    const activeTabStore = useActiveTabStore();
     const controls = ref([]);
     const tooltipRef = ref();
 
-
+    // true whenever the active tab is _not_ “3‑D View”
+    const isNot3DView = computed(() => 
+        !activeTabStore.isActiveTabLabel('3-D View')
+    )
     const recordsVectorSource = new VectorSource({wrapX: false});
     const recordsLayer = new VectorLayer({
         source: recordsVectorSource,
@@ -380,7 +385,7 @@
                     deckStore.clearDeckInstance(); // Clear any existing instance first
                     createDeckInstance(map); 
                     addDeckLayerToMap(map);        
-                    await updateMapAndPlot();
+                    await updateMapAndPlot(isNot3DView.value);
                 } else {
                     console.error("SrMap Error: srViewKey is null");
                 }
@@ -495,11 +500,12 @@
             />
             <label for="show-hide-tooltip" class="sr-check-label" >Map Tooltip</label>
         </div>
-        <div
+        <div 
             @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
             @mouseleave="tooltipRef.hideTooltip"
         >
-            <Checkbox 
+            <Checkbox
+                v-show="isNot3DView" 
                 v-model="globalChartStore.use_y_atc_filter" 
                 binary 
                 inputId="enable-off-filter"
@@ -507,7 +513,8 @@
                 @update:model-value="handleOffPntEnable"
                 :disabled="atlChartFilterStore.showPhotonCloud"
             />               
-            <label 
+            <label
+                v-show="isNot3DView" 
                 for="enable-off-filter" 
                 class="sr-check-label">Off Pointing Filter
             </label>
@@ -516,13 +523,15 @@
             @mouseover="tooltipRef.showTooltip($event,'Enable Link to Elevation Plot to be able to location points from the plot on the map')"
             @mouseleave="tooltipRef.hideTooltip"
         >
-            <Checkbox 
+            <Checkbox
+                v-show="isNot3DView" 
                 v-model="globalChartStore.enableLocationFinder" 
                 binary 
                 inputId="enable-location-finder"
                 size="small"
             />               
             <label 
+                v-show="isNot3DView"
                 for="enable-location-finder" 
                 class="sr-check-label">Link to Elevation Plot
             </label>

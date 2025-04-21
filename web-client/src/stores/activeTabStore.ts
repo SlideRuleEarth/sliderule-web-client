@@ -33,6 +33,16 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
     const isActiveTabTimeSeries = computed(() => {
         return activeTab.value === '1';
     });
+    
+    // Check if the active tab’s label matches the given string
+    const isActiveTabLabel = (label: string): boolean => {
+        // you can choose to do case‐insensitive compare if you like:
+        const isMatch = activeTabLabel.value === label;
+        //console.log('isActiveTabLabel isMatch:', isMatch,'isActiveTabLabel:', activeTabLabel.value, 'label:', label);
+        return isMatch;
+        // or for case‐insensitive:
+        // return activeTabLabel.value?.toLowerCase() === label.toLowerCase();
+    };
 
     return {
         activeTab,
@@ -41,5 +51,6 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         activeTabLabel,
         getTabLabelByIndex,
         isActiveTabTimeSeries,
+        isActiveTabLabel,
     };
 });
