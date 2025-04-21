@@ -12,6 +12,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
         const selectedGradientColorMapName = ref('viridis');
         const numShadesForGradient = ref(256);
         const gradientColorMap = ref<string[]>([]);
+        const gradientColorMapRGBA = ref<number[][]>([]);
         let dataOrderNdx = {} as Record<string, number>;
         let debugCnt = 0;
         function initializeColorMapStore() {
@@ -41,44 +42,35 @@ export function useGradientColorMapStore(reqIdStr: string) {
             return numShadesForGradient.value;
         }
 
-        function updateGradientColorMapValues():void {
+        function updateGradientColorMapValues(): void {
             try {
-              const colorArray = colormap({
-                colormap: selectedGradientColorMapName.value,
-                nshades: numShadesForGradient.value,
-                format: 'rgba',
-                alpha: 1
-              });
-              
-              // Convert from [r, g, b, a] to 'rgba(r,g,b,a)'
-              gradientColorMap.value = colorArray.map(
-                ([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`
-              );
+                const rawColorArray = colormap({
+                    colormap: selectedGradientColorMapName.value,
+                    nshades: numShadesForGradient.value,
+                    format: 'rgba',
+                    alpha: 1
+                });
+        
+                gradientColorMapRGBA.value = rawColorArray;
+                gradientColorMap.value = rawColorArray.map(
+                    ([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`
+                );
             } catch (error) {
-              console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
-              throw error;
+                console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
+                throw error;
             }
-            //console.log(`updateGradientColorMapValues ${reqIdStr}:`,selectedGradientColorMapName.value,numShadesForGradient.value);
         }
+        
 
         function getGradientColorMap():string[] {
             //console.log(`getGradientColorMap ${reqIdStr}:`,gradientColorMap.value);
             return gradientColorMap.value;
         }
 
-        // function getGradientColorForValue(value:number, minValue:number, maxValue:number):string {
-        //     // Normalize the value to a value between 0 and 255
-        //     const normalizedValue = Math.floor(((value - minValue) / (maxValue - minValue)) * numShadesForGradient.value-1);
-        //     // Clamp the value to ensure it's within the valid range
-        //     const colorIndex = Math.max(0, Math.min(numShadesForGradient.value-1, normalizedValue));
-        //     // Return the color from the selected colormap
-        //     const c = gradientColorMap.value[colorIndex];
-        //     if(debugCnt++ < 10){
-        //         console.log(`getGradientColorForValue ${reqIdStr}:`,value,minValue,maxValue,normalizedValue,colorIndex,c);
-        //     }
-        //     return c;
-        // }
-
+        function getGradientColorMapRGBA(): number[][] {
+            return gradientColorMapRGBA.value;
+        }
+        
         function getDimensions(): string[] {
             return Object.keys(dataOrderNdx).sort((a, b) => {
                 const aValue = dataOrderNdx[a];
@@ -150,6 +142,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
             getNumShadesForGradient,
             updateGradientColorMapValues,
             getGradientColorMap,
+            getGradientColorMapRGBA,
             getDimensions,
             getDataOrderNdx,
             setDataOrderNdx,
