@@ -45,14 +45,14 @@ watch(reqIdStr, (newVal, oldVal) => {
     }
 });
 
-function computeCentroid(pointCloudData: { position: [number, number, number] }[]) {
+function computeCentroid(position: [number, number, number] []) {
     // Compute centroid
-    const n = pointCloudData.length;
-    const sum = pointCloudData.reduce(
+    const n = position.length;
+    const sum = position.reduce(
         (acc, p) => {
-        acc[0] += p.position[0];
-        acc[1] += p.position[1];
-        acc[2] += p.position[2];
+        acc[0] += p[0];
+        acc[1] += p[1];
+        acc[2] += p[2];
         return acc;
         },
         [0, 0, 0]
@@ -155,6 +155,7 @@ async function updatePointCloud() {
                     : [255, 255, 255, 255];
                 return { position: [x, y, z], color };
             }).filter(p => p.position.every(isFinite)); 
+            computeCentroid(pointCloudData.map(p => p.position)as [number, number, number][]);
             initDeckInstance();
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
