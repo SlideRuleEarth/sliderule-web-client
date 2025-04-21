@@ -18,6 +18,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const deckContainer = ref<HTMLDivElement | null>(null);
 const zoomRef = ref(0);
+const fitZoom = ref(0);
 const scale = 100;
 
 const recTreeStore = useRecTreeStore();
@@ -86,12 +87,13 @@ function initDeckInstance(){
         layers: [],
         onViewStateChange: ({ viewState }) => {
             zoomRef.value = viewState.zoom;
+            //console.log(`fitZoom: ${fitZoom.value} zoom: ${zoomRef.value}`);
         },
         onClick: (info) => {
             console.log('Clicked:', info.object);
         },
         onAfterRender: () => {
-            console.log('Deck rendered frame');
+            //console.log('Deck rendered frame');
         },
         debug: true,
     });
@@ -99,8 +101,6 @@ function initDeckInstance(){
 }
 
 async function updatePointCloud() {
-
-
     try {
         const status = await indexedDb.getStatus(reqId.value);
         if (status === 'error') {
@@ -156,13 +156,19 @@ async function updatePointCloud() {
                 return { position: [x, y, z], color };
             }).filter(p => p.position.every(isFinite)); 
             computeCentroid(pointCloudData.map(p => p.position)as [number, number, number][]);
+            const { width, height } = deckContainer.value!.getBoundingClientRect();
+            const containerSize = Math.min(width, height);
+
+            // 2. Compute the “fit” zoom
+            const worldSize = scale;  // because you normalized all axes to [0…scale]
+            fitZoom.value = Math.log2(containerSize / worldSize);
             initDeckInstance();
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
                 getPosition: d => d.position,
                 getColor: d => d.color,
-                pointSize: 2,
+                pointSize: 0.5,
                 opacity: 0.95,
                 pickable: true,
             });
@@ -187,6 +193,7 @@ onMounted(async () => {
     gradientStore.value.initializeColorMapStore();
 
     updatePointCloud();
+    toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.');
 });
 
 // 🔁 Watch for reqId changes to update the point cloud
