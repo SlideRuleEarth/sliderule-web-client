@@ -31,6 +31,10 @@ const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
 const gradientStore = ref(useGradientColorMapStore(reqIdStr.value));
 const colorGradient = computed(() => gradientStore.value.getGradientColorMap());
 
+const centroid = ref([scale/2, scale/2, scale/2]);
+
+//const pointCloudData = ref<{ position: [number, number, number], color: [number, number, number, number] }[]>([]);
+
 const deckInstance = ref<Deck<OrbitView[]> | null>(null);
 
 // 🔁 Watch for reqIdStr changes to update gradientStore
@@ -41,7 +45,62 @@ watch(reqIdStr, (newVal, oldVal) => {
     }
 });
 
+function computeCentroid(pointCloudData: { position: [number, number, number] }[]) {
+    // Compute centroid
+    const n = pointCloudData.length;
+    const sum = pointCloudData.reduce(
+        (acc, p) => {
+        acc[0] += p.position[0];
+        acc[1] += p.position[1];
+        acc[2] += p.position[2];
+        return acc;
+        },
+        [0, 0, 0]
+    );
+    centroid.value = sum.map(c => c / n) as [number, number, number];
+    return centroid;
+}
+
+function initDeckInstance(){
+    if (deckInstance.value) {
+        deckInstance.value.finalize();
+        deckInstance.value = null;
+    }    
+    deckInstance.value = new DeckImpl<OrbitView[]>({
+        parent: deckContainer.value!,
+        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
+        controller: {
+            type: OrbitController,
+            autoRotate: false,
+            inertia: 0,
+            zoomSpeed: 0.02,
+            rotateSpeed: 0.3,
+            panSpeed: 0.5,
+        } as any,
+        initialViewState: {
+            target: centroid.value,
+            zoom: 5,
+            rotationX: 45,
+            rotationOrbit: 30,
+        } as any,
+        layers: [],
+        onViewStateChange: ({ viewState }) => {
+            zoomRef.value = viewState.zoom;
+        },
+        onClick: (info) => {
+            console.log('Clicked:', info.object);
+        },
+        onAfterRender: () => {
+            console.log('Deck rendered frame');
+        },
+        debug: true,
+    });
+
+}
+
 async function updatePointCloud() {
+
+
     try {
         const status = await indexedDb.getStatus(reqId.value);
         if (status === 'error') {
@@ -95,8 +154,8 @@ async function updatePointCloud() {
                       ]
                     : [255, 255, 255, 255];
                 return { position: [x, y, z], color };
-            }).filter(p => p.position.every(isFinite));
-
+            }).filter(p => p.position.every(isFinite)); 
+            initDeckInstance();
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
@@ -125,36 +184,6 @@ onMounted(async () => {
     await nextTick();
 
     gradientStore.value.initializeColorMapStore();
-
-    deckInstance.value = new DeckImpl<OrbitView[]>({
-        parent: deckContainer.value!,
-        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
-        controller: {
-            type: OrbitController,
-            autoRotate: false,
-            inertia: 0,
-            zoomSpeed: 0.02,
-            rotateSpeed: 0.3,
-            panSpeed: 0.5,
-        } as any,
-        initialViewState: {
-            target: [scale / 2, scale / 2, scale / 2],
-            zoom: 5,
-            rotationX: 45,
-            rotationOrbit: 30,
-        } as any,
-        layers: [],
-        onViewStateChange: ({ viewState }) => {
-            zoomRef.value = viewState.zoom;
-        },
-        onClick: (info) => {
-            console.log('Clicked:', info.object);
-        },
-        onAfterRender: () => {
-            console.log('Deck rendered frame');
-        },
-        debug: true,
-    });
 
     updatePointCloud();
 });

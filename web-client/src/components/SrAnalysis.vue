@@ -6,7 +6,7 @@
                 <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
                 <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                 <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
-                <!-- <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab> -->
+                <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
             </TabList>
 
             <TabPanels>
@@ -28,9 +28,9 @@
                     <!-- Similarly only render SrDuckDbShell if active tab is '1' AND chartStore has a query -->
                     <SrDuckDbShell v-if="shouldDisplayShell" />
                 </TabPanel>
-                <!-- <TabPanel value="3">
+                <TabPanel value="3">
                     <SrDeck3DView v-if="shouldDisplay3DView" />
-                </TabPanel> -->
+                </TabPanel>
             </TabPanels>
         </Tabs>
     </div>
