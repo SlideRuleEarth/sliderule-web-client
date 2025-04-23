@@ -5,7 +5,7 @@ import type { SrMenuNumberItem } from '@/types/SrTypes';
 
 export const useElevationColorMapStore = defineStore('elevationColorMap', () => {
     const selectedElevationColorMap = ref('viridis');
-    const numShadesForElevation = ref(512);
+    const numShadesForElevation = ref(256);
     const elevationColorMap = ref<[number, number, number, number][]>([]);
 
     const gradientColorMap = computed(() =>

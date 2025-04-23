@@ -76,6 +76,7 @@ const emit = defineEmits(['legendbox-created', 'picked-changed']);
 
 onMounted(async () => {
   emit('legendbox-created');
+  //console.log("gradientColorMapStore.gradientColorMap:", gradientColorMapStore.gradientColorMap);
 });
 
 // Watch for changes in the elevation color map or the number of shades to update the gradient

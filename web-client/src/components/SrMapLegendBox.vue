@@ -47,6 +47,7 @@ onMounted(() => {
   console.log('SrMapLegendBox onMounted: reqIdStr:', props.reqIdStr, 'data_key:', props.data_key);
   elevationColorMap.updateElevationColorMapValues();
   emit('legendbox-created');
+  //console.log("elevationColorMap.gradientColorMap:", elevationColorMap.gradientColorMap);
 });
 
 // Watch for changes in the elevation color map or the number of shades to update the gradient

@@ -17,7 +17,6 @@ import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
-import SrMapLegendBox from "@/components/SrMapLegendBox.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
