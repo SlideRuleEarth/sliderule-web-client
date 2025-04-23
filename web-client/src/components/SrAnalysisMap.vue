@@ -42,9 +42,10 @@
     import SrBaseLayerControl from "@/components/SrBaseLayerControl.vue";
     import { findSrViewKey, srViews } from "@/composables/SrViews";
     import { addLayersForCurrentView } from "@/composables/SrLayers";
-    import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
+    import { useFieldNameStore } from "@/stores/fieldNameStore";
     import SrLocationFinder from "@/components/SrLocationFinder.vue";
     import { useActiveTabStore } from "@/stores/activeTabStore";
+    import type { Control } from 'ol/control';
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -66,7 +67,7 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
-    const fncs = useFieldNameCacheStore();
+    const fncs = useFieldNameStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const activeTabStore = useActiveTabStore();
     const controls = ref([]);
@@ -111,7 +112,9 @@
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
         }
     });
-
+    const showHighlight = computed(() => {
+        return (isNot3DView.value && useFieldNameStore().getMissionForReqId(props.selectedReqId)==='ICESat-2');     
+    }); 
     const offFilterTooltip = computed(() => {
         if(atlChartFilterStore.showPhotonCloud){
             return 'This is disabled when Show Photon Cloud is enabled';
@@ -136,6 +139,7 @@
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
+                globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");
@@ -194,14 +198,25 @@
         console.log("SrAnalysisMap onMounted done");
     });
 
-    const handleLegendControlCreated = (legendControl: any) => {
-        legendRef.value = legendControl;
+    const handleLegendControlCreated = (legendControl: Control | null) => {
         const analysisMap = mapRef.value?.map;
-        if(analysisMap){
+
+        if (!analysisMap) {
+            console.warn("analysisMap is null, will be set in onMounted");
+            return;
+        }
+
+        // Remove the previous legend control if it exists
+        if (legendRef.value) {
+            analysisMap.removeControl(legendRef.value);
+            legendRef.value = null;
+        }
+
+        // Add the new legend control if provided
+        if (legendControl) {
             console.log("adding legendControl");
             analysisMap.addControl(legendControl);
-        } else {
-            console.warn("analysisMap is null will be set in onMounted");
+            legendRef.value = legendControl;
         }
     };
 
@@ -384,8 +399,8 @@
                     }
                     deckStore.clearDeckInstance(); // Clear any existing instance first
                     createDeckInstance(map); 
-                    addDeckLayerToMap(map);        
-                    await updateMapAndPlot(isNot3DView.value);
+                    addDeckLayerToMap(map);
+                    await updateMapAndPlot(showHighlight.value);
                 } else {
                     console.error("SrMap Error: srViewKey is null");
                 }

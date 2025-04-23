@@ -443,6 +443,10 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                 }
+            } else {
+                console.error('runSlideRuleClicked mission was undefined');
+                useSrToastStore().error('Error', 'There was an error. Mission was undefined');
+                requestsStore.setConsoleMsg('stopped...');
             }
         } else {
             console.error('runSlideRuleClicked req_id is undefined');

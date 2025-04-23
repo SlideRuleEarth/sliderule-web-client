@@ -4,21 +4,20 @@ import { db as indexedDb } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateDeckLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
-import { useMapStore } from '@/stores/mapStore';
-import { SrMutex } from './SrMutex';
+import { SrMutex } from '@/utils/SrMutex';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useChartStore} from '@/stores/chartStore';
-import type { SrListNumberItem } from '@/types/SrTypes';
-import { useRecTreeStore } from '@/stores/recTreeStore';
+
+import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { isClickable } from '@/utils/SrMapUtils'
-import { createWhereClause } from './spotUtils';
+import { createWhereClause } from '@/utils/spotUtils';
 import { type SrPosition, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
-import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
-import { use } from 'echarts';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { type MinMax } from '@/types/SrTypes';
 
 
 interface SummaryRowData {
@@ -32,7 +31,6 @@ interface SummaryRowData {
     highHMean: number;
     numPoints: number;
 }
-//const fncs = useFieldNameCacheStore();
 const srMutex = new SrMutex();
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
@@ -50,7 +48,7 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
     const startTime = performance.now(); // Start time
     const chartStore = useChartStore();
     try {
-        const fncs = useFieldNameCacheStore();
+        const fncs = useFieldNameStore();
         // Update elevation data options in the chart store
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
         const reqId = parseInt(reqIdStr);
@@ -84,103 +82,87 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
 }
 
 async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSummary | undefined> {
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now();
     let summary: SrRequestSummary | undefined = undefined;
     const unlock = await srMutex.lock();
+
     try {
-        const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
-        const lat_fieldname = useFieldNameCacheStore().getLatFieldName(req_id);
-        const lon_fieldname = useFieldNameCacheStore().getLonFieldName(req_id);
-
+        const height_fieldname = useFieldNameStore().getHFieldName(req_id);
+        const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
+        const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
         const filename = await indexedDb.getFilename(req_id);
+
         summary = await indexedDb.getWorkerSummary(req_id);
-        //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' summary:', summary);
-
-        if (summary && summary.extLatLon && summary.extHMean) {
-            //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' existing summary:', summary);
+        if (summary?.extLatLon && summary?.extHMean) {
             return summary;
-        } else {
-            //console.log('_duckDbReadOrCacheSummary req_id:', req_id, ' Reading new summary');
-            const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
-            const localExtHMean: ExtHMean = { minHMean: 100000, maxHMean: -100000, lowHMean: 100000, highHMean: -100000 };
-            const duckDbClient = await createDuckDbClient();
-            let numPoints = 0;
+        }
 
-            try {
-                await duckDbClient.insertOpfsParquet(filename);
-                //console.log('_duckDbReadOrCacheSummary height_fieldname:', height_fieldname);
-                const results = await duckDbClient.query(`
-                    SELECT
-                        MIN(${duckDbClient.escape(lat_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lat_fieldname)})) AS minLat,
-                        MAX(${duckDbClient.escape(lat_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lat_fieldname)})) AS maxLat,
-                        MIN(${duckDbClient.escape(lon_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lon_fieldname)})) AS minLon,
-                        MAX(${duckDbClient.escape(lon_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(lon_fieldname)})) AS maxLon,
-                        MIN(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS minHMean,
-                        MAX(${duckDbClient.escape(height_fieldname)}) FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS maxHMean,
-                        PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) 
-                            FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS perc10HMean,
-                        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY ${duckDbClient.escape(height_fieldname)}) 
-                            FILTER (WHERE NOT isnan(${duckDbClient.escape(height_fieldname)})) AS perc90HMean,
-                        COUNT(*) AS numPoints
-                    FROM '${filename}'
-                `);
-                //console.log('_duckDbReadOrCacheSummary results:', results);
-                // Collect rows from the async generator in chunks
-                const rows: SummaryRowData[] = [];
-                for await (const chunk of results.readRows()) {
-                    for (const row of chunk) {
-                        const typedRow: SummaryRowData = {
-                            minLat: row.minLat,
-                            maxLat: row.maxLat,
-                            minLon: row.minLon,
-                            maxLon: row.maxLon,
-                            minHMean: row.minHMean,
-                            maxHMean: row.maxHMean,
-                            lowHMean: row.perc10HMean,
-                            highHMean: row.perc90HMean,
-                            numPoints: row.numPoints
-                        };
-                        //console.log('_duckDbReadOrCacheSummary results:', typedRow);
-                        rows.push(typedRow);
-                    }
-                }
+        const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
+        const localExtHMean: ExtHMean = { minHMean: 1e6, maxHMean: -1e6, lowHMean: 1e6, highHMean: -1e6 };
+        const duckDbClient = await createDuckDbClient();
 
-                if (rows.length > 0) {
-                    const row = rows[0];
-                    //console.log('_duckDbReadOrCacheSummary row:', row);
-                    localExtLatLon.minLat = row.minLat;
-                    localExtLatLon.maxLat = row.maxLat;
-                    localExtLatLon.minLon = row.minLon;
-                    localExtLatLon.maxLon = row.maxLon;
-                    localExtHMean.minHMean = row.minHMean;
-                    localExtHMean.maxHMean = row.maxHMean;
-                    localExtHMean.lowHMean = row.lowHMean;
-                    localExtHMean.highHMean = row.highHMean;
-                    numPoints = row.numPoints;
-                    summary = { req_id: req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: numPoints };
-                    await indexedDb.addNewSummary(summary);
-                    await indexedDb.updateRequestRecord( {req_id:req_id, cnt:numPoints},false);
-                    useCurReqSumStore().setSummary(summary);
-                    if(numPoints <= 0){
-                        console.warn('No points returned: numPoints is zero');
-                    }
-                } else {
-                    console.error('No rows returned');
-                    throw new Error('No rows returned');
-                }
-                return await indexedDb.getWorkerSummary(req_id);
-            } catch (error) {
-                console.error('_duckDbReadOrCacheSummary error:', error);
-                throw error;
+        await duckDbClient.insertOpfsParquet(filename);
+        const colTypes = await duckDbClient.queryColumnTypes(filename);
+        const getType = (colName: string) => colTypes.find(c => c.name === colName)?.type ?? 'UNKNOWN';
+
+        const aggCols = [lat_fieldname, lon_fieldname, height_fieldname];
+        const aggClauses = buildSafeAggregateClauses(aggCols, getType, duckDbClient.escape);
+
+        // Add COUNT(*) manually
+        const summaryQuery = `
+            SELECT
+                ${aggClauses.join(',\n')},
+                COUNT(*) AS numPoints
+            FROM '${filename}'
+        `;
+
+        const results = await duckDbClient.query(summaryQuery);
+        const rows: SummaryRowData[] = [];
+
+        for await (const chunk of results.readRows()) {
+            for (const row of chunk) {
+                const typedRow: SummaryRowData = {
+                    minLat: row[`min_${lat_fieldname}`],
+                    maxLat: row[`max_${lat_fieldname}`],
+                    minLon: row[`min_${lon_fieldname}`],
+                    maxLon: row[`max_${lon_fieldname}`],
+                    minHMean: row[`min_${height_fieldname}`],
+                    maxHMean: row[`max_${height_fieldname}`],
+                    lowHMean: row[`low_${height_fieldname}`],
+                    highHMean: row[`high_${height_fieldname}`],
+                    numPoints: row.numPoints
+                };
+                rows.push(typedRow);
             }
         }
+
+        if (rows.length > 0) {
+            const row = rows[0];
+            localExtLatLon.minLat = row.minLat;
+            localExtLatLon.maxLat = row.maxLat;
+            localExtLatLon.minLon = row.minLon;
+            localExtLatLon.maxLon = row.maxLon;
+            localExtHMean.minHMean = row.minHMean;
+            localExtHMean.maxHMean = row.maxHMean;
+            localExtHMean.lowHMean = row.lowHMean;
+            localExtHMean.highHMean = row.highHMean;
+
+            summary = { req_id, extLatLon: localExtLatLon, extHMean: localExtHMean, numPoints: row.numPoints };
+            await indexedDb.addNewSummary(summary);
+            await indexedDb.updateRequestRecord({ req_id, cnt: row.numPoints }, false);
+            useCurReqSumStore().setSummary(summary);
+        } else {
+            throw new Error('No rows returned');
+        }
+
+        return await indexedDb.getWorkerSummary(req_id);
     } catch (error) {
         console.error('_duckDbReadOrCacheSummary error:', error);
         throw error;
     } finally {
         unlock();
-        const endTime = performance.now(); // End time
-        console.log(`_duckDbReadOrCacheSummary for ${req_id} took ${endTime - startTime} milliseconds.`,);
+        const endTime = performance.now();
+        console.log(`_duckDbReadOrCacheSummary for ${req_id} took ${endTime - startTime} ms.`);
     }
 }
 
@@ -216,7 +198,9 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
-        await updateAllFilterOptions(reqId);
+        if(useFieldNameStore().getMissionForReqId(reqId) === 'ICESat-2'){
+            await updateAllFilterOptions(reqId);
+        }
         //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
         setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
@@ -383,15 +367,20 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                 rows = value as ElevationDataItem[];
                 numRows = rows.length;
                 pntData.currentPnts = numRows;
-
-                // **Find the first valid elevation point**
-                firstRec = rows.find(isClickable) || null;
-
+                //console.log('duckDbReadAndUpdateElevationData rows:', rows);
+                if(useFieldNameStore().getMissionForReqId(req_id) === 'ICESat-2'){
+                    // **Find the first valid elevation point**
+                    firstRec = rows.find(isClickable) || null;
+                } else {
+                    if(rows.length > 0) {
+                        firstRec = rows[0];
+                    }
+                }
                 if (firstRec) {
                     // Precompute position data for all rows
-                    const lat_fieldname = useFieldNameCacheStore().getLatFieldName(req_id);
-                    const lon_fieldname = useFieldNameCacheStore().getLonFieldName(req_id);
-                    const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
+                    const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
+                    const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
+                    const height_fieldname = useFieldNameStore().getHFieldName(req_id);
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
@@ -412,7 +401,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
         }
 
         if (numRows > 0 && firstRec) {
-            const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
+            const height_fieldname = useFieldNameStore().getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
 
             if (summary?.extHMean) {
@@ -506,6 +495,15 @@ export const duckDbReadAndUpdateSelectedLayer = async (
         } else if (func === 'atl03sp') {
             queryStr = `SELECT * FROM '${filename}' `;
             queryStr += useChartStore().getWhereClause(reqIdStr);
+        } else if (func === 'gedi01bp') {
+            queryStr = `SELECT * FROM read_parquet('${filename}') `;
+            queryStr += useChartStore().getWhereClause(reqIdStr);
+        } else if (func === 'gedi02ap') {
+            queryStr = `SELECT * FROM read_parquet('${filename}') `;
+            queryStr += useChartStore().getWhereClause(reqIdStr);
+        } else if (func === 'gedi04ap') {
+            queryStr = `SELECT * FROM read_parquet('${filename}') `;
+            queryStr += useChartStore().getWhereClause(reqIdStr);
         } else {
             console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
         }
@@ -546,15 +544,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (
         if (numRows > 0) {
             const srViewName = await indexedDb.getSrViewName(req_id);
             const projName = srViews.value[srViewName].projectionName;
-            const height_fieldname = useFieldNameCacheStore().getHFieldName(req_id);
+            const height_fieldname = useFieldNameStore().getHFieldName(req_id);
             const summary = await readOrCacheSummary(req_id);
             if (summary?.extHMean) {
-                useCurReqSumStore().setSummary({
-                    req_id: req_id,
-                    extLatLon: summary.extLatLon,
-                    extHMean: summary.extHMean,
-                    numPoints: summary.numPoints
-                });
                 // Pass `positions` to the function so it's used efficiently
                 updateDeckLayerWithObject(name,rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
@@ -693,6 +685,37 @@ export async function getPairs(req_id: number): Promise<number[]> {
 //     //console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
 //     return pairs;
 // }
+/**
+ * Builds safe DuckDB aggregate SQL expressions with optional isnan() filtering
+ * for numeric columns. Non-float types skip isnan() and use raw aggregations.
+ */
+export function buildSafeAggregateClauses(
+    columnNames: string[],
+    getType: (colName: string) => string,
+    escape: (colName: string) => string
+): string[] {
+    return columnNames.flatMap((colName) => {
+        const type = getType(colName);
+        const escaped = escape(colName);
+        const isFloat = ['FLOAT', 'DOUBLE', 'REAL'].includes(type);
+
+        if (isFloat) {
+            return [
+                `MIN(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS min_${colName}`,
+                `MAX(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS max_${colName}`,
+                `PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS low_${colName}`,
+                `PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS high_${colName}`
+            ];
+        } else {
+            return [
+                `MIN(${escaped}) AS min_${colName}`,
+                `MAX(${escaped}) AS max_${colName}`,
+                `PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY ${escaped}) AS low_${colName}`,
+                `PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${escaped}) AS high_${colName}`
+            ];
+        }
+    });
+}
 
 export async function getTracks(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
@@ -754,7 +777,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
 
 export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
     const startTime = performance.now(); // Start time
-    const time_fieldname = useFieldNameCacheStore().getTimeFieldName(req_id);
+    const time_fieldname = useFieldNameStore().getTimeFieldName(req_id);
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
 
@@ -821,7 +844,7 @@ export async function getAllFilteredCycleOptionsFromFile(
     const startTime = performance.now(); // Start time
 
     const fileName = await indexedDb.getFilename(req_id);
-    const time_fieldname = useFieldNameCacheStore().getTimeFieldName(req_id);
+    const time_fieldname = useFieldNameStore().getTimeFieldName(req_id);
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
     const cycles: SrListNumberItem[] = [];
@@ -911,7 +934,7 @@ export interface FetchScatterDataOptions {
         row: any,
         x: string,
         y: string[],
-        minMaxValues: Record<string, { min: number; max: number }>,
+        minMaxLowHigh: MinMaxLowHigh,
         dataOrderNdx: Record<string, number>,
         orderNdx: number
     ) => [number[],number];
@@ -959,18 +982,20 @@ export async function fetchScatterData(
     options: FetchScatterDataOptions
 ): Promise<{
     chartData: Record<string, SrScatterChartDataArray>;
-    minMaxValues: Record<string, { min: number; max: number }>;
-    normalizedMinMaxValues: Record<string, { min: number; max: number }>;
+    minMaxLowHigh: MinMaxLowHigh;
+    normalizedMinMaxValues: MinMaxLowHigh;
     dataOrderNdx: Record<string, number>;
 }> {
-    const timeField = useFieldNameCacheStore().getTimeFieldName(parseInt(reqIdStr));
-    //console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
+    const timeField = useFieldNameStore().getTimeFieldName(parseInt(reqIdStr));
+    const mission = useFieldNameStore().getMissionForReqId(parseInt(reqIdStr));
+    console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
     // Ensure 'time' is in the y array
     if (!y.includes(timeField)) {
         y = [...y, timeField];
     }
+
     // Ensure 'cycle' is in the y array
-    if (!y.includes('cycle')) {
+    if (mission === 'ICESat-2' && !y.includes('cycle')) {
         y = [...y, 'cycle'];
     }
     const {
@@ -987,8 +1012,8 @@ export async function fetchScatterData(
     };
 
     const duckDbClient = await createDuckDbClient();
-    const minMaxValues: Record<string, { min: number; max: number }> = {};
-    let normalizedMinMaxValues: Record<string, { min: number; max: number }> = {};
+    const minMaxLowHigh: MinMaxLowHigh = {};
+    let normalizedMinMaxValues: MinMaxLowHigh = {};
     let dataOrderNdx: Record<string, number> = {};
     let orderNdx = 0;
 
@@ -1021,27 +1046,22 @@ export async function fetchScatterData(
         /**
          * 3. Compute min/max for x and each of the y columns (NaNs already excluded by finalWhereClause).
          */
+        const colTypes = await duckDbClient.queryColumnTypes(fileName);
+        const getColType = (colName: string) =>
+            colTypes.find((c) => c.name === colName)?.type ?? 'UNKNOWN';
+        
+        const allAggCols = [x, ...y, ...extraSelectColumns];
+        
+        const selectParts = buildSafeAggregateClauses(allAggCols, getColType, duckDbClient.escape);
+        
         const minMaxQuery = `
             SELECT
-                MIN(${x}) as min_x,
-                MAX(${x}) as max_x,
-                ${y
-                    .map(
-                        (yName) => `MIN(${yName}) as min_${yName}, MAX(${yName}) as max_${yName}`
-                    )
-                    .join(', ')},
-                ${extraSelectColumns
-                    .map(
-                        (colName) =>
-                            `MIN(${colName}) as min_${colName}, MAX(${colName}) as max_${colName}`
-                    )
-                    .join(', ')}
+                ${selectParts.join(',\n')}
             FROM '${fileName}'
             ${finalWhereClause}
         `;
-
+            
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
-        //console.log('fetchScatterData minMaxQuery:', minMaxQuery);
         //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
         let minXtoUse;
         if(options.parentMinX){
@@ -1050,6 +1070,7 @@ export async function fetchScatterData(
         console.log('fetchScatterData options.parentMinX:',options.parentMinX,'minXtoUse:', minXtoUse);
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
+            //console.log('fetchScatterData rowChunk:', rowChunk);
             for (const row of rowChunk) {
                 if (!row) {
                     console.warn('fetchScatterData: rowData is null in min/max query');
@@ -1062,39 +1083,49 @@ export async function fetchScatterData(
                     if(options.parentMinX){
                         minXtoUse = options.parentMinX;
                     } else {
-                        minXtoUse = row.min_x;
+                        minXtoUse = row[`min_${x}`];
                     }
-                    if(minXtoUse === row.min_x){
-                        console.log('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                    if(minXtoUse === row[`min_${x}`]){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[`min_${x}`]);
                     } else {
-                        console.warn('fetchScatterData minXtoUse:', minXtoUse, ' row.min_x:', row.min_x);
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[`min_${x}`]);
                     }
                     // set min/max in the store
-                    useChartStore().setRawMinX(reqIdStr, row.min_x);
-                    useChartStore().setMinX(reqIdStr, row.min_x - minXtoUse);
-                    useChartStore().setMaxX(reqIdStr, row.max_x - minXtoUse);
+                    useChartStore().setRawMinX(reqIdStr, row[`min_${x}`]);
+                    useChartStore().setMinX(reqIdStr, row[`min_${x}`] - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, row[`max_${x}`] - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
-                if (!isNaN(row.min_x) && !isNaN(row.max_x)) {
-                    minMaxValues['x'] = { min: row.min_x, max: row.max_x };
+                if (!isNaN(row[`min_${x}`]) && !isNaN(row[`max_${x}`])) {
+                    minMaxLowHigh[`x`] = { // genericize the name to x
+                        min: row[`min_${x}`],
+                        max: row[`max_${x}`],
+                        low: row[`low_${x}`],
+                        high: row[`high_${x}`]
+                    }
+                    
                 } else {
-                    console.error('fetchScatterData: min/max x is NaN:', row.min_x, row.max_x);
+                    console.error('fetchScatterData: min/max x is NaN:', row[`min_${x}`], row[`max_${x}`]);
                 }
 
                 y.forEach((yName) => {
                     const minY = row[`min_${yName}`];
                     const maxY = row[`max_${yName}`];
-                    if (!isNaN(minY) && !isNaN(maxY)) {
-                        minMaxValues[yName] = { min: minY, max: maxY };
+                    const lowY = row[`low_${yName}`];
+                    const highY = row[`high_${yName}`];
+                    if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
+                        minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
                     const minCol = row[`min_${colName}`];
                     const maxCol = row[`max_${colName}`];
-                    if (!isNaN(minCol) && !isNaN(maxCol)) {
-                        minMaxValues[colName] = { min: minCol, max: maxCol };
+                    const lowCol = row[`low_${colName}`];
+                    const highCol = row[`high_${colName}`];
+                    if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
+                        minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
                     }
                 });
             }
@@ -1140,7 +1171,7 @@ export async function fetchScatterData(
                         row,
                         x,
                         y,
-                        minMaxValues,
+                        minMaxLowHigh,
                         dataOrderNdx,
                         orderNdx
                     );
@@ -1177,11 +1208,13 @@ export async function fetchScatterData(
         /**
          * 6. If we are normalizing X, adjust min=0 and max=(max-min).
          */
-        normalizedMinMaxValues = { ...minMaxValues };
+        normalizedMinMaxValues = { ...minMaxLowHigh };
         if (normalizeX) {
             normalizedMinMaxValues['x'] = {
                 min: 0,
-                max: minMaxValues['x'].max - minMaxValues['x'].min
+                low: 0,
+                max: minMaxLowHigh['x'].max - minMaxLowHigh['x'].min,
+                high: minMaxLowHigh['x'].high - minMaxLowHigh['x'].min
             };
         }
 
@@ -1190,14 +1223,74 @@ export async function fetchScatterData(
         //console.log('fetchScatterData minMaxValues:', minMaxValues);
         //console.log('fetchScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
         //console.log('fetchScatterData dataOrderNdx:', dataOrderNdx);
-        return { chartData, minMaxValues, normalizedMinMaxValues, dataOrderNdx };
+        return { chartData, minMaxLowHigh, normalizedMinMaxValues, dataOrderNdx };
 
     } catch (error) {
         console.error('fetchScatterData Error:', error);
         console.trace('fetchScatterData Error:', error);
-        return { chartData: {}, minMaxValues: {}, normalizedMinMaxValues: {}, dataOrderNdx: {} };
+        return { chartData: {}, minMaxLowHigh: {}, normalizedMinMaxValues: {}, dataOrderNdx: {} };
     } finally {
         const endTime = performance.now();
         console.log(`fetchScatterData took ${endTime - startTime} ms.`);
+    }  
+}
+
+export async function getAllColumnMinMax(
+    reqId: number
+): Promise<MinMaxLowHigh> {
+    const startTime = performance.now();
+    const fileName = await indexedDb.getFilename(reqId);
+    const duckDbClient = await createDuckDbClient();
+
+    await duckDbClient.insertOpfsParquet(fileName);
+
+    const colTypes = await duckDbClient.queryColumnTypes(fileName);
+
+    // Filter down to known numeric types
+    const numericCols = colTypes.filter(c =>
+        ['DOUBLE', 'FLOAT', 'INTEGER', 'BIGINT', 'REAL', 'DECIMAL'].includes(c.type)
+    );
+
+    if (numericCols.length === 0) {
+        console.warn(`No numeric columns found in ${fileName}`);
+        return {};
     }
+
+    // Prepare names and a type lookup
+    const colNames = numericCols.map(c => c.name);
+    const getType = (colName: string) =>
+        colTypes.find(c => c.name === colName)?.type ?? 'UNKNOWN';
+
+    const selectParts = buildSafeAggregateClauses(colNames, getType, duckDbClient.escape);
+    const query = `SELECT ${selectParts.join(', ')} FROM '${fileName}'`;
+
+    const result: MinMaxLowHigh = {};
+
+    try {
+        const queryResult = await duckDbClient.query(query);
+        for await (const rowChunk of queryResult.readRows()) {
+            for (const row of rowChunk) {
+                numericCols.forEach(c => {
+                    const min = row[`min_${c.name}`];
+                    const max = row[`max_${c.name}`];
+                    const low = row[`low_${c.name}`];
+                    const high = row[`high_${c.name}`];
+
+                    if (min != null && max != null && low != null && high != null) {
+                        result[c.name] = { min, max, low, high };
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error('getAllColumnMinMax error:', error);
+        throw error;
+    }
+
+    const endTime = performance.now();
+    console.log(
+        `getAllColumnMinMax query:\n${query}\ntook ${endTime - startTime} ms.\nresult:`,
+        result
+    );
+    return result;
 }

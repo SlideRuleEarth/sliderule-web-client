@@ -7,7 +7,7 @@ import {
     VisualMapComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
@@ -39,7 +39,7 @@ const props = defineProps({
 onMounted(async () => {
     const startTime = performance.now();
     const toast = useSrToastStore();
-    const fieldStore = useFieldNameCacheStore();
+    const fieldStore = useFieldNameStore();
     const reqIdStr = props.reqId.toString();
     const gradientStore = useGradientColorMapStore(reqIdStr);
     const colorGradient = gradientStore.getGradientColorMap();

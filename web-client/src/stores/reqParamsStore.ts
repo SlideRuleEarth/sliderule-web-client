@@ -330,6 +330,8 @@ const createReqParamsStore = (id: string) =>
             } else if(this.gediSelectedAPI === 'gedi04ap') {
               this.setAsset('gedil4a');
             }
+          } else {
+            console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
           if(this.iceSat2SelectedAPI==='atl08p') {
             req.phoreal = {};

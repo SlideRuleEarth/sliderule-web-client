@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { SrListNumberItem } from '@/types/SrTypes';
+import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
 import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
@@ -34,6 +34,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const chunk_size_for_plot = ref<number>(10000);
     const selected_y_atc_label = ref<string>('y_atc');
     const titleOfElevationPlot = ref<string>('Highlighted Track(s)'); // Default title for the elevation plot
+    const allColumnMinMaxValues = ref<MinMaxLowHigh>({});
+
+
+
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -348,7 +352,27 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         }
         return nameSuffix;
     }
+    function setAllColumnMinMaxValues(values: MinMaxLowHigh) {
+        allColumnMinMaxValues.value = values;
+    }
+    
+    function getAllColumnMinMaxValues(): MinMaxLowHigh {
+        return allColumnMinMaxValues.value;
+    }
 
+    function getMin(column: string): number {
+        return allColumnMinMaxValues.value[column]?.min ?? undefined;
+    }
+    function getMax(column: string): number {
+        return allColumnMinMaxValues.value[column]?.max ?? undefined;
+    }
+    function getLow(column: string): number {
+        return allColumnMinMaxValues.value[column]?.low ?? undefined;
+    }
+    function getHigh(column: string): number {
+        return allColumnMinMaxValues.value[column]?.max ?? undefined;
+    }
+    
     return {
         fontSize,
         getCycleOptions,
@@ -413,5 +437,12 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         enableLocationFinder,
         locationFinderLat,
         locationFinderLon,
+        allColumnMinMaxValues,
+        setAllColumnMinMaxValues,
+        getAllColumnMinMaxValues,
+        getMin,
+        getMax,
+        getLow,
+        getHigh,
     };
 });

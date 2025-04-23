@@ -1,6 +1,3 @@
-import { useColorMapStore } from '@/stores/colorMapStore';
-import { computed,ref } from 'vue';
-
 
 export const srColorMapNames = [
     'viridis','jet', 'hsv','hot','cool','spring','summer','autumn','winter','bone',
@@ -32,21 +29,52 @@ export interface SrRGBColor {
     b: number;
 }
 
-// export const getColorForAtl03CnfValue = (value:number) => { // value is the atl03_cnf value -2 to 4
-//     const ndx = value + 2;
-//     if(ndx < 0 || ndx > 6){
-//         return 'White'; // Return White for invalid values
-//     }
-//     const c = useColorMapStore().atl03CnfColorMap[ndx];
-//     return c;
-// };
+type ColorArray = string[]; // Or [number, number, number, number][] for rgba
 
-// export const getColorForAtl08ClassValue = (value:number) => { // value is the atl08_class value 0 to 4
-//     const ndx = value;
-//     if(ndx < 0 || ndx > 4){
-//         console.error('getRGBColorForAtl08ClassValue invalid value:',value);
-//         return 'White'; // Return White for invalid values
-//     }
-//     const c = useColorMapStore().atl08ClassColorMap[ndx];
-//     return c;
-// };
+export function createUnifiedColorMapper(options: {
+    colorMap: ColorArray;
+    min: number;
+    max: number;
+    valueAccessor: (input: any) => number;
+}) {
+    const { colorMap, min, max, valueAccessor } = options;
+    const numShades = colorMap.length;
+    const range = max - min;
+    const scale = (numShades - 1) / range;
+
+    return (input: any): string => {
+        const value = valueAccessor(input);
+
+        if (isNaN(value)) return colorMap[0]; // Fallback for bad input
+        if (value <= min) return colorMap[0];
+        if (value >= max) return colorMap[numShades - 1];
+
+        const index = Math.floor((value - min) * scale);
+        return colorMap[index];
+    };
+}
+
+export function createUnifiedColorMapperRGBA(options: {
+    colorMap: number[][];
+    min: number;
+    max: number;
+    valueAccessor: (input: any) => number;
+}): (input: any) => [number, number, number, number] {
+    const { colorMap, min, max, valueAccessor } = options;
+    const numShades = colorMap.length;
+    const range = max - min;
+    const scale = (numShades - 1) / range;
+
+    return (input: any): [number, number, number, number] => {
+        const value = valueAccessor(input);
+        const defaultColor: [number, number, number, number] = [255, 255, 255, 255];
+
+        if (isNaN(value)) return defaultColor;
+        if (value <= min) return [...colorMap[0].slice(0, 3), 255] as [number, number, number, number];
+        if (value >= max) return [...colorMap[numShades - 1].slice(0, 3), 255] as [number, number, number, number];
+        
+        const index = Math.floor((value - min) * scale);
+        return [...colorMap[index].slice(0, 3), 255] as [number, number, number, number];
+
+    };
+}

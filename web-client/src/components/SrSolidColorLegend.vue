@@ -16,10 +16,10 @@ import { onMounted, ref } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 
 const recTreeStore = useRecTreeStore();
-const fncs = useFieldNameCacheStore();
+const fncs = useFieldNameStore();
 
 // Props definition
 const props = withDefaults(

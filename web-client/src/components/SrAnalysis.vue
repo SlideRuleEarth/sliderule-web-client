@@ -3,21 +3,21 @@
         <!-- v-model binds to activeIndex so we know which tab is selected -->
         <Tabs v-model:value="activeTabStore.activeTab">
             <TabList>
-                <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
-                <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
+                <Tab v-if="isNotGediAndValid" value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
+                <Tab v-if="isNotGediAndValid" value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                 <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
                 <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
             </TabList>
 
             <TabPanels>
-                <TabPanel value="0">
+                <TabPanel v-if="isNotGediAndValid" value="0">
                     <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
                     <SrElevationPlot 
                         v-if="shouldDisplayElevationPlot" 
                         :startingReqId="reqId"
                     />
                 </TabPanel>
-                <TabPanel value="1">
+                <TabPanel v-if="isNotGediAndValid" value="1">
                     <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
                     <SrTimeSeries 
                         v-if="shouldDisplayTimeSeries" 
@@ -46,22 +46,34 @@
     import SrElevationPlot from '@/components/SrElevationPlot.vue';
     import SrDuckDbShell from '@/components/SrDuckDbShell.vue';
     import { useRecTreeStore } from '@/stores/recTreeStore';
-    import { useChartStore } from '@/stores/chartStore';
     import { useActiveTabStore } from '@/stores/activeTabStore';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
+    import { useFieldNameStore } from '@/stores/fieldNameStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from './SrTimeSeries.vue';
     import SrDeck3DView from './SrDeck3DView.vue';
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
-    const chartStore = useChartStore();
     const activeTabStore = useActiveTabStore();
     const globalChartStore = useGlobalChartStore();
+    const fieldNameStore = useFieldNameStore();
 
 
     // The reqId from the route
     const reqId = computed(() => Number(route.params.id) || 0);
+    const mission = computed(() => {
+        const api = recTreeStore.findApiForReqId(reqId.value);
+        // Get the mission from the fieldNameStore using the reqId
+        if(api){ // if not blank means reqId is valid
+            return fieldNameStore.getMissionForReqId(reqId.value);
+        }
+        return '';
+    });
+
+    const isNotGediAndValid = computed(() => {
+        return (mission.value && mission.value != 'GEDI');
+    });
 
     // In each "shouldDisplay" computed, also check the active tab
     const shouldDisplayElevationPlot = computed(() => {
@@ -84,8 +96,8 @@
 
     const shouldDisplayShell = computed(() => {
         return (
-            activeTabStore.getActiveTab === '2' && // Only show on tab 2
-            chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
+            activeTabStore.getActiveTab === '2' //&& // Only show on tab 2
+            //chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
         );
     });
 
@@ -98,7 +110,11 @@
     });
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
-        activeTabStore.setActiveTab('0');
+        if(mission.value == 'GEDI'){
+            activeTabStore.setActiveTab('3'); // 
+        } else {
+            activeTabStore.setActiveTab('0');
+        }
     });
 
     onUnmounted(() => {
