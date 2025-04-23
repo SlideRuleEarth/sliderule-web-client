@@ -33,6 +33,7 @@ interface ChartState {
     minMaxValues: Record<string, { min: number; max: number }>;
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
+    useSelectedMinMax: boolean;
 }
 
 
@@ -80,6 +81,7 @@ export const useChartStore = defineStore('chartStore', {
                     minMaxValues: {} as Record<string, { min: number; max: number }>,
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
+                    useSelectedMinMax: false,
                 };
             }
             return true;
@@ -113,7 +115,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
-                //console.log('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                console.warn('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
                 //console.trace('Call stack for getMinValue()');
                 return 0;
             }
@@ -123,7 +125,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
-                //console.log('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                console.warn('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
                 return 0;
             }
         },
@@ -233,6 +235,9 @@ export const useChartStore = defineStore('chartStore', {
             } else if(func.includes('atl24')) {
                 const ret = ['solid'];
                 return ret.concat(this.getYDataOptions(reqIdStr));
+            } else if(func.includes('gedi')) {
+                const ret = ['solid'];
+                return ret.concat(this.getYDataOptions(reqIdStr));
             } else {
                 console.error('getColorEncodeOptionsForFunc() unknown function:', func);
                 return [];
@@ -282,6 +287,8 @@ export const useChartStore = defineStore('chartStore', {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
+            } else if (func.includes('gedi')) {
+                this.setXDataForChart(reqIdStr,'longitude'); // this is a placeholder/HACK
             } else {
                 console.error('setXDataForChartUsingFunc() unknown function:', func);
             }
@@ -366,6 +373,15 @@ export const useChartStore = defineStore('chartStore', {
         getShowYDataMenu(reqIdStr: string): boolean {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].showYDataMenu;
+        },
+        getUseSelectedMinMax(reqIdStr: string): boolean {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].useSelectedMinMax;
+        },
+        setUseSelectedMinMax(reqIdStr: string, useSelectedMinMax: boolean): void {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].useSelectedMinMax = useSelectedMinMax;
+            //console.log('setUseSelectedMinMax', useSelectedMinMax);
         },
     },
 });

@@ -234,6 +234,8 @@ export function createWhereClause(reqId:number){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;
             }
         }
+    } else if (func.includes('gedi')){
+        whereStr = 'WHERE beam = -1'; // all beams
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }

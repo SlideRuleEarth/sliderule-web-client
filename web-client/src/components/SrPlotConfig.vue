@@ -6,11 +6,11 @@ import { callPlotUpdateDebounced, refreshScatterPlot } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
-import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive } from "@/utils/plotUtils";
+import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive,showUseSelectedMinMaxReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useRequestsStore } from "@/stores/requestsStore";
-import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
+import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { useToast } from "primevue";
 
 const globalChartStore = useGlobalChartStore();
@@ -18,7 +18,7 @@ const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const chartStore = useChartStore();
-const fieldNameCacheStore = useFieldNameCacheStore();
+const fieldNameCacheStore = useFieldNameStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -55,6 +55,11 @@ const computedMainLabel = computed(() => {
 async function onMainYDataSelectionChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
     await callPlotUpdateDebounced('from onMainYDataSelectionChange');
+}
+
+async function onUseSelectedMinMaxChange(newValue: string[]) {
+    console.log("Main Y Data changed:", newValue);
+    await callPlotUpdateDebounced('from onUseSelectedMinMaxChange');
 }
 
 onMounted(() => {
@@ -130,7 +135,20 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
             tooltipText="Show or hide the Y Data selection in plot control"
             v-model="showYDataMenuReactive[computedReqIdStr]"
             size="small" 
+        />         
+        <SrCheckbox
+            v-if="(!props.isOverlay)" 
+            class="sr-use-selected-min-max"
+            :defaultValue="false"
+            label="Use selected track min/max for legend"
+            labelFontSize="small"
+            tooltipText="Use the selected track min/max for legend instead of the global min/max"
+            v-model="showUseSelectedMinMaxReactive[computedReqIdStr]"
+            size="small" 
+            @update:modelValue="onUseSelectedMinMaxChange"
+
         />              
+             
     </div>
 
 </Fieldset>

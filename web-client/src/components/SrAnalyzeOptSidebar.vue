@@ -12,11 +12,12 @@ import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
 import SrExportDialog from '@/components/SrExportDialog.vue';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const analysisMapStore = useAnalysisMapStore();
 const recTreeStore = useRecTreeStore();
-
+const fieldNameStore = useFieldNameStore();
 
 const props = defineProps({
     startingReqId: {
@@ -31,6 +32,9 @@ const showExportDialog = ref(false);
 
 const computedInitializing = computed(() => {
     return !isMounted.value || loadingThisSFC.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
+});
+const mission = computed(() => {
+    return fieldNameStore.getMissionForReqId(props.startingReqId);
 });
 
 const exportButtonClick = () => {
@@ -90,7 +94,7 @@ const handleFileImported = async (reqId: string) => {
                     <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Request Parameters Record:${recTreeStore.selectedReqId}`"/>
                 </div>
                 <div class="sr-filter-cntrl-container">
-                    <SrFilterCntrl></SrFilterCntrl>
+                    <SrFilterCntrl v-if="mission==='ICESat-2'"></SrFilterCntrl>
                 </div>
                 <div class="sr-scatterplot-cfg-container">
                     <!-- SrPlotConfig for the main req_id -->

@@ -34,6 +34,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const chunk_size_for_plot = ref<number>(10000);
     const selected_y_atc_label = ref<string>('y_atc');
     const titleOfElevationPlot = ref<string>('Highlighted Track(s)'); // Default title for the elevation plot
+    const allColumnMinMaxValues = ref<Record<string, { min: number; max: number }>>({});
+
+
+
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
         cycleOptions.value = newCycleOptions;  
     }
@@ -348,7 +352,21 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         }
         return nameSuffix;
     }
+    function setAllColumnMinMaxValues(values: Record<string, { min: number; max: number }>) {
+        allColumnMinMaxValues.value = values;
+    }
+    
+    function getAllColumnMinMaxValues(): Record<string, { min: number; max: number }> {
+        return allColumnMinMaxValues.value;
+    }
 
+    function getMin(column: string): number {
+        return allColumnMinMaxValues.value[column]?.min ?? undefined;
+    }
+    function getMax(column: string): number {
+        return allColumnMinMaxValues.value[column]?.max ?? undefined;
+    }
+    
     return {
         fontSize,
         getCycleOptions,
@@ -413,5 +431,10 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         enableLocationFinder,
         locationFinderLat,
         locationFinderLon,
+        allColumnMinMaxValues,
+        setAllColumnMinMaxValues,
+        getAllColumnMinMaxValues,
+        getMin,
+        getMax,
     };
 });

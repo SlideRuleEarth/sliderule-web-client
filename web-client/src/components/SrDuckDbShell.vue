@@ -116,7 +116,7 @@ let duckDbClient: DuckDBClient | null = null;
 function getSql(){
     const sqlStmnt = chartStore.getQuerySql(recTreeStore.selectedReqIdStr);
     if (!sqlStmnt) {
-        return `No SQL statement available for this reqId: ${recTreeStore.selectedReqIdStr}`;
+        return `select * from "${computedFileLabel.value}"`;
     }
     return sqlStmnt.trim();
 }

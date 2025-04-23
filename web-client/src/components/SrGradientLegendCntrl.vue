@@ -17,7 +17,19 @@
                     tooltipText="Gradient Color Map for scatter plot"
                 />
             </div>
-            <SrGradientLegend :reqIdStr="props.req_id.toString()" :data_key="props.data_key" :transparentBackground="true" />
+            <SrGradientLegend
+                v-if = useSelectedMinMax
+                :reqIdStr="props.req_id.toString()" 
+                :data_key="props.data_key" 
+                :transparentBackground="true" 
+            />
+            <SrMapLegendBox
+                v-if = !useSelectedMinMax
+                :reqIdStr="props.req_id.toString()" 
+                :data_key="props.data_key" 
+                :transparentBackground="true" 
+            />
+
         </Fieldset>
         <Button 
             icon="pi pi-refresh"
@@ -34,13 +46,15 @@
   
 <script setup lang="ts">
 
-import { onMounted } from 'vue';
+import { onMounted,computed } from 'vue';
 import { srColorMapNames } from '@/utils/colorUtils';
 import Fieldset from 'primevue/fieldset';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
 import SrGradientLegend from './SrGradientLegend.vue';
+import SrMapLegendBox from './SrMapLegendBox.vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { useChartStore } from '@/stores/chartStore';
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -56,7 +70,12 @@ const props = withDefaults(
     }
 );
 
+const chartStore = useChartStore();
+
 const emit = defineEmits(['restore-gradient-color-defaults-click','gradient-num-shades-changed', 'gradient-color-map-changed']);
+const useSelectedMinMax = computed(() => {
+    return chartStore.stateByReqId[props.req_id.toString()]?.useSelectedMinMax;
+});
 
 // Initialize the store without awaiting directly
 const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());

@@ -21,13 +21,14 @@ import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
-import { useFieldNameCacheStore } from "@/stores/fieldNameStore";
+import { useFieldNameStore } from "@/stores/fieldNameStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const showUseSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 
 
 export const selectedCyclesReactive = computed({
@@ -84,7 +85,7 @@ export interface SrScatterSeriesData{
 
 export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
     const func = useRecTreeStore().findApiForReqId(reqId);
-    return useFieldNameCacheStore().getDefaultColorEncoding(func,parentFuncStr);
+    return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
 }
 
 export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
@@ -135,6 +136,12 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
             showYDataMenuReactive[reqId] = computed({
                 get: () => chartStore.getShowYDataMenu(reqId),
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
+            });
+        }
+        if(!(reqId in showUseSelectedMinMaxReactive)){
+            showUseSelectedMinMaxReactive[reqId] = computed({
+                get: () => chartStore.getUseSelectedMinMax(reqId),
+                set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, value),
             });
         }
     });
@@ -220,8 +227,12 @@ async function getGenericSeries({
             } else {
                 //console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
-                const minValue = chartStore.getMinValue(reqIdStr, cedk);
-                const maxValue = chartStore.getMaxValue(reqIdStr, cedk);
+                let minValue = chartStore.getMinValue(reqIdStr, cedk);
+                let maxValue = chartStore.getMaxValue(reqIdStr, cedk);
+                if(!chartStore.getUseSelectedMinMax(reqIdStr)){
+                    minValue = useGlobalChartStore().getMin(cedk);
+                    maxValue = useGlobalChartStore().getMax(cedk);
+                }
                 thisColorFunction = gradientColorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
             }
             colorFunction = thisColorFunction;
@@ -252,7 +263,7 @@ async function getGenericSeries({
                     progressiveThreshold,
                     progressiveChunkMode,
                     animation: false,
-                    yAxisIndex: 0, // only plotting on series i.e. y-axis 0
+                    yAxisIndex: 0, // only plotting one series i.e. y-axis 0
                     symbolSize: useSymbolStore().getSize(reqIdStr),
                 },
                 min,
@@ -474,6 +485,27 @@ async function getSeriesForAtl24(
     });
 }
 
+async function getSeriesForGedi(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    console.log(`getSeriesForGedi ${reqIdStr} fileName:`,fileName);
+const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+return getGenericSeries({
+    reqIdStr,
+    fileName,
+    x,
+    y,
+    fetchOptions,
+    fetchData: fetchScatterData,         // function to fetch data
+    minMaxProperty: 'normalizedMinMaxValues', // note the difference
+    zValue: 10,                               // z value for ATL06
+    functionName: 'getSeriesForGedi',
+});
+}
+
 export function clearPlot() {
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -550,6 +582,8 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){
                 seriesData = await getSeriesForAtl24(reqIdStr, fileName, x, y);
+            } else if(func.includes('gedi')){
+                seriesData = await getSeriesForGedi(reqIdStr, fileName, x, y);
             } else {
                 console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
             }
@@ -657,8 +691,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const rgt = globalChartStore.getRgt();
     const cycles = useGlobalChartStore().getCycles();
     const spots = globalChartStore.getSpots();
-    const latFieldName = useFieldNameCacheStore().getLatFieldName(req_id);
-    const lonFieldName = useFieldNameCacheStore().getLonFieldName(req_id);
+    const latFieldName = useFieldNameStore().getLatFieldName(req_id);
+    const lonFieldName = useFieldNameStore().getLonFieldName(req_id);
+    const mission = useFieldNameStore().getMissionForReqId(req_id);
     // Get the CSS variable value dynamically
     const primaryButtonColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--p-button-text-primary-color')
@@ -668,12 +703,21 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
-        if(fileName){
-            if(spots.length>0 && rgt>0 && cycles.length>0){
-                seriesData = await getSeriesFor(reqIdStr);
-            } else {
-                console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
+        if(mission === 'ICESat-2'){
+            if(fileName){
+                if(spots.length>0 && rgt>0 && cycles.length>0){
+                    seriesData = await getSeriesFor(reqIdStr);
+                } else {
+                    console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
+                }
             }
+        } else if(mission === 'GEDI'){
+            if(fileName){
+                seriesData = await getSeriesFor(reqIdStr);
+            }
+
+        } else {
+            console.error(`getScatterOptions ${reqIdStr} mission:${mission} not supported`);
         }
         if(seriesData.length !== 0){
             options = {
@@ -813,7 +857,6 @@ const initScatterPlotWith = async (reqId: number) => {
         return;
     }
     await updateWhereClauseAndXData(reqId);
-
     const reqIdStr = reqId.toString();
     const y_options = chartStore.getYDataOptions(reqIdStr);
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -1135,7 +1178,10 @@ export const refreshScatterPlot = async (msg:string) => {
     if (plotRef){
         if(plotRef.chart) {
             await initScatterPlotWith(recTreeStore.selectedReqId);
-            await addOverlaysToScatterPlot(msg);
+            const mission = useFieldNameStore().getMissionForReqId(recTreeStore.selectedReqId);
+            if(mission==='ICESat-2'){
+                await addOverlaysToScatterPlot(msg);
+            }
         } else {
             console.warn(`Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined.`);
         }
@@ -1180,25 +1226,33 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
     const startTime = performance.now(); 
     console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
-    const globalChartStore = useGlobalChartStore();
-    if( (globalChartStore.getRgt() >= 0) &&
-        (globalChartStore.getCycles().length > 0) &&
-        (globalChartStore.getSpots().length > 0)
-    ){
-        //TBD  Can these be done in parallel?
+    const mission = useFieldNameStore().getMissionForReqId(recTreeStore.selectedReqId);
+    if(mission==='ICESat-2'){
+        const globalChartStore = useGlobalChartStore();
+        if( (globalChartStore.getRgt() >= 0) &&
+            (globalChartStore.getCycles().length > 0) &&
+            (globalChartStore.getSpots().length > 0)
+        ){
+            //TBD  Can these be done in parallel?
+            await refreshScatterPlot(msg);
+            const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+            const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+            await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
+        } else {
+            console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
+            console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
+            console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
+            console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
+        }
+    } else if(mission==='GEDI'){
+        //console.log('updatePlotAndSelectedTrackMapLayer mission:', mission);
         await refreshScatterPlot(msg);
-        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
-    } else {
-        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
-        console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
-        console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
-        console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
     }
     const endTime = performance.now(); 
     console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
 }
+
+
 let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
 

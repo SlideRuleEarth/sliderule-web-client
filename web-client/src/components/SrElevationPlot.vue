@@ -16,7 +16,8 @@ import { initDataBindingsToChartStore } from '@/utils/plotUtils';
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "./SrPlotCntrl.vue";
 import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-import SrGradientLegend from "./SrGradientLegend.vue";
+import SrGradientLegend from "@/components/SrGradientLegend.vue";
+import SrMapLegendBox from "@/components/SrMapLegendBox.vue";
 import SrSolidColorLegend from "./SrSolidColorLegend.vue";
 import SrReqDisplay from "./SrReqDisplay.vue";
 import { prepareDbForReqId } from "@/utils/SrDuckDbUtils";
@@ -263,13 +264,39 @@ const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
 });
 
+const useSelectedMinMax = computed(() => {
+    return chartStore.stateByReqId[props.startingReqId.toString()]?.useSelectedMinMax;
+});
+
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if(((computedDataKey.value != 'solid') &&  computedDataKey.value != 'atl08_class' &&  computedDataKey.value != 'atl03_cnf' &&  computedDataKey.value != 'atl24_class'))
+    if(( !useSelectedMinMax && 
+            (computedDataKey.value != 'solid' &&  
+            computedDataKey.value != 'atl08_class' &&  
+            computedDataKey.value != 'atl03_cnf' &&  
+            computedDataKey.value != 'atl24_class')
+        ) || useSelectedMinMax.value)
     {
         shouldDisplay = true;
     }
     return shouldDisplay;
+});
+
+const shouldDisplayMapLegend = computed(() => {
+    let shouldDisplay = false;
+    if(((computedDataKey.value != 'solid') &&  
+        computedDataKey.value != 'atl08_class' &&  
+        computedDataKey.value != 'atl03_cnf' &&  
+        computedDataKey.value != 'atl24_class'
+    ) && !useSelectedMinMax.value)
+    {
+        shouldDisplay = true;
+    }
+    return shouldDisplay;
+});
+
+const shouldDisplayGradientDialog = computed(() => {
+    return (shouldDisplayOverlayGradient.value || shouldDisplayMainGradient.value || shouldDisplayMapLegend.value)
 });
 
 const shouldDisplayMainSolidColorLegend = computed(() => {
@@ -553,7 +580,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 <div class="sr-legends-panel">
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"
-                        v-model:visible="shouldDisplayMainGradient"
+                        v-model:visible="shouldDisplayGradientDialog"
                         :closable="false"
                         :draggable="true"
                         :modal="false"
@@ -569,6 +596,14 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                             :data_key="computedDataKey" 
                             :transparentBackground="true" 
                         />
+                        <SrMapLegendBox
+                            class="chart-overlay"
+                            v-if = shouldDisplayMapLegend
+                            :reqIdStr="recTreeStore.selectedReqIdStr" 
+                            :data_key="computedDataKey" 
+                            :transparentBackground="true" 
+                        />
+ 
                     </template>
                     </Dialog>
                     <Dialog
@@ -593,7 +628,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     </Dialog>
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"
-                        v-model:visible="shouldDisplayOverlayGradient"
+                        v-model:visible="shouldDisplayGradientDialog"
                         :closable="false"
                         :draggable="true"
                         :modal="false"

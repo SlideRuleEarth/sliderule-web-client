@@ -8,7 +8,7 @@ import type { Deck } from '@deck.gl/core';
 import { Deck as DeckImpl } from '@deck.gl/core';
 import { PointCloudLayer } from '@deck.gl/layers';
 import { OrbitView, OrbitController } from '@deck.gl/core';
-import { useFieldNameCacheStore } from '@/stores/fieldNameStore';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
@@ -26,7 +26,7 @@ const scale = 100;
 
 const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
-const fieldStore = useFieldNameCacheStore();
+const fieldStore = useFieldNameStore();
 
 const reqId = computed(() => recTreeStore.selectedReqId);
 const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
@@ -150,6 +150,8 @@ async function updatePointCloud() {
             const lonRange = Math.max(1e-6, lonMax - lonMin);
             const latRange = Math.max(1e-6, latMax - latMin);
             const elevRange = Math.max(1e-6, elevMax - elevMin);
+
+            
 
             const rgbaArray = gradientStore.value.getGradientColorMapRGBA();
             if (!rgbaArray.length) {

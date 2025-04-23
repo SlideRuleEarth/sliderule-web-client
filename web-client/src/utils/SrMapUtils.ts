@@ -29,7 +29,7 @@ import { getTransform } from 'ol/proj.js';
 import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
-import { readOrCacheSummary, getColsForRgtYatcFromFile,getAllCycleOptionsInFile, getAllRgtOptionsInFile } from "@/utils/SrDuckDbUtils";
+import { readOrCacheSummary, getColsForRgtYatcFromFile,getAllCycleOptionsInFile, getAllRgtOptionsInFile, getAllColumnMinMax } from "@/utils/SrDuckDbUtils";
 import type { AccessorContext, PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
@@ -47,6 +47,7 @@ import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
 import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 
 
 export const polyCoordsExist = computed(() => {
@@ -350,55 +351,57 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
+    const mission = useFieldNameStore().getMissionForReqId(useRecTreeStore().selectedReqId);
 
-    //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
-
-    if(d.track !== undefined){ // for atl03
-        gcs.setTracks([d.track]); // set to this one track
-        gcs.setGtsForTracks(gcs.getTracks());
-    }
-    if((d.gt !== undefined) && (d.spot !== undefined)){ // for atl06 or atl08
-        gcs.setFilterWithSpotAndGt(d.spot,d.gt);
-    } else { // atl03
-        if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
-            const spot = getSpotNumber(d.sc_orient,d.track,d.pair);
-            gcs.setSpots([spot]);
-            const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
-            gcs.setGts(gts);
-        } else {
-            console.error('d.spot or d.gt is undefined when sc_orient and spot are undefined?'); // should always be defined
+    if(mission === 'ICESat-2'){
+        //console.log('d:',d,'d.spot',d.spot,'d.gt',d.gt,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt,'d.sc_orient:',d.sc_orient,'d.pair:',d.pair)
+        if(d.track !== undefined){ // for atl03
+            gcs.setTracks([d.track]); // set to this one track
+            gcs.setGtsForTracks(gcs.getTracks());
         }
-    }
+        if((d.gt !== undefined) && (d.spot !== undefined)){ // for atl06 or atl08
+            gcs.setFilterWithSpotAndGt(d.spot,d.gt);
+        } else { // atl03
+            if((d.sc_orient !== undefined) && (d.track !== undefined) && (d.pair !== undefined)){ //atl03
+                const spot = getSpotNumber(d.sc_orient,d.track,d.pair);
+                gcs.setSpots([spot]);
+                const gts = getGtsForSpotsAndScOrients(gcs.getSpots(), gcs.getScOrients());
+                gcs.setGts(gts);
+            } else {
+                console.error('d.spot or d.gt is undefined when sc_orient and spot are undefined?'); // should always be defined
+            }
+        }
 
-    if(d.sc_orient !== undefined){
-        gcs.setScOrients([d.sc_orient]);
+        if(d.sc_orient !== undefined){
+            gcs.setScOrients([d.sc_orient]);
+        }
+        if(d.pair !== undefined){
+            gcs.setPairs([d.pair]);
+        }
+        if(d.rgt !== undefined){
+            gcs.setRgt(d.rgt);
+        } else {
+            console.error('d.rgt is undefined'); // should always be defined
+        }
+        if(d.cycle !== undefined){
+            gcs.setCycles( [d.cycle]);
+        } else {
+            console.error('d.cycle is undefined'); // should always be defined
+        }
+        gcs.selected_y_atc = d.y_atc;
+        console.log('processSelectedElPnt: selected_y_atc:',gcs.selected_y_atc);
+        console.log(`processSelectedElPnt: ${useActiveTabStore().activeTabLabel}`);
+        if(gcs.use_y_atc_filter){    
+            await setCyclesGtsSpotsFromFileUsingRgtYatc();
+        }
+        // console.log('processSelectedElPnt: pair',gcs.getPairs());
+        // console.log('processSelectedElPnt: rgt',gcs.getRgt())
+        // console.log('processSelectedElPnt: cycles',gcs.getCycles())
+        // console.log('processSelectedElPnt: tracks',gcs.getTracks())
+        // console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
+        // console.log('processSelectedElPnt: spot',gcs.getSpots())
+        // console.log('processSelectedElPnt: gt',gcs.getGts())
     }
-    if(d.pair !== undefined){
-        gcs.setPairs([d.pair]);
-    }
-    if(d.rgt !== undefined){
-        gcs.setRgt(d.rgt);
-    } else {
-        console.error('d.rgt is undefined'); // should always be defined
-    }
-    if(d.cycle !== undefined){
-        gcs.setCycles( [d.cycle]);
-    } else {
-        console.error('d.cycle is undefined'); // should always be defined
-    }
-    gcs.selected_y_atc = d.y_atc;
-    console.log('processSelectedElPnt: selected_y_atc:',gcs.selected_y_atc);
-    console.log(`processSelectedElPnt: ${useActiveTabStore().activeTabLabel}`);
-    if(gcs.use_y_atc_filter){    
-        await setCyclesGtsSpotsFromFileUsingRgtYatc();
-    }
-    // console.log('processSelectedElPnt: pair',gcs.getPairs());
-    // console.log('processSelectedElPnt: rgt',gcs.getRgt())
-    // console.log('processSelectedElPnt: cycles',gcs.getCycles())
-    // console.log('processSelectedElPnt: tracks',gcs.getTracks())
-    // console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
-    // console.log('processSelectedElPnt: spot',gcs.getSpots())
-    // console.log('processSelectedElPnt: gt',gcs.getGts())
 }
 
 export async function clicked(d:ElevationDataItem): Promise<void> {
@@ -1133,6 +1136,9 @@ const updateElevationMap = async (req_id: number) => {
     }
     try {
         const analysisMapStore = useAnalysisMapStore();
+        const minMax = await getAllColumnMinMax(req_id);
+        useGlobalChartStore().setAllColumnMinMaxValues(minMax);
+        console.log('updateElevationMap minMax:',minMax);        
         const parms = await duckDbReadAndUpdateElevationData(req_id,EL_LAYER_NAME_PREFIX);
         if(parms){
             const numRows = parms.numRows;
@@ -1140,7 +1146,7 @@ const updateElevationMap = async (req_id: number) => {
                 if(parms.firstRec){
                     useDeckStore().deleteSelectedLayer();
                     //updateFilter([req_id]); // query to set all options for all 
-                    processSelectedElPnt(parms.firstRec);
+                    await processSelectedElPnt(parms.firstRec);
                     analysisMapStore.analysisMapInitialized = true;
                 } else {
                     console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);

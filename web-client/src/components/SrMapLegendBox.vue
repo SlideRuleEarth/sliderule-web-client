@@ -7,11 +7,11 @@
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
-        {{ chartStore.getMinValue(props.reqIdStr, props.data_key) !== null && chartStore.getMinValue(props.reqIdStr, props.data_key) !== undefined ? parseFloat(chartStore.getMinValue(props.reqIdStr, props.data_key).toFixed(1)) : '?' }}
+        {{ globalChartStore.getMin(props.data_key)!== null && globalChartStore.getMin(props.data_key)!== undefined ? globalChartStore.getMin(props.data_key).toFixed(1) : '?' }}
       </span>
       <span class="sr-legend-name"> {{ props.data_key }} </span>
       <span class="sr-legend-max">
-        {{ chartStore.getMaxValue(props.reqIdStr, props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr, props.data_key) !== undefined ? parseFloat(chartStore.getMaxValue(props.reqIdStr, props.data_key).toFixed(1)) : '?' }}
+        {{ globalChartStore.getMax(props.data_key)!== null && globalChartStore.getMax(props.data_key)!== undefined ? globalChartStore.getMax(props.data_key).toFixed(1) : '?' }}
       </span>
     </div>
   </div>
@@ -19,12 +19,12 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useChartStore } from '@/stores/chartStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { computed, watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
 
-const chartStore = useChartStore();
+const globalChartStore = useGlobalChartStore();
 const elevationColorMap = useElevationColorMapStore();
 
 // Props definition
@@ -48,6 +48,7 @@ const gradientStyle = computed(() => {
 });
 
 onMounted(() => {
+  console.log('SrMapLegendBox onMounted: reqIdStr:', props.reqIdStr, 'data_key:', props.data_key);
   elevationColorMap.updateElevationColorMapValues();
   emit('legendbox-created');
 });

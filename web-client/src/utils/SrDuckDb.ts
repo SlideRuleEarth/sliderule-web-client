@@ -456,6 +456,18 @@ export class DuckDBClient {
         }
     }
 
+    async queryColumnTypes(fileName: string): Promise<{ name: string; type: string }[]> {
+        const query = `DESCRIBE SELECT * FROM read_parquet('${fileName}')`;
+        const result = await this.query(query);
+        const colTypes: { name: string; type: string }[] = [];
+        for await (const chunk of result.readRows()) {
+            for (const row of chunk) {
+                colTypes.push({ name: row.column_name, type: row.column_type.toUpperCase() });
+            }
+        }
+        return colTypes;
+    }
+    
 
 }
 

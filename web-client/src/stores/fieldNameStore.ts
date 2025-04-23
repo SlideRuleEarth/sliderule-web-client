@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path if needed
-import { db } from '@/db/SlideRuleDb';
-import type { SrMetaData, SrSvrParmsUsed } from '@/types/SrTypes';
 import { useChartStore } from './chartStore';
 
 function getHFieldNameForAPIStr(funcStr: string): string {
@@ -15,12 +13,24 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
         case 'gedi02ap': return 'elevation_hr';
-        case 'gedi04ap': return 'agbd';
+        case 'gedi04ap': return 'elevation';
         case 'gedi01bp': return 'elevation_start';
         default:
             throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
     }
 }
+
+function getMissionFromApiStr(apiStr: string): string {
+    if (apiStr.startsWith('atl'))return 'ICESat-2';
+    else if (apiStr.startsWith('gedi'))return 'GEDI';
+    else throw new Error(`Unknown mission for API: ${apiStr} in getMissionFromApiStr`);    
+}
+
+function getMissionForReqId(reqId: number): string {
+    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    return getMissionFromApiStr(funcStr);
+}
+
 
 function getDefaultElOptions(reqId:number): string[] {
     //We dont want to include all the fields in the file just the relavent ones
@@ -45,7 +55,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'gedi02ap': options = ['elevation_hr'];
             break;
-        case 'gedi04ap': options = ['agbd'];
+        case 'gedi04ap': options = ['elevation'];
             break;
         case 'gedi01bp': options = ['elevation_start'];
         default:
@@ -75,7 +85,7 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
-    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
+    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')||(funcStr.includes('gedi') )) ? 'time_ns' : 'time';
 }
 
 function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string {
@@ -95,7 +105,7 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
     }
 }
 
-export const useFieldNameCacheStore = defineStore('fieldNameCache', () => {
+export const useFieldNameStore = defineStore('fieldNameCache', () => {
     const hFieldCache = ref<Record<number, string>>({});
     const latFieldCache = ref<Record<number, string>>({});
     const lonFieldCache = ref<Record<number, string>>({});
@@ -143,6 +153,8 @@ export const useFieldNameCacheStore = defineStore('fieldNameCache', () => {
         getTimeFieldName,
         getDefaultColorEncoding,
         getDefaultElOptions,
+        getMissionForReqId,
+        getMissionFromApiStr,
         // for debugging/testing
         hFieldCache,
         latFieldCache,
