@@ -46,7 +46,6 @@
     import SrElevationPlot from '@/components/SrElevationPlot.vue';
     import SrDuckDbShell from '@/components/SrDuckDbShell.vue';
     import { useRecTreeStore } from '@/stores/recTreeStore';
-    import { useChartStore } from '@/stores/chartStore';
     import { useActiveTabStore } from '@/stores/activeTabStore';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useFieldNameStore } from '@/stores/fieldNameStore';
@@ -56,7 +55,6 @@
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
-    const chartStore = useChartStore();
     const activeTabStore = useActiveTabStore();
     const globalChartStore = useGlobalChartStore();
     const fieldNameStore = useFieldNameStore();
@@ -112,7 +110,11 @@
     });
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
-        activeTabStore.setActiveTab('0');
+        if(mission.value == 'GEDI'){
+            activeTabStore.setActiveTab('3'); // 
+        } else {
+            activeTabStore.setActiveTab('0');
+        }
     });
 
     onUnmounted(() => {
