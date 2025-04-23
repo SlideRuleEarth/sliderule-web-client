@@ -261,7 +261,7 @@ const shouldDisplayAtl24Colors = computed(() => {
 });
 
 const computedDataKey = computed(() => {
-    return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
+    return chartStore.stateByReqId[recTreeStore.selectedReqIdStr].selectedColorEncodeData;
 });
 
 const useSelectedMinMax = computed(() => {
@@ -270,7 +270,7 @@ const useSelectedMinMax = computed(() => {
 
 const shouldDisplayMainGradient = computed(() => {
     let shouldDisplay = false;
-    if(( !useSelectedMinMax && 
+    if(( !useSelectedMinMax.value && 
             (computedDataKey.value != 'solid' &&  
             computedDataKey.value != 'atl08_class' &&  
             computedDataKey.value != 'atl03_cnf' &&  
@@ -282,21 +282,10 @@ const shouldDisplayMainGradient = computed(() => {
     return shouldDisplay;
 });
 
-const shouldDisplayMapLegend = computed(() => {
-    let shouldDisplay = false;
-    if(((computedDataKey.value != 'solid') &&  
-        computedDataKey.value != 'atl08_class' &&  
-        computedDataKey.value != 'atl03_cnf' &&  
-        computedDataKey.value != 'atl24_class'
-    ) && !useSelectedMinMax.value)
-    {
-        shouldDisplay = true;
-    }
-    return shouldDisplay;
-});
+
 
 const shouldDisplayGradientDialog = computed(() => {
-    return (shouldDisplayOverlayGradient.value || shouldDisplayMainGradient.value || shouldDisplayMapLegend.value)
+    return (shouldDisplayOverlayGradient.value || shouldDisplayMainGradient.value)
 });
 
 const shouldDisplayMainSolidColorLegend = computed(() => {
@@ -544,12 +533,13 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         
     </div>
     <div class="sr-elevation-plot-container" v-else>
-        <!-- {{ webGLSupported ? 'WebGL is supported' : 'WebGL is not supported' }}
-        {{ shouldDisplayMainGradient ? 'Main Gradient Displayed' : 'Main Gradient Not Displayed' }}
-        {{ shouldDisplayMainSolidColorLegend ? 'Main Solid Color Legend Displayed' : 'Main Solid Color Legend Not Displayed' }}
-        {{ shouldDisplayOverlayGradient ? 'Overlay Gradient Displayed' : 'Overlay Gradient Not Displayed' }}
-        {{ shouldDisplayAtl08Colors ? 'Atl08 Colors Displayed' : 'Atl08 Colors Not Displayed' }}
-        {{ shouldDisplayAtl03Colors ? 'Atl03 Colors Displayed' : 'Atl03 Colors Not Displayed' }} -->      
+        <!-- {{ webGLSupported ? 'WebGL is supported' : 'WebGL is not supported' }} -->
+        <!-- {{ shouldDisplayMainGradient ? 'Main Gradient Displayed' : 'Main Gradient Not Displayed' }} -->
+        <!-- {{  computedDataKey }} -->
+        <!-- {{ shouldDisplayMainSolidColorLegend ? 'Main Solid Color Legend Displayed' : 'Main Solid Color Legend Not Displayed' }} -->
+        <!-- {{ shouldDisplayOverlayGradient ? 'Overlay Gradient Displayed' : 'Overlay Gradient Not Displayed' }} -->
+        <!-- {{ shouldDisplayAtl08Colors ? 'Atl08 Colors Displayed' : 'Atl08 Colors Not Displayed' }} -->  
+        <!-- {{ shouldDisplayAtl03Colors ? 'Atl03 Colors Displayed' : 'Atl03 Colors Not Displayed' }} -->      
         <div class="sr-elevation-plot-content">
             <div ref="chartWrapperRef" class="chart-wrapper">
                 <v-chart  ref="plotRef" 
@@ -591,19 +581,11 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     <template #header>
                         <SrGradientLegend
                             class="chart-overlay"
-                            v-if = shouldDisplayMainGradient
+                            v-if = "shouldDisplayMainGradient"
                             :reqIdStr="recTreeStore.selectedReqIdStr" 
                             :data_key="computedDataKey" 
                             :transparentBackground="true" 
                         />
-                        <SrMapLegendBox
-                            class="chart-overlay"
-                            v-if = shouldDisplayMapLegend
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
-                            :data_key="computedDataKey" 
-                            :transparentBackground="true" 
-                        />
- 
                     </template>
                     </Dialog>
                     <Dialog
@@ -639,7 +621,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                         <template #header>
                             <SrGradientLegend
                                 class="chart-overlay"
-                                v-if = shouldDisplayOverlayGradient
+                                v-if = "shouldDisplayOverlayGradient"
                                 :reqIdStr="overlayReqIdStr" 
                                 :data_key="computedOverlayDataKey" 
                                 :transparentBackground="true" 

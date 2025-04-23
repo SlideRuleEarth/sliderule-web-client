@@ -1,27 +1,28 @@
 <template>
-  <div v-if=(computedDisplayGradient)
-    class="sr-legend-box"
+<div v-if="computedDisplayGradient"
+  class="sr-legend-box"
     :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }"
   >
-    <div class="sr-color-map-gradient" :style="gradientStyle">
+    <div class="sr-color-map-gradient" :style="gradientColorMapStore.gradientColorMapStyle">
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
-        {{ chartStore.getMinValue(props.reqIdStr, props.data_key) !== null && chartStore.getMinValue(props.reqIdStr, props.data_key) !== undefined ? parseFloat(chartStore.getMinValue(props.reqIdStr, props.data_key).toFixed(1)) : '?' }}
+        {{minValue}}
       </span>
       <span class="sr-legend-name"> {{ props.data_key }} </span>
       <span class="sr-legend-max">
-        {{ chartStore.getMaxValue(props.reqIdStr, props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr, props.data_key) !== undefined ? parseFloat(chartStore.getMaxValue(props.reqIdStr, props.data_key).toFixed(1)) : '?' }}
+        {{ maxValue}}
       </span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 // Props definition
 const props = withDefaults(
@@ -38,17 +39,40 @@ const props = withDefaults(
 );
 
 const chartStore = useChartStore();
+const globalChartStore = useGlobalChartStore();
 const gradientColorMapStore =  useGradientColorMapStore(props.reqIdStr);
 
 const computedDisplayGradient = computed(() => {
   return (  chartStore.getMinValue(props.reqIdStr, props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr, props.data_key) !== null);
 });
 
-const emit = defineEmits(['legendbox-created', 'picked-changed']);
-const gradientStyle = computed(() => {
-  const style = gradientColorMapStore.getColorGradientStyle();
-  return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
+
+const useSelectedMinMax = computed(() => {
+    return chartStore.stateByReqId[props.reqIdStr]?.useSelectedMinMax;
 });
+
+const minValue = computed(() => {
+  let min;
+  if(useSelectedMinMax.value){
+    min = chartStore.getMinValue(props.reqIdStr, props.data_key);
+  } else {
+    min = globalChartStore.getMin(props.data_key);
+  }
+  return (min !== null && min !== undefined) ? parseFloat(min.toFixed(1)) : '?';
+});
+
+const maxValue = computed(() => {
+  let max;
+  if(useSelectedMinMax.value){
+    max = chartStore.getMaxValue(props.reqIdStr, props.data_key);
+  } else {
+    max = globalChartStore.getMax(props.data_key);
+  }
+  return (max !== null && max !== undefined) ? parseFloat(max.toFixed(1)) : '?';
+});
+
+const emit = defineEmits(['legendbox-created', 'picked-changed']);
+
 
 onMounted(async () => {
   emit('legendbox-created');

@@ -1,46 +1,26 @@
+import { ref, computed, watch } from 'vue';
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import colormap from 'colormap';
 import { db } from '@/db/SlideRuleDb';
-import colormap  from 'colormap';
+import { createUnifiedColorMapper } from '@/utils/colorUtils';
 
-/**
- * Factory function to create a unique store instance per reqId
- */
 export function useGradientColorMapStore(reqIdStr: string) {
-    const store = defineStore(`gradientColorMapStore-${reqIdStr}`, () => {
+    return defineStore(`gradientColorMapStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
         const selectedGradientColorMapName = ref('viridis');
         const numShadesForGradient = ref(256);
-        const gradientColorMap = ref<string[]>([]);
         const gradientColorMapRGBA = ref<number[][]>([]);
+        const gradientColorMap = computed(() =>
+            gradientColorMapRGBA.value.map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`)
+        );
+
+        const gradientColorMapStyle = computed(() => ({
+            background: `linear-gradient(to right, ${gradientColorMap.value.join(', ')})`,
+            height: '10px',
+            width: '100%'
+        }));
+
         let dataOrderNdx = {} as Record<string, number>;
-        let debugCnt = 0;
-        function initializeColorMapStore() {
-            //console.log('gradientColorMapStore initializeColorMapStore isInitialized:',isInitialized.value);
-            isInitialized.value = true;
-            updateGradientColorMapValues();
-        }
-        function setSelectedGradientColorMapName(gradientColorMap: string):void {
-            //console.log('setSelectedGradientColorMapName:',gradientColorMap);
-            selectedGradientColorMapName.value = gradientColorMap;
-            updateGradientColorMapValues();
-        }
-
-        function getSelectedGradientColorMapName():string {
-            //console.log('getSelectedGradientColorMapName:',selectedGradientColorMapName.value);
-            return selectedGradientColorMapName.value;
-        }
-
-        function setNumShadesForGradient(numShades: number) {
-            //console.log('setNumShadesForGradient:',numShades);
-            numShadesForGradient.value = Math.max(numShades, 10); //at least 10 shades
-            updateGradientColorMapValues();
-        }
-
-        function getNumShadesForGradient():number {
-            //console.log('getNumShadesForGradient:',numShadesForGradient.value);
-            return numShadesForGradient.value;
-        }
 
         function updateGradientColorMapValues(): void {
             try {
@@ -50,108 +30,75 @@ export function useGradientColorMapStore(reqIdStr: string) {
                     format: 'rgba',
                     alpha: 1
                 });
-        
                 gradientColorMapRGBA.value = rawColorArray;
-                gradientColorMap.value = rawColorArray.map(
-                    ([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`
-                );
             } catch (error) {
                 console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
                 throw error;
             }
         }
-        
 
-        function getGradientColorMap():string[] {
-            //console.log(`getGradientColorMap ${reqIdStr}:`,gradientColorMap.value);
-            return gradientColorMap.value;
+        function setSelectedGradientColorMapName(name: string): void {
+            selectedGradientColorMapName.value = name;
         }
 
-        function getGradientColorMapRGBA(): number[][] {
-            return gradientColorMapRGBA.value;
-        }
-        
-        function getDimensions(): string[] {
-            return Object.keys(dataOrderNdx).sort((a, b) => {
-                const aValue = dataOrderNdx[a];
-                const bValue = dataOrderNdx[b];
-                return aValue - bValue;
-            });
+        function setNumShadesForGradient(numShades: number): void {
+            numShadesForGradient.value = Math.max(numShades, 10);
         }
 
-        function createGradientColorFunction(ndx_name:string,minValue: number, maxValue: number) {
-            const range = maxValue - minValue;
-            const scale = (numShadesForGradient.value - 1) / range;
-            let ndx:number = -1;
-            //console.log(`createGradientColorFunction ${reqIdStr}:`,ndx_name,minValue,maxValue,range,scale);
-            return (params:any) => {
-                if(ndx<0){
-                    ndx = dataOrderNdx[ndx_name]
-                }
-                const value = params.data[ndx];
-                // Clamp quickly
-                if (value <= minValue) return gradientColorMap.value[0];
-                if (value >= maxValue) return gradientColorMap.value[numShadesForGradient.value - 1];
-                const colorIndex = Math.floor((value - minValue) * scale);
-                const color = gradientColorMap.value[colorIndex];
-                // if(debugCnt++ < 10){
-                //     console.log(`createGradientColorFunction ${reqIdStr} params:`,params);
-                //     console.log(`createGradientColorFunction ${reqIdStr} dataOrderNdx:`,dataOrderNdx);
-                //     console.log(`createGradientColorFunction ${reqIdStr} ndx:`,ndx, 'ndx_name:',ndx_name,'value:',value,'colorIndex:',colorIndex, 'color:',color);
-                // }
-                return color;
-            }
-        }
-
-        function getColorGradientStyle() {
-            //console.log('getColorGradientStyle');
-            return {
-                background: `linear-gradient(to right, ${gradientColorMap.value})`,
-                height: '10px', // Adjust the height as needed
-                width: '100%',  // Adjust the width as needed
-            };
-        }
-
-        async function restoreDefaultGradientColorMap() {
+        async function restoreDefaultGradientColorMap(): Promise<void> {
             await db.restoreDefaultGradientColorMap();
             const plotConfig = await db.getPlotConfig();
-            if(plotConfig){
+            if (plotConfig) {
                 selectedGradientColorMapName.value = plotConfig.defaultGradientColorMapName;
                 numShadesForGradient.value = plotConfig.defaultGradientNumShades;
             } else {
-                console.error(`getGradientColorMap ${reqIdStr}: restoreDefaultGradientColorMap no plotConfig`);
+                console.error(`restoreDefaultGradientColorMap ${reqIdStr}: no plotConfig`);
             }
         }
 
-        function setDataOrderNdx(thisDataOrderNdx: Record<string, number>) {
-            dataOrderNdx = thisDataOrderNdx;
+        function setDataOrderNdx(ndx: Record<string, number>) {
+            dataOrderNdx = ndx;
         }
 
         function getDataOrderNdx(): Record<string, number> {
             return dataOrderNdx;
         }
 
+        function getDimensions(): string[] {
+            return Object.keys(dataOrderNdx).sort((a, b) => dataOrderNdx[a] - dataOrderNdx[b]);
+        }
+
+        function createGradientColorFunction(ndx_name: string, minValue: number, maxValue: number) {
+            let ndx: number = -1;
+            return createUnifiedColorMapper({
+                colorMap: gradientColorMap.value,
+                min: minValue,
+                max: maxValue,
+                valueAccessor: (params: any) => {
+                    if (ndx < 0) ndx = dataOrderNdx[ndx_name];
+                    return params.data[ndx];
+                }
+            });
+        }
+
+        // Auto-update gradient whenever config changes
+        watch([selectedGradientColorMapName, numShadesForGradient], updateGradientColorMapValues, { immediate: true });
+
         return {
             isInitialized,
             selectedGradientColorMapName,
             numShadesForGradient,
             gradientColorMap,
+            gradientColorMapRGBA,
+            gradientColorMapStyle,
             setSelectedGradientColorMapName,
-            getSelectedGradientColorMapName,
             setNumShadesForGradient,
-            getNumShadesForGradient,
             updateGradientColorMapValues,
-            getGradientColorMap,
-            getGradientColorMapRGBA,
-            getDimensions,
-            getDataOrderNdx,
-            setDataOrderNdx,
-            createGradientColorFunction,
-            getColorGradientStyle,
             restoreDefaultGradientColorMap,
-            initializeColorMapStore,
+            setDataOrderNdx,
+            getDataOrderNdx,
+            getDimensions,
+            createGradientColorFunction
         };
     })();
-    store.initializeColorMapStore();
-    return store;
 }

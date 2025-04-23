@@ -48,6 +48,7 @@ import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } 
 import router from '@/router/index.js';
 import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 
 
 export const polyCoordsExist = computed(() => {
@@ -481,25 +482,16 @@ function createDeckLayer(
     const highlightPntSize = deckStore.getPointSize() + 1;
     //console.log(`createDeckLayer ${name} positions:`, positions);
     // Precompute color for each data point once.
-    const precomputedColors: SrRGBAColor[] = elevationData.map(d => {
-        let color: [number, number, number, number] = [255, 255, 255, 255]; // default (white)
-        const h = d[heightFieldName];
-        if (h !== undefined && h !== null) {
-            const c = elevationColorMapStore.getColorForElevation(
-                h,
-                extHMean.lowHMean,
-                extHMean.highHMean
-            );
-            if (c) {
-                color = [...c] as [number, number, number, number]; // Ensure correct type
-                color[3] = 255;
-            }
-        }
-        return color;
+    const colorFn = createUnifiedColorMapperRGBA({
+        colorMap: elevationColorMapStore.getElevationColorMap(),
+        min: extHMean.lowHMean,
+        max: extHMean.highHMean,
+        valueAccessor: (d: ElevationDataItem) => d[heightFieldName]
     });
 
-    const endTime1 = performance.now();
-    console.log(`createDeckLayer precomputeColors took ${endTime1 - startTime} milliseconds. endTime:`, endTime1);
+    const precomputedColors = elevationData.map(colorFn); // Already returns SrRGBAColor[]
+
+
 
     type ScatterplotLayerProps = {
         getLineWidthUnits?: string;

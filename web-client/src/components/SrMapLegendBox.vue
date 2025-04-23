@@ -3,7 +3,7 @@
     class="sr-legend-box"
     :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }"
   >
-    <div class="sr-color-map-gradient" :style="gradientStyle">
+    <div class="sr-color-map-gradient" :style="elevationColorMap.getColorGradientStyle">
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { computed, watch } from 'vue';
+import { watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
 
@@ -42,10 +42,6 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(['legendbox-created', 'picked-changed']);
-const gradientStyle = computed(() => {
-  const style = elevationColorMap.getColorGradientStyle();
-  return style || { background: 'linear-gradient(to right, #ccc, #ccc)', height: '1.25rem', width: '100%' };
-});
 
 onMounted(() => {
   console.log('SrMapLegendBox onMounted: reqIdStr:', props.reqIdStr, 'data_key:', props.data_key);
