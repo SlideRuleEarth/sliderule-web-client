@@ -131,6 +131,8 @@ import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { SelectChangeEvent } from 'primevue/select';
 import { useActiveTabStore } from '@/stores/activeTabStore';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { useToast } from 'primevue/usetoast';
 
 
 const props = withDefaults(
@@ -151,6 +153,8 @@ const atl08ClassColorMapStore = ref<any>(null);
 const atl24ClassColorMapStore = ref<any>(null);
 const recTreeStore = useRecTreeStore();
 const activeTabStore = useActiveTabStore();
+const fieldNameStore = useFieldNameStore();
+const toast = useToast();
 const reqIdStr = computed(() => props.reqId.toString());
 const computedFunc = computed(() => recTreeStore.findApiForReqId(props.reqId));
 const computedSolidColorId = computed(() => `srSolidColorItems-${reqIdStr.value}`);
@@ -307,6 +311,15 @@ const handleYDataSelectionChange = async (event: SelectChangeEvent) => {
 const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
     const newValue = event.value as string; // Extract the selected value
     console.log("Color Encode changed:", newValue);
+    if(newValue === fieldNameStore.getHFieldName(props.reqId)){
+        chartStore.setUseSelectedMinMax(reqIdStr.value, false);
+        toast.add({ severity: 'info', summary: `Using ${newValue} MinMax of entire Record`, detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using the entire Record`, life: 5000 });
+    } else {
+        if(newValue !== 'solid'){
+            chartStore.setUseSelectedMinMax(reqIdStr.value, true);
+            toast.add({ severity: 'info', summary: `Using ${newValue} MinMax of selected Track`, detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using only the selected track`, life: 5000 });
+        }
+    }
     await callPlotUpdateDebounced('from handleColorEncodeSelectionChange');
 };
 

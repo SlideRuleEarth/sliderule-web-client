@@ -101,6 +101,7 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
         } 
     }
     catch (error) {
+        console.error(`getDefaultColorEncoding error for funcStr ${funcStr}:`, error);
         return 'solid';
     }
 }

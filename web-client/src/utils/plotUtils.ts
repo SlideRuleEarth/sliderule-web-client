@@ -19,7 +19,7 @@ import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { SELECTED_LAYER_NAME_PREFIX } from "@/types/SrTypes";
+import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 
@@ -162,12 +162,12 @@ interface GetSeriesParams {
         fetchOptions: FetchScatterDataOptions 
     ) => Promise<{
         chartData: Record<string, SrScatterChartDataArray>;
-        minMaxValues: Record<string, { min: number; max: number }>;
-        normalizedMinMaxValues: Record<string, { min: number; max: number }>;
+        minMaxLowHigh: MinMaxLowHigh;
+        normalizedMinMaxValues: MinMaxLowHigh;
         dataOrderNdx: Record<string, number>;
     }>;
     // The property name for minMax or normalizedMinMax
-    minMaxProperty: 'minMaxValues' | 'normalizedMinMaxValues';
+    minMaxProperty: 'minMaxLowHigh' | 'normalizedMinMaxValues';
     // A function or color for the series item style
     colorFunction?: (params: any) => string;
     // Additional ECharts config
@@ -202,10 +202,12 @@ async function getGenericSeries({
         const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions);
         //console.log(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
         // e.g. choose minMax based on minMaxProperty
+        const minMaxLowHigh = rest['minMaxLowHigh'] || {};
         const minMaxValues = rest[minMaxProperty] || {};
         //console.log(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
+        chartStore.setMinMaxLowHigh(reqIdStr, minMaxLowHigh);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
         const gradientColorMapStore = useGradientColorMapStore(reqIdStr);
         gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
@@ -227,11 +229,11 @@ async function getGenericSeries({
             } else {
                 //console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
-                let minValue = chartStore.getMinValue(reqIdStr, cedk);
-                let maxValue = chartStore.getMaxValue(reqIdStr, cedk);
+                let minValue = chartStore.getLow(reqIdStr, cedk);
+                let maxValue = chartStore.getHigh(reqIdStr, cedk);
                 if(!chartStore.getUseSelectedMinMax(reqIdStr)){
-                    minValue = useGlobalChartStore().getMin(cedk);
-                    maxValue = useGlobalChartStore().getMax(cedk);
+                    minValue = useGlobalChartStore().getLow(cedk);
+                    maxValue = useGlobalChartStore().getHigh(cedk);
                 }
                 thisColorFunction = gradientColorMapStore.createGradientColorFunction(cedk,minValue,maxValue);
             }
@@ -322,9 +324,9 @@ export async function getSeriesForAtl03sp(
          * (We rely on the minMaxValues passed in. By default, fetchScatterData
          * fills minMaxValues['segment_dist'] from the MIN/MAX query.)
          */
-        transformRow: (row, xCol, yCols, minMaxValues,dataOrderNdx,orderNdx) => {
+        transformRow: (row, xCol, yCols, minMaxLowHigh, dataOrderNdx, orderNdx) => {
             // figure out the offset for X
-            const segMin = minMaxValues['segment_dist']?.min || 0;
+            const segMin = minMaxLowHigh['segment_dist']?.min || 0;
             const xVal = row[xCol] + row.segment_dist - segMin;
             orderNdx = setDataOrder(dataOrderNdx,'x',orderNdx);
 
@@ -358,7 +360,7 @@ export async function getSeriesForAtl03sp(
         y,
         fetchOptions,             // pass the specialized logic above
         fetchData: fetchScatterData,
-        minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
+        minMaxProperty: 'minMaxLowHigh', // read from minMaxValues rather than normalizedMinMaxValues
         colorFunction: thisColorFunction, 
         zValue: 0,
         functionName: 'getSeriesForAtl03sp', // for the log
@@ -398,7 +400,7 @@ export async function getSeriesForAtl03x(
         y,
         fetchOptions,             // pass the specialized logic above
         fetchData: fetchScatterData,
-        minMaxProperty: 'minMaxValues', // read from minMaxValues rather than normalizedMinMaxValues
+        minMaxProperty: 'minMaxLowHigh', // read from minMaxValues rather than normalizedMinMaxValues
         colorFunction: thisColorFunction, 
         zValue: 0,
         functionName: 'getSeriesForAtl03x', // for the log
@@ -419,7 +421,7 @@ return getGenericSeries({
     y,
     fetchOptions,
     fetchData: fetchScatterData,         
-    minMaxProperty: 'minMaxValues', // note the difference
+    minMaxProperty: 'minMaxLowHigh', // note the difference
     zValue: 10,                               
     functionName: 'getSeriesForAtl03vp',
 });

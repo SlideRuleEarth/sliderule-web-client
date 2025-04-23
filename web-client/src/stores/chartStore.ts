@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { type MinMax, type MinMaxLowHigh } from '@/types/SrTypes';
 export interface SrMenuItem {
     name: string;
     value: string;
@@ -30,7 +31,8 @@ interface ChartState {
     symbolColorEncoding: string;
     solidSymbolColor: string;
     selectAllTracks: boolean;
-    minMaxValues: Record<string, { min: number; max: number }>;
+    minMaxValues: MinMax;
+    minMaxLowHigh: MinMaxLowHigh
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
     useSelectedMinMax: boolean;
@@ -78,7 +80,8 @@ export const useChartStore = defineStore('chartStore', {
                     savedColorEncodeData: 'unset',
                     solidSymbolColor: 'red',
                     selectAllTracks: true,
-                    minMaxValues: {} as Record<string, { min: number; max: number }>,
+                    minMaxValues: {} as MinMax, // might contain normalized X values
+                    minMaxLowHigh: {} as MinMaxLowHigh,
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
                     useSelectedMinMax: false,
@@ -126,6 +129,24 @@ export const useChartStore = defineStore('chartStore', {
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
                 console.warn('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                return 0;
+            }
+        },
+        getLow(reqIdStr: string, key: string): number {
+            this.ensureState(reqIdStr);
+            if(this.stateByReqId[reqIdStr]?.minMaxLowHigh && this.stateByReqId[reqIdStr].minMaxLowHigh[key]){
+                return this.stateByReqId[reqIdStr].minMaxLowHigh[key].low;
+            } else {
+                console.warn('getLow() key:', key, ' not found in minMaxLowHigh for:', reqIdStr);
+                return 0;
+            }
+        },
+        getHigh(reqIdStr: string, key: string): number {
+            this.ensureState(reqIdStr);
+            if(this.stateByReqId[reqIdStr]?.minMaxLowHigh && this.stateByReqId[reqIdStr].minMaxLowHigh[key]){
+                return this.stateByReqId[reqIdStr].minMaxLowHigh[key].high;
+            } else {
+                console.warn('getHigh() key:', key, ' not found in minMaxLowHigh for:', reqIdStr);
                 return 0;
             }
         },
@@ -349,13 +370,21 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].numOfPlottedPnts = numOfPlottedPnts;
         },
-        setMinMaxValues(reqIdStr: string, minMaxValues: Record<string, { min: number; max: number }>):void {
+        setMinMaxValues(reqIdStr: string, minMaxValues: MinMax):void {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].minMaxValues = minMaxValues;
         },
-        getMinMaxValues(reqIdStr: string) : Record<string, { min: number; max: number }>{
+        getMinMaxValues(reqIdStr: string) : MinMax{
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].minMaxValues;
+        },
+        setMinMaxLowHigh(reqIdStr: string, minMaxLowHigh: MinMaxLowHigh):void {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].minMaxLowHigh = minMaxLowHigh;
+        },
+        getMinMaxLowHigh(reqIdStr: string) : MinMaxLowHigh{
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].minMaxLowHigh;
         },
         getDataOrderNdx(reqIdStr: string): Record<string, number> {
             this.ensureState(reqIdStr);
