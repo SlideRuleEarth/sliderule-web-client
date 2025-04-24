@@ -204,7 +204,7 @@ export class SlideRuleDexie extends Dexie {
             const gradientNumShades = plotConfig?.defaultGradientNumShades;
             const gradientColorMapName = plotConfig?.defaultGradientColorMapName;
             if(!gradientColorMapName || !gradientNumShades || gradientNumShades === 0){
-                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:512});
             }
 
             // Check and populate colors
@@ -269,7 +269,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const plotConfig = await this.plotConfig.get(1);
             if(plotConfig){
-                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:256});
+                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:512});
             }
         } catch (error) {
             console.error('Failed to restore default gradient color map:', error);

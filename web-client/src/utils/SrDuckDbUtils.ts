@@ -703,15 +703,15 @@ export function buildSafeAggregateClauses(
             return [
                 `MIN(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS min_${colName}`,
                 `MAX(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS max_${colName}`,
-                `PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS low_${colName}`,
-                `PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS high_${colName}`
+                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS low_${colName}`,
+                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS high_${colName}`
             ];
         } else {
             return [
                 `MIN(${escaped}) AS min_${colName}`,
                 `MAX(${escaped}) AS max_${colName}`,
-                `PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY ${escaped}) AS low_${colName}`,
-                `PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${escaped}) AS high_${colName}`
+                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) AS low_${colName}`,
+                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) AS high_${colName}`
             ];
         }
     });

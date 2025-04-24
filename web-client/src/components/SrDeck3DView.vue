@@ -7,7 +7,7 @@ import { ref, onMounted, nextTick, computed, watch } from 'vue';
 import type { Deck } from '@deck.gl/core';
 import { Deck as DeckImpl } from '@deck.gl/core';
 import { PointCloudLayer } from '@deck.gl/layers';
-import { OrbitView, OrbitController } from '@deck.gl/core';
+import { OrbitView } from '@deck.gl/core';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
@@ -16,21 +16,25 @@ import { db as indexedDb } from '@/db/SlideRuleDb';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 
 const deckContainer = ref<HTMLDivElement | null>(null);
-const zoomRef = ref(0);
-const fitZoom = ref(0);
-const scale = 100;
+
+
+// const zoomRef = ref(0);
+// const fitZoom = ref(0);
+// const scale = 100;
 
 const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
 const fieldStore = useFieldNameStore();
+const deck3DConfigStore = useDeck3DConfigStore();
 
 const reqId = computed(() => recTreeStore.selectedReqId);
 
 const elevationStore = useElevationColorMapStore();
 
-const centroid = ref<[number, number, number]>([scale / 2, scale / 2, scale / 2]);
+//const centroid = ref<[number, number, number]>([scale / 2, scale / 2, scale / 2]);
 const deckInstance = ref<Deck<OrbitView[]> | null>(null);
 
 function computeCentroid(position: [number, number, number][]) {
@@ -44,7 +48,7 @@ function computeCentroid(position: [number, number, number][]) {
     }, [0, 0, 0]);
     const avg = sum.map(c => c / n);
     if (avg.every(Number.isFinite)) {
-        centroid.value = avg as [number, number, number];
+        deck3DConfigStore.centroid = avg as [number, number, number];
     }
 }
 
@@ -56,30 +60,18 @@ function initDeckInstance() {
 
     deckInstance.value = new DeckImpl<OrbitView[]>({
         parent: deckContainer.value!,
-        views: [new OrbitView({ orbitAxis: 'Z', fovy: 50 })],
-        controller: {
-            type: OrbitController,
-            autoRotate: false,
-            inertia: 0,
-            zoomSpeed: 0.02,
-            rotateSpeed: 0.3,
-            panSpeed: 0.5,
-        } as any,
-        initialViewState: {
-            target: [...centroid.value],
-            zoom: 5,
-            rotationX: 45,
-            rotationOrbit: 30,
-        } as any,
+        views: deck3DConfigStore.views,
+        controller: deck3DConfigStore.controllerProps,
+        initialViewState: deck3DConfigStore.initialViewState,
         layers: [],
+
         onViewStateChange: ({ viewState }) => {
-            zoomRef.value = viewState.zoom;
+            deck3DConfigStore.zoom = viewState.zoom;
         },
-        onClick: (info) => {
-            console.log('Clicked:', info.object);
-        },
-        debug: true,
+        onClick: (info) => console.log('Clicked:', info.object),
+        debug: deck3DConfigStore.debug,
     });
+
 }
 
 async function updatePointCloud() {
@@ -134,12 +126,11 @@ async function updatePointCloud() {
             elevationStore.updateElevationColorMapValues();
             const rgbaArray = elevationStore.elevationColorMap;
 
-            const totalPoints = validRows.length;
             const pointCloudData = validRows.map(d => {
-                const x = scale * (d[lonField] - lonMin) / lonRange;
-                const y = scale * (d[latField] - latMin) / latRange;
-                const z = scale * (d[heightField] - elevMin) / elevRange;
-                const index = Math.floor(z / scale * (rgbaArray.length - 1));
+                const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
+                const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
+                const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
+                const index = Math.floor(z / deck3DConfigStore.scale * (rgbaArray.length - 1));
                 const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
                 const color = [
                     Math.round(rawColor[0]),
@@ -153,7 +144,7 @@ async function updatePointCloud() {
             computeCentroid(pointCloudData.map(p => p.position));
 
             const { width, height } = deckContainer.value!.getBoundingClientRect();
-            fitZoom.value = Math.log2(Math.min(width, height) / scale);
+            deck3DConfigStore.fitZoom = Math.log2(Math.min(width, height) / deck3DConfigStore.scale);
 
             initDeckInstance();
             const layer = new PointCloudLayer({
