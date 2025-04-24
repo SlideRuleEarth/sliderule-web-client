@@ -1,13 +1,32 @@
 <template>
-    <div ref="deckContainer" class="deck-canvas" />
+    <div ref="deckContainer" class="deck-canvas">    
+    </div>
+    <div class="sr-3d-cntrl">
+        <SrDeck3DCfg/>
+        <Button 
+            label="Toggle Axes"
+            icon="pi pi-eye"
+            class="p-button-sm p-mt-2"
+            variant = text
+            rounded
+            @click="handleToggleAxes"
+        />
+        <Button 
+            label="Update View"
+            icon="pi pi-refresh"
+            class="sr-glow-button"
+            variant = text
+            rounded
+            @click="handleUpdateClick"
+        />
+    </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed, watch } from 'vue';
-import type { Deck } from '@deck.gl/core';
-import { Deck as DeckImpl } from '@deck.gl/core';
+import { Deck } from '@deck.gl/core';
 import { PointCloudLayer } from '@deck.gl/layers';
-import { OrbitView } from '@deck.gl/core';
+import { OrbitView, OrbitController } from '@deck.gl/core';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
@@ -17,25 +36,21 @@ import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
+import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
+import Button from 'primevue/button';
+import { createAxesAndLabels } from '@/utils/deckAxes';
+import type { Layer } from '@deck.gl/core';
 
 const deckContainer = ref<HTMLDivElement | null>(null);
 
-
-// const zoomRef = ref(0);
-// const fitZoom = ref(0);
-// const scale = 100;
-
+const viewId = 'main';
 const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
 const fieldStore = useFieldNameStore();
 const deck3DConfigStore = useDeck3DConfigStore();
-
 const reqId = computed(() => recTreeStore.selectedReqId);
-
 const elevationStore = useElevationColorMapStore();
-
-//const centroid = ref<[number, number, number]>([scale / 2, scale / 2, scale / 2]);
-const deckInstance = ref<Deck<OrbitView[]> | null>(null);
+const deckInstance = ref<Deck | null>(null);
 
 function computeCentroid(position: [number, number, number][]) {
     if (!position.length) return;
@@ -50,6 +65,7 @@ function computeCentroid(position: [number, number, number][]) {
     if (avg.every(Number.isFinite)) {
         deck3DConfigStore.centroid = avg as [number, number, number];
     }
+    console.log('Centroid:', deck3DConfigStore.centroid);
 }
 
 function initDeckInstance() {
@@ -58,19 +74,46 @@ function initDeckInstance() {
         deckInstance.value = null;
     }
 
-    deckInstance.value = new DeckImpl<OrbitView[]>({
+    deckInstance.value = new Deck({
         parent: deckContainer.value!,
-        views: deck3DConfigStore.views,
-        controller: deck3DConfigStore.controllerProps,
-        initialViewState: deck3DConfigStore.initialViewState,
-        layers: [],
+        views: [
+            new OrbitView({
+                id: viewId,
+                orbitAxis: deck3DConfigStore.orbitAxis,
+                fovy: deck3DConfigStore.fovy           
+            })
+        ],
+        controller: {
+            type: OrbitController,
+            inertia:    deck3DConfigStore.inertia,
+            // wheel zoom speed & easing
+            scrollZoom: {
+                speed: deck3DConfigStore.zoomSpeed,   // your desired wheel zoom multiplier
+                smooth: false                         // or true if you want easing
+            },
 
-        onViewStateChange: ({ viewState }) => {
-            deck3DConfigStore.zoom = viewState.zoom;
+            // keyboard controls (arrow keys & +/-)
+            keyboard: {
+                zoomSpeed:     deck3DConfigStore.zoomSpeed,   // +/- keys
+                moveSpeed:     deck3DConfigStore.panSpeed,    // arrow keys panning
+                rotateSpeedX:  deck3DConfigStore.rotateSpeed, // shift+up/down (pitch)
+                rotateSpeedY:  deck3DConfigStore.rotateSpeed  // shift+left/right (yaw)
+            }
         },
-        onClick: (info) => console.log('Clicked:', info.object),
-        debug: deck3DConfigStore.debug,
-    });
+        initialViewState: {
+            [viewId]: {
+                target:        deck3DConfigStore.centroid,
+                zoom:          deck3DConfigStore.fitZoom,
+                rotationX:     deck3DConfigStore.viewState.rotationX,
+                rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
+            }
+            },        
+        layers: [ /* … */ ],
+        onViewStateChange: ({ viewState }) => {
+            deck3DConfigStore.updateViewState(viewState)
+        },
+        debug: deck3DConfigStore.debug
+    }) as any
 
 }
 
@@ -156,8 +199,14 @@ async function updatePointCloud() {
                 opacity: 0.95,
                 pickable: true,
             });
+            const layers: Layer<any>[] = [layer];
 
-            deckInstance.value?.setProps({ layers: [layer] });
+            if (deck3DConfigStore.showAxes) {
+                const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
+                layers.push(axes, labels);
+            }
+
+            deckInstance.value?.setProps({layers});
         } else {
             toast.warn('No Data Processed', 'No elevation data returned.');
         }
@@ -165,6 +214,16 @@ async function updatePointCloud() {
         console.error('Error loading 3D view:', err);
         toast.error('Error', 'Failed to load elevation data.');
     }
+}
+
+function handleUpdateClick() {
+    console.log('Update View Clicked');
+    updatePointCloud();
+}
+
+function handleToggleAxes() {
+    deck3DConfigStore.showAxes = !deck3DConfigStore.showAxes;
+    updatePointCloud();
 }
 
 onMounted(async () => {

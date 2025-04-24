@@ -58,6 +58,7 @@ function getDefaultElOptions(reqId:number): string[] {
         case 'gedi04ap': options = ['elevation'];
             break;
         case 'gedi01bp': options = ['elevation_start'];
+            break;
         default:
             console.error('Unknown funcStr:',funcStr)
             //throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
