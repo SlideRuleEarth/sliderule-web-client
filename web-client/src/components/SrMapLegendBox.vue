@@ -7,11 +7,11 @@
     </div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
-        {{ globalChartStore.getMin(props.data_key)!== null && globalChartStore.getMin(props.data_key)!== undefined ? globalChartStore.getMin(props.data_key).toFixed(1) : '?' }}
+        {{ globalChartStore.getLow(props.data_key)!== null && globalChartStore.getHigh(props.data_key)!== undefined ? globalChartStore.getLow(props.data_key).toFixed(1) : '?' }}
       </span>
       <span class="sr-legend-name"> {{ props.data_key }} </span>
       <span class="sr-legend-max">
-        {{ globalChartStore.getMax(props.data_key)!== null && globalChartStore.getMax(props.data_key)!== undefined ? globalChartStore.getMax(props.data_key).toFixed(1) : '?' }}
+        {{ globalChartStore.getHigh(props.data_key)!== null && globalChartStore.getHigh(props.data_key)!== undefined ? globalChartStore.getHigh(props.data_key).toFixed(1) : '?' }}
       </span>
     </div>
   </div>

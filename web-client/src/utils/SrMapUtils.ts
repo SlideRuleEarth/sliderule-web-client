@@ -51,6 +51,10 @@ import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 
 
+// This grabs the constructor’s first parameter type
+type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
+
+
 export const polyCoordsExist = computed(() => {
     let exist = false;
     if(useGeoJsonStore().geoJsonData){
@@ -222,13 +226,31 @@ export function disableTagDisplay(): void {
 }
 
 export function formatElObject(obj: { [key: string]: any }): string {
-    // Exclude 'extent_id' and format everything else
-    return Object.entries(obj)
-        .filter(([key]) => key !== 'extent_id')
+    // Format all keys except 'extent_id' and '__rgba'
+    const html = Object.entries(obj)
+        .filter(([key]) => key !== 'extent_id' )
         .map(([key, value]) => formatKeyValuePair(key, value))
         .join('<br>');
+
+    // If we have an injected RGBA tuple, render a color box
+    const rgba = obj.__rgba as [number, number, number, number] | undefined;
+    if (Array.isArray(rgba) && rgba.length === 4) {
+        const [r, g, b, a] = rgba;
+        const alpha = (a / 255).toFixed(2);
+        const rgbaStr = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        const swatch = `<span ` +
+            `style="display:inline-block; width:12px; height:12px; ` +
+                  `background-color:${rgbaStr}; ` +
+                  `border:1px solid #000; margin-right:4px; vertical-align:middle;"` +
+            `></span>`;
+
+        // Append our color line
+        return `${html}<br><strong>Color:</strong> ${swatch}${rgbaStr}`;
+    }
+
+    return html;
 }
-  
+
   
 interface TooltipParams {
     x: number;
@@ -468,7 +490,9 @@ export async function resetFilterUsingSelectedRec(){
     resetFilterRgtOptions();
 }
 
-function createDeckLayer(
+
+
+export function createDeckLayer(
     name: string,
     elevationData: ElevationDataItem[],
     extHMean: ExtHMean,
@@ -480,71 +504,64 @@ function createDeckLayer(
     const elevationColorMapStore = useElevationColorMapStore();
     const deckStore = useDeckStore();
     const highlightPntSize = deckStore.getPointSize() + 1;
-    //console.log(`createDeckLayer ${name} positions:`, positions);
-    // Precompute color for each data point once.
+
+    // 1) Build the color mapper and precompute RGBA per point
     const colorFn = createUnifiedColorMapperRGBA({
         colorMap: elevationColorMapStore.getElevationColorMap(),
         min: extHMean.lowHMean,
         max: extHMean.highHMean,
-        valueAccessor: (d: ElevationDataItem) => d[heightFieldName]
+        valueAccessor: d => d[heightFieldName]
     });
+    const precomputedColors = elevationData.map(colorFn);
 
-    const precomputedColors = elevationData.map(colorFn); // Already returns SrRGBAColor[]
+    // 2) Inject that RGBA tuple into each data object
+    const dataWithColor = elevationData.map((d, i) => ({
+        ...d,
+        __rgba: precomputedColors[i] as [number, number, number, number]
+    }));
 
+    // 3) Decide if this is a “selected” layer
+    const isSelectedLayer = name.includes(SELECTED_LAYER_NAME_PREFIX);
 
-
-    type ScatterplotLayerProps = {
-        getLineWidthUnits?: string;
-        getLineWidth?: number;
-        getLineColor?: (_d: ElevationDataItem) => [number, number, number, number];
-        stroked?: boolean;
-        getFillColor?: (d: any, context: AccessorContext<any>) => SrRGBAColor;
-        filled?: boolean;
-        getCursor?: () => string;
+    // 4) Assemble one big props object, inlining the branch
+    const layerProps = {
+        id:            name,
+        visible:       true,
+        data:          dataWithColor,
+        getPosition:   (_d: any, { index }: { index: number }) => positions[index],
+        getNormal:     [0, 0, 1],
+        getRadius:     highlightPntSize,
+        radiusUnits:   'pixels',
+        pickable:      true,
+        onHover:       onHoverHandler,
+        onClick:       (info: PickingInfo, event?: MjolnirEvent) => {
+            if (info.object) clicked(info.object);
+        },
+        onError:       (error: Error) => console.error(`Error in ScatterplotLayer ${name}:`, error),
+        parameters:    { depthTest: false },
+        ...(isSelectedLayer
+            ? {
+                // stroke-only red outline for selected points
+                stroked:             true,
+                filled:              false,
+                getLineWidthUnits:   'pixels' as const,
+                getLineWidth:        1,
+                getLineColor:        () => [255, 0, 0, 255]
+            }
+            : {
+                // fill with our precomputed color otherwise
+                stroked:     false,
+                filled:      true,
+                getFillColor: (d: any) => (d as any).__rgba,
+                getCursor:    () => 'default'
+            })
     };
 
-    // Conditionally include properties
-    const isSelectedLayer = name.includes(SELECTED_LAYER_NAME_PREFIX);
-    const selectedLayerProps: Partial<ScatterplotLayerProps> = isSelectedLayer
-        ? {
-              getLineWidthUnits: 'pixels',
-              getLineWidth: 1,
-              getLineColor: (_d: ElevationDataItem): [number, number, number, number] => [255, 0, 0, 255], // Explicit type
-              stroked: true,
-              filled: false,
-          }
-        : {
-              getCursor: () => 'default',
-              getFillColor: (d: any, { index }: AccessorContext<any>): SrRGBAColor => precomputedColors[index],
-          };
+    // 5) Instantiate (cast to any so TS won’t complain about missing prop-types)
+    const layer = new ScatterplotLayer(layerProps as any);
 
-    const newLayer = new ScatterplotLayer({
-        id: name,
-        visible: true,
-        data: elevationData,
-        getPosition: (d: ElevationDataItem, { index }): SrPosition => positions[index],
-        getNormal: [0, 0, 1],
-        getRadius: highlightPntSize,
-        radiusUnits: 'pixels',
-        pickable: true,
-        onHover: onHoverHandler,
-        parameters: {
-            depthTest: false
-        },
-        onClick: ({ object, x, y }) => {
-            if (object) {
-                clicked(object);
-            }
-        },
-        onError: (error: Error) => {
-            console.error(`Error in ScatterplotLayer ${name}:`, error);
-        },
-        ...selectedLayerProps // Spread conditionally included properties
-    });
-
-    const endTime = performance.now();
-    console.log(`createDeckLayer took ${endTime - startTime} milliseconds. endTime:`, endTime);
-    return newLayer;
+    console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
+    return layer;
 }
 
 
@@ -610,7 +627,7 @@ const onHoverHandler = isIPhone
                     hideTooltip();
                 }
             }
-};
+    };
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
 export function swapLongLatToLatLong(coordString: string): string {

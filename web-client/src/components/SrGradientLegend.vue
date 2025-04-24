@@ -54,9 +54,9 @@ const useSelectedMinMax = computed(() => {
 const minValue = computed(() => {
   let min;
   if(useSelectedMinMax.value){
-    min = chartStore.getMinValue(props.reqIdStr, props.data_key);
+    min = chartStore.getLow(props.reqIdStr, props.data_key);
   } else {
-    min = globalChartStore.getMin(props.data_key);
+    min = globalChartStore.getLow(props.data_key);
   }
   return (min !== null && min !== undefined) ? parseFloat(min.toFixed(1)) : '?';
 });
@@ -64,9 +64,9 @@ const minValue = computed(() => {
 const maxValue = computed(() => {
   let max;
   if(useSelectedMinMax.value){
-    max = chartStore.getMaxValue(props.reqIdStr, props.data_key);
+    max = chartStore.getHigh(props.reqIdStr, props.data_key);
   } else {
-    max = globalChartStore.getMax(props.data_key);
+    max = globalChartStore.getHigh(props.data_key);
   }
   return (max !== null && max !== undefined) ? parseFloat(max.toFixed(1)) : '?';
 });
