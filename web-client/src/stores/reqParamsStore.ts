@@ -155,8 +155,8 @@ const createReqParamsStore = (id: string) =>
           { label: 'Option 2', value: 'opt2', selected: false, additionalParameter: false },
           { label: 'Option 3', value: 'opt3', selected: false, additionalParameter: false },
         ] as SrMenuMultiCheckInputOption[],
-        degradeFlag: false,
-        l2QualityFlag: false,
+        degradeFlag: true,
+        l2QualityFlag: true,
         l4QualityFlag: false,
         surfaceFlag: false,
         fileOutput: true, // always fetch data as a parquet file
@@ -340,11 +340,13 @@ const createReqParamsStore = (id: string) =>
             req.atl24 = {"confidence_threshold": 0.60}; // default confidence threshold for ATL24
           } else {
             req.asset = this.getAsset();
-            if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
-              req.srt = -1; // and not [-1]
-            } else {
-              if(this.surfaceReferenceType.length>=1){
-                req.srt = this.getSrt();
+            if(this.missionValue === 'ICESat-2') {
+              if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
+                req.srt = -1; // and not [-1]
+              } else {
+                if(this.surfaceReferenceType.length>=1){
+                  req.srt = this.getSrt();
+                }
               }
             }
           }
@@ -356,20 +358,35 @@ const createReqParamsStore = (id: string) =>
               req.H_min_win = this.getMinWindowHeight();
             }
           }
-          if(this.getLengthValue() >= 0.0){
-            req.len = this.getLengthValue();
-          }
-          if(this.getStepValue() >= 0.0){
-            req.res = this.getStepValue();
-          }
-          if(this.getEnableSurfaceElevation()){
-            if(this.getSigmaRmax()>=0.0){
-              req.sigma_r_max = this.getSigmaRmax();
+          if(this.missionValue === 'ICESat-2') {
+            if(this.getLengthValue() >= 0.0){
+              req.len = this.getLengthValue();
             }
-          }
-          if(this.getEnableSurfaceElevation()){
-            if(this.getMaxIterations()>=0){
-              req.maxi = this.getMaxIterations();
+            if(this.getStepValue() >= 0.0){
+              req.res = this.getStepValue();
+            }
+            if(this.getEnableSurfaceElevation()){
+              if(this.getSigmaRmax()>=0.0){
+                req.sigma_r_max = this.getSigmaRmax();
+              }
+            }
+            if(this.getEnableSurfaceElevation()){
+              if(this.getMaxIterations()>=0){
+                req.maxi = this.getMaxIterations();
+              }
+            }
+          } else if(this.missionValue === 'GEDI') {
+            if(this.degradeFlag){
+              req.degrade = true;
+            }
+            if(this.l2QualityFlag){
+              req.l2_quality = true;
+            }
+            if(this.l4QualityFlag){
+              req.l4_quality = true;
+            }
+            if(this.surfaceFlag){
+              req.surface = true;
             }
           }
           if(this.poly && !this.ignorePolygon) {
