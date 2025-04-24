@@ -27,7 +27,6 @@ const toast = useSrToastStore();
 const fieldStore = useFieldNameStore();
 
 const reqId = computed(() => recTreeStore.selectedReqId);
-const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
 
 const elevationStore = useElevationColorMapStore();
 

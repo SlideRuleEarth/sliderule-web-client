@@ -12,7 +12,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl03x': return 'height';
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
-        case 'gedi02ap': return 'elevation_hr';
+        case 'gedi02ap': return 'elevation_lm';
         case 'gedi04ap': return 'elevation';
         case 'gedi01bp': return 'elevation_start';
         default:
@@ -53,7 +53,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
             break;
-        case 'gedi02ap': options = ['elevation_hr'];
+        case 'gedi02ap': options = ['elevation_lm, elevation_hr'];
             break;
         case 'gedi04ap': options = ['elevation'];
             break;
