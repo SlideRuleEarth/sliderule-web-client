@@ -84,7 +84,7 @@ export const useChartStore = defineStore('chartStore', {
                     minMaxLowHigh: {} as MinMaxLowHigh,
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
-                    useSelectedMinMax: false,
+                    useSelectedMinMax: true,
                 };
             }
             return true;

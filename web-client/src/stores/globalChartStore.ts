@@ -370,7 +370,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         return allColumnMinMaxValues.value[column]?.low ?? undefined;
     }
     function getHigh(column: string): number {
-        return allColumnMinMaxValues.value[column]?.max ?? undefined;
+        return allColumnMinMaxValues.value[column]?.high ?? undefined;
     }
     
     return {

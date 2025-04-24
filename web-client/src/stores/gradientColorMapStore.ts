@@ -8,7 +8,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
     return defineStore(`gradientColorMapStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
         const selectedGradientColorMapName = ref('viridis');
-        const numShadesForGradient = ref(256);
+        const numShadesForGradient = ref(512);
         const gradientColorMapRGBA = ref<number[][]>([]);
         const gradientColorMap = computed(() =>
             gradientColorMapRGBA.value.map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a})`)
