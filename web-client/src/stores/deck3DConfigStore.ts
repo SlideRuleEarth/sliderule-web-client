@@ -1,88 +1,48 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { OrbitView, OrbitController } from '@deck.gl/core';
+// stores/deck3DConfigStore.ts
+import { defineStore } from 'pinia'
+import { ref, reactive } from 'vue'
+import type { OrbitViewState } from '@deck.gl/core'
 
-/**
- * Pinia store for Deck configuration parameters
- * (numbers and booleans extracted from DeckImpl options)
- */
 export const useDeck3DConfigStore = defineStore('deckConfig', () => {
-    // a fixed ID for our single OrbitView
-    const viewId = 'main';
+  // — STATIC CONFIGURATION —
+  const fovy        = ref(50)
+  const orbitAxis   = ref<'Z'|'Y'>('Z')
+  const inertia     = ref(0)
+  const zoomSpeed   = ref(0.02)
+  const rotateSpeed = ref(0.3)
+  const panSpeed    = ref(0.5)
+  const scale       = ref(100)
+  const centroid    = ref<[number,number,number]>([scale.value/2,scale.value/2,scale.value/2])
+  const debug       = ref(false)
+  const fitZoom     = ref<number>(0.0)
+  const showAxes    = ref(false);
 
-    // OrbitView parameters
-    const fovy = ref<number>(50);
-    const orbitAxis = ref<'Z' | 'Y'>('Z');
+  // — LIVE VIEW STATE —
+  // these will be updated in onViewStateChange
+  const viewState = reactive<OrbitViewState>({
+    target: [ ...centroid.value ],
+    zoom:        5,
+    rotationX:  45,
+    rotationOrbit: 30
+  })
 
-    // Controller parameters
-    const autoRotate = ref<boolean>(false);
-    const inertia = ref<number>(0);
-    const zoomSpeed = ref<number>(0.02);
-    const rotateSpeed = ref<number>(0.3);
-    const panSpeed = ref<number>(0.5);
+  function updateViewState(vs: OrbitViewState) {
+    viewState.zoom           = vs.zoom
+    viewState.rotationX      = vs.rotationX!
+    viewState.rotationOrbit  = vs.rotationOrbit!
+    viewState.target         = [ ...vs.target! ]
+  }
 
-    // Initial view state parameters
-    const zoom = ref<number>(5);
-    const fitZoom = ref<number>(0);
-    const rotationX = ref<number>(45);
-    const rotationOrbit = ref<number>(30);
-    const scale = ref<number>(100);
-    const centroid = ref<[number, number, number]>([
-        scale.value / 2,
-        scale.value / 2,
-        scale.value / 2,
-    ]);
-
-    // Debug flag
-    const debug = ref<boolean>(true);
-
-    // Computed props for controller
-    const controllerProps = computed(() => ({
-        type: OrbitController,
-        autoRotate: autoRotate.value,
-        inertia: inertia.value,
-        zoomSpeed: zoomSpeed.value,
-        rotateSpeed: rotateSpeed.value,
-        panSpeed: panSpeed.value,
-    }));
-
-    // Computed array of OrbitView instances, including matching id
-    const views = computed(() => [
-        new OrbitView({
-            id: viewId,
-            orbitAxis: orbitAxis.value,
-            fovy: fovy.value,
-        }),
-    ]);
-
-    // Computed mapping of viewId to its initial state
-    const initialViewState = computed(() => ({
-        [viewId]: {
-            target: [...centroid.value] as [number, number, number],
-            zoom: zoom.value,
-            rotationX: rotationX.value,
-            rotationOrbit: rotationOrbit.value,
-        },
-    }));
-
-    return {
-        viewId,
-        fovy,
-        orbitAxis,
-        autoRotate,
-        inertia,
-        zoomSpeed,
-        rotateSpeed,
-        panSpeed,
-        zoom,
-        fitZoom,
-        rotationX,
-        rotationOrbit,
-        scale,
-        centroid,
-        debug,
-        controllerProps,
-        views,
-        initialViewState,
-    };
-});
+  return {
+    // static
+    fovy, orbitAxis,
+    inertia, zoomSpeed, rotateSpeed, panSpeed,
+    scale, centroid,
+    fitZoom,
+    debug,
+    showAxes,
+    // dynamic
+    viewState,
+    updateViewState,
+  }
+})

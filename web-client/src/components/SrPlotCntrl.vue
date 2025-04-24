@@ -1,6 +1,6 @@
 <template>
     <Fieldset :legend="computedLabel">
-        <div>
+        <div class="sr-fieldset-box">
             <div class="sr-num-of-pnts" v-if="props.isOverlay">
                <Chip>Photon Cloud</Chip>
             </div>
@@ -234,6 +234,9 @@ const isTimeSeries = computed(() => {
     } else {
         return false;
     }
+});
+const isGedi = computed(() => {
+    return (fieldNameStore.getMissionForReqId(recTreeStore.selectedReqId) === 'GEDI');
 });
 
 onMounted(async () => {
