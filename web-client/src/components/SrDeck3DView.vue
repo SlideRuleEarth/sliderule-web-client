@@ -268,9 +268,10 @@ watch(reqId, async (newVal, oldVal) => {
     position: relative; /* ✅ ensures canvas stays in scroll flow */
     display: block;
     width: 100%;
-    height: 400px;
+    height: 60vh;
+    min-height: 400px;
     background: #111;
-    border: 1px solid #ccc; 
+    /* border: 1px solid #ccc;  */
     overflow: auto; /* if you want scrollbars */
 }
 </style>
