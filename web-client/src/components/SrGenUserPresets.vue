@@ -14,7 +14,7 @@ const boxes = [
   { id: 5, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
   { id: 6, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Aboveground Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
   { id: 7, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Elevations w/Canopy", description: "For geolocated elevation w/Canopy heights", image: "/SrInlandWater.webp" },
-  { id: 8, hide: (true && !useAdvancedModeStore().getAdvanced()), name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
+  { id: 8, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
 ];
 
 const selectBox = (boxId: number) => {

@@ -13,7 +13,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         atl03x: 350,
         atl03vp: 350,
         atl24x:  1000,
-        gedi01bp: 10000,
+        gedi01bp: 200,
         gedi02ap: 10000,
         gedi04ap: 10000,
     })
@@ -27,7 +27,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         atl03x: 100,
         atl03vp: 100,
         atl24x:  750,
-        gedi01bp: 5000,
+        gedi01bp: 100,
         gedi02ap: 5000,
         gedi04ap: 5000,
     })
