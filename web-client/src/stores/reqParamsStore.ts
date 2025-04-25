@@ -28,7 +28,7 @@ const createReqParamsStore = (id: string) =>
         missionValue: 'ICESat-2' as string,
         missionItems:['ICESat-2','GEDI'] as string[],
         iceSat2SelectedAPI: 'atl06p' as string,
-        iceSat2APIsItems: ['atl06p','atl06sp','atl03sp','atl03x','atl03vp','atl08p','atl24x'] as string[],
+        iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x'] as string[],
         gediSelectedAPI: 'gedi01bp' as string,
         gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
         using_worker: false,
@@ -67,9 +67,9 @@ const createReqParamsStore = (id: string) =>
         readTimeoutValue: 601,
         //enableExtents: false,
         useLength:false,
-        lengthValue: 41,
+        lengthValue: 40,
         useStep:false,
-        stepValue: 21,
+        stepValue: 20,
         confidenceValue: 4,
         iterationsValue: 6,
         spreadValue: 20.0,
@@ -341,11 +341,13 @@ const createReqParamsStore = (id: string) =>
           } else {
             req.asset = this.getAsset();
             if(this.missionValue === 'ICESat-2') {
-              if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
-                req.srt = -1; // and not [-1]
-              } else {
-                if(this.surfaceReferenceType.length>=1){
-                  req.srt = this.getSrt();
+              if(this.enableAtl03Confidence) {
+                if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
+                  req.srt = -1; // and not [-1]
+                } else {
+                  if(this.surfaceReferenceType.length>=1){
+                    req.srt = this.getSrt();
+                  }
                 }
               }
             }
@@ -359,18 +361,16 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.missionValue === 'ICESat-2') {
-            if(this.getLengthValue() >= 0.0){
-              req.len = this.getLengthValue();
-            }
-            if(this.getStepValue() >= 0.0){
-              req.res = this.getStepValue();
-            }
             if(this.getEnableSurfaceElevation()){
-              if(this.getSigmaRmax()>=0.0){
-                req.sigma_r_max = this.getSigmaRmax();
+              if(this.getLengthValue() >= 0.0){
+                req.len = this.getLengthValue();
               }
-            }
-            if(this.getEnableSurfaceElevation()){
+              if(this.getStepValue() >= 0.0){
+                req.res = this.getStepValue();
+              }
+                if(this.getSigmaRmax()>=0.0){
+                  req.sigma_r_max = this.getSigmaRmax();
+              }
               if(this.getMaxIterations()>=0){
                 req.maxi = this.getMaxIterations();
               }
