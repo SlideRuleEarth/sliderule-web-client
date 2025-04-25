@@ -13,6 +13,7 @@
             :min="0" :max="20"
             id="liveZoom"
             :disabled="true"
+            size="small" 
           />
         </div>
         <div class="config-item">
@@ -22,6 +23,7 @@
             :min="0" :max="90"
             id="liveRotX"
             :disabled="true"
+            size="small" 
           />
         </div>
         <div class="config-item">
@@ -31,6 +33,7 @@
             :min="0" :max="360"
             id="liveRotO"
             :disabled="true"
+            size="small" 
           />
         </div>
         <div class="config-item">
@@ -42,6 +45,7 @@
               v-model="store.viewState.target[i]"
               :disabled="true"
               class="centroid-num"
+              size="small" 
             />
           </div>
         </div>
@@ -52,16 +56,17 @@
         <h4>View</h4>
         <div class="config-item">
           <label for="fovy">Field of View (°)</label>
-          <InputNumber v-model="store.fovy" :min="1" :max="180" id="fovy"/>
+          <InputNumber v-model="store.fovy" :min="1" :max="180" size="small" id="fovy"/>
         </div>
         <div class="config-item">
           <label for="orbitAxis">Orbit Axis</label>
-          <Dropdown
+          <Select
             v-model="store.orbitAxis"
             :options="orbitAxisOptions"
             optionLabel="label"
             optionValue="value"
             id="orbitAxis"
+            size="small"
           />
         </div>
       </section>
@@ -108,7 +113,7 @@
   import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
   import InputNumber from 'primevue/inputnumber'
   import Checkbox from 'primevue/checkbox'
-  import Dropdown from 'primevue/dropdown'
+  import Select from 'primevue/select'
   import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
   
   const store = useDeck3DConfigStore()

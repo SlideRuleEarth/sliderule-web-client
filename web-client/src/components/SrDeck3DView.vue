@@ -2,7 +2,6 @@
     <div ref="deckContainer" class="deck-canvas">    
     </div>
     <div class="sr-3d-cntrl">
-        <SrDeck3DCfg/>
         <Button 
             label="Toggle Axes"
             icon="pi pi-eye"
@@ -19,6 +18,7 @@
             rounded
             @click="handleUpdateClick"
         />
+        <SrDeck3DCfg/>
     </div>
 </template>
 
@@ -69,10 +69,14 @@ function computeCentroid(position: [number, number, number][]) {
 }
 
 function initDeckInstance() {
+    console.log('Initializing Deck Instance viewId:', viewId);
+
     if (deckInstance.value) {
         deckInstance.value.finalize();
         deckInstance.value = null;
     }
+    console.log('deckContainer:', deckContainer.value);
+    console.log('container rect:', deckContainer.value?.getBoundingClientRect());
 
     deckInstance.value = new Deck({
         parent: deckContainer.value!,
@@ -186,9 +190,7 @@ async function updatePointCloud() {
 
             computeCentroid(pointCloudData.map(p => p.position));
 
-            const { width, height } = deckContainer.value!.getBoundingClientRect();
-            deck3DConfigStore.fitZoom = Math.log2(Math.min(width, height) / deck3DConfigStore.scale);
-
+            //console.log('Fit Zoom:', computedFitZoom.value);
             initDeckInstance();
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
@@ -228,13 +230,27 @@ function handleToggleAxes() {
 
 onMounted(async () => {
     updateMapAndPlot(false);
-    await nextTick();
+    await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
-    await nextTick();
+    await nextTick(); // makes sure the gradient is available
+    console.log('onMounted Centroid:', deck3DConfigStore.centroid);
+    const { width, height } = deckContainer.value!.getBoundingClientRect();
+    deck3DConfigStore.fitZoom = Math.log2(Math.min(width, height) / deck3DConfigStore.scale);
+    //console.log('onMounted fitZoom:', deck3DConfigStore.fitZoom);
+    //console.log('onMounted Deck container size:', deckContainer.value?.getBoundingClientRect());
+
+    if (deckContainer.value) {
+        const { width, height } = deckContainer.value.getBoundingClientRect();
+        if (width === 0 || height === 0) {
+            console.warn('onMounted Deck container has zero dimensions!');
+        }
+    }
+
     if (elevationStore.elevationColorMap.length > 0) {
         await updatePointCloud();
     } else {
-        toast.warn('No Gradient', 'Skipping point cloud due to missing gradient.');
+        console.error('No color Gradient');
+        toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.');
     }
     toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.');
 });
@@ -249,8 +265,12 @@ watch(reqId, async (newVal, oldVal) => {
 
 <style scoped>
 .deck-canvas {
+    position: relative; /* ✅ ensures canvas stays in scroll flow */
+    display: block;
     width: 100%;
-    height: 600px;
+    height: 400px;
     background: #111;
+    border: 1px solid #ccc; 
+    overflow: auto; /* if you want scrollbars */
 }
 </style>

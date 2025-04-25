@@ -748,8 +748,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
   position: relative; /* Allows absolutely-positioned children to overlay */
   width: 100%;
   height: 60vh; /* or whatever size you want */
-  margin: 0rem;
-  padding: 0rem;
+  margin: 0.25rem;
+  padding: 0.25rem;
 }
 
 :deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
