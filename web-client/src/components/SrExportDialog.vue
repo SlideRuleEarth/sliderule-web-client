@@ -172,6 +172,49 @@ function safeCsvCell(val: any): string {
     return JSON.stringify(val);
 }
 
+function createObjectUrlStream(mimeType: string, suggestedName: string) {
+    const chunks: Uint8Array[] = [];
+
+    const writable = new WritableStream<Uint8Array>({
+        write(chunk) {
+            chunks.push(chunk);
+        },
+        close() {
+            const blob = new Blob(chunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = suggestedName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 1000);
+        },
+        abort(reason) {
+            console.error('Stream aborted:', reason);
+        }
+    });
+
+    const writer = writable.getWriter();
+    return { writable, writer };  // ✅ No promise here
+}
+
+async function getWritableFileStream(suggestedName: string, mimeType: string): Promise<WritableStreamDefaultWriter<Uint8Array> | null> {
+    if (typeof showSaveFilePicker !== 'undefined') {
+        const picker = await showSaveFilePicker({
+            suggestedName,
+            types: [{ description: mimeType, accept: { [mimeType]: [`.${suggestedName.split('.').pop()}`] } }],
+        });
+        const writable = await picker.createWritable();
+        return writable.getWriter();
+    } else {
+        const { writer } = createObjectUrlStream(mimeType, suggestedName);
+        return writer;
+    }
+}
+
 async function exportParquet(fileName: string) {
     console.log('exportParquet fileName:', fileName);
     const opfsRoot = await navigator.storage.getDirectory();
@@ -182,19 +225,11 @@ async function exportParquet(fileName: string) {
 
     const blob = new Blob([await file.arrayBuffer()], { type: 'application/octet-stream' });
 
-    const picker = await showSaveFilePicker({
-        suggestedName: `${fileName}`,
-        types: [
-            {
-                description: 'Parquet Files',
-                accept: { 'application/octet-stream': ['.parquet'] },
-            },
-        ],
-    });
+    const writer = await getWritableFileStream(fileName, 'application/octet-stream');
+    if (!writer) return;
 
-    const stream = await picker.createWritable();
-    await stream.write(blob);
-    await stream.close();
+    await writer.write(new Uint8Array(await blob.arrayBuffer()));
+    await writer.close();
 }
 
 async function exportGeoParquet(fileName: string) {
@@ -203,17 +238,8 @@ async function exportGeoParquet(fileName: string) {
     const options = urlOptions.options;
     console.log('exportGeoParquet url:', url, 'options:', options, 'reqId:', props.reqId, 'fileName:', fileName);
 
-    const picker = await showSaveFilePicker({
-        suggestedName: `${fileName}_GEO`,
-        types: [
-            {
-                description: 'GeoParquet Files',
-                accept: { 'application/octet-stream': ['.parquet'] },
-            },
-        ],
-    });
-
-    const stream = await picker.createWritable();
+    const writer = await getWritableFileStream(`${fileName}_GEO.parquet`, 'application/octet-stream');
+    if (!writer) return;
 
     try {
         const response = await fetch(url, {
@@ -230,7 +256,6 @@ async function exportGeoParquet(fileName: string) {
         }
 
         const reader = response.body.getReader();
-        const writer = stream.getWriter();
 
         while (true) {
             const { done, value } = await reader.read();
@@ -247,10 +272,9 @@ async function exportGeoParquet(fileName: string) {
             detail: error instanceof Error ? error.message : 'Unknown error',
             life: 5000,
         });
-        await stream.abort();
+        await writer.abort();
     }
 }
-
 
 async function exportCsvStreamed(fileName: string) {
     const duck = await createDuckDbClient();
@@ -260,30 +284,24 @@ async function exportCsvStreamed(fileName: string) {
     const encoder = new TextEncoder();
     const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
     console.log(`Exporting ${fileName} with columns:`, columns, 'and row count:', rowCount.value);
-    const picker = await showSaveFilePicker({
-        suggestedName: `${fileName}.csv`,
-        types: [
-            {
-                description: 'CSV Files',
-                accept: { 'text/csv': ['.csv'] },
-            },
-        ],
-    });
 
-    const writable = await picker.createWritable();
-    await writable.write(encoder.encode(columns.join(',') + '\n'));
+    const writer = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
+    if (!writer) return;
+
+    await writer.write(encoder.encode(columns.join(',') + '\n'));
 
     for await (const rows of readRows(1000)) {
         const chunk = rows.map(row =>
             columns.map(col => safeCsvCell(row[col])).join(',')
         ).join('\n') + '\n';
 
-        await writable.write(encoder.encode(chunk));
+        await writer.write(encoder.encode(chunk));
         await new Promise(r => setTimeout(r, 0));
     }
 
-    await writable.close();
+    await writer.close();
 }
+
 </script>
 
 <style scoped>
