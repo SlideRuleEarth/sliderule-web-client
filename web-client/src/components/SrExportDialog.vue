@@ -198,22 +198,42 @@ function createObjectUrlStream(mimeType: string, suggestedName: string) {
     });
 
     const writer = writable.getWriter();
-    return { writable, writer };  // ✅ No promise here
+    return { writable, writer };  
 }
 
-async function getWritableFileStream(suggestedName: string, mimeType: string): Promise<WritableStreamDefaultWriter<Uint8Array> | null> {
-    if (typeof showSaveFilePicker !== 'undefined') {
-        const picker = await showSaveFilePicker({
-            suggestedName,
-            types: [{ description: mimeType, accept: { [mimeType]: [`.${suggestedName.split('.').pop()}`] } }],
-        });
-        const writable = await picker.createWritable();
-        return writable.getWriter();
-    } else {
-        const { writer } = createObjectUrlStream(mimeType, suggestedName);
-        return writer;
+async function getWritableFileStream(
+    suggestedName: string,
+    mimeType: string
+): Promise<WritableStreamDefaultWriter<Uint8Array> | null> {
+    const w = window as any;
+
+    const canUseFilePicker = typeof w.showSaveFilePicker !== 'undefined' && typeof w.FileSystemWritableFileStream !== 'undefined';
+
+    if (canUseFilePicker) {
+        try {
+            const picker = await w.showSaveFilePicker({
+                suggestedName,
+                types: [{ description: mimeType, accept: { [mimeType]: [`.${suggestedName.split('.').pop()}`] } }],
+            });
+
+            if (picker && typeof picker.createWritable === 'function') {
+                const writable = await picker.createWritable();
+                return writable.getWriter();
+            } else {
+                console.warn('showSaveFilePicker picker returned without createWritable. Falling back to download.');
+            }
+        } catch (err) {
+            console.warn('showSaveFilePicker failed, falling back to download:', err);
+        }
     }
+
+    // fallback
+    const { writer } = createObjectUrlStream(mimeType, suggestedName);
+    return writer;
 }
+
+
+
 
 async function exportParquet(fileName: string) {
     console.log('exportParquet fileName:', fileName);
