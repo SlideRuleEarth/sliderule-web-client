@@ -4,6 +4,10 @@ import { ref, reactive } from 'vue'
 import type { OrbitViewState } from '@deck.gl/core'
 
 export const useDeck3DConfigStore = defineStore('deckConfig', () => {
+
+  const deckContainer = ref<HTMLDivElement | null>(null);
+
+
   // — STATIC CONFIGURATION —
   const fovy        = ref(50)
   const orbitAxis   = ref<'Z'|'Y'>('Z')
@@ -43,6 +47,8 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     showAxes,
     // dynamic
     viewState,
+    deckContainer,
+    // methods
     updateViewState,
   }
 })
