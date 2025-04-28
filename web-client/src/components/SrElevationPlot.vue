@@ -989,16 +989,6 @@ fieldset {
     }
 }
 
-.sr-ydata-menu {
-    display: inline-flex; /* Allow the container to shrink-wrap its content */
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start; /* Align content to the left */
-    gap: 0.5rem; /* Add spacing between elements */
-    width: auto; /* Let the container size itself based on the content */
-    padding: 0.5rem; /* Optional: Add some padding for spacing */
-}
-
 .loading-indicator {
   margin-left: 1rem;
   margin-bottom: 0.5rem;

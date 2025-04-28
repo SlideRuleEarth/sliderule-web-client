@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path if needed
 import { useChartStore } from './chartStore';
 
+const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']); 
+const curGedi2apElevationField = ref('elevation_lm'); 
+
 function getHFieldNameForAPIStr(funcStr: string): string {
     switch (funcStr) {
         case 'atl06p': return 'h_mean';
@@ -12,7 +15,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl03x': return 'height';
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
-        case 'gedi02ap': return 'elevation_lm';
+        case 'gedi02ap': return curGedi2apElevationField.value;
         case 'gedi04ap': return 'elevation';
         case 'gedi01bp': return 'elevation_start';
         default:
@@ -53,7 +56,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
             break;
-        case 'gedi02ap': options = ['elevation_lm, elevation_hr'];
+        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'beam'];
             break;
         case 'gedi04ap': options = ['elevation'];
             break;
@@ -107,7 +110,7 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
     }
 }
 
-export const useFieldNameStore = defineStore('fieldNameCache', () => {
+export const useFieldNameStore = defineStore('fieldNameStore', () => {
     const hFieldCache = ref<Record<number, string>>({});
     const latFieldCache = ref<Record<number, string>>({});
     const lonFieldCache = ref<Record<number, string>>({});
@@ -157,6 +160,8 @@ export const useFieldNameStore = defineStore('fieldNameCache', () => {
         getDefaultElOptions,
         getMissionForReqId,
         getMissionFromApiStr,
+        curGedi2apElFieldOptions,
+        curGedi2apElevationField,
         // for debugging/testing
         hFieldCache,
         latFieldCache,

@@ -2,7 +2,9 @@
 import Fieldset from "primevue/fieldset";
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
-import { callPlotUpdateDebounced, refreshScatterPlot } from "@/utils/plotUtils";
+import Select from "primevue/select";
+import { SelectChangeEvent } from "primevue/select";
+import { refreshScatterPlot, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
@@ -12,13 +14,18 @@ import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { useToast } from "primevue";
+import { useActiveTabStore } from "@/stores/activeTabStore";
+import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
+import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
+import { updateMapAndPlot } from '@/utils/SrMapUtils';
 
 const globalChartStore = useGlobalChartStore();
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const chartStore = useChartStore();
-const fieldNameCacheStore = useFieldNameStore();
+const fieldNameStore = useFieldNameStore();
+const deck3DConfigStore = useDeck3DConfigStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -52,14 +59,28 @@ const computedMainLabel = computed(() => {
     return `Available data options for ${findReqMenuLabel(props.reqId)}`;
 });
 
+const deckContainer = computed(() => deck3DConfigStore.deckContainer);
+
+
 async function onMainYDataSelectionChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    await callPlotUpdateDebounced('from onMainYDataSelectionChange');
+    await updatePlotAndSelectedTrackMapLayer('from onMainYDataSelectionChange');
 }
 
 async function onUseSelectedMinMaxChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    await callPlotUpdateDebounced('from onUseSelectedMinMaxChange');
+    await updatePlotAndSelectedTrackMapLayer('from onUseSelectedMinMaxChange');
+}
+
+
+async function handleGediFieldNameChange(event: SelectChangeEvent) {
+    console.log("Gedi El Data changed:", event.value);
+    if(useActiveTabStore().isActiveTabLabel('3-D View')){
+        await updateMapAndPlot(false);       
+        await update3DPointCloud(props.reqId,deckContainer);
+    } else if(useActiveTabStore().isActiveTabLabel('Elevation Plot')) {
+        await updatePlotAndSelectedTrackMapLayer('from handleGediFieldNameChange');
+    }
 }
 
 onMounted(() => {
@@ -73,8 +94,8 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     if (!oldValue && newVal) {
         console.log('SrPlotConfig watch enableLocationFinder:', newVal);
 
-        const latField = fieldNameCacheStore.getLatFieldName(props.reqId);
-        const lonField = fieldNameCacheStore.getLonFieldName(props.reqId);
+        const latField = fieldNameStore.getLatFieldName(props.reqId);
+        const lonField = fieldNameStore.getLonFieldName(props.reqId);
         const selectedElRec = globalChartStore.getSelectedElevationRec();
         if(selectedElRec){
             // initialize to selected point on map then update later from plot tooltip formatter
@@ -113,7 +134,7 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     :toggleable="true" 
     :collapsed="true"
 >
-    <div class="sr-select-Ydata-options">
+    <div class="sr-select-gedi02a-el-options">
         <FloatLabel >
             <MultiSelect class="sr-multiselect"
                 :placeholder="`${computedMainLabel}`"
@@ -140,15 +161,27 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
             v-if="(!props.isOverlay)" 
             class="sr-use-selected-min-max"
             :defaultValue="false"
-            label="Use selected track min/max for legend"
+            label="Use selected track min/max for gradient legend"
             labelFontSize="small"
             tooltipText="Use the selected track min/max for legend instead of the global min/max"
             v-model="showUseSelectedMinMaxReactive[computedReqIdStr]"
             size="small" 
             @update:modelValue="onUseSelectedMinMaxChange"
 
-        />              
-             
+        />
+        <div class="sr-ged02ap-el-select" v-if="recTreeStore.selectedApi == 'gedi02ap'">
+            <label class="sr-ged02ap-elevation-label":for="`sr-ged02ap-elevation-field-select`">Gedi02a Elevation to use</label> 
+            <Select 
+                class="sr-ged02ap-elevation-field-select"
+                v-model="fieldNameStore.curGedi2apElevationField"
+                :options="fieldNameStore.curGedi2apElFieldOptions"
+                @change="handleGediFieldNameChange"
+                placeholder="Select Y data"
+                :id="`srYdataItems-overlayed-${reqId}`"
+                size="small"
+            >
+            </Select> 
+        </div> 
     </div>
 
 </Fieldset>
@@ -185,7 +218,7 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     min-width: 30rem;
 }
 
-.sr-select-Ydata-options {
+.sr-select-gedi02a-el-options {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -194,6 +227,22 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     margin-bottom: 0.25rem;
     width: 100%;
 }
+
+.sr-ged02ap-el-select {
+    display: inline-flex; /* Allow the container to shrink-wrap its content */
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+    gap: 0.5rem; /* Add spacing between elements */
+    width: auto; /* Let the container size itself based on the content */
+}
+
+.sr-ged02ap-elevation-label {
+    font-size: 0.875rem; /* Adjust the font size as needed */
+    margin-bottom: 0.5rem; /* Add some space below the label */
+
+}
+
 .sr-select-color-map {
     display: flex;
     flex-direction: column;
