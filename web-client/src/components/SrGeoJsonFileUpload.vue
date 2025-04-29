@@ -14,6 +14,7 @@ import type { SrRegion } from "@/sliderule/icesat2"
 import { Map as OLMapType} from "ol";
 import { Layer as OLlayer } from 'ol/layer';
 import { useMapStore } from '@/stores/mapStore';
+import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -33,9 +34,10 @@ const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 //////////////
 
-const customUploader = async (event: { files: File[] }) => {
+const customUploader = async (event: FileUploadUploaderEvent) => {
     console.log('GeoJson customUploader event:', event);
-    const file = event.files[0];
+    const files = Array.isArray(event.files) ? event.files : [event.files];
+    const file = files[0];
     if (file) {
         const reader = new FileReader();
         reader.readAsText(file);
@@ -82,7 +84,7 @@ const customUploader = async (event: { files: File[] }) => {
                                         }
                                     };
                                     const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
-                                    drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),false,false,label); // with Fill and overlayExisting
+                                    drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),false,true,label); // with Fill and overlayExisting
                                     reqParamsStore.poly = reqParamsStore.convexHull; 
                                 } else {
                                     console.error('Error parsing GeoJSON:', e.target.result);
