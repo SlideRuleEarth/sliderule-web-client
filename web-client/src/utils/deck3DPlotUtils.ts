@@ -167,7 +167,7 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 data: pointCloudData,
                 getPosition: d => d.position,
                 getColor: d => d.color,
-                pointSize: 0.5,
+                pointSize: deck3DConfigStore.pointSize,
                 opacity: 0.95,
                 pickable: true,
             });
