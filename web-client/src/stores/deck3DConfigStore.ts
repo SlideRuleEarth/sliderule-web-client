@@ -20,6 +20,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const debug       = ref(false)
   const fitZoom     = ref<number>(0.0)
   const showAxes    = ref(false);
+  const pointSize   = ref(0.5);
 
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
@@ -48,6 +49,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     // dynamic
     viewState,
     deckContainer,
+    pointSize,
     // methods
     updateViewState,
   }

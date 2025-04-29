@@ -5,7 +5,7 @@
         <Button 
             label="Toggle Axes"
             icon="pi pi-eye"
-            class="p-button-sm p-mt-2"
+            class="sr-glow-button"
             variant = text
             rounded
             @click="handleToggleAxes"
@@ -17,6 +17,19 @@
             variant = text
             rounded
             @click="handleUpdateClick"
+        />
+        <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
+        <InputNumber
+            v-model="deck3DConfigStore.pointSize"
+            inputId="pointSizeId"
+            size="small"
+            :step="0.5"
+            :min="0.1"
+            :max="10"
+            showButtons
+            :defaultValue="deck3DConfigStore.pointSize"
+            :decimalPlaces=0
+            @value-change="handlePointSizeChange"
         />
         <SrDeck3DCfg/>
     </div>
@@ -31,6 +44,7 @@ import { updateMapAndPlot } from '@/utils/SrMapUtils';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
+import { InputNumber } from 'primevue';
 import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
 
 
@@ -50,6 +64,11 @@ function handleUpdateClick() {
 
 function handleToggleAxes() {
     deck3DConfigStore.showAxes = !deck3DConfigStore.showAxes;
+    update3DPointCloud(reqId.value,deckContainerStored);
+}
+
+function handlePointSizeChange() {
+    console.log('Point Size Changed:', deck3DConfigStore.pointSize);
     update3DPointCloud(reqId.value,deckContainerStored);
 }
 
@@ -103,4 +122,12 @@ watch(reqId, async (newVal, oldVal) => {
     /* border: 1px solid #ccc;  */
     overflow: auto; /* if you want scrollbars */
 }
+  /* Override PrimeVue component widths */
+  :deep(.p-inputnumber-input) {
+    width: 7rem;
+  }
+  .sr-pnt-sz-label{
+    font-size: small;
+    margin-right: 0.5rem;
+  }
 </style>

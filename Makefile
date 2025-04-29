@@ -27,9 +27,8 @@ live-update: build # Update the web client in the S3 bucket and invalidate the C
 	export VITE_LIVE_UPDATE_DATE=$$(date +"%Y-%m-%d %T"); \
 	echo "VITE_LIVE_UPDATE_DATE=$$VITE_LIVE_UPDATE_DATE" && \
 	echo "S3_BUCKET=$(S3_BUCKET)" && \
-	aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
-	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*" 
-
+	AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
+	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*"
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
 	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org
 
