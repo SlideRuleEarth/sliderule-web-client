@@ -78,25 +78,25 @@ const initGradientPosition = () => {
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
 
-    console.log('SrTimeSeries initGradientPosition:', {
-        windowScrollX,
-        windowScrollY,
-        fontSize: globalChartStore.fontSize,
-        topOffset,
-        endOfTitle,
-        middleHorizontalOffset,
-        middleX,
-        leftLegendOffset,        
-        assumedTitleWidth,
-        spaceSize,
-        centerOfLegend,    
-        top,
-        left,
-        rect_top,
-        rect_left,
-        rect_right,
-        rect_bottom
-    });
+    // console.log('SrTimeSeries initGradientPosition:', {
+    //     windowScrollX,
+    //     windowScrollY,
+    //     fontSize: globalChartStore.fontSize,
+    //     topOffset,
+    //     endOfTitle,
+    //     middleHorizontalOffset,
+    //     middleX,
+    //     leftLegendOffset,        
+    //     assumedTitleWidth,
+    //     spaceSize,
+    //     centerOfLegend,    
+    //     top,
+    //     left,
+    //     rect_top,
+    //     rect_left,
+    //     rect_right,
+    //     rect_bottom
+    // });
 
     gradientDialogStyle.value = {
         backgroundColor: 'rgba(255, 255, 255, 0)',
@@ -133,7 +133,7 @@ onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
         globalChartStore.use_y_atc_filter = true;
-
+        chartStore.setUseSelectedMinMax(recTreeStore.selectedReqIdStr, true);
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
