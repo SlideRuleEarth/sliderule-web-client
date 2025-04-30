@@ -8,3 +8,49 @@
     border-color: var(--primary-color);
     box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
 }
+
+.introjs-tooltip {
+    font-family: var(--font-family);
+    background-color: var(--p-surface-card);
+    color: var(--p-text-color);
+    border: 1px solid var(--p-border-color);
+    box-shadow: var(--p-shadow-3);
+}
+
+.introjs-tooltipbuttons {
+    text-align: right;
+}
+
+.introjs-button {
+    background-color: var(--p-primary-color);
+    border: none;
+    color: var(--p-primary-text-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.introjs-button:hover {
+    filter: brightness(90%);
+}
+
+.sr-app-dark .introjs-tooltip {
+    background-color: var(--p-surface-900);
+    color: var(--p-text-color);
+    border-color: var(--p-border-color);
+}
+
+#map-center-highlight {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.intro-nowrap {
+    white-space: nowrap;
+}

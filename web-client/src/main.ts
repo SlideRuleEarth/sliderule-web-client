@@ -7,6 +7,7 @@ import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
 import { definePreset } from '@primeuix/themes';
+import 'intro.js/introjs.css';
 import '@/styles/sr-common-styles.css';
 
 import Menubar from 'primevue/menubar';

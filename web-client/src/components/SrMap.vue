@@ -681,6 +681,7 @@
 
 <template>
 <div class="sr-main-map-container">
+    <div id="map-center-highlight" />
     <Map.OlMap ref="mapRef" @error="handleEvent"
         :loadTilesWhileAnimating="true"
         :loadTilesWhileInteracting="true"
