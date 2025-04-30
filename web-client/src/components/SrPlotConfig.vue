@@ -26,6 +26,7 @@ const toast = useToast();
 const chartStore = useChartStore();
 const fieldNameStore = useFieldNameStore();
 const deck3DConfigStore = useDeck3DConfigStore();
+const activeTabStore = useActiveTabStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -75,10 +76,10 @@ async function onUseSelectedMinMaxChange(newValue: string[]) {
 
 async function handleGediFieldNameChange(event: SelectChangeEvent) {
     console.log("Gedi El Data changed:", event.value);
-    if(useActiveTabStore().isActiveTabLabel('3-D View')){
+    if(activeTabStore.isActiveTabLabel('3-D View')){
         await updateMapAndPlot(false);       
         await update3DPointCloud(props.reqId,deckContainer);
-    } else if(useActiveTabStore().isActiveTabLabel('Elevation Plot')) {
+    } else if(activeTabStore.isActiveTabLabel('Elevation Plot')) {
         await updatePlotAndSelectedTrackMapLayer('from handleGediFieldNameChange');
     }
 }
@@ -158,7 +159,7 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
             size="small" 
         />         
         <SrCheckbox
-            v-if="(!props.isOverlay)" 
+            v-if="(!props.isOverlay && !activeTabStore.isActiveTabLabel('Time Series'))" 
             class="sr-use-selected-min-max"
             :defaultValue="false"
             label="Use selected track min/max for gradient legend"

@@ -354,7 +354,7 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     } else {
         console.warn('setCyclesGtsSpotsFromFileUsingRgtYatc: Ignored for ATL03. TBD need to implement an atl03 equivalent function for y_atc?');
     }
-    console.trace(`setCyclesGtsSpotsFromFileUsingRgtYatc: ${useActiveTabStore().activeTabLabel} reqIdStr: ${reqIdStr} use_y_atc_filter: ${gcs.use_y_atc_filter} selected_y_atc: ${gcs.selected_y_atc} gcs.getCycles: ${gcs.getCycles()} gcs.getSpots: ${gcs.getSpots()} gcs.getGts: ${gcs.getGts()}`);
+    //console.trace(`setCyclesGtsSpotsFromFileUsingRgtYatc: ${useActiveTabStore().activeTabLabel} reqIdStr: ${reqIdStr} use_y_atc_filter: ${gcs.use_y_atc_filter} selected_y_atc: ${gcs.selected_y_atc} gcs.getCycles: ${gcs.getCycles()} gcs.getSpots: ${gcs.getSpots()} gcs.getGts: ${gcs.getGts()}`);
 }
 
 export function isClickable(d: ElevationDataItem): boolean {
