@@ -79,7 +79,7 @@ const toggleAboutMenu = (event: Event) => {
     aboutMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['server-version-button-click','client-version-button-click','request-button-click', 'popular-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click']);
+const emit = defineEmits(['server-version-button-click','client-version-button-click','request-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click', 'quick-tour-button-click']);
 
 
 const handleRequestButtonClick = () => {
@@ -99,6 +99,9 @@ const handleServerVersionButtonClick = () => {
 };
 const handleClientVersionButtonClick = () => {
     emit('client-version-button-click');
+};
+const handleQuickTourButtonClick = () => {
+    emit('quick-tour-button-click');
 };
 
 function getClientVersionString(input: string): string {
@@ -231,6 +234,11 @@ onMounted(async () => {
             > 
             </Button>
             <span class="sr-tvw">{{ testVersionWarning }}</span>
+        </div>
+        <div class=" middle-content">
+            <Button icon="pi pi-images" label="Quick Tour"
+                    class="p-button-rounded p-button-text desktop-only"
+                    @click="handleQuickTourButtonClick"></Button>
         </div>
         <div class="right-content">
             <Button icon="pi pi-sliders-h" label="Request" 

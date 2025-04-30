@@ -11,15 +11,16 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { useDeviceStore } from '@/stores/deviceStore';
 import { initChartStore } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
+import { useRoute } from 'vue-router';
+import SrClearCache from '@/components/SrClearCache.vue';
+import { useSysConfigStore } from '@/stores/sysConfigStore';
+import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
+import introJs from 'intro.js';
 
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
-import { useRoute } from 'vue-router';
-import SrClearCache from '@/components/SrClearCache.vue';
-import { useSysConfigStore } from '@/stores/sysConfigStore';
-import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
 const route = useRoute();
 const showServerVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showClientVersionDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -163,6 +164,60 @@ const handleClientVersionButtonClick = () => {
   showClientVersionDialog.value = true; // Show the dialog
 };
 
+function handleQuickTourButtonClick() {
+    introJs().setOptions({
+        steps: [
+            {
+                intro: `
+                    <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                    We’re going to take a quick tour of how to use the app.<br><br>
+                    The process has <b>four simple steps</b>:<br>
+                    <ol>
+                        <li>Zoom in</li>
+                        <li>Select a draw tool</li>
+                        <li>Draw a region</li>
+                        <li>Click <b>Run SlideRule</b></li>
+                    </ol>
+                    That’s it!<br>
+                    Now click <b>Next</b> to see each step.
+                `
+            },
+            {
+                element: document.querySelector('.ol-zoom-in') as HTMLElement,
+                intro: `
+                    <b>Step 1: Zoom In</b><br><br>
+                    Use this button,<br> <b><em>OR</em> <br>your touchpad or mouse wheel</b> to zoom in to an area a few miles or kilometers wide.
+                `
+            },
+            {
+                element: document.querySelector('.sr-draw-button-box') as HTMLElement,
+                intro: `
+                    <b>Step 2: Select a draw tool</b><br><br>
+                    Use this draw toolbox to define your region of interest.<br>
+                    For this example, select the <b>rectangle</b> tool.
+                `
+            },
+            {
+                element: document.querySelector('#map-center-highlight') as HTMLElement,
+                intro: `
+                    <b>Step 3: Draw a region</b><br><br>
+                    With the rectangle tool selected, <b>click and drag</b> on the map to define your region of interest.
+                `
+            },
+            {
+                element: document.querySelector('.sr-run-abort-button') as HTMLElement,
+                intro: `
+                    <b>Step 4: Run SlideRule</b><br><br>
+                    Click this button to submit your request.<br>
+                    It may take a few minutes to run, depending on the size of your region and other factors.<br>
+                    When the data has been delivered you’ll be taken to the analysis page to view elevation profiles and more.
+                `
+            }
+        ]
+    }).start();
+}
+
+
 </script>
 
 <template>
@@ -177,9 +232,10 @@ const handleClientVersionButtonClick = () => {
         @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
-		@settings-button-click="settingsButtonClick"
+		    @settings-button-click="settingsButtonClick"
         @server-version-button-click="handleServerVersionButtonClick"
         @client-version-button-click="handleClientVersionButtonClick"
+        @quick-tour-button-click="handleQuickTourButtonClick"
       />
     </header>
     <div class="content">
