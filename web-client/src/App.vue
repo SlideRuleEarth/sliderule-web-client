@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref,onMounted,watch } from 'vue';
+import { ref,onMounted,watch,nextTick } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import SrAppBar from '@/components/SrAppBar.vue';
@@ -16,11 +16,13 @@ import SrClearCache from '@/components/SrClearCache.vue';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
 import introJs from 'intro.js';
+import { useTourStore } from '@/stores/tourStore.js';
 
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
 const toast = useToast();
 const deviceStore = useDeviceStore();
+const tourStore = useTourStore();
 const route = useRoute();
 const showServerVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showClientVersionDialog = ref(false); // Reactive state for controlling dialog visibility
@@ -81,6 +83,12 @@ onMounted(async () => {
 
     detectBrowserAndOS();
     checkUnsupported();
+    tourStore.checkSeen(); 
+    await nextTick(); // wait for DOM to fully render
+
+    if (!tourStore.hasSeenIntro) {
+        handleQuickTourButtonClick();
+    }
 
     // Mark as mounted
     isMounted.value = true;
@@ -164,8 +172,31 @@ const handleClientVersionButtonClick = () => {
   showClientVersionDialog.value = true; // Show the dialog
 };
 
-function handleQuickTourButtonClick() {
-    introJs().setOptions({
+async function waitForElement(selector: string, timeout = 5000): Promise<void> {
+    const start = performance.now();
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+            const el = document.querySelector(selector);
+            if (el) {
+                clearInterval(interval);
+                resolve();
+            } else if (performance.now() - start > timeout) {
+                clearInterval(interval);
+                console.warn(`Timeout waiting for ${selector}`);
+                reject(new Error(`Timeout waiting for ${selector}`));
+            }
+        }, 100);
+    });
+}
+
+async function handleQuickTourButtonClick() {
+    console.log('handleQuickTourButtonClick');
+    await waitForElement('.ol-zoom-in');
+    await waitForElement('.sr-draw-button-box');
+    await waitForElement('#map-center-highlight');
+    await waitForElement('.sr-run-abort-button');
+    const tour = introJs();
+    tour.setOptions({
         steps: [
             {
                 intro: `
@@ -214,7 +245,19 @@ function handleQuickTourButtonClick() {
                 `
             }
         ]
-    }).start();
+    });
+
+    // 👉 Run the tour and listen for completion
+    tour.oncomplete(() => {
+        tourStore.markSeen();
+    });
+
+    // 👉 Optional: also mark seen if user exits early
+    tour.onexit(() => {
+        tourStore.markSeen();
+    });
+
+    tour.start();
 }
 
 

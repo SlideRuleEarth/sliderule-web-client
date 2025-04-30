@@ -95,6 +95,14 @@
             :decimalPlaces=0
         />
         <br>
+       <Button 
+            icon="pi pi-refresh"
+            label="Reset Quick Tour"
+            class="sr-glow-button"
+            @click="tourStore.resetTour()"
+            variant="text"
+            rounded
+        ></Button>
         <SrCheckbox
             v-model="debugStore.useMetersForMousePosition"
             label="Use Meters for mouse position"
@@ -115,7 +123,8 @@
     import InputNumber from 'primevue/inputnumber';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue';
-
+    import { useTourStore } from '@/stores/tourStore';
+    import Button from 'primevue/button';
 
     const debugStore = useDebugStore();
     const srParquetCfgStore = useSrParquetCfgStore();
@@ -123,6 +132,7 @@
     const deckStore = useDeckStore();
     const requestsStore = useRequestsStore();
     const globalChartStore = useGlobalChartStore();
+    const tourStore = useTourStore();
 
 </script>
 <style scoped>
