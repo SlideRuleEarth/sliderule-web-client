@@ -14,21 +14,63 @@ DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "Distributio
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 
-clean: # Clean up the web client dependencies 
+
+clean-all: # Clean up the web client dependencies 
 	rm -rf *.zip web-client/dist web-client/node_modules web-client/package-lock.json
 
-reinstall: clean ## Reinstall the web client dependencies
+clean: ## Clean only the build artifacts
+	rm -rf web-client/dist
+
+reinstall: clean-all ## Reinstall the web client dependencies
 	cd web-client && npm install
 
 src-tag-and-push: ## Tag and push the web client source code to the repository
 	$(ROOT)/VITE_VERSION.sh $(VERSION) && git push --tags; git push
 
-live-update: build # Update the web client in the S3 bucket and invalidate the CloudFront cache
+upload-assets: ## Upload hashed JS/CSS assets with long cache duration
+	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	echo "Uploading /assets with long cache duration..." && \
+	aws s3 sync web-client/dist/assets/ s3://$(S3_BUCKET)/assets/ \
+		--delete \
+		--cache-control "max-age=31536000, immutable"
+
+upload-static: ## Upload static files like favicon, logos (excluding index.html and assets)
+	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	echo "Uploading static files (excluding assets/ and index.html)..." && \
+	aws s3 sync web-client/dist/ s3://$(S3_BUCKET)/ \
+		--exclude "index.html" \
+		--exclude "assets/*"
+
+upload-index: ## Upload index.html with no-cache headers
+	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	echo "Uploading index.html with no-cache headers..." && \
+	aws s3 cp web-client/dist/index.html s3://$(S3_BUCKET)/index.html \
+		--cache-control "no-cache, no-store, must-revalidate" \
+		--content-type "text/html"
+
+live-update: check-vars build upload-assets upload-static upload-index ## Build and deploy all files
 	export VITE_LIVE_UPDATE_DATE=$$(date +"%Y-%m-%d %T"); \
 	echo "VITE_LIVE_UPDATE_DATE=$$VITE_LIVE_UPDATE_DATE" && \
 	echo "S3_BUCKET=$(S3_BUCKET)" && \
-	AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard aws s3 sync web-client/dist/ s3://$(S3_BUCKET) --delete
+	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	echo "Invalidating CloudFront distribution $(DISTRIBUTION_ID)..." && \
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*"
+	make verify-s3-assets S3_BUCKET=$(S3_BUCKET)
+
+verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced in index.html exist in S3
+	@echo "🔍 Verifying index.* assets in S3..."
+	@grep -oE 'assets/index-[a-zA-Z0-9_\-]+\.(js|css)' web-client/dist/index.html | sort -u | while read -r asset; do \
+		if aws s3 ls "s3://$(S3_BUCKET)/$$asset" >/dev/null; then \
+			echo "✅ Found: $$asset"; \
+		else \
+			echo "❌ MISSING: $$asset"; \
+		fi; \
+	done
+
+verify-s3-assets-testsliderule:
+	make verify-s3-assets S3_BUCKET=testsliderule-webclient
+
+
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
 	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org
 
@@ -108,6 +150,19 @@ deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudf
 
 destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
+
+.PHONY: check-vars
+check-vars:
+	@test -n "$(DOMAIN)" || (echo "❌ DOMAIN is not set"; exit 1)
+	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
+	@test -n "$(DOMAIN_APEX)" || (echo "❌ DOMAIN_APEX is not set"; exit 1)
+	@test -n "$(DISTRIBUTION_ID)" || (echo "❌ DISTRIBUTION_ID could not be resolved for DOMAIN=$(DOMAIN)"; exit 1)
+	@echo "✅ All required variables are set:"
+	@echo "   DOMAIN          = $(DOMAIN)"
+	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
+	@echo "   S3_BUCKET       = $(S3_BUCKET)"
+	@echo "   DISTRIBUTION_ID = $(DISTRIBUTION_ID)"
+
 
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"

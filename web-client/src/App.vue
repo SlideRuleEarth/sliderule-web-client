@@ -68,9 +68,123 @@ const detectBrowserAndOS = () => {
   deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
 };
 
-
 // Watcher (initially inactive)
 let stopWatching: (() => void) | null = null;
+
+async function waitForElement(selector: string, timeout = 5000): Promise<void> {
+    const start = performance.now();
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+            const el = document.querySelector(selector);
+            if (el) {
+                clearInterval(interval);
+                resolve();
+            } else if (performance.now() - start > timeout) {
+                clearInterval(interval);
+                console.warn(`Timeout waiting for ${selector}`);
+                reject(new Error(`Timeout waiting for ${selector}`));
+            }
+        }, 100);
+    });
+}
+
+async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>['_options']['steps']> {
+
+    await waitForElement('.ol-zoom-in');
+    await waitForElement('.sr-draw-button-box');
+    await waitForElement('#map-center-highlight');
+    await waitForElement('.sr-run-abort-button');
+    await waitForElement('#sr-analysis-button');
+
+
+    const steps =  [
+        {
+            intro: type === 'quick' ? 
+            `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                We’re going to take a quick tour of how to use the app.<br><br>
+                The process has <b>four simple steps</b>:<br>
+                <ol>
+                    <li>Zoom in</li>
+                    <li>Select a draw tool</li>
+                    <li>Draw a region</li>
+                    <li>Click <b>Run SlideRule</b></li>
+                </ol>
+                That’s it!<br>
+                Now click <b>Next</b> to see each step.
+            ` :
+            `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                We’re going to take a tour of how to use the app.<br><br>
+                First the quick way. <br><br>
+                The quick process has <br><b>Four Simple Steps</b>:<br>
+                <ol>
+                    <li>Zoom in</li>
+                    <li>Select a draw tool</li>
+                    <li>Draw a region</li>
+                    <li>Click <b>Run SlideRule</b></li>
+                </ol>
+                Then we’ll explain the other controls.<br>
+                <br>
+                Now click <b>Next</b> to see each step.
+            `
+            ,
+        },
+        {
+            element: document.querySelector('.ol-zoom-in') as HTMLElement,
+            intro: `
+                <b>Step 1: Zoom In</b><br><br>
+                Use this button,<br> <b><em>OR</em> <br>your touchpad or mouse wheel</b> to zoom in to an area a few miles or kilometers wide.
+            `
+        },
+        {
+            element: document.querySelector('.sr-draw-button-box') as HTMLElement,
+            intro: `
+                <b>Step 2: Select a draw tool</b><br><br>
+                Use this draw toolbox to define your region of interest.<br>
+                The simplest is the <b>rectangle</b> tool.
+            `
+        },
+        {
+            element: document.querySelector('#map-center-highlight') as HTMLElement,
+            intro: `
+                <b>Step 3: Draw a region</b><br><br>
+                With the rectangle tool selected, <b>click and drag</b> on the map to define your region of interest.
+            `
+        },
+        {
+            element: document.querySelector('.sr-run-abort-button') as HTMLElement,
+            intro: `
+                <b>Step 4: Run SlideRule</b><br><br>
+                Click this button to submit your request.<br>
+                It may take a few minutes to run, depending on the size of your region and other factors.<br>
+            `
+        },
+        {
+            element: document.querySelector('#sr-analysis-button') as HTMLElement,
+            intro: `
+                <b>That's it!</b><br><br>
+                When the data has been delivered you’ll be taken to the analysis page (which you can also get to by clicking this button) to view elevation profiles and more.
+            `
+        }
+    ];
+    const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
+    const isAniPad = deviceStore.getUserAgent().includes('iPad');
+    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
+    if(isMobile && !isAniPad){
+        const mobileIntroStep = {
+            intro: `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                This app requires a large screen. 
+                It is not meant to be used on small mobile devices<br><br>
+            `
+        }
+        steps.unshift(mobileIntroStep);
+    }
+
+    return steps;
+}
+
 
 onMounted(async () => {
     console.log('App onMounted');
@@ -84,7 +198,7 @@ onMounted(async () => {
     detectBrowserAndOS();
     checkUnsupported();
     tourStore.checkSeen(); 
-    await nextTick(); // wait for DOM to fully render
+    await nextTick();
 
     if (!tourStore.hasSeenIntro) {
         handleQuickTourButtonClick();
@@ -172,79 +286,169 @@ const handleClientVersionButtonClick = () => {
   showClientVersionDialog.value = true; // Show the dialog
 };
 
-async function waitForElement(selector: string, timeout = 5000): Promise<void> {
-    const start = performance.now();
-    return new Promise((resolve, reject) => {
-        const interval = setInterval(() => {
-            const el = document.querySelector(selector);
-            if (el) {
-                clearInterval(interval);
-                resolve();
-            } else if (performance.now() - start > timeout) {
-                clearInterval(interval);
-                console.warn(`Timeout waiting for ${selector}`);
-                reject(new Error(`Timeout waiting for ${selector}`));
-            }
-        }, 100);
+async function handleQuickTourButtonClick() {
+
+    const tour = introJs();
+    let steps = await getCommonSteps('quick');
+
+    tour.setOptions({
+        scrollToElement: true,
+        scrollTo: 'element',
+        steps: steps,
     });
+    
+    // 👉 Run the tour and listen for completion
+    tour.oncomplete(() => {
+        tourStore.markSeen();
+    });
+
+    // 👉 Optional: also mark seen if user exits early
+    tour.onexit(() => {
+        tourStore.markSeen();
+    });
+
+
+    tour.start();
 }
 
-async function handleQuickTourButtonClick() {
-    console.log('handleQuickTourButtonClick');
-    await waitForElement('.ol-zoom-in');
-    await waitForElement('.sr-draw-button-box');
-    await waitForElement('#map-center-highlight');
-    await waitForElement('.sr-run-abort-button');
+async function handleLongTourButtonClick() {
+    const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
+    const isAniPad = deviceStore.getUserAgent().includes('iPad');
+    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
+
     const tour = introJs();
+    let steps = await getCommonSteps('long');
+
+    const srRadioBoxContainerGenEl = document.querySelector('#sr-radio-box-container-gen');
+    const srReqDisplayBtn = document.querySelector('#sr-req-display-btn');
+    const srAppBarRightContentEl = document.querySelector('#sr-appbar-right-content');
+    const srRequestButtonEl = document.querySelector('#sr-request-button');
+    const srRecordsButtonEl = document.querySelector('#sr-records-button');
+    const srAnalysisButtonEl = document.querySelector('#sr-analysis-button');
+    const srDocsButton = document.querySelector('#sr-docs-button');
+    const srSettingsButton = document.querySelector('#sr-settings-button');
+    const srAboutButton = document.querySelector('#sr-about-button');
+
+    // 👉 Append additional steps here
+
+    if(srAppBarRightContentEl instanceof HTMLElement){
+        steps.push({
+            element: srAppBarRightContentEl,
+            intro: `This is the <b>SlideRule Earth</b> App Bar.<br>
+            It contains buttons to access the different views of the app.<br>
+            `
+        });
+    } else {
+        console.warn('srAppBarRightContentEl is not an HTMLElement',srAppBarRightContentEl);
+    }
+
+    if(srRequestButtonEl instanceof HTMLElement){
+        steps.push({
+            element: srRequestButtonEl,
+            intro: `This is the <b>Request</b> button.<br>
+            It takes you to <em><b>this</b></em> <b>Request View</b> where you can make a new request.<br>
+            The Request view is also the default view when you first open the app.<br>
+            `
+        });
+    } else {
+        console.warn('srRequestButtonEl is not an HTMLElement',srRequestButtonEl);
+    }
+
+    if(srRecordsButtonEl instanceof HTMLElement){
+        steps.push({
+            element: srRecordsButtonEl,
+            intro: `This is the <b>Records</b> button.<br>
+            It takes you to the <b>Records View</b> where you can see record summaries of your requests.<br>
+            `
+        });
+    } else {
+        console.warn('srRecordsButtonEl is not an HTMLElement',srRecordsButtonEl);
+    }
+
+    if(srAnalysisButtonEl instanceof HTMLElement){
+        steps.push({
+            element: srAnalysisButtonEl,
+            intro: `This is the <b>Analysis</b> button.<br>
+            It takes you to the <b>Analysis View</b> where you can see the results of your requests.<br>
+            The analysis view has different subviews to see elevation profiles of selected tracks and 3D views of the region you selected.<br>
+            `
+        });
+    } else {
+        console.warn('srAnalysisButtonEl is not an HTMLElement',srAnalysisButtonEl);
+    }
+
+    if(srDocsButton instanceof HTMLElement){
+        steps.push({
+            element: srDocsButton,
+            intro: `This is the <b>Documentation</b> button.<br>
+            This is where you can find documentation for SlideRule.<br>
+            `
+        });
+    } else {
+        console.warn('srDocsButton is not an HTMLElement',srDocsButton);
+    }
+
+    if(srSettingsButton instanceof HTMLElement){
+        steps.push({
+            element: srSettingsButton,
+            intro: `This is the <b>Settings</b> button.<br>
+            This is where you can find global settings for this web client.<br>
+            `
+        });
+    } else {
+        console.warn('srSettingsButton is not an HTMLElement',srSettingsButton);
+    }
+    if(srAboutButton instanceof HTMLElement){
+        steps.push({
+            element: srAboutButton,
+            intro: `This is the <b>About</b> button.<br>
+            This is where you can find information about this web client and about the SlideRule server.<br>
+            `
+        });
+    } else {
+        console.warn('srAboutButton is not an HTMLElement',srAboutButton);
+    }
+
+    if (srReqDisplayBtn instanceof HTMLElement) {
+        steps.push({
+            element: srReqDisplayBtn,
+            intro: `This button displays the current request parameters.<br>
+            When the "Run SlideRule" button is pressed this client sends a request to the SlideRule server.<br>
+            The server then runs the request and sends the results back to this client.<br>
+            The results are displayed in the "Analysis Display".<br>
+            To see the parameters it will use to make the request click the "Show Request Parameters" button.<br>
+            `
+        });
+    } else {
+        console.warn('srReqDisplayBtn is not an HTMLElement',srReqDisplayBtn);
+    }
+    if(srRadioBoxContainerGenEl instanceof HTMLElement){
+        steps.push({
+            element: srRadioBoxContainerGenEl,
+            intro: `Before you click Run SlideRule you can click on one of these to preset the request parameters to values that match the request type in the description supplied.<br>
+            You can change the parameters used by clicking one of these. Then as always: click the "Run SlideRule" button to make a new request.<br>
+            `
+        });
+    } else {
+        console.warn('srRadioBoxContainerGenEl is not an HTMLElement',srRadioBoxContainerGenEl);
+    }
+    steps.push({
+        intro: `
+            <span class="intro-nowrap"><b>Enjoy using SlideRule Earth!</b></span><br><br>
+            Please contact us if you have any questions or suggestions.<br><br>
+            You can reach us directly at <a href="mailto:support@mail.slideruleearth.io">support@mail.slideruleearth.io</a>.<br><br>
+            We are completely open source and we welcome contributions.<br><br>
+            You can find the source code for all SlideRule code at <a href="https://github.com/SlideRuleEarth" target="_blank">https://github.com/SlideRuleEarth</a>.<br><br>
+            Feel free to open an issue if you find a bug or have a suggestion for improvement.<br><br>
+            Also feel free to contribute to the project by submitting a pull request.<br><br>
+        `
+    });
+
+
     tour.setOptions({
-        steps: [
-            {
-                intro: `
-                    <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
-                    We’re going to take a quick tour of how to use the app.<br><br>
-                    The process has <b>four simple steps</b>:<br>
-                    <ol>
-                        <li>Zoom in</li>
-                        <li>Select a draw tool</li>
-                        <li>Draw a region</li>
-                        <li>Click <b>Run SlideRule</b></li>
-                    </ol>
-                    That’s it!<br>
-                    Now click <b>Next</b> to see each step.
-                `
-            },
-            {
-                element: document.querySelector('.ol-zoom-in') as HTMLElement,
-                intro: `
-                    <b>Step 1: Zoom In</b><br><br>
-                    Use this button,<br> <b><em>OR</em> <br>your touchpad or mouse wheel</b> to zoom in to an area a few miles or kilometers wide.
-                `
-            },
-            {
-                element: document.querySelector('.sr-draw-button-box') as HTMLElement,
-                intro: `
-                    <b>Step 2: Select a draw tool</b><br><br>
-                    Use this draw toolbox to define your region of interest.<br>
-                    For this example, select the <b>rectangle</b> tool.
-                `
-            },
-            {
-                element: document.querySelector('#map-center-highlight') as HTMLElement,
-                intro: `
-                    <b>Step 3: Draw a region</b><br><br>
-                    With the rectangle tool selected, <b>click and drag</b> on the map to define your region of interest.
-                `
-            },
-            {
-                element: document.querySelector('.sr-run-abort-button') as HTMLElement,
-                intro: `
-                    <b>Step 4: Run SlideRule</b><br><br>
-                    Click this button to submit your request.<br>
-                    It may take a few minutes to run, depending on the size of your region and other factors.<br>
-                    When the data has been delivered you’ll be taken to the analysis page to view elevation profiles and more.
-                `
-            }
-        ]
+        scrollToElement: true,
+        scrollTo: 'element',
+        steps: steps,
     });
 
     // 👉 Run the tour and listen for completion
@@ -260,7 +464,6 @@ async function handleQuickTourButtonClick() {
     tour.start();
 }
 
-
 </script>
 
 <template>
@@ -275,10 +478,11 @@ async function handleQuickTourButtonClick() {
         @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
-		    @settings-button-click="settingsButtonClick"
+		@settings-button-click="settingsButtonClick"
         @server-version-button-click="handleServerVersionButtonClick"
         @client-version-button-click="handleClientVersionButtonClick"
         @quick-tour-button-click="handleQuickTourButtonClick"
+        @long-tour-button-click="handleLongTourButtonClick"
       />
     </header>
     <div class="content">

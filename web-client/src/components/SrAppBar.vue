@@ -3,12 +3,41 @@ import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import { ref, computed,onMounted } from 'vue';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
+import { useRoute } from 'vue-router';
 
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const sysConfigStore = useSysConfigStore();
 const serverVersion = ref<string>('v?.?.?');
+const route = useRoute();
 
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null);
+const displayTour = computed(() => {
+    return (route.name === 'home') || (route.name === 'request');
+});
+
+const tourMenu = ref<InstanceType<typeof Menu> | null>(null);
+
+const tourMenuItems = [
+    {
+        label: 'Quick Tour',
+        icon: 'pi pi-bolt',
+        command: () => {
+            emit('quick-tour-button-click');
+        }
+    },
+    {
+        label: 'Long Tour',
+        icon: 'pi pi-compass',
+        command: () => {
+            emit('long-tour-button-click');
+        }
+    }
+];
+
+const toggleTourMenu = (event: Event) => {
+    tourMenu.value?.toggle(event);
+};
+
 const docMenuItems = [
     {
         label: 'Documentation',
@@ -47,7 +76,7 @@ const docMenuItems = [
 ];
 
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null);
-const aboutMenuItems = [
+    const aboutMenuItems = [
     {
         label: 'About SlideRule Web Client',
         icon: 'pi pi-info-circle',
@@ -69,6 +98,20 @@ const aboutMenuItems = [
             window.open('https://slideruleearth.io');
         }
     },
+    {
+        label: 'Report an Issue',
+        icon: 'pi pi-exclamation-circle',
+        command: () => {
+            window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank');
+        }
+    },
+    {
+        label: 'Contact Support',
+        icon: 'pi pi-envelope',
+        command: () => {
+            window.location.href = 'mailto:support@mail.slideruleearth.io';
+        }
+    }
 ];
 
 const toggleDocsMenu = (event: Event) => {
@@ -79,7 +122,18 @@ const toggleAboutMenu = (event: Event) => {
     aboutMenu.value?.toggle(event);
 };
 
-const emit = defineEmits(['server-version-button-click','client-version-button-click','request-button-click', 'record-button-click', 'rectree-button-click', 'analysis-button-click', 'settings-button-click', 'about-button-click', 'quick-tour-button-click']);
+const emit = defineEmits([
+    'server-version-button-click',
+    'client-version-button-click',
+    'request-button-click',
+    'record-button-click',
+    'rectree-button-click',
+    'analysis-button-click',
+    'settings-button-click',
+    'about-button-click',
+    'quick-tour-button-click',
+    'long-tour-button-click' 
+]);
 
 
 const handleRequestButtonClick = () => {
@@ -100,9 +154,7 @@ const handleServerVersionButtonClick = () => {
 const handleClientVersionButtonClick = () => {
     emit('client-version-button-click');
 };
-const handleQuickTourButtonClick = () => {
-    emit('quick-tour-button-click');
-};
+
 
 function getClientVersionString(input: string): string {
     // Find the index of the first "-"
@@ -201,18 +253,30 @@ function setDarkMode() {
     }
 }
 
+function dumpRouteInfo() {
+    console.log('Route name:', route.name);
+    console.log('Route route:', route.fullPath);
+    console.log('Route path:', route.path);
+    console.log('Route params:', route.params);
+    console.log('Route query:', route.query);
+}
+
 onMounted(async () => {
     setDarkMode();
     serverVersion.value = await sysConfigStore.fetchServerVersion();
+    dumpRouteInfo();
 });
 
 </script>
 
 <template>
-    <div class="sr-nav-container">
+    <div class="sr-nav-container" id="sr-nav-container">
         <div class="left-content">
-            <Button icon="pi pi-bars" class="p-button-rounded p-button-text mobile-menu-button"
-                @click="toggleMobileMenu"></Button>
+            <Button icon="pi pi-bars" 
+                class="p-button-rounded p-button-text mobile-menu-button"
+                id="sr-mobile-menu-button"
+                @click="toggleMobileMenu">
+            </Button>
             <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
             <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
             <span class = "sr-title">SlideRule</span>
@@ -220,46 +284,70 @@ onMounted(async () => {
                 type="button"
                 :label=serverVersion
                 class=" p-button-text desktop-only version "
+                id="sr-server-version-button"
                 badge="server"
                 badgeSeverity="danger"
-                @click="handleServerVersionButtonClick"
-            ></Button>
+                @click="handleServerVersionButtonClick">
+            </Button>
             <Button
                 type="button"
                 :label=formattedClientVersion
                 class="p-button-text desktop-only version"
+                id="sr-client-version-button"
                 badge="web_client"
                 badgeSeverity="danger"
-                @click="handleClientVersionButtonClick"
-            > 
+                @click="handleClientVersionButtonClick"> 
             </Button>
             <span class="sr-tvw">{{ testVersionWarning }}</span>
         </div>
         <div class=" middle-content">
-            <Button icon="pi pi-images" label="Quick Tour"
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleQuickTourButtonClick"></Button>
+            <Button icon="pi pi-map"
+                id="sr-tour-button"
+                v-if="displayTour"
+                label="Tour"
+                class="p-button-rounded p-button-text desktop-only"
+                @click="toggleTourMenu">
+            </Button>
+            <Menu :model="tourMenuItems" popup ref="tourMenu" />
         </div>
-        <div class="right-content">
-            <Button icon="pi pi-sliders-h" label="Request" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleRequestButtonClick"></Button>
-            <Button icon="pi pi-align-left" label="Records" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleRecTreeButtonClick"></Button>
-            <Button icon="pi pi-chart-line" label="Analysis" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleAnalysisButtonClick"></Button>
-            <Button icon="pi pi-book" label="Docs" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="toggleDocsMenu"></Button>
+        <div class="right-content" id="sr-appbar-right-content">
+            <Button icon="pi pi-sliders-h"
+                id="sr-request-button" 
+                label="Request" 
+                class="p-button-rounded p-button-text desktop-only"
+                @click="handleRequestButtonClick">
+            </Button>
+            <Button icon="pi pi-align-left" 
+                id="sr-records-button"
+                label="Records" 
+                class="p-button-rounded p-button-text desktop-only"
+                @click="handleRecTreeButtonClick">
+            </Button>
+            <Button icon="pi pi-chart-line"
+                id="sr-analysis-button" 
+                label="Analysis" 
+                class="p-button-rounded p-button-text desktop-only"
+                @click="handleAnalysisButtonClick">
+            </Button>
+            <Button icon="pi pi-book"
+                id="sr-docs-button" 
+                label="Docs" 
+                class="p-button-rounded p-button-text desktop-only"
+                @click="toggleDocsMenu">
+            </Button>
             <Menu :model="docMenuItems" popup ref="docsMenu" />
-            <Button icon="pi pi-cog" label="Settings" 
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="handleSettingsButtonClick"></Button>
-            <Button icon="pi pi-info-circle" label="About"
-                    class="p-button-rounded p-button-text desktop-only"
-                    @click="toggleAboutMenu"></Button>
+            <Button icon="pi pi-cog"
+                id="sr-settings-button" 
+                label="Settings" 
+                class="p-button-rounded p-button-text desktop-only"
+                @click="handleSettingsButtonClick">
+            </Button>
+            <Button icon="pi pi-info-circle"
+                id="sr-about-button" 
+                label="About"
+                class="p-button-rounded p-button-text desktop-only"
+                @click="toggleAboutMenu">
+            </Button>
             <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
         </div>
     </div>
@@ -407,6 +495,5 @@ onMounted(async () => {
     color: var(--p-primary-300);
     background-color: transparent;
 }
-
 
 </style>
