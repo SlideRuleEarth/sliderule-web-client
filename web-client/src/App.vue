@@ -68,9 +68,67 @@ const detectBrowserAndOS = () => {
   deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
 };
 
-
 // Watcher (initially inactive)
 let stopWatching: (() => void) | null = null;
+
+
+function getCommonSteps(): ReturnType<typeof introJs>['_options']['steps'] {
+    return [
+        {
+            intro: `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                We’re going to take a quick tour of how to use the app.<br><br>
+                The process has <b>four simple steps</b>:<br>
+                <ol>
+                    <li>Zoom in</li>
+                    <li>Select a draw tool</li>
+                    <li>Draw a region</li>
+                    <li>Click <b>Run SlideRule</b></li>
+                </ol>
+                That’s it!<br>
+                Now click <b>Next</b> to see each step.
+            `,
+        },
+        {
+            element: document.querySelector('.ol-zoom-in') as HTMLElement,
+            intro: `
+                <b>Step 1: Zoom In</b><br><br>
+                Use this button,<br> <b><em>OR</em> <br>your touchpad or mouse wheel</b> to zoom in to an area a few miles or kilometers wide.
+            `
+        },
+        {
+            element: document.querySelector('.sr-draw-button-box') as HTMLElement,
+            intro: `
+                <b>Step 2: Select a draw tool</b><br><br>
+                Use this draw toolbox to define your region of interest.<br>
+                For this example, select the <b>rectangle</b> tool.
+            `
+        },
+        {
+            element: document.querySelector('#map-center-highlight') as HTMLElement,
+            intro: `
+                <b>Step 3: Draw a region</b><br><br>
+                With the rectangle tool selected, <b>click and drag</b> on the map to define your region of interest.
+            `
+        },
+        {
+            element: document.querySelector('.sr-run-abort-button') as HTMLElement,
+            intro: `
+                <b>Step 4: Run SlideRule</b><br><br>
+                Click this button to submit your request.<br>
+                It may take a few minutes to run, depending on the size of your region and other factors.<br>
+            `
+        },
+        {
+            element: document.querySelector('#sr-analysis-button') as HTMLElement,
+            intro: `
+                <b>That's it!</b><br><br>
+                When the data has been delivered you’ll be taken to the analysis page --which you can also get to by clicking this button-- to view elevation profiles and more.
+            `
+        }
+    ];
+}
+
 
 onMounted(async () => {
     console.log('App onMounted');
@@ -117,6 +175,14 @@ onMounted(async () => {
     });
     console.log('App onMounted done');
 });
+
+function dumpRouteInfo() {
+    console.log('Route name:', route.name);
+    console.log('Route route:', route.fullPath);
+    console.log('Route path:', route.path);
+    console.log('Route params:', route.params);
+    console.log('Route query:', route.query);
+}
 
 const requestButtonClick = async () => {
     //console.log('Request button clicked');
@@ -172,6 +238,14 @@ const handleClientVersionButtonClick = () => {
   showClientVersionDialog.value = true; // Show the dialog
 };
 
+function isInViewport(el: HTMLElement): boolean {
+    const rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
+    );
+}
+
 async function waitForElement(selector: string, timeout = 5000): Promise<void> {
     const start = performance.now();
     return new Promise((resolve, reject) => {
@@ -190,63 +264,29 @@ async function waitForElement(selector: string, timeout = 5000): Promise<void> {
 }
 
 async function handleQuickTourButtonClick() {
-    console.log('handleQuickTourButtonClick');
-    await waitForElement('.ol-zoom-in');
-    await waitForElement('.sr-draw-button-box');
-    await waitForElement('#map-center-highlight');
-    await waitForElement('.sr-run-abort-button');
-    const tour = introJs();
-    tour.setOptions({
-        steps: [
-            {
-                intro: `
-                    <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
-                    We’re going to take a quick tour of how to use the app.<br><br>
-                    The process has <b>four simple steps</b>:<br>
-                    <ol>
-                        <li>Zoom in</li>
-                        <li>Select a draw tool</li>
-                        <li>Draw a region</li>
-                        <li>Click <b>Run SlideRule</b></li>
-                    </ol>
-                    That’s it!<br>
-                    Now click <b>Next</b> to see each step.
-                `
-            },
-            {
-                element: document.querySelector('.ol-zoom-in') as HTMLElement,
-                intro: `
-                    <b>Step 1: Zoom In</b><br><br>
-                    Use this button,<br> <b><em>OR</em> <br>your touchpad or mouse wheel</b> to zoom in to an area a few miles or kilometers wide.
-                `
-            },
-            {
-                element: document.querySelector('.sr-draw-button-box') as HTMLElement,
-                intro: `
-                    <b>Step 2: Select a draw tool</b><br><br>
-                    Use this draw toolbox to define your region of interest.<br>
-                    For this example, select the <b>rectangle</b> tool.
-                `
-            },
-            {
-                element: document.querySelector('#map-center-highlight') as HTMLElement,
-                intro: `
-                    <b>Step 3: Draw a region</b><br><br>
-                    With the rectangle tool selected, <b>click and drag</b> on the map to define your region of interest.
-                `
-            },
-            {
-                element: document.querySelector('.sr-run-abort-button') as HTMLElement,
-                intro: `
-                    <b>Step 4: Run SlideRule</b><br><br>
-                    Click this button to submit your request.<br>
-                    It may take a few minutes to run, depending on the size of your region and other factors.<br>
-                    When the data has been delivered you’ll be taken to the analysis page to view elevation profiles and more.
-                `
-            }
-        ]
-    });
+    const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
+    const isAniPad = deviceStore.getUserAgent().includes('iPad');
+    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
 
+
+    const tour = introJs();
+    let steps = getCommonSteps();
+    if(isMobile && !isAniPad){
+        const mobileIntroStep = {
+            intro: `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                This app requires a large screen. 
+                It is not meant to be used on small mobile devices<br><br>
+            `
+        }
+        steps.unshift(mobileIntroStep);
+    } 
+    tour.setOptions({
+        scrollToElement: true,
+        scrollTo: 'element',
+        steps: steps,
+    });
+    
     // 👉 Run the tour and listen for completion
     tour.oncomplete(() => {
         tourStore.markSeen();
@@ -257,9 +297,67 @@ async function handleQuickTourButtonClick() {
         tourStore.markSeen();
     });
 
+    await waitForElement('.ol-zoom-in');
+    await waitForElement('.sr-draw-button-box');
+    await waitForElement('#map-center-highlight');
+    await waitForElement('.sr-run-abort-button');
+    await waitForElement('#sr-analysis-button');
+    // Ensure map-center-highlight is in view (before tour starts)
+    const mapHighlightEl = document.querySelector('#map-center-highlight') as HTMLElement;
+    // if (mapHighlightEl && !isInViewport(mapHighlightEl)) {
+    //     mapHighlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    //     await new Promise(resolve => setTimeout(resolve, 300)); // Let scroll finish
+    // }
     tour.start();
 }
 
+async function handleLongTourButtonClick() {
+    const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
+    const isAniPad = deviceStore.getUserAgent().includes('iPad');
+    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
+
+
+    const tour = introJs();
+    let steps = getCommonSteps();
+    if(isMobile && !isAniPad){
+        const mobileIntroStep = {
+            intro: `
+                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                This app requires a large screen. 
+                It is not meant to be used on small mobile devices<br><br>
+            `
+        }
+        steps.unshift(mobileIntroStep);
+    } 
+    tour.setOptions({
+        scrollToElement: true,
+        scrollTo: 'element',
+        steps: steps,
+    });
+    
+    // 👉 Run the tour and listen for completion
+    tour.oncomplete(() => {
+        tourStore.markSeen();
+    });
+
+    // 👉 Optional: also mark seen if user exits early
+    tour.onexit(() => {
+        tourStore.markSeen();
+    });
+
+    await waitForElement('.ol-zoom-in');
+    await waitForElement('.sr-draw-button-box');
+    await waitForElement('#map-center-highlight');
+    await waitForElement('.sr-run-abort-button');
+    await waitForElement('#sr-analysis-button');
+    // Ensure map-center-highlight is in view (before tour starts)
+    const mapHighlightEl = document.querySelector('#map-center-highlight') as HTMLElement;
+    // if (mapHighlightEl && !isInViewport(mapHighlightEl)) {
+    //     mapHighlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    //     await new Promise(resolve => setTimeout(resolve, 300)); // Let scroll finish
+    // }
+    tour.start();
+}
 
 </script>
 
@@ -275,10 +373,11 @@ async function handleQuickTourButtonClick() {
         @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
-		    @settings-button-click="settingsButtonClick"
+		@settings-button-click="settingsButtonClick"
         @server-version-button-click="handleServerVersionButtonClick"
         @client-version-button-click="handleClientVersionButtonClick"
         @quick-tour-button-click="handleQuickTourButtonClick"
+        @long-tour-button-click="handleLongTourButtonClick"
       />
     </header>
     <div class="content">

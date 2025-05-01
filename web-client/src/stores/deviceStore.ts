@@ -1,51 +1,74 @@
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-export const useDeviceStore = defineStore({
-  id: 'deviceStore',
-  state: () => ({
-    browser: '',
-    os: '',
-    userAgent: '',
-    language: '',
-    online: false,
-    webGLSupported: false,
-  }),
-  actions: {
-    getBrowser() {
-      return this.browser;
-    },
-    setBrowser(browser: string) {
-      this.browser = browser;
-    },
-    getOS() {
-      return this.os;
-    },
-    setOS(os: string) {
-      this.os = os;
-    },
-    getUserAgent() {
-      return this.userAgent;
-    },
-    setUserAgent(userAgent: string) {
-      this.userAgent = userAgent;
-    },
-    getLanguage() {
-      return this.language;
-    },
-    setLanguage(language: string) {
-      this.language = language;
-    },
-    getOnlineStatus() {
-      return this.online;
-    },
-    setOnlineStatus(online: boolean) {
-      this.online = online;
-    },
-    getWebGLSupported() {
-      return this.webGLSupported;
-    },
-    setWebGLSupported(webGLSupported: boolean) {
-      this.webGLSupported = webGLSupported;
-    },
-  },
+export const useDeviceStore = defineStore('deviceStore', () => {
+  const browser = ref('');
+  const os = ref('');
+  const userAgent = ref('');
+  const language = ref('');
+  const online = ref(false);
+  const webGLSupported = ref(false);
+
+  function getBrowser() {
+    return browser.value;
+  }
+  function setBrowser(val: string) {
+    browser.value = val;
+  }
+
+  function getOS() {
+    return os.value;
+  }
+  function setOS(val: string) {
+    os.value = val;
+  }
+
+  function getUserAgent() {
+    return userAgent.value;
+  }
+  function setUserAgent(val: string) {
+    userAgent.value = val;
+  }
+
+  function getLanguage() {
+    return language.value;
+  }
+  function setLanguage(val: string) {
+    language.value = val;
+  }
+
+  function getOnlineStatus() {
+    return online.value;
+  }
+  function setOnlineStatus(val: boolean) {
+    online.value = val;
+  }
+
+  function getWebGLSupported() {
+    return webGLSupported.value;
+  }
+  function setWebGLSupported(val: boolean) {
+    webGLSupported.value = val;
+  }
+
+  return {
+    browser,
+    os,
+    userAgent,
+    language,
+    online,
+    webGLSupported,
+    getBrowser,
+    setBrowser,
+    getOS,
+    setOS,
+    getUserAgent,
+    setUserAgent,
+    getLanguage,
+    setLanguage,
+    getOnlineStatus,
+    setOnlineStatus,
+    getWebGLSupported,
+    setWebGLSupported,
+  };
 });
