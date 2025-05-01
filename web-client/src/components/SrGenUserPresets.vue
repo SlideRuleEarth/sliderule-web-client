@@ -77,7 +77,7 @@ const selectBox = (boxId: number) => {
 </script>
 
 <template>
-  <div class="sr-radio-box-container">
+  <div class="sr-radio-box-container" id="sr-radio-box-container-gen">
     <div
       v-for="box in boxes"
       :key="box.id"

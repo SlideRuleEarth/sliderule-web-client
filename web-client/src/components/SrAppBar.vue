@@ -76,7 +76,7 @@ const docMenuItems = [
 ];
 
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null);
-const aboutMenuItems = [
+    const aboutMenuItems = [
     {
         label: 'About SlideRule Web Client',
         icon: 'pi pi-info-circle',
@@ -98,6 +98,20 @@ const aboutMenuItems = [
             window.open('https://slideruleearth.io');
         }
     },
+    {
+        label: 'Report an Issue',
+        icon: 'pi pi-exclamation-circle',
+        command: () => {
+            window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank');
+        }
+    },
+    {
+        label: 'Contact Support',
+        icon: 'pi pi-envelope',
+        command: () => {
+            window.location.href = 'mailto:support@mail.slideruleearth.io';
+        }
+    }
 ];
 
 const toggleDocsMenu = (event: Event) => {
@@ -140,9 +154,7 @@ const handleServerVersionButtonClick = () => {
 const handleClientVersionButtonClick = () => {
     emit('client-version-button-click');
 };
-const handleQuickTourButtonClick = () => {
-    emit('quick-tour-button-click');
-};
+
 
 function getClientVersionString(input: string): string {
     // Find the index of the first "-"
@@ -258,7 +270,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="sr-nav-container">
+    <div class="sr-nav-container" id="sr-nav-container">
         <div class="left-content">
             <Button icon="pi pi-bars" 
                 class="p-button-rounded p-button-text mobile-menu-button"
@@ -298,7 +310,7 @@ onMounted(async () => {
             </Button>
             <Menu :model="tourMenuItems" popup ref="tourMenu" />
         </div>
-        <div class="right-content">
+        <div class="right-content" id="sr-appbar-right-content">
             <Button icon="pi pi-sliders-h"
                 id="sr-request-button" 
                 label="Request" 
@@ -483,6 +495,5 @@ onMounted(async () => {
     color: var(--p-primary-300);
     background-color: transparent;
 }
-
 
 </style>

@@ -5,6 +5,7 @@
             icon="pi pi-eye" 
             :label="props.label"
             class="sr-glow-button"
+            id="sr-req-display-btn"
             @click="openParmsDialog(reqParms)"
             @mouseover="tooltipRef?.showTooltip($event, props.tooltipText)"
             @mouseleave="tooltipRef?.hideTooltip"
