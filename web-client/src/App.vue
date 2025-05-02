@@ -40,34 +40,6 @@ const checkUnsupported = () =>{
   }
 }
 
-const detectBrowserAndOS = () => {
-  deviceStore.setUserAgent(navigator.userAgent);
-  deviceStore.setLanguage(navigator.language);
-  deviceStore.setOnlineStatus(navigator.onLine);
-
-  // Detect OS
-  if (deviceStore.getUserAgent().includes('Win')) deviceStore.setOS('Windows');
-  else if (deviceStore.getUserAgent().includes('Mac')) deviceStore.setOS('MacOS');
-  else if (deviceStore.getUserAgent().includes('Linux')) deviceStore.setOS('Linux');
-  else if (deviceStore.getUserAgent().includes('Android')) deviceStore.setOS('Android');
-  else if (deviceStore.getUserAgent().includes('iPhone')) deviceStore.setOS('iOS');
-  else deviceStore.setOS('Unknown OS');
-
-  // Detect Browser
-  if (deviceStore.getUserAgent().includes('Chrome') && !deviceStore.getUserAgent().includes('Edg'))
-    deviceStore.setBrowser('Chrome');
-  else if (deviceStore.getUserAgent().includes('Firefox')) deviceStore.setBrowser('Firefox');
-  else if (deviceStore.getUserAgent().includes('Safari') && !deviceStore.getUserAgent().includes('Chrome'))
-    deviceStore.setBrowser('Safari');
-  else if (deviceStore.getUserAgent().includes('Edg')) deviceStore.setBrowser('Edge');
-  else if (deviceStore.getUserAgent().includes('Opera') || deviceStore.getUserAgent().includes('OPR'))
-    deviceStore.setBrowser('Opera');
-  else deviceStore.setBrowser('Unknown Browser');
-
-  // Check for WebGL support
-  deviceStore.setWebGLSupported(!!window.WebGLRenderingContext); // Should be `true` if WebGL is supported
-};
-
 // Watcher (initially inactive)
 let stopWatching: (() => void) | null = null;
 
@@ -168,18 +140,27 @@ async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>[
             `
         }
     ];
-    const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
-    const isAniPad = deviceStore.getUserAgent().includes('iPad');
-    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
-    if(isMobile && !isAniPad){
-        const mobileIntroStep = {
-            intro: `
-                <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
-                This app requires a large screen. 
-                It is not meant to be used on small mobile devices<br><br>
-            `
-        }
-        steps.unshift(mobileIntroStep);
+    if(deviceStore.isMobile || deviceStore.isAniPad){
+
+        const mobileSteps = [
+            {
+                intro: 
+                `
+                    <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
+                    This app requires a large screen. 
+                    It is not meant to be used on small mobile devices<br><br>
+                    The process has <b>four simple steps</b>:<br>
+                    <ol>
+                        <li>Zoom in</li>
+                        <li>Select a draw tool</li>
+                        <li>Draw a region</li>
+                        <li>Click <b>Run SlideRule</b></li>
+                    </ol>
+                    That’s it!<br>
+                `
+            }
+        ];
+        return mobileSteps;
     }
 
     return steps;
@@ -195,7 +176,12 @@ onMounted(async () => {
       recTreeStore.initToFirstRecord();
     }
 
-    detectBrowserAndOS();
+    deviceStore.detect();
+    deviceStore.startListeningToResize(); // <== ✅ Needed for screenWidth to update
+    // watch(() => deviceStore.screenWidth, width => {
+    //     console.log('Screen width changed:', width);
+    // });
+
     checkUnsupported();
     tourStore.checkSeen(); 
     await nextTick();

@@ -81,17 +81,20 @@
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
                 <SrCustomTooltip ref="tooltipRef"/>
-               <Button
+                <Button
                     v-show="showRunButton"
-                    class="sr-run-abort-button p-button-rounded p-button-text" 
-                    :class="{ 'abort-mode':  serverStateStore.isFetching }"
-                    :label=" serverStateStore.isFetching ? 'Abort' : props.buttonLabel" 
-                    @click="toggleRunAbort" 
+                    class="sr-run-abort-button p-button-rounded p-button-text"
+                    :class="{ 'abort-mode': serverStateStore.isFetching }"
+                    @click="toggleRunAbort"
                     :disabled="!enableRunButton"
                 >
-                    <template #icon>
-                        <i :class=" serverStateStore.isFetching ? 'pi pi-times' : 'pi pi-play'"></i>
-                    </template>
+                    <div class="button-content">
+                        <i :class="serverStateStore.isFetching ? 'pi pi-times' : 'pi pi-play'"></i>
+                        <div
+                            class="button-label-text"
+                            v-html="(serverStateStore.isFetching ? 'Abort' : props.buttonLabel).replaceAll('\n', '<br>')"
+                        ></div>
+                    </div>
                 </Button>
             </div>
         </div>
@@ -186,6 +189,37 @@
         overflow: hidden;
         text-overflow: ellipsis;
         width: 100%;
+    }
+    .button-content {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 0.25rem;
+    }
+
+    .button-content .button-label-text {
+        white-space: normal;
+        line-height: 1.2;
+    }
+</style>
+<style>
+    .button-content {
+        display: flex;
+        flex-direction: row; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        text-align: center;
+    }
+
+    .button-label-text {
+        white-space: normal; 
+        line-height: 1.2;
+        max-width: 6rem; /* optional: limits width so it wraps naturally */
+        word-break: break-word;
+        text-align: center;
     }
 
 </style>

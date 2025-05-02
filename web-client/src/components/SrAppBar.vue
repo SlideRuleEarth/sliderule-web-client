@@ -4,9 +4,11 @@ import Menu from 'primevue/menu';
 import { ref, computed,onMounted } from 'vue';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
 import { useRoute } from 'vue-router';
+import { useDeviceStore } from '@/stores/deviceStore';
 
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const sysConfigStore = useSysConfigStore();
+const deviceStore = useDeviceStore();
 const serverVersion = ref<string>('v?.?.?');
 const route = useRoute();
 
@@ -201,8 +203,9 @@ const formattedClientVersion = computed(() => {
 });
 
 const testVersionWarning = computed(() => {
-   const tvw = isThisClean(build_env) ? '' : 'WebClient Test Version';
-   return tvw;
+    //const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST `:`WebClient Test Version`);
+    const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST ${deviceStore.screenWidth}`:`WebClient Test Version ${deviceStore.screenWidth}`);
+    return tvw;
 });
 
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);

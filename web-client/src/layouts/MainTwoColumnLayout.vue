@@ -2,56 +2,59 @@
 </script>
 
 <template>
-  <div class="two-column-layout">
+  <div class="two-column-layout full-height">
     <div class="sidebar-col">
-      <slot name = "sidebar-col"></slot>
+      <slot name="sidebar-col"></slot>
     </div>
-    <main>
-      <slot name = "main"></slot>
+    <main class="main-col">
+      <slot name="main"></slot>
     </main>
   </div>
 </template>
 
 <style scoped>
+.two-column-layout {
+  display: flex;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Mobile-first: column layout on smaller screens */
+@media screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) {
   .two-column-layout {
-    display: flex;
-    min-height: 60vh;
-    @media (max-width: 768px) {
-      flex-direction: column;
-    }
-  }
-
-  .sidebar-col {
-    flex-grow: 1;
-    flex-basis: 25%;
     flex-direction: column;
-    align-items: center;
-    min-width: 23rem; /* Default for larger screens */
-    margin-right: 1rem;
-    margin-left: 1rem;
-    overflow-x: auto;
   }
+}
 
-  @media (max-width: 1200px) {
-    .sidebar-col {
-      min-width: 20rem; /* Adjust min-width for medium-sized screens */
-    }
-  }
+.sidebar-col {
+  flex-grow: 1;
+  flex-basis: 25%;
+  margin: 0; /* ✅ Remove horizontal margin */
+  padding: 0; /* ✅ Remove horizontal padding */
+  overflow-x: hidden; /* ✅ Prevent overflow */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* ✅ Make children fill the width */
+  min-width: 15rem;
+}
 
-  @media (max-width: 768px) {
-    .sidebar-col {
-      min-width: 16rem; /* Adjust for smaller screens */
-    }
-  }
 
-  @media (max-width: 480px) {
-    .sidebar-col {
-      min-width: 12rem; /* Further adjust for very small screens */
-    }
+/* Tweak sidebar for tablets and small laptops */
+@media (max-width: 1024px) {
+  .sidebar-col {
+    min-width: 15rem;
   }
+}
 
-  main {
-    flex-grow: 8;
-    overflow-y: auto; /* Add scrolling if content overflows */
+@media (max-width: 768px) {
+  .sidebar-col {
+    width: 100%;
+    min-width: unset;
+    margin: 0;
   }
+}
+
+.main-col {
+  flex-grow: 8;
+  overflow-y: auto;
+}
 </style>
