@@ -95,6 +95,11 @@
                 
             />
         </div>
+        <div class="sr-export-panel">
+            <SrExportBtnDlg
+                :reqId="props.reqId"
+            />
+        </div>
         <div class="sr-sql-stmnt">
             <SrSqlStmnt 
                 :reqId="props.reqId"
@@ -133,7 +138,7 @@ import { SelectChangeEvent } from 'primevue/select';
 import { useActiveTabStore } from '@/stores/activeTabStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useToast } from 'primevue/usetoast';
-
+import SrExportBtnDlg from './SrExportBtnDlg.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -234,9 +239,6 @@ const isTimeSeries = computed(() => {
     } else {
         return false;
     }
-});
-const isGedi = computed(() => {
-    return (fieldNameStore.getMissionForReqId(recTreeStore.selectedReqId) === 'GEDI');
 });
 
 onMounted(async () => {

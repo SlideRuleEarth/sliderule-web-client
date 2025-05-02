@@ -7,12 +7,11 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrPlotConfig from "@/components/SrPlotConfig.vue";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
-import Button from 'primevue/button';
 import SrFilterCntrl from './SrFilterCntrl.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
-import SrExportDialog from '@/components/SrExportDialog.vue';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
+import SrExportBtnDlg from './SrExportBtnDlg.vue';
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const analysisMapStore = useAnalysisMapStore();
@@ -71,20 +70,8 @@ const handleFileImported = async (reqId: string) => {
                 <div class="sr-req-description">
                     <SrImportParquetFile  @file-imported="handleFileImported"/>
                     <SrEditDesc :reqId="recTreeStore.selectedReqId"/>
-                    <Button
-                        icon="pi pi-file-export"
-                        class="sr-import-export-btn"
-                        label="Export"
-                        @mouseover="tooltipRef.showTooltip($event, 'Export this record')"
-                        @mouseleave="tooltipRef.hideTooltip()"
-                        @click="exportButtonClick"
-                        rounded 
-                        aria-label="Export"
-                        variant="text"
-                    >
-                    </Button>
-                    <SrExportDialog
-                        v-model="showExportDialog"
+                    <SrExportBtnDlg
+                        v-if="recTreeStore.selectedReqId > 0"
                         :reqId="recTreeStore.selectedReqId"
                     />
                 </div>
