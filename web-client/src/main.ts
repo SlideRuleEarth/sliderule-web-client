@@ -123,16 +123,6 @@ const isIOS = () => {
       (navigator.userAgent.includes("Macintosh") && 'ontouchend' in document)
   );
 };
-const setVh = () => {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
-};
-if (isIOS()) {
-  // iOS devices need to set vh on resize and orientation change
-  window.addEventListener('resize', setVh);
-  window.addEventListener('orientationchange', setVh);
-  setVh();
-}
 
 app.mount('#app')
 console.log("Vue mode:",process.env.NODE_ENV);

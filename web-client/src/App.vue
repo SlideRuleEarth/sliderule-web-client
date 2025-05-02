@@ -17,6 +17,7 @@ import { useSysConfigStore } from '@/stores/sysConfigStore';
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
 import introJs from 'intro.js';
 import { useTourStore } from '@/stores/tourStore.js';
+import { useViewportHeight } from '@/composables/useViewportHeight';
 
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
@@ -42,6 +43,7 @@ const checkUnsupported = () =>{
 
 // Watcher (initially inactive)
 let stopWatching: (() => void) | null = null;
+useViewportHeight();
 
 async function waitForElement(selector: string, timeout = 5000): Promise<void> {
     const start = performance.now();
