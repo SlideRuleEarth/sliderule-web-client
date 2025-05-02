@@ -114,6 +114,16 @@ app.component('SrToast', Toast);
 
 app.use(router)
 app.component('menu-bar', Menubar)
+//
+// adjust vh for mobile devices
+// This is a workaround for mobile devices where 100vh doesn't account for the address bar 
+const isIOS = () => {
+  return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes("Macintosh") && 'ontouchend' in document)
+  );
+};
+
 app.mount('#app')
 console.log("Vue mode:",process.env.NODE_ENV);
 console.log("BASE_URL:",import.meta.env.BASE_URL); // Outputs the base URL of the app

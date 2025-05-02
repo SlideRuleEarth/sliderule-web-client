@@ -1,57 +1,71 @@
 <script setup lang="ts">
+// No script needed unless you want to detect view state dynamically
 </script>
 
 <template>
   <div class="two-column-layout">
     <div class="sidebar-col">
-      <slot name = "sidebar-col"></slot>
+      <slot name="sidebar-col" />
     </div>
-    <main>
-      <slot name = "main"></slot>
+    <main class="main-col">
+      <slot name="main" />
     </main>
   </div>
 </template>
 
 <style scoped>
+.two-column-layout {
+  display: flex;
+  height: calc(var(--vh, 1vh) * 100);
+  overflow: hidden;
+}
+
+/* Sidebar: scrollable and fixed width */
+.sidebar-col {
+  flex: 0 0 25rem;
+  max-width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content: fills remaining space */
+.main-col {
+  flex: 1 1 auto;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 767px) {
+
+  .sidebar-col,
+  .main-col {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+  }
+
+  .main-col {
+    flex: 1;
+  }
+}
+
+@media screen and (max-width: 767px) and (orientation: portrait) {
   .two-column-layout {
-    display: flex;
-    min-height: 60vh;
-    @media (max-width: 768px) {
-      flex-direction: column;
-    }
-  }
-
-  .sidebar-col {
-    flex-grow: 1;
-    flex-basis: 25%;
     flex-direction: column;
-    align-items: center;
-    min-width: 23rem; /* Default for larger screens */
-    margin-right: 1rem;
-    margin-left: 1rem;
-    overflow-x: auto;
   }
 
-  @media (max-width: 1200px) {
-    .sidebar-col {
-      min-width: 20rem; /* Adjust min-width for medium-sized screens */
-    }
+  .sidebar-col,
+  .main-col {
+    width: 100%;
+    height: auto;
+    min-width: 0;
   }
+}
 
-  @media (max-width: 768px) {
-    .sidebar-col {
-      min-width: 16rem; /* Adjust for smaller screens */
-    }
-  }
 
-  @media (max-width: 480px) {
-    .sidebar-col {
-      min-width: 12rem; /* Further adjust for very small screens */
-    }
-  }
-
-  main {
-    flex-grow: 8;
-    overflow-y: auto; /* Add scrolling if content overflows */
-  }
 </style>
