@@ -355,25 +355,24 @@ const createReqParamsStore = (id: string) =>
           if(this.signalConfidenceNumber.length>0){
             req.cnf = this.signalConfidenceNumber;
           }
-          if(this.getEnableSurfaceElevation()){
-            if(this.getMinWindowHeight() >= 0.0){
-              req.H_min_win = this.getMinWindowHeight();
-            }
-          }
+
           if(this.missionValue === 'ICESat-2') {
             if(this.getEnableSurfaceElevation()){
-              if(this.getLengthValue() >= 0.0){
-                req.len = this.getLengthValue();
-              }
-              if(this.getStepValue() >= 0.0){
-                req.res = this.getStepValue();
-              }
-                if(this.getSigmaRmax()>=0.0){
+              if(this.getSigmaRmax()>=0.0){//maxRobustDispersion
                   req.sigma_r_max = this.getSigmaRmax();
               }
               if(this.getMaxIterations()>=0){
                 req.maxi = this.getMaxIterations();
               }
+              if(this.getMinWindowHeight() >= 0.0){
+                req.H_min_win = this.getMinWindowHeight();
+              }
+            }
+            if(this.useLength){
+              req.length = this.getLengthValue();
+            }
+            if(this.useStep){
+              req.step = this.getStepValue();
             }
           } else if(this.missionValue === 'GEDI') {
             if(this.degradeFlag){
