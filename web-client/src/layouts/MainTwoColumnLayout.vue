@@ -53,4 +53,19 @@
     flex: 1;
   }
 }
+
+@media screen and (max-width: 767px) and (orientation: portrait) {
+  .two-column-layout {
+    flex-direction: column;
+  }
+
+  .sidebar-col,
+  .main-col {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+  }
+}
+
+
 </style>
