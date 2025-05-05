@@ -466,10 +466,14 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const runContext = await getPhotonOverlayRunContext();
             const parentReqIdStr = runContext.parentReqId.toString();
             const parentFuncStr = recTreeStore.findApiForReqId(runContext.parentReqId);
+            if(parentFuncStr === 'atl24x'){
+                // initially hide the atl024x because it is a different height datum. This avoids confusion
+                chartStore.setInitLegendUnselected(parentReqIdStr, true);
+            }
             console.log("rc:",runContext, "parentFuncStr:", parentFuncStr);
             // atl03sp is decrepcated here so fetch and use atl03x instead even if the old one exists
-            const isAtl03sp = (recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp');
-            if((runContext.reqId <= 0) || (isAtl03sp)){ // need to fetch the data
+            const isAtl03sp = (recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp');//because it is deprecated
+            if((runContext.reqId <= 0) || (isAtl03sp)){ // need to fetch the data because atl03sp is deprecated
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext); // worker is started here
@@ -499,6 +503,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);
         } else {
+            chartStore.setInitLegendUnselected(recTreeStore.selectedReqIdStr, false);
             //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
             const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr);
             //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)

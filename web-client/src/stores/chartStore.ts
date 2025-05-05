@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { type MinMax, type MinMaxLowHigh } from '@/types/SrTypes';
+import { set } from 'lodash';
 export interface SrMenuItem {
     name: string;
     value: string;
@@ -36,6 +37,7 @@ interface ChartState {
     dataOrderNdx: Record<string, number>;
     showYDataMenu: boolean;
     useSelectedMinMax: boolean;
+    initLegendUnselected: boolean;
 }
 
 
@@ -85,6 +87,7 @@ export const useChartStore = defineStore('chartStore', {
                     dataOrderNdx: {} as Record<string, number>,
                     showYDataMenu: false,
                     useSelectedMinMax: true,
+                    initLegendUnselected: false,
                 };
             }
             return true;
@@ -411,6 +414,15 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             this.stateByReqId[reqIdStr].useSelectedMinMax = useSelectedMinMax;
             //console.log('setUseSelectedMinMax', useSelectedMinMax);
+        },
+        setInitLegendUnselected(reqIdStr: string, initLegendUnselected: boolean): void {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].initLegendUnselected = initLegendUnselected;
+            //console.log('setInitLegendUnselected', initLegendUnselected);
+        },
+        getInitLegendUnselected(reqIdStr: string): boolean {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].initLegendUnselected;
         },
     },
 });

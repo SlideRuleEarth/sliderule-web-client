@@ -211,6 +211,7 @@ const createReqParamsStore = (id: string) =>
         atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
         atl24_class_ph_Options: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
         defaultsFetched: false,
+        useDatum: false,
     }),
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -235,6 +236,7 @@ const createReqParamsStore = (id: string) =>
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
               this.atl24_class_ph = this.atl24_class_ph_Options;
+              this.useDatum = true;
             } else {
               this.enableAtl24Classification = false;
               this.enableAtl08Classification = true;
@@ -498,7 +500,9 @@ const createReqParamsStore = (id: string) =>
           if(this.useReadTimeout) {
             req['read-timeout'] = this.readTimeoutValue;
           }
-          
+          if(this.useDatum) {
+            req.datum = 'EGM08';
+          }
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
         },        
