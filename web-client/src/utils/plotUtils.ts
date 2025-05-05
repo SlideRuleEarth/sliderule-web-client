@@ -759,7 +759,10 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         fontSize: 10,
                         padding:[10,0,10,0],
                         margin:10,
-                    }
+                    },
+                    axisLine:  {
+                            onZero: false,
+                    },
                 }],
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',
