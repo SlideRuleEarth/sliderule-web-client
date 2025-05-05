@@ -22,6 +22,7 @@ import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
+import { on } from "events";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -759,7 +760,10 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         fontSize: 10,
                         padding:[10,0,10,0],
                         margin:10,
-                    }
+                    },
+                    axisLine:  {
+                            onZero: false,
+                    },
                 }],
                 yAxis: seriesData.map((series, index) => ({
                     type: 'value',
