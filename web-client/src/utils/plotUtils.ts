@@ -91,14 +91,6 @@ export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
 export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
-    if(parentFuncStr){ // is overlayed
-        if(parentFuncStr === 'atl24x'){ // Hack to hide until server supports both height standards
-            chartStore.setSolidSymbolColor(useRecTreeStore().selectedReqIdStr, 'black');
-        } else {
-            chartStore.setSolidSymbolColor(useRecTreeStore().selectedReqIdStr, 'red');
-        }
-    }
-
     chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
     //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
@@ -696,6 +688,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const latFieldName = useFieldNameStore().getLatFieldName(req_id);
     const lonFieldName = useFieldNameStore().getLonFieldName(req_id);
     const mission = useFieldNameStore().getMissionForReqId(req_id);
+    const initLegendUnselected = chartStore.getInitLegendUnselected(reqIdStr);
     // Get the CSS variable value dynamically
     const primaryButtonColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--p-button-text-primary-color')
@@ -745,6 +738,10 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 },
                 legend: {
                     data: seriesData.map(series => series.series.name),
+                    selected: Object.fromEntries(
+                        seriesData.map(series => [series.series.name, !initLegendUnselected])
+                    ),
+                    selectedMode: !initLegendUnselected,
                     left: 'left',
                     itemStyle: { color: primaryButtonColor }
                 },
