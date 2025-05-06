@@ -1,31 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref,computed } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAdvancedModeStore } from '@/stores/advancedModeStore';
 
 const reqParameterStore = useReqParamsStore();
+const advancedModeStore = useAdvancedModeStore();
 const selectedBox = ref<number | null>(null);
 
-const boxes = [
-  { id: 1, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Surface Elevations", description: "For all surface types", image: "/SrGround.webp" },
-  { id: 2, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Land Ice Sheet", description: "For ice sheets and glaciers", image: "/SrSeaIce.webp" },
-  { id: 3, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 4, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
-  { id: 5, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
-  { id: 6, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 7, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrInlandWater.webp" },
-  { id: 8, hide: (false && !useAdvancedModeStore().getAdvanced()), name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
-];
+const boxes = computed(() => [
+  { id: 1, hide: advancedModeStore.getAdvanced(), name: "ICESat-2 Surface Elevations", description: "For all surface types", image: "/SrGround.webp" },
+  { id: 2, hide: advancedModeStore.getAdvanced(), name: "ICESat-2 Land Ice Sheet", description: "For ice sheets and glaciers", image: "/SrSeaIce.webp" },
+  { id: 3, hide: advancedModeStore.getAdvanced(), name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+  { id: 4, hide: advancedModeStore.getAdvanced(), name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
+  { id: 5, hide: advancedModeStore.getAdvanced(), name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
+  { id: 6, hide: advancedModeStore.getAdvanced(), name: "GEDI Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+  { id: 7, hide: advancedModeStore.getAdvanced(), name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrInlandWater.webp" },
+  { id: 8, hide: advancedModeStore.getAdvanced(), name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
+]);
 
 const selectBox = (boxId: number) => {
   selectedBox.value = boxId;
-  const selectedBoxInfo = boxes.find(box => box.id === boxId);
+  const selectedBoxInfo = boxes.value.find(box => box.id === boxId);
   if (!selectedBoxInfo) {
     console.error("GenUserOptions Unknown selection.");
     return;
   }
   if (selectedBoxInfo?.name) {
     console.log(`${selectedBoxInfo.name} box selected.`);
+    let savedPoly = reqParameterStore.poly;
+    let savedConvexHull = reqParameterStore.convexHull;
     switch (selectedBoxInfo.name) {
       case 'ICESat-2 Surface Elevations':
         reqParameterStore.reset();
@@ -79,6 +82,8 @@ const selectBox = (boxId: number) => {
         console.error("GenUserOptions Unknown selection.");
         break;
     }
+    reqParameterStore.poly = savedPoly;
+    reqParameterStore.convexHull = savedConvexHull;
   }
 };
 </script>
