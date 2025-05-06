@@ -100,7 +100,7 @@ const isExpanded = (panelIndex: number) => {
                         <SrAtl24Parms />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="mission==='ICESat-2'" >
+                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03'))))" >
                     <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(8)">
                         <SrAncillaryFields :iceSat2SelectedAPI="props.iceSat2SelectedAPI"/>
