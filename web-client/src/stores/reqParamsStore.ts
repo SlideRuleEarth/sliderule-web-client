@@ -146,15 +146,6 @@ const createReqParamsStore = (id: string) =>
           {name:'8',value:8},
           {name:'11',value:11},
         ] as SrMultiSelectNumberItem[],
-
-        ATL03GeoSpatialFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
-        ATL03PhotonFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
-        ATL06IceSegmentFieldsOptions:['Field_1', 'Field_2', 'Field_3'],
-        ATL08LandSegmentFieldsOptions:[
-          { label: 'Option 1', value: 'opt1', selected: false, additionalParameter: false },
-          { label: 'Option 2', value: 'opt2', selected: false, additionalParameter: false },
-          { label: 'Option 3', value: 'opt3', selected: false, additionalParameter: false },
-        ] as SrMenuMultiCheckInputOption[],
         degradeFlag: true,
         l2QualityFlag: true,
         l4QualityFlag: false,
@@ -230,6 +221,15 @@ const createReqParamsStore = (id: string) =>
         useAtl24SensorDepthExceeded: false,
         atl24SensorDepthExceeded:false,
         atl24AncillaryFields:[] as string[],
+        atl03AncillaryFields:[] as string[],
+        atl08AncillaryFields:[] as string[],
+        atl03_geo_fields:[] as string[],
+        atl03_corr_fields:[] as string[],
+        atl03_ph_fields:[] as string[],
+        atl06_fields:[] as string[],
+        atl08_fields:[] as string[],
+        atl13_fields:[] as string[],
+        gedi_fields:[] as string[],
     }),
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -350,6 +350,10 @@ const createReqParamsStore = (id: string) =>
             } else if(this.gediSelectedAPI === 'gedi04ap') {
               this.setAsset('gedil4a');
             }
+            if(this.gedi_fields.length>0) {
+              req.anc_fields = this.gedi_fields;
+            }
+
           } else {
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
@@ -397,6 +401,27 @@ const createReqParamsStore = (id: string) =>
                   }
                 }
               }
+            }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl03')){ 
+            if(this.atl03_geo_fields.length>0) {
+              req.atl03_geo_fields = this.atl03_geo_fields;
+            }
+            if(this.atl03_corr_fields.length>0) {
+              req.atl03_corr_fields = this.atl03_corr_fields;
+            }
+            if(this.atl03_ph_fields.length>0) {
+              req.atl03_ph_fields = this.atl03_ph_fields;
+            }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl06')){ 
+            if(this.atl06_fields.length>0) {
+              req.atl06_fields = this.atl06_fields;
+            }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl08')){ 
+            if(this.atl08_fields.length>0) {
+              req.atl08_fields = this.atl08_fields;
             }
           }
           if(this.signalConfidenceNumber.length>0){

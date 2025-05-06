@@ -5,12 +5,13 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 
 const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
 const SrAtl08Cnf = defineAsyncComponent(() => import('@/components/SrAtl08Cnf.vue'));
 const SrExtents = defineAsyncComponent(() => import('@/components/SrExtents.vue'));
-const SrAncillaryFields = defineAsyncComponent(() => import('@/components/SrAncillaryFields.vue'));
+const SrAncillaryFieldEditor = defineAsyncComponent(() => import('@/components/SrAncillaryFieldEditor.vue'));
 const SrSurfaceElevation = defineAsyncComponent(() => import('@/components/SrSurfaceElevation.vue'));
 const SrGranuleSelection = defineAsyncComponent(() => import('@/components/SrGranuleSelection.vue'));
 const SrGenUserPresets = defineAsyncComponent(() => import('@/components/SrGenUserPresets.vue'));
@@ -19,6 +20,7 @@ const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensit
 const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'));
 const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'));
 const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'));
+
 interface Props {
   title: string;
   ariaTitle: string;
@@ -26,7 +28,7 @@ interface Props {
   iceSat2SelectedAPI: string;
   gediSelectedAPI: string;
 }
-
+const reqParamsStore = useReqParamsStore();
 const props = defineProps<Props>();
 const expandedPanels = ref<number[]>([]);
 
@@ -100,21 +102,31 @@ const isExpanded = (panelIndex: number) => {
                         <SrAtl24Parms />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03'))))" >
+                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03')) || (props.iceSat2SelectedAPI.includes('atl08'))))" >
                     <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(8)">
-                        <SrAncillaryFields :iceSat2SelectedAPI="props.iceSat2SelectedAPI"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_geo_fields" placeholder="Add Ancillary Field" label="atl03 Geo Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_corr_fields" placeholder="Add Ancillary Field" label="atl03 Corr Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_ph_fields" placeholder="Add Ancillary Field" label="atl03 Ph Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl06')" v-model="reqParamsStore.atl06_fields" placeholder="Add Ancillary Field" label="atl06 Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl08')" v-model="reqParamsStore.atl08_fields" placeholder="Add Ancillary Field" label="atl08 Fields"/>
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="9" v-if="mission==='GEDI'" >
-                    <AccordionHeader>GEDI Footprint</AccordionHeader>
+                <AccordionPanel value="9" v-if="(mission==='GEDI') " >
+                    <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(9)">
+                        <SrAncillaryFieldEditor v-model="reqParamsStore.gedi_fields" placeholder="Add Ancillary Field" label="Gedi Anc Fields"/>
+                   </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="10" v-if="mission==='GEDI'" >
+                    <AccordionHeader>GEDI Footprint</AccordionHeader>
+                    <AccordionContent v-if="isExpanded(10)">
                         <SrGedi />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="10">
+                <AccordionPanel value="11">
                     <AccordionHeader>Raster Sampling</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(10)">
+                    <AccordionContent v-if="isExpanded(11)">
                         <SrRaster />
                     </AccordionContent>
                 </AccordionPanel>
