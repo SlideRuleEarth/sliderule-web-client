@@ -41,7 +41,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import { watchDebounced } from '@vueuse/core';
@@ -70,6 +70,11 @@ const effectiveSliderMin = computed(() => props.sliderMin ?? props.min);
 const effectiveSliderMax = computed(() => props.sliderMax ?? props.max);
 const innerValue = ref(props.modelValue ?? props.defaultValue);
 const sliderStepSize = computed(() => Math.pow(10, -props.decimalPlaces));
+const normalizeLabel = (label: string) =>
+  label.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-');
+
+const inputId = props.label.trim() ? `sr-slider-input-${normalizeLabel(props.label)}` : props.id;
+const sliderName = `sr-slider-${normalizeLabel(props.label)}`;
 
 const handleBlur = (source: 'slider' | 'input') => (event: FocusEvent) => {
   emit('blur', { source, event });
@@ -79,7 +84,9 @@ const handleChange = (source: 'slider' | 'input') => (event: Event) => {
   emit('change', { source, value: innerValue.value });
 };
 
-
+onMounted(() => {
+    innerValue.value = props.defaultValue;
+})
 watch(() => props.modelValue, (newVal) => {
   const sanitized = typeof newVal === 'number' && !isNaN(newVal) ? newVal : props.defaultValue;
   if (sanitized !== innerValue.value) {
@@ -92,11 +99,6 @@ watchDebounced(innerValue, (newVal) => {
     emit('update:modelValue', newVal);
 }, { debounce: 500, maxWait: 1000 });
 
-const normalizeLabel = (label: string) =>
-  label.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-');
-
-const inputId = props.label.trim() ? `sr-slider-input-${normalizeLabel(props.label)}` : props.id;
-const sliderName = `sr-slider-${normalizeLabel(props.label)}`;
 </script>
 
 <style scoped>
@@ -120,7 +122,7 @@ const sliderName = `sr-slider-${normalizeLabel(props.label)}`;
 }
 
 .sr-slider-input-num {
-    width: 100%;
+    width: auto;
     text-align: right;
     padding: 0.125rem;
     font-size:x-small;

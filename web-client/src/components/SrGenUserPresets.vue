@@ -28,42 +28,49 @@ const selectBox = (boxId: number) => {
     console.log(`${selectedBoxInfo.name} box selected.`);
     switch (selectedBoxInfo.name) {
       case 'ICESat-2 Surface Elevations':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl06p');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Land Ice Sheet':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl06sp');
         reqParameterStore.setAsset('icesat2-atl06');
-
         break;
       case 'ICESat-2 Canopy Heights':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl08p');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Coastal Bathymetry':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl24x');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Geolocated Photons':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'GEDI Biomass Density':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi04ap');
         reqParameterStore.setAsset('gedil4a');
         break;
       case 'GEDI Elevations w/Canopy':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi02ap');
         reqParameterStore.setAsset('gedil2a');
         break;
       case 'GEDI Geolocated Waveforms':
+        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi01bp');
         reqParameterStore.setAsset('gedil1b');

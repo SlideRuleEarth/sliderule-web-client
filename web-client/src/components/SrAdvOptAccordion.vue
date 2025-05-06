@@ -5,19 +5,21 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 
-const SrYAPC = defineAsyncComponent(() => import('./SrYAPC.vue'));
-const SrAtl03Cnf = defineAsyncComponent(() => import('./SrAtl03Cnf.vue'));
-const SrAtl08Cnf = defineAsyncComponent(() => import('./SrAtl08Cnf.vue'));
-const SrExtents = defineAsyncComponent(() => import('./SrExtents.vue'));
-const SrAncillaryFields = defineAsyncComponent(() => import('./SrAncillaryFields.vue'));
-const SrSurfaceElevation = defineAsyncComponent(() => import('./SrSurfaceElevation.vue'));
-const SrGranuleSelection = defineAsyncComponent(() => import('./SrGranuleSelection.vue'));
-const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
-const SrGenUserOptions = defineAsyncComponent(() => import('./SrGenUserOptions.vue'));
-const SrVegDensity = defineAsyncComponent(() => import('./SrVegDensity.vue'));
-const SrGedi = defineAsyncComponent(() => import('./SrGedi.vue'));
-const SrRaster = defineAsyncComponent(() => import('./SrRaster.vue'));
+const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
+const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
+const SrAtl08Cnf = defineAsyncComponent(() => import('@/components/SrAtl08Cnf.vue'));
+const SrExtents = defineAsyncComponent(() => import('@/components/SrExtents.vue'));
+const SrAncillaryFieldEditor = defineAsyncComponent(() => import('@/components/SrAncillaryFieldEditor.vue'));
+const SrSurfaceElevation = defineAsyncComponent(() => import('@/components/SrSurfaceElevation.vue'));
+const SrGranuleSelection = defineAsyncComponent(() => import('@/components/SrGranuleSelection.vue'));
+const SrGenUserPresets = defineAsyncComponent(() => import('@/components/SrGenUserPresets.vue'));
+const SrGenUserOptions = defineAsyncComponent(() => import('@/components/SrGenUserOptions.vue'));
+const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensity.vue'));
+const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'));
+const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'));
+const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'));
 
 interface Props {
   title: string;
@@ -26,7 +28,7 @@ interface Props {
   iceSat2SelectedAPI: string;
   gediSelectedAPI: string;
 }
-
+const reqParamsStore = useReqParamsStore();
 const props = defineProps<Props>();
 const expandedPanels = ref<number[]>([]);
 
@@ -94,21 +96,37 @@ const isExpanded = (panelIndex: number) => {
                         <SrVegDensity />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="7" v-if="mission==='ICESat-2'" >
-                    <AccordionHeader>Ancillary Fields</AccordionHeader>
+                <AccordionPanel value="7" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl24')" >
+                    <AccordionHeader>ATL24 Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(7)">
-                        <SrAncillaryFields :iceSat2SelectedAPI="props.iceSat2SelectedAPI"/>
+                        <SrAtl24Parms />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="mission==='GEDI'" >
-                    <AccordionHeader>GEDI Footprint</AccordionHeader>
+                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03')) || (props.iceSat2SelectedAPI.includes('atl08'))))" >
+                    <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(8)">
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_geo_fields" placeholder="Add Ancillary Field" label="atl03 Geo Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_corr_fields" placeholder="Add Ancillary Field" label="atl03 Corr Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_ph_fields" placeholder="Add Ancillary Field" label="atl03 Ph Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl06')" v-model="reqParamsStore.atl06_fields" placeholder="Add Ancillary Field" label="atl06 Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl08')" v-model="reqParamsStore.atl08_fields" placeholder="Add Ancillary Field" label="atl08 Fields"/>
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="9" v-if="(mission==='GEDI') " >
+                    <AccordionHeader>Ancillary Fields</AccordionHeader>
+                    <AccordionContent v-if="isExpanded(9)">
+                        <SrAncillaryFieldEditor v-model="reqParamsStore.gedi_fields" placeholder="Add Ancillary Field" label="Gedi Anc Fields"/>
+                   </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="10" v-if="mission==='GEDI'" >
+                    <AccordionHeader>GEDI Footprint</AccordionHeader>
+                    <AccordionContent v-if="isExpanded(10)">
                         <SrGedi />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="9">
+                <AccordionPanel value="11">
                     <AccordionHeader>Raster Sampling</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(9)">
+                    <AccordionContent v-if="isExpanded(11)">
                         <SrRaster />
                     </AccordionContent>
                 </AccordionPanel>
