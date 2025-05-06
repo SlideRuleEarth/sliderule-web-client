@@ -2,7 +2,7 @@
 <div class="sr-ancillary-fields-container">
     <SrMenuMultiInputText
     :insensitive="true"
-        v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
+        v-if="props.iceSat2SelectedAPI.includes('atl03') || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03GeoSpatialFieldsOptions"
         label="ATL03 GeoSpatial Fields"
         ariaLabel="Select ATL03 GeoSpatial Fields"
@@ -14,7 +14,7 @@
     />  
     <SrMenuMultiInputText
     :insensitive="true"
-        v-if="props.iceSat2SelectedAPI === 'atl03sp' || props.iceSat2SelectedAPI.includes('atl06')"
+        v-if="props.iceSat2SelectedAPI.includes('atl03') || props.iceSat2SelectedAPI.includes('atl06')"
         v-model="reqParamsStore.ATL03PhotonFieldsOptions"
         label="ATL03 Photon Fields"
         ariaLabel="Select ATL03 Photon Fields"

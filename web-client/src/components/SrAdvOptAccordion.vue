@@ -6,19 +6,19 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
 
-const SrYAPC = defineAsyncComponent(() => import('./SrYAPC.vue'));
-const SrAtl03Cnf = defineAsyncComponent(() => import('./SrAtl03Cnf.vue'));
-const SrAtl08Cnf = defineAsyncComponent(() => import('./SrAtl08Cnf.vue'));
-const SrExtents = defineAsyncComponent(() => import('./SrExtents.vue'));
-const SrAncillaryFields = defineAsyncComponent(() => import('./SrAncillaryFields.vue'));
-const SrSurfaceElevation = defineAsyncComponent(() => import('./SrSurfaceElevation.vue'));
-const SrGranuleSelection = defineAsyncComponent(() => import('./SrGranuleSelection.vue'));
-const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
-const SrGenUserOptions = defineAsyncComponent(() => import('./SrGenUserOptions.vue'));
-const SrVegDensity = defineAsyncComponent(() => import('./SrVegDensity.vue'));
-const SrGedi = defineAsyncComponent(() => import('./SrGedi.vue'));
-const SrRaster = defineAsyncComponent(() => import('./SrRaster.vue'));
-
+const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
+const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
+const SrAtl08Cnf = defineAsyncComponent(() => import('@/components/SrAtl08Cnf.vue'));
+const SrExtents = defineAsyncComponent(() => import('@/components/SrExtents.vue'));
+const SrAncillaryFields = defineAsyncComponent(() => import('@/components/SrAncillaryFields.vue'));
+const SrSurfaceElevation = defineAsyncComponent(() => import('@/components/SrSurfaceElevation.vue'));
+const SrGranuleSelection = defineAsyncComponent(() => import('@/components/SrGranuleSelection.vue'));
+const SrGenUserPresets = defineAsyncComponent(() => import('@/components/SrGenUserPresets.vue'));
+const SrGenUserOptions = defineAsyncComponent(() => import('@/components/SrGenUserOptions.vue'));
+const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensity.vue'));
+const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'));
+const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'));
+const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'));
 interface Props {
   title: string;
   ariaTitle: string;
@@ -94,21 +94,27 @@ const isExpanded = (panelIndex: number) => {
                         <SrVegDensity />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="7" v-if="mission==='ICESat-2'" >
-                    <AccordionHeader>Ancillary Fields</AccordionHeader>
+                <AccordionPanel value="7" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl24')" >
+                    <AccordionHeader>ATL24 Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(7)">
+                        <SrAtl24Parms />
+                    </AccordionContent>
+                </AccordionPanel>
+                <AccordionPanel value="8" v-if="mission==='ICESat-2'" >
+                    <AccordionHeader>Ancillary Fields</AccordionHeader>
+                    <AccordionContent v-if="isExpanded(8)">
                         <SrAncillaryFields :iceSat2SelectedAPI="props.iceSat2SelectedAPI"/>
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="mission==='GEDI'" >
+                <AccordionPanel value="9" v-if="mission==='GEDI'" >
                     <AccordionHeader>GEDI Footprint</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(8)">
+                    <AccordionContent v-if="isExpanded(9)">
                         <SrGedi />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="9">
+                <AccordionPanel value="10">
                     <AccordionHeader>Raster Sampling</AccordionHeader>
-                    <AccordionContent v-if="isExpanded(9)">
+                    <AccordionContent v-if="isExpanded(10)">
                         <SrRaster />
                     </AccordionContent>
                 </AccordionPanel>

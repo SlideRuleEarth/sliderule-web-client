@@ -1,6 +1,8 @@
 <template>
   <div class="sr-checkbox">
-    <Checkbox 
+    <Checkbox
+      v-if="!labelOnLeft" 
+      class="sr-checkbox-input"
       :inputId="'sr-checkbox-' + label" 
       v-model="localChecked" 
       :binary="true" 
@@ -27,6 +29,17 @@
         {{ label }}
       </label>
     </template>
+    <Checkbox
+      v-if="labelOnLeft" 
+      class="sr-checkbox-input"
+      :inputId="'sr-checkbox-' + label" 
+      v-model="localChecked" 
+      :binary="true" 
+      :disabled="insensitive"
+      @change="emitChange"
+      size="small"
+    />
+
   </div>
 </template>
 
@@ -44,6 +57,7 @@ const props = withDefaults(
     tooltipUrl?: string;
     labelFontSize?: string;
     defaultValue?: boolean;
+    labelOnLeft?: boolean;
   }>(),
   {
     label: '',
@@ -53,6 +67,7 @@ const props = withDefaults(
     tooltipUrl: '',
     labelFontSize: 'small',
     defaultValue: false,
+    labelOnLeft: false,
   }
 );
 
@@ -95,6 +110,10 @@ const emitChange = () => {
     align-items: center;
     justify-content: flex-start;
     margin: 0.25rem;
+  }
+
+  .sr-checkbox-input {
+    margin-right: 0.5rem;
   }
   
   .sr-checkbox-label {

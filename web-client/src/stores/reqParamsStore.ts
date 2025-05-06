@@ -212,6 +212,24 @@ const createReqParamsStore = (id: string) =>
         atl24_class_ph_Options: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
         defaultsFetched: false,
         useDatum: false,
+        useAtl24Compact: false,
+        atl24Compact: false,
+        useAtl24Classification: false,
+        atl24Classification: [40],
+        atl24ClassOptions: [{name:'unclassified',value:0}, {name:'bathymetry',value:40} ,{ name:'sea_surface',value: 41}] as SrMultiSelectNumberItem[],
+        useAtl24ConfidenceThreshold: false,
+        atl24ConfidenceThreshold: 0.6, // NOTE: for advanced the preset for the control is different --> 0.0 (The server default)
+        useAtl24InvalidKD: false,
+        atl24InvalidKD:false,
+        useAtl24InvalidWindspeed: false,
+        atl24InvalidWindspeed:false,
+        useAtl24LowConfidence: false,
+        atl24LowConfidence:false,
+        useAtl24Night: false,
+        atl24Night:false,
+        useAtl24SensorDepthExceeded: false,
+        atl24SensorDepthExceeded:false,
+        atl24AncillaryFields:[] as string[],
     }),
     actions: {
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -339,7 +357,34 @@ const createReqParamsStore = (id: string) =>
             req.phoreal = {};
           }
           if(this.iceSat2SelectedAPI === 'atl24x'){
-            req.atl24 = {"confidence_threshold": 0.60}; // default confidence threshold for ATL24
+            req.atl24 = {};
+            if(this.useAtl24Compact){
+              req.atl24.compact = this.atl24Compact;
+            }
+            if(this.useAtl24Classification){
+              req.atl24.classification = this.atl24Classification;
+            }
+            if(this.useAtl24ConfidenceThreshold){
+              req.atl24.confidence_threshold = this.atl24ConfidenceThreshold;
+            }
+            if(this.useAtl24InvalidKD){
+              req.atl24.invalid_kd = this.atl24InvalidKD;
+            }
+            if(this.useAtl24InvalidWindspeed){
+              req.atl24.invalid_windspeed = this.atl24InvalidWindspeed;
+            }
+            if(this.useAtl24LowConfidence){
+              req.atl24.low_confidence = this.atl24LowConfidence;
+            }
+            if(this.useAtl24Night){
+              req.atl24.night = this.atl24Night;
+            }
+            if(this.useAtl24SensorDepthExceeded){
+              req.atl24.sensor_depth_exceeded = this.atl24SensorDepthExceeded;
+            }
+            if(this.atl24AncillaryFields.length>0){
+              req.atl24.ancillary_fields = this.atl24AncillaryFields;
+            }
           } else {
             req.asset = this.getAsset();
             if(this.missionValue === 'ICESat-2') {
