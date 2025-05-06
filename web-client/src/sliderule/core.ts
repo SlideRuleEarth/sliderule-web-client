@@ -1,4 +1,5 @@
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
+const build_env = import.meta.env.VITE_BUILD_ENV;
 
 export type SysConfig = {
   domain: string;
@@ -502,6 +503,7 @@ export async function source(
       'Content-Type': 'application/json', 
       'Content-Length': Buffer.byteLength(body).toString(),
       'x-sliderule-streaming': stream ? '1' : '0',
+      'x-sliderule-client': `web-${build_env}`,
     };
     options.body = body;
   }
