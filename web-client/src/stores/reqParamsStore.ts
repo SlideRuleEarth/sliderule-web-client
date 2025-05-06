@@ -383,7 +383,7 @@ const createReqParamsStore = (id: string) =>
               req.atl24.sensor_depth_exceeded = this.atl24SensorDepthExceeded;
             }
             if(this.atl24AncillaryFields.length>0){
-              req.atl24.ancillary_fields = this.atl24AncillaryFields;
+              req.atl24.anc_fields = this.atl24AncillaryFields;
             }
           } else {
             req.asset = this.getAsset();
@@ -416,10 +416,10 @@ const createReqParamsStore = (id: string) =>
               }
             }
             if(this.useLength){
-              req.length = this.getLengthValue();
+              req.len = this.getLengthValue();
             }
             if(this.useStep){
-              req.step = this.getStepValue();
+              req.res = this.getStepValue();
             }
           } else if(this.missionValue === 'GEDI') {
             if(this.degradeFlag){
