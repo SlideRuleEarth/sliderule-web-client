@@ -1,6 +1,7 @@
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -187,12 +188,17 @@ export function createWhereClause(reqId:number){
     const y_atc_is_valid = globalChartStore.y_atc_is_valid();
     const selected_y_atc = globalChartStore.selected_y_atc;
     const y_atc_margin = globalChartStore.y_atc_margin;
+    const fieldNameStore = useFieldNameStore();
+    const utfn = fieldNameStore.getUniqueTrkFieldName(reqId);
+    const uofn = fieldNameStore.getUniqueOrbitIdFieldName(reqId);
+    const usfn = fieldNameStore.getUniqueSpotIdFieldName(reqId);
+
     let whereStr = '';
     if (func === 'atl03sp'){
         if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if( rgt >= 0){
-                whereStr = whereStr + `rgt = ${rgt}`;
+                whereStr = whereStr + `${utfn} = ${rgt}`;
             } else {
                 console.error('createWhereClause: rgt is empty for func:', func);
             }
@@ -200,33 +206,32 @@ export function createWhereClause(reqId:number){
                 if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
-                whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+                whereStr = whereStr + `${uofn} IN (${cycles.join(', ')})`;
             } else {
                 console.error('createWhereClause: cycles is empty for func:', func);
             }
+
             if (spots.length > 0) {
-                if (spots.length > 0) {
-                    whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
-                }
+                whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
             }
             if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
             }
         }
-    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('atl24')) || (func === 'atl03x')) {
+    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('atl24')) || (func === 'atl03x')|| (func.includes('gedi0'))) {
         if ((rgt >= 0) || (cycles.length > 0)) {
             whereStr = 'WHERE ';
             if( rgt >= 0){
-                whereStr = whereStr + `rgt = ${rgt}`;
+                whereStr = whereStr + `${utfn} = ${rgt}`;
             }
             if (cycles.length > 0) {
                 if( rgt >= 0){
                     whereStr = whereStr + ' AND ';
                 }
-                whereStr = whereStr + `cycle IN (${cycles.join(', ')})`;
+                whereStr = whereStr + `${uofn} IN (${cycles.join(', ')})`;
             }
             if (spots.length > 0) {
-                whereStr = whereStr + ` AND spot IN (${spots.join(', ')})`;
+                whereStr = whereStr + ` AND ${usfn} IN (${spots.join(', ')})`;
             }
             if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
                 const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
@@ -234,8 +239,6 @@ export function createWhereClause(reqId:number){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;
             }
         }
-    } else if (func.includes('gedi')){
-        whereStr = 'WHERE beam = -1'; // all beams
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }

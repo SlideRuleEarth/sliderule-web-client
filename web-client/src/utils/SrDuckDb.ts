@@ -203,6 +203,7 @@ export class DuckDBClient {
   async getTotalRowCount(query: string): Promise<number> {
     const startTime = performance.now(); // Start time
     const conn = await this._db!.connect();
+    let totalRows;
     try {
       const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
       const result = await conn.query(countQuery);
@@ -210,7 +211,7 @@ export class DuckDBClient {
       if (rows.length === 0) {
         return 0; // Handle case where there are no rows
       }
-      const totalRows = rows[0].total;
+      totalRows = rows[0].total;
       return totalRows;
     } catch (error) {
       console.error('Error getting total row count:', error);
@@ -219,7 +220,7 @@ export class DuckDBClient {
       await conn.close();
       const endTime = performance.now(); // End time
       const duration = endTime - startTime; // Duration in milliseconds
-      console.log(`getTotalRowCount took ${duration} milliseconds for query: ${query}`);
+      console.log(`getTotalRowCount:${totalRows} took ${duration} milliseconds for query: ${query}`);
     }
   }
   

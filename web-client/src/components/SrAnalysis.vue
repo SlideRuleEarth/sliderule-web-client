@@ -3,21 +3,21 @@
         <!-- v-model binds to activeIndex so we know which tab is selected -->
         <Tabs v-model:value="activeTabStore.activeTab">
             <TabList>
-                <Tab v-if="isNotGediAndValid" value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
-                <Tab v-if="isNotGediAndValid" value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
+                <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
+                <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                 <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
                 <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
             </TabList>
 
             <TabPanels>
-                <TabPanel v-if="isNotGediAndValid" value="0">
+                <TabPanel value="0">
                     <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
                     <SrElevationPlot 
                         v-if="shouldDisplayElevationPlot" 
                         :startingReqId="reqId"
                     />
                 </TabPanel>
-                <TabPanel v-if="isNotGediAndValid" value="1">
+                <TabPanel value="1">
                     <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
                     <SrTimeSeries 
                         v-if="shouldDisplayTimeSeries" 
@@ -71,10 +71,6 @@
         return '';
     });
 
-    const isNotGediAndValid = computed(() => {
-        return (mission.value && mission.value != 'GEDI');
-    });
-
     // In each "shouldDisplay" computed, also check the active tab
     const shouldDisplayElevationPlot = computed(() => {
         return (
@@ -110,11 +106,7 @@
     });
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
-        if(mission.value == 'GEDI'){
-            activeTabStore.setActiveTab('3'); // 
-        } else {
-            activeTabStore.setActiveTab('0');
-        }
+        activeTabStore.setActiveTab('0');
     });
 
     onUnmounted(() => {
