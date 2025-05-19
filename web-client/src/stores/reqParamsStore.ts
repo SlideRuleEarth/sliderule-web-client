@@ -378,7 +378,7 @@ const createReqParamsStore = (id: string) =>
               req.atl24.compact = this.atl24Compact;
             }
             if(this.useAtl24Classification){
-              req.atl24.classification = this.atl24Classification;
+              req.atl24.class_ph = this.atl24Classification;
             }
             if(this.useAtl24ConfidenceThreshold){
               req.atl24.confidence_threshold = this.atl24ConfidenceThreshold;
@@ -387,7 +387,7 @@ const createReqParamsStore = (id: string) =>
               req.atl24.invalid_kd = this.atl24InvalidKD;
             }
             if(this.useAtl24InvalidWindspeed){
-              req.atl24.invalid_windspeed = this.atl24InvalidWindspeed;
+              req.atl24.invalid_wind_speed = this.atl24InvalidWindspeed;
             }
             if(this.useAtl24LowConfidence){
               req.atl24.low_confidence = this.atl24LowConfidence;
