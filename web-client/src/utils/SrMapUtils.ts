@@ -317,7 +317,7 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     const gcs = useGlobalChartStore();
 
-    if (!api.includes('atl03')) {
+    if (!api.includes('atl03') || !api.includes('atl08')) {
         if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
             const y_atc_filtered_Cols = await getColsForRgtYatcFromFile(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
             //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
