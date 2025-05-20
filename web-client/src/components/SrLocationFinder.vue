@@ -53,7 +53,7 @@ function hideMarker() {
 
 onMounted(() => {
     if (!props.map) return;
-    globalChartStore.enableLocationFinder = false;
+    globalChartStore.enableLocationFinder = true;
     highlightEl = document.createElement('div');
     highlightEl.className = 'map-highlight-marker';
     document.body.appendChild(highlightEl);

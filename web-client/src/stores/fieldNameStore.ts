@@ -56,11 +56,11 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
             break;
-        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'beam'];
+        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi04ap': options = ['elevation'];
+        case 'gedi04ap': options = ['elevation', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi01bp': options = ['elevation_start'];
+        case 'gedi01bp': options = ['elevation_start', 'track', 'beam', 'orbit'];
             break;
         default:
             console.error('Unknown funcStr:',funcStr)
@@ -89,7 +89,90 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
-    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')||(funcStr.includes('gedi') )) ? 'time_ns' : 'time';
+    console.log('getTimeFieldNameForAPIStr',funcStr);
+    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
+}
+
+function getUniqueTrkFieldNameForAPIStr(funcStr: string): string {
+    switch (funcStr) {
+        case 'atl06p': return 'rgt';
+        case 'atl06sp': return 'rgt';
+        case 'atl03vp': return 'rgt';
+        case 'atl03sp': return 'rgt';
+        case 'atl03x': return 'rgt';
+        case 'atl08p': return 'rgt';
+        case 'atl24x': return 'rgt';
+        case 'gedi02ap': return 'track';
+        case 'gedi04ap': return 'track';
+        case 'gedi01bp': return 'track';
+        default:
+            throw new Error(`Unknown rgt fieldname for API: ${funcStr} in getUniqueTrkFieldName`);
+    }
+}
+
+function getUniqueTrkFieldName(reqId: number): string {
+    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    try {
+        const field = getUniqueTrkFieldNameForAPIStr(funcStr);
+        return field;
+    } catch (error) {
+        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        throw error;
+    }
+}
+
+function getUniqueOrbitIdFieldNameForAPIStr(funcStr: string): string {
+    switch (funcStr) {
+        case 'atl06p': return 'cycle';
+        case 'atl06sp': return 'cycle';
+        case 'atl03vp': return 'cycle';
+        case 'atl03sp': return 'cycle';
+        case 'atl03x': return 'cycle';
+        case 'atl08p': return 'cycle';
+        case 'atl24x': return 'cycle';
+        case 'gedi02ap': return 'orbit';
+        case 'gedi04ap': return 'orbit';
+        case 'gedi01bp': return 'orbit';
+        default:
+            throw new Error(`Unknown UniqueOrbitId fieldname for API: ${funcStr} in getUniqueOrbitIdFieldName`);
+    }
+}
+function getUniqueOrbitIdFieldName(reqId: number): string {
+    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    try {
+        const field = getUniqueOrbitIdFieldNameForAPIStr(funcStr);
+        return field;
+    } catch (error) {
+        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        throw error;
+    }
+}
+
+function getUniqueSpotIdFieldNameForAPIStr(funcStr: string): string {
+    switch (funcStr) {
+        case 'atl06p': return 'spot';
+        case 'atl06sp': return 'spot';
+        case 'atl03vp': return 'spot';
+        case 'atl03sp': return 'spot';
+        case 'atl03x': return 'spot';
+        case 'atl08p': return 'spot';
+        case 'atl24x': return 'spot';
+        case 'gedi02ap': return 'beam';
+        case 'gedi04ap': return 'beam';
+        case 'gedi01bp': return 'beam';
+        default:
+            throw new Error(`Unknown UniqueSpotId fieldname for API: ${funcStr} in getUniqueSpotIdFieldName`);
+    }
+}
+function getUniqueSpotIdFieldName(reqId: number): string {
+    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    try {
+        const field = getUniqueSpotIdFieldNameForAPIStr(funcStr);
+        return field;
+    } catch (error) {
+        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        throw error;
+    }
 }
 
 function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string {
@@ -160,6 +243,9 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         getDefaultElOptions,
         getMissionForReqId,
         getMissionFromApiStr,
+        getUniqueTrkFieldName,
+        getUniqueOrbitIdFieldName,
+        getUniqueSpotIdFieldName,
         curGedi2apElFieldOptions,
         curGedi2apElevationField,
         // for debugging/testing

@@ -23,7 +23,6 @@ export function formatKeyValuePair(key: string, value: any): string {
     typeof value === 'object' &&
     typeof value.toArray === 'function'
   ) {
-    // Safely call toArray if available
     const arr = value.toArray();
     const formattedPairs = [...arr]
       .reduce((pairs: number[][], num: number, index: number) => {
@@ -39,17 +38,32 @@ export function formatKeyValuePair(key: string, value: any): string {
 
     formattedValue = `[<br>${formattedPairs}<br>]`;
 
+  } else if (
+    typeof value === 'object' &&
+    typeof value.toArray === 'function'
+  ) {
+    const arr = value.toArray();
+    formattedValue = `[${arr[0]}, ..., ${arr[value.length - 1]}]`;
   } else if (typeof value === 'number') {
-    // Handle numeric formatting
-    let num = parseFloat(value.toPrecision(10)); 
-    if (Number.isInteger(num)) {
-      formattedValue = num.toFixed(0);
+    let num = parseFloat(value.toPrecision(10));
+    formattedValue = Number.isInteger(num) ? num.toFixed(0) : num.toFixed(3);
+
+  } else if (Array.isArray(value)) {
+    if (value.length === 0) {
+      formattedValue = '[]';
+    } else if (value.length === 1) {
+      formattedValue = `[${value[0]}]`;
+    } else if(value.length === 2) {
+      formattedValue = `[${value[0]}, ${value[value.length - 1]}]`;
+    } else if(value.length === 3) {
+      formattedValue = `[${value[0]}, ${value[1]}, ${value[value.length - 1]}]`;
+    } else if(value.length === 4) {
+      formattedValue = `[${value[0]}, ${value[1]}, ${value[2]}, ${value[value.length - 1]}]`;
     } else {
-      formattedValue = num.toFixed(3);
+      formattedValue = `[${value[0]}, ..., ${value[value.length - 1]}]`;
     }
 
   } else {
-    // Default, just return as-is
     formattedValue = value;
   }
 

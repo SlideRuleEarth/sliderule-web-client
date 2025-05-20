@@ -2,7 +2,7 @@
 <template>
     <div class="sr-select-box">
         <div class="sr-header">
-            <p class="sr-select-box-hdr">Cycles({{ globalChartStore.selectedCycleOptions.length }})</p>
+            <p class="sr-select-box-hdr">{{ displayLabel }} ({{ globalChartStore.selectedCycleOptions.length }})</p>
         </div>
         <Listbox 
             class="sr-select-lists"
@@ -46,7 +46,7 @@ import Button from 'primevue/button';
 import Listbox from 'primevue/listbox';
 import { selectedCyclesReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { resetFilterCycleOptions, resetCycleOptions } from '@/utils/SrMapUtils';
+import { resetFilterCycleOptions } from '@/utils/SrMapUtils';
 
 const globalChartStore = useGlobalChartStore();
 const recTreeStore = useRecTreeStore();
@@ -55,6 +55,11 @@ const computedCycleOptions = computed(() => {
     return globalChartStore.getCycleOptions();
 });
 
+const props = defineProps<{
+    label?: string
+}>();
+
+const displayLabel = computed(() => props.label ?? 'Cycles');
 
 async function filterCycles() {
     //console.log('filterCycles:', selectedCyclesReactive.value);

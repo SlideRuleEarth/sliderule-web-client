@@ -198,9 +198,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
-        if(useFieldNameStore().getMissionForReqId(reqId) === 'ICESat-2'){
-            await updateAllFilterOptions(reqId);
-        }
+        await updateAllFilterOptions(reqId);
         //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
         setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
@@ -212,6 +210,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     }
 }
 
+//This is IceSat-2 specific
 export const getColsForRgtYatcFromFile = async (
         req_id: number,
         cols: string[]
@@ -312,7 +311,7 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number,name:string): Promise<ElevationDataItem | null> => {
+export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:string): Promise<ElevationDataItem | null> => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
     const startTime = performance.now(); // Start time
 
@@ -340,6 +339,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
             console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
             return null;
         }
+        const mission = useFieldNameStore().getMissionForReqId(req_id);
 
         const duckDbClient = await createDuckDbClient();
         const filename = await indexedDb.getFilename(req_id);
@@ -368,10 +368,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                 numRows = rows.length;
                 pntData.currentPnts = numRows;
                 //console.log('duckDbReadAndUpdateElevationData rows:', rows);
-                if(useFieldNameStore().getMissionForReqId(req_id) === 'ICESat-2'){
-                    // **Find the first valid elevation point**
-                    firstRec = rows.find(isClickable) || null;
-                } else {
+                // **Find the first valid elevation point**
+                firstRec = rows.find(isClickable) || null;
+                if(!firstRec){
+                    console.warn('duckDbReadAndUpdateElevationData find(isClickable) firstRec is null');
                     if(rows.length > 0) {
                         firstRec = rows[0];
                     }
@@ -380,12 +380,10 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                     // Precompute position data for all rows
                     const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
                     const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
-                    const height_fieldname = useFieldNameStore().getHFieldName(req_id);
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
                         0 // always make this 0 so the tracks are flat
-                        //d[height_fieldname] ?? 0
                     ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
@@ -412,7 +410,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
                     numPoints: summary.numPoints
                 });
                 //console.log('duckDbReadAndUpdateElevationData',height_fieldname,'positions:', positions);
-                updateDeckLayerWithObject(name, rows, summary.extHMean, height_fieldname, positions, projName);
+                updateDeckLayerWithObject(layerName, rows, summary.extHMean, height_fieldname, positions, projName);
                 
             } else {
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
@@ -435,7 +433,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,name:strin
 type Position = [number, number, number];
 
 export const duckDbReadAndUpdateSelectedLayer = async (
-    req_id: number, name:string, chunkSize: number = 10000, maxNumPnts = 10000
+    req_id: number, layerName:string, chunkSize: number = 10000, maxNumPnts = 10000
 ) => {
     console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
     if (req_id === undefined || req_id === null || req_id === 0) {
@@ -454,6 +452,10 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             console.error('duckDbReadAndUpdateSelectedLayer req_id:', req_id, ' status is error SKIPPING!');
             return;
         }
+
+        const utfn = useFieldNameStore().getUniqueTrkFieldName(req_id);
+        const uofn = useFieldNameStore().getUniqueOrbitIdFieldName(req_id);
+        const usfn = useFieldNameStore().getUniqueSpotIdFieldName(req_id);
 
         filteredPntData.isLoading = true;
         filteredPntData.currentPnts = 0;
@@ -482,30 +484,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             use_y_atc_filter = false;
         }
 
-        if (func.includes('atl06') || func.includes('atl03vp') || func.includes('atl08') || func.includes('atl24') || func.includes('atl03x')) {
-            queryStr = `
-                SELECT * FROM read_parquet('${filename}') 
-                WHERE rgt = ${rgt}
-                AND cycle IN (${cycles.join(', ')})
-                AND spot IN (${spots.join(', ')})
-            `;
-            if (use_y_atc_filter) {
-                queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`;
-            }
-        } else if (func === 'atl03sp') {
-            queryStr = `SELECT * FROM '${filename}' `;
-            queryStr += useChartStore().getWhereClause(reqIdStr);
-        } else if (func === 'gedi01bp') {
-            queryStr = `SELECT * FROM read_parquet('${filename}') `;
-            queryStr += useChartStore().getWhereClause(reqIdStr);
-        } else if (func === 'gedi02ap') {
-            queryStr = `SELECT * FROM read_parquet('${filename}') `;
-            queryStr += useChartStore().getWhereClause(reqIdStr);
-        } else if (func === 'gedi04ap') {
-            queryStr = `SELECT * FROM read_parquet('${filename}') `;
-            queryStr += useChartStore().getWhereClause(reqIdStr);
-        } else {
-            console.error('duckDbReadAndUpdateSelectedLayer invalid func:', func);
+        queryStr = `
+            SELECT * FROM read_parquet('${filename}') 
+            WHERE ${utfn} = ${rgt}
+            AND ${uofn} IN (${cycles.join(', ')})
+            AND ${usfn} IN (${spots.join(', ')})
+        `;
+        if (use_y_atc_filter) {
+            queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`;
         }
 
         await duckDbClient.insertOpfsParquet(filename);
@@ -548,7 +534,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             const summary = await readOrCacheSummary(req_id);
             if (summary?.extHMean) {
                 // Pass `positions` to the function so it's used efficiently
-                updateDeckLayerWithObject(name,rowChunks, summary.extHMean, height_fieldname, positions, projName);
+                updateDeckLayerWithObject(layerName,rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
                 console.error('duckDbReadAndUpdateSelectedLayer summary is undefined');
             }
@@ -620,14 +606,16 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
     await duckDbClient.insertOpfsParquet(fileName);
     const rgtOptions = [] as SrListNumberItem[];
     try{
-        const query = `SELECT DISTINCT rgt FROM '${fileName}' order by rgt ASC`;
+        const utfn = useFieldNameStore().getUniqueTrkFieldName(req_id);
+
+        const query = `SELECT DISTINCT ${utfn} FROM '${fileName}' order by  ${utfn} ASC`;
         const queryResult: QueryResult = await duckDbClient.query(query);
         //console.log('getAllRgtOptionsInFile queryResult:', queryResult);
         for await (const rowChunk of queryResult.readRows()) {
             //console.log('getAllRgtOptionsInFile rowChunk:', rowChunk);
             for (const row of rowChunk) {
                 if (row) {
-                    rgtOptions.push({ label: row.rgt.toString(), value: row.rgt });
+                    rgtOptions.push({ label: row[utfn].toString(), value: row[utfn] });
                 } else {
                     console.warn('getAllRgtOptionsInFile fetchData rowData is null');
                 }
@@ -638,7 +626,7 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getAllRgtOptionsInFile() took ${endTime - startTime} milliseconds.`,rgtOptions);
+        console.log(`SrDuckDbUtils.getAllRgtOptionsInFile() took ${endTime - startTime} milliseconds.`,rgtOptions);
     }
     return rgtOptions;
 }
@@ -668,7 +656,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`);
+        console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`, pairs);
     }
     return pairs;
 }
@@ -716,7 +704,7 @@ export function buildSafeAggregateClauses(
         }
     });
 }
-
+// These are IceSat-2 specific
 export async function getTracks(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
     const fileName = await indexedDb.getFilename(req_id);
@@ -775,11 +763,13 @@ export async function getScOrient(req_id: number): Promise<number[]> {
     return scOrients;
 }
 
+// This uses generic field name for cycle to support GEDI 
 export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles: number[]; cycleOptions: SrListNumberItem[] }> {
     const startTime = performance.now(); // Start time
     const time_fieldname = useFieldNameStore().getTimeFieldName(req_id);
     const fileName = await indexedDb.getFilename(req_id);
     const duckDbClient = await createDuckDbClient();
+
 
     // Make the parquet file available to DuckDB
     await duckDbClient.insertOpfsParquet(fileName);
@@ -788,15 +778,16 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
     const cycles = [] as number[];
 
     try {
+        const uofn = useFieldNameStore().getUniqueOrbitIdFieldName(req_id);
         // Query: get one row per cycle with a single representative time
         // plus all distinct rgts, spots, and gts.
         const query = `
             SELECT 
-                cycle,
+                ${uofn},
                 ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time,  -- We only need any single time
             FROM '${fileName}'
-            GROUP BY cycle
-            ORDER BY cycle ASC;
+            GROUP BY ${uofn}
+            ORDER BY ${uofn} ASC;
         `;
 
         // Run the query
@@ -818,13 +809,14 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
                 });
 
                 // Build a label for each cycle
-                const newLabel = `${row.cycle}: ${timeStr}`;
+                const value = row[uofn];
+                const newLabel = `${value}: ${timeStr}`;
 
                 cycleOptions.push({
                     label: newLabel,
-                    value: row.cycle
+                    value: value
                 });
-                cycles.push(row.cycle);
+                cycles.push(value);
             }
         }
     } catch (error) {
@@ -838,6 +830,7 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
     return {cycles, cycleOptions};
 }
 
+// This uses generic field name for cycle to support GEDI 
 export async function getAllFilteredCycleOptionsFromFile(
     req_id: number,
 ): Promise<SrListNumberItem[]> {
@@ -852,17 +845,18 @@ export async function getAllFilteredCycleOptionsFromFile(
     
     try {
         // Build the WHERE clause dynamically
+        const uofn = useFieldNameStore().getUniqueOrbitIdFieldName(req_id);
         
         whereClause = createWhereClause(req_id);
 
         const query = `
             SELECT 
-            cycle, 
+            ${uofn} AS cycle, 
             ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time 
             FROM '${fileName}'
             ${whereClause}
-            GROUP BY cycle 
-            ORDER BY cycle ASC;
+            GROUP BY ${uofn} 
+            ORDER BY ${uofn} ASC;
         `;
 
         const queryResult: QueryResult = await duckDbClient.query(query);

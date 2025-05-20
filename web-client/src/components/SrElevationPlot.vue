@@ -33,6 +33,7 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
+import { useFieldNameStore } from "@/stores/fieldNameStore";
 
 
 const tooltipRef = ref();
@@ -50,6 +51,7 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const analysisMapStore = useAnalysisMapStore();
+const fieldNameStore = useFieldNameStore();
 const loadingComponent = ref(true);
 const dialogsInitialized = ref(false); // Track if dialogs have been initialized
 
@@ -281,7 +283,9 @@ const shouldDisplayMainGradient = computed(() => {
     return shouldDisplay;
 });
 
-
+const mission  = computed(() => {
+    return fieldNameStore.getMissionForReqId(props.startingReqId);
+});
 
 const shouldDisplayGradientDialog = computed(() => {
     return (shouldDisplayOverlayGradient.value || shouldDisplayMainGradient.value)
@@ -688,17 +692,18 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         </div> 
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
-            <div v-if="atlChartFilterStore.getShowMessage()" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
+            <div v-if="atlChartFilterStore.getShowMessage()&& mission==='ICESat-2'" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
             <SrCustomTooltip ref="tooltipRef"/>
             <div 
                 class="sr-run-control" 
-                v-if="!recTreeStore.selectedApi?.includes('atl03')"
+                v-if="mission==='ICESat-2' && !recTreeStore.selectedApi?.includes('atl03')"
             >
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
                     @mouseleave="tooltipRef.hideTooltip"
                 >
                     <ToggleButton
+                        v-if="mission === 'ICESat-2'"
                         onIcon='pi pi-eye-slash'
                         offIcon="pi pi-eye"
                         class="sr-show-hide-button"
@@ -731,7 +736,8 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     </div>
                     <div class="sr-multiselect-col-req">
                         <SrReqDisplay
-                            v-if="((atlChartFilterStore.selectedOverlayedReqIds.length === 0) && (!recTreeStore.selectedApi.includes('atl03')))"
+                            v-if="( (atlChartFilterStore.selectedOverlayedReqIds.length === 0) && 
+                                    (!recTreeStore.selectedApi.includes('atl03')) && (mission === 'ICESat-2'))"
                             label='Show Photon Cloud Req Params'
                             :isForPhotonCloud="true"
                             :tooltipText="'The params that will be used for the Photon Cloud overlay'"

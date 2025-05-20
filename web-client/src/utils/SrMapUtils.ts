@@ -307,12 +307,17 @@ function isInvalid(value: any): boolean {
     return value === null || value === undefined || value === '' || Number.isNaN(value);
 }
 
+function hasValidIdFields(d: ElevationDataItem): boolean {
+    return (!isInvalid(d?.cycle) && !isInvalid(d?.rgt)) ||
+           (!isInvalid(d?.orbit) && !isInvalid(d?.track));
+}
+
 export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
     const reqIdStr = useRecTreeStore().selectedReqIdStr;
     const api = useRecTreeStore().findApiForReqId(parseInt(reqIdStr));
     const gcs = useGlobalChartStore();
 
-    if (!api.includes('atl03')) {
+    if (!api.includes('atl03') || !api.includes('atl08')) {
         if (gcs.use_y_atc_filter && !isInvalid(gcs.selected_y_atc)) {
             const y_atc_filtered_Cols = await getColsForRgtYatcFromFile(useRecTreeStore().selectedReqId, ['spot', 'cycle', 'gt']);
             //console.log('setCyclesGtsSpotsFromFileUsingRgtYatc: y_atc_filtered_Cols:', y_atc_filtered_Cols);
@@ -358,13 +363,9 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc() {
 }
 
 export function isClickable(d: ElevationDataItem): boolean {
-    let valid = true;
-    if (isInvalid(d?.cycle) || isInvalid(d?.rgt) || (d?.y_atc !== undefined && isInvalid(d?.y_atc))) {
-        //console.log('isClickable: invalid elevation point:', d);
-        valid = false;
-    }
-    return valid;
+    return hasValidIdFields(d) && (d?.y_atc === undefined || !isInvalid(d.y_atc));
 }
+
 
 export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     console.log('processSelectedElPnt d:',d);
@@ -417,13 +418,18 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
         if(gcs.use_y_atc_filter){    
             await setCyclesGtsSpotsFromFileUsingRgtYatc();
         }
-        // console.log('processSelectedElPnt: pair',gcs.getPairs());
-        // console.log('processSelectedElPnt: rgt',gcs.getRgt())
-        // console.log('processSelectedElPnt: cycles',gcs.getCycles())
-        // console.log('processSelectedElPnt: tracks',gcs.getTracks())
-        // console.log('processSelectedElPnt: sc_orient',gcs.getScOrients())
-        // console.log('processSelectedElPnt: spot',gcs.getSpots())
-        // console.log('processSelectedElPnt: gt',gcs.getGts())
+    } else if(mission === 'GEDI'){
+        //console.log('d:',d,'d.rgt',d.rgt,'d.cycle',d.cycle,'d.track:',d.track,'d.gt:',d.gt);
+        console.log('processSelectedElPnt: GEDI d:',d);
+        gcs.setRgt(d.track);
+        if(d.orbit !== undefined){ // TBD can probably remove this when server GEDI data is fixed and orbit is always set
+            gcs.setCycles([d.orbit]);
+        } else {
+            console.error('processSelectedElPnt: GEDI d.orbit is undefined');
+        }
+        gcs.setSpots([d.beam]);
+    } else {
+        console.error('processSelectedElPnt: Unknown mission:',mission);
     }
 }
 

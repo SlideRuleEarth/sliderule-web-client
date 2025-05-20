@@ -102,6 +102,9 @@
     const computedHFieldName = computed(() => {
         return fncs.getHFieldName(recTreeStore.selectedReqId);
     });
+    const computedMission = computed(() => {
+        return fncs.getMissionForReqId(recTreeStore.selectedReqId);
+    }); 
     const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
     const computedLoadMsg = computed(() => {
         const currentRowsFormatted = numberFormatter.format(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).currentPnts);
@@ -516,6 +519,7 @@
             <label for="show-hide-tooltip" class="sr-check-label" >Map Tooltip</label>
         </div>
         <div 
+            v-show="computedMission === 'ICESat-2'"
             @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
             @mouseleave="tooltipRef.hideTooltip"
         >
@@ -647,19 +651,6 @@
     margin-top:0.25rem;
     margin-left: 0.35rem;
 }
-
-/* :deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-label) {
-    font-size: smaller;
-    color: black;
-    background-color: rgba(255, 255, 255, 0.95);
-}
-
-
-:deep(.sr-record-selector-control .p-treeselect-sm .p-treeselect-dropdown) {
-    font-size: smaller;
-    color: black;
-    background-color: rgba(255, 255, 255, 0.95);
-} */
 
 :deep(.sr-ol-analysis-map) {
     min-width: 15rem; 

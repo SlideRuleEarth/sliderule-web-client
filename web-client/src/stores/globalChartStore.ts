@@ -25,7 +25,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const hasScBackward = ref<boolean>(false);
     const selectedElevationRec = ref<ElevationDataItem | null>(null);
     const use_y_atc_filter = ref<boolean>(false);
-    const enableLocationFinder = ref<boolean>(false);
+    const enableLocationFinder = ref<boolean>(true);
     const locationFinderLat = ref<number>(0.0);
     const locationFinderLon = ref<number>(0.0);
     const selected_y_atc = ref<number>(0.0);

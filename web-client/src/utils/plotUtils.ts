@@ -1180,10 +1180,7 @@ export const refreshScatterPlot = async (msg:string) => {
     if (plotRef){
         if(plotRef.chart) {
             await initScatterPlotWith(recTreeStore.selectedReqId);
-            const mission = useFieldNameStore().getMissionForReqId(recTreeStore.selectedReqId);
-            if(mission==='ICESat-2'){
-                await addOverlaysToScatterPlot(msg);
-            }
+            await addOverlaysToScatterPlot(msg);
         } else {
             console.warn(`Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined.`);
         }
@@ -1229,27 +1226,23 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
     console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
     const mission = useFieldNameStore().getMissionForReqId(recTreeStore.selectedReqId);
-    if(mission==='ICESat-2'){
-        const globalChartStore = useGlobalChartStore();
-        if( (globalChartStore.getRgt() >= 0) &&
-            (globalChartStore.getCycles().length > 0) &&
-            (globalChartStore.getSpots().length > 0)
-        ){
-            //TBD  Can these be done in parallel?
-            await refreshScatterPlot(msg);
-            const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-            const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-            await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
-        } else {
-            console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
-            console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
-            console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
-            console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
-        }
-    } else if(mission==='GEDI'){
-        //console.log('updatePlotAndSelectedTrackMapLayer mission:', mission);
+    const globalChartStore = useGlobalChartStore();
+    if( (globalChartStore.getRgt() >= 0) &&
+        (globalChartStore.getCycles().length > 0) &&
+        (globalChartStore.getSpots().length > 0)
+    ){
+        //TBD  Can these be done in parallel?
         await refreshScatterPlot(msg);
+        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
+        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
+        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
+    } else {
+        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
+        console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
+        console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
+        console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
     }
+
     const endTime = performance.now(); 
     console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
 }

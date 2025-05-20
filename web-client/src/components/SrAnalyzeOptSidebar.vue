@@ -7,7 +7,8 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 import SrEditDesc from '@/components/SrEditDesc.vue';
 import SrPlotConfig from "@/components/SrPlotConfig.vue";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
-import SrFilterCntrl from './SrFilterCntrl.vue';
+import SrFilterCntrlIceSat2 from '@/components/SrFilterCntrlIceSat2.vue';
+import SrFilterCntrlGedi from '@/components/SrFilterCntrlGedi.vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
@@ -81,7 +82,8 @@ const handleFileImported = async (reqId: string) => {
                     <SrRecIdReqDisplay :reqId=recTreeStore.selectedReqId :label="`Request Parameters Record:${recTreeStore.selectedReqId}`"/>
                 </div>
                 <div class="sr-filter-cntrl-container">
-                    <SrFilterCntrl v-if="mission==='ICESat-2'"></SrFilterCntrl>
+                    <SrFilterCntrlIceSat2 v-if="mission==='ICESat-2'"></SrFilterCntrlIceSat2>
+                    <SrFilterCntrlGedi v-if="mission==='GEDI'"></SrFilterCntrlGedi>
                 </div>
                 <div class="sr-scatterplot-cfg-container">
                     <!-- SrPlotConfig for the main req_id -->
