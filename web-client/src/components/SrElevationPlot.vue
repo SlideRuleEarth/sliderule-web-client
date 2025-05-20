@@ -33,6 +33,7 @@ import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
+import { useFieldNameStore } from "@/stores/fieldNameStore";
 
 
 const tooltipRef = ref();
@@ -50,6 +51,7 @@ const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
 const analysisMapStore = useAnalysisMapStore();
+const fieldNameStore = useFieldNameStore();
 const loadingComponent = ref(true);
 const dialogsInitialized = ref(false); // Track if dialogs have been initialized
 
@@ -281,7 +283,9 @@ const shouldDisplayMainGradient = computed(() => {
     return shouldDisplay;
 });
 
-
+const mission  = computed(() => {
+    return fieldNameStore.getMissionForReqId(props.startingReqId);
+});
 
 const shouldDisplayGradientDialog = computed(() => {
     return (shouldDisplayOverlayGradient.value || shouldDisplayMainGradient.value)
@@ -699,6 +703,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     @mouseleave="tooltipRef.hideTooltip"
                 >
                     <ToggleButton
+                        v-if="mission === 'IceSat-2'"
                         onIcon='pi pi-eye-slash'
                         offIcon="pi pi-eye"
                         class="sr-show-hide-button"

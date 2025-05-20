@@ -198,9 +198,7 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         const colNames = await duckDbClient.queryForColNames(fileName);
-        if(useFieldNameStore().getMissionForReqId(reqId) === 'ICESat-2'){
-            await updateAllFilterOptions(reqId);
-        }
+        await updateAllFilterOptions(reqId);
         //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
         setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
     } catch (error) {
@@ -617,7 +615,7 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
             //console.log('getAllRgtOptionsInFile rowChunk:', rowChunk);
             for (const row of rowChunk) {
                 if (row) {
-                    rgtOptions.push({ label: row.rgt.toString(), value: row.rgt });
+                    rgtOptions.push({ label: row[utfn].toString(), value: row[utfn] });
                 } else {
                     console.warn('getAllRgtOptionsInFile fetchData rowData is null');
                 }
@@ -811,13 +809,14 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
                 });
 
                 // Build a label for each cycle
-                const newLabel = `${row.cycle}: ${timeStr}`;
+                const value = row[uofn];
+                const newLabel = `${value}: ${timeStr}`;
 
                 cycleOptions.push({
                     label: newLabel,
-                    value: row.cycle
+                    value: value
                 });
-                cycles.push(row.cycle);
+                cycles.push(value);
             }
         }
     } catch (error) {
