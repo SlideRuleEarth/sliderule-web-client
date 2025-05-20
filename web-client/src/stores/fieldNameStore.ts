@@ -56,11 +56,11 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
             break;
-        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'beam'];
+        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi04ap': options = ['elevation'];
+        case 'gedi04ap': options = ['elevation', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi01bp': options = ['elevation_start'];
+        case 'gedi01bp': options = ['elevation_start', 'track', 'beam', 'orbit'];
             break;
         default:
             console.error('Unknown funcStr:',funcStr)

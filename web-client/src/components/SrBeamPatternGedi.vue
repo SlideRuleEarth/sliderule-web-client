@@ -9,7 +9,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="0"
-                                    label="Beam0000"
+                                    label="Beam0000 coverage"
                                     :tooltipText=Beam0000_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -18,7 +18,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="1"
-                                    label="Beam0001"
+                                    label="Beam0001 coverage"
                                     :tooltipText=Beam0001_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -27,7 +27,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="2"
-                                    label="Beam0010"
+                                    label="Beam0010 coverage"
                                     :tooltipText=Beam0010_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -36,7 +36,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="3"
-                                    label="Beam0011"
+                                    label="Beam0011 coverage"
                                     :tooltipText=Beam0011_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -45,7 +45,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="4"
-                                    label="Beam0100"
+                                    label="Beam0100 coverage"
                                     :tooltipText=Beam0100_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -54,7 +54,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="5"
-                                    label="Beam0101"
+                                    label="Beam0101 Full Power"
                                     :tooltipText=Beam0101_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -63,7 +63,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="6"
-                                    label="Beam0110"
+                                    label="Beam0110 Full Power"
                                     :tooltipText=Beam0110_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -72,7 +72,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="8"
-                                    label="Beam1000"
+                                    label="Beam1000 Full Power"
                                     :tooltipText=Beam1000_tooltip
                                     @user-checked="onUserToggled"
                                 />
@@ -81,7 +81,7 @@
                                 <SrSpotCheckbox 
                                     v-model="globalChartStore.selectedSpots" 
                                     :digit="11"
-                                    label="Beam1011"
+                                    label="Beam1011 Full Power"
                                     :tooltipText=Beam1011_tooltip
                                     @user-checked="onUserToggled"
                                 />
