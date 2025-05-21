@@ -39,7 +39,7 @@
             reqId: 0,
             label: 'Show Req Parameters',
             insensitive: false,
-            tooltipText: '',
+            tooltipText: 'click to show request parameters for current record',
             tooltipUrl: '',
             labelFontSize: 'small',
             labelOnRight: false
