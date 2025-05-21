@@ -7,7 +7,7 @@ export function formatKeyValuePair(key: string, value: any): string {
 
   let formattedValue: string | number;
 
-  if (key === 'time' && typeof value === 'number') {
+  if (((key === 'time')||(key === 'time_ns')) && typeof value === 'number') {
     // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
     let adjustedTime = value - gpsToATLASOffset;
     // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
