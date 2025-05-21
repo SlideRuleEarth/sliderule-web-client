@@ -4,7 +4,7 @@
         <Tabs v-model:value="activeTabStore.activeTab">
             <TabList>
                 <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
-                <Tab value="1">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
+                <Tab value="1" v-if="mission==='ICESat-2'">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                 <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
                 <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
             </TabList>
@@ -17,7 +17,7 @@
                         :startingReqId="reqId"
                     />
                 </TabPanel>
-                <TabPanel value="1">
+                <TabPanel value="1" v-if="mission==='ICESat-2'">
                     <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
                     <SrTimeSeries 
                         v-if="shouldDisplayTimeSeries" 
@@ -63,12 +63,7 @@
     // The reqId from the route
     const reqId = computed(() => Number(route.params.id) || 0);
     const mission = computed(() => {
-        const api = recTreeStore.findApiForReqId(reqId.value);
-        // Get the mission from the fieldNameStore using the reqId
-        if(api){ // if not blank means reqId is valid
-            return fieldNameStore.getMissionForReqId(reqId.value);
-        }
-        return '';
+        return fieldNameStore.getMissionForReqId(reqId.value);
     });
 
     // In each "shouldDisplay" computed, also check the active tab

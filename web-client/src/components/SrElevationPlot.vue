@@ -284,7 +284,17 @@ const shouldDisplayMainGradient = computed(() => {
 });
 
 const mission  = computed(() => {
-    return fieldNameStore.getMissionForReqId(props.startingReqId);
+    return fieldNameStore.getMissionForReqId(recTreeStore.selectedReqId);
+});
+
+const cyclesLabel = computed(() => {
+    if(mission.value === 'ICESat-2'){
+        return 'Cycles';
+    } else if (mission.value === 'GEDI'){
+        return 'Orbits';
+    } else {
+        return 'Cycles';
+    }
 });
 
 const shouldDisplayGradientDialog = computed(() => {
@@ -571,7 +581,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     :toggleable="true" 
                     :collapsed="false"
                 >
-                    <SrCycleSelect/>
+                    <SrCycleSelect :label="cyclesLabel"/>
                     <SrSimpleYatcCntrl />
                 </Panel>
 
