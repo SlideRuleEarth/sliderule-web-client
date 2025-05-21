@@ -57,19 +57,19 @@ const elevationStore = useElevationColorMapStore();
 const localDeckContainer = ref<HTMLDivElement | null>(null);
 const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
 
-function handleUpdateClick() {
+async function handleUpdateClick() {
     console.log('Update View Clicked');
-    update3DPointCloud(reqId.value,deckContainerStored);
+    await update3DPointCloud(reqId.value,deckContainerStored);
 }
 
-function handleToggleAxes() {
+async function handleToggleAxes() {
     deck3DConfigStore.showAxes = !deck3DConfigStore.showAxes;
-    update3DPointCloud(reqId.value,deckContainerStored);
+    await update3DPointCloud(reqId.value,deckContainerStored);
 }
 
-function handlePointSizeChange() {
+async function handlePointSizeChange() {
     console.log('Point Size Changed:', deck3DConfigStore.pointSize);
-    update3DPointCloud(reqId.value,deckContainerStored);
+    await update3DPointCloud(reqId.value,deckContainerStored);
 }
 
 onMounted(async () => {
