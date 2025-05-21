@@ -13,7 +13,7 @@ import { useSrToastStore } from '@/stores/srToastStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import { SrPosition } from '@/types/SrTypes';
-import { useGradientColorMapStore } from '@/stores/gradientColorMapStore'; // Adjust path if needed
+import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import 'echarts-gl';
 
 use([
@@ -42,9 +42,7 @@ onMounted(async () => {
     const fieldStore = useFieldNameStore();
     const reqIdStr = props.reqId.toString();
     const gradientStore = useGradientColorMapStore(reqIdStr);
-    const colorGradient = gradientStore.getGradientColorMap();
-    gradientStore.initializeColorMapStore(); // If not already called in factory
-
+    const colorGradient = gradientStore.gradientColorMap;
     if (!colorGradient || colorGradient.length === 0) {
         throw new Error('Gradient color map is empty or not initialized');
     }

@@ -84,9 +84,41 @@ async function handleGediFieldNameChange(event: SelectChangeEvent) {
     }
 }
 
+async function enableLocationFinder() {
+    const latField = fieldNameStore.getLatFieldName(props.reqId);
+    const lonField = fieldNameStore.getLonFieldName(props.reqId);
+    const selectedElRec = globalChartStore.getSelectedElevationRec();
+    if(selectedElRec){
+        // initialize to selected point on map then update later from plot tooltip formatter
+        globalChartStore.locationFinderLat = selectedElRec[latField];
+        globalChartStore.locationFinderLon = selectedElRec[lonField];    
+    }
+    const reqIdStr = props.reqId.toString();
+    const currentYData = chartStore.getYDataOptions(reqIdStr);
+
+    const newFields = [latField, lonField].filter(
+        field => !currentYData.includes(field)
+    );
+
+    if (newFields.length > 0) {
+        chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
+        await refreshScatterPlot('enabled Link to Elevation Plot');
+    }
+
+    if (await requestsStore.needAdvice()) {
+        toast.add({
+            severity: 'info',
+            summary: 'Link to Elevation Plot',
+            detail: 'Click on a plot point to see where on the map it is.',
+            life: 3000
+        });
+    }
+}
+
 onMounted(() => {
     //console.log('SrPlotConfig onMounted props.reqId:', props.reqId);
     //console.log('SrPlotConfig onMounted computedReqIdStr:', computedReqIdStr.value);
+    enableLocationFinder();
 });
 
 
@@ -94,35 +126,7 @@ onMounted(() => {
 watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     if (!oldValue && newVal) {
         console.log('SrPlotConfig watch enableLocationFinder:', newVal);
-
-        const latField = fieldNameStore.getLatFieldName(props.reqId);
-        const lonField = fieldNameStore.getLonFieldName(props.reqId);
-        const selectedElRec = globalChartStore.getSelectedElevationRec();
-        if(selectedElRec){
-            // initialize to selected point on map then update later from plot tooltip formatter
-            globalChartStore.locationFinderLat = selectedElRec[latField];
-            globalChartStore.locationFinderLon = selectedElRec[lonField];    
-        }
-        const reqIdStr = props.reqId.toString();
-        const currentYData = chartStore.getYDataOptions(reqIdStr);
-
-        const newFields = [latField, lonField].filter(
-            field => !currentYData.includes(field)
-        );
-
-        if (newFields.length > 0) {
-            chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
-            await refreshScatterPlot('enabled Link to Elevation Plot');
-        }
-
-        if (await requestsStore.needAdvice()) {
-            toast.add({
-                severity: 'info',
-                summary: 'Link to Elevation Plot',
-                detail: 'Click on a plot point to see where on the map it is.',
-                life: 3000
-            });
-        }
+        enableLocationFinder();
     }
 });
 
