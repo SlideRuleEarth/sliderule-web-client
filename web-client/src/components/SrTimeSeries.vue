@@ -12,6 +12,7 @@ import { useRecTreeStore } from "@/stores/recTreeStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
+import { useFieldNameStore } from "@/stores/fieldNameStore";
 import Dialog from 'primevue/dialog';
 import { AppendToType } from "@/types/SrTypes";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
@@ -29,6 +30,7 @@ const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const recTreeStore = useRecTreeStore();
+const fieldNameStore = useFieldNameStore();
 const loadingComponent = ref(true);
 
 use([CanvasRenderer, ScatterChart, TitleComponent, TooltipComponent, LegendComponent,DataZoomComponent]);
@@ -50,6 +52,9 @@ const gradientDialogStyle = ref<{
     top: "0px",
     left: "0px",
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
+});
+const mission  = computed(() => {
+    return fieldNameStore.getMissionForReqId(props.startingReqId);
 });
 
 const initGradientPosition = () => {
@@ -132,6 +137,11 @@ const handleChartFinished = () => {
 onMounted(async () => {
     try {
         console.log('SrTimeSeries onMounted',props.startingReqId);
+        if(mission.value === 'ICESat-2'){
+            globalChartStore.use_y_atc_filter = true;
+        } else {
+            globalChartStore.use_y_atc_filter = false;
+        }
         globalChartStore.use_y_atc_filter = true;
         chartStore.setUseSelectedMinMax(recTreeStore.selectedReqIdStr, true);
         atlChartFilterStore.setIsWarning(true);

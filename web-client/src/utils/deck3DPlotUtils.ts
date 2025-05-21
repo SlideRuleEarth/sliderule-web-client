@@ -90,6 +90,14 @@ function initDeckInstance( deckContainer: Ref<HTMLDivElement | null>) {
 
 }
 
+function getPercentile(sorted: number[], p: number): number {
+    const index = (p / 100) * (sorted.length - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    if (lower === upper) return sorted[lower];
+    return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+}
+
 
 export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDivElement | null>) {
     try {
@@ -129,16 +137,17 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 toast.warn('No Valid Rows', 'No rows with valid lat/lon/elevation found.');
                 return;
             }
+            const elevations = validRows.map(d => d[heightField]).sort((a, b) => a - b);
+            const elevMin = getPercentile(elevations, 2);
+            const elevMax = getPercentile(elevations, 98);
+            const elevRange = Math.max(1e-6, elevMax - elevMin);
 
             const lonMin = Math.min(...validRows.map(d => d[lonField]));
             const lonMax = Math.max(...validRows.map(d => d[lonField]));
             const latMin = Math.min(...validRows.map(d => d[latField]));
             const latMax = Math.max(...validRows.map(d => d[latField]));
-            const elevMin = Math.min(...validRows.map(d => d[heightField]));
-            const elevMax = Math.max(...validRows.map(d => d[heightField]));
             const lonRange = Math.max(1e-6, lonMax - lonMin);
             const latRange = Math.max(1e-6, latMax - latMin);
-            const elevRange = Math.max(1e-6, elevMax - elevMin);
 
             elevationStore.updateElevationColorMapValues();
             const rgbaArray = elevationStore.elevationColorMap;
@@ -146,7 +155,10 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const pointCloudData = validRows.map(d => {
                 const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
                 const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
-                const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
+                //const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
+                const zRaw = d[heightField];
+                const zClamped = Math.max(elevMin, Math.min(elevMax, zRaw));
+                const z = deck3DConfigStore.scale * (zClamped - elevMin) / elevRange;
                 const index = Math.floor(z / deck3DConfigStore.scale * (rgbaArray.length - 1));
                 const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
                 const color = [
