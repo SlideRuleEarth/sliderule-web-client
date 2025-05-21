@@ -228,25 +228,21 @@ export function disableTagDisplay(): void {
 export function formatElObject(obj: { [key: string]: any }): string {
     // Format all keys except 'extent_id' and '__rgba'
     const html = Object.entries(obj)
-        .filter(([key]) => key !== 'extent_id' )
+        .filter(([key]) => key !== 'extent_id' && key !== '__rgba')
         .map(([key, value]) => formatKeyValuePair(key, value))
         .join('<br>');
 
+    // For debugging, log the color mapping
     // If we have an injected RGBA tuple, render a color box
-    const rgba = obj.__rgba as [number, number, number, number] | undefined;
-    if (Array.isArray(rgba) && rgba.length === 4) {
-        const [r, g, b, a] = rgba;
-        const alpha = (a / 255).toFixed(2);
-        const rgbaStr = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        const swatch = `<span ` +
-            `style="display:inline-block; width:12px; height:12px; ` +
-                  `background-color:${rgbaStr}; ` +
-                  `border:1px solid #000; margin-right:4px; vertical-align:middle;"` +
-            `></span>`;
-
-        // Append our color line
-        return `${html}<br><strong>Color:</strong> ${swatch}${rgbaStr}`;
-    }
+    // const rgba = obj.__rgba as [number, number, number, number] | undefined;
+    // if (Array.isArray(rgba) && rgba.length === 4) {
+    //     const [r, g, b, a] = rgba;
+    //     const alpha = (a / 255).toFixed(2);
+    //     const rgbaStr = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    //     const swatch = `<span class="color-swatch"></span>`;
+    //     // Append our color line
+    //     return `${html}<br><strong>Color:</strong> ${swatch}${rgbaStr}`;
+    // }
 
     return html;
 }
