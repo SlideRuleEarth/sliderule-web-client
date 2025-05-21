@@ -18,13 +18,6 @@
                 />
             </div>
             <SrGradientLegend
-                v-if = useSelectedMinMax
-                :reqIdStr="props.req_id.toString()" 
-                :data_key="props.data_key" 
-                :transparentBackground="true" 
-            />
-            <SrMapLegendBox
-                v-if = !useSelectedMinMax
                 :reqIdStr="props.req_id.toString()" 
                 :data_key="props.data_key" 
                 :transparentBackground="true" 
