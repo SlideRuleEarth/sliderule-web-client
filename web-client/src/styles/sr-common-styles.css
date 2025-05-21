@@ -136,6 +136,15 @@ html {
     gap: 1rem;
 }
 
+.color-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid #000;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
 /* ========== Breakpoints ========== */
 
 /* Small devices (phones) */

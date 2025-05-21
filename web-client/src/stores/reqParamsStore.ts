@@ -271,6 +271,7 @@ const createReqParamsStore = (id: string) =>
               this.enableAtl24Classification = false;
               this.enableAtl08Classification = true;
               this.atl08LandType = ['atl08_noise','atl08_ground','atl08_canopy','atl08_top_of_canopy','atl08_unclassified'];
+              this.useDatum = false;
             }
             this.enableYAPC = true;
             this.YAPCVersion = 0;
