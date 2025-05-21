@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+    import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
@@ -556,7 +556,7 @@
             console.error("SrMap addRecordPolys Error:map is null");
         }
         const endTime = performance.now(); // End time
-        //console.log('SrMap addRecordPolys for reqIds:',reqIds,` took ${endTime - startTime} ms`);
+        //console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
     function drawCurrentReqPoly(){
@@ -672,10 +672,10 @@
     };
 
     // Watch for changes in reqIds and handle the logic
-    // watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
-    //     console.log(`SrMap watch reqIds changed from ${oldReqIds} to ${newReqIds}`);
-    //     addRecordPolys();
-    // },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
+    watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
+        console.log(`SrMap watch num reqIds changed from ${oldReqIds?.length} to ${newReqIds.length}`);
+        addRecordPolys();
+    },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
     
 </script>
 
