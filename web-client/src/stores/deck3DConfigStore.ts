@@ -21,6 +21,9 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const fitZoom     = ref<number>(0.0)
   const showAxes    = ref(false);
   const pointSize   = ref(0.5);
+  const minColorPercent = ref(2);
+  const maxColorPercent = ref(98);
+  const elRange      = ref<[number,number]>([0, 100]);
 
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
@@ -50,6 +53,9 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     viewState,
     deckContainer,
     pointSize,
+    minColorPercent,
+    maxColorPercent,
+    elRange,
     // methods
     updateViewState,
   }

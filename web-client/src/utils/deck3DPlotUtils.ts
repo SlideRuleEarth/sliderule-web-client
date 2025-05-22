@@ -138,10 +138,13 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 return;
             }
             const elevations = validRows.map(d => d[heightField]).sort((a, b) => a - b);
-            const elevMin = getPercentile(elevations, 2);
-            const elevMax = getPercentile(elevations, 98);
+            const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
+            const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
+            const colorRange = Math.max(1e-6, colorMax - colorMin);
+            const [minElPercent, maxElPercent] = deck3DConfigStore.elRange;
+            const elevMin = getPercentile(elevations, minElPercent);
+            const elevMax = getPercentile(elevations, maxElPercent);
             const elevRange = Math.max(1e-6, elevMax - elevMin);
-
             const lonMin = Math.min(...validRows.map(d => d[lonField]));
             const lonMax = Math.max(...validRows.map(d => d[lonField]));
             const latMin = Math.min(...validRows.map(d => d[latField]));
@@ -155,18 +158,23 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const pointCloudData = validRows.map(d => {
                 const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
                 const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
-                //const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
-                const zRaw = d[heightField];
-                const zClamped = Math.max(elevMin, Math.min(elevMax, zRaw));
-                const z = deck3DConfigStore.scale * (zClamped - elevMin) / elevRange;
-                const index = Math.floor(z / deck3DConfigStore.scale * (rgbaArray.length - 1));
+
+                // z is *not* clamped — we preserve true geometry
+                const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
+
+                // But color is computed using clamped-to-percentile range
+                const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
+                const colorNorm = (colorZ - colorMin) / colorRange;
+                const index = Math.floor(colorNorm * (rgbaArray.length - 1));
                 const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
+
                 const color = [
                     Math.round(rawColor[0]),
                     Math.round(rawColor[1]),
                     Math.round(rawColor[2]),
                     Math.round(rawColor[3] * 255),
                 ];
+
                 return { position: [x, y, z] as [number, number, number], color };
             });
 

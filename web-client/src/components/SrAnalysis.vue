@@ -1,38 +1,43 @@
 <template>
-    <div class="card">
-        <!-- v-model binds to activeIndex so we know which tab is selected -->
-        <Tabs v-model:value="activeTabStore.activeTab">
-            <TabList>
-                <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
-                <Tab value="1" v-if="mission==='ICESat-2'">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
-                <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
-                <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
-            </TabList>
+    <div class="sr-layout-wrapper">
+        <div class="sr-main-content card">
+            <!-- v-model binds to activeIndex so we know which tab is selected -->
+            <Tabs v-model:value="activeTabStore.activeTab">
+                <TabList>
+                    <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
+                    <Tab value="1" v-if="mission==='ICESat-2'">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
+                    <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
+                    <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
+                </TabList>
 
-            <TabPanels>
-                <TabPanel value="0">
-                    <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
-                    <SrElevationPlot 
-                        v-if="shouldDisplayElevationPlot" 
-                        :startingReqId="reqId"
-                    />
-                </TabPanel>
-                <TabPanel value="1" v-if="mission==='ICESat-2'">
-                    <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
-                    <SrTimeSeries 
-                        v-if="shouldDisplayTimeSeries" 
-                        :startingReqId="reqId"
-                    />
-                </TabPanel>
-                <TabPanel value="2">
-                    <!-- Similarly only render SrDuckDbShell if active tab is '1' AND chartStore has a query -->
-                    <SrDuckDbShell v-if="shouldDisplayShell" />
-                </TabPanel>
-                <TabPanel value="3">
-                    <SrDeck3DView v-if="shouldDisplay3DView" />
-                </TabPanel>
-            </TabPanels>
-        </Tabs>
+                <TabPanels>
+                    <TabPanel value="0">
+                        <!-- Only render SrElevationPlot if active tab is '0' AND your other condition is met -->
+                        <SrElevationPlot 
+                            v-if="shouldDisplayElevationPlot" 
+                            :startingReqId="reqId"
+                        />
+                    </TabPanel>
+                    <TabPanel value="1" v-if="mission==='ICESat-2'">
+                        <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
+                        <SrTimeSeries 
+                            v-if="shouldDisplayTimeSeries" 
+                            :startingReqId="reqId"
+                        />
+                    </TabPanel>
+                    <TabPanel value="2">
+                        <!-- Similarly only render SrDuckDbShell if active tab is '1' AND chartStore has a query -->
+                        <SrDuckDbShell v-if="shouldDisplayShell" />
+                    </TabPanel>
+                    <TabPanel value="3">
+                        <SrDeck3DView v-if="shouldDisplay3DView" />
+                    </TabPanel>
+                </TabPanels>
+            </Tabs>
+        </div>
+        <div class="sr-elrng3d-panel">
+            <SrElRng3D v-if="shouldDisplay3DView" />
+        </div>
     </div>
 </template>
   
@@ -50,8 +55,9 @@
     import { useGlobalChartStore } from '@/stores/globalChartStore';
     import { useFieldNameStore } from '@/stores/fieldNameStore';
     import { useRoute } from 'vue-router';
-    import SrTimeSeries from './SrTimeSeries.vue';
-    import SrDeck3DView from './SrDeck3DView.vue';
+    import SrTimeSeries from '@/components/SrTimeSeries.vue';
+    import SrDeck3DView from '@/components/SrDeck3DView.vue';
+    import SrElRng3D from '@/components/SrElRng3D.vue';
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
@@ -124,5 +130,23 @@
     padding-bottom: 0rem;
     padding-left: 0rem;
 }
+.sr-layout-wrapper {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+}
 
+.sr-main-content {
+    flex: 0 1 95%;
+    min-width: 0;
+}
+
+.sr-elrng3d-panel {
+    flex: 0 1 5%;
+    display: flex;
+    align-items: center;
+    justify-content:flex-start;
+    height: 60%;
+}
 </style>

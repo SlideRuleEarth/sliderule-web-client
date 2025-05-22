@@ -5,12 +5,14 @@
         <section class="config-section">
           <h4>View Control</h4>
           <div class="config-item">
-            <label for="scale">Scale</label>
-            <InputNumber v-model="store.scale" :min="1" :max="1000" size="small" id="scale"/>
-          </div>        
-          <div class="config-item">
             <label for="fovy">Field of View (°)</label>
-            <InputNumber v-model="store.fovy" :min="1" :max="180" size="small" id="fovy"/>
+            <InputNumber 
+              v-model="store.fovy" 
+              :min="1" :max="180" 
+              size="small" 
+              id="fovy"
+              @input="handleChange"
+            />
           </div>
           <div class="config-item">
             <label for="orbitAxis">Orbit Axis</label>
@@ -21,6 +23,27 @@
               optionValue="value"
               id="orbitAxis"
               size="small"
+            />
+          </div>
+          <div class="config-item">
+            <label for="colormax">Color Grad Max %</label>
+            <InputNumber v-model="store.maxColorPercent" 
+              :min="1" 
+              :max="100" 
+              size="small" 
+              id="colormax"
+              @input="handleChange"
+            />
+          </div>
+          <div class="config-item">
+            <label for="colormin">Color Grad Min %</label>
+            <InputNumber 
+              v-model="store.minColorPercent" 
+              :min="0"
+              :max="store.maxColorPercent" 
+              size="small" 
+              id="colormin"
+              @input="handleChange"
             />
           </div>
         </section>
@@ -44,7 +67,7 @@
               id="liveRotX"
               :disabled="true"
               size="small" 
-            />
+           />
           </div>
           <div class="config-item">
             <label for="liveRotO">Rotation Orbit (°)</label>
@@ -80,13 +103,27 @@
   import InputNumber from 'primevue/inputnumber'
   import Select from 'primevue/select'
   import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
-  
+  import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
+  import { useRecTreeStore } from '@/stores/recTreeStore';
+
+  const recTreeStore = useRecTreeStore();
+  const deck3DConfigStore = useDeck3DConfigStore();
+
+  const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
+  const reqId = computed(() => recTreeStore.selectedReqId);
+
   const store = useDeck3DConfigStore()
   
   const orbitAxisOptions = computed(() => [
     { label: 'Z Axis', value: 'Z' },
     { label: 'Y Axis', value: 'Y' }
   ])
+
+  async function handleChange() {
+      await update3DPointCloud(reqId.value,deckContainerStored);
+  }
+
+
 </script>
   
   
