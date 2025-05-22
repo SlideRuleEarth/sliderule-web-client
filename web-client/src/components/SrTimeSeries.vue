@@ -54,7 +54,17 @@ const gradientDialogStyle = ref<{
     transform: "translate(-50%, -50%)" // Initially set, removed on drag
 });
 const mission  = computed(() => {
-    return fieldNameStore.getMissionForReqId(props.startingReqId);
+    return fieldNameStore.getMissionForReqId(recTreeStore.selectedReqId);
+});
+
+const cyclesLabel = computed(() => {
+    if(mission.value === 'ICESat-2'){
+        return 'Cycles';
+    } else if (mission.value === 'GEDI'){
+        return 'Orbits';
+    } else {
+        return 'Cycles';
+    }
 });
 
 const initGradientPosition = () => {
@@ -150,7 +160,9 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
-            await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            if(mission.value === 'ICESat-2'){
+                await setCyclesGtsSpotsFromFileUsingRgtYatc();
+            }
             initializeColorEncoding(reqId);
             //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
@@ -249,8 +261,8 @@ watch(() => {
                 />
             </div>
             <div class="sr-cycles-legend-panel">
-                <SrCycleSelect />
-                <SrSimpleYatcCntrl />
+                <SrCycleSelect :label="cyclesLabel"/>
+                <SrSimpleYatcCntrl v-if="(mission==='ICESat-2')"/>
                 <div class="sr-legends-panel">
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"

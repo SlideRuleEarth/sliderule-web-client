@@ -55,15 +55,15 @@ const computedMinYAtc = computed(() => {
 });
 
 async function handleModelValueChange(value: number) {
-    console.log('SrYatcFilterCntrl handleValueChange:', value);
+    console.log('SrYatcFilterCntrl handleModelValueChange:', value);
     if(!value) {
-        console.log('SrYatcFilterCntrl handleValueChange: value is undefined:', value);
+        console.log('SrYatcFilterCntrl handleModelValueChange: value is undefined:', value);
     }
     if(globalChartStore.y_atc_is_valid()){
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
         await updatePlotAndSelectedTrackMapLayer("SrYatcFilterCntrl");// no need to debounce
     } else {
-        console.error('SrYatcFilterCntrl handleValueChange: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
+        console.error('SrYatcFilterCntrl handleModelValueChange: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
     }
 }
 
