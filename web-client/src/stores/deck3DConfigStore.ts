@@ -23,7 +23,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const pointSize   = ref(0.5);
   const minColorPercent = ref(2);
   const maxColorPercent = ref(98);
-  const elRange      = ref<[number,number]>([0, 100]);
+  const elRange      = ref<[number,number]>([1, 99]);
 
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange

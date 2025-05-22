@@ -96,7 +96,7 @@
             />
         </div>
         <div class="sr-export-panel">
-            <SrExportBtnDlg
+            <SrExportSelected
                 :reqId="props.reqId"
             />
         </div>
@@ -138,7 +138,7 @@ import { SelectChangeEvent } from 'primevue/select';
 import { useActiveTabStore } from '@/stores/activeTabStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useToast } from 'primevue/usetoast';
-import SrExportBtnDlg from './SrExportBtnDlg.vue';
+import SrExportSelected from './SrExportSelected.vue';
 
 const props = withDefaults(
     defineProps<{
