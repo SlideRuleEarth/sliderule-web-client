@@ -2,6 +2,8 @@
 import { ref,onMounted,watch,nextTick } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
+import Image from 'primevue/image';
+import buzzImg from '@/assets/BuzzSlideRule.jpg';
 import SrAppBar from '@/components/SrAppBar.vue';
 import SrBuildDate from '@/components/SrBuildDate.vue';
 import SrUserAgent from '@/components/SrUserAgent.vue';
@@ -28,6 +30,7 @@ const route = useRoute();
 const showServerVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showClientVersionDialog = ref(false); // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false); // Reactive state for controlling dialog visibility
+const showBuzzDialog = ref(false); // Reactive state for controlling dialog visibility
 const serverVersionInfo = ref(''); // Reactive state for server version info
 // Flag to indicate if the component has been mounted
 const isMounted = ref(false);
@@ -262,6 +265,10 @@ const aboutButtonClick = () => {
   showClientVersionDialog.value = true; // Show the dialog
 };
 
+const slideruleBuzzButtonClick = () => {
+    showBuzzDialog.value = true;
+};
+
 // Function to handle the server version button click and show the dialog
 const handleServerVersionButtonClick = async () => {
   const info = await useSysConfigStore().fetchServerVersionInfo(); 
@@ -466,6 +473,7 @@ async function handleLongTourButtonClick() {
         @rectree-button-click="rectreeButtonClick"
         @analysis-button-click="analysisButtonClick"
         @about-button-click="aboutButtonClick"
+        @sliderule-buzz-button-click="slideruleBuzzButtonClick"
 		@settings-button-click="settingsButtonClick"
         @server-version-button-click="handleServerVersionButtonClick"
         @client-version-button-click="handleClientVersionButtonClick"
@@ -556,6 +564,22 @@ async function handleLongTourButtonClick() {
         </table>
       </div>
     </Dialog>
+    <Dialog
+        v-model:visible="showBuzzDialog"
+        :modal="true"
+        :closable="true"
+        class="buzz-dialog"
+        :draggable="false"
+    >
+    <template #header>
+        <h2 class="dialog-header">Buzz Aldrin with a slide rule Gemini XII</h2>
+    </template>
+
+    <div class="buzz-image-container">
+        <Image :src="buzzImg" alt="Buzz Aldrin with a slide rule Gemini XII" class="buzz-image" />
+    </div>
+    </Dialog>
+
   </div>
 </template>
 
@@ -626,5 +650,25 @@ async function handleLongTourButtonClick() {
   font-size: 1.5rem;
   color: var(--p-primary-color);
 }
+.buzz-dialog ::v-deep(.p-dialog-content) {
+  overflow-y: auto;
+  max-height: 70vh;
+  max-width: 650px;
+}
+
+.buzz-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.buzz-image {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
 
 </style>

@@ -101,6 +101,13 @@ const aboutMenu = ref<InstanceType<typeof Menu> | null>(null);
         }
     },
     {
+        label: 'SlideRule Buzz',
+        icon: 'pi pi-calculator',
+        command: () => {
+            emit('sliderule-buzz-button-click');
+        }
+    },
+    {
         label: 'Report an Issue',
         icon: 'pi pi-exclamation-circle',
         command: () => {
@@ -133,6 +140,7 @@ const emit = defineEmits([
     'analysis-button-click',
     'settings-button-click',
     'about-button-click',
+    'sliderule-buzz-button-click',
     'quick-tour-button-click',
     'long-tour-button-click' 
 ]);

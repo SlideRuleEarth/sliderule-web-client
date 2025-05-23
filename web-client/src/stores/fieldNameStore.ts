@@ -54,7 +54,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl08p':  options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
             break;
-        case 'atl24x':  options = ['ortho_h','confidence','y_atc','cycle'];
+        case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle'];
             break;
         case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
