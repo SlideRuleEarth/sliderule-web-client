@@ -9,15 +9,21 @@ import { useSrToastStore } from '@/stores/srToastStore';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { OrbitView, OrbitController } from '@deck.gl/core';
-import { Deck } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
+import type { Deck as DeckType } from '@deck.gl/core';
+import { Deck } from '@deck.gl/core';
+
+import log from '@probe.gl/log';
+log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
+
+
+const deckInstance: Ref<DeckType | null> = ref(null);
 
 
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const elevationStore = useElevationColorMapStore();
 const fieldStore = useFieldNameStore();
-const deckInstance = ref<Deck | null>(null);
 const viewId = 'main';
 
 
@@ -37,12 +43,21 @@ function computeCentroid(position: [number, number, number][]) {
     console.log('Centroid:', deck3DConfigStore.centroid);
 }
 
+
+export function ensureDeckInitialized(deckContainer: Ref<HTMLDivElement | null>): Deck {
+    if (!deckInstance.value) {
+        initDeckInstance(deckContainer);
+    }
+    return deckInstance.value!;
+}
+
+
 function initDeckInstance( deckContainer: Ref<HTMLDivElement | null>) {
     console.log('Initializing Deck Instance viewId:', viewId);
 
     if (deckInstance.value) {
-        deckInstance.value.finalize();
-        deckInstance.value = null;
+        console.log('Deck instance already initialized');
+        return;
     }
     console.log('deckContainer:', deckContainer.value);
     console.log('container rect:', deckContainer.value?.getBoundingClientRect());
@@ -86,7 +101,7 @@ function initDeckInstance( deckContainer: Ref<HTMLDivElement | null>) {
             deck3DConfigStore.updateViewState(viewState)
         },
         debug: deck3DConfigStore.debug
-    }) as any
+    }) as any;
 
 }
 
@@ -181,7 +196,7 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             computeCentroid(pointCloudData.map(p => p.position));
 
             //console.log('Fit Zoom:', computedFitZoom.value);
-            initDeckInstance(deckContainer);
+            ensureDeckInitialized(deckContainer);
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
