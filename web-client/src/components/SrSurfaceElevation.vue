@@ -38,7 +38,7 @@ onMounted(async () => {
                 @update:model-value="presetValues"
                 labelFontSize="large" 
                 tooltipText="The surface elevation of the selected photons"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
         </div>
         <div class="sr-surface-elevation-body">
@@ -53,7 +53,7 @@ onMounted(async () => {
                 :defaultValue="reqParamsStore.maxIterations" 
                 :decimalPlaces="0"
                 tooltipText="maxi: The maximum number of iterations, not including initial least-squares-fit selection"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
             <SrSliderInput
                 v-model="reqParamsStore.minWindowHeight"
@@ -66,7 +66,7 @@ onMounted(async () => {
                 :defaultValue="reqParamsStore.minWindowHeight" 
                 :decimalPlaces="0"
                 tooltipText="H_min_win: The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
             <SrSliderInput
                 v-model="reqParamsStore.maxRobustDispersion"
@@ -77,7 +77,7 @@ onMounted(async () => {
                 :defaultValue="reqParamsStore.maxRobustDispersion" 
                 :decimalPlaces="0"
                 tooltipText="sigma_r_max: The maximum robust dispersion in meters"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl06-sr-algorithm-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
         </div>
     </div>

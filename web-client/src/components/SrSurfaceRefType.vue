@@ -31,7 +31,7 @@ export interface SrMultiSelectNumberItem {
 
 const label = "Surface Reference Type";
 const tooltipText = "srt: The surface type used in the ATL03 photon classification";
-const tooltipUrl = "https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification";
+const tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields";
 
 const reqParamsStore = useReqParamsStore();
 

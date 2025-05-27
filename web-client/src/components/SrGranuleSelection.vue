@@ -42,7 +42,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 label="Granule Selection"
                 labelFontSize="large"
                 tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed." 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#overview"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#granule"
             />
         </div>
         <div class="sr-granule-tracks-beams-div"> 
@@ -54,6 +54,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 :setSelectedMenuItem="reqParamsStore.setSelectedGtOptions"
                 :menuOptions="gtsOptions" 
                 tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
                 @update:modelValue="GtsSelection"
             />
         </div> 
@@ -69,7 +70,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :max="1388" 
             :decimalPlaces="0"
             tooltipText="RGT is the reference ground track: defaults to all if not specified"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
         />
         <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
@@ -83,7 +84,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :max="100" 
             :decimalPlaces="0"
             tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
         />
         <SrSwitchedSliderInput
             :insensitive="!reqParamsStore.enableGranuleSelection"
@@ -97,7 +98,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :max="14" 
             :decimalPlaces="0"
             tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
-            tooltipUrl="https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
         />
         <Fieldset legend="Time Range" class="sr-time-range-content" :toggleable="true" :collapsed="false">
             <SrCheckbox
@@ -108,7 +109,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 label="Use Time Filter"
                 labelFontSize="large"
                 tooltipText="Filter granules by time" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
             />
             <SrCalendar
                 :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
@@ -117,7 +118,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 :getValue="reqParamsStore.getT0"
                 :setValue="reqParamsStore.setT0"
                 tooltipText="Start Time for filtering granules"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
             />
             <SrCalendar
                 :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
@@ -126,7 +127,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 :getValue="reqParamsStore.getT1"
                 :setValue="reqParamsStore.setT1"
                 tooltipText="End Time for filtering granules"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-input-parameters"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
             />
         </Fieldset>
     </div>

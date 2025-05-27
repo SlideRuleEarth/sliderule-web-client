@@ -14,7 +14,7 @@ const reqParamsStore = useReqParamsStore();
                 label="Atl03 Classification"
                 labelFontSize="large"
                 tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
                 v-model="reqParamsStore.enableAtl03Confidence"
             />
         </div>
@@ -36,7 +36,7 @@ const reqParamsStore = useReqParamsStore();
                     ]"
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
                 tooltipText="cnf: Confidence level for photon selection"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
             />            
             <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
@@ -47,7 +47,7 @@ const reqParamsStore = useReqParamsStore();
                 :default="reqParamsStore.qualityPHNumber"
                 @update:value="reqParamsStore.qualityPHNumber = $event"
                 tooltipText="quality_ph: quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#native-atl03-photon-classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
             />  
         </div>
     </div>

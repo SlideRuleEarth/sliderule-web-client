@@ -13,8 +13,8 @@ import { ref,type Ref } from 'vue';
 import type { Deck as DeckType } from '@deck.gl/core';
 import { Deck } from '@deck.gl/core';
 
-import log from '@probe.gl/log';
-log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
+// import log from '@probe.gl/log';
+// log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
 
 const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
