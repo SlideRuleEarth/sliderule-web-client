@@ -6,15 +6,15 @@
           <h4>View Control</h4>
           <div class="config-item">
             <label for="fovy">Field of View (°)</label>
-            <InputNumber 
-              v-model="store.fovy" 
-              :min="1" :max="180" 
-              size="small" 
+            <InputNumber
+              v-model="store.fovy"
+              :min="1" :max="180"
+              size="small"
               id="fovy"
               @input="handleChange"
             />
           </div>
-          <div class="config-item">
+          <!-- <div class="config-item">
             <label for="orbitAxis">Orbit Axis</label>
             <Select
               v-model="store.orbitAxis"
@@ -24,24 +24,24 @@
               id="orbitAxis"
               size="small"
             />
-          </div>
+          </div> -->
           <div class="config-item">
             <label for="colormax">Color Grad Max %</label>
-            <InputNumber v-model="store.maxColorPercent" 
-              :min="1" 
-              :max="100" 
-              size="small" 
+            <InputNumber v-model="store.maxColorPercent"
+              :min="1"
+              :max="100"
+              size="small"
               id="colormax"
               @input="handleChange"
             />
           </div>
           <div class="config-item">
             <label for="colormin">Color Grad Min %</label>
-            <InputNumber 
-              v-model="store.minColorPercent" 
+            <InputNumber
+              v-model="store.minColorPercent"
               :min="0"
-              :max="store.maxColorPercent" 
-              size="small" 
+              :max="store.maxColorPercent"
+              size="small"
               id="colormin"
               @input="handleChange"
             />
@@ -56,7 +56,7 @@
               :min="0" :max="20"
               id="liveZoom"
               :disabled="true"
-              size="small" 
+              size="small"
             />
           </div>
           <div class="config-item">
@@ -66,7 +66,7 @@
               :min="0" :max="90"
               id="liveRotX"
               :disabled="true"
-              size="small" 
+              size="small"
            />
           </div>
           <div class="config-item">
@@ -76,7 +76,7 @@
               :min="0" :max="360"
               id="liveRotO"
               :disabled="true"
-              size="small" 
+              size="small"
             />
           </div>
           <div class="config-item">
@@ -88,7 +88,7 @@
                 v-model="store.viewState.target[i]"
                 :disabled="true"
                 class="centroid-num"
-                size="small" 
+                size="small"
               />
             </div>
           </div>
@@ -96,7 +96,7 @@
       </div>
     </div>
 </template>
-  
+
 <script setup lang="ts">
   import { computed } from 'vue'
   import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
@@ -113,7 +113,7 @@
   const reqId = computed(() => recTreeStore.selectedReqId);
 
   const store = useDeck3DConfigStore()
-  
+
   const orbitAxisOptions = computed(() => [
     { label: 'Z Axis', value: 'Z' },
     { label: 'Y Axis', value: 'Y' }
@@ -125,20 +125,20 @@
 
 
 </script>
-  
-  
+
+
 <style scoped>
   .deck-config-panel {
     padding: 1rem;
     background-color: var(--surface-b);
     border-radius: 0.5rem;
   }
-  
+
   .config-section {
     flex: 1;
     margin-bottom: 1.5rem;
   }
-  
+
   .config-section h4 {
     margin-bottom: 0.5rem;
     font-size: 1.1rem;
@@ -155,27 +155,27 @@
     align-items: center;
     margin-bottom: 0.75rem;
   }
-  
+
   .config-item label {
     width: 150px;
     margin-right: 0.5rem;
     font-weight: 500;
   }
-  
+
   .centroid-inputs {
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .centroid-num {
     width: 80px;
   }
-  
+
   /* Override PrimeVue component widths */
   :deep(.p-inputnumber-input) {
     width: 6rem;
   }
-  
+
   :deep(.p-slider) {
     flex: 1;
   }
@@ -187,4 +187,3 @@
 }
 
 </style>
-  
