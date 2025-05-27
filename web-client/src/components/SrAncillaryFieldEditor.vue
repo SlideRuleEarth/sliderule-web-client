@@ -1,7 +1,12 @@
 <template>
     <div class="sr-ancillary-fields-container">
         <div class="sr-ancillary-fields">
-            <label class="sr-field-label">{{ label }}</label>
+            <SrLabelInfoIconButton 
+                :label="label" 
+                tooltipText="ancillary fields to add to the response dataframe" 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl06p-request" 
+                labelFontSize="large"
+            />            
             <div class="sr-ancillary-input-row">
                 <InputText
                     v-model="newField"
@@ -34,6 +39,7 @@
 import { ref } from 'vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
+import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
 const props = defineProps<{
     modelValue: string[];

@@ -45,7 +45,7 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
-import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
+import { update3DPointCloud, updateFovy } from '@/utils/deck3DPlotUtils';
 
 
 const recTreeStore = useRecTreeStore();
@@ -109,6 +109,13 @@ watch(reqId, async (newVal, oldVal) => {
         await update3DPointCloud(reqId.value,deckContainerStored);
     }
 });
+
+watch(() => deck3DConfigStore.fovy, (newFov) => {
+    console.log('FOV updated to:', newFov);
+    updateFovy(newFov);
+});
+
+
 </script>
 
 <style scoped>

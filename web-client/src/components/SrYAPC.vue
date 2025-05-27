@@ -25,7 +25,7 @@ async function initYapc(){
           v-model="reqParamsStore.enableYAPC"
           label="YAPC" 
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification" 
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
           labelFontSize="large"
           @update:modelValue=initYapc          
       />
@@ -41,7 +41,7 @@ async function initYapc(){
           :setSelectedMenuItem="reqParamsStore.setYAPCVersion"
           :insensitive="!reqParamsStore.enableYAPC"
           tooltipText="The version of the YAPC algorithm to use."
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
       />
     </div>
     <SrSliderInput
@@ -56,7 +56,7 @@ async function initYapc(){
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The minimum yapc classification score of a photon to be used in the processing request"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
     />
     <SrSwitchedSliderInput
         label="Knn"
@@ -70,7 +70,7 @@ async function initYapc(){
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The number of nearest neighbors to use in the Knn algorithm."
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
     />
     <SrSwitchedSliderInput
         label="Window Height"
@@ -84,7 +84,7 @@ async function initYapc(){
         :decimalPlaces="0"  
         :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The window height used to filter the nearest neighbors"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
    />
     <SrSwitchedSliderInput
         label="Window Width"
@@ -98,7 +98,7 @@ async function initYapc(){
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
         tooltipText="The window width used to filter the nearest neighbors"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#yapc-classification"
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
     />
   </div>
 </template>

@@ -14,7 +14,7 @@ const reqParamsStore = useReqParamsStore();
                 labelFontSize="large"
                 v-model="reqParamsStore.enableAtl08Classification"
                 tooltipText="If ATL08 classification parameters are specified, the ATL08 (vegetation height) files corresponding to the ATL03 files are queried for the more advanced classification scheme available in those files. Photons are then selected based on the classification values specified. Note that srt=0 (land) and cnf=0 (no native filtering) should be specified to allow all ATL08 photons to be used."
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
              />
         </div>
         <SrMultiSelectText
@@ -29,7 +29,7 @@ const reqParamsStore = useReqParamsStore();
                 {name:'Top of Canopy', value:'atl08_top_of_canopy'},
             ]"
             tooltipText="atl08_class: The ATL08 classifications used to select which photons are used in the processing."
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#atl08-classification"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
         />
 
     </div>

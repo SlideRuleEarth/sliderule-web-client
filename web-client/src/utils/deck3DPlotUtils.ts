@@ -9,15 +9,21 @@ import { useSrToastStore } from '@/stores/srToastStore';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { OrbitView, OrbitController } from '@deck.gl/core';
-import { Deck } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
+import type { Deck as DeckType } from '@deck.gl/core';
+import { Deck } from '@deck.gl/core';
+
+// import log from '@probe.gl/log';
+// log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
+
+
+const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
 
 
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const elevationStore = useElevationColorMapStore();
 const fieldStore = useFieldNameStore();
-const deckInstance = ref<Deck | null>(null);
 const viewId = 'main';
 
 
@@ -37,58 +43,79 @@ function computeCentroid(position: [number, number, number][]) {
     console.log('Centroid:', deck3DConfigStore.centroid);
 }
 
-function initDeckInstance( deckContainer: Ref<HTMLDivElement | null>) {
-    console.log('Initializing Deck Instance viewId:', viewId);
 
-    if (deckInstance.value) {
-        deckInstance.value.finalize();
-        deckInstance.value = null;
-    }
-    console.log('deckContainer:', deckContainer.value);
-    console.log('container rect:', deckContainer.value?.getBoundingClientRect());
 
+function observeAndInitDeckInstance(deckContainer: Ref<HTMLDivElement | null>): Promise<void> {
+    return new Promise((resolve) => {
+        const container = deckContainer.value;
+        if (!container) {
+            console.warn('Deck container is null');
+            resolve();
+            return;
+        }
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            const width = entry.contentRect.width;
+            const height = entry.contentRect.height;
+
+            if (width > 0 && height > 0) {
+                observer.disconnect();
+                if (!deckInstance.value) {
+                    console.log('Deck container ready, initializing...');
+                    createDeck(container);
+                }
+                resolve(); // ✅ resolve once initialized
+            } else {
+                console.log('Waiting for non-zero size...', width, height);
+            }
+        });
+
+        observer.observe(container);
+    });
+}
+
+
+function createDeck(container: HTMLDivElement) {
     deckInstance.value = new Deck({
-        parent: deckContainer.value!,
+        parent: container,
         views: [
             new OrbitView({
                 id: viewId,
                 orbitAxis: deck3DConfigStore.orbitAxis,
-                fovy: deck3DConfigStore.fovy           
-            })
+                fovy: deck3DConfigStore.fovy,
+            }),
         ],
         controller: {
             type: OrbitController,
-            inertia:    deck3DConfigStore.inertia,
-            // wheel zoom speed & easing
+            inertia: deck3DConfigStore.inertia,
             scrollZoom: {
-                speed: deck3DConfigStore.zoomSpeed,   // your desired wheel zoom multiplier
-                smooth: false                         // or true if you want easing
+                speed: deck3DConfigStore.zoomSpeed,
+                smooth: false,
             },
-
-            // keyboard controls (arrow keys & +/-)
             keyboard: {
-                zoomSpeed:     deck3DConfigStore.zoomSpeed,   // +/- keys
-                moveSpeed:     deck3DConfigStore.panSpeed,    // arrow keys panning
-                rotateSpeedX:  deck3DConfigStore.rotateSpeed, // shift+up/down (pitch)
-                rotateSpeedY:  deck3DConfigStore.rotateSpeed  // shift+left/right (yaw)
-            }
+                zoomSpeed: deck3DConfigStore.zoomSpeed,
+                moveSpeed: deck3DConfigStore.panSpeed,
+                rotateSpeedX: deck3DConfigStore.rotateSpeed,
+                rotateSpeedY: deck3DConfigStore.rotateSpeed,
+            },
         },
         initialViewState: {
             [viewId]: {
-                target:        deck3DConfigStore.centroid,
-                zoom:          deck3DConfigStore.fitZoom,
-                rotationX:     deck3DConfigStore.viewState.rotationX,
-                rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
-            }
-            },        
-        layers: [ /* … */ ],
-        onViewStateChange: ({ viewState }) => {
-            deck3DConfigStore.updateViewState(viewState)
+                target: deck3DConfigStore.centroid,
+                zoom: deck3DConfigStore.fitZoom,
+                rotationX: deck3DConfigStore.viewState.rotationX,
+                rotationOrbit: deck3DConfigStore.viewState.rotationOrbit,
+            },
         },
-        debug: deck3DConfigStore.debug
-    }) as any
-
+        layers: [],
+        onViewStateChange: ({ viewState }) => {
+            deck3DConfigStore.updateViewState(viewState);
+        },
+        debug: deck3DConfigStore.debug,
+    });
 }
+
 
 function getPercentile(sorted: number[], p: number): number {
     const index = (p / 100) * (sorted.length - 1);
@@ -181,7 +208,7 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             computeCentroid(pointCloudData.map(p => p.position));
 
             //console.log('Fit Zoom:', computedFitZoom.value);
-            initDeckInstance(deckContainer);
+            await observeAndInitDeckInstance(deckContainer);
             const layer = new PointCloudLayer({
                 id: 'point-cloud-layer',
                 data: pointCloudData,
@@ -206,4 +233,16 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
         console.error('Error loading 3D view:', err);
         toast.error('Error', 'Failed to load elevation data.');
     }
+}
+
+export function updateFovy(fovy: number) {
+    deckInstance.value?.setProps({
+        views: [
+            new OrbitView({
+                id: viewId,
+                orbitAxis: deck3DConfigStore.orbitAxis,
+                fovy: fovy,
+            }),
+        ],
+    });
 }

@@ -29,7 +29,7 @@ onMounted(async () => {
         :getSelectedMenuItem="useMapStore().getPolySource"
         :setSelectedMenuItem="useMapStore().setPolySource"
         tooltipText="This is how you define the region of interest"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#polygons"
+        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#polygons"
     />
     <SrGeoJsonFileUpload
         v-if="mapStore.polygonSource==='Upload geojson File'"
@@ -56,7 +56,7 @@ onMounted(async () => {
             :defaultValue="reqParamsStore.serverTimeoutValue" 
             :decimalPlaces="0"
             tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#timeouts"
         />
         <SrSwitchedSliderInput
             v-model="reqParamsStore.reqTimeoutValue"
@@ -71,7 +71,7 @@ onMounted(async () => {
             :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="total time in seconds for request to be processed"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#timeouts"
         />                    
         <SrSwitchedSliderInput
             v-model="reqParamsStore.nodeTimeoutValue"
@@ -86,7 +86,7 @@ onMounted(async () => {
             :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="time in seconds for a single node to work on a distributed request (used for proxied requests)"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#timeouts"
         />
         <SrSwitchedSliderInput
             v-model="reqParamsStore.readTimeoutValue"
@@ -101,7 +101,7 @@ onMounted(async () => {
             :sliderMax="3600"
             :decimalPlaces="0"
             tooltipText="time in seconds for a single read of an asset to take"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#timeouts"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#timeouts"
         />
         <div class="sr-restore-timeout-defaults">
             <Button label="Restore Default Timeout behavior" @click="reqParamsStore.restoreTimeouts()"/>

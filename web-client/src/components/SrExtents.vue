@@ -44,7 +44,7 @@ onMounted(async () => {
                         aria-label="Select Distance in"
                         :menuOptions="reqParamsStore.distanceInOptions"
                         tooltipText="Distance in meters or segments"
-                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
                 </div>
             <div class="sr-ext-distance-body-container">
@@ -60,7 +60,7 @@ onMounted(async () => {
                     :max="200" 
                     :decimal-places="0"                  
                     tooltipText="len: The length of the extent in meters"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
                 <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='meters'"
@@ -74,7 +74,7 @@ onMounted(async () => {
                     :max="100" 
                     :decimal-places="0"
                     tooltipText="res: The Step Size of the extent in meters"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
                 <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='segments'"
@@ -88,7 +88,7 @@ onMounted(async () => {
                     :max="200" 
                     :decimal-places="0"                  
                     tooltipText="len: The length of the extent in segments"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
                 <SrSwitchedSliderInput
                     v-if="reqParamsStore.distanceIn.value==='segments'"
@@ -102,7 +102,7 @@ onMounted(async () => {
                     :max="100" 
                     :decimal-places="0"
                     tooltipText="res: The length of the extent in segments"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
             </div>
         </div>  
@@ -113,7 +113,7 @@ onMounted(async () => {
                     labelFontSize="large"
                     v-model="reqParamsStore.passInvalid"
                     tooltipText="pass_invalid: indicating whether or not extents that fail validation checks are still used and returned in the results" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
             </div> 
             <div>
@@ -129,7 +129,7 @@ onMounted(async () => {
                     :max="200" 
                     :decimal-places="0"
                     tooltipText="ats: minimum along track spread"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
                 <SrSwitchedSliderInput
                     :insensitive="(reqParamsStore.passInvalid)"
@@ -143,7 +143,7 @@ onMounted(async () => {
                     :max="200" 
                     :decimal-places="0"
                     tooltipText="cnt: minimum photon count in segments"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#photon-extent-parameters"
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
             </div> 
         </div>

@@ -2,7 +2,7 @@
 
     import SrMenu from "@/components/SrMenu.vue";
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
-    import { onMounted } from 'vue';
+    import { computed, onMounted } from 'vue';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import { useServerStateStore } from '@/stores/serverStateStore';
@@ -10,7 +10,15 @@
     onMounted(async () => {
        useServerStateStore().isAborting = false;
     });
-
+    const missionTooltipUrl = computed(() => {
+        const mission = useReqParamsStore().getMissionValue();
+        if (mission === 'ICESat-2') {
+            return 'https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2';
+        } else if (mission === 'GEDI') {
+            return 'https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi';
+        }
+        return '';
+    });
 </script>
 <template>
     <div class="sr-adv-option-sidebar">
@@ -22,7 +30,7 @@
                 :getSelectedMenuItem="useReqParamsStore().getMissionValue"
                 :setSelectedMenuItem="useReqParamsStore().setMissionValue"
                 tooltipText="Select a mission to determine which APIs are available."
-                tooltipUrl="https://slideruleearth.io/web/rtd/index.html" 
+                :tooltipUrl=missionTooltipUrl 
             />
             <SrMenu
                 label="ICESat-2 API:"
