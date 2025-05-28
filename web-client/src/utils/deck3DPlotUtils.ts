@@ -10,13 +10,22 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
-import type { Deck as DeckType } from '@deck.gl/core';
 import { Deck } from '@deck.gl/core';
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
 import { toRaw, isProxy } from 'vue';
+
+
+const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
+
+const toast = useSrToastStore();
+const deck3DConfigStore = useDeck3DConfigStore();
+const elevationStore = useElevationColorMapStore();
+const fieldStore = useFieldNameStore();
+const viewId = 'main';
+
 
 /**
  * Strips Vue reactivity from Deck.gl-compatible data to prevent runtime Proxy errors.
@@ -34,15 +43,6 @@ export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] 
     // If not reactive, clone objects for safety
     return data.map(item => ({ ...item }));
 }
-
-const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
-
-
-const toast = useSrToastStore();
-const deck3DConfigStore = useDeck3DConfigStore();
-const elevationStore = useElevationColorMapStore();
-const fieldStore = useFieldNameStore();
-const viewId = 'main';
 
 
 function computeCentroid(position: [number, number, number][]) {
@@ -97,6 +97,8 @@ function observeAndInitDeckInstance(deckContainer: Ref<HTMLDivElement | null>): 
 function createDeck(container: HTMLDivElement) {
     deckInstance.value = new Deck({
         parent: container,
+        useDevicePixels: false,
+        _animate: false, // Disable animation for better performance
         views: [
             new OrbitView({
                 id: viewId,
@@ -106,7 +108,7 @@ function createDeck(container: HTMLDivElement) {
         ],
         controller: {
             type: OrbitController,
-            inertia: deck3DConfigStore.inertia,
+            inertia: 0,
             scrollZoom: {
                 speed: deck3DConfigStore.zoomSpeed,
                 smooth: false,
@@ -255,8 +257,9 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
                 layers.push(axes, labels);
             }
-
             deckInstance.value?.setProps({layers});
+            deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
+
         } else {
             toast.warn('No Data Processed', 'No elevation data returned.');
         }
@@ -276,4 +279,5 @@ export function updateFovy(fovy: number) {
             }),
         ],
     });
+    deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
 }
