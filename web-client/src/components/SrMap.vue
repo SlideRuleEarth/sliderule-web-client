@@ -401,13 +401,13 @@
         }
     }
 
-    function onFeatureClick(featureLike:FeatureLike){
+    async function onFeatureClick(featureLike:FeatureLike){
         //console.log('onFeatureClick:',featureLike);
         if (featureLike instanceof OlFeature) {
             const properties = featureLike.getProperties();
             //console.log('Feature properties:',properties);
             if(properties.req_id){
-                router.push(`/analyze/${properties.req_id.toString()}`);
+                await router.push(`/analyze/${properties.req_id.toString()}`);
             }
         } else {
             console.error('Feature is not an instance of Feature');

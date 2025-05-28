@@ -1282,9 +1282,6 @@ export async function getAllColumnMinMax(
     }
 
     const endTime = performance.now();
-    console.log(
-        `getAllColumnMinMax query:\n${query}\ntook ${endTime - startTime} ms.\nresult:`,
-        result
-    );
+    console.log( `getAllColumnMinMax took ${endTime - startTime} ms.\nresult:`, result);
     return result;
 }

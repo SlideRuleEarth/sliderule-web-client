@@ -243,7 +243,7 @@ const analysisButtonClick = async () => {
         }
         const reqId =recTreeStore.selectedReqId;
         if (reqId > 0) {
-            router.push(`/analyze/${reqId.toString()}`);
+            await router.push(`/analyze/${reqId.toString()}`);
         } else {
             if(recTreeStore.allReqIds.length > 0){
                 //console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);

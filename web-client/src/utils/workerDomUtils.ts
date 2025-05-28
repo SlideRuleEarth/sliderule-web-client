@@ -201,7 +201,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         await callPlotUpdateDebounced(`opfs_ready ${workerMsg.req_id}`);
                     } else {
                         console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
-                        router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue
+                        await router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue
                     }
                 } catch (error) {
                     console.error('handleWorkerMsg opfs_ready error:',error);
