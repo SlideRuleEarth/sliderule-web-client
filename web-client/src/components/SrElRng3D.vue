@@ -1,9 +1,9 @@
 <template>
     <div class="sr-3d-elrange-col">
         <InputNumber
-            v-model="elRange[1]"
+            v-model="elDataRange[1]"
             size="small"
-            :min="elRange[0]"
+            :min="elDataRange[0]"
             :max="100"
             :step="1"
             :minFractionDigits="0"
@@ -15,9 +15,9 @@
         />
 
         <Slider
-            v-if="Array.isArray(elRange) && elRange.length === 2"
+            v-if="Array.isArray(elDataRange) && elDataRange.length === 2"
             class="sr-el-range-slider"
-            v-model="elRange"
+            v-model="elDataRange"
             range
             orientation="vertical"
             :min="0"
@@ -27,10 +27,10 @@
         />
 
         <InputNumber
-            v-model="elRange[0]"
+            v-model="elDataRange[0]"
             size="small"
             :min="0"
-            :max="elRange[1]"
+            :max="elDataRange[1]"
             :step="1"
             :minFractionDigits="0"
             :maxFractionDigits="0"
@@ -56,12 +56,12 @@ const recTreeStore = useRecTreeStore();
 const emit = defineEmits(['change']);
 
 const deck3DConfigStore = useDeck3DConfigStore();
-const { elRange } = toRefs(deck3DConfigStore);
+const { elDataRange } = toRefs(deck3DConfigStore);
 const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
 const reqId = computed(() => recTreeStore.selectedReqId);
 
 async function handleChange() {
-    console.log('ElRange3D handleChange:', elRange.value);
+    console.log('ElRange3D handleChange:', elDataRange.value);
     await update3DPointCloud(reqId.value,deckContainerStored);
 }
 

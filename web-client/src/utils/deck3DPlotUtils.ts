@@ -16,6 +16,24 @@ import { Deck } from '@deck.gl/core';
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
+import { toRaw, isProxy } from 'vue';
+
+/**
+ * Strips Vue reactivity from Deck.gl-compatible data to prevent runtime Proxy errors.
+ *
+ * @param data - The data array to sanitize
+ * @returns A plain array with raw objects safe to use with Deck.gl layers
+ */
+export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] {
+    if (isProxy(data)) {
+        // Remove reactivity from the array and its objects
+        const raw = toRaw(data);
+        return raw.map(item => ({ ...toRaw(item) }));
+    }
+
+    // If not reactive, clone objects for safety
+    return data.map(item => ({ ...item }));
+}
 
 const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
 
@@ -168,26 +186,39 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
             const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
             const colorRange = Math.max(1e-6, colorMax - colorMin);
-            const [minElPercent, maxElPercent] = deck3DConfigStore.elRange;
-            const elevMin = getPercentile(elevations, minElPercent);
-            const elevMax = getPercentile(elevations, maxElPercent);
-            const elevRange = Math.max(1e-6, elevMax - elevMin);
+
+            const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
+            const elevMinScale = getPercentile(elevations, minElScalePercent);
+            const elevMaxScale = getPercentile(elevations, maxElScalePercent);
+            const elevRangeScale = Math.max(1e-6, elevMaxScale - elevMinScale);
+
+            const [minElDataPercent, maxElDataPercent] = deck3DConfigStore.elDataRange;
+            const elevMinData = getPercentile(elevations, minElDataPercent);
+            const elevMaxData = getPercentile(elevations, maxElDataPercent);
+
             const lonMin = Math.min(...validRows.map(d => d[lonField]));
             const lonMax = Math.max(...validRows.map(d => d[lonField]));
+
             const latMin = Math.min(...validRows.map(d => d[latField]));
             const latMax = Math.max(...validRows.map(d => d[latField]));
+
             const lonRange = Math.max(1e-6, lonMax - lonMin);
             const latRange = Math.max(1e-6, latMax - latMin);
 
             elevationStore.updateElevationColorMapValues();
             const rgbaArray = elevationStore.elevationColorMap;
 
-            const pointCloudData = validRows.map(d => {
+            const pointCloudData = validRows
+            .filter(d => {
+                const height = d[heightField];
+                return height >= elevMinData && height <= elevMaxData;
+            })
+            .map(d => {
                 const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
                 const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
 
                 // z is *not* clamped — we preserve true geometry
-                const z = deck3DConfigStore.scale * (d[heightField] - elevMin) / elevRange;
+                const z = deck3DConfigStore.scale * (d[heightField] - elevMinScale) / elevRangeScale;
 
                 // But color is computed using clamped-to-percentile range
                 const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
@@ -210,8 +241,8 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             //console.log('Fit Zoom:', computedFitZoom.value);
             await observeAndInitDeckInstance(deckContainer);
             const layer = new PointCloudLayer({
-                id: 'point-cloud-layer',
-                data: pointCloudData,
+                id: `point-cloud-layer-${Date.now()}`, // Ensures a new identity each time
+                data: sanitizeDeckData(pointCloudData),
                 getPosition: d => d.position,
                 getColor: d => d.color,
                 pointSize: deck3DConfigStore.pointSize,

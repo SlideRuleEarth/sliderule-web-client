@@ -14,17 +14,6 @@
               @input="handleChange"
             />
           </div>
-          <!-- <div class="config-item">
-            <label for="orbitAxis">Orbit Axis</label>
-            <Select
-              v-model="store.orbitAxis"
-              :options="orbitAxisOptions"
-              optionLabel="label"
-              optionValue="value"
-              id="orbitAxis"
-              size="small"
-            />
-          </div> -->
           <div class="config-item">
             <label for="colormax">Color Grad Max %</label>
             <InputNumber v-model="store.maxColorPercent"
@@ -32,6 +21,7 @@
               :max="100"
               size="small"
               id="colormax"
+              :showButtons="true"
               @input="handleChange"
             />
           </div>
@@ -43,6 +33,30 @@
               :max="store.maxColorPercent"
               size="small"
               id="colormin"
+              :showButtons="true"
+              @input="handleChange"
+            />
+          </div>
+          <div class="config-item">
+            <label for="colormax">Data Scale Max %</label>
+            <InputNumber v-model="store.elScaleRange[1]"
+              :min="1"
+              :max="100"
+              size="small"
+              id="colormax"
+              :showButtons="true"
+              @input="handleChange"
+            />
+          </div>
+          <div class="config-item">
+            <label for="colormin">Data Scale Min %</label>
+            <InputNumber
+              v-model="store.elScaleRange[0]"
+              :min="0"
+              :max="store.elScaleRange[1]"
+              size="small"
+              id="colormin"
+              :showButtons="true"
               @input="handleChange"
             />
           </div>
