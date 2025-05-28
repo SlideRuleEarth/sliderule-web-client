@@ -1137,7 +1137,7 @@ export async function zoomMapForReqIdUsingView(map:OLMap, reqId:number, srViewKe
     }
 }
 
-const updateElevationMap = async (req_id: number) => {
+export const updateElevationMap = async (req_id: number) => {
     const startTime = performance.now(); // Start time
     console.log('updateElevationMap req_id:', req_id);
     //const reqIdStr = req_id.toString();

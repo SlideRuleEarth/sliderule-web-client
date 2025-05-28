@@ -23,7 +23,7 @@
             v-model="deck3DConfigStore.pointSize"
             inputId="pointSizeId"
             size="small"
-            :step="0.5"
+            :step="0.1"
             :min="0.1"
             :max="10"
             showButtons
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, nextTick, computed, watch, ref } from 'vue';
+import { onMounted, nextTick, computed, watch, ref, onUnmounted } from 'vue';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -45,7 +45,7 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
-import { update3DPointCloud, updateFovy } from '@/utils/deck3DPlotUtils';
+import { finalizeDeck, update3DPointCloud, updateFovy } from '@/utils/deck3DPlotUtils';
 
 
 const recTreeStore = useRecTreeStore();
@@ -77,7 +77,7 @@ onMounted(async () => {
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
     await nextTick(); // makes sure the gradient is available
-    console.log('onMounted Centroid:', deck3DConfigStore.centroid);
+    //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
     const { width, height } = localDeckContainer.value!.getBoundingClientRect();
     deck3DConfigStore.fitZoom = Math.log2(Math.min(width, height) / deck3DConfigStore.scale);
     //console.log('onMounted fitZoom:', deck3DConfigStore.fitZoom);
@@ -89,18 +89,26 @@ onMounted(async () => {
             console.error('onMounted Deck container has zero dimensions!');
         } else {
             deck3DConfigStore.deckContainer = localDeckContainer.value;
-            console.log('onMounted Deck container set:', deck3DConfigStore.deckContainer);
-            console.log('onMounted Deck container size:', deck3DConfigStore.deckContainer?.getBoundingClientRect());
+            //console.log('onMounted Deck container set:', deck3DConfigStore.deckContainer);
+            //console.log('onMounted Deck container size:', deck3DConfigStore.deckContainer?.getBoundingClientRect());
         }
+    } else {
+        console.error('onMounted localDeckContainer is null');
     }
 
     if (elevationStore.elevationColorMap.length > 0) {
+        //console.log('onMounted calling update3DPointCloud');
         await update3DPointCloud(reqId.value,deckContainerStored);
     } else {
         console.error('No color Gradient');
         toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.');
     }
     toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.');
+});
+
+onUnmounted(() => {
+    //console.log('onUnmounted for SrDeck3DView');
+    finalizeDeck();
 });
 
 watch(reqId, async (newVal, oldVal) => {

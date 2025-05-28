@@ -10,13 +10,22 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
-import type { Deck as DeckType } from '@deck.gl/core';
 import { Deck } from '@deck.gl/core';
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
 import { toRaw, isProxy } from 'vue';
+
+
+const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
+
+const toast = useSrToastStore();
+const deck3DConfigStore = useDeck3DConfigStore();
+const elevationStore = useElevationColorMapStore();
+const fieldStore = useFieldNameStore();
+const viewId = 'main';
+
 
 /**
  * Strips Vue reactivity from Deck.gl-compatible data to prevent runtime Proxy errors.
@@ -25,24 +34,20 @@ import { toRaw, isProxy } from 'vue';
  * @returns A plain array with raw objects safe to use with Deck.gl layers
  */
 export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] {
+    let sanitized: T[];
+
     if (isProxy(data)) {
-        // Remove reactivity from the array and its objects
         const raw = toRaw(data);
-        return raw.map(item => ({ ...toRaw(item) }));
+        sanitized = raw.map(item => ({ ...toRaw(item) }));
+    } else {
+        sanitized = data.map(item => ({ ...item }));
     }
 
-    // If not reactive, clone objects for safety
-    return data.map(item => ({ ...item }));
+    // ✅ Log sanitized output once
+    console.log('Sanitized Deck.gl data sample:', sanitized.slice(0, 5),' num:',sanitized.length); // limit to 5 for readability
+    return sanitized;
 }
 
-const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
-
-
-const toast = useSrToastStore();
-const deck3DConfigStore = useDeck3DConfigStore();
-const elevationStore = useElevationColorMapStore();
-const fieldStore = useFieldNameStore();
-const viewId = 'main';
 
 
 function computeCentroid(position: [number, number, number][]) {
@@ -63,40 +68,33 @@ function computeCentroid(position: [number, number, number][]) {
 
 
 
-function observeAndInitDeckInstance(deckContainer: Ref<HTMLDivElement | null>): Promise<void> {
-    return new Promise((resolve) => {
-        const container = deckContainer.value;
-        if (!container) {
-            console.warn('Deck container is null');
-            resolve();
-            return;
-        }
 
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            const width = entry.contentRect.width;
-            const height = entry.contentRect.height;
+function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
+    const container = deckContainer.value;
+    if (!container) {
+        console.warn('Deck container is null');
+        return false;
+    }
 
-            if (width > 0 && height > 0) {
-                observer.disconnect();
-                if (!deckInstance.value) {
-                    console.log('Deck container ready, initializing...');
-                    createDeck(container);
-                }
-                resolve(); // ✅ resolve once initialized
-            } else {
-                console.log('Waiting for non-zero size...', width, height);
-            }
-        });
+    const { width, height } = container.getBoundingClientRect();
+    if (width === 0 || height === 0) {
+        console.warn('Deck container has zero size:', width, height);
+        return false;
+    }
 
-        observer.observe(container);
-    });
+    if (!deckInstance.value) {
+        createDeck(container);
+    }
+    return true;
 }
 
 
 function createDeck(container: HTMLDivElement) {
+    console.log('createDeck inside:', container);
     deckInstance.value = new Deck({
         parent: container,
+        useDevicePixels: false,
+        _animate: false, // Disable animation for better performance
         views: [
             new OrbitView({
                 id: viewId,
@@ -106,7 +104,7 @@ function createDeck(container: HTMLDivElement) {
         ],
         controller: {
             type: OrbitController,
-            inertia: deck3DConfigStore.inertia,
+            inertia: 0,
             scrollZoom: {
                 speed: deck3DConfigStore.zoomSpeed,
                 smooth: false,
@@ -134,6 +132,16 @@ function createDeck(container: HTMLDivElement) {
     });
 }
 
+export function finalizeDeck() {
+    if (deckInstance.value) {
+        deckInstance.value.finalize();
+        deckInstance.value = null;
+        console.log('Deck instance finalized');
+    } else {
+        console.warn('No Deck instance to finalize');
+    }
+}
+
 
 function getPercentile(sorted: number[], p: number): number {
     const index = (p / 100) * (sorted.length - 1);
@@ -146,6 +154,7 @@ function getPercentile(sorted: number[], p: number): number {
 
 export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDivElement | null>) {
     try {
+        //console.log('Updating 3D Point Cloud for request ID:', reqId, 'in container:', deckContainer.value);
         const status = await indexedDb.getStatus(reqId);
         if (status === 'error') return;
 
@@ -239,7 +248,11 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             computeCentroid(pointCloudData.map(p => p.position));
 
             //console.log('Fit Zoom:', computedFitZoom.value);
-            await observeAndInitDeckInstance(deckContainer);
+            if (!initDeckIfNeeded(deckContainer)) {
+                toast.error('Deck container not ready', 'Check layout or timing.');
+                console.error('Deck container not ready');
+                return;
+            }            
             const layer = new PointCloudLayer({
                 id: `point-cloud-layer-${Date.now()}`, // Ensures a new identity each time
                 data: sanitizeDeckData(pointCloudData),
@@ -255,8 +268,13 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
                 layers.push(axes, labels);
             }
-
-            deckInstance.value?.setProps({layers});
+            if( deckInstance.value){
+                requestAnimationFrame(() => {
+                    deckInstance.value?.setProps({layers});
+                    //console.log('Redrawing deck with new point cloud layer');
+                    deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
+                });
+            }
         } else {
             toast.warn('No Data Processed', 'No elevation data returned.');
         }
@@ -267,13 +285,17 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
 }
 
 export function updateFovy(fovy: number) {
-    deckInstance.value?.setProps({
-        views: [
-            new OrbitView({
-                id: viewId,
-                orbitAxis: deck3DConfigStore.orbitAxis,
-                fovy: fovy,
-            }),
-        ],
+    requestAnimationFrame(() => {
+        deckInstance.value?.setProps({
+            views: [
+                new OrbitView({
+                    id: viewId,
+                    orbitAxis: deck3DConfigStore.orbitAxis,
+                    fovy: fovy,
+                }),
+            ],
+        });
+        console.log('Redrawing deck with new FOVY');
+        deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
     });
 }

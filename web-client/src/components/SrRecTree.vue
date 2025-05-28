@@ -9,7 +9,7 @@ import { useToast } from "primevue/usetoast";
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { db } from '@/db/SlideRuleDb';
-import router from '@/router/index';
+//import router from '@/router/index';
 import { deleteOpfsFile } from '@/utils/SrParquetUtils';
 import { cleanupAllRequests } from '@/utils/storageUtils';
 import SrCustomTooltip from './SrCustomTooltip.vue';
@@ -20,6 +20,7 @@ import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue';
 import SrImportParquetFile from './SrImportParquetFile.vue';
 import ToggleButton from 'primevue/togglebutton';
 import SrExportDialog from '@/components/SrExportDialog.vue';
+import { updateElevationMap } from '@/utils/SrMapUtils';
 
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -65,7 +66,8 @@ function openSvrParmsDialog(params: string | object) {
 const analyze = async (id:number) => {
     try {
         if(recTreeStore.findAndSelectNode(id)){
-            router.push(`/analyze/${id.toString()}`);
+            //router.push(`/analyze/${id.toString()}`);
+            updateElevationMap(id);
         } else {
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
         }

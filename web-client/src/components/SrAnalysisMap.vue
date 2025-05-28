@@ -338,8 +338,10 @@
                 const zoom = viewState.zoom - 1;
                 const bearing = (-viewState.rotation * 180) / Math.PI;
                 const deckViewState = {bearing, longitude, latitude, zoom};
-                deck.setProps({width, height, viewState: deckViewState});
-                deck.redraw();
+                requestAnimationFrame(() => {
+                    deck.setProps({width, height, viewState: deckViewState});
+                    deck.redraw();
+                });
                 return document.createElement('div');
             },
             ...layerOptions
