@@ -6,8 +6,7 @@ import { createDuckDbClient } from '@/utils/SrDuckDb';
 export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     const sourceTable = ref<string[]>([]);
 
-    async function setSourceTbl(reqId:number){
-        const fileName = await indexedDB.getFilename(reqId);
+    async function setSrcIdTblWithFileName(fileName: string) {
         const db = await createDuckDbClient();
         if (!db) {
             console.error(`Failed to create DuckDB client for file: ${fileName}`);
@@ -24,8 +23,14 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
         }
     }
 
+    async function setSourceTbl(reqId:number){
+        const fileName = await indexedDB.getFilename(reqId);
+        return setSrcIdTblWithFileName(fileName);
+    }
+
     return {
         sourceTable,
         setSourceTbl,
+        setSrcIdTblWithFileName,
     };
 });
