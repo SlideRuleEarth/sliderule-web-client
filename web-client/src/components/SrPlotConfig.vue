@@ -18,6 +18,7 @@ import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { useSrcIdTblStore } from "@/stores/srcIdTblStore";
 
 const globalChartStore = useGlobalChartStore();
 const requestsStore = useRequestsStore();
@@ -27,6 +28,7 @@ const chartStore = useChartStore();
 const fieldNameStore = useFieldNameStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const activeTabStore = useActiveTabStore();
+const srcIdTblStore = useSrcIdTblStore();
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -119,6 +121,10 @@ onMounted(() => {
     //console.log('SrPlotConfig onMounted props.reqId:', props.reqId);
     //console.log('SrPlotConfig onMounted computedReqIdStr:', computedReqIdStr.value);
     enableLocationFinder();
+    const api = recTreeStore.findApiForReqId(props.reqId);
+    if(api === 'atl24x' || api === 'atl03x') {
+        srcIdTblStore.setSourceTbl(props.reqId);
+    }
 });
 
 

@@ -1,6 +1,8 @@
 import { useReqParamsStore } from '@/stores/reqParamsStore'; 
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
 
 export function formatKeyValuePair(key: string, value: any): string {
+  const srcIdStore = useSrcIdTblStore();
   const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
   const gpsToUnixOffset = 315964800;   // Offset in seconds from GPS epoch to Unix epoch
   const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset();
@@ -37,7 +39,12 @@ export function formatKeyValuePair(key: string, value: any): string {
       .join('<br>');
 
     formattedValue = `[<br>${formattedPairs}<br>]`;
-
+  } else if(key === 'srcid'){
+    if( srcIdStore.sourceTable.length-1 >= value){
+      formattedValue = `${srcIdStore.sourceTable[value]}`;
+    } else {
+      formattedValue = `${value} : <unknown source>`;
+    }
   } else if (
     typeof value === 'object' &&
     typeof value.toArray === 'function'
@@ -66,6 +73,8 @@ export function formatKeyValuePair(key: string, value: any): string {
   } else {
     formattedValue = value;
   }
-
+  if(key === 'srcid'){
+    key = 'granule';
+  }
   return `<strong>${key}</strong>: <em>${formattedValue}</em>`;
 }
