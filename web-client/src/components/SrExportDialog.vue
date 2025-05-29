@@ -52,6 +52,9 @@ import { db } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import {getFetchUrlAndOptions} from "@/utils/fetchUtils";
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
+
+const srcIdTblStore = useSrcIdTblStore();
 
 declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
 
@@ -325,12 +328,27 @@ async function exportCsvStreamed(fileName: string) {
     const writer = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
     if (!writer) return false;
 
-    await writer.write(encoder.encode(columns.join(',') + '\n'));
+    // 🔁 Rename 'srcid' to 'granule' in header
+    const header = columns.map(col => (col === 'srcid' ? 'granule' : col));
+    await writer.write(encoder.encode(header.join(',') + '\n'));
 
+    const srcIdStore = useSrcIdTblStore();
+    srcIdStore.setSrcIdTblWithFileName(fileName);
+    const lookup = srcIdStore.sourceTable;
+    if (!lookup) {
+        console.warn('Source ID lookup table is empty or not initialized.');
+    }
     for await (const rows of readRows(1000)) {
-        const chunk = rows.map(row =>
-            columns.map(col => safeCsvCell(row[col])).join(',')
-        ).join('\n') + '\n';
+        const chunk = rows.map(row => {
+            const processedRow = columns.map(col => {
+                let val = row[col];
+                if (col === 'srcid') {
+                    val = lookup[val] ?? `unknown_srcid_${val}`;
+                }
+                return safeCsvCell(val);
+            });
+            return processedRow.join(',');
+        }).join('\n') + '\n';
 
         await writer.write(encoder.encode(chunk));
         await new Promise(r => setTimeout(r, 0));
