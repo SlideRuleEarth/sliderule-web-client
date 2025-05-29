@@ -325,8 +325,8 @@ export class DuckDBClient {
   }
     
 
-  // Method to insert a Parquet file from OPFS
-  async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
+// Method to insert a Parquet file from OPFS
+async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
     const { DuckDBDataProtocol } = await import('@duckdb/duckdb-wasm');
     try {
       // Check if the file is already loaded
@@ -374,11 +374,18 @@ export class DuckDBClient {
       console.error('insertOpfsParquet error:', error, ' for name:', name);
       throw error;
     }
-  }
+}
   
-  // Method to dump detailed metadata from a Parquet file
-  async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
+  // Method to return detailed JSON formatted metadata from a Parquet file for a specific key
+async getJsonMetaDataForKey(
+    key: string,
+    parquetFilePath: string,
+    dumpAll: boolean = false
+): Promise<{ formattedMetadata: string | undefined; parsedMetadata: Record<string, any> | undefined }> {
     const conn = await this._db!.connect();
+    let formattedMetadata: string | undefined = undefined;
+    let parsedMetadata: Record<string, any> | undefined = undefined;
+
     try {
         const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
         const result = await conn.query(query);
@@ -391,35 +398,56 @@ export class DuckDBClient {
                     const keyString = new TextDecoder().decode(keyArray);
                     const valueArray = kv.get(i) as Uint8Array;
                     const valueString = new TextDecoder().decode(valueArray);
-                    console.log("Key:", keyString, "Value:", valueString);
-                    if (keyString === 'sliderule') {
-                        //console.log("Raw Sliderule Metadata:", valueString);
+
+                    if (keyString === key) {
                         try {
-                            const parsedMetadata = JSON.parse(valueString);
-                            const formattedMetadata = JSON.stringify(parsedMetadata, null, 2);  // Format with 2 spaces for readability
-                            //console.log("Formatted Sliderule Metadata:", formattedMetadata);
-                            return formattedMetadata;
+                            parsedMetadata = JSON.parse(valueString);
+                            formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
+                            console.log(`Formatted ${keyString} Metadata:`, formattedMetadata);
                         } catch (parseError) {
-                            console.error("Error parsing JSON metadata:", parseError);
-                            return undefined;
+                            console.error(`Error parsing JSON of ${keyString} metadata:`, parseError);
+                        }
+                    } else if (keyString === 'ARROW:schema') {
+                        console.log(`Skipping key: ${keyString}, not matching ${key} and not JSON`);
+                    } else {
+                        if (dumpAll) {
+                            try {
+                                const parsedOther = JSON.parse(valueString);
+                                const otherMetadata = JSON.stringify(parsedOther, null, 2);
+                                console.log(`Other Formatted ${keyString} Metadata:`, otherMetadata);
+                            } catch (parseError) {
+                                console.error(`Error parsing JSON of ${keyString} metadata:`, parseError);
+                            }
+                        } else {
+                            console.log(`Skipping Other key: ${keyString}, not matching ${key}`);
                         }
                     }
                 } else {
-                  console.log("Key or Value is undefined at index", i);
+                    console.log("Key or Value is undefined at index", i);
                 }
             }
         } else {
-          console.log("No metadata found for the specified Parquet file.");
+            console.log("No metadata found for the specified Parquet file.");
         }
-        console.log("Sliderule metadata not found.");
-        return undefined;
+
+        if (!formattedMetadata) {
+            console.log(`${key} metadata not found.`);
+        }
+
     } catch (error) {
         console.error("Error dumping Parquet metadata:", error);
         throw error;
     } finally {
         await conn.close();
     }
-  }
+
+    return { formattedMetadata, parsedMetadata };
+}
+
+
+    async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
+      return (await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true)).formattedMetadata;
+    }
 
     // Method to extract all key-value pairs from Parquet metadata
     async getAllParquetMetadata(parquetFilePath: string): Promise<Record<string, string> | undefined> {
