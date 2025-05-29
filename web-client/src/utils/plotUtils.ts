@@ -22,6 +22,7 @@ import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
+import { createDuckDbClient } from "@/utils/SrDuckDb";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -549,8 +550,18 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     const reqId = Number(reqIdStr);
     const func = useRecTreeStore().findApiForReqId(reqId);
     const x = chartStore.getXDataForChart(reqIdStr);
-    const y = chartStore.getYDataOptions(reqIdStr);
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+    const existingColumns = await duckDbClient.queryForColNames(fileName);
+    const all_y = chartStore.getYDataOptions(reqIdStr);
+    const y = all_y.filter(col => existingColumns.includes(col));
+    console.log('all_y:', all_y);
+    console.log('existingColumns:', existingColumns);
+    console.log('Filtered y:', y);
     console.log('getSeriesFor Using y:',y);
+    if(y.length != all_y.length){
+        console.warn(`getSeriesFor ${reqIdStr} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
+    }
     let seriesData = [] as SrScatterSeriesData[];
     let minXToUse;
     if(isOverlay){
