@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
+    import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
@@ -12,10 +12,11 @@
     import { useGeoCoderStore } from '@/stores/geoCoderStore';
     import { get as getProjection } from 'ol/proj.js';
     import { addLayersForCurrentView } from "@/composables/SrLayers";
-    import { Layer as OLlayer } from 'ol/layer';
+    import { Layer } from 'ol/layer';
     import { useWmsCap } from "@/composables/useWmsCap";
-    import { Feature as OlFeature } from 'ol';
-    import { FeatureLike } from 'ol/Feature';
+    import { Feature } from 'ol';
+    import type { FeatureLike } from 'ol/Feature';
+    import type Geometry from 'ol/geom/Geometry';
     import { Polygon as OlPolygon } from 'ol/geom';
     import { DragBox as DragBoxType } from 'ol/interaction';
     import { Draw as DrawType } from 'ol/interaction';
@@ -40,9 +41,18 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly,addFeatureClickListener } from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
+    import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
+
+    const featureMenuOverlayRef = ref();
+ 
+
+    function onFeatureMenuSelect(feature) {
+        onFeatureClick([feature]); // Use your existing handler logic
+        featureMenuOverlayRef.value.hideMenu();
+    }
 
     const reqParamsStore = useReqParamsStore();
     const debugStore = useDebugStore();
@@ -166,14 +176,14 @@
             console.error("dragBox.on boxend Error: Drawing Layer is undefined");
             mapRef.value?.map.addLayer(drawVectorLayer);
         }
-        if(!(vectorLayer instanceof OLlayer)){
+        if(!(vectorLayer instanceof Layer)){
             console.error("dragBox.on boxend Error: INVALID Drawing Layer?");
             return;
         }
-        const vectorSource = vectorLayer.getSource();
+        const vectorSource = vectorLayer?.getSource();
         if(vectorSource){
             // Create a rectangle feature using the extent
-            let boxFeature = new OlFeature(fromExtent(extent));
+            let boxFeature = new Feature(fromExtent(extent));
             // Apply the style to the feature
             boxFeature.setStyle(boxStyle); 
             //console.log("dragBox.on boxend boxFeature tag:",tag);
@@ -230,7 +240,7 @@
 
         const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
 
-        if(vectorLayer && vectorLayer instanceof OLlayer){
+        if(vectorLayer && vectorLayer instanceof Layer){
             const vectorSource = vectorLayer.getSource();
             if(vectorSource){
                 // Access the feature that was drawn
@@ -324,7 +334,7 @@
         disableTagDisplay();
         let cleared = false;
         const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
-        if(vectorLayer && vectorLayer instanceof OLlayer){
+        if(vectorLayer && vectorLayer instanceof Layer){
             const vectorSource = vectorLayer.getSource();
             if(vectorSource){
                 const features = vectorSource.getFeatures()
@@ -401,16 +411,17 @@
         }
     }
 
-    async function onFeatureClick(featureLike:FeatureLike){
-        //console.log('onFeatureClick:',featureLike);
-        if (featureLike instanceof OlFeature) {
-            const properties = featureLike.getProperties();
-            //console.log('Feature properties:',properties);
-            if(properties.req_id){
+    async function onFeatureClick(features: Feature<Geometry>[]) {
+        //console.log('onFeatureClick:', features, coordinate);
+        if (features && features.length > 0) {
+            const feature = features[0];
+            const properties = feature.getProperties();
+            //console.log('Feature properties:', properties);
+            if (properties.req_id) {
                 await router.push(`/analyze/${properties.req_id.toString()}`);
             }
         } else {
-            console.error('Feature is not an instance of Feature');
+            console.error('No features found on click');
         }
     }
 
@@ -477,8 +488,25 @@
                 //   map.addControl(plink);
                 // }
                 await updateReqMapView("SrMap onMounted",canRestoreZoomCenter(map));
+                map?.on('click', (evt) => {
+                    const features: Feature<Geometry>[] = [];
 
-                addFeatureClickListener(map,onFeatureClick);
+                    map.forEachFeatureAtPixel(evt.pixel, (feature: FeatureLike) => {
+                        if (feature instanceof Feature) {
+                            features.push(feature as Feature<Geometry>);
+                        }
+                    });
+
+                    const pointerEvent = evt.originalEvent as MouseEvent;
+                    if (features.length && pointerEvent) {
+                        featureMenuOverlayRef.value?.showMenu(pointerEvent.clientX, pointerEvent.clientY, features);
+                    } else {
+                        featureMenuOverlayRef.value?.hideMenu();
+                    }
+                });
+
+
+
             } else {
                 console.error("SrMap Error:map is null");
             } 
@@ -553,17 +581,17 @@
                 renderSvrReqPoly(map, reqId);
             });
         } else {
-            console.error("SrMap addRecordPolys Error:map is null");
+            console.warn("SrMap skipping addRecordPolys when map is null");
         }
         const endTime = performance.now(); // End time
-        //console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
+        console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
     function drawCurrentReqPoly(){
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
-            if(vectorLayer && vectorLayer instanceof OLlayer){
+            if(vectorLayer && vectorLayer instanceof Layer){
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
@@ -680,38 +708,47 @@
 </script>
 
 <template>
-<div class="sr-main-map-container">
-    <div id="map-center-highlight" />
-    <Map.OlMap ref="mapRef" @error="handleEvent"
-        :loadTilesWhileAnimating="true"
-        :loadTilesWhileInteracting="true"
-        :controls="controls"
-        class="sr-ol-map"
-    >
-        <MapControls.OlLayerswitcherControl
-            :selection="true"
-            :displayInLayerSwitcher="() => true"
-            :show_progress="true"
-            :mouseover="false"
-            :reordering="true"
-            :trash="false"
-            :extent="true"
-        />
+<div>
+    <div class="sr-main-map-container">
+        <div id="map-center-highlight"/>
+        <Map.OlMap ref="mapRef" @error="handleEvent"
+            :loadTilesWhileAnimating="true"
+            :loadTilesWhileInteracting="true"
+            :controls="controls"
+            class="sr-ol-map"
+        >
+            <MapControls.OlLayerswitcherControl
+                :selection="true"
+                :displayInLayerSwitcher="() => true"
+                :show_progress="true"
+                :mouseover="false"
+                :reordering="true"
+                :trash="false"
+                :extent="true"
+            />
 
-        <MapControls.OlZoomControl  />
+            <MapControls.OlZoomControl  />
+            
+            <MapControls.OlMousepositionControl 
+                :projection="computedProjName"
+                :coordinateFormat="stringifyFunc as any"
+            ></MapControls.OlMousepositionControl>  
+            <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
+
+            <MapControls.OlScalelineControl />
+            <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+            <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
+            <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
+        </Map.OlMap>
+
+
+
+    </div>    
+    <div class="sr-tooltip-style" id="tooltip">        
+    </div>
+    <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />
+
         
-        <MapControls.OlMousepositionControl 
-            :projection="computedProjName"
-            :coordinateFormat="stringifyFunc as any"
-        ></MapControls.OlMousepositionControl>  
-        <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
-
-        <MapControls.OlScalelineControl />
-        <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
-        <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
-        <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
-    </Map.OlMap>
-  <div class="sr-tooltip-style" id="tooltip"></div>
 </div>
 </template>
 
