@@ -780,22 +780,7 @@ export function restoreMapView(proj:ProjectionLike) : OlView | null {
 }
 
 
-export function addFeatureClickListener(
-    map: OLMap,
-    onFeatureClick: (feature: Feature<Geometry>) => void
-): void {
-    map.on('singleclick', (evt) => {
-      map.forEachFeatureAtPixel(evt.pixel, (featureLike: FeatureLike) => {
-        // Check if it really is a Feature (not a RenderFeature)
-        if (featureLike instanceof Feature) {
 
-            onFeatureClick(featureLike);
-            return true; // Stop searching for features
-        }
-        return false; // Continue searching for features
-      });
-    });
-}
 
 function createBlueReqPolygonStyle(label: string): Style {
     return new Style({
@@ -902,10 +887,10 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
     const feature = new Feature({ geometry: polygon, req_id:(reqId>0)?reqId:null });
     if(color==='red'){
         feature.setStyle(createRedReqPolygonStyle());
-        feature.setId(`SelectedArea-${reqId}`);
+        feature.setId(`Record:${reqId}`);
     } else {
         feature.setStyle(createBlueReqPolygonStyle(reqId.toString()));
-        feature.setId(`SelectedAreaCH-${reqId}`);
+        feature.setId(`Record:${reqId}`);
     }
     vectorSource.addFeature(feature);
 
