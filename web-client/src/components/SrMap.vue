@@ -528,12 +528,19 @@
                         return;
                     }
                     const features: Feature<Geometry>[] = [];
+                    const recordsLayer = getLayerByName("Records Layer");
 
-                    map.forEachFeatureAtPixel(evt.pixel, (feature: FeatureLike) => {
-                        if (feature instanceof Feature) {
-                            features.push(feature as Feature<Geometry>);
+                    map.forEachFeatureAtPixel(
+                        evt.pixel, 
+                        (feature: FeatureLike) => {
+                            if (feature instanceof Feature) {
+                                features.push(feature as Feature<Geometry>);
+                            }
+                        },
+                        {
+                            layerFilter: (layer) => layer === recordsLayer
                         }
-                    });
+                    );
 
                     const pointerEvent = evt.originalEvent as MouseEvent;
                     if (features.length && pointerEvent) {
