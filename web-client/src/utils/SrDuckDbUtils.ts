@@ -585,8 +585,8 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
                 console.warn('duckDbLoadOpfsParquetFile serverReqResult is null');
             }
         } catch (error) {
-            console.error('Error dumping parquet metadata:', error);
-        }
+            console.error('duckDbLoadOpfsParquetFile Error dumping parquet metadata:', error);
+        }       
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;

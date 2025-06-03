@@ -212,7 +212,7 @@ const formattedClientVersion = computed(() => {
 
 const testVersionWarning = computed(() => {
     //const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST `:`WebClient Test Version`);
-    const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST ${deviceStore.screenWidth}`:`WebClient Test Version ${deviceStore.screenWidth}`);
+    const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST ${deviceStore.screenWidth}`:`WebClient Test Version`);
     return tvw;
 });
 

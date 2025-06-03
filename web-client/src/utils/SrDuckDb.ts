@@ -403,39 +403,39 @@ async getJsonMetaDataForKey(
                         try {
                             parsedMetadata = JSON.parse(valueString);
                             formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
-                            console.log(`Formatted ${keyString} Metadata:`, formattedMetadata);
+                            //console.log(`getJsonMetaDataForKey Formatted ${keyString} Metadata:`, formattedMetadata);
                         } catch (parseError) {
-                            console.error(`Error parsing JSON of ${keyString} metadata:`, parseError);
+                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`, parseError);
                         }
                     } else if (keyString === 'ARROW:schema') {
-                        console.log(`Skipping key: ${keyString}, not matching ${key} and not JSON`);
+                        //console.log(`getJsonMetaDataForKey Skipping key: ${keyString}, not matching ${key} and not JSON`);
                     } else {
                         if (dumpAll) {
                             try {
                                 const parsedOther = JSON.parse(valueString);
                                 const otherMetadata = JSON.stringify(parsedOther, null, 2);
-                                console.log(`Other Formatted ${keyString} Metadata:`, otherMetadata);
+                                console.log(`getJsonMetaDataForKey Other Formatted ${keyString} Metadata:`, otherMetadata);
                             } catch (parseError) {
-                                console.error(`Error parsing JSON of ${keyString} metadata:`, parseError);
+                                console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`, parseError);
                             }
                         } else {
-                            console.log(`Skipping Other key: ${keyString}, not matching ${key}`);
+                            //console.log(`getJsonMetaDataForKey Skipping Other key: ${keyString}, not matching ${key}`);
                         }
                     }
                 } else {
-                    console.log("Key or Value is undefined at index", i);
+                    console.warn("getJsonMetaDataForKey Key or Value is undefined at index", i);
                 }
             }
         } else {
-            console.log("No metadata found for the specified Parquet file.");
+            console.error("getJsonMetaDataForKey No metadata found for the specified Parquet file.");
         }
 
         if (!formattedMetadata) {
-            console.log(`${key} metadata not found.`);
+            console.error(`getJsonMetaDataForKey ${key} metadata not found.`);
         }
 
     } catch (error) {
-        console.error("Error dumping Parquet metadata:", error);
+        console.error("getJsonMetaDataForKey Error dumping Parquet metadata:", error);
         throw error;
     } finally {
         await conn.close();
@@ -446,7 +446,17 @@ async getJsonMetaDataForKey(
 
 
     async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
-      return (await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true)).formattedMetadata;
+      const thisMetaData = await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true);
+      if (thisMetaData.parsedMetadata) {
+        // Check if the parsed metadata contains a 'serverReq' key
+        if (thisMetaData.parsedMetadata.recordinfo) {
+          console.log('getServerReqFromMetaData thisMetaData.parsedMetadata.recordinfo:', thisMetaData.parsedMetadata.recordinfo);
+        } else {
+          console.warn(`getServerReqFromMetaData: thisMetaData.parsedMetadata recordinfo key not found in metadata for ${parquetFilePath}`);
+        }
+      }
+
+      return thisMetaData.formattedMetadata;
     }
 
     // Method to extract all key-value pairs from Parquet metadata
