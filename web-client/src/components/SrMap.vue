@@ -45,9 +45,13 @@
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
+    import type { Source } from 'ol/source';
+    import type LayerRenderer  from 'ol/renderer/Layer';
 
     const featureMenuOverlayRef = ref();
  
+    const wasRecordsLayerVisible = ref(false);
+    const isDrawing = ref(false);
 
     function onFeatureMenuSelect(feature) {
         onFeatureClick([feature]); // Use your existing handler logic
@@ -90,22 +94,38 @@
     const drawVectorSource = new VectorSource({wrapX: false});
     const drawVectorLayer = new VectorLayer({
         source: drawVectorSource,
+        zIndex: 100,
     });
 
     const recordsVectorSource = new VectorSource({wrapX: false});
     const recordsLayer = new VectorLayer({
         source: recordsVectorSource,
+        zIndex: 50,
     });
     // Set a custom property, like 'name'
     const drawPolygon = new DrawType({
         source: drawVectorSource,
         type: 'Polygon',
+        style: new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 2,
+            }),
+            fill: new Fill({
+                color: 'rgba(255, 0, 0, 0.1)', // optional semi-transparent fill
+            }),
+        }),
     });
 
     const handleEvent = (event: any) => {
         console.log(event);
     };
     const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
+
+    function getLayerByName(name: string): Layer<Source, LayerRenderer<any>> | undefined {
+        const baseLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === name);
+        return baseLayer as Layer<Source, LayerRenderer<any>> | undefined;
+    }
 
     // Function to toggle the DragBox interaction.
     function disableDragBox() {
@@ -231,14 +251,23 @@
     function enableDrawPolygon() {
         disableDragBox();
         disableDrawPolygon(); // reset then add
-        mapRef.value?.map.addInteraction(drawPolygon);
+        isDrawing.value = true;
+        const map = mapRef.value?.map;
+        const records = getLayerByName("Records Layer");
+
+        if (map && records) {
+            wasRecordsLayerVisible.value =records.getVisible();
+            records.setVisible(false); // Hide the records layer while drawing
+        }
+        map?.addInteraction(drawPolygon);
         //console.log("enableDrawPolygon");
     }
 
     drawPolygon.on('drawend', function(event) {
         //console.log("drawend:", event);
+        const map = mapRef.value?.map;
 
-        const vectorLayer = mapRef.value?.map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+        const vectorLayer = map?.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
 
         if(vectorLayer && vectorLayer instanceof Layer){
             const vectorSource = vectorLayer.getSource();
@@ -302,8 +331,8 @@
                                 name: "Convex Hull Polygon"
                             }
                         };
-                        if(mapRef.value?.map){
-                            enableTagDisplay(mapRef.value?.map,vectorSource);
+                        if(map){
+                            enableTagDisplay(map,vectorSource);
                         } else {
                             console.error("Error:map is null");
                         }
@@ -325,7 +354,12 @@
                 console.error("Error:vectorSource is null");
             }
         } else {
-        console.error("Error:vectorLayer is null");
+            console.error("Error:vectorLayer is null");
+        }
+        isDrawing.value = false;
+        const records = getLayerByName("Records Layer");
+        if (map && records && wasRecordsLayerVisible.value) {
+            records.setVisible(true);
         }
     });
 
@@ -489,6 +523,10 @@
                 // }
                 await updateReqMapView("SrMap onMounted",canRestoreZoomCenter(map));
                 map?.on('click', (evt) => {
+                    if (isDrawing.value) {
+                        featureMenuOverlayRef.value?.hideMenu();
+                        return;
+                    }
                     const features: Feature<Geometry>[] = [];
 
                     map.forEachFeatureAtPixel(evt.pixel, (feature: FeatureLike) => {
@@ -519,6 +557,11 @@
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
         }
+        mapRef.value?.map.getLayers().forEach((layer, idx) => {
+            const name = layer.get('name') || `Unnamed Layer ${idx}`;
+            const z = layer.getZIndex?.() ?? '(no z-index)';
+            console.log(`${name}: Z-Index = ${z}`);
+        });
     });
 
     // Call saveMapZoomState only when leaving the page
