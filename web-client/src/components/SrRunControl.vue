@@ -92,6 +92,7 @@
                         <i :class="serverStateStore.isFetching ? 'pi pi-times' : 'pi pi-play'"></i>
                         <div
                             class="button-label-text"
+                            :class="{ 'no-wrap': serverStateStore.isFetching }"
                             v-html="(serverStateStore.isFetching ? 'Abort' : props.buttonLabel).replaceAll('\n', '<br>')"
                         ></div>
                     </div>
@@ -217,9 +218,10 @@
     .button-label-text {
         white-space: normal; 
         line-height: 1.2;
-        max-width: 6rem; /* optional: limits width so it wraps naturally */
-        word-break: break-word;
         text-align: center;
     }
 
+    .button-label-text.no-wrap {
+        white-space: nowrap;
+    }
 </style>
