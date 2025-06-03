@@ -528,8 +528,7 @@
                         return;
                     }
                     const features: Feature<Geometry>[] = [];
-                    const recordsLayer = getLayerByName("Records Layer");
-
+                    console.log("SrMap onMounted map click, recordsLayer:",recordsLayer);
                     map.forEachFeatureAtPixel(
                         evt.pixel, 
                         (feature: FeatureLike) => {
@@ -538,7 +537,7 @@
                             }
                         },
                         {
-                            layerFilter: (layer) => layer === recordsLayer
+                            layerFilter: (layer) => layer.get('name') === 'Records Layer'
                         }
                     );
 
