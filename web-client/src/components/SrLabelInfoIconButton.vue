@@ -77,7 +77,7 @@
 }
 
 .sr-label-info-icon-button-label-insensitive {
-    margin-right: 0rem;
+    margin-right: 0.25rem;
     font-size: small;
     color: #888; /*  grey color */
     white-space: nowrap;

@@ -137,8 +137,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
 <style scoped>
 
 .sr-granule-selection-container {
-    margin-bottom: 1rem;
-    padding: 0.25rem;
+    padding: 0.75rem;
     border: 1px solid grey;
     border-radius: var(--p-border-radius);
 }

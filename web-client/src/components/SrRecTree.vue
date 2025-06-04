@@ -300,6 +300,7 @@ onUnmounted(() => {
             <template #header>
                 <Button 
                     icon="pi pi-trash"
+                    severity="danger" 
                     class="sr-glow-button p-button-icon-only"
                     @click="confirmDeleteAllReqs()"
                     @mouseover="tooltipRef?.showTooltip($event, 'Delete ALL Requests')"
@@ -311,6 +312,7 @@ onUnmounted(() => {
             <template #body="slotProps">
                 <Button 
                     icon="pi pi-trash"
+                    severity="danger" 
                     class="sr-glow-button p-button-icon-only"
                     @click="deleteReqAndChildren(slotProps.node.data.reqId)"
                     @mouseover="tooltipRef?.showTooltip($event, 'Delete this request and any of its children')"

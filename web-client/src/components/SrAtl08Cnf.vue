@@ -28,8 +28,6 @@ const reqParamsStore = useReqParamsStore();
                 {name:'Canopy', value:'atl08_canopy'},
                 {name:'Top of Canopy', value:'atl08_top_of_canopy'},
             ]"
-            tooltipText="atl08_class: The ATL08 classifications used to select which photons are used in the processing."
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
         />
 
     </div>
@@ -37,8 +35,7 @@ const reqParamsStore = useReqParamsStore();
 <style scoped>
 
 .sr-atl08-cnf-container {
-    margin-bottom: 1rem;
-    padding: 0.25rem;
+    padding: 0.75rem;
     border: 1px solid grey;
     border-radius: var(--p-border-radius);
 }
