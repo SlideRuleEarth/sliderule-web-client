@@ -328,7 +328,7 @@ const openMailClient = () => {
             </Button>
             <Menu :model="tourMenuItems" popup ref="tourMenu" />
             <div class="sr-megaphone"
-                @mouseover="tooltipRef.showTooltip($event,'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email!')"
+                @mouseover="tooltipRef.showTooltip($event,'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email!<br><br>Remember: The squeaky wheel gets the oil!')"
                 @mouseleave="tooltipRef.hideTooltip"
             >
                 <Button icon="pi pi-megaphone"
