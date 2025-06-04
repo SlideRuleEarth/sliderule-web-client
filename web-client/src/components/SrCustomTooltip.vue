@@ -1,35 +1,36 @@
 <template>
   <Teleport to="body">
-    <div class="tooltip" v-if="visible" :style="tooltipStyle">{{ text }}</div>
+    <div class="tooltip" v-if="visible" :style="tooltipStyle" v-html="text"></div>
   </Teleport>
 </template>
-  
-  <script setup lang="ts">
-  import { ref  } from 'vue';
-  import { Teleport } from 'vue';
-  
-  const visible = ref(false);
-  const text = ref('');
-  const tooltipStyle = ref({});
-  
 
-  // Define the functions that will control tooltip visibility and position
-  const showTooltip = (event: MouseEvent, content: string | undefined) => {
+<script setup lang="ts">
+import { ref, nextTick } from 'vue';
+import { Teleport } from 'vue';
+import DOMPurify from 'dompurify';
+
+const visible = ref(false);
+const text = ref('');
+const tooltipStyle = ref<Record<string, string>>({});
+
+const showTooltip = async (event: MouseEvent, content: string | undefined) => {
     if (!content) {
-        console.warn('Tooltip content is undefined or empty content:', content);
-        console.log('Tooltip event:', event);
+        console.warn('Tooltip content is undefined or empty:', content);
         return;
     }
-    
-    text.value = content;
+
+    // Sanitize HTML content
+    const sanitized = DOMPurify.sanitize(content);
+    text.value = sanitized;
     visible.value = true;
 
+    await nextTick(); // Ensure tooltip is rendered
+
+    const tooltipEl = document.querySelector('.tooltip') as HTMLElement | null;
+    const tooltipRect = tooltipEl?.getBoundingClientRect();
+
     const { clientX: x, clientY: y } = event;
-    const tooltipOffset = 10; // distance from the cursor
- 
-    const fontSizePx = parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
-    const tooltipWidth = (content?.length ?? 0) * fontSizePx * 0.6; // heuristic
-    const tooltipHeight = 24; // better estimate
+    const tooltipOffset = 10;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -37,49 +38,44 @@
     let left = x + tooltipOffset;
     let top = y + tooltipOffset;
 
-    if (left + tooltipWidth > windowWidth) {
-        left = x - tooltipWidth - tooltipOffset;
-    }
-    if (top + tooltipHeight > windowHeight) {
-        top = y - tooltipHeight - tooltipOffset;
+    if (tooltipRect) {
+        if (left + tooltipRect.width > windowWidth) {
+            left = x - tooltipRect.width - tooltipOffset;
+        }
+        if (top + tooltipRect.height > windowHeight) {
+            top = y - tooltipRect.height - tooltipOffset;
+        }
     }
 
-    // Prevent negative values
-    left = Math.max(0, left);
-    top = Math.max(0, top);
-    // Apply the calculated position
     tooltipStyle.value = {
-      top: `${top}px`,
-      left: `${left}px`,
+        top: `${Math.max(0, top)}px`,
+        left: `${Math.max(0, left)}px`
     };
-    // console.log(`Tooltip {content} position:`, {
-    //   top: `${top}px`,
-    //   left: `${left}px`
-    // });
-  };
+};
 
-  
-  const hideTooltip = () => {
+const hideTooltip = () => {
     visible.value = false;
-  };
-  
-  // Expose the functions so that the parent component can call them
-  defineExpose({
+};
+
+defineExpose({
     showTooltip,
-    hideTooltip,
-  });
-  </script>
-  
-  <style scoped>
-  .tooltip {
+    hideTooltip
+});
+</script>
+
+<style scoped>
+.tooltip {
     position: absolute;
     background-color: #333;
     color: #fff;
-    padding: 5px;
+    padding: 5px 8px;
     border-radius: 4px;
     z-index: 1000;
     max-width: 15rem;
-    overflow: visible;
-  }
-  </style>
-  
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    pointer-events: none;
+    white-space: normal;
+    word-break: break-word;
+}
+</style>
