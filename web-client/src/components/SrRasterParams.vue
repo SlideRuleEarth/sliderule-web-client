@@ -142,7 +142,7 @@
     const rasterParamsStore = useRasterParamsStore();
     const addRasterParams = () => {
 
-        if(rasterParamsStore.key === '' || rasterParamsStore.asset === '' || rasterParamsStore.algorithm === '') {
+        if(rasterParamsStore.key === '' || rasterParamsStore.asset === '') {
             alert('Key, Asset and Algorithm must be specified for raster parameters!');
             return;
         }
@@ -151,6 +151,8 @@
             key: rasterParamsStore.key,
             asset: rasterParamsStore.asset,
             algorithm: rasterParamsStore.algorithm,
+            //Note: force_single_sample is hardcoded to true 
+            force_single_sample: rasterParamsStore.force_single_sample,
             radius: rasterParamsStore.radius,
             zonalStats: rasterParamsStore.zonalStats,
             withFlags: rasterParamsStore.withFlags,

@@ -2,6 +2,7 @@ export type RasterParams = {
     key: string; 
     asset: string;
     algorithm: string;
+    force_single_sample: boolean; // Flag to indicate if single sample is forced
     radius: number;
     zonalStats: boolean;
     withFlags: boolean;
@@ -13,10 +14,11 @@ export type RasterParams = {
     catalog: string;
     bands: string[];
 }
+//Note: force_single_sample is hardcoded to true and not exposed in the UI
 export const RasterParamsCols = [
   { field: 'key', header: 'Key' },
   { field: 'asset', header: 'asset' },
-  { field: 'algorithm', header: 'algorithm' }, 
+  { field: 'algorithm', header: 'algorithm' },
   { field: 'radius', header: 'radius' },
   { field: 'zonalStats', header: 'zonalStats' },
   { field: 'withFlags', header: 'withFlags' },
@@ -40,6 +42,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         key: '' as RasterParams['key'],
         asset: '' as RasterParams['asset'],
         algorithm: '' as RasterParams['algorithm'],
+        force_single_sample: true as RasterParams['force_single_sample'], // Flag to indicate if single sample is forced
         radius: 0 as RasterParams['radius'],
         zonalStats: false as RasterParams['zonalStats'],
         withFlags: false as RasterParams['withFlags'],
@@ -73,7 +76,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         ] as SrMenuItem[],
             algorithmOptions: 
         [
-            {name:'NearestNeighbor', value:'NearestNeighbor'},
+            {name:'NearestNeighbour', value:'NearestNeighbour'},
             {name:'Bilinear', value:'Bilinear'},
             {name:'Cubic', value:'Cubic'},
             {name:'CubicSpline', value:'CubicSpline'},
@@ -122,6 +125,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         }
         },
         getFormattedParms() {
+            //Note: force_single_sample is hardcoded to true 
             const samples: Record<string, any> = {};
 
             this.dataTable.forEach((row) => {
@@ -129,6 +133,8 @@ export const useRasterParamsStore = defineStore('rasterParams', {
 
                 if (row.asset) entry.asset = row.asset;
                 if (row.algorithm) entry.algorithm = row.algorithm;
+                if (row.force_single_sample !== undefined) entry.force_single_sample = row.force_single_sample;
+                if (row.key) entry.key = row.key;
                 if (row.radius) entry.radius = row.radius;
                 if (row.zonalStats) entry.zonal_stats = row.zonalStats;
                 if (row.withFlags) entry.with_flags = row.withFlags;
