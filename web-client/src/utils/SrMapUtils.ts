@@ -608,35 +608,48 @@ const isIPad = isTouchDevice && deviceWidth > 430 && deviceWidth <= 768;    // T
 const onHoverHandler = isIPhone
     ? undefined
     : (pickingInfo: PickingInfo, event?: MjolnirEvent) => {
-            const { object } = pickingInfo;
-            let x = pickingInfo.x ?? 0;
-            let y = pickingInfo.y ?? 0;
+        const { object } = pickingInfo;
+        const analysisMapStore = useAnalysisMapStore();
+        const canvas = document.querySelector('canvas'); // or get canvas ref more precisely
+        let x = 0;
+        let y = 0;
 
-            // Use event.srcEvent for fallback if pickingInfo.x and pickingInfo.y are undefined
-            if (event?.srcEvent instanceof MouseEvent || event?.srcEvent instanceof PointerEvent) {
-                x = pickingInfo.x ?? event.srcEvent.clientX;
-                y = pickingInfo.y ?? event.srcEvent.clientY;
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scrollX = window.scrollX || window.pageXOffset;
+            const scrollY = window.scrollY || window.pageYOffset;
+
+            // Convert canvas-relative coords to page coords
+            x = (pickingInfo.x ?? 0) + rect.left + scrollX;
+            y = (pickingInfo.y ?? 0) + rect.top + scrollY;
+        }
+
+        // Fallback if we can’t get accurate canvas info
+        if (
+            (x === 0 && y === 0) &&
+            event?.srcEvent instanceof MouseEvent
+        ) {
+            x = event.srcEvent.clientX;
+            y = event.srcEvent.clientY;
+        }
+
+        if (analysisMapStore.showTheTooltip) {
+            if (object && !useDeckStore().isDragging) {
+                const tooltip = formatElObject(object);
+
+                const syntheticEvent = new MouseEvent('mousemove', {
+                    clientX: x,
+                    clientY: y,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                });
+
+                analysisMapStore.tooltipRef.showTooltip(syntheticEvent, tooltip);
+            } else {
+                analysisMapStore.tooltipRef.hideTooltip();
             }
-            const analysisMapStore = useAnalysisMapStore();
-
-            //console.log('onHoverHandler object:',object,' x:',x,' y:',y,' mapStore.showTheTooltip:',mapStore.showTheTooltip);
-            if(analysisMapStore.showTheTooltip){
-                if (object && !useDeckStore().isDragging) {
-                    const tooltip = formatElObject(object);
-                    // Create synthetic MouseEvent with x, y
-                    const syntheticEvent = new MouseEvent('mousemove', {
-                        clientX: x,
-                        clientY: y,
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-
-                    analysisMapStore.tooltipRef.showTooltip(syntheticEvent, tooltip);
-                } else {
-                     useAnalysisMapStore().tooltipRef.hideTooltip();
-                }
-            }
+        }
     };
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)

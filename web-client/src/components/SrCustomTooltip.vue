@@ -28,9 +28,8 @@ const showTooltip = async (event: MouseEvent, content: string | undefined) => {
 
     await nextTick(); // Ensure tooltip is rendered
 
-    const tooltipEl = document.querySelector('.tooltip') as HTMLElement | null;
+    const tooltipEl = document.querySelector(`.${props.id}`) as HTMLElement | null;
     const tooltipRect = tooltipEl?.getBoundingClientRect();
-
     const { clientX: x, clientY: y } = event;
     const tooltipOffset = 10;
 
@@ -53,6 +52,7 @@ const showTooltip = async (event: MouseEvent, content: string | undefined) => {
         top: `${Math.max(0, top)}px`,
         left: `${Math.max(0, left)}px`
     };
+    //console.log('x:',x,'y',y,'Tooltip style:', tooltipStyle.value,'Tooltip element:', tooltipEl, 'Rect:', tooltipRect);
 };
 
 const hideTooltip = () => {
