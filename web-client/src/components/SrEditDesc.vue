@@ -86,7 +86,7 @@ const onEditComplete = async (event: Event) => {
 </script>
 <template>
     <FloatLabel class="full-width-label">
-        <SrCustomTooltip  ref="tooltipRef" />        
+        <SrCustomTooltip  ref="tooltipRef" id="editDecrTooltip" />        
         <InputText
             v-if="props.reqId > 0"
             v-model="descrRef"

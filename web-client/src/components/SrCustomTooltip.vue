@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div class="tooltip" v-if="visible" :style="tooltipStyle" v-html="text"></div>
+    <div class="tooltip" :id="props.id" v-if="visible" :style="tooltipStyle" v-html="text"></div>
   </Teleport>
 </template>
 
@@ -8,6 +8,8 @@
 import { ref, nextTick } from 'vue';
 import { Teleport } from 'vue';
 import DOMPurify from 'dompurify';
+
+const props = defineProps<{ id: string }>();
 
 const visible = ref(false);
 const text = ref('');

@@ -71,7 +71,7 @@
     const atlChartFilterStore = useAtlChartFilterStore();
     const activeTabStore = useActiveTabStore();
     const controls = ref([]);
-    const tooltipRef = ref();
+    const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null);
 
     // true whenever the active tab is _not_ “3‑D View”
     const isNot3DView = computed(() => 
@@ -165,6 +165,12 @@
 
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
+        // Bind the tooltipRef to the store
+        if (tooltipRef.value) {
+            analysisMapStore.tooltipRef = tooltipRef.value;
+        } else {
+            console.error('tooltipRef is null on mount');
+        }        
         recordsLayer.set('name', 'Records Layer'); // for empty requests need to draw poly in this layer
         recordsLayer.set('title', 'Records Layer');
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -504,8 +510,9 @@
             <SrLocationFinder v-if="locationFinderReady && mapRef?.map" :map="mapRef.map" />
 
         </Map.OlMap>
-        <div class="sr-tooltip-style" id="tooltip">
+        <div class="sr-tooltip-style">
             <SrCustomTooltip 
+                id="analysisMapTooltip"
                 ref="tooltipRef"
             />
         </div>
@@ -522,8 +529,8 @@
         </div>
         <div 
             v-show="computedMission === 'ICESat-2'"
-            @mouseover="tooltipRef.showTooltip($event,offFilterTooltip)"
-            @mouseleave="tooltipRef.hideTooltip"
+            @mouseover="analysisMapStore.tooltipRef.showTooltip($event,offFilterTooltip)"
+            @mouseleave="analysisMapStore.tooltipRef.hideTooltip()"
         >
             <Checkbox
                 v-show="isNot3DView" 
@@ -541,8 +548,8 @@
             </label>
         </div>
         <div
-            @mouseover="tooltipRef.showTooltip($event,'Enable Link to Elevation Plot to be able to location points from the plot on the map')"
-            @mouseleave="tooltipRef.hideTooltip"
+            @mouseover="analysisMapStore.tooltipRef.showTooltip($event,'Enable Link to Elevation Plot to be able to location points from the plot on the map')"
+            @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
         >
             <Checkbox
                 v-show="isNot3DView" 

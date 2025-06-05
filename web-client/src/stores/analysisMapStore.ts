@@ -20,7 +20,8 @@ export const useAnalysisMapStore = defineStore('analysisMapStore', () => {
     };
     const showTheTooltip = ref(true);
     const analysisMapInitialized = ref(false);
-
+    const tooltipRef = ref();
+   
     return {
         pntData,
         filteredPntData,
@@ -28,5 +29,6 @@ export const useAnalysisMapStore = defineStore('analysisMapStore', () => {
         getFilteredPntDataByReqId,
         showTheTooltip,
         analysisMapInitialized,
+        tooltipRef
     };
 });

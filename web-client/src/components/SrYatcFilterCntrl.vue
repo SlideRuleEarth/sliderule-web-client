@@ -1,8 +1,8 @@
 <template>
-    <SrCustomTooltip ref="tooltipRef"/>
+    <SrCustomTooltip ref="tooltipRef" id="yatcFilterTooltip"/>
     <div class="sr-y-atc-panel" 
         @mouseover="tooltipRef.showTooltip($event, 'Used to filter out off pointed tracks from different cycles')"
-        @mouseleave="tooltipRef.hideTooltip"
+        @mouseleave="tooltipRef.hideTooltip()"
     >
         <div class="sr-checkbox-item">
             <label>y_atc</label>

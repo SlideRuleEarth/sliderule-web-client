@@ -1,8 +1,8 @@
 <template>
-    <SrCustomTooltip ref="tooltipRef"/>
+    <SrCustomTooltip ref="tooltipRef" id="yatcTooltip"/>
     <div class="sr-y-atc-panel" 
         @mouseover="tooltipRef.showTooltip('Used to increase/decrease width of coverage and filter in/out off pointed tracks from different cycles')"
-        @mouseleave="tooltipRef.hideTooltip"
+        @mouseleave="tooltipRef.hideTooltip()"
     >
         <label class="sr-label-simple_yatc" for="width">Width of Coverage (meters):</label>
         <InputNumber 

@@ -277,7 +277,7 @@ onUnmounted(() => {
                 <div 
                     class="sr-file-import"
                     @mouseover="tooltipRef.showTooltip($event, 'Import a SlideRule Parquet File')" 
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseleave="tooltipRef.hideTooltip()"
                 >
                     <SrImportParquetFile :iconOnly="true" @file-imported="handleFileImported" />
                 </div>
@@ -339,7 +339,7 @@ onUnmounted(() => {
         width="50vw"
     />
     <!-- Custom Tooltip -->
-    <SrCustomTooltip ref="tooltipRef"/>
+    <SrCustomTooltip ref="tooltipRef" id="recTreeTooltip"/>
 
     <!-- Display an error message if there is an error -->
     <div v-if="requestsStore.autoFetchError" class="error-message">

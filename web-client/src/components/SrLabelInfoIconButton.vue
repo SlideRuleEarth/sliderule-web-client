@@ -4,7 +4,7 @@
                 :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
                 :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }"
                 @mouseover="tooltipRef.showTooltip($event, tooltipText)"
-                @mouseleave="tooltipRef.hideTooltip"
+                @mouseleave="tooltipRef.hideTooltip()"
         >
             {{ label }}
         </label>
