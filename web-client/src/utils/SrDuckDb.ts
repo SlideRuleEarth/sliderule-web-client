@@ -405,7 +405,9 @@ async getJsonMetaDataForKey(
                             formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
                             //console.log(`getJsonMetaDataForKey Formatted ${keyString} Metadata:`, formattedMetadata);
                         } catch (parseError) {
-                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`, parseError);
+                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} valueString:`,valueString);
+                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`,parsedMetadata);
+                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} error:`, parseError);
                         }
                     } else if (keyString === 'ARROW:schema') {
                         //console.log(`getJsonMetaDataForKey Skipping key: ${keyString}, not matching ${key} and not JSON`);
