@@ -124,7 +124,7 @@ const isExpanded = (panelIndex: number) => {
                         <SrGedi />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="11">
+                <AccordionPanel value="11" v-if="props.iceSat2SelectedAPI.includes('x')">
                     <AccordionHeader>Raster Sampling</AccordionHeader>
                     <AccordionContent v-if="isExpanded(11)">
                         <SrRaster />

@@ -4,18 +4,20 @@
             <SrCheckbox v-model="computedCheckboxValue" label=""  :insensitive="props.insensitive"/>
             <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         </div>
-        <SrSliderInput 
-            v-model="innerModelValue" 
-            label="" 
-            :id="inputId" 
-            :min="min"  
-            :max="max"
-            :sliderMin="sliderMin"
-            :sliderMax="sliderMax" 
-            :decimalPlaces="decimalPlaces" 
-            :insensitive="!computedCheckboxValue || insensitive" 
-            :tooltipText="tooltipText"  
-        />
+        <div class="sr-slider">
+            <SrSliderInput 
+                v-model="innerModelValue" 
+                label="" 
+                :id="inputId" 
+                :min="min"  
+                :max="max"
+                :sliderMin="sliderMin"
+                :sliderMax="sliderMax" 
+                :decimalPlaces="decimalPlaces" 
+                :insensitive="!computedCheckboxValue || insensitive" 
+                :tooltipText="tooltipText"  
+            />
+        </div>
     </div>
 </template>
   
@@ -121,8 +123,6 @@
     align-items: self-start;
     justify-content: left;
     font-size: small;
-    margin: 0rem;
-    margin-top: 0.125rem;
 }
 .sr-switched-slider-labeled-cb {
     display: flex;
@@ -142,6 +142,8 @@
     color: #888; /*  grey color */
     font-size: small;
 }
-
+.sr-slider{
+    padding:0.125rem;
+}
 </style>
   

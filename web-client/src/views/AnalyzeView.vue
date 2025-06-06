@@ -34,7 +34,7 @@ onMounted(async () => {
             toast.add({ severity: 'warn', summary: 'Reset Record Selection', detail: `The record specified in the route was INVALID setting to first record`, life: srToastStore.getLife()});
         }
     } else {
-        console.error('AnalyzeView onMounted: recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
+        console.warn('AnalyzeView onMounted: recTreeStore.allReqIds is empty');
     }
 });
 

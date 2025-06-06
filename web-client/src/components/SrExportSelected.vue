@@ -1,7 +1,7 @@
 
 <template>
     <div class="sr-export-panel">
-        <SrCustomTooltip ref="tooltipRef" />
+        <SrCustomTooltip ref="tooltipRef" id="exportSelTooltip" />
         <Button
             icon="pi pi-file-export"
             label="Export csv"

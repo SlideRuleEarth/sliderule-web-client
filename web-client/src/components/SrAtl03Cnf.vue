@@ -35,8 +35,6 @@ const reqParamsStore = useReqParamsStore();
                     reqParamsStore.signalConfidenceNumberOptions[6],
                     ]"
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
-                tooltipText="cnf: Confidence level for photon selection"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
             />            
             <SrMultiSelectNumber
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
@@ -46,8 +44,6 @@ const reqParamsStore = useReqParamsStore();
                 :menuOptions="reqParamsStore.qualityPHOptions"
                 :default="reqParamsStore.qualityPHNumber"
                 @update:value="reqParamsStore.qualityPHNumber = $event"
-                tooltipText="quality_ph: quality classification based on an ATL03 algorithms that attempt to identify instrumental artifacts"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
             />  
         </div>
     </div>
@@ -56,8 +52,7 @@ const reqParamsStore = useReqParamsStore();
 
 
 .sr-atl03-cnf-container {
-    margin-bottom: 1rem;
-    padding: 0.25rem;
+    padding: 0.75rem;
     border: 1px solid grey;
     border-radius: var(--p-border-radius);
 }

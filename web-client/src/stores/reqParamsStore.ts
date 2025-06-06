@@ -14,6 +14,8 @@ import { useGlobalChartStore } from './globalChartStore';
 import { type ApiName, isValidAPI } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from './defaultsStore';
+import { useRasterParamsStore } from './rasterParamsStore';
+
 interface YapcConfig {
   version: number;
   score: number;
@@ -560,14 +562,7 @@ const createReqParamsStore = (id: string) =>
           if (this.poly && this.convexHull) {
             req.cmr = { polygon: this.convexHull };
           }
-          if(useMapStore().getPolySource()=='Upload geojson File' && this.poly) {
-            // req.raster = {
-            //   data: this.poly,
-            //   length: this.poly.length,
-            //   cellsize: this.getRasterizePolyCellSize(),
-            // }
-            console.log("TBD set raster here?");
-          }
+
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }
@@ -585,6 +580,9 @@ const createReqParamsStore = (id: string) =>
           }
           if(this.useDatum) {
             req.datum = 'EGM08';
+          }
+          if((useRasterParamsStore().dataTable.length > 0) && (this.iceSat2SelectedAPI.includes('x'))) {
+            req.samples = useRasterParamsStore().getFormattedParms();
           }
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;

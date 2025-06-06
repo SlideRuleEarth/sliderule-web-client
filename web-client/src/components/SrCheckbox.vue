@@ -2,7 +2,7 @@
   <div class="sr-checkbox">
     <Checkbox
       v-if="!labelOnLeft" 
-      class="sr-checkbox-input"
+      class="sr-checkbox-input-label-left"
       :inputId="'sr-checkbox-' + label" 
       v-model="localChecked" 
       :binary="true" 
@@ -31,7 +31,7 @@
     </template>
     <Checkbox
       v-if="labelOnLeft" 
-      class="sr-checkbox-input"
+      class="sr-checkbox-input-label-right"
       :inputId="'sr-checkbox-' + label" 
       v-model="localChecked" 
       :binary="true" 
@@ -109,13 +109,16 @@ const emitChange = () => {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin: 0.25rem;
   }
 
-  .sr-checkbox-input {
+  .sr-checkbox-input-label-right {
+    margin-left: 0.5rem;
+  }
+
+  .sr-checkbox-input-label-left {
     margin-right: 0.5rem;
   }
-  
+
   .sr-checkbox-label {
     white-space: nowrap;
     font-size: small;

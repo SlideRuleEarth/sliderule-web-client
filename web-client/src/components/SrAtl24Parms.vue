@@ -1,13 +1,16 @@
 <template>
     <div class="sr-atl24-parms-container">
         <div class="sr-atl24-top-header">
-            <span class="sr-extents-hdr">Atl24 Specific</span>
+            <SrLabelInfoIconButton
+                label="Atl24 Specific Parameters" 
+                labelFontSize='larger'
+                tooltipText='Atl24 Specific Parameters' 
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
+            />
         </div>
         <div>
             <SrLabelInfoIconButton
                 label="Use"
-                tooltipText="Atl24 Parameters"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                 >
             </SrLabelInfoIconButton>
             <div class = "sr-parm-row">
@@ -21,8 +24,6 @@
                     v-model="reqParamsStore.atl24Compact"
                     :insensitive="!reqParamsStore.useAtl24Compact"
                     labelFontSize="small"
-                    tooltipText="reduces number of fields to minimal viable set" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                     :labelOnLeft="true"
                 />
             </div>
@@ -39,8 +40,6 @@
                     :menuOptions="reqParamsStore.atl24ClassOptions"
                     :insensitive="!reqParamsStore.useAtl24Classification"
                     @update:value="reqParamsStore.atl24Classification = $event"
-                    tooltipText="Atl24 Classification Filter"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                 />
             </div>
             <div class = "sr-parm-row">
@@ -54,8 +53,6 @@
                     v-model="reqParamsStore.atl24InvalidKD"
                     :insensitive="!reqParamsStore.useAtl24InvalidKD"
                     labelFontSize="small"
-                    tooltipText="Invalid KD: Invalid KD flag for Atl24 Classification" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24" 
                 />
             </div>
             <div class = "sr-parm-row">
@@ -77,8 +74,6 @@
                     v-model="reqParamsStore.atl24ConfidenceThreshold"
                     :insensitive="!reqParamsStore.useAtl24ConfidenceThreshold"
                     labelFontSize="small"
-                    tooltipText="minimal bathymetry confidence score" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24" 
                 />
             </div>
             <div class = "sr-parm-row">
@@ -92,8 +87,6 @@
                     v-model="reqParamsStore.atl24InvalidWindspeed"
                     :insensitive="!reqParamsStore.useAtl24InvalidWindspeed"
                     labelFontSize="small"
-                    tooltipText="Atl24 Invalid Windspeed flag" 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24" 
                 />
             </div>
             <div class = "sr-parm-row">
@@ -107,8 +100,6 @@
                     v-model="reqParamsStore.atl24LowConfidence"
                     :insensitive="!reqParamsStore.useAtl24LowConfidence"
                     labelFontSize="small"
-                    tooltipText="Atl24 Low Confidence flag"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                 />
             </div>
             <div class = "sr-parm-row">
@@ -122,8 +113,6 @@
                     v-model="reqParamsStore.atl24Night"
                     :insensitive="!reqParamsStore.useAtl24Night"
                     labelFontSize="small"
-                    tooltipText="Atl24 Nighttime flag"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                 />
             </div>
             <div class = "sr-parm-row">
@@ -137,8 +126,6 @@
                     v-model="reqParamsStore.atl24SensorDepthExceeded"
                     :insensitive="!reqParamsStore.useAtl24SensorDepthExceeded"
                     labelFontSize="small"
-                    tooltipText="Atl24 Sensor Depth Exceeded flag"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#atl24"
                 />
             </div>
             <div class="sr-atl24-ancillary-fields">
@@ -237,6 +224,14 @@ function removeAncillaryField(index: number) {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+    margin: 0.125rem;
+}
+
+.sr-field-label {
+    font-size: small;
+    font-weight: bold;
+    margin: 0.5rem;
+    
 }
 
 </style>

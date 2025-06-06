@@ -50,7 +50,6 @@ import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 
-
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
@@ -80,11 +79,12 @@ export function drawGeoJson(
     uniqueId: string,
     vectorSource: VectorSource,
     geoJsonData: string | object, // Allow string or object
+    color: string,// e.g.'rgba(255, 0, 0, 1)'
     noFill: boolean = false,
     zoomTo: boolean = false,
     tag: string = '',
-): void {
-    console.log('drawGeoJson: uniqueId:',uniqueId,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
+): number[] | undefined  {
+    console.log('drawGeoJson: uniqueId:',uniqueId,'color:',color,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
     try {
         const map = useMapStore().map;
         if (!map) {
@@ -142,7 +142,7 @@ export function drawGeoJson(
         // Define style based on noFill flag
         const style = new Style({
             stroke: new Stroke({
-                color: noFill ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)',
+                color: color,
                 width: 2,
             }),
             fill: noFill
@@ -176,44 +176,43 @@ export function drawGeoJson(
     } catch (error) {
         console.error('drawGeoJson: Unexpected error:', error);
     }
+    return vectorSource.getExtent() as number[] | undefined;
 }
 
 
 export function enableTagDisplay(map: OLMap, vectorSource: VectorSource): void {
-    const tooltipEl = document.getElementById('tooltip');
 
     // Listen for pointer move (hover) events
-    useMapStore().pointerMoveListenerKey = map.on('pointermove', function (evt) {
+    const mapStore = useMapStore();
+    mapStore.pointerMoveListenerKey = map.on('pointermove', function (evt) {
         //console.log('pointermove');
         const pixel = map.getEventPixel(evt.originalEvent);
         const features = map.getFeaturesAtPixel(pixel);
         
         // Check if any feature is under the cursor
-        if (features && features.length > 0) {
-            const feature = features[0];
-            const tag = feature.get('tag');  // Retrieve the tag
+        if (mapStore.tooltipRef){
+            if(features && features.length > 0) {
+                const feature = features[0];
+                const tag = feature.get('tag');  // Retrieve the tag
+                if (tag) {
+                    // Display the tag in the tooltip
+                    const { clientX, clientY } = evt.originalEvent;
+                    mapStore.tooltipRef.showTooltip({ clientX, clientY } as MouseEvent, `Area: ${tag}`);
+                }
+            } else {
+                // Hide the tooltip if no feature is found
+                mapStore.tooltipRef.hideTooltip();
 
-            if (tag && tooltipEl) {
-                // Display the tag in the tooltip
-                tooltipEl.innerHTML = `Area: ${tag}`;
-                tooltipEl.style.display = 'block';
-                tooltipEl.style.left = `${evt.originalEvent.clientX}px`;
-                tooltipEl.style.top = `${evt.originalEvent.clientY - 15}px`; // Offset the tooltip above the cursor
             }
         } else {
-            // Hide the tooltip if no feature is found
-            if (tooltipEl) {
-                tooltipEl.style.display = 'none';
-            }
+            console.warn('enableTagDisplay: tooltipRef is not set in MapStore.');
         }
     });
 
     // Hide tooltip when the mouse leaves the map
     map.getViewport().addEventListener('mouseout', function () {
         //console.log('mouseout');
-        if (tooltipEl) {
-            tooltipEl.style.display = 'none';
-        }
+        mapStore.tooltipRef.hideTooltip();
     });
 }
 
@@ -248,52 +247,52 @@ export function formatElObject(obj: { [key: string]: any }): string {
 }
 
   
-interface TooltipParams {
-    x: number;
-    y: number;
-    tooltip: string;
-}
+// interface TooltipParams {
+//     x: number;
+//     y: number;
+//     tooltip: string;
+// }
 
-function showTooltip({ x, y, tooltip }: TooltipParams): void {
-    const tooltipEl = document.getElementById('tooltip');
-    if (tooltipEl) {
-        tooltipEl.innerHTML = tooltip;
-        tooltipEl.style.display = 'block';
+// function showTooltip({ x, y, tooltip }: TooltipParams): void {
+//     const tooltipEl = document.getElementById('tooltip');
+//     if (tooltipEl) {
+//         tooltipEl.innerHTML = tooltip;
+//         tooltipEl.style.display = 'block';
 
-        const xoffset = 75; // Offset in pixels to position the tooltip to the right of the pointer
-        const yoffset = 75; // Offset in pixels to position the tooltip below the pointer   
-        // Set initial tooltip position to the right of the pointer
-        tooltipEl.style.left = `${x + xoffset}px`;
-        tooltipEl.style.top = `${y + yoffset}px`;
+//         const xoffset = 75; // Offset in pixels to position the tooltip to the right of the pointer
+//         const yoffset = 75; // Offset in pixels to position the tooltip below the pointer   
+//         // Set initial tooltip position to the right of the pointer
+//         tooltipEl.style.left = `${x + xoffset}px`;
+//         tooltipEl.style.top = `${y + yoffset}px`;
 
-        // Re-check tooltip position and adjust if it goes off-screen
-        const tooltipRect = tooltipEl.getBoundingClientRect();
-        //console.log('x:',x,'y:',y,'showTooltip tooltipRect:',tooltipRect, ' window.innerWidth:',window.innerWidth,' window.innerHeight:',window.innerHeight);
-        if (tooltipRect.right > window.innerWidth) {
-            // If clipped at the right, reposition to the left of the pointer
-            //console.warn('showTooltip clipped at the right');
-            tooltipEl.style.left = `${x - tooltipRect.width - xoffset}px`;
-        }
-        if (tooltipRect.bottom > window.innerHeight) {
-            // If clipped at the bottom, reposition slightly higher
-            console.warn('showTooltip clipped at the bottom');
-            tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - xoffset}px`;
-        }
-        if (tooltipRect.top < 0) {
-            // If clipped at the top, reposition slightly lower
-            console.warn('showTooltip clipped at the top');
-            tooltipEl.style.top = `${xoffset}px`;
-        }
-        //console.log('showTooltip tooltipEl:',tooltipEl);
-    }
-}
+//         // Re-check tooltip position and adjust if it goes off-screen
+//         const tooltipRect = tooltipEl.getBoundingClientRect();
+//         //console.log('x:',x,'y:',y,'showTooltip tooltipRect:',tooltipRect, ' window.innerWidth:',window.innerWidth,' window.innerHeight:',window.innerHeight);
+//         if (tooltipRect.right > window.innerWidth) {
+//             // If clipped at the right, reposition to the left of the pointer
+//             //console.warn('showTooltip clipped at the right');
+//             tooltipEl.style.left = `${x - tooltipRect.width - xoffset}px`;
+//         }
+//         if (tooltipRect.bottom > window.innerHeight) {
+//             // If clipped at the bottom, reposition slightly higher
+//             console.warn('showTooltip clipped at the bottom');
+//             tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - xoffset}px`;
+//         }
+//         if (tooltipRect.top < 0) {
+//             // If clipped at the top, reposition slightly lower
+//             console.warn('showTooltip clipped at the top');
+//             tooltipEl.style.top = `${xoffset}px`;
+//         }
+//         //console.log('showTooltip tooltipEl:',tooltipEl);
+//     }
+// }
 
-function hideTooltip():void {
-    const tooltipEl = document.getElementById('tooltip');
-    if (tooltipEl) {
-        tooltipEl.style.display = 'none';
-    }
-}
+// function hideTooltip():void {
+//     const tooltipEl = document.getElementById('tooltip');
+//     if (tooltipEl) {
+//         tooltipEl.style.display = 'none';
+//     }
+// }
 
 export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
@@ -367,7 +366,7 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     console.log('processSelectedElPnt d:',d);
     const gcs = useGlobalChartStore();
     gcs.setSelectedElevationRec(d);
-    hideTooltip();
+    useAnalysisMapStore().tooltipRef.hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
@@ -609,26 +608,48 @@ const isIPad = isTouchDevice && deviceWidth > 430 && deviceWidth <= 768;    // T
 const onHoverHandler = isIPhone
     ? undefined
     : (pickingInfo: PickingInfo, event?: MjolnirEvent) => {
-            const { object } = pickingInfo;
-            let x = pickingInfo.x ?? 0;
-            let y = pickingInfo.y ?? 0;
+        const { object } = pickingInfo;
+        const analysisMapStore = useAnalysisMapStore();
+        const canvas = document.querySelector('canvas'); // or get canvas ref more precisely
+        let x = 0;
+        let y = 0;
 
-            // Use event.srcEvent for fallback if pickingInfo.x and pickingInfo.y are undefined
-            if (event?.srcEvent instanceof MouseEvent || event?.srcEvent instanceof PointerEvent) {
-                x = pickingInfo.x ?? event.srcEvent.clientX;
-                y = pickingInfo.y ?? event.srcEvent.clientY;
-            }
-            const analysisMapStore = useAnalysisMapStore();
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scrollX = window.scrollX || window.pageXOffset;
+            const scrollY = window.scrollY || window.pageYOffset;
 
-            //console.log('onHoverHandler object:',object,' x:',x,' y:',y,' mapStore.showTheTooltip:',mapStore.showTheTooltip);
-            if(analysisMapStore.showTheTooltip){
-                if (object && !useDeckStore().isDragging) {
-                    const tooltip = formatElObject(object);
-                    showTooltip({ x, y, tooltip });
-                } else {
-                    hideTooltip();
-                }
+            // Convert canvas-relative coords to page coords
+            x = (pickingInfo.x ?? 0) + rect.left + scrollX;
+            y = (pickingInfo.y ?? 0) + rect.top + scrollY;
+        }
+
+        // Fallback if we can’t get accurate canvas info
+        if (
+            (x === 0 && y === 0) &&
+            event?.srcEvent instanceof MouseEvent
+        ) {
+            x = event.srcEvent.clientX;
+            y = event.srcEvent.clientY;
+        }
+
+        if (analysisMapStore.showTheTooltip) {
+            if (object && !useDeckStore().isDragging) {
+                const tooltip = formatElObject(object);
+
+                const syntheticEvent = new MouseEvent('mousemove', {
+                    clientX: x,
+                    clientY: y,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                });
+
+                analysisMapStore.tooltipRef.showTooltip(syntheticEvent, tooltip);
+            } else {
+                analysisMapStore.tooltipRef.hideTooltip();
             }
+        }
     };
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -1195,4 +1216,28 @@ export async function updateMapAndPlot(withHighlight:boolean = true): Promise<vo
         const endTime = performance.now(); // End time
         console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
+}
+
+export function zoomOutToFullMap(map: OLMap): void {
+    const view = map.getView();
+    const projection = view.getProjection();
+    let extent = projection.getExtent();
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.warn('zoomOutToFullMap: projection extent is invalid, falling back to worldExtent.');
+        extent = projection.getWorldExtent();
+    }
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.error('zoomOutToFullMap: No valid extent found to zoom to.');
+        return;
+    }
+
+    // Fit the view to the full extent
+    view.fit(extent, {
+        size: map.getSize(),
+        padding: [40, 40, 40, 40],
+    });
+
+    console.log('zoomOutToFullMap: zoomed to full projection/world extent:', extent);
 }

@@ -94,6 +94,7 @@
 }
 
 .sr-req-display-row {
+    margin: 0.25rem;
     width: 100%;
 }
 </style>

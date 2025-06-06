@@ -80,7 +80,7 @@
                     <ProgressSpinner animationDuration="1.25s" style="width: 2rem; height: 2rem"/>
                     <span class="loading-percentage">{{ useCurReqSumStore().getPercentComplete() }}%</span>
                 </div>
-                <SrCustomTooltip ref="tooltipRef"/>
+                <SrCustomTooltip ref="tooltipRef" id="runControlTootip"/>
                 <Button
                     v-show="showRunButton"
                     class="sr-run-abort-button p-button-rounded p-button-text"

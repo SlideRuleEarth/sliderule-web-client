@@ -57,7 +57,7 @@ const handleFileImported = async (reqId: string) => {
 
 <template>
     <div class="sr-analysis-opt-sidebar">
-        <SrCustomTooltip ref="tooltipRef"/>
+        <SrCustomTooltip ref="tooltipRef" id="sideBarTooltip"/>
         <div class="sr-analysis-opt-sidebar-container" v-if="loadingThisSFC">Loading...</div>
         <div class="sr-analysis-opt-sidebar-container" v-else>
             <div class="sr-map-descr">

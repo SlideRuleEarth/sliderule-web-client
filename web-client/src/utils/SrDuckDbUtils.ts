@@ -9,7 +9,6 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { srViews } from '@/composables/SrViews';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useChartStore} from '@/stores/chartStore';
-
 import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { isClickable } from '@/utils/SrMapUtils'
@@ -32,6 +31,16 @@ interface SummaryRowData {
     numPoints: number;
 }
 const srMutex = new SrMutex();
+
+
+function alias(prefix: string, colName: string): string {
+    return `${prefix}_${colName.replace(/\./g, '_')}`;
+}
+
+function aliasKey(prefix: string, colName: string): string {
+    return alias(prefix, colName);
+}
+
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         const summary = await _duckDbReadOrCacheSummary(req_id);
@@ -122,14 +131,14 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
         for await (const chunk of results.readRows()) {
             for (const row of chunk) {
                 const typedRow: SummaryRowData = {
-                    minLat: row[`min_${lat_fieldname}`],
-                    maxLat: row[`max_${lat_fieldname}`],
-                    minLon: row[`min_${lon_fieldname}`],
-                    maxLon: row[`max_${lon_fieldname}`],
-                    minHMean: row[`min_${height_fieldname}`],
-                    maxHMean: row[`max_${height_fieldname}`],
-                    lowHMean: row[`low_${height_fieldname}`],
-                    highHMean: row[`high_${height_fieldname}`],
+                    minLat: row[aliasKey("min", lat_fieldname)],
+                    maxLat: row[aliasKey("max", lat_fieldname)],
+                    minLon: row[aliasKey("min", lon_fieldname)],
+                    maxLon: row[aliasKey("max", lon_fieldname)],
+                    minHMean: row[aliasKey("min", height_fieldname)],
+                    maxHMean: row[aliasKey("max", height_fieldname)],
+                    lowHMean: row[aliasKey("low", height_fieldname)],
+                    highHMean: row[aliasKey("high", height_fieldname)],
                     numPoints: row.numPoints
                 };
                 rows.push(typedRow);
@@ -661,18 +670,6 @@ export async function getPairs(req_id: number): Promise<number[]> {
     return pairs;
 }
 
-// export async function updatePairOptions(req_id: number): Promise<number[]> {
-//     let pairs = [] as number[];
-//     try{
-//         pairs = await getPairs(req_id);
-//         useAtlChartFilterStore().setPairOptionsWithNumbers(pairs);   
-//     } catch (error) {
-//         console.error('getPairs Error:', error);
-//         throw error;
-//     }
-//     //console.log('updatePairOptions pairs:', useAtlChartFilterStore().getPairOptions());
-//     return pairs;
-// }
 /**
  * Builds safe DuckDB aggregate SQL expressions with optional isnan() filtering
  * for numeric columns. Non-float types skip isnan() and use raw aggregations.
@@ -689,19 +686,20 @@ export function buildSafeAggregateClauses(
 
         if (isFloat) {
             return [
-                `MIN(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS min_${colName}`,
-                `MAX(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS max_${colName}`,
-                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS low_${colName}`,
-                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS high_${colName}`
+                `MIN(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("min", colName)}`,
+                `MAX(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("max", colName)}`,
+                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("low", colName)}`,
+                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("high", colName)}`
             ];
         } else {
             return [
-                `MIN(${escaped}) AS min_${colName}`,
-                `MAX(${escaped}) AS max_${colName}`,
-                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) AS low_${colName}`,
-                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) AS high_${colName}`
+                `MIN(${escaped}) AS ${alias("min", colName)}`,
+                `MAX(${escaped}) AS ${alias("max", colName)}`,
+                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) AS ${alias("low", colName)}`,
+                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) AS ${alias("high", colName)}`
             ];
         }
+
     });
 }
 // These are IceSat-2 specific
@@ -1021,7 +1019,7 @@ export async function fetchScatterData(
         // Only apply NOT isnan(...) to columns that are not "time"
         const yNanClause = y
             .filter((col) => col !== timeField)
-            .map((col) => `NOT isnan(${col})`)
+            .map((col) => `NOT isnan(${duckDbClient.escape(col)})`)
             .join(' AND ');
 
         // 2. Merge it with the existing whereClause (if any).
@@ -1077,47 +1075,48 @@ export async function fetchScatterData(
                     if(options.parentMinX){
                         minXtoUse = options.parentMinX;
                     } else {
-                        minXtoUse = row[`min_${x}`];
+                        minXtoUse = row[aliasKey("min", `${x}`)];
                     }
-                    if(minXtoUse === row[`min_${x}`]){
-                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[`min_${x}`]);
+                    if(minXtoUse === row[aliasKey("min", `${x}`)]){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
                     } else {
-                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[`min_${x}`]);
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
                     }
                     // set min/max in the store
-                    useChartStore().setRawMinX(reqIdStr, row[`min_${x}`]);
-                    useChartStore().setMinX(reqIdStr, row[`min_${x}`] - minXtoUse);
-                    useChartStore().setMaxX(reqIdStr, row[`max_${x}`] - minXtoUse);
+                    useChartStore().setRawMinX(reqIdStr, row[aliasKey("min", `${x}`)]);
+                    useChartStore().setMinX(reqIdStr, row[aliasKey("min", `${x}`)] - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, row[aliasKey("max", `${x}`)] - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
-                if (!isNaN(row[`min_${x}`]) && !isNaN(row[`max_${x}`])) {
+                if (!isNaN(row[aliasKey("min", `${x}`)]) && !isNaN(row[aliasKey("max", `${x}`)])) {
                     minMaxLowHigh[`x`] = { // genericize the name to x
-                        min: row[`min_${x}`],
-                        max: row[`max_${x}`],
-                        low: row[`low_${x}`],
-                        high: row[`high_${x}`]
+                        min: row[aliasKey("min", `${x}`)],
+                        max: row[aliasKey("max", `${x}`)],
+                        low: row[aliasKey("low", `${x}`)],
+                        high: row[aliasKey("high", `${x}`)]
                     }
                     
                 } else {
-                    console.error('fetchScatterData: min/max x is NaN:', row[`min_${x}`], row[`max_${x}`]);
+                    console.log('aliasKey("min", x):',aliasKey("min", `${x}`));
+                    console.error('fetchScatterData: min/max x is NaN:', row[aliasKey("min", `${x}`)], row[aliasKey("max", `${x}`)]);
                 }
 
                 y.forEach((yName) => {
-                    const minY = row[`min_${yName}`];
-                    const maxY = row[`max_${yName}`];
-                    const lowY = row[`low_${yName}`];
-                    const highY = row[`high_${yName}`];
+                    const minY = row[aliasKey("min", yName)];
+                    const maxY = row[aliasKey("max", yName)];
+                    const lowY = row[aliasKey("low", yName)];
+                    const highY = row[aliasKey("high", yName)];
                     if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
                         minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
-                    const minCol = row[`min_${colName}`];
-                    const maxCol = row[`max_${colName}`];
-                    const lowCol = row[`low_${colName}`];
-                    const highCol = row[`high_${colName}`];
+                    const minCol = row[aliasKey("min", colName)];
+                    const maxCol = row[aliasKey("max", colName)];
+                    const lowCol = row[aliasKey("low", colName)];
+                    const highCol = row[aliasKey("high", colName)];
                     if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
                         minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
                     }
@@ -1129,7 +1128,10 @@ export async function fetchScatterData(
          * 4. Build the main query to fetch rows for x, all y columns, plus extras.
          *    Use the same finalWhereClause so NaNs in y columns are excluded.
          */
-        const allColumns = [x, ...y, ...extraSelectColumns].join(', ');
+        const allColumns = [x, ...y, ...extraSelectColumns]
+            .map((col) => duckDbClient.escape(col))
+            .join(', ');
+
         let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`;
 
         useChartStore().setQuerySql(reqIdStr, mainQuery);
@@ -1265,10 +1267,10 @@ export async function getAllColumnMinMax(
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 numericCols.forEach(c => {
-                    const min = row[`min_${c.name}`];
-                    const max = row[`max_${c.name}`];
-                    const low = row[`low_${c.name}`];
-                    const high = row[`high_${c.name}`];
+                    const min = row[aliasKey("min", c.name)];
+                    const max = row[aliasKey("max", c.name)];
+                    const low = row[aliasKey("low", c.name)];
+                    const high = row[aliasKey("high", c.name)];
 
                     if (min != null && max != null && low != null && high != null) {
                         result[c.name] = { min, max, low, high };

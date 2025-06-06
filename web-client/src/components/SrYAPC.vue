@@ -40,24 +40,22 @@ async function initYapc(){
           :getSelectedMenuItem="reqParamsStore.getYAPCVersion"
           :setSelectedMenuItem="reqParamsStore.setYAPCVersion"
           :insensitive="!reqParamsStore.enableYAPC"
-          tooltipText="The version of the YAPC algorithm to use."
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
       />
     </div>
-    <SrSliderInput
-        label="Score"
-        v-model="reqParamsStore.YAPCScore"
-        :getCheckboxValue="reqParamsStore.getUseYAPCScore"
-        :setCheckboxValue="reqParamsStore.setUseYAPCScore"
-        :getValue="reqParamsStore.getYAPCScore"
-        :setValue="reqParamsStore.setYAPCScore"
-        :min="0"
-        :max="255" 
-        :decimalPlaces="0"
-        :insensitive="!reqParamsStore.enableYAPC"
-        tooltipText="The minimum yapc classification score of a photon to be used in the processing request"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
-    />
+    <div class="sr-simple-slider-wrapper">
+      <SrSliderInput
+          label="Score"
+          v-model="reqParamsStore.YAPCScore"
+          :getCheckboxValue="reqParamsStore.getUseYAPCScore"
+          :setCheckboxValue="reqParamsStore.setUseYAPCScore"
+          :getValue="reqParamsStore.getYAPCScore"
+          :setValue="reqParamsStore.setYAPCScore"
+          :min="0"
+          :max="255" 
+          :decimalPlaces="0"
+          :insensitive="!reqParamsStore.enableYAPC"
+      />
+    </div>
     <SrSwitchedSliderInput
         label="Knn"
         v-model="reqParamsStore.YAPCKnn"
@@ -69,8 +67,6 @@ async function initYapc(){
         :max="100" 
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
-        tooltipText="The number of nearest neighbors to use in the Knn algorithm."
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
     />
     <SrSwitchedSliderInput
         label="Window Height"
@@ -83,8 +79,6 @@ async function initYapc(){
         :max="1000" 
         :decimalPlaces="0"  
         :insensitive="!reqParamsStore.enableYAPC"
-        tooltipText="The window height used to filter the nearest neighbors"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
    />
     <SrSwitchedSliderInput
         label="Window Width"
@@ -97,16 +91,13 @@ async function initYapc(){
         :max="1000" 
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
-        tooltipText="The window width used to filter the nearest neighbors"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
     />
   </div>
 </template>
 <style scoped>
 
 .sr-yapc-container {
-  margin-bottom: 1rem;
-  padding: 0.25rem;
+  padding: 0.75rem;
   border: 1px solid grey;
   border-radius: var(--p-border-radius);
 }
@@ -116,6 +107,7 @@ async function initYapc(){
   justify-content: center; 
   align-items: center;
   background-color: transparent;
+  margin: 0.25rem;
   margin-bottom: 1rem;
 }
 
@@ -124,6 +116,9 @@ async function initYapc(){
   justify-content: center; 
   align-items: center;
   background-color: transparent;
+}
+.sr-simple-slider-wrapper {
+  padding: 0.125rem;
 }
 :deep(.sr-yapc-header .sr-checkbox-label){
     font-size: large;

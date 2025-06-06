@@ -2,8 +2,6 @@
     <div class="sr-menu-label-wrapper">
         <SrLabelInfoIconButton
             :label="label"
-            :tooltipText="tooltipText"
-            :tooltipUrl="tooltipUrl"
             :insensitive="insensitive"
         />
         <MultiSelect  
@@ -19,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, nextTick } from 'vue';
+import { computed, onMounted } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
@@ -30,8 +28,6 @@ export interface SrMultiSelectNumberItem {
 }
 
 const label = "Surface Reference Type";
-const tooltipText = "srt: The surface type used in the ATL03 photon classification";
-const tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields";
 
 const reqParamsStore = useReqParamsStore();
 

@@ -73,7 +73,6 @@
     display: flex;
     flex-direction: column;
     border-color: transparent;
-    margin-left: 0.5rem;
 }
 
 .sr-select-menu-item {

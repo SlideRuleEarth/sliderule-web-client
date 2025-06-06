@@ -4,7 +4,7 @@
                 :class="{ 'sr-label-info-icon-button-label': !insensitive, 'sr-label-info-icon-button-label-insensitive': insensitive}" 
                 :style="{ fontSize: labelFontSize, whiteSpace: 'no-wrap' }"
                 @mouseover="tooltipRef.showTooltip($event, tooltipText)"
-                @mouseleave="tooltipRef.hideTooltip"
+                @mouseleave="tooltipRef.hideTooltip()"
         >
             {{ label }}
         </label>
@@ -16,7 +16,7 @@
             :title="tooltipUrl" 
             @click="openTooltipUrl">
         </Button>
-        <SrCustomTooltip ref="tooltipRef"/>
+        <SrCustomTooltip ref="tooltipRef" id="labelTooltip"/>
     </div>
 </template>
 
@@ -77,7 +77,7 @@
 }
 
 .sr-label-info-icon-button-label-insensitive {
-    margin-right: 0rem;
+    margin-right: 0.25rem;
     font-size: small;
     color: #888; /*  grey color */
     white-space: nowrap;
