@@ -1217,3 +1217,27 @@ export async function updateMapAndPlot(withHighlight:boolean = true): Promise<vo
         console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
 }
+
+export function zoomOutToFullMap(map: OLMap): void {
+    const view = map.getView();
+    const projection = view.getProjection();
+    let extent = projection.getExtent();
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.warn('zoomOutToFullMap: projection extent is invalid, falling back to worldExtent.');
+        extent = projection.getWorldExtent();
+    }
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.error('zoomOutToFullMap: No valid extent found to zoom to.');
+        return;
+    }
+
+    // Fit the view to the full extent
+    view.fit(extent, {
+        size: map.getSize(),
+        padding: [40, 40, 40, 40],
+    });
+
+    console.log('zoomOutToFullMap: zoomed to full projection/world extent:', extent);
+}

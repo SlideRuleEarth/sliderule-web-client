@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { drawGeoJson } from '@/utils/SrMapUtils';
+import { drawGeoJson,zoomOutToFullMap } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -46,6 +46,8 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
             toast.add({ severity: 'error', summary: 'File Read Error', detail: 'Error reading the uploaded file', group: 'headless' });
         };
         reader.onload = async (e) => {
+            let success = false;
+            const map = mapStore.getMap() as OLMapType;
             try {
                 if (e.target === null) {
                     console.error('e.target is null');
@@ -54,8 +56,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                     if (typeof e.target.result === 'string') {
                         const geoJsonData = JSON.parse(e.target.result);
                         geoJsonStore.setGeoJsonData(geoJsonData);
-                        toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000 });
-                        const map = mapStore.getMap() as OLMapType;
+                        //toast.add({ severity: 'info', summary: 'File Parse', detail: 'Geojson file successfully parsed', life: 3000 });
                         if(map){
                             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
                             if(vectorLayer && vectorLayer instanceof OLlayer){
@@ -63,29 +64,60 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                 if(vectorSource){
                                     drawGeoJson('fromFile',vectorSource, geoJsonData, true, true); // noFill, zoomTo = true
                                     console.log('returned from drawGeoJson');   
-                                    const srLonLatCoordinates: SrRegion = geoJsonData.features[0].geometry.coordinates[0].map((coord: number[]) => {
-                                        return { lon: coord[0], lat: coord[1] };
-                                    });
-                                    if (isClockwise(srLonLatCoordinates)) {
-                                        reqParamsStore.poly = srLonLatCoordinates.reverse();
+
+
+                                    const geometry = geoJsonData.features[0].geometry;
+
+                                    let srLonLatCoordinates: SrRegion = [];
+
+                                    if (geometry.type === 'Polygon') {
+                                        srLonLatCoordinates = geometry.coordinates[0].map((coord: number[]) => ({
+                                            lon: coord[0],
+                                            lat: coord[1]
+                                        }));
+                                    } else if (geometry.type === 'LineString') {
+                                        srLonLatCoordinates = geometry.coordinates.map((coord: number[]) => ({
+                                            lon: coord[0],
+                                            lat: coord[1]
+                                        }));
+                                    } else if (geometry.type === 'Point') {
+                                        const [lon, lat] = geometry.coordinates;
+                                        srLonLatCoordinates = [{ lon, lat }];
                                     } else {
-                                        reqParamsStore.poly = srLonLatCoordinates;
+                                        console.error('Unsupported geometry type:', geometry.type);
+                                        toast.add({ severity: 'error', summary: 'Unsupported GeoJSON geometry type', detail: geometry.type, group: 'headless' });
                                     }
-                                    console.log('calling convexHull');
-                                    reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates));
-                                    const geoJson = {
-                                        type: "Feature",
-                                        geometry: {
-                                            type: "Polygon",
-                                            coordinates: [reqParamsStore.getConvexHull()?.map(coord => [coord.lon, coord.lat])]
-                                        },
-                                        properties: {
-                                            name: "Convex Hull Polygon"
+                                   try{
+                                        if(srLonLatCoordinates && srLonLatCoordinates.length < 3) {
+                                            console.error('A Region to use in request requires at least 3 points, but got:', srLonLatCoordinates.length);
+                                            toast.add({ severity: 'error', summary: 'Convex Hull Error', detail: `A Region to use in request requires at least 3 points, but got: ${srLonLatCoordinates.length}`, group: 'headless' });
+                                        } else {
+                                            if (isClockwise(srLonLatCoordinates)) {
+                                                reqParamsStore.poly = srLonLatCoordinates.reverse();
+                                            } else {
+                                                reqParamsStore.poly = srLonLatCoordinates;
+                                            }
+                                            console.log('calling convexHull');
+                                            reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates));
+                                            const geoJson = {
+                                                type: "Feature",
+                                                geometry: {
+                                                    type: "Polygon",
+                                                    coordinates: [reqParamsStore.getConvexHull()?.map(coord => [coord.lon, coord.lat])]
+                                                },
+                                                properties: {
+                                                    name: "Convex Hull Polygon"
+                                                }
+                                            };
+                                            const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
+                                            drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),false,true,label); // with Fill and overlayExisting
+                                            reqParamsStore.poly = reqParamsStore.convexHull;
+                                            success = true;
                                         }
-                                    };
-                                    const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
-                                    drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),false,true,label); // with Fill and overlayExisting
-                                    reqParamsStore.poly = reqParamsStore.convexHull; 
+                                    } catch (error) {
+                                        console.error('Error calculating convex hull of region:', error);
+                                        toast.add({ severity: 'error', summary: 'Convex Hull Error', detail: `Error calculating convex hull for region: ${error}`, group: 'headless' });
+                                    }
                                 } else {
                                     console.error('Error parsing GeoJSON:', e.target.result);
                                     toast.add({ severity: 'error', summary: 'error with map source object', group: 'headless' });
@@ -105,7 +137,12 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                 }
             } catch (error) {
                 console.error('Error parsing GeoJSON:', error);
-                toast.add({ severity: 'error', summary: 'error: caught exception', group: 'headless' });
+                toast.add({ severity: 'error', summary: `error: caught exception:${error}`, group: 'headless' });
+            }
+            if (success) {
+                //toast.add({ severity: 'success', summary: 'File Upload', detail: 'GeoJSON file successfully uploaded and parsed', group: 'headless' });
+            } else {
+                zoomOutToFullMap(map)
             }
         };
 
