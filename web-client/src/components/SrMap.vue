@@ -149,6 +149,14 @@
         disableDragBox(); // reset then add
         disableDrawPolygon();
         mapRef.value?.map.addInteraction(dragBox);
+        isDrawing.value = true;
+        const map = mapRef.value?.map;
+        const records = getLayerByName("Records Layer");
+
+        if (map && records) {
+            wasRecordsLayerVisible.value =records.getVisible();
+            records.setVisible(false); // Hide the records layer while drawing
+        }
     }
 
     var boxStyle = new Style({
@@ -170,6 +178,14 @@
 
     dragBox.on('boxend', function() {
         //console.log("dragBox.on boxend");
+        isDrawing.value = true;
+        const map = mapRef.value?.map;
+        const records = getLayerByName("Records Layer");
+
+        if (map && records) {
+            wasRecordsLayerVisible.value =records.getVisible();
+            records.setVisible(true); // Hide the records layer while drawing
+        }
         const extent = dragBox.getGeometry().getExtent();
         //console.log("Box extent in map coordinates:", extent);
 
@@ -423,10 +439,20 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            const records = getLayerByName("Records Layer");
+            const map = mapRef.value?.map;
+            if (map && records && wasRecordsLayerVisible.value) {
+                records.setVisible(true);
+            }
             //console.log("TrashCan selected Clearing Drawing Layer, disabling draw");
         } else if (newPickedValue === ''){ // Reset Picked called and cleared highlight
             disableDragBox();
             disableDrawPolygon();
+            const records = getLayerByName("Records Layer");
+            const map = mapRef.value?.map;
+            if (map && records && wasRecordsLayerVisible.value) {
+                records.setVisible(true);
+            }
         } else {
             console.error("unsupported draw type:",newPickedValue);
             toast.add({ severity: 'error', summary: 'Unsupported draw type error', detail: 'Error' });

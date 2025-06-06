@@ -134,7 +134,6 @@ export const useRasterParamsStore = defineStore('rasterParams', {
                 if (row.asset) entry.asset = row.asset;
                 if (row.algorithm) entry.algorithm = row.algorithm;
                 if (row.force_single_sample !== undefined) entry.force_single_sample = row.force_single_sample;
-                if (row.key) entry.key = row.key;
                 if (row.radius) entry.radius = row.radius;
                 if (row.zonalStats) entry.zonal_stats = row.zonalStats;
                 if (row.withFlags) entry.with_flags = row.withFlags;
