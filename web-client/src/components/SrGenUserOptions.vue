@@ -123,8 +123,10 @@ onMounted(async () => {
                 <Button label="Restore Default Timeout behavior" @click="reqParamsStore.restoreTimeouts()"/>
             </div>  
         </Fieldset>
-        <label>{{ "Upload GeoJSON File for adding map features" }}</label>
-        <SrGeoJsonFileUpload/>
+        <div class="sr-upload-geojson-container">
+            <label class="sr-gj-label">{{ "Upload GeoJSON map features" }}</label>
+            <SrGeoJsonFileUpload/>
+        </div>
      </div>  
 </template>
 <style scoped>
@@ -134,5 +136,16 @@ onMounted(async () => {
     width: 100%;
     padding: 0.5rem;
     gap:0.75rem;
+}
+.sr-upload-geojson-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0.5rem;
+    gap: 0.5rem;
+}
+.sr-gj-label {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
 }
 </style>
