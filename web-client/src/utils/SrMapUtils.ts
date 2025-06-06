@@ -84,7 +84,7 @@ export function drawGeoJson(
     zoomTo: boolean = false,
     tag: string = '',
 ): number[] | undefined  {
-    console.log('drawGeoJson: uniqueId:',uniqueId,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
+    console.log('drawGeoJson: uniqueId:',uniqueId,'color:',color,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
     try {
         const map = useMapStore().map;
         if (!map) {
@@ -181,40 +181,38 @@ export function drawGeoJson(
 
 
 export function enableTagDisplay(map: OLMap, vectorSource: VectorSource): void {
-    const tooltipEl = document.getElementById('tooltip');
 
     // Listen for pointer move (hover) events
-    useMapStore().pointerMoveListenerKey = map.on('pointermove', function (evt) {
+    const mapStore = useMapStore();
+    mapStore.pointerMoveListenerKey = map.on('pointermove', function (evt) {
         //console.log('pointermove');
         const pixel = map.getEventPixel(evt.originalEvent);
         const features = map.getFeaturesAtPixel(pixel);
         
         // Check if any feature is under the cursor
-        if (features && features.length > 0) {
-            const feature = features[0];
-            const tag = feature.get('tag');  // Retrieve the tag
+        if (mapStore.tooltipRef){
+            if(features && features.length > 0) {
+                const feature = features[0];
+                const tag = feature.get('tag');  // Retrieve the tag
+                if (tag) {
+                    // Display the tag in the tooltip
+                    const { clientX, clientY } = evt.originalEvent;
+                    mapStore.tooltipRef.showTooltip({ clientX, clientY } as MouseEvent, `Area: ${tag}`);
+                }
+            } else {
+                // Hide the tooltip if no feature is found
+                mapStore.tooltipRef.hideTooltip();
 
-            if (tag && tooltipEl) {
-                // Display the tag in the tooltip
-                tooltipEl.innerHTML = `Area: ${tag}`;
-                tooltipEl.style.display = 'block';
-                tooltipEl.style.left = `${evt.originalEvent.clientX}px`;
-                tooltipEl.style.top = `${evt.originalEvent.clientY - 15}px`; // Offset the tooltip above the cursor
             }
         } else {
-            // Hide the tooltip if no feature is found
-            if (tooltipEl) {
-                tooltipEl.style.display = 'none';
-            }
+            console.warn('enableTagDisplay: tooltipRef is not set in MapStore.');
         }
     });
 
     // Hide tooltip when the mouse leaves the map
     map.getViewport().addEventListener('mouseout', function () {
         //console.log('mouseout');
-        if (tooltipEl) {
-            tooltipEl.style.display = 'none';
-        }
+        mapStore.tooltipRef.hideTooltip();
     });
 }
 

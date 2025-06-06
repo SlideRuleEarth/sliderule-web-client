@@ -47,8 +47,10 @@
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
     import type { Source } from 'ol/source';
     import type LayerRenderer  from 'ol/renderer/Layer';
+    import SrCustomTooltip from "./SrCustomTooltip.vue";
 
     const featureMenuOverlayRef = ref();
+    const tooltipRef = ref();
  
     const wasRecordsLayerVisible = ref(false);
     const isDrawing = ref(false);
@@ -115,11 +117,11 @@
         type: 'Polygon',
         style: new Style({
             stroke: new Stroke({
-                color: 'red',
+                color: 'blue',
                 width: 2,
             }),
             fill: new Fill({
-                color: 'rgba(255, 0, 0, 0.1)', // optional semi-transparent fill
+                color: 'rgba(255, 0, 0, 0.1)', 
             }),
         }),
     });
@@ -344,7 +346,7 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'rgba(255, 0, 0, 1)', false, false, tag );
+                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, false, tag );
                         reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
@@ -469,6 +471,11 @@
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
+        if (tooltipRef.value) {
+            mapStore.tooltipRef = tooltipRef.value;
+        } else {
+            console.error('tooltipRef is null on mount');
+        }        
         drawVectorLayer.set('name', 'Drawing Layer');
         recordsLayer.set('name', 'Records Layer');
         recordsLayer.set('title', 'Records Layer');
@@ -567,7 +574,7 @@
             addRecordPolys();
             if(haveReqPoly){
                 //draw and zoom to the current reqParamsStore.poly
-                drawCurrentReqPoly();
+                drawCurrentReqPoly('red');
             }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
@@ -645,7 +652,7 @@
         console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
-    function drawCurrentReqPoly(){
+    function drawCurrentReqPoly(color:string) {
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -653,7 +660,7 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, 'red');
+                        renderRequestPolygon(map, reqParamsStore.poly, color);
                     } else {
                         console.error("drawCurrentReqPoly Error:reqParamsStore.poly is null");
                     }
@@ -803,11 +810,8 @@
 
 
     </div>    
-    <div class="sr-tooltip-style" id="tooltip">        
-    </div>
-    <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />
-
-        
+    <SrCustomTooltip ref="tooltipRef" id="MainMapTooltip" />
+    <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />        
 </div>
 </template>
 
