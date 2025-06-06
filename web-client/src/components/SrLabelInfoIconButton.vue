@@ -16,7 +16,7 @@
             :title="tooltipUrl" 
             @click="openTooltipUrl">
         </Button>
-        <SrCustomTooltip ref="tooltipRef"/>
+        <SrCustomTooltip ref="tooltipRef" id="labelTooltip"/>
     </div>
 </template>
 

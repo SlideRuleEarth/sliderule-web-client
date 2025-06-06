@@ -102,6 +102,13 @@
         source: recordsVectorSource,
         zIndex: 50,
     });
+
+    const uploadedFeaturesVectorSource = new VectorSource({wrapX: false});
+    const uploadedFeaturesVectorLayer = new VectorLayer({
+        source: uploadedFeaturesVectorSource,
+        zIndex: 10,
+    });
+
     // Set a custom property, like 'name'
     const drawPolygon = new DrawType({
         source: drawVectorSource,
@@ -337,7 +344,7 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), false, false, tag );
+                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'rgba(255, 0, 0, 1)', false, false, tag );
                         reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
@@ -465,6 +472,8 @@
         drawVectorLayer.set('name', 'Drawing Layer');
         recordsLayer.set('name', 'Records Layer');
         recordsLayer.set('title', 'Records Layer');
+        uploadedFeaturesVectorLayer.set('name', 'Uploaded Features');
+        uploadedFeaturesVectorLayer.set('title', 'Uploaded Features');
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
@@ -670,6 +679,7 @@
                     await updateMapView(map,srViewKey.value,reason,restoreView);
                     map.addLayer(drawVectorLayer);
                     map.addLayer(recordsLayer);
+                    map.addLayer(uploadedFeaturesVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                 } else {
                     console.error("SrMap Error: srViewKey is null");

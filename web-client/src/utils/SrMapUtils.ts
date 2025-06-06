@@ -79,10 +79,11 @@ export function drawGeoJson(
     uniqueId: string,
     vectorSource: VectorSource,
     geoJsonData: string | object, // Allow string or object
+    color: string,// e.g.'rgba(255, 0, 0, 1)'
     noFill: boolean = false,
     zoomTo: boolean = false,
     tag: string = '',
-): void {
+): number[] | undefined  {
     console.log('drawGeoJson: uniqueId:',uniqueId,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
     try {
         const map = useMapStore().map;
@@ -141,7 +142,7 @@ export function drawGeoJson(
         // Define style based on noFill flag
         const style = new Style({
             stroke: new Stroke({
-                color: noFill ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)',
+                color: color,
                 width: 2,
             }),
             fill: noFill
@@ -175,6 +176,7 @@ export function drawGeoJson(
     } catch (error) {
         console.error('drawGeoJson: Unexpected error:', error);
     }
+    return vectorSource.getExtent() as number[] | undefined;
 }
 
 

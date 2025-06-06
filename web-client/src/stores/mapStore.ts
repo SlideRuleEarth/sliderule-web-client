@@ -41,7 +41,7 @@ export const useMapStore = defineStore('map', {
         wrapX: false
     }),
     polygonSource:'Draw on Map' as string,
-    polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
+    polygonSourceItems: ['Draw on Map','GeoJSON File'] as string[],
     polyCoords: <Coordinate[][]>([]),
     //isLoading: false as boolean,
     currentReqId: 0 as number,

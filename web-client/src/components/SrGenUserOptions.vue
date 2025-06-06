@@ -4,6 +4,7 @@ import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue';
 import SrResources from '@/components/SrResources.vue';
+import SrSliderInput from '@/components/SrSliderInput.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useMapStore } from '@/stores/mapStore';
@@ -22,7 +23,7 @@ onMounted(async () => {
 
 <template>
     <div class="sr-gen-user-options-container">
-        <SrMenu
+       <SrMenu
             v-model="mapStore.polygonSource"
             label = "Polygon Source"
             aria-label="Select Polygon Source"
@@ -33,7 +34,21 @@ onMounted(async () => {
             tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#polygons"
         />
         <SrGeoJsonFileUpload
-            v-if="mapStore.polygonSource==='Upload geojson File'"
+            v-if="mapStore.polygonSource==='GeoJSON File'"
+            :loadReqPoly="true"
+        />
+        <SrSliderInput
+            v-if="mapStore.polygonSource==='GeoJSON File'"
+            label="Rasterize Polygon cell size"
+            unitsLabel="Degrees"
+            v-model="reqParamsStore.rasterizePolyCellSize"
+            :getValue="reqParamsStore.getRasterizePolyCellSize"
+            :setValue="reqParamsStore.setRasterizePolyCellSize"
+            :min="0.0001"
+            :max="1.0"
+            :decimalPlaces="4"
+            tooltipText="The number of pixels to rasterize the polygon into"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
         />
         <SrCheckbox
             label="Ignore Poly for CMR"
@@ -108,7 +123,9 @@ onMounted(async () => {
                 <Button label="Restore Default Timeout behavior" @click="reqParamsStore.restoreTimeouts()"/>
             </div>  
         </Fieldset>
-    </div>  
+        <label>{{ "Upload GeoJSON File for adding map features" }}</label>
+        <SrGeoJsonFileUpload/>
+     </div>  
 </template>
 <style scoped>
 .sr-gen-user-options-container {
