@@ -581,7 +581,7 @@ const createReqParamsStore = (id: string) =>
           if(this.useDatum) {
             req.datum = 'EGM08';
           }
-          if(useRasterParamsStore().dataTable.length > 0) {
+          if((useRasterParamsStore().dataTable.length > 0) && (this.iceSat2SelectedAPI.includes('x'))) {
             req.samples = useRasterParamsStore().getFormattedParms();
           }
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
