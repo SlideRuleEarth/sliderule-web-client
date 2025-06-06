@@ -28,7 +28,7 @@ const showTooltip = async (event: MouseEvent, content: string | undefined) => {
 
     await nextTick(); // Ensure tooltip is rendered
 
-    const tooltipEl = document.querySelector(`.${props.id}`) as HTMLElement | null;
+    const tooltipEl = document.getElementById(props.id) as HTMLElement | null;
     const tooltipRect = tooltipEl?.getBoundingClientRect();
     const { clientX: x, clientY: y } = event;
     const tooltipOffset = 10;
