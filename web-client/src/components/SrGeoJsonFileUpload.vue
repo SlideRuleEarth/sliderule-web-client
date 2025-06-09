@@ -14,6 +14,7 @@ import { Map as OLMapType} from "ol";
 import { Layer as OLlayer } from 'ol/layer';
 import { useMapStore } from '@/stores/mapStore';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
+import GeoJSON from 'ol/format/GeoJSON'; // Make sure this is imported at the top
 
 const props = defineProps({
     reportUploadProgress: {
@@ -133,6 +134,24 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                                 toast.add({ severity: 'error', summary: 'Convex Hull Error', detail: `Error calculating convex hull for region: ${error}`, group: 'headless' });
                                             }
                                         }
+                                    } else {
+                                       // load all features from the GeoJSON file
+                                        if (geoJsonData.features && geoJsonData.features.length > 0) {
+                                            // Clear existing features in the vector source
+                                            vectorSource.clear();
+                                            // Add new features to the vector source
+                                            const format = new GeoJSON();
+                                            const features = format.readFeatures(geoJsonData, {
+                                                dataProjection: 'EPSG:4326',
+                                                featureProjection: map.getView().getProjection()
+                                            });
+
+                                            vectorSource.clear(); // Optionally clear any old features
+                                            vectorSource.addFeatures(features);
+                                        } else {
+                                            console.error('GeoJSON file has no features');
+                                            toast.add({ severity: 'error', summary: 'GeoJSON Error', detail: 'GeoJSON file has no features', group: 'headless' });
+                                        } 
                                     }
                                 } else {
                                     console.error('Error parsing GeoJSON:', e.target.result);
