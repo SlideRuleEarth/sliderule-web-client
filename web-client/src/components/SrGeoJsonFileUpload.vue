@@ -9,12 +9,13 @@ import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import type { SrLatLon, SrRegion } from "@/sliderule/icesat2"
+import type { SrRegion } from "@/sliderule/icesat2"
 import { Map as OLMapType} from "ol";
 import { Layer as OLlayer } from 'ol/layer';
 import { useMapStore } from '@/stores/mapStore';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import GeoJSON from 'ol/format/GeoJSON'; // Make sure this is imported at the top
+import { Style, Stroke, Fill } from 'ol/style';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -144,6 +145,17 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                             const features = format.readFeatures(geoJsonData, {
                                                 dataProjection: 'EPSG:4326',
                                                 featureProjection: map.getView().getProjection()
+                                            });
+                                            features.forEach(feature => {
+                                                feature.setStyle(new Style({
+                                                    stroke: new Stroke({
+                                                        color: 'rgba(180, 100, 0, 1)',
+                                                        width: 2
+                                                    }),
+                                                    // fill: new Fill({
+                                                    //     color: 'rgba(180, 100, 0, 0.3)'
+                                                    // })
+                                                }));
                                             });
 
                                             vectorSource.clear(); // Optionally clear any old features
