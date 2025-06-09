@@ -48,7 +48,14 @@ import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 import { boundingExtent } from 'ol/extent';
-
+import type { Geometry } from 'ol/geom';
+import type { Extent } from 'ol/extent';
+import Point from 'ol/geom/Point';
+import LineString from 'ol/geom/LineString';
+import MultiPoint from 'ol/geom/MultiPoint';
+import Polygon from 'ol/geom/Polygon';
+import MultiLineString from 'ol/geom/MultiLineString';
+import MultiPolygon from 'ol/geom/MultiPolygon';
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
@@ -100,103 +107,42 @@ export function drawGeoJson(
     geoJsonData: string | object,
     color: string,
     noFill: boolean = false,
-    zoomTo: boolean = false,
-    tag: string = '',
-): number[] | undefined {
-    console.log('drawGeoJson:', { uniqueId, color, noFill, zoomTo, tag });
-
+    tag: string = ''
+): Extent | undefined {
     const map = useMapStore().map;
-    if (!map) {
-        console.error('drawGeoJson: Map is not defined.');
-        return;
-    }
+    if (!map || !vectorSource || !geoJsonData) return;
 
-    if (!vectorSource) {
-        console.error('drawGeoJson: VectorSource is not defined.');
-        return;
-    }
+    let geoJsonString = typeof geoJsonData === 'string'
+        ? geoJsonData.trim()
+        : JSON.stringify(geoJsonData);
 
-    if (!geoJsonData) {
-        console.warn('drawGeoJson: GeoJSON data is null or undefined.');
-        return;
-    }
+    const format = new GeoJSON();
+    let features: Feature[] = [];
 
-    // Normalize geoJsonData to string
-    let geoJsonString: string;
     try {
-        geoJsonString = typeof geoJsonData === 'string'
-            ? geoJsonData.trim()
-            : JSON.stringify(geoJsonData);
-
-        if (geoJsonString === '') {
-            console.warn('drawGeoJson: Empty GeoJSON string.');
-            return;
-        }
-    } catch (err) {
-        console.error('drawGeoJson: Failed to stringify geoJsonData.', err);
-        return;
-    }
-
-    // Parse GeoJSON features
-    let features;
-    try {
-        const format = new GeoJSON();
         features = format.readFeatures(geoJsonString, {
             dataProjection: 'EPSG:4326',
             featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
         });
-    } catch (err) {
-        console.error('drawGeoJson: Failed to parse GeoJSON.', err);
-        return;
-    }
-
-    if (!features || features.length === 0) {
-        console.warn('drawGeoJson: No valid features found.');
+    } catch (e) {
+        console.error('Failed to parse GeoJSON:', e);
         return;
     }
 
     const style = new Style({
         stroke: new Stroke({ color, width: 2 }),
-        fill: noFill ? undefined : new Fill({ color: 'rgba(255, 0, 0, 0.1)' }),
+        fill: noFill ? undefined : new Fill({ color: 'rgba(255, 0, 0, 0.1)' })
     });
 
-    features.forEach((feature) => {
-        feature.setId(`feature-${uniqueId}`);
+    features.forEach((feature, i) => {
+        feature.setId(`feature-${uniqueId}-${i}`);
         feature.setStyle(style);
         feature.set('tag', tag);
     });
 
     vectorSource.addFeatures(features);
-    console.log('drawGeoJson: Features added:', features.length);
 
-    // Compute actual extent of geometries (not source)
-    const validExtents = features
-        .map(f => f.getGeometry()?.getExtent())
-        .filter((ext): ext is [number, number, number, number] =>
-            !!ext && ext.every(val => typeof val === 'number')
-        );
-
-    if (validExtents.length === 0) {
-        console.warn('drawGeoJson: No valid geometry extents.');
-        return;
-    }
-
-    const combinedExtent = boundingExtent(validExtents);
-
-    // Avoid degenerate extents (single point)
-    const [minX, minY, maxX, maxY] = combinedExtent;
-    const isZeroArea = minX === maxX || minY === maxY;
-
-    if (zoomTo && !isZeroArea) {
-        map.getView().fit(combinedExtent, {
-            padding: [50, 50, 50, 50],
-            size: map.getSize(),
-        });
-    } else if (zoomTo && isZeroArea) {
-        console.warn('drawGeoJson: Skipping zoom due to zero-area extent:', combinedExtent);
-    }
-
-    return combinedExtent;
+    return getBoundingExtentFromFeatures(features);
 }
 
 
@@ -1236,6 +1182,28 @@ export async function updateMapAndPlot(withHighlight:boolean = true): Promise<vo
         const endTime = performance.now(); // End time
         console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
+}
+
+export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Extent | undefined {
+    // Debug log feature types and extents
+    features.forEach((feature, idx) => {
+        const geom = feature.getGeometry();
+        console.log(`Feature[${idx}] type:`, geom?.getType());
+        console.log(`Feature[${idx}] extent:`, geom?.getExtent());
+    });
+
+    // Helper to extract all raw coordinates from any geometry
+
+    const allCoords: Coordinate[] = features.flatMap(f =>
+        extractCoordinates(f.getGeometry())
+    );
+
+    if (allCoords.length === 0) {
+        console.warn('No coordinates found in features');
+        return undefined;
+    }
+
+    return boundingExtent(allCoords);
 }
 
 export function zoomOutToFullMap(map: OLMap): void {

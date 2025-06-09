@@ -41,7 +41,7 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly} from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,zoomOutToFullMap} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
@@ -362,8 +362,27 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, false, tag );
-                        reqParamsStore.poly = thisConvexHull;
+                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, tag );
+                        if (map && drawExtent) {
+                            const [minX, minY, maxX, maxY] = drawExtent;
+                            const isZeroArea = minX === maxX || minY === maxY;
+
+                            if (!isZeroArea) {
+                                map.getView().fit(drawExtent, {
+                                    size: map.getSize(),
+                                    padding: [40, 40, 40, 40],
+                                });
+                            } else {
+                                console.warn('Zero-area extent — skipping zoom', drawExtent);
+                                zoomOutToFullMap(map);
+                            }
+                        }
+                        //console.log("drawExtent:",drawExtent);
+                        //console.log("drawExtent in lon/lat:",drawExtent.map(coord => toLonLat(coord)));
+                        //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
+                        //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
+                        //console.log("reqParamsStore.poly:",reqParamsStore.poly);
+                    reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
                         console.error("Error:convexHull is null");

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { drawGeoJson,zoomOutToFullMap,extractCoordinates } from '@/utils/SrMapUtils';
+import { drawGeoJson,zoomOutToFullMap, getBoundingExtentFromFeatures } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -16,8 +16,6 @@ import { useMapStore } from '@/stores/mapStore';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import GeoJSON from 'ol/format/GeoJSON'; // Make sure this is imported at the top
 import { Style, Stroke } from 'ol/style';
-import { boundingExtent } from 'ol/extent';
-import type { Coordinate } from 'ol/coordinate';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -83,7 +81,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                             if(vectorLayer && vectorLayer instanceof OLlayer){
                                 const vectorSource = vectorLayer.getSource();
                                 if(vectorSource){
-                                    drawExtent = drawGeoJson('fromFile',vectorSource, geoJsonData, color, true, false); // noFill, zoomTo = true
+                                    drawExtent = drawGeoJson('fromFile',vectorSource, geoJsonData, color, true); // noFill
                                     //console.log('returned from drawGeoJson');   
                                     if(props.loadReqPoly){
                                         if(!geoJsonData.features || geoJsonData.features.length === 0) {
@@ -117,18 +115,19 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                                     }
                                                     console.log('calling convexHull');
                                                     reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates));
+                                                    const coords = [reqParamsStore.getConvexHull()?.map(coord => [coord.lon, coord.lat])]
                                                     const geoJson = {
                                                         type: "Feature",
                                                         geometry: {
                                                             type: "Polygon",
-                                                            coordinates: [reqParamsStore.getConvexHull()?.map(coord => [coord.lon, coord.lat])]
+                                                            coordinates: coords
                                                         },
                                                         properties: {
                                                             name: "Convex Hull Polygon"
                                                         }
                                                     };
                                                     const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
-                                                    drawExtent = drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),'rgba(255, 0, 0, 1)',false,false,label); // with Fill and overlayExisting
+                                                    drawExtent = drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),'rgba(255, 0, 0, 1)',false,label); // with Fill and overlayExisting
                                                     reqParamsStore.poly = reqParamsStore.convexHull;
                                                     loadedReqPoly = true;
                                                 }
@@ -138,8 +137,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                             }
                                         }
                                     } else {
-
-                                    // load all features from the GeoJSON file
+                                        // load all features from the GeoJSON file
                                         if (geoJsonData.features && geoJsonData.features.length > 0) {
 
                                             const format = new GeoJSON();
@@ -163,25 +161,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
 
                                             //console.log('Parsed features:', features.length);
                                             //console.log('Map projection:', map.getView().getProjection().getCode());
-
-                                            features.forEach((feature, idx) => {
-                                                const geom = feature.getGeometry();
-                                                //console.log(`Feature[${idx}] type:`, geom?.getType());
-                                                //console.log(`Feature[${idx}] extent:`, geom?.getExtent());
-                                            });
-
-                                            // Extract all coordinates from all features
-                                            const allCoords: Coordinate[] = features.flatMap(f =>
-                                                extractCoordinates(f.getGeometry())
-                                            );
-
-                                            if (allCoords.length === 0) {
-                                                console.warn('No coordinates found in features');
-                                            } else {
-                                                drawExtent = boundingExtent(allCoords);
-                                                //console.log('drawExtent from coordinates:', drawExtent);
-                                            }
-
+                                            drawExtent = getBoundingExtentFromFeatures(features);
                                             // Add features to source after extent is computed
                                             vectorSource.addFeatures(features);
                                         } else {
