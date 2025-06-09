@@ -41,14 +41,16 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly} from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,zoomOutToFullMap} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
     import type { Source } from 'ol/source';
     import type LayerRenderer  from 'ol/renderer/Layer';
+    import SrCustomTooltip from "./SrCustomTooltip.vue";
 
     const featureMenuOverlayRef = ref();
+    const tooltipRef = ref();
  
     const wasRecordsLayerVisible = ref(false);
     const isDrawing = ref(false);
@@ -102,17 +104,24 @@
         source: recordsVectorSource,
         zIndex: 50,
     });
+
+    const uploadedFeaturesVectorSource = new VectorSource({wrapX: false});
+    const uploadedFeaturesVectorLayer = new VectorLayer({
+        source: uploadedFeaturesVectorSource,
+        zIndex: 10,
+    });
+
     // Set a custom property, like 'name'
     const drawPolygon = new DrawType({
         source: drawVectorSource,
         type: 'Polygon',
         style: new Style({
             stroke: new Stroke({
-                color: 'red',
+                color: 'blue',
                 width: 2,
             }),
             fill: new Fill({
-                color: 'rgba(255, 0, 0, 0.1)', // optional semi-transparent fill
+                color: 'rgba(255, 0, 0, 0.1)', 
             }),
         }),
     });
@@ -140,6 +149,14 @@
         disableDragBox(); // reset then add
         disableDrawPolygon();
         mapRef.value?.map.addInteraction(dragBox);
+        isDrawing.value = true;
+        const map = mapRef.value?.map;
+        const records = getLayerByName("Records Layer");
+
+        if (map && records) {
+            wasRecordsLayerVisible.value =records.getVisible();
+            records.setVisible(false); // Hide the records layer while drawing
+        }
     }
 
     var boxStyle = new Style({
@@ -161,6 +178,14 @@
 
     dragBox.on('boxend', function() {
         //console.log("dragBox.on boxend");
+        isDrawing.value = true;
+        const map = mapRef.value?.map;
+        const records = getLayerByName("Records Layer");
+
+        if (map && records) {
+            wasRecordsLayerVisible.value =records.getVisible();
+            records.setVisible(true); // Hide the records layer while drawing
+        }
         const extent = dragBox.getGeometry().getExtent();
         //console.log("Box extent in map coordinates:", extent);
 
@@ -337,8 +362,27 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), false, false, tag );
-                        reqParamsStore.poly = thisConvexHull;
+                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, tag );
+                        if (map && drawExtent) {
+                            const [minX, minY, maxX, maxY] = drawExtent;
+                            const isZeroArea = minX === maxX || minY === maxY;
+
+                            if (!isZeroArea) {
+                                map.getView().fit(drawExtent, {
+                                    size: map.getSize(),
+                                    padding: [40, 40, 40, 40],
+                                });
+                            } else {
+                                console.warn('Zero-area extent — skipping zoom', drawExtent);
+                                zoomOutToFullMap(map);
+                            }
+                        }
+                        //console.log("drawExtent:",drawExtent);
+                        //console.log("drawExtent in lon/lat:",drawExtent.map(coord => toLonLat(coord)));
+                        //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
+                        //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
+                        //console.log("reqParamsStore.poly:",reqParamsStore.poly);
+                    reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
                         console.error("Error:convexHull is null");
@@ -414,10 +458,20 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            const records = getLayerByName("Records Layer");
+            const map = mapRef.value?.map;
+            if (map && records && wasRecordsLayerVisible.value) {
+                records.setVisible(true);
+            }
             //console.log("TrashCan selected Clearing Drawing Layer, disabling draw");
         } else if (newPickedValue === ''){ // Reset Picked called and cleared highlight
             disableDragBox();
             disableDrawPolygon();
+            const records = getLayerByName("Records Layer");
+            const map = mapRef.value?.map;
+            if (map && records && wasRecordsLayerVisible.value) {
+                records.setVisible(true);
+            }
         } else {
             console.error("unsupported draw type:",newPickedValue);
             toast.add({ severity: 'error', summary: 'Unsupported draw type error', detail: 'Error' });
@@ -462,9 +516,16 @@
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
+        if (tooltipRef.value) {
+            mapStore.tooltipRef = tooltipRef.value;
+        } else {
+            console.error('tooltipRef is null on mount');
+        }        
         drawVectorLayer.set('name', 'Drawing Layer');
         recordsLayer.set('name', 'Records Layer');
         recordsLayer.set('title', 'Records Layer');
+        uploadedFeaturesVectorLayer.set('name', 'Uploaded Features');
+        uploadedFeaturesVectorLayer.set('title', 'Uploaded Features');
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
@@ -558,7 +619,7 @@
             addRecordPolys();
             if(haveReqPoly){
                 //draw and zoom to the current reqParamsStore.poly
-                drawCurrentReqPoly();
+                drawCurrentReqPoly('red');
             }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
@@ -636,7 +697,7 @@
         console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
-    function drawCurrentReqPoly(){
+    function drawCurrentReqPoly(color:string) {
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -644,7 +705,7 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, 'red');
+                        renderRequestPolygon(map, reqParamsStore.poly, color);
                     } else {
                         console.error("drawCurrentReqPoly Error:reqParamsStore.poly is null");
                     }
@@ -670,6 +731,7 @@
                     await updateMapView(map,srViewKey.value,reason,restoreView);
                     map.addLayer(drawVectorLayer);
                     map.addLayer(recordsLayer);
+                    map.addLayer(uploadedFeaturesVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                 } else {
                     console.error("SrMap Error: srViewKey is null");
@@ -793,11 +855,8 @@
 
 
     </div>    
-    <div class="sr-tooltip-style" id="tooltip">        
-    </div>
-    <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />
-
-        
+    <SrCustomTooltip ref="tooltipRef" id="MainMapTooltip" />
+    <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />        
 </div>
 </template>
 

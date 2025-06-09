@@ -5,8 +5,7 @@ import { ScatterplotLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
-import type { FeatureLike } from 'ol/Feature';
-import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
+import { fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -30,14 +29,13 @@ import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary, getColsForRgtYatcFromFile,getAllCycleOptionsInFile, getAllRgtOptionsInFile, getAllColumnMinMax } from "@/utils/SrDuckDbUtils";
-import type { AccessorContext, PickingInfo } from '@deck.gl/core';
+import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
-import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -49,8 +47,15 @@ import router from '@/router/index.js';
 import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
-
-
+import { boundingExtent } from 'ol/extent';
+import type { Geometry } from 'ol/geom';
+import type { Extent } from 'ol/extent';
+import Point from 'ol/geom/Point';
+import LineString from 'ol/geom/LineString';
+import MultiPoint from 'ol/geom/MultiPoint';
+import Polygon from 'ol/geom/Polygon';
+import MultiLineString from 'ol/geom/MultiLineString';
+import MultiPolygon from 'ol/geom/MultiPolygon';
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
@@ -75,145 +80,105 @@ export const clearPolyCoords = () => {
         useGeoJsonStore().geoJsonData = null;
     }
 }
+export function extractCoordinates(geometry: any): Coordinate[] {
+    if (!geometry) return [];
 
-export function drawGeoJson(
-    uniqueId: string,
-    vectorSource: VectorSource,
-    geoJsonData: string | object, // Allow string or object
-    noFill: boolean = false,
-    zoomTo: boolean = false,
-    tag: string = '',
-): void {
-    console.log('drawGeoJson: uniqueId:',uniqueId,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
-    try {
-        const map = useMapStore().map;
-        if (!map) {
-            console.error('drawGeoJson: Map is not defined.');
-            return;
-        }
-        if (!vectorSource) {
-            console.error('drawGeoJson: VectorSource is not defined.');
-            return;
-        }
-        if (!geoJsonData) {
-            console.warn('drawGeoJson: GeoJSON data is null or undefined.');
-            return;
-        }
-
-        let geoJsonString: string;
-        if (typeof geoJsonData === 'string') {
-            geoJsonString = geoJsonData.trim();
-            if (geoJsonString === '') {
-                console.warn('drawGeoJson: Empty GeoJSON data.');
-                return;
-            }
-        } else if (typeof geoJsonData === 'object') {
-            try {
-                geoJsonString = JSON.stringify(geoJsonData);
-            } catch (stringifyError) {
-                console.error('drawGeoJson: Failed to convert object to JSON string.', stringifyError);
-                return;
-            }
-        } else {
-            console.error('drawGeoJson: Invalid GeoJSON data type:', typeof geoJsonData);
-            return;
-        }
-
-        // Parse GeoJSON data
-        let features = [];
-        try {
-            const format = new GeoJSON();
-            //console.log('drawGeoJson: geoJsonString:',geoJsonString);
-            features = format.readFeatures(geoJsonString, {
-                featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
-            });
-        } catch (parseError) {
-            console.error('drawGeoJson: Failed to parse GeoJSON data.', parseError);
-            return;
-        }
-
-        if (features.length === 0) {
-            console.warn('drawGeoJson: No valid features found in GeoJSON.');
-            return;
-        }
-
-        //console.log(`drawGeoJson: Adding ${features.length} feature(s) with tag: ${tag}`);
-
-        // Define style based on noFill flag
-        const style = new Style({
-            stroke: new Stroke({
-                color: noFill ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)',
-                width: 2,
-            }),
-            fill: noFill
-                ? undefined
-                : new Fill({
-                      color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-                  }),
-        });
-
-        // Apply styles and ensure unique IDs
-        features.forEach((feature, index) => {
-            feature.setId(`feature-${uniqueId}`); // Unique ID
-            feature.setStyle(style);
-            feature.set('tag', tag);
-        });
-
-        vectorSource.addFeatures(features);
-
-        console.log('drawGeoJson: Features in source after addition:', vectorSource.getFeatures().length);
-
-        // Zoom to extent of features if requested
-        if (zoomTo && vectorSource.getFeatures().length > 0) {
-            const extent = vectorSource.getExtent();
-            if (extent.every((val) => val !== Infinity && val !== -Infinity)) {
-                map.getView().fit(extent, { padding: [50, 50, 50, 50] });
-            } else {
-                console.warn('drawGeoJson: Invalid extent, skipping zoom.');
-            }
-        }
-
-    } catch (error) {
-        console.error('drawGeoJson: Unexpected error:', error);
+    switch (geometry.getType()) {
+        case 'Point':
+            return [geometry.getCoordinates()];
+        case 'LineString':
+        case 'MultiPoint':
+            return geometry.getCoordinates();
+        case 'Polygon':
+        case 'MultiLineString':
+            return geometry.getCoordinates().flat();
+        case 'MultiPolygon':
+            return geometry.getCoordinates().flat(2);
+        default:
+            console.warn('Unknown geometry type:', geometry.getType());
+            return [];
     }
 }
 
 
+export function drawGeoJson(
+    uniqueId: string,
+    vectorSource: VectorSource,
+    geoJsonData: string | object,
+    color: string,
+    noFill: boolean = false,
+    tag: string = ''
+): Extent | undefined {
+    const map = useMapStore().map;
+    if (!map || !vectorSource || !geoJsonData) return;
+
+    let geoJsonString = typeof geoJsonData === 'string'
+        ? geoJsonData.trim()
+        : JSON.stringify(geoJsonData);
+
+    const format = new GeoJSON();
+    let features: Feature[] = [];
+
+    try {
+        features = format.readFeatures(geoJsonString, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
+        });
+    } catch (e) {
+        console.error('Failed to parse GeoJSON:', e);
+        return;
+    }
+
+    const style = new Style({
+        stroke: new Stroke({ color, width: 2 }),
+        fill: noFill ? undefined : new Fill({ color: 'rgba(255, 0, 0, 0.1)' })
+    });
+
+    features.forEach((feature, i) => {
+        feature.setId(`feature-${uniqueId}-${i}`);
+        feature.setStyle(style);
+        feature.set('tag', tag);
+    });
+
+    vectorSource.addFeatures(features);
+
+    return getBoundingExtentFromFeatures(features);
+}
+
+
 export function enableTagDisplay(map: OLMap, vectorSource: VectorSource): void {
-    const tooltipEl = document.getElementById('tooltip');
 
     // Listen for pointer move (hover) events
-    useMapStore().pointerMoveListenerKey = map.on('pointermove', function (evt) {
+    const mapStore = useMapStore();
+    mapStore.pointerMoveListenerKey = map.on('pointermove', function (evt) {
         //console.log('pointermove');
         const pixel = map.getEventPixel(evt.originalEvent);
         const features = map.getFeaturesAtPixel(pixel);
         
         // Check if any feature is under the cursor
-        if (features && features.length > 0) {
-            const feature = features[0];
-            const tag = feature.get('tag');  // Retrieve the tag
+        if (mapStore.tooltipRef){
+            if(features && features.length > 0) {
+                const feature = features[0];
+                const tag = feature.get('tag');  // Retrieve the tag
+                if (tag) {
+                    // Display the tag in the tooltip
+                    const { clientX, clientY } = evt.originalEvent;
+                    mapStore.tooltipRef.showTooltip({ clientX, clientY } as MouseEvent, `Area: ${tag}`);
+                }
+            } else {
+                // Hide the tooltip if no feature is found
+                mapStore.tooltipRef.hideTooltip();
 
-            if (tag && tooltipEl) {
-                // Display the tag in the tooltip
-                tooltipEl.innerHTML = `Area: ${tag}`;
-                tooltipEl.style.display = 'block';
-                tooltipEl.style.left = `${evt.originalEvent.clientX}px`;
-                tooltipEl.style.top = `${evt.originalEvent.clientY - 15}px`; // Offset the tooltip above the cursor
             }
         } else {
-            // Hide the tooltip if no feature is found
-            if (tooltipEl) {
-                tooltipEl.style.display = 'none';
-            }
+            console.warn('enableTagDisplay: tooltipRef is not set in MapStore.');
         }
     });
 
     // Hide tooltip when the mouse leaves the map
     map.getViewport().addEventListener('mouseout', function () {
         //console.log('mouseout');
-        if (tooltipEl) {
-            tooltipEl.style.display = 'none';
-        }
+        mapStore.tooltipRef.hideTooltip();
     });
 }
 
@@ -248,52 +213,52 @@ export function formatElObject(obj: { [key: string]: any }): string {
 }
 
   
-interface TooltipParams {
-    x: number;
-    y: number;
-    tooltip: string;
-}
+// interface TooltipParams {
+//     x: number;
+//     y: number;
+//     tooltip: string;
+// }
 
-function showTooltip({ x, y, tooltip }: TooltipParams): void {
-    const tooltipEl = document.getElementById('tooltip');
-    if (tooltipEl) {
-        tooltipEl.innerHTML = tooltip;
-        tooltipEl.style.display = 'block';
+// function showTooltip({ x, y, tooltip }: TooltipParams): void {
+//     const tooltipEl = document.getElementById('tooltip');
+//     if (tooltipEl) {
+//         tooltipEl.innerHTML = tooltip;
+//         tooltipEl.style.display = 'block';
 
-        const xoffset = 75; // Offset in pixels to position the tooltip to the right of the pointer
-        const yoffset = 75; // Offset in pixels to position the tooltip below the pointer   
-        // Set initial tooltip position to the right of the pointer
-        tooltipEl.style.left = `${x + xoffset}px`;
-        tooltipEl.style.top = `${y + yoffset}px`;
+//         const xoffset = 75; // Offset in pixels to position the tooltip to the right of the pointer
+//         const yoffset = 75; // Offset in pixels to position the tooltip below the pointer   
+//         // Set initial tooltip position to the right of the pointer
+//         tooltipEl.style.left = `${x + xoffset}px`;
+//         tooltipEl.style.top = `${y + yoffset}px`;
 
-        // Re-check tooltip position and adjust if it goes off-screen
-        const tooltipRect = tooltipEl.getBoundingClientRect();
-        //console.log('x:',x,'y:',y,'showTooltip tooltipRect:',tooltipRect, ' window.innerWidth:',window.innerWidth,' window.innerHeight:',window.innerHeight);
-        if (tooltipRect.right > window.innerWidth) {
-            // If clipped at the right, reposition to the left of the pointer
-            //console.warn('showTooltip clipped at the right');
-            tooltipEl.style.left = `${x - tooltipRect.width - xoffset}px`;
-        }
-        if (tooltipRect.bottom > window.innerHeight) {
-            // If clipped at the bottom, reposition slightly higher
-            console.warn('showTooltip clipped at the bottom');
-            tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - xoffset}px`;
-        }
-        if (tooltipRect.top < 0) {
-            // If clipped at the top, reposition slightly lower
-            console.warn('showTooltip clipped at the top');
-            tooltipEl.style.top = `${xoffset}px`;
-        }
-        //console.log('showTooltip tooltipEl:',tooltipEl);
-    }
-}
+//         // Re-check tooltip position and adjust if it goes off-screen
+//         const tooltipRect = tooltipEl.getBoundingClientRect();
+//         //console.log('x:',x,'y:',y,'showTooltip tooltipRect:',tooltipRect, ' window.innerWidth:',window.innerWidth,' window.innerHeight:',window.innerHeight);
+//         if (tooltipRect.right > window.innerWidth) {
+//             // If clipped at the right, reposition to the left of the pointer
+//             //console.warn('showTooltip clipped at the right');
+//             tooltipEl.style.left = `${x - tooltipRect.width - xoffset}px`;
+//         }
+//         if (tooltipRect.bottom > window.innerHeight) {
+//             // If clipped at the bottom, reposition slightly higher
+//             console.warn('showTooltip clipped at the bottom');
+//             tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - xoffset}px`;
+//         }
+//         if (tooltipRect.top < 0) {
+//             // If clipped at the top, reposition slightly lower
+//             console.warn('showTooltip clipped at the top');
+//             tooltipEl.style.top = `${xoffset}px`;
+//         }
+//         //console.log('showTooltip tooltipEl:',tooltipEl);
+//     }
+// }
 
-function hideTooltip():void {
-    const tooltipEl = document.getElementById('tooltip');
-    if (tooltipEl) {
-        tooltipEl.style.display = 'none';
-    }
-}
+// function hideTooltip():void {
+//     const tooltipEl = document.getElementById('tooltip');
+//     if (tooltipEl) {
+//         tooltipEl.style.display = 'none';
+//     }
+// }
 
 export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
@@ -367,7 +332,7 @@ export async function processSelectedElPnt(d:ElevationDataItem): Promise<void> {
     console.log('processSelectedElPnt d:',d);
     const gcs = useGlobalChartStore();
     gcs.setSelectedElevationRec(d);
-    hideTooltip();
+    useAnalysisMapStore().tooltipRef.hideTooltip();
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
@@ -609,26 +574,48 @@ const isIPad = isTouchDevice && deviceWidth > 430 && deviceWidth <= 768;    // T
 const onHoverHandler = isIPhone
     ? undefined
     : (pickingInfo: PickingInfo, event?: MjolnirEvent) => {
-            const { object } = pickingInfo;
-            let x = pickingInfo.x ?? 0;
-            let y = pickingInfo.y ?? 0;
+        const { object } = pickingInfo;
+        const analysisMapStore = useAnalysisMapStore();
+        const canvas = document.querySelector('canvas'); // or get canvas ref more precisely
+        let x = 0;
+        let y = 0;
 
-            // Use event.srcEvent for fallback if pickingInfo.x and pickingInfo.y are undefined
-            if (event?.srcEvent instanceof MouseEvent || event?.srcEvent instanceof PointerEvent) {
-                x = pickingInfo.x ?? event.srcEvent.clientX;
-                y = pickingInfo.y ?? event.srcEvent.clientY;
-            }
-            const analysisMapStore = useAnalysisMapStore();
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scrollX = window.scrollX || window.pageXOffset;
+            const scrollY = window.scrollY || window.pageYOffset;
 
-            //console.log('onHoverHandler object:',object,' x:',x,' y:',y,' mapStore.showTheTooltip:',mapStore.showTheTooltip);
-            if(analysisMapStore.showTheTooltip){
-                if (object && !useDeckStore().isDragging) {
-                    const tooltip = formatElObject(object);
-                    showTooltip({ x, y, tooltip });
-                } else {
-                    hideTooltip();
-                }
+            // Convert canvas-relative coords to page coords
+            x = (pickingInfo.x ?? 0) + rect.left + scrollX;
+            y = (pickingInfo.y ?? 0) + rect.top + scrollY;
+        }
+
+        // Fallback if we can’t get accurate canvas info
+        if (
+            (x === 0 && y === 0) &&
+            event?.srcEvent instanceof MouseEvent
+        ) {
+            x = event.srcEvent.clientX;
+            y = event.srcEvent.clientY;
+        }
+
+        if (analysisMapStore.showTheTooltip) {
+            if (object && !useDeckStore().isDragging) {
+                const tooltip = formatElObject(object);
+
+                const syntheticEvent = new MouseEvent('mousemove', {
+                    clientX: x,
+                    clientY: y,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                });
+
+                analysisMapStore.tooltipRef.showTooltip(syntheticEvent, tooltip);
+            } else {
+                analysisMapStore.tooltipRef.hideTooltip();
             }
+        }
     };
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
@@ -1195,4 +1182,50 @@ export async function updateMapAndPlot(withHighlight:boolean = true): Promise<vo
         const endTime = performance.now(); // End time
         console.log(`updateMapAndPlot took ${endTime - startTime} milliseconds.`);
     }
+}
+
+export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Extent | undefined {
+    // Debug log feature types and extents
+    features.forEach((feature, idx) => {
+        const geom = feature.getGeometry();
+        console.log(`Feature[${idx}] type:`, geom?.getType());
+        console.log(`Feature[${idx}] extent:`, geom?.getExtent());
+    });
+
+    // Helper to extract all raw coordinates from any geometry
+
+    const allCoords: Coordinate[] = features.flatMap(f =>
+        extractCoordinates(f.getGeometry())
+    );
+
+    if (allCoords.length === 0) {
+        console.warn('No coordinates found in features');
+        return undefined;
+    }
+
+    return boundingExtent(allCoords);
+}
+
+export function zoomOutToFullMap(map: OLMap): void {
+    const view = map.getView();
+    const projection = view.getProjection();
+    let extent = projection.getExtent();
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.warn('zoomOutToFullMap: projection extent is invalid, falling back to worldExtent.');
+        extent = projection.getWorldExtent();
+    }
+
+    if (!extent || !extent.every(Number.isFinite)) {
+        console.error('zoomOutToFullMap: No valid extent found to zoom to.');
+        return;
+    }
+
+    // Fit the view to the full extent
+    view.fit(extent, {
+        size: map.getSize(),
+        padding: [40, 40, 40, 40],
+    });
+
+    console.log('zoomOutToFullMap: zoomed to full projection/world extent:', extent);
 }

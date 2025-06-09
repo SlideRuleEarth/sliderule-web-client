@@ -5,12 +5,14 @@ import { ref, computed,onMounted } from 'vue';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
 import { useRoute } from 'vue-router';
 import { useDeviceStore } from '@/stores/deviceStore';
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const sysConfigStore = useSysConfigStore();
 const deviceStore = useDeviceStore();
 const serverVersion = ref<string>('v?.?.?');
 const route = useRoute();
+const tooltipRef = ref();
 
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null);
 const displayTour = computed(() => {
@@ -278,6 +280,11 @@ onMounted(async () => {
     dumpRouteInfo();
 });
 
+const openMailClient = () => {
+    window.location.href = 'mailto:support@mail.slideruleearth.io';
+};
+
+
 </script>
 
 <template>
@@ -311,7 +318,7 @@ onMounted(async () => {
             </Button>
             <span class="sr-tvw">{{ testVersionWarning }}</span>
         </div>
-        <div class=" middle-content">
+        <div class="middle-content">
             <Button icon="pi pi-map"
                 id="sr-tour-button"
                 v-if="displayTour"
@@ -320,6 +327,24 @@ onMounted(async () => {
                 @click="toggleTourMenu">
             </Button>
             <Menu :model="tourMenuItems" popup ref="tourMenu" />
+            <div class="sr-megaphone"
+                @mouseover="tooltipRef.showTooltip($event,'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!')"
+                @mouseleave="tooltipRef.hideTooltip()"
+            >
+                <Button icon="pi pi-megaphone"
+                    label="Feedback"
+                    id="sr-feedback-button"
+                    class="p-button-rounded p-button-text desktop-only"
+                    @click="openMailClient"
+                ></Button>
+            </div>
+            <div class="sr-tooltip-style" id="tooltip">
+                <SrCustomTooltip 
+                    ref="tooltipRef"
+                    id="appBarTooltip"
+                />
+            </div>
+
         </div>
         <div class="right-content" id="sr-appbar-right-content">
             <Button icon="pi pi-sliders-h"
@@ -406,6 +431,13 @@ onMounted(async () => {
     align-items: center;
     gap: 0.5rem; /* Adds space between items */
     height: 100%;
+}
+.middle-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1; /* Allows this section to take up available space */
 }
 
 .logo {

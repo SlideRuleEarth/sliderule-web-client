@@ -30,6 +30,7 @@ function getMissionFromApiStr(apiStr: string): string {
 }
 
 function getMissionForReqId(reqId: number): string {
+    if (reqId <= 0) return 'ICESat-2'; // Default to ICESat-2 for invalid reqId
     const funcStr = useRecTreeStore().findApiForReqId(reqId);
     return getMissionFromApiStr(funcStr);
 }

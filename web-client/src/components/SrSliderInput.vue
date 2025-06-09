@@ -23,7 +23,7 @@
                     :min="props.min"
                     :max="props.max"
                     :step="sliderStepSize"
-                    :style="{ width: props.inputWidth, maxWidth: props.inputWidth }"
+                    :style="{ width: props.inputWidth, maxWidth: props.maxWidth }"
                     :useGrouping="true"
                     :format="true"
                     :locale="'en-US'"
@@ -61,7 +61,8 @@ const props = defineProps({
     decimalPlaces: { type: Number, default: 0 },
     tooltipText: { type: String, default: 'tooltip text' },
     tooltipUrl: { type: String, default: '' },
-    inputWidth: { type: [String, Number], default: '6rem' },
+    inputWidth: { type: [String, Number], default: '4rem' },
+    maxWidth: { type: [String, Number], default: '7rem' },
     sliderWidth: { type: [String, Number], default: '12rem' }
 });
 
@@ -105,12 +106,11 @@ watchDebounced(innerValue, (newVal) => {
 .sr-slider-input-wrapper {
     border: 1px solid transparent;
     border-radius: var(--p-border-radius);
-    margin: 0.25rem;
 }
 
 .sr-slider-input-row {
     display: flex;
-    justify-content: space-between;
+    justify-content:flex-start;
     align-items: center;
 }
 

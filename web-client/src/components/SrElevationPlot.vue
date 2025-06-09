@@ -703,14 +703,14 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
         <div class="sr-elevation-plot-cntrl">
             <div v-if="atlChartFilterStore.isLoading" class="loading-indicator">Loading...</div>
             <div v-if="atlChartFilterStore.getShowMessage()&& mission==='ICESat-2'" :class="messageClass">{{atlChartFilterStore.getMessage()}}</div>
-            <SrCustomTooltip ref="tooltipRef"/>
+            <SrCustomTooltip ref="tooltipRef" id="'elevationPlotTooltip'"/>
             <div 
                 class="sr-run-control" 
                 v-if="mission==='ICESat-2' && !recTreeStore.selectedApi?.includes('atl03')"
             >
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
-                    @mouseleave="tooltipRef.hideTooltip"
+                    @mouseleave="tooltipRef.hideTooltip()"
                 >
                     <ToggleButton
                         v-if="mission === 'ICESat-2'"

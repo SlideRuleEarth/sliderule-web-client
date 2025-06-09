@@ -116,6 +116,7 @@ const onClear = () => {
                     @select="onSelect"
                     @error="onError"
                     @clear="onClear"
+                    class="sr-upload-btn-small"
         />
     </div>
 </template>
@@ -178,6 +179,10 @@ const onClear = () => {
     text-align: right;
     font-size: 0.75rem; /* text-xs */
     color:var(--p-text-color);
+}
+:deep(.sr-upload-btn-small .p-fileupload-choose) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
 }
 
 </style>

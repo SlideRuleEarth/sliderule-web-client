@@ -13,6 +13,7 @@ import { srViews } from '@/composables/SrViews';
 import type { SrView } from '@/composables/SrViews';
 import { findSrView } from '@/composables/SrViews';
 import type { SrLayer } from '@/composables/SrLayers.js';
+import { ref, type Ref } from 'vue';
 
 
 interface LayerCache {
@@ -41,7 +42,7 @@ export const useMapStore = defineStore('map', {
         wrapX: false
     }),
     polygonSource:'Draw on Map' as string,
-    polygonSourceItems: ['Draw on Map','Upload geojson File'] as string[],
+    polygonSourceItems: ['Draw on Map','GeoJSON File'] as string[],
     polyCoords: <Coordinate[][]>([]),
     //isLoading: false as boolean,
     currentReqId: 0 as number,
@@ -57,6 +58,7 @@ export const useMapStore = defineStore('map', {
     extentToRestore: null as number[] | null,
     centerToRestore: null as number[] | null,
     zoomToRestore: null as number | null,
+    tooltipRef: ref(null) as Ref<InstanceType<any> | null>,
 }),
   actions: {
     setMap(mapInstance: OLMap) {

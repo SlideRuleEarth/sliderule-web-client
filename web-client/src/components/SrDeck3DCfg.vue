@@ -1,6 +1,9 @@
 <template>
     <div class="deck-config-panel">
-      <SrCustomTooltip/>
+      <SrCustomTooltip
+        ref="tooltipRef"
+        id="threeDTooltip"
+      />
       <div class="config-row">
         <section class="config-section">
           <h4>View Control</h4>
@@ -112,10 +115,9 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed,ref } from 'vue'
   import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
   import InputNumber from 'primevue/inputnumber'
-  import Select from 'primevue/select'
   import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
   import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
   import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -125,7 +127,7 @@
 
   const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
   const reqId = computed(() => recTreeStore.selectedReqId);
-
+  const tooltipRef = ref(null);
   const store = useDeck3DConfigStore()
 
   const orbitAxisOptions = computed(() => [

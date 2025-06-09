@@ -116,7 +116,7 @@ onMounted(async () => {
                     tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />
             </div> 
-            <div>
+            <div class="sr-pass-invalid-body-container">
                 <SrSwitchedSliderInput
                     :insensitive="(reqParamsStore.passInvalid)"
                     v-model="reqParamsStore.alongTrackSpread"
@@ -190,6 +190,9 @@ onMounted(async () => {
     align-items: center;
     background-color: transparent;
     margin-bottom: 1rem;
+    gap: 0.5rem;
+    padding:0.25rem;
+
 }
 
 .sr-ext-distance-body-container{
@@ -205,17 +208,30 @@ onMounted(async () => {
     border: 1px solid grey;
     border-radius: var(--p-border-radius);
     padding: 0.25rem;
+    gap:0.25rem;
 }
 .sr-pass-invalid-header-container{
     display: flex;
     justify-content: center; 
     align-items: center;
     background-color: transparent;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem;
 }
 :deep(.sr-pass-invalid-header-container .sr-checkbox-label){
     font-size: large;
 }
 :deep(.sr-ext-distance-header-container .sr-select-menu-label){
     font-size: large;
+}
+
+.sr-pass-invalid-body-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background-color: transparent;
+    margin-bottom: 1rem;
+    gap: 0.5rem; /* or whatever spacing you want */
 }
 </style>

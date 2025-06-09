@@ -1,6 +1,6 @@
 <template>
     <div class="sr-req-display-panel">
-        <SrCustomTooltip ref="tooltipRef" />
+        <SrCustomTooltip ref="tooltipRef" id="recDisplayTooltip"/>
         <Button 
             icon="pi pi-eye" 
             :label="props.label"
