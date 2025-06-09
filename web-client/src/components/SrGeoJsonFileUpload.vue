@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { drawGeoJson,zoomOutToFullMap } from '@/utils/SrMapUtils';
+import { drawGeoJson,zoomOutToFullMap,extractCoordinates } from '@/utils/SrMapUtils';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -15,7 +15,9 @@ import { Layer as OLlayer } from 'ol/layer';
 import { useMapStore } from '@/stores/mapStore';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import GeoJSON from 'ol/format/GeoJSON'; // Make sure this is imported at the top
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke } from 'ol/style';
+import { boundingExtent } from 'ol/extent';
+import type { Coordinate } from 'ol/coordinate';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -81,7 +83,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                             if(vectorLayer && vectorLayer instanceof OLlayer){
                                 const vectorSource = vectorLayer.getSource();
                                 if(vectorSource){
-                                    drawExtent = drawGeoJson('fromFile',vectorSource, geoJsonData, color, true, true); // noFill, zoomTo = true
+                                    drawExtent = drawGeoJson('fromFile',vectorSource, geoJsonData, color, true, false); // noFill, zoomTo = true
                                     //console.log('returned from drawGeoJson');   
                                     if(props.loadReqPoly){
                                         if(!geoJsonData.features || geoJsonData.features.length === 0) {
@@ -126,7 +128,7 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                                         }
                                                     };
                                                     const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
-                                                    drawExtent = drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),'rgba(255, 0, 0, 1)',false,true,label); // with Fill and overlayExisting
+                                                    drawExtent = drawGeoJson('convexHull',vectorSource,JSON.stringify(geoJson),'rgba(255, 0, 0, 1)',false,false,label); // with Fill and overlayExisting
                                                     reqParamsStore.poly = reqParamsStore.convexHull;
                                                     loadedReqPoly = true;
                                                 }
@@ -136,35 +138,62 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                                             }
                                         }
                                     } else {
-                                       // load all features from the GeoJSON file
+
+                                    // load all features from the GeoJSON file
                                         if (geoJsonData.features && geoJsonData.features.length > 0) {
-                                            // Clear existing features in the vector source
-                                            vectorSource.clear();
-                                            // Add new features to the vector source
+
                                             const format = new GeoJSON();
                                             const features = format.readFeatures(geoJsonData, {
                                                 dataProjection: 'EPSG:4326',
-                                                featureProjection: map.getView().getProjection()
+                                                featureProjection: map.getView().getProjection(),
                                             });
+
                                             features.forEach(feature => {
                                                 feature.setStyle(new Style({
                                                     stroke: new Stroke({
                                                         color: 'rgba(180, 100, 0, 1)',
                                                         width: 2
                                                     }),
+                                                    // Optional fill:
                                                     // fill: new Fill({
                                                     //     color: 'rgba(180, 100, 0, 0.3)'
                                                     // })
                                                 }));
                                             });
 
-                                            vectorSource.clear(); // Optionally clear any old features
+                                            //console.log('Parsed features:', features.length);
+                                            //console.log('Map projection:', map.getView().getProjection().getCode());
+
+                                            features.forEach((feature, idx) => {
+                                                const geom = feature.getGeometry();
+                                                //console.log(`Feature[${idx}] type:`, geom?.getType());
+                                                //console.log(`Feature[${idx}] extent:`, geom?.getExtent());
+                                            });
+
+                                            // Extract all coordinates from all features
+                                            const allCoords: Coordinate[] = features.flatMap(f =>
+                                                extractCoordinates(f.getGeometry())
+                                            );
+
+                                            if (allCoords.length === 0) {
+                                                console.warn('No coordinates found in features');
+                                            } else {
+                                                drawExtent = boundingExtent(allCoords);
+                                                //console.log('drawExtent from coordinates:', drawExtent);
+                                            }
+
+                                            // Add features to source after extent is computed
                                             vectorSource.addFeatures(features);
                                         } else {
                                             console.error('GeoJSON file has no features');
-                                            toast.add({ severity: 'error', summary: 'GeoJSON Error', detail: 'GeoJSON file has no features', group: 'headless' });
+                                            toast.add({
+                                                severity: 'error',
+                                                summary: 'GeoJSON Error',
+                                                detail: 'GeoJSON file has no features',
+                                                group: 'headless'
+                                            });
                                         } 
-                                    }
+                                    }   
                                 } else {
                                     console.error('Error parsing GeoJSON:', e.target.result);
                                     toast.add({ severity: 'error', summary: 'error with map source object', group: 'headless' });
@@ -186,19 +215,19 @@ const customUploader = async (event: FileUploadUploaderEvent) => {
                 console.error('Error parsing GeoJSON:', error);
                 toast.add({ severity: 'error', summary: `error: caught exception:${error}`, group: 'headless' });
             }
-            if (loadedReqPoly) {
-                //toast.add({ severity: 'success', summary: 'File Upload', detail: 'GeoJSON file successfully uploaded and parsed', group: 'headless' });
-            } else {
-                if(drawExtent){
-                    // Fit the view to the extent
+            if (drawExtent) {
+                const [minX, minY, maxX, maxY] = drawExtent;
+                const isZeroArea = minX === maxX || minY === maxY;
+
+                if (!isZeroArea) {
                     const view = map.getView();
                     view.fit(drawExtent, {
                         size: map.getSize(),
                         padding: [40, 40, 40, 40],
-                    });                    
+                    });
                 } else {
-                    console.log('GeoJSON file uploaded AND no request polygon or other features loaded');
-                    zoomOutToFullMap(map)
+                    console.warn('Skipping zoom: drawExtent has zero area', drawExtent);
+                    zoomOutToFullMap(map);
                 }
             }
         };

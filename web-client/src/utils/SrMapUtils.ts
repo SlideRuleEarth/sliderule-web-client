@@ -5,8 +5,7 @@ import { ScatterplotLayer } from '@deck.gl/layers';
 import GeoJSON from 'ol/format/GeoJSON';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
-import type { FeatureLike } from 'ol/Feature';
-import { toLonLat,fromLonLat, type ProjectionLike } from 'ol/proj';
+import { fromLonLat, type ProjectionLike } from 'ol/proj';
 import { Layer as OLlayer } from 'ol/layer';
 import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
@@ -30,14 +29,13 @@ import { applyTransform } from 'ol/extent.js';
 import { View as OlView } from 'ol';
 import { getCenter as getExtentCenter } from 'ol/extent.js';
 import { readOrCacheSummary, getColsForRgtYatcFromFile,getAllCycleOptionsInFile, getAllRgtOptionsInFile, getAllColumnMinMax } from "@/utils/SrDuckDbUtils";
-import type { AccessorContext, PickingInfo } from '@deck.gl/core';
+import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
 import { clearPlot,updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
-import Geometry from 'ol/geom/Geometry';
 import type { SrRegion } from '@/sliderule/icesat2';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -49,6 +47,7 @@ import router from '@/router/index.js';
 import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
+import { boundingExtent } from 'ol/extent';
 
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
@@ -74,109 +73,130 @@ export const clearPolyCoords = () => {
         useGeoJsonStore().geoJsonData = null;
     }
 }
+export function extractCoordinates(geometry: any): Coordinate[] {
+    if (!geometry) return [];
+
+    switch (geometry.getType()) {
+        case 'Point':
+            return [geometry.getCoordinates()];
+        case 'LineString':
+        case 'MultiPoint':
+            return geometry.getCoordinates();
+        case 'Polygon':
+        case 'MultiLineString':
+            return geometry.getCoordinates().flat();
+        case 'MultiPolygon':
+            return geometry.getCoordinates().flat(2);
+        default:
+            console.warn('Unknown geometry type:', geometry.getType());
+            return [];
+    }
+}
+
 
 export function drawGeoJson(
     uniqueId: string,
     vectorSource: VectorSource,
-    geoJsonData: string | object, // Allow string or object
-    color: string,// e.g.'rgba(255, 0, 0, 1)'
+    geoJsonData: string | object,
+    color: string,
     noFill: boolean = false,
     zoomTo: boolean = false,
     tag: string = '',
-): number[] | undefined  {
-    console.log('drawGeoJson: uniqueId:',uniqueId,'color:',color,' vectorSource:',vectorSource,' geoJsonData:',geoJsonData,' noFill:',noFill,' zoomTo:',zoomTo,' tag:',tag);
-    try {
-        const map = useMapStore().map;
-        if (!map) {
-            console.error('drawGeoJson: Map is not defined.');
-            return;
-        }
-        if (!vectorSource) {
-            console.error('drawGeoJson: VectorSource is not defined.');
-            return;
-        }
-        if (!geoJsonData) {
-            console.warn('drawGeoJson: GeoJSON data is null or undefined.');
-            return;
-        }
+): number[] | undefined {
+    console.log('drawGeoJson:', { uniqueId, color, noFill, zoomTo, tag });
 
-        let geoJsonString: string;
-        if (typeof geoJsonData === 'string') {
-            geoJsonString = geoJsonData.trim();
-            if (geoJsonString === '') {
-                console.warn('drawGeoJson: Empty GeoJSON data.');
-                return;
-            }
-        } else if (typeof geoJsonData === 'object') {
-            try {
-                geoJsonString = JSON.stringify(geoJsonData);
-            } catch (stringifyError) {
-                console.error('drawGeoJson: Failed to convert object to JSON string.', stringifyError);
-                return;
-            }
-        } else {
-            console.error('drawGeoJson: Invalid GeoJSON data type:', typeof geoJsonData);
-            return;
-        }
-
-        // Parse GeoJSON data
-        let features = [];
-        try {
-            const format = new GeoJSON();
-            //console.log('drawGeoJson: geoJsonString:',geoJsonString);
-            features = format.readFeatures(geoJsonString, {
-                featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
-            });
-        } catch (parseError) {
-            console.error('drawGeoJson: Failed to parse GeoJSON data.', parseError);
-            return;
-        }
-
-        if (features.length === 0) {
-            console.warn('drawGeoJson: No valid features found in GeoJSON.');
-            return;
-        }
-
-        //console.log(`drawGeoJson: Adding ${features.length} feature(s) with tag: ${tag}`);
-
-        // Define style based on noFill flag
-        const style = new Style({
-            stroke: new Stroke({
-                color: color,
-                width: 2,
-            }),
-            fill: noFill
-                ? undefined
-                : new Fill({
-                      color: 'rgba(255, 0, 0, 0.1)', // Red fill with 10% opacity
-                  }),
-        });
-
-        // Apply styles and ensure unique IDs
-        features.forEach((feature, index) => {
-            feature.setId(`feature-${uniqueId}`); // Unique ID
-            feature.setStyle(style);
-            feature.set('tag', tag);
-        });
-
-        vectorSource.addFeatures(features);
-
-        console.log('drawGeoJson: Features in source after addition:', vectorSource.getFeatures().length);
-
-        // Zoom to extent of features if requested
-        if (zoomTo && vectorSource.getFeatures().length > 0) {
-            const extent = vectorSource.getExtent();
-            if (extent.every((val) => val !== Infinity && val !== -Infinity)) {
-                map.getView().fit(extent, { padding: [50, 50, 50, 50] });
-            } else {
-                console.warn('drawGeoJson: Invalid extent, skipping zoom.');
-            }
-        }
-
-    } catch (error) {
-        console.error('drawGeoJson: Unexpected error:', error);
+    const map = useMapStore().map;
+    if (!map) {
+        console.error('drawGeoJson: Map is not defined.');
+        return;
     }
-    return vectorSource.getExtent() as number[] | undefined;
+
+    if (!vectorSource) {
+        console.error('drawGeoJson: VectorSource is not defined.');
+        return;
+    }
+
+    if (!geoJsonData) {
+        console.warn('drawGeoJson: GeoJSON data is null or undefined.');
+        return;
+    }
+
+    // Normalize geoJsonData to string
+    let geoJsonString: string;
+    try {
+        geoJsonString = typeof geoJsonData === 'string'
+            ? geoJsonData.trim()
+            : JSON.stringify(geoJsonData);
+
+        if (geoJsonString === '') {
+            console.warn('drawGeoJson: Empty GeoJSON string.');
+            return;
+        }
+    } catch (err) {
+        console.error('drawGeoJson: Failed to stringify geoJsonData.', err);
+        return;
+    }
+
+    // Parse GeoJSON features
+    let features;
+    try {
+        const format = new GeoJSON();
+        features = format.readFeatures(geoJsonString, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
+        });
+    } catch (err) {
+        console.error('drawGeoJson: Failed to parse GeoJSON.', err);
+        return;
+    }
+
+    if (!features || features.length === 0) {
+        console.warn('drawGeoJson: No valid features found.');
+        return;
+    }
+
+    const style = new Style({
+        stroke: new Stroke({ color, width: 2 }),
+        fill: noFill ? undefined : new Fill({ color: 'rgba(255, 0, 0, 0.1)' }),
+    });
+
+    features.forEach((feature) => {
+        feature.setId(`feature-${uniqueId}`);
+        feature.setStyle(style);
+        feature.set('tag', tag);
+    });
+
+    vectorSource.addFeatures(features);
+    console.log('drawGeoJson: Features added:', features.length);
+
+    // Compute actual extent of geometries (not source)
+    const validExtents = features
+        .map(f => f.getGeometry()?.getExtent())
+        .filter((ext): ext is [number, number, number, number] =>
+            !!ext && ext.every(val => typeof val === 'number')
+        );
+
+    if (validExtents.length === 0) {
+        console.warn('drawGeoJson: No valid geometry extents.');
+        return;
+    }
+
+    const combinedExtent = boundingExtent(validExtents);
+
+    // Avoid degenerate extents (single point)
+    const [minX, minY, maxX, maxY] = combinedExtent;
+    const isZeroArea = minX === maxX || minY === maxY;
+
+    if (zoomTo && !isZeroArea) {
+        map.getView().fit(combinedExtent, {
+            padding: [50, 50, 50, 50],
+            size: map.getSize(),
+        });
+    } else if (zoomTo && isZeroArea) {
+        console.warn('drawGeoJson: Skipping zoom due to zero-area extent:', combinedExtent);
+    }
+
+    return combinedExtent;
 }
 
 
