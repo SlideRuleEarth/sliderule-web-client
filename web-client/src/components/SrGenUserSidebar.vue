@@ -12,8 +12,8 @@
 
 <template>
     <div class="sr-gen-user-sidebar-container">
-        <SrGenUserPresets />
         <SrReqDisplay />
+        <SrGenUserPresets />
     </div>
 </template>
 

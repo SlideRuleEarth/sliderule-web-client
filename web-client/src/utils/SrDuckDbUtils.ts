@@ -1103,22 +1103,44 @@ export async function fetchScatterData(
                 }
 
                 y.forEach((yName) => {
-                    const minY = row[aliasKey("min", yName)];
-                    const maxY = row[aliasKey("max", yName)];
-                    const lowY = row[aliasKey("low", yName)];
-                    const highY = row[aliasKey("high", yName)];
-                    if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
-                        minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
+                    if (typeof row[aliasKey("min", yName)] === 'bigint') {
+                        console.warn(`Converting BigInt to number for ${yName}`);
+                    
+                        const minY = Number(row[aliasKey("min", yName)]);
+                        const maxY = Number(row[aliasKey("max", yName)]);
+                        const lowY = Number(row[aliasKey("low", yName)]);
+                        const highY = Number(row[aliasKey("high", yName)]);
+                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
+                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
+                        }
+                    } else {
+                        const minY = row[aliasKey("min", yName)];
+                        const maxY = row[aliasKey("max", yName)];
+                        const lowY = row[aliasKey("low", yName)];
+                        const highY = row[aliasKey("high", yName)];
+                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
+                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
+                        }
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
-                    const minCol = row[aliasKey("min", colName)];
-                    const maxCol = row[aliasKey("max", colName)];
-                    const lowCol = row[aliasKey("low", colName)];
-                    const highCol = row[aliasKey("high", colName)];
-                    if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
-                        minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
+                    if (typeof row[aliasKey("min", colName)] === 'bigint') {
+                        const minCol = Number(row[aliasKey("min", colName)]);
+                        const maxCol = Number(row[aliasKey("max", colName)]);
+                        const lowCol = Number(row[aliasKey("low", colName)]);
+                        const highCol = Number(row[aliasKey("high", colName)]);
+                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
+                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
+                        }
+                    } else {
+                        const minCol = row[aliasKey("min", colName)];
+                        const maxCol = row[aliasKey("max", colName)];
+                        const lowCol = row[aliasKey("low", colName)];
+                        const highCol = row[aliasKey("high", colName)];
+                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
+                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
+                        }
                     }
                 });
             }
@@ -1192,7 +1214,7 @@ export async function fetchScatterData(
 
                 // Double-check: exclude row if anything is NaN, but this should now be rare
                 // since we already filter them out in SQL.
-                if (rowValues.some((val) => isNaN(val))) {
+                if (rowValues.some((val) => isNaN(Number(val)))) {
                     console.warn('Skipping row due to NaN values:', rowValues);
                     continue;
                 }
