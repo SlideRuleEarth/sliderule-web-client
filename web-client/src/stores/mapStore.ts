@@ -59,6 +59,8 @@ export const useMapStore = defineStore('map', {
     centerToRestore: null as number[] | null,
     zoomToRestore: null as number | null,
     tooltipRef: ref(null) as Ref<InstanceType<any> | null>,
+    dropPinEnabled: false as boolean,
+    pinCoordinate: null as Coordinate | null,
 }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -162,27 +164,6 @@ export const useMapStore = defineStore('map', {
     getRedrawElevationsTimeoutHandle() {
       return this.reDrawElevationsTimeoutHandle;
     },
-    // getIsLoading() {
-    //   return this.isLoading;
-    // },
-    // setIsLoading(value:boolean=true) {
-    //   this.isLoading = value;
-    // },
-    // resetIsLoading() {
-    //   this.isLoading = false;
-    // },
-    // getTotalRows(): number | bigint {
-    //   return this.totalRows;
-    // },
-    // setTotalRows(rows: number) {
-    //   this.totalRows = rows;
-    // },
-    // getCurrentRows(): number {
-    //     return this.currentRows;
-    // },
-    // setCurrentRows(rows: number) {
-    //   this.currentRows = rows;
-    // },
     getPolySource() {
       return this.polygonSource;
     },
@@ -284,6 +265,8 @@ export const useMapStore = defineStore('map', {
     setZoomToRestore(zoom: number) {
         this.zoomToRestore = zoom;
     },
-
+    setDropPinEnabled(enabled: boolean) {
+      this.dropPinEnabled = enabled;
+    }
   },
 });

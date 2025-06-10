@@ -29,7 +29,7 @@ export function getDefaultReqParamsState() {
       missionValue: 'ICESat-2' as string,
       missionItems:['ICESat-2','GEDI'] as string[],
       iceSat2SelectedAPI: 'atl06p' as string,
-      iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x'] as string[],
+      iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x','atl13x'] as string[],
       gediSelectedAPI: 'gedi01bp' as string,
       gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
       using_worker: false,
