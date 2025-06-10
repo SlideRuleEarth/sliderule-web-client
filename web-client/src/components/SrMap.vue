@@ -915,7 +915,7 @@
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
             <MapControls.OlScalelineControl />
-            <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+            <SrDrawControl ref="srDrawControlRef" v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
             <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
             <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
             <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
@@ -1143,7 +1143,7 @@
 }
 
 :deep(.sr-drop-pin-control){
-  top: 22rem; 
+  top: 12rem; 
   left: 0.5rem; 
   right: auto;  
   border-radius: var(--p-border-radius);
