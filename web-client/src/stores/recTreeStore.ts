@@ -165,6 +165,11 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
 
     const findApiForReqId = (reqId: number): string => {
         const node = findNodeByKey(treeData.value, reqId.toString());
+        if (!node && reqId > 0) {
+            console.warn(`findApiForReqId: Node with reqId ${reqId} not found`);
+            //console.trace(`findApiForReqId: Node with reqId ${reqId} not found treeData:`, treeData.value);
+            return '';
+        }
         return node?.api || '';
     };
 

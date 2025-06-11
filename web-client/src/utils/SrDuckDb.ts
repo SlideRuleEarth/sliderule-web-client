@@ -438,6 +438,8 @@ async getJsonMetaDataForKey(
 
     } catch (error) {
         console.error("getJsonMetaDataForKey Error dumping Parquet metadata:", error);
+        console.trace("getJsonMetaDataForKey Error dumping Parquet metadata:");
+        
         throw error;
     } finally {
         await conn.close();

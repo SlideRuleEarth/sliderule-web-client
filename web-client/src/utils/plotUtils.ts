@@ -85,14 +85,26 @@ export interface SrScatterSeriesData{
 };
 
 export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
-    const func = useRecTreeStore().findApiForReqId(reqId);
-    return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
+    if(reqId > 0) {
+        const func = useRecTreeStore().findApiForReqId(reqId);
+        if(func){
+            return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
+        } else {
+            console.warn(`getDefaultColorEncoding: No function found for reqId: ${reqId}. Returning 'solid'.`);
+            return 'solid'; // default color encoding
+        }
+    } else {
+        console.warn(`getDefaultColorEncoding: Invalid reqId: ${reqId}. Returning 'solid'.`);
+        return 'solid'; // default color encoding
+    }
 }
 
 export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
-    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
+    if(reqId > 0) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
+    }
     //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 

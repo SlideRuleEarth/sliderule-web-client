@@ -20,6 +20,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'gedi01bp': return 'elevation_start';
         case 'atl13x': return 'ht_ortho'; 
         default:
+            console.trace(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
             throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
     }
 }
@@ -33,7 +34,12 @@ function getMissionFromApiStr(apiStr: string): string {
 function getMissionForReqId(reqId: number): string {
     if (reqId <= 0) return 'ICESat-2'; // Default to ICESat-2 for invalid reqId
     const funcStr = useRecTreeStore().findApiForReqId(reqId);
-    return getMissionFromApiStr(funcStr);
+    if(funcStr){
+        return getMissionFromApiStr(funcStr);
+    } else {
+        console.warn(`No API found for reqId:${reqId} funcStr:${funcStr} in getMissionForReqId`);
+        return 'ICESat-2'; // Default to ICESat-2 if no API found
+    }
 }
 
 

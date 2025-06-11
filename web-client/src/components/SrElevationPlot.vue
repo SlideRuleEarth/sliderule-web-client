@@ -491,19 +491,19 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);  
                 await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId);
                 await processRunSlideRuleClicked(runContext); // worker is started here
-                console.log('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked completed reqId:', runContext.reqId);
+                //console.log('SrElevationPlot watch atlChartFilterStore.showPhotonCloud runContext:',runContext, 'reqId:', runContext.reqId, parentReqIdStr, ' parentFuncStr:', parentFuncStr);
                 if(runContext.reqId > 0){
                     const thisReqIdStr = runContext.reqId.toString();
                     initDataBindingsToChartStore([thisReqIdStr]);//after run gives us a reqId
                     chartStore.setSavedColorEncodeData(parentReqIdStr, chartStore.getSelectedColorEncodeData(parentReqIdStr));
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     await initSymbolSize(runContext.reqId); // for new record
-                    initializeColorEncoding(runContext.reqId,parentFuncStr);
+                    initializeColorEncoding(runContext.reqId,'atl03x');
                     // The worker will now fetch the data from the server 
                     // and write the opfs file then update 
                     // the map selected layer and the chart
                 } else { 
-                    console.error('SrElevationPlot handlePhotonCloudChange - processRunSlideRuleClicked failed');
+                    console.error('SrElevationPlot watch atlChartFilterStore.showPhotonCloud - processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
                 initializeColorEncoding(runContext.reqId,parentFuncStr);
