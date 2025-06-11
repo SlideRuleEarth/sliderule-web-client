@@ -480,6 +480,27 @@ async function getSeriesForAtl24(
     });
 }
 
+async function getSeriesForAtl13(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+    return getGenericSeries({
+        reqIdStr,
+        fileName,
+        x,
+        y,
+        fetchOptions,
+        fetchData: fetchScatterData,         // function to fetch data
+        minMaxProperty: 'normalizedMinMaxValues', 
+        zValue: 10,                               // z value for ATL13
+        functionName: 'getSeriesForAtl13',
+    });
+}
+
+
 async function getSeriesForGedi(
     reqIdStr: string,
     fileName: string,
@@ -587,6 +608,8 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){
                 seriesData = await getSeriesForAtl24(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl13')){
+                seriesData = await getSeriesForAtl13(reqIdStr, fileName, x, y); // TBD??
             } else if(func.includes('gedi')){
                 seriesData = await getSeriesForGedi(reqIdStr, fileName, x, y);
             } else {

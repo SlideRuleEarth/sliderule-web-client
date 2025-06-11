@@ -120,19 +120,12 @@ function getUniqueTrkFieldName(reqId: number): string {
 }
 
 function getUniqueOrbitIdFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'cycle';
-        case 'atl06sp': return 'cycle';
-        case 'atl03vp': return 'cycle';
-        case 'atl03sp': return 'cycle';
-        case 'atl03x': return 'cycle';
-        case 'atl08p': return 'cycle';
-        case 'atl24x': return 'cycle';
-        case 'gedi02ap': return 'orbit';
-        case 'gedi04ap': return 'orbit';
-        case 'gedi01bp': return 'orbit';
-        default:
-            throw new Error(`Unknown UniqueOrbitId fieldname for API: ${funcStr} in getUniqueOrbitIdFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'cycle';
+    } else if(funcStr.includes('gedi')) {
+        return 'orbit';
+    } else {
+        throw new Error(`Unknown UniqueOrbitId fieldname for API: ${funcStr} in getUniqueOrbitIdFieldName`);
     }
 }
 function getUniqueOrbitIdFieldName(reqId: number): string {
@@ -147,19 +140,12 @@ function getUniqueOrbitIdFieldName(reqId: number): string {
 }
 
 function getUniqueSpotIdFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'spot';
-        case 'atl06sp': return 'spot';
-        case 'atl03vp': return 'spot';
-        case 'atl03sp': return 'spot';
-        case 'atl03x': return 'spot';
-        case 'atl08p': return 'spot';
-        case 'atl24x': return 'spot';
-        case 'gedi02ap': return 'beam';
-        case 'gedi04ap': return 'beam';
-        case 'gedi01bp': return 'beam';
-        default:
-            throw new Error(`Unknown UniqueSpotId fieldname for API: ${funcStr} in getUniqueSpotIdFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'spot';
+    } else if(funcStr.includes('gedi')) {
+        return 'beam';
+    } else{
+        throw new Error(`Unknown UniqueSpotId fieldname for API: ${funcStr} in getUniqueSpotIdFieldName`);
     }
 }
 function getUniqueSpotIdFieldName(reqId: number): string {

@@ -410,7 +410,6 @@ const createReqParamsStore = (id: string) =>
               req.atl24.anc_fields = this.atl24AncillaryFields;
             }
           } else {
-            req.asset = this.getAsset();
             if(this.missionValue === 'ICESat-2') {
               if(this.enableAtl03Confidence) {
                 if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
@@ -423,6 +422,10 @@ const createReqParamsStore = (id: string) =>
               }
             }
           }
+          if(!this.iceSat2SelectedAPI.includes('x')){
+            req.asset = this.getAsset();
+          }
+
           if(this.iceSat2SelectedAPI.includes('atl03')){ 
             if(this.atl03_geo_fields.length>0) {
               req.atl03_geo_fields = this.atl03_geo_fields;

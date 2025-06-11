@@ -403,10 +403,6 @@
                         map.addLayer(recordsLayer);
                         //dumpMapLayers(map,'SrAnalysisMap');
                         const poly = renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
-                        //const extent = getSrRegionExtents(poly);
-                        //const center = getApproxCenterUsingBounds(extent);
-                        //useMapStore().setCenterToRestore(center);
-
                     }
                     deckStore.clearDeckInstance(); // Clear any existing instance first
                     createDeckInstance(map); 
