@@ -233,6 +233,12 @@ export function getDefaultReqParamsState() {
       atl08_fields: [] as string[],
       atl13_fields: [] as string[],
       gedi_fields: [] as string[],
+      useAtl13RefId: false,
+      atl13: {
+        refid: 0 as number,
+        name: '' as string,
+        coord: {lon: 0.0, lat: 0.0} as {lon: number, lat: number},
+      } as {refid: number, name: string, coord: {lon: number, lat: number}},
   };
 }
 
@@ -437,6 +443,20 @@ const createReqParamsStore = (id: string) =>
           if(this.iceSat2SelectedAPI.includes('atl08')){ 
             if(this.atl08_fields.length>0) {
               req.atl08_fields = this.atl08_fields;
+            }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl13')){ 
+            if(!req.atl13) req.atl13 = {};
+            req.atl13.refid = this.atl13.refid;
+            req.atl13.name = this.atl13.name;
+            const pin = useMapStore().pinCoordinate;
+            if(pin){
+              if(!req.atl13.coord) req.atl13.coord = {};
+              req.atl13.coord.lon = pin[0];
+              req.atl13.coord.lat = pin[1];
+            }
+            if(this.atl13_fields.length>0) {
+              req.atl13_fields = this.atl13_fields;
             }
           }
           if(this.signalConfidenceNumber.length>0){

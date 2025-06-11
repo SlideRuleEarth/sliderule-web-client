@@ -1,5 +1,6 @@
 <template>
     <div ref="dropPinWrapper">
+        <SrCustomTooltip  ref="tooltipRef" id="editDecrTooltip" />        
         <Button
             :icon="'pi pi-map-marker'"
             :class="['sr-drop-pin-button', { 'active': mapStore.dropPinEnabled }]"
@@ -8,6 +9,8 @@
             text
             size="small"
             aria-label="Toggle Drop Pin"
+            @mouseover="showTooltip"
+            @mouseleave="hideTooltip"
         />
     </div>
 </template>
@@ -18,13 +21,21 @@ import { ref, onMounted } from 'vue';
 import { Control } from 'ol/control';
 import { useMapStore } from "@/stores/mapStore";
 import Button from 'primevue/button';
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
+import { useToast } from "primevue";
+import { useRecTreeStore } from '@/stores/recTreeStore'; 
+
+const toast = useToast();
+const recTreeStore = useRecTreeStore();
 
 const mapStore = useMapStore();
 const emit = defineEmits(['drop-pin-control-created']);
 
 const dropPinWrapper = ref<HTMLElement | null>(null);
+const tooltipRef = ref();
+const toolTipStrRef = ref('Click to toggle drop pin mode');
 
-onMounted(() => {
+onMounted(async() => {
     const element = document.createElement('div');
     element.className = 'sr-drop-pin-control ol-unselectable ol-control';
     if (dropPinWrapper.value) {
@@ -35,10 +46,31 @@ onMounted(() => {
 
     const customControl = new Control({ element });
     emit('drop-pin-control-created', customControl);
+    const apiCounts = recTreeStore.countRequestsByApi();
+    console.log("API Counts:", apiCounts);
+    if (!apiCounts.atl13x || (apiCounts.atl13x < 3)) {
+        toast.add({
+            severity: 'info',
+            summary: 'Atl13x Enter Coordinates for Inland Water',
+            detail: 'Click on the map Drop Pin button to toggle drop pin mode. Then click on an inland body of water to add it to the request.',
+            life: 5000
+        });
+    }
 });
+const showTooltip = (event: MouseEvent) => {
+    tooltipRef.value?.showTooltip(event, toolTipStrRef.value);
+};
 
+const hideTooltip = () => {
+    tooltipRef.value?.hideTooltip();
+};
 const toggleDropPin = () => {
     mapStore.dropPinEnabled = !mapStore.dropPinEnabled;
+    if (mapStore.dropPinEnabled) {
+        toolTipStrRef.value = "Drop a pin on an inland body of water to add it to use it's coordinates in the request.";
+    } else {
+        toolTipStrRef.value = "Click to toggle drop pin mode, then drop a pin on an inland body of water to add it to use it's coordinates in the request ";
+    }
     console.log(`Drop pin enabled: ${mapStore.dropPinEnabled}`);
 };
 </script>

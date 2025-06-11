@@ -6,6 +6,7 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { computed } from 'vue';
 
 const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
@@ -20,6 +21,7 @@ const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensit
 const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'));
 const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'));
 const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'));
+const SrAtl13Parms = defineAsyncComponent(() => import('@/components/SrAtl13Parms.vue'));
 
 interface Props {
   title: string;
@@ -45,7 +47,9 @@ const onPanelClose = (value:any) => {
 const isExpanded = (panelIndex: number) => {
   return expandedPanels.value.some((p) => p === panelIndex);
 };
-
+const fieldsHeader = computed(() => {
+    return `${props.iceSat2SelectedAPI} Fields`;
+});
 </script>
 
 <template>
@@ -96,10 +100,11 @@ const isExpanded = (panelIndex: number) => {
                         <SrVegDensity />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="7" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl24')" >
-                    <AccordionHeader>ATL24 Fields</AccordionHeader>
+                <AccordionPanel value="7" v-if="mission==='ICESat-2' && (props.iceSat2SelectedAPI.includes('atl24')||(props.iceSat2SelectedAPI.includes('atl13')))" >
+                    <AccordionHeader> {{fieldsHeader}}</AccordionHeader>
                     <AccordionContent v-if="isExpanded(7)">
-                        <SrAtl24Parms />
+                        <SrAtl24Parms v-if="props.iceSat2SelectedAPI.includes('atl24')"/>
+                        <SrAtl13Parms v-if="props.iceSat2SelectedAPI.includes('atl13')"/>
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03')) || (props.iceSat2SelectedAPI.includes('atl08')) || (props.iceSat2SelectedAPI.includes('atl13'))))" >

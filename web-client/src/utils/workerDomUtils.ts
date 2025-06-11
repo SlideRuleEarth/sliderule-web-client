@@ -350,12 +350,13 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord){
 
 // Function that is called when the "Run SlideRule" button is clicked
 export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : Promise<void> {
-    if(!checkAreaOfConvexHullError()){
-        //needed here for geojson upload
-        useSrToastStore().error('Error', 'The area of the convex hull is too large. Please reduce the size of the area.');
-        return;
+    if(!(useReqParamsStore().getMissionValue() === 'ICESat-2' && useReqParamsStore().getIceSat2API().includes('atl13'))){
+        if(!checkAreaOfConvexHullError()){
+            //needed here for geojson upload
+            useSrToastStore().error('Error', 'The area of the convex hull is too large. Please reduce the size of the area.');
+            return;
+        }
     }
-
     //mapStore.setIsLoading(true);
     serverStateStore.isAborting = false;
     console.log('runSlideRuleClicked');
@@ -383,7 +384,10 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 throw new Error('runSlideRuleClicked reqParamsStore was undefined');
             }
             if(!reqParamsStore.enableGranuleSelection){ // granule selection is not enabled
-                if (!reqParamsStore.ignorePolygon && (reqParamsStore.poly === null || reqParamsStore.poly.length === 0)) {
+                if (!reqParamsStore.ignorePolygon && 
+                    (reqParamsStore.poly === null || reqParamsStore.poly.length === 0) &&
+                    !(reqParamsStore.getMissionValue() === 'ICESat-2' && reqParamsStore.getIceSat2API().includes('atl13'))
+                ) {
                     console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
                     if (rc === null) {
                         useSrToastStore().error('Error', 'You must define a geographic region or a resource or use advanced filters');

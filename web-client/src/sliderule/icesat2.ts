@@ -126,8 +126,10 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
         throw new Error("SlideRuleError: atlxx requires a callback function");
     }
     try {
-        const sanityCheck = ((atlxxReqParams.resources && atlxxReqParams.resources.length > 0) || 
-                            (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) ||
+        const needPolyOrResources = !func.includes('atl13');
+        const hasResources = (atlxxReqParams.resources && atlxxReqParams.resources.length > 0);
+        const regionOk = (hasResources || ((needPolyOrResources && atlxxReqParams.parms.poly && (atlxxReqParams.parms.poly.length > 0)) || !needPolyOrResources));
+        const sanityCheck = ( regionOk ||
                             (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1))));
         //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
         if(sanityCheck){
