@@ -1305,18 +1305,9 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else if (func.includes('atl03vp')) {
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03vpSymbolSize  ?? 5);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
-    } else if (func.includes('atl06')) {
-        //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl06SymbolSize  ?? 3);
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
-    } else if (func.includes('atl08')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
-    } else if (func.includes('atl24')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
-    } else if (func.includes('gedi')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
     } else {
-        console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
-    }
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
+    } 
     //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
     return symbolStore.getSize(reqIdStr); 
 }

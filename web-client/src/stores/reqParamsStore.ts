@@ -354,8 +354,7 @@ const createReqParamsStore = (id: string) =>
             console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             return undefined;
           };
-          const req: AtlReqParams = {
-          }
+          const req: AtlReqParams = {}
           if(this.missionValue === 'ICESat-2') {
             if(this.iceSat2SelectedAPI === 'atl06sp') { // land ice
               this.setAsset('icesat2-atl06'); 
@@ -447,8 +446,12 @@ const createReqParamsStore = (id: string) =>
           }
           if(this.iceSat2SelectedAPI.includes('atl13')){ 
             if(!req.atl13) req.atl13 = {};
-            req.atl13.refid = this.atl13.refid;
-            req.atl13.name = this.atl13.name;
+            if(this.useAtl13RefId) {
+              req.atl13.refid = this.atl13.refid;
+            }
+            if(this.atl13.name && this.atl13.name.length>0) {
+              req.atl13.name = this.atl13.name;
+            }
             const pin = useMapStore().pinCoordinate;
             if(pin){
               if(!req.atl13.coord) req.atl13.coord = {};

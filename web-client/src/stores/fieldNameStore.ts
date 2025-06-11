@@ -18,6 +18,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'gedi02ap': return curGedi2apElevationField.value;
         case 'gedi04ap': return 'elevation';
         case 'gedi01bp': return 'elevation_start';
+        case 'atl13x': return 'ht_ortho'; 
         default:
             throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
     }
@@ -57,6 +58,8 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle','srcid'];
             break;
+        case 'atl13x':  options = ['ht_ortho','ht_water_surf','stdev_water_surf','water_depth','cycle','srcid'];
+            break
         case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
         case 'gedi04ap': options = ['elevation', 'track', 'beam', 'orbit'];
@@ -91,7 +94,7 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
     console.log('getTimeFieldNameForAPIStr',funcStr);
-    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
+    return (funcStr.includes('x') ? 'time_ns' : 'time');
 }
 
 function getUniqueTrkFieldNameForAPIStr(funcStr: string): string {
