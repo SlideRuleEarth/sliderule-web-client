@@ -98,19 +98,13 @@ function getTimeFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getUniqueTrkFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'rgt';
-        case 'atl06sp': return 'rgt';
-        case 'atl03vp': return 'rgt';
-        case 'atl03sp': return 'rgt';
-        case 'atl03x': return 'rgt';
-        case 'atl08p': return 'rgt';
-        case 'atl24x': return 'rgt';
-        case 'gedi02ap': return 'track';
-        case 'gedi04ap': return 'track';
-        case 'gedi01bp': return 'track';
-        default:
-            throw new Error(`Unknown rgt fieldname for API: ${funcStr} in getUniqueTrkFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'rgt';
+    } else if(funcStr.includes('gedi')) {
+        // GEDI APIs have different field names for track
+        return 'track';
+    } else {
+        throw new Error(`Unknown rgt/track fieldname for API: ${funcStr} in getUniqueTrkFieldName`);
     }
 }
 
