@@ -47,7 +47,10 @@
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
     import type { Source } from 'ol/source';
     import type LayerRenderer  from 'ol/renderer/Layer';
-    import SrCustomTooltip from "./SrCustomTooltip.vue";
+    import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
+    import SrDropPinControl from "@/components//SrDropPinControl.vue";
+    import Point from 'ol/geom/Point';
+    import { Circle as CircleStyle } from 'ol/style';
 
     const featureMenuOverlayRef = ref();
     const tooltipRef = ref();
@@ -655,7 +658,17 @@
         if(map){
             map.addControl(drawControl);
         } else {
-            console.error("Error:map is null");
+            console.error("handleDrawControlCreated Error:map is null");
+        }
+    };
+
+    function handlePinDropControlCreated(pinDropControl: any) {
+        //console.log(drawControl);
+        const map = mapRef.value?.map;
+        if(map){
+            map.addControl(pinDropControl);
+        } else {
+            console.error("handlePinDropControlCreated Error:map is null");
         }
     };
 
@@ -816,6 +829,61 @@
         addRecordPolys();
     },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
     
+    let dropPinClickListener: ((evt: any) => void) | null = null;
+
+    watch(() => mapStore.dropPinEnabled, (newValue, oldValue) => {
+        console.log(`SrMap watch mapStore.dropPinEnabled changed from ${oldValue} to ${newValue}`);
+        const map = mapRef.value?.map;
+        if (!map) {
+            console.error("Map is not available in dropPinEnabled watcher");
+            return;
+        }
+
+        const targetElement = map.getTargetElement();
+
+        if (newValue) {
+            targetElement.style.cursor = 'crosshair';
+            dropPinClickListener = function (evt) {
+                const coordinate = evt.coordinate;
+
+                // Save lat/lon to store
+                mapStore.pinCoordinate = toLonLat(coordinate, map.getView().getProjection());
+
+                // Clear previous pin(s)
+                uploadedFeaturesVectorSource.clear();
+
+                // Create and style new pin
+                const pointFeature = new Feature({
+                    geometry: new Point(coordinate),
+                    name: "Dropped Pin",
+                });
+
+                pointFeature.setStyle(new Style({
+                    image: new CircleStyle({
+                        radius: 6,
+                        fill: new Fill({ color: 'red' }),
+                        stroke: new Stroke({ color: 'white', width: 2 })
+                    })
+                }));
+
+                uploadedFeaturesVectorSource.addFeature(pointFeature);
+
+                // Reset cursor and state
+                map.getTargetElement().style.cursor = '';
+                map.un('click', dropPinClickListener!);
+                mapStore.dropPinEnabled = false;
+                dropPinClickListener = null;
+            };
+            map.on('click', dropPinClickListener);
+        } else {
+            targetElement.style.cursor = '';
+            if (dropPinClickListener) {
+                map.un('click', dropPinClickListener);
+                dropPinClickListener = null;
+            }
+        }
+    });
+
 </script>
 
 <template>
@@ -847,9 +915,10 @@
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
             <MapControls.OlScalelineControl />
-            <SrDrawControl ref="srDrawControlRef" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+            <SrDrawControl ref="srDrawControlRef" v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
             <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
             <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
+            <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
         </Map.OlMap>
 
 
@@ -1070,6 +1139,13 @@
   left: 0.5rem; 
   right: auto;  
   background-color: black;
+  border-radius: var(--p-border-radius);
+}
+
+:deep(.sr-drop-pin-control){
+  top: 12rem; 
+  left: 0.5rem; 
+  right: auto;  
   border-radius: var(--p-border-radius);
 }
 

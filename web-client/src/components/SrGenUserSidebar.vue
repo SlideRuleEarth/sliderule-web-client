@@ -12,7 +12,9 @@
 
 <template>
     <div class="sr-gen-user-sidebar-container">
-        <SrReqDisplay />
+        <div class="sr-gen-user-wrapper">
+            <SrReqDisplay />
+        </div>
         <SrGenUserPresets />
     </div>
 </template>
@@ -23,6 +25,9 @@
         flex-direction: column;
         gap: 1rem;
         height: 100vh;
+    }
+    .sr-gen-user-wrapper {
+        margin-top: 0.25rem;
     }
 
 </style>

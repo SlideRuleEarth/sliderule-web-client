@@ -11,9 +11,10 @@ const boxes = computed(() => [
   { id: 3, name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
   { id: 4, name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
   { id: 5, name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
-  { id: 6, name: "GEDI Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 7, name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrInlandWater.webp" },
-  { id: 8, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
+  { id: 6, name: "ICESat-2 Inland Bodies of Water", description: "For inland bodies of water", image: "/SrOcean.webp" },
+  { id: 7, name: "GEDI Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
+  { id: 8, name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrInlandWater.webp" },
+  { id: 9, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
 ]);
 
 const selectBox = (boxId: number) => {
@@ -56,6 +57,12 @@ const selectBox = (boxId: number) => {
         reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x');
+        reqParameterStore.setAsset('icesat2');
+        break;
+      case 'ICESat-2 Inland Bodies of Water':
+        reqParameterStore.reset();
+        reqParameterStore.setMissionValue('ICESat-2');
+        reqParameterStore.setIceSat2API('atl13x');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'GEDI Biomass Density':

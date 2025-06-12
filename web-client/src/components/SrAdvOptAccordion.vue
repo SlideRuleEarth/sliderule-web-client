@@ -6,6 +6,7 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { defineAsyncComponent,ref } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { computed } from 'vue';
 
 const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
 const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
@@ -20,6 +21,7 @@ const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensit
 const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'));
 const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'));
 const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'));
+const SrAtl13Parms = defineAsyncComponent(() => import('@/components/SrAtl13Parms.vue'));
 
 interface Props {
   title: string;
@@ -45,7 +47,9 @@ const onPanelClose = (value:any) => {
 const isExpanded = (panelIndex: number) => {
   return expandedPanels.value.some((p) => p === panelIndex);
 };
-
+const fieldsHeader = computed(() => {
+    return `${props.iceSat2SelectedAPI} Fields`;
+});
 </script>
 
 <template>
@@ -96,13 +100,14 @@ const isExpanded = (panelIndex: number) => {
                         <SrVegDensity />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="7" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl24')" >
-                    <AccordionHeader>ATL24 Fields</AccordionHeader>
+                <AccordionPanel value="7" v-if="mission==='ICESat-2' && (props.iceSat2SelectedAPI.includes('atl24')||(props.iceSat2SelectedAPI.includes('atl13')))" >
+                    <AccordionHeader> {{fieldsHeader}}</AccordionHeader>
                     <AccordionContent v-if="isExpanded(7)">
-                        <SrAtl24Parms />
+                        <SrAtl24Parms v-if="props.iceSat2SelectedAPI.includes('atl24')"/>
+                        <SrAtl13Parms v-if="props.iceSat2SelectedAPI.includes('atl13')"/>
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03')) || (props.iceSat2SelectedAPI.includes('atl08'))))" >
+                <AccordionPanel value="8" v-if="(mission==='ICESat-2') && ((props.iceSat2SelectedAPI.includes('atl06') || (props.iceSat2SelectedAPI.includes('atl03')) || (props.iceSat2SelectedAPI.includes('atl08')) || (props.iceSat2SelectedAPI.includes('atl13'))))" >
                     <AccordionHeader>Ancillary Fields</AccordionHeader>
                     <AccordionContent v-if="isExpanded(8)">
                         <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_geo_fields" placeholder="Add Ancillary Field" label="atl03 Geo Fields"/>
@@ -110,6 +115,7 @@ const isExpanded = (panelIndex: number) => {
                         <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl03')" v-model="reqParamsStore.atl03_ph_fields" placeholder="Add Ancillary Field" label="atl03 Ph Fields"/>
                         <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl06')" v-model="reqParamsStore.atl06_fields" placeholder="Add Ancillary Field" label="atl06 Fields"/>
                         <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl08')" v-model="reqParamsStore.atl08_fields" placeholder="Add Ancillary Field" label="atl08 Fields"/>
+                        <SrAncillaryFieldEditor v-if="props.iceSat2SelectedAPI.includes('atl13')" v-model="reqParamsStore.atl13_fields" placeholder="Add Ancillary Field" label="atl13 Fields"/>
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="9" v-if="(mission==='GEDI') " >

@@ -247,25 +247,10 @@ export const useChartStore = defineStore('chartStore', {
                 return this.getYDataOptions(reqIdStr);
             } else if(func.includes('atl03x')) {
                 return this.getYDataOptions(reqIdStr);
-            } else if(func.includes('atl03vp')) {
-                const ret = ['solid'];
-                return ret.concat(this.getYDataOptions(reqIdStr));
-            } else if(func.includes('atl06')) {
-                const ret = ['solid'];
-                return ret.concat(this.getYDataOptions(reqIdStr));
-            } else if(func.includes('atl08')) {
-                const ret = ['solid'];
-                return ret.concat(this.getYDataOptions(reqIdStr));
-            } else if(func.includes('atl24')) {
-                const ret = ['solid'];
-                return ret.concat(this.getYDataOptions(reqIdStr));
-            } else if(func.includes('gedi')) {
-                const ret = ['solid'];
-                return ret.concat(this.getYDataOptions(reqIdStr));
             } else {
-                console.error('getColorEncodeOptionsForFunc() unknown function:', func);
-                return [];
-            }  
+                const ret = ['solid'];
+                return ret.concat(this.getYDataOptions(reqIdStr));
+            }
         }, 
         getSelectedYData(reqIdStr: string): string {
             if(this.ensureState(reqIdStr)){
@@ -311,6 +296,8 @@ export const useChartStore = defineStore('chartStore', {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
+            } else if (func.includes('atl13')) {
+                this.setXDataForChart(reqIdStr,'longitude'); // this is a placeholder/HACK
             } else if (func.includes('gedi')) {
                 this.setXDataForChart(reqIdStr,'longitude'); // this is a placeholder/HACK
             } else {

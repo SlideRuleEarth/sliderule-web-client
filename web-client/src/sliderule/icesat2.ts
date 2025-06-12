@@ -126,8 +126,12 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
         throw new Error("SlideRuleError: atlxx requires a callback function");
     }
     try {
-        const sanityCheck = ((atlxxReqParams.resources && atlxxReqParams.resources.length > 0) || 
-                            (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) ||
+        const needPolyOrResources = !func.includes('atl13');
+        const hasMapPin = atlxxReqParams.parms.atl13?.coord && atlxxReqParams.parms.atl13?.coord?.lon && atlxxReqParams.parms.atl13?.coord?.lat;
+        const hasResources = (atlxxReqParams.resources && atlxxReqParams.resources.length > 0);
+        const regionOk = (hasResources || 
+                        ((needPolyOrResources && atlxxReqParams.parms.poly && (atlxxReqParams.parms.poly.length > 0)) || (!needPolyOrResources && hasMapPin))); 
+        const sanityCheck = ( regionOk ||
                             (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1))));
         //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
         if(sanityCheck){
@@ -135,11 +139,11 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
             console.log("atlxx result: ", result);
             return result as core.Sr_Results_type;
         } else {
-            console.error("atlxx error: ", "atlxx requires either a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
+            console.warn("atlxx error: ", "atlxx requires either a map Pin, a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
             throw new Error("SlideRuleError: atlxx requires either a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
         }
     } catch (error) {
-        console.log("atlxx error: ", error);
+        console.warn("atlxx error: ", error);
         throw error;
     }
 };

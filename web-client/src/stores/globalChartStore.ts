@@ -32,7 +32,6 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const y_atc_margin = ref<number>(50.0);
     const max_pnts_on_plot = ref<number>(50000);
     const chunk_size_for_plot = ref<number>(10000);
-    const selected_y_atc_label = ref<string>('y_atc');
     const titleOfElevationPlot = ref<string>('Highlighted Track(s)'); // Default title for the elevation plot
     const allColumnMinMaxValues = ref<MinMaxLowHigh>({});
 

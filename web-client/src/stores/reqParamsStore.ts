@@ -29,7 +29,7 @@ export function getDefaultReqParamsState() {
       missionValue: 'ICESat-2' as string,
       missionItems:['ICESat-2','GEDI'] as string[],
       iceSat2SelectedAPI: 'atl06p' as string,
-      iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x'] as string[],
+      iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x','atl13x'] as string[],
       gediSelectedAPI: 'gedi01bp' as string,
       gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
       using_worker: false,
@@ -233,6 +233,12 @@ export function getDefaultReqParamsState() {
       atl08_fields: [] as string[],
       atl13_fields: [] as string[],
       gedi_fields: [] as string[],
+      useAtl13RefId: false,
+      atl13: {
+        refid: 0 as number,
+        name: '' as string,
+        coord: {lon: 0.0, lat: 0.0} as {lon: number, lat: number},
+      } as {refid: number, name: string, coord: {lon: number, lat: number}},
   };
 }
 
@@ -348,8 +354,7 @@ const createReqParamsStore = (id: string) =>
             console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
             return undefined;
           };
-          const req: AtlReqParams = {
-          }
+          const req: AtlReqParams = {}
           if(this.missionValue === 'ICESat-2') {
             if(this.iceSat2SelectedAPI === 'atl06sp') { // land ice
               this.setAsset('icesat2-atl06'); 
@@ -405,7 +410,6 @@ const createReqParamsStore = (id: string) =>
               req.atl24.anc_fields = this.atl24AncillaryFields;
             }
           } else {
-            req.asset = this.getAsset();
             if(this.missionValue === 'ICESat-2') {
               if(this.enableAtl03Confidence) {
                 if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
@@ -418,6 +422,10 @@ const createReqParamsStore = (id: string) =>
               }
             }
           }
+          if(!this.iceSat2SelectedAPI.includes('x')){
+            req.asset = this.getAsset();
+          }
+
           if(this.iceSat2SelectedAPI.includes('atl03')){ 
             if(this.atl03_geo_fields.length>0) {
               req.atl03_geo_fields = this.atl03_geo_fields;
@@ -437,6 +445,24 @@ const createReqParamsStore = (id: string) =>
           if(this.iceSat2SelectedAPI.includes('atl08')){ 
             if(this.atl08_fields.length>0) {
               req.atl08_fields = this.atl08_fields;
+            }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl13')){ 
+            if(!req.atl13) req.atl13 = {};
+            if(this.useAtl13RefId) {
+              req.atl13.refid = this.atl13.refid;
+            }
+            if(this.atl13.name && this.atl13.name.length>0) {
+              req.atl13.name = this.atl13.name;
+            }
+            const pin = useMapStore().pinCoordinate;
+            if(pin){
+              if(!req.atl13.coord) req.atl13.coord = {};
+              req.atl13.coord.lon = pin[0];
+              req.atl13.coord.lat = pin[1];
+            }
+            if(this.atl13_fields.length>0) {
+              req.atl13_fields = this.atl13_fields;
             }
           }
           if(this.signalConfidenceNumber.length>0){

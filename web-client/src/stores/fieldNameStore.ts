@@ -18,7 +18,9 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'gedi02ap': return curGedi2apElevationField.value;
         case 'gedi04ap': return 'elevation';
         case 'gedi01bp': return 'elevation_start';
+        case 'atl13x': return 'ht_ortho'; 
         default:
+            console.trace(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
             throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
     }
 }
@@ -32,7 +34,12 @@ function getMissionFromApiStr(apiStr: string): string {
 function getMissionForReqId(reqId: number): string {
     if (reqId <= 0) return 'ICESat-2'; // Default to ICESat-2 for invalid reqId
     const funcStr = useRecTreeStore().findApiForReqId(reqId);
-    return getMissionFromApiStr(funcStr);
+    if(funcStr){
+        return getMissionFromApiStr(funcStr);
+    } else {
+        console.warn(`No API found for reqId:${reqId} funcStr:${funcStr} in getMissionForReqId`);
+        return 'ICESat-2'; // Default to ICESat-2 if no API found
+    }
 }
 
 
@@ -57,6 +64,8 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle','srcid'];
             break;
+        case 'atl13x':  options = ['ht_ortho','ht_water_surf','stdev_water_surf','water_depth','cycle','srcid'];
+            break
         case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
         case 'gedi04ap': options = ['elevation', 'track', 'beam', 'orbit'];
@@ -91,23 +100,17 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
     console.log('getTimeFieldNameForAPIStr',funcStr);
-    return ((funcStr === 'atl24x')||(funcStr === 'atl03x')) ? 'time_ns' : 'time';
+    return (funcStr.includes('x') ? 'time_ns' : 'time');
 }
 
 function getUniqueTrkFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'rgt';
-        case 'atl06sp': return 'rgt';
-        case 'atl03vp': return 'rgt';
-        case 'atl03sp': return 'rgt';
-        case 'atl03x': return 'rgt';
-        case 'atl08p': return 'rgt';
-        case 'atl24x': return 'rgt';
-        case 'gedi02ap': return 'track';
-        case 'gedi04ap': return 'track';
-        case 'gedi01bp': return 'track';
-        default:
-            throw new Error(`Unknown rgt fieldname for API: ${funcStr} in getUniqueTrkFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'rgt';
+    } else if(funcStr.includes('gedi')) {
+        // GEDI APIs have different field names for track
+        return 'track';
+    } else {
+        throw new Error(`Unknown rgt/track fieldname for API: ${funcStr} in getUniqueTrkFieldName`);
     }
 }
 
@@ -123,19 +126,12 @@ function getUniqueTrkFieldName(reqId: number): string {
 }
 
 function getUniqueOrbitIdFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'cycle';
-        case 'atl06sp': return 'cycle';
-        case 'atl03vp': return 'cycle';
-        case 'atl03sp': return 'cycle';
-        case 'atl03x': return 'cycle';
-        case 'atl08p': return 'cycle';
-        case 'atl24x': return 'cycle';
-        case 'gedi02ap': return 'orbit';
-        case 'gedi04ap': return 'orbit';
-        case 'gedi01bp': return 'orbit';
-        default:
-            throw new Error(`Unknown UniqueOrbitId fieldname for API: ${funcStr} in getUniqueOrbitIdFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'cycle';
+    } else if(funcStr.includes('gedi')) {
+        return 'orbit';
+    } else {
+        throw new Error(`Unknown UniqueOrbitId fieldname for API: ${funcStr} in getUniqueOrbitIdFieldName`);
     }
 }
 function getUniqueOrbitIdFieldName(reqId: number): string {
@@ -150,19 +146,12 @@ function getUniqueOrbitIdFieldName(reqId: number): string {
 }
 
 function getUniqueSpotIdFieldNameForAPIStr(funcStr: string): string {
-    switch (funcStr) {
-        case 'atl06p': return 'spot';
-        case 'atl06sp': return 'spot';
-        case 'atl03vp': return 'spot';
-        case 'atl03sp': return 'spot';
-        case 'atl03x': return 'spot';
-        case 'atl08p': return 'spot';
-        case 'atl24x': return 'spot';
-        case 'gedi02ap': return 'beam';
-        case 'gedi04ap': return 'beam';
-        case 'gedi01bp': return 'beam';
-        default:
-            throw new Error(`Unknown UniqueSpotId fieldname for API: ${funcStr} in getUniqueSpotIdFieldName`);
+    if(funcStr.includes('atl')) {
+        return 'spot';
+    } else if(funcStr.includes('gedi')) {
+        return 'beam';
+    } else{
+        throw new Error(`Unknown UniqueSpotId fieldname for API: ${funcStr} in getUniqueSpotIdFieldName`);
     }
 }
 function getUniqueSpotIdFieldName(reqId: number): string {

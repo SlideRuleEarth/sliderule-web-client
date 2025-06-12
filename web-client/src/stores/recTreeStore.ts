@@ -5,6 +5,7 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStoreFor,initSymbolSize } from '@/utils/plotUtils';
 
 
+
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
     if (!nodes) return null;
   
@@ -88,6 +89,22 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         return node?.api ? node.api : '';
     });    
     const allReqIds = computed(() => {return reqIdMenuItems.value.map(item => item.value);});
+    const countRequestsByApi = (): Record<string, number> => {
+        const countMap: Record<string, number> = {};
+
+        const traverse = (nodes: SrPrimeTreeNode[]) => {
+            for (const node of nodes) {
+                const api = node.api || '';
+                countMap[api] = (countMap[api] || 0) + 1;
+                if (node.children && node.children.length > 0) {
+                    traverse(node.children);
+                }
+            }
+        };
+
+        traverse(treeData.value);
+        return countMap;
+    };
     
     // Actions
 
@@ -148,6 +165,11 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
 
     const findApiForReqId = (reqId: number): string => {
         const node = findNodeByKey(treeData.value, reqId.toString());
+        if (!node && reqId > 0) {
+            console.warn(`findApiForReqId: Node with reqId ${reqId} not found`);
+            //console.trace(`findApiForReqId: Node with reqId ${reqId} not found treeData:`, treeData.value);
+            return '';
+        }
         return node?.api || '';
     };
 
@@ -211,5 +233,6 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         updateRecMenu,
         initToFirstRecord,
         findApiForReqId,
+        countRequestsByApi, 
     };
 });

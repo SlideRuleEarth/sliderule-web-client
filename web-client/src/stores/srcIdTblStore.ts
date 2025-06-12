@@ -13,6 +13,7 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
             sourceTable.value = [];
             return;
         }
+        await db.insertOpfsParquet(fileName);
         const parsed = (await db.getJsonMetaDataForKey( 'meta',fileName)).parsedMetadata;
         if (parsed && parsed.srctbl && typeof parsed.srctbl === 'object') {
             // Convert object with numeric keys to an array

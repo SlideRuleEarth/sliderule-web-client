@@ -85,14 +85,26 @@ export interface SrScatterSeriesData{
 };
 
 export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
-    const func = useRecTreeStore().findApiForReqId(reqId);
-    return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
+    if(reqId > 0) {
+        const func = useRecTreeStore().findApiForReqId(reqId);
+        if(func){
+            return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
+        } else {
+            console.warn(`getDefaultColorEncoding: No function found for reqId: ${reqId}. Returning 'solid'.`);
+            return 'solid'; // default color encoding
+        }
+    } else {
+        console.warn(`getDefaultColorEncoding: Invalid reqId: ${reqId}. Returning 'solid'.`);
+        return 'solid'; // default color encoding
+    }
 }
 
 export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
     const reqIdStr = reqId.toString();
     const chartStore = useChartStore();
-    chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
+    if(reqId > 0) {
+        chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId,parentFuncStr));
+    }
     //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
@@ -480,6 +492,27 @@ async function getSeriesForAtl24(
     });
 }
 
+async function getSeriesForAtl13(
+    reqIdStr: string,
+    fileName: string,
+    x: string,
+    y: string[]
+): Promise<SrScatterSeriesData[]> {
+    const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
+    return getGenericSeries({
+        reqIdStr,
+        fileName,
+        x,
+        y,
+        fetchOptions,
+        fetchData: fetchScatterData,         // function to fetch data
+        minMaxProperty: 'normalizedMinMaxValues', 
+        zValue: 10,                               // z value for ATL13
+        functionName: 'getSeriesForAtl13',
+    });
+}
+
+
 async function getSeriesForGedi(
     reqIdStr: string,
     fileName: string,
@@ -587,6 +620,8 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){
                 seriesData = await getSeriesForAtl24(reqIdStr, fileName, x, y);
+            } else if(func.includes('atl13')){
+                seriesData = await getSeriesForAtl13(reqIdStr, fileName, x, y); // TBD??
             } else if(func.includes('gedi')){
                 seriesData = await getSeriesForGedi(reqIdStr, fileName, x, y);
             } else {
@@ -1305,18 +1340,9 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     } else if (func.includes('atl03vp')) {
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03vpSymbolSize  ?? 5);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
-    } else if (func.includes('atl06')) {
-        //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl06SymbolSize  ?? 3);
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
-    } else if (func.includes('atl08')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
-    } else if (func.includes('atl24')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl08SymbolSize ?? 3));
-    } else if (func.includes('gedi')) {
-        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
     } else {
-        console.error('initSymbolSize unknown function:', func,' for reqId:', req_id);
-    }
+        symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
+    } 
     //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
     return symbolStore.getSize(reqIdStr); 
 }
