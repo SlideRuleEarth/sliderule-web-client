@@ -54,8 +54,6 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import {getFetchUrlAndOptions} from "@/utils/fetchUtils";
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
 
-const srcIdTblStore = useSrcIdTblStore();
-
 declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
 
 interface SaveFilePickerOptions {

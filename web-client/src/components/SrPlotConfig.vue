@@ -122,7 +122,8 @@ onMounted(() => {
     //console.log('SrPlotConfig onMounted computedReqIdStr:', computedReqIdStr.value);
     enableLocationFinder();
     const api = recTreeStore.findApiForReqId(props.reqId);
-    if(api === 'atl24x' || api === 'atl03x') {
+    console.log('SrPlotConfig onMounted api:', api);
+    if(api.includes('x')) {
         srcIdTblStore.setSourceTbl(props.reqId);
     }
 });
