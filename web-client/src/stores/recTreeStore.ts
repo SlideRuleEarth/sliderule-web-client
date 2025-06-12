@@ -4,8 +4,6 @@ import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStoreFor,initSymbolSize } from '@/utils/plotUtils';
 
-
-
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
     if (!nodes) return null;
   

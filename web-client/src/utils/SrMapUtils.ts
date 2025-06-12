@@ -50,12 +50,11 @@ import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 import { boundingExtent } from 'ol/extent';
 import type { Geometry } from 'ol/geom';
 import type { Extent } from 'ol/extent';
+import type { SrLatLon } from '@/sliderule/icesat2';
 import Point from 'ol/geom/Point';
-import LineString from 'ol/geom/LineString';
-import MultiPoint from 'ol/geom/MultiPoint';
-import Polygon from 'ol/geom/Polygon';
-import MultiLineString from 'ol/geom/MultiLineString';
-import MultiPolygon from 'ol/geom/MultiPolygon';
+import { Circle as CircleStyle } from 'ol/style';
+
+
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
@@ -834,7 +833,13 @@ export function zoomToRequestPolygon(map: OLMap, reqId:number): void {
     }
 }
 
-export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number}[],color:string, reqId:number=0, layerName:string='Drawing Layer',forceZoom:boolean=false): void {
+export function renderRequestPolygon(map: OLMap, 
+                                    poly: {lon: number, lat: number}[],
+                                    color:string, 
+                                    reqId:number=0, 
+                                    layerName:string='Drawing Layer',
+                                    forceZoom:boolean=false): void 
+{
     // 1. Find your vector layer
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
     if (!vectorLayer) {
@@ -896,6 +901,118 @@ export function renderRequestPolygon(map: OLMap, poly: {lon: number, lat: number
     //console.log('renderRequestPolygon: feature added', feature, 'polygon:',polygon, 'color',color, 'reqId:',reqId, 'layerName:',layerName, 'forceZoom:',forceZoom);
 }
 
+async function getAtl13CoordFromSvrParms(reqId:number): Promise<SrLatLon | null> {
+    const jsonStr = await db.getSvrParams(reqId) as any;
+    const jsonObj = JSON.parse(jsonStr);
+    console.log('getAtl13CoordFromSvrParms reqId:',reqId, 'jsonObj:', 'jsonObj:',jsonObj);
+    console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord:',jsonObj?.atl13?.coord);
+    console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord.lon:',jsonObj?.atl13?.coord?.lon, 'jsonObj.atl13.coord.lat:',jsonObj?.atl13?.coord?.lat, ' typeof jsonObj.atl13.coord.lon:',typeof jsonObj?.atl13?.coord?.lon, ' typeof jsonObj.atl13.coord.lat:',typeof jsonObj?.atl13?.coord?.lat);
+    if (jsonObj?.atl13?.coord && typeof jsonObj?.atl13?.coord?.lon === 'number' && typeof jsonObj?.atl13?.coord?.lat === 'number') {
+        return {
+            lon: jsonObj.atl13.coord.lon,
+            lat: jsonObj.atl13.coord.lat
+        };
+    }
+    return null;
+}
+
+export function renderReqPin(
+    map: OLMap,
+    coord: SrLatLon,
+    featureId: string = 'Dropped Pin',
+    layerName: string = 'Drawing Layer',
+    forceZoom: boolean = false,
+    reqId: number = 0 // <--- add this to associate metadata
+): void {
+    if (!map || !coord) return;
+
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
+    if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
+        console.error(`renderReqPin: ${layerName} not found or not an OLlayer`);
+        return;
+    }
+
+    const vectorSource = vectorLayer.getSource();
+    if (!(vectorSource instanceof VectorSource)) {
+        console.error(`renderReqPin: vector source not found for layer ${layerName}`);
+        return;
+    }
+
+    const projection = map.getView().getProjection();
+    const coordTransformed = projection.getUnits() === 'degrees'
+        ? [coord.lon, coord.lat]
+        : fromLonLat([coord.lon, coord.lat], projection);
+
+    const pointFeature = new Feature({
+        geometry: new Point(coordTransformed),
+        name: `Record ${reqId}`,
+        req_id: reqId,
+        tag: `Record ${reqId}`
+    });
+
+    pointFeature.setId(featureId);
+
+    pointFeature.setStyle(new Style({
+        image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({ color: 'red' }),
+            stroke: new Stroke({ color: 'white', width: 2 })
+        }),
+        text: new TextStyle({
+            text: reqId > 0 ? reqId.toString() : '',
+            font: '14px Calibri,sans-serif',
+            fill: new Fill({ color: '#000' }),
+            stroke: new Stroke({ color: '#fff', width: 3 }),
+            offsetY: -15
+        })
+    }));
+
+    vectorSource.addFeature(pointFeature);
+
+    if (forceZoom) {
+        const geom = pointFeature.getGeometry();
+        if (geom) {
+            map.getView().fit(geom.getExtent(), {
+                size: map.getSize(),
+                padding: [20, 20, 20, 20]
+            });
+        }
+    }
+}
+
+
+export async function renderSvrReqPin(
+    map: OLMap,
+    reqId: number,
+    layerName: string = 'Records Layer',
+    forceZoom: boolean = false
+): Promise<SrLatLon | null> {
+    const startTime = performance.now();
+    let coord: SrLatLon | null = null;
+    console.log(`renderSvrReqPin: reqId: ${reqId}, layerName: ${layerName}, forceZoom: ${forceZoom}`);
+    try {
+        if (!map) {
+            console.error('renderSvrReqPin Error: map is null');
+            return null;
+        }
+
+        coord = await getAtl13CoordFromSvrParms(reqId);
+        if ((coord === undefined) || (coord === null) ||  (coord.lon === undefined) || (coord.lat === undefined)) {
+            console.warn(`renderSvrReqPin: No coordinate found for reqId ${reqId}`);
+            return null;
+        }
+
+        renderReqPin(map, coord, `Atl13Coord:${reqId}`, layerName, forceZoom, reqId);
+    } catch (error) {
+        console.error('renderSvrReqPin Error:', error);
+    }
+
+    const endTime = performance.now();
+    console.log(`renderSvrReqPin took ${endTime - startTime} milliseconds.`);
+    return coord;
+}
+
+
 export async function renderSvrReqPoly(map:OLMap,reqId:number,layerName:string='Records Layer',forceZoom:boolean=false): Promise<SrRegion> {
     const startTime = performance.now(); // Start time
     let poly:SrRegion = [];
@@ -912,7 +1029,7 @@ export async function renderSvrReqPoly(map:OLMap,reqId:number,layerName:string='
                     renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
                 }
             } else {
-                console.warn('renderSvrReqPoly Error getting svrReqPoly for reqId:',reqId);
+                console.warn('renderSvrReqPoly No svrReqPoly for reqId:',reqId);
             }
         } else {
             console.error('renderSvrReqPoly Error: map is null');
