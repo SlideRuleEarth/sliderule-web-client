@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from "vue";
+    import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
     import { Map as OLMap} from "ol";
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
@@ -26,7 +26,7 @@
     import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { checkAreaOfConvexHullWarning,updateSrViewName } from "@/utils/SrMapUtils";
+    import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
@@ -41,7 +41,7 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly,zoomOutToFullMap} from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
@@ -540,6 +540,7 @@
             mapStore.setMap(mapRef.value.map);
             const map = mapStore.getMap() as OLMap;
             const haveReqPoly = !((reqParamsStore.poly===undefined) || (reqParamsStore.poly === null) || (reqParamsStore.poly.length === 0));
+            const haveReqPin = !((reqParamsStore.atl13.coord.lat===undefined) || (reqParamsStore.atl13.coord.lat === null));
             if(map){
                 if(!geoCoderStore.isInitialized()){
                 //console.log("Initializing geocoder");
@@ -619,10 +620,10 @@
                 console.error("SrMap Error:map is null");
             } 
             //dumpMapLayers(map, 'SrMap onMounted');
-            addRecordPolys();
-            if(haveReqPoly){
+            addRecordLayer();
+            if(haveReqPoly || haveReqPin){
                 //draw and zoom to the current reqParamsStore.poly
-                drawCurrentReqPoly('red');
+                drawCurrentReqPolyAndPin('red');
             }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
@@ -694,23 +695,27 @@
         }
     };
 
-    async function addRecordPolys() : Promise<void> {
+    async function addRecordLayer() : Promise<void> {
         const startTime = performance.now(); // Start time
         const reqIds = recTreeStore.allReqIds;
         const map = mapRef.value?.map;
         if(map){
-            reqIds.forEach(reqId => {           
-                //console.log(`handleUpdateBaseLayer renderSvrReqPoly for ${reqId}`);
-                renderSvrReqPoly(map, reqId);
+            reqIds.forEach(async reqId => {    
+                const api = recTreeStore.findApiForReqId(reqId);
+                if(api.includes('atl13')){
+                    renderSvrReqPin(map,reqId);
+                }  else {     
+                    renderSvrReqPoly(map, reqId);
+                }
             });
         } else {
-            console.warn("SrMap skipping addRecordPolys when map is null");
+            console.warn("addRecordLayer SrMap skipping addRecordLayer when map is null");
         }
         const endTime = performance.now(); // End time
-        console.log('SrMap addRecordPolys for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
+        console.log('SrMap addRecordLayer for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
-    function drawCurrentReqPoly(color:string) {
+    function drawCurrentReqPolyAndPin(poly_color:string) {
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -718,18 +723,20 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, color);
-                    } else {
-                        console.error("drawCurrentReqPoly Error:reqParamsStore.poly is null");
+                        renderRequestPolygon(map, reqParamsStore.poly, poly_color);
+                    } 
+                    // check and see if pinCoordinate is defined
+                    if(mapStore.pinCoordinate){
+                        renderReqPin(map,{lon:mapStore.pinCoordinate[0],lat:mapStore.pinCoordinate[1]});
                     }
                 } else {
-                    console.error("drawCurrentReqPoly Error:vectorSource is null");
+                    console.error("drawCurrentReqPolyAndPin Error:vectorSource is null");
                 }
             } else {
-                console.error("drawCurrentReqPoly Error:vectorLayer is null");
+                console.error("drawCurrentReqPolyAndPin Error:vectorLayer is null");
             }
         } else {
-            console.error("drawCurrentReqPoly Error:map is null");
+            console.error("drawCurrentReqPolyAndPin Error:map is null");
         }
     }
 
@@ -826,7 +833,7 @@
     // Watch for changes in reqIds and handle the logic
     watch(() => recTreeStore.allReqIds, (newReqIds, oldReqIds) => {
         console.log(`SrMap watch num reqIds changed from ${oldReqIds?.length} to ${newReqIds.length}`);
-        addRecordPolys();
+        addRecordLayer();
     },{ deep: true, immediate: true }); // Options to ensure it works for arrays and triggers initially
     
     let dropPinClickListener: ((evt: any) => void) | null = null;
