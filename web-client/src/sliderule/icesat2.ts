@@ -126,14 +126,18 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
         throw new Error("SlideRuleError: atlxx requires a callback function");
     }
     try {
-        const needPolyOrResources = !func.includes('atl13');
-        const hasMapPin = atlxxReqParams.parms.atl13?.coord && atlxxReqParams.parms.atl13?.coord?.lon && atlxxReqParams.parms.atl13?.coord?.lat;
-        const hasResources = (atlxxReqParams.resources && atlxxReqParams.resources.length > 0);
-        const regionOk = (hasResources || 
-                        ((needPolyOrResources && atlxxReqParams.parms.poly && (atlxxReqParams.parms.poly.length > 0)) || (!needPolyOrResources && hasMapPin))); 
-        const sanityCheck = ( regionOk ||
-                            (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1))));
-        //console.log("atl06p rqst: ", JSON.stringify(alt06preqparams));
+        let sanityCheck = false;
+        const hasFilter = (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1)));
+        if(func.includes('atl13')){
+            const hasMapPin = atlxxReqParams.parms.atl13?.coord && atlxxReqParams.parms.atl13?.coord?.lon && atlxxReqParams.parms.atl13?.coord?.lat;
+            const hasPolygon = atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0;
+            sanityCheck = (hasMapPin || hasPolygon );
+        } else {
+            sanityCheck = ((atlxxReqParams.resources && atlxxReqParams.resources.length > 0) || 
+            (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) || 
+            hasFilter );
+        }
+
         if(sanityCheck){
             const result = await core.source(func, atlxxReqParams, true, callbacks);
             console.log("atlxx result: ", result);

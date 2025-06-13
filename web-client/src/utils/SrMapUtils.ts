@@ -44,7 +44,7 @@ import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { duckDbReadAndUpdateElevationData, getAllFilteredCycleOptionsFromFile } from '@/utils/SrDuckDbUtils';
 import router from '@/router/index.js';
-import { type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
+import { type Atl13Coord, type SrPosition, type SrRGBAColor, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 import { boundingExtent } from 'ol/extent';
@@ -54,10 +54,8 @@ import type { SrLatLon } from '@/sliderule/icesat2';
 import Point from 'ol/geom/Point';
 import { Circle as CircleStyle } from 'ol/style';
 
-
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
-
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -871,7 +869,7 @@ async function getAtl13CoordFromSvrParms(reqId:number): Promise<SrLatLon | null>
 
 export function renderReqPin(
     map: OLMap,
-    coord: SrLatLon,
+    coord: Atl13Coord,
     featureId: string = 'Dropped Pin',
     layerName: string = 'Records Layer',
     forceZoom: boolean = false,

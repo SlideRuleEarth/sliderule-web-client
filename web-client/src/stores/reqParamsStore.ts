@@ -4,7 +4,7 @@ import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.v
 import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
 import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
-import { type SrListNumberItem } from '@/types/SrTypes';
+import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
 import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
@@ -237,9 +237,10 @@ export function getDefaultReqParamsState() {
       atl13: {
         refid: 0 as number,
         name: '' as string,
-        coord: {lon: 0.0, lat: 0.0} as {lon: number, lat: number},
-      } as {refid: number, name: string, coord: {lon: number, lat: number}},
+        coord: null as Atl13Coord | null,
+      } as {refid: number, name: string, coord: Atl13Coord | null},
       useAtl13Polygon: false,
+      useAtl13Point: false,
     };
 }
 
@@ -449,19 +450,14 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.iceSat2SelectedAPI.includes('atl13')){ 
-            if(!req.atl13) req.atl13 = {};
+            if(!req.atl13) req.atl13 = this.atl13;
             if(this.useAtl13RefId) {
               req.atl13.refid = this.atl13.refid;
             }
             if(this.atl13.name && this.atl13.name.length>0) {
               req.atl13.name = this.atl13.name;
             }
-            const pin = useMapStore().pinCoordinate;
-            if(pin){
-              if(!req.atl13.coord) req.atl13.coord = {};
-              req.atl13.coord.lon = pin[0];
-              req.atl13.coord.lat = pin[1];
-            }
+
             if(this.atl13_fields.length>0) {
               req.atl13_fields = this.atl13_fields;
             }
@@ -1057,6 +1053,14 @@ const createReqParamsStore = (id: string) =>
         setCmr(cmr: { polygon: SrRegion }) {
           this.poly = cmr.polygon;
         },
+        dropPin(coord: number[]) {
+          this.useAtl13Point = true;
+          this.atl13.coord = {lon:coord[0],lat:coord[1]}; 
+        },
+        removePin() {
+          this.useAtl13Point = false;
+          this.atl13.coord = null; 
+        }
     },
 })
 const theReqParamsStore = createReqParamsStore('reqParamsStore');

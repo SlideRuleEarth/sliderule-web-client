@@ -1,16 +1,28 @@
 <template>
     <div ref="dropPinWrapper">
         <SrCustomTooltip  ref="tooltipRef" id="editDecrTooltip" />        
+        <SrCustomTooltip  ref="remTooltipRef" id="editDecrTooltip" />        
         <Button
             :icon="'pi pi-map-marker'"
             :class="['sr-drop-pin-button', { 'active': mapStore.dropPinEnabled }]"
-            @click="toggleDropPin"
+            @click="toggleDropPinEnabled"
             rounded
             text
             size="small"
             aria-label="Toggle Drop Pin"
             @mouseover="showTooltip"
             @mouseleave="hideTooltip"
+        />
+        <Button
+            :icon="'pi pi-times'"
+            :class="['sr-drop-pin-button', { 'active': (reqParamsStore.useAtl13Point && reqParamsStore.atl13.coord !== null) }]"
+            @click="removeDropPin"
+            rounded
+            text
+            size="small"
+            aria-label="Remove Drop Pin"
+            @mouseover="remShowTooltip"
+            @mouseleave="remHideTooltip"
         />
     </div>
 </template>
@@ -24,15 +36,19 @@ import Button from 'primevue/button';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useToast } from "primevue";
 import { useRecTreeStore } from '@/stores/recTreeStore'; 
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+
 
 const toast = useToast();
 const recTreeStore = useRecTreeStore();
+const reqParamsStore = useReqParamsStore();
 
 const mapStore = useMapStore();
 const emit = defineEmits(['drop-pin-control-created']);
 
 const dropPinWrapper = ref<HTMLElement | null>(null);
 const tooltipRef = ref();
+const remTooltipRef = ref();
 const toolTipStrRef = ref('Click to toggle drop pin mode');
 
 onMounted(async() => {
@@ -64,14 +80,28 @@ const showTooltip = (event: MouseEvent) => {
 const hideTooltip = () => {
     tooltipRef.value?.hideTooltip();
 };
-const toggleDropPin = () => {
+
+const remShowTooltip = (event: MouseEvent) => {
+    remTooltipRef.value?.showTooltip(event, 'Click to remove dropped pin');
+};
+
+const remHideTooltip = () => {
+    remTooltipRef.value?.hideTooltip();
+};
+
+const toggleDropPinEnabled = () => {
     mapStore.dropPinEnabled = !mapStore.dropPinEnabled;
     if (mapStore.dropPinEnabled) {
-        toolTipStrRef.value = "Drop a pin on an inland body of water to add it to use it's coordinates in the request.";
+        toolTipStrRef.value = "toggleDropPinEnabled - Drop a pin on an inland body of water to add it to use it's coordinates in the request.";
     } else {
-        toolTipStrRef.value = "Click to toggle drop pin mode, then drop a pin on an inland body of water to add it to use it's coordinates in the request ";
+        toolTipStrRef.value = "toggleDropPinEnabled - Click to toggle drop pin mode, then drop a pin on an inland body of water to add it to use it's coordinates in the request ";
     }
-    console.log(`Drop pin enabled: ${mapStore.dropPinEnabled}`);
+    console.log(`toggleDropPinEnabled -  reqParamsStore.useAtl13Point: ${reqParamsStore.useAtl13Point}`);
+};
+
+const removeDropPin = () => {
+    reqParamsStore.removePin();
+    console.log(`removeDropPin - Drop pin reqParamsStore.useAtl13Point: ${reqParamsStore.useAtl13Point}`);
 };
 </script>
 <style scoped>

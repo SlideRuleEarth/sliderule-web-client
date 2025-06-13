@@ -102,6 +102,12 @@
         zIndex: 100,
     });
 
+    const pinVectorSource = new VectorSource({wrapX: false});
+    const pinVectorLayer = new VectorLayer({
+        source: pinVectorSource,
+        zIndex: 100,
+    });
+
     const recordsVectorSource = new VectorSource({wrapX: false});
     const recordsLayer = new VectorLayer({
         source: recordsVectorSource,
@@ -525,6 +531,9 @@
             console.error('tooltipRef is null on mount');
         }        
         drawVectorLayer.set('name', 'Drawing Layer');
+        drawVectorLayer.set('title', 'Drawing Layer');
+        pinVectorLayer.set('name', 'Pin Layer');
+        pinVectorLayer.set('title', 'Pin Layer');
         recordsLayer.set('name', 'Records Layer');
         recordsLayer.set('title', 'Records Layer');
         uploadedFeaturesVectorLayer.set('name', 'Uploaded Features');
@@ -540,7 +549,7 @@
             mapStore.setMap(mapRef.value.map);
             const map = mapStore.getMap() as OLMap;
             const haveReqPoly = !((reqParamsStore.poly===undefined) || (reqParamsStore.poly === null) || (reqParamsStore.poly.length === 0));
-            const haveReqPin = !((reqParamsStore.atl13.coord.lat===undefined) || (reqParamsStore.atl13.coord.lat === null));
+            const haveReqPin = (reqParamsStore.atl13.coord != null);
             if(map){
                 if(!geoCoderStore.isInitialized()){
                 //console.log("Initializing geocoder");
@@ -725,8 +734,10 @@
                         renderRequestPolygon(map, reqParamsStore.poly, poly_color);
                     } 
                     // check and see if pinCoordinate is defined
-                    if(mapStore.pinCoordinate){
-                        renderReqPin(map,{lon:mapStore.pinCoordinate[0],lat:mapStore.pinCoordinate[1]});
+                    if(reqParamsStore.useAtl13Point){
+                        if(reqParamsStore.atl13.coord){
+                            renderReqPin(map,reqParamsStore.atl13.coord);
+                        }
                     }
                 } else {
                     console.error("drawCurrentReqPolyAndPin Error:vectorSource is null");
@@ -749,6 +760,7 @@
                 if(srViewKey.value){
                     await updateMapView(map,srViewKey.value,reason,restoreView);
                     map.addLayer(drawVectorLayer);
+                    map.addLayer(pinVectorLayer);
                     map.addLayer(recordsLayer);
                     map.addLayer(uploadedFeaturesVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
@@ -837,8 +849,22 @@
     
     let dropPinClickListener: ((evt: any) => void) | null = null;
 
+
+    watch(() => reqParamsStore.iceSat2SelectedAPI, (newValue, oldValue) => {
+        console.log(`SrMap watch reqParamsStore.iceSat2SelectedAPI changed from ${oldValue} to ${newValue}`);
+        if(newValue !== 'atl13x'){
+            mapStore.dropPinEnabled = false;
+            // 🔴 Remove dropped pin
+            reqParamsStore.removePin();
+            reqParamsStore.useAtl13RefId = false;
+            console.log("Dropped pin removed due to api change");
+        // } else {
+        //      mapStore.dropPinEnabled = true;
+        }
+    });
+
     watch(() => mapStore.dropPinEnabled, (newValue, oldValue) => {
-        console.log(`SrMap watch mapStore.dropPinEnabled changed from ${oldValue} to ${newValue}`);
+        console.log(`SrMap watch reqParamsStore.iceSat2SelectedAPI changed from ${oldValue} to ${newValue}`);
         const map = mapRef.value?.map;
         if (!map) {
             console.error("Map is not available in dropPinEnabled watcher");
@@ -851,12 +877,10 @@
             targetElement.style.cursor = 'crosshair';
             dropPinClickListener = function (evt) {
                 const coordinate = evt.coordinate;
-
-                // Save lat/lon to store
-                mapStore.pinCoordinate = toLonLat(coordinate, map.getView().getProjection());
+                reqParamsStore.dropPin(toLonLat(coordinate, map.getView().getProjection()));
 
                 // Clear previous pin(s)
-                uploadedFeaturesVectorSource.clear();
+                pinVectorSource.clear();
 
                 // Create and style new pin
                 const pointFeature = new Feature({
@@ -872,13 +896,13 @@
                     })
                 }));
 
-                uploadedFeaturesVectorSource.addFeature(pointFeature);
+                pinVectorSource.addFeature(pointFeature);
 
                 // Reset cursor and state
                 map.getTargetElement().style.cursor = '';
                 map.un('click', dropPinClickListener!);
-                mapStore.dropPinEnabled = false;
                 dropPinClickListener = null;
+                mapStore.dropPinEnabled = false;
             };
             map.on('click', dropPinClickListener);
         } else {
@@ -889,7 +913,13 @@
             }
         }
     });
-
+    watch(() => reqParamsStore.atl13.coord, (newValue, oldValue) => {
+        console.log(`SrMap watch reqParamsStore.atl13.coord changed from ${oldValue} to ${newValue}`);
+        if(newValue === null){
+            // Remove the pin from map
+            pinVectorSource.clear();  
+        }
+    });
 </script>
 
 <template>
