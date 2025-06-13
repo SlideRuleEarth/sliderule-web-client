@@ -920,7 +920,7 @@ export function renderReqPin(
     map: OLMap,
     coord: SrLatLon,
     featureId: string = 'Dropped Pin',
-    layerName: string = 'Drawing Layer',
+    layerName: string = 'Records Layer',
     forceZoom: boolean = false,
     reqId: number = 0 // <--- add this to associate metadata
 ): void {
