@@ -53,16 +53,7 @@ export function formatKeyValuePair(key: string, value: any): string {
   const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset();
 
   let formattedValue: string | number;
-  if( key.includes('.time')){
-      //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
-      const gpsdate = new Date(gpsToUnixTimestamp(value)*1000); // Convert seconds to ms
-      formattedValue = `raw:${value} gps:${gpsdate.toISOString()}`; // Format as ISO string in UTC
-      //console.log( `raw:${value} gps:${gpsdate.toISOString()}`) 
-    //   const test1 = new Date(gpsToUnixTimestamp(1396483218*1000));
-    //   const test2 = new Date(gpsToUnixTimestamp(1309046418*1000));
-    //   console.log('test1 time:1396483218',test1);
-    //   console.log('test2 time:1309046418',test2);
-  } else if (((key === 'time')||(key.includes('time_ns'))) && typeof value === 'number') {
+  if (((key === 'time')||(key.includes('time_ns'))) && typeof value === 'number') {
     // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
     let adjustedTime = value - gpsToATLASOffset;
     // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
@@ -72,7 +63,15 @@ export function formatKeyValuePair(key: string, value: any): string {
 
     const date = new Date(adjustedTime); // Convert seconds to ms
     formattedValue = date.toISOString(); // Format as ISO string in UTC
-
+  } else if(key.includes('.time')){
+      //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
+      const gpsdate = new Date(gpsToUnixTimestamp(value)*1000); // Convert seconds to ms
+      formattedValue = `raw:${value} gps:${gpsdate.toISOString()}`; // Format as ISO string in UTC
+      //console.log( `raw:${value} gps:${gpsdate.toISOString()}`) 
+    //   const test1 = new Date(gpsToUnixTimestamp(1396483218*1000));
+    //   const test2 = new Date(gpsToUnixTimestamp(1309046418*1000));
+    //   console.log('test1 time:1396483218',test1);
+    //   console.log('test2 time:1309046418',test2);
   } else if (
     key === 'canopy_h_metrics' &&
     typeof value === 'object' &&
