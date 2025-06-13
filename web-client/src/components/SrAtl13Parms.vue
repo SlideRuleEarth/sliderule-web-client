@@ -31,6 +31,13 @@
                 :useGrouping="false" 
             />
         </div>
+        <div>
+            <SrCheckbox
+                v-model="reqParamsStore.useAtl13Polygon"
+                label="Enable Draw Polygon"
+                size="small"
+            />
+        </div>
     </div>
 </template>
 

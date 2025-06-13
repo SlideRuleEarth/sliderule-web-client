@@ -211,53 +211,6 @@ export function formatElObject(obj: { [key: string]: any }): string {
     return html;
 }
 
-  
-// interface TooltipParams {
-//     x: number;
-//     y: number;
-//     tooltip: string;
-// }
-
-// function showTooltip({ x, y, tooltip }: TooltipParams): void {
-//     const tooltipEl = document.getElementById('tooltip');
-//     if (tooltipEl) {
-//         tooltipEl.innerHTML = tooltip;
-//         tooltipEl.style.display = 'block';
-
-//         const xoffset = 75; // Offset in pixels to position the tooltip to the right of the pointer
-//         const yoffset = 75; // Offset in pixels to position the tooltip below the pointer   
-//         // Set initial tooltip position to the right of the pointer
-//         tooltipEl.style.left = `${x + xoffset}px`;
-//         tooltipEl.style.top = `${y + yoffset}px`;
-
-//         // Re-check tooltip position and adjust if it goes off-screen
-//         const tooltipRect = tooltipEl.getBoundingClientRect();
-//         //console.log('x:',x,'y:',y,'showTooltip tooltipRect:',tooltipRect, ' window.innerWidth:',window.innerWidth,' window.innerHeight:',window.innerHeight);
-//         if (tooltipRect.right > window.innerWidth) {
-//             // If clipped at the right, reposition to the left of the pointer
-//             //console.warn('showTooltip clipped at the right');
-//             tooltipEl.style.left = `${x - tooltipRect.width - xoffset}px`;
-//         }
-//         if (tooltipRect.bottom > window.innerHeight) {
-//             // If clipped at the bottom, reposition slightly higher
-//             console.warn('showTooltip clipped at the bottom');
-//             tooltipEl.style.top = `${window.innerHeight - tooltipRect.height - xoffset}px`;
-//         }
-//         if (tooltipRect.top < 0) {
-//             // If clipped at the top, reposition slightly lower
-//             console.warn('showTooltip clipped at the top');
-//             tooltipEl.style.top = `${xoffset}px`;
-//         }
-//         //console.log('showTooltip tooltipEl:',tooltipEl);
-//     }
-// }
-
-// function hideTooltip():void {
-//     const tooltipEl = document.getElementById('tooltip');
-//     if (tooltipEl) {
-//         tooltipEl.style.display = 'none';
-//     }
-// }
 
 export interface ElevationDataItem {
     [key: string]: any; // This allows indexing by any string key
