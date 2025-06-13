@@ -263,7 +263,7 @@ const createReqParamsStore = (id: string) =>
             this.setUseRgt(true);
             this.setUseCycle(true);
             const poly = await db.getSvrReqPoly(parentReqId);
-            if(poly){
+            if(poly && poly.length > 0) {
                 this.setPoly(poly);
                 this.setConvexHull(convexHull(poly));
                 this.setAreaOfConvexHull(calculatePolygonArea(poly));
