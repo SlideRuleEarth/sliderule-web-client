@@ -136,3 +136,9 @@ export const SELECTED_LAYER_NAME_PREFIX = 'selected-deck-layer'; // deck selecte
 export const OL_DECK_LAYER_NAME = 'ol-deck-layer'; // open layers deck layer
 export type MinMaxLowHigh = Record<string, { min: number; max: number, low: number, high: number }>;
 export type MinMax = Record<string, { min: number; max: number }>;
+export interface Atl13 {
+  refid: number;
+  name: string;
+  coord: { lon: number; lat: number } | null;
+}
+export type Atl13Coord = { lon: number; lat: number };

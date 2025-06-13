@@ -60,7 +60,6 @@ export const useMapStore = defineStore('map', {
     zoomToRestore: null as number | null,
     tooltipRef: ref(null) as Ref<InstanceType<any> | null>,
     dropPinEnabled: false as boolean,
-    pinCoordinate: null as Coordinate | null,
 }),
   actions: {
     setMap(mapInstance: OLMap) {
