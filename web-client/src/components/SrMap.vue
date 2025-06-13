@@ -704,9 +704,8 @@
                 const api = recTreeStore.findApiForReqId(reqId);
                 if(api.includes('atl13')){
                     renderSvrReqPin(map,reqId);
-                }  else {     
-                    renderSvrReqPoly(map, reqId);
                 }
+                renderSvrReqPoly(map, reqId);
             });
         } else {
             console.warn("addRecordLayer SrMap skipping addRecordLayer when map is null");
@@ -922,7 +921,12 @@
             <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
             <MapControls.OlScalelineControl />
-            <SrDrawControl ref="srDrawControlRef" v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'" @draw-control-created="handleDrawControlCreated" @picked-changed="handlePickedChanged" />
+            <SrDrawControl 
+                ref="srDrawControlRef" 
+                v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x' || reqParamsStore.useAtl13Polygon" 
+                @draw-control-created="handleDrawControlCreated" 
+                @picked-changed="handlePickedChanged" 
+            />
             <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
             <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
             <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
@@ -1150,7 +1154,7 @@
 }
 
 :deep(.sr-drop-pin-control){
-  top: 12rem; 
+  top: 20rem; 
   left: 0.5rem; 
   right: auto;  
   border-radius: var(--p-border-radius);
@@ -1166,8 +1170,6 @@
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
 }
-
-
 
 :deep(.ol-zoom .ol-zoom-in) {
   margin: 2px;

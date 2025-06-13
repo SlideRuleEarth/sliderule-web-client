@@ -239,7 +239,8 @@ export function getDefaultReqParamsState() {
         name: '' as string,
         coord: {lon: 0.0, lat: 0.0} as {lon: number, lat: number},
       } as {refid: number, name: string, coord: {lon: number, lat: number}},
-  };
+      useAtl13Polygon: false,
+    };
 }
 
 
