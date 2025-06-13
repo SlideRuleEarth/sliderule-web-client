@@ -1,5 +1,50 @@
 import { useReqParamsStore } from '@/stores/reqParamsStore'; 
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
+import test from 'node:test';
+function gpsToUnixTimestamp(gpsSeconds: number): number {
+    const gpsToUnixOffset = 315964800; // Seconds from Jan 1, 1970 to Jan 6, 1980
+
+    // Leap second history — UTC effective dates and total count at that time
+    const leapSecondTable = [
+        { effective: Date.UTC(1981, 6, 1), total: 1 },
+        { effective: Date.UTC(1982, 6, 1), total: 2 },
+        { effective: Date.UTC(1983, 6, 1), total: 3 },
+        { effective: Date.UTC(1985, 6, 1), total: 4 },
+        { effective: Date.UTC(1988, 0, 1), total: 5 },
+        { effective: Date.UTC(1990, 0, 1), total: 6 },
+        { effective: Date.UTC(1991, 0, 1), total: 7 },
+        { effective: Date.UTC(1992, 6, 1), total: 8 },
+        { effective: Date.UTC(1993, 6, 1), total: 9 },
+        { effective: Date.UTC(1994, 6, 1), total: 10 },
+        { effective: Date.UTC(1996, 0, 1), total: 11 },
+        { effective: Date.UTC(1997, 6, 1), total: 12 },
+        { effective: Date.UTC(1999, 0, 1), total: 13 },
+        { effective: Date.UTC(2006, 0, 1), total: 14 },
+        { effective: Date.UTC(2009, 0, 1), total: 15 },
+        { effective: Date.UTC(2012, 6, 1), total: 16 },
+        { effective: Date.UTC(2015, 6, 1), total: 17 },
+        { effective: Date.UTC(2017, 0, 1), total: 18 },
+    ];
+
+    // Estimate UTC time in milliseconds without leap second correction
+    const gpsEpoch = Date.UTC(1980, 0, 6); // Jan 6, 1980 UTC
+    const approxUtcMillis = gpsEpoch + gpsSeconds * 1000;
+
+    // Determine leap seconds in effect at that time
+    let leapSeconds = 0;
+    for (const { effective, total } of leapSecondTable) {
+        if (approxUtcMillis >= effective) {
+            leapSeconds = total;
+        } else {
+            break;
+        }
+    }
+
+    // Final GPS to Unix conversion, correcting for leap seconds
+    return gpsSeconds + gpsToUnixOffset - leapSeconds;
+}
+
+
 
 export function formatKeyValuePair(key: string, value: any): string {
   const srcIdStore = useSrcIdTblStore();
@@ -8,8 +53,16 @@ export function formatKeyValuePair(key: string, value: any): string {
   const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset();
 
   let formattedValue: string | number;
-
-  if (((key === 'time')||(key === 'time_ns')) && typeof value === 'number') {
+  if( key.includes('.time')){
+      //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
+      const gpsdate = new Date(gpsToUnixTimestamp(value)*1000); // Convert seconds to ms
+      formattedValue = `raw:${value} gps:${gpsdate.toISOString()}`; // Format as ISO string in UTC
+      //console.log( `raw:${value} gps:${gpsdate.toISOString()}`) 
+    //   const test1 = new Date(gpsToUnixTimestamp(1396483218*1000));
+    //   const test2 = new Date(gpsToUnixTimestamp(1309046418*1000));
+    //   console.log('test1 time:1396483218',test1);
+    //   console.log('test2 time:1309046418',test2);
+  } else if (((key === 'time')||(key === 'time_ns')) && typeof value === 'number') {
     // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
     let adjustedTime = value - gpsToATLASOffset;
     // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
