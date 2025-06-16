@@ -8,6 +8,7 @@
                     <Tab value="1" v-if="(mission==='ICESat-2') && !recTreeStore.findApiForReqId(reqId).includes('atl13')">{{ activeTabStore.getTabLabelByIndex('1') }}</Tab>
                     <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
                     <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
+                    <Tab value="4">{{ activeTabStore.getTabLabelByIndex('4') }}</Tab>
                 </TabList>
 
                 <TabPanels>
@@ -31,6 +32,9 @@
                     </TabPanel>
                     <TabPanel value="3">
                         <SrDeck3DView v-if="shouldDisplay3DView" />
+                    </TabPanel>
+                    <TabPanel value="4">
+                        <SrECharts3DView :reqId="reqId"/>
                     </TabPanel>
                 </TabPanels>
             </Tabs>
@@ -58,6 +62,7 @@
     import SrTimeSeries from '@/components/SrTimeSeries.vue';
     import SrDeck3DView from '@/components/SrDeck3DView.vue';
     import SrElRng3D from '@/components/SrElRng3D.vue';
+    import SrECharts3DView from './SrECharts3DView.vue';
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();

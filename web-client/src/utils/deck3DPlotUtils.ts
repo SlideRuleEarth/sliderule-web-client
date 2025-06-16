@@ -2,7 +2,7 @@ import { PointCloudLayer } from '@deck.gl/layers';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils';
-import { createAxesAndLabels } from '@/utils/deckAxes';
+import { createAxesLayers } from '@/utils/deckAxes';
 import type { Layer } from '@deck.gl/core';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
@@ -49,44 +49,91 @@ export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] 
 }
 
 
+// function computeCentroid(position: [number, number, number][]) {
+//     if (!position.length) return;
+//     const n = position.length;
+//     const sum = position.reduce((acc, p) => {
+//         acc[0] += p[0];
+//         acc[1] += p[1];
+//         acc[2] += p[2];
+//         return acc;
+//     }, [0, 0, 0]);
+//     const avg = sum.map(c => c / n);
+//     if (avg.every(Number.isFinite)) {
+//         deck3DConfigStore.centroid = avg as [number, number, number];
+//     }
+//     console.log('Centroid:', deck3DConfigStore.centroid);
+// }
 
-function computeCentroid(position: [number, number, number][]) {
+function computeCentroidAndExtent(position: [number, number, number][]) {
     if (!position.length) return;
+
     const n = position.length;
-    const sum = position.reduce((acc, p) => {
-        acc[0] += p[0];
-        acc[1] += p[1];
-        acc[2] += p[2];
-        return acc;
-    }, [0, 0, 0]);
-    const avg = sum.map(c => c / n);
-    if (avg.every(Number.isFinite)) {
-        deck3DConfigStore.centroid = avg as [number, number, number];
+    const xs = position.map(p => p[0]).sort((a, b) => a - b);
+    const ys = position.map(p => p[1]).sort((a, b) => a - b);
+    const zs = position.map(p => p[2]).sort((a, b) => a - b);
+
+    const getPercentile = (arr: number[], p: number) => {
+        const i = (p / 100) * (arr.length - 1);
+        const lo = Math.floor(i);
+        const hi = Math.ceil(i);
+        if (lo === hi) return arr[lo];
+        return arr[lo] + (arr[hi] - arr[lo]) * (i - lo);
+    };
+
+    const minX = getPercentile(xs, 2);
+    const maxX = getPercentile(xs, 98);
+    const minY = getPercentile(ys, 2);
+    const maxY = getPercentile(ys, 98);
+    const minZ = getPercentile(zs, 2);
+    const maxZ = getPercentile(zs, 98);
+
+    const centroid: [number, number, number] = [
+        (minX + maxX) / 2,
+        (minY + maxY) / 2,
+        (minZ + maxZ) / 2,
+    ];
+
+    if (centroid.every(Number.isFinite)) {
+        deck3DConfigStore.centroid = centroid;
     }
-    console.log('Centroid:', deck3DConfigStore.centroid);
+
+    const xRange = maxX - minX;
+    const yRange = maxY - minY;
+    const zRange = maxZ - minZ;
+
+    let axisLength = Math.max(xRange, yRange, zRange) * 1.1;
+
+    // Optional hard clamps to prevent degenerate scale
+    const minAxisLength = 10;
+    const maxAxisLength = 10000;
+    axisLength = Math.min(Math.max(axisLength, minAxisLength), maxAxisLength);
+
+    console.log('Clamped centroid:', centroid, 'Axis length:', axisLength);
+
+    return { centroid, axisLength };
 }
 
 
 
+// function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
+//     const container = deckContainer.value;
+//     if (!container) {
+//         console.warn('Deck container is null');
+//         return false;
+//     }
 
-function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
-    const container = deckContainer.value;
-    if (!container) {
-        console.warn('Deck container is null');
-        return false;
-    }
+//     const { width, height } = container.getBoundingClientRect();
+//     if (width === 0 || height === 0) {
+//         console.warn('Deck container has zero size:', width, height);
+//         return false;
+//     }
 
-    const { width, height } = container.getBoundingClientRect();
-    if (width === 0 || height === 0) {
-        console.warn('Deck container has zero size:', width, height);
-        return false;
-    }
-
-    if (!deckInstance.value) {
-        createDeck(container);
-    }
-    return true;
-}
+//     if (!deckInstance.value) {
+//         createDeck(container);
+//     }
+//     return true;
+// }
 
 
 function createDeck(container: HTMLDivElement) {
@@ -245,14 +292,36 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 return { position: [x, y, z] as [number, number, number], color };
             });
 
-            computeCentroid(pointCloudData.map(p => p.position));
-
-            //console.log('Fit Zoom:', computedFitZoom.value);
-            if (!initDeckIfNeeded(deckContainer)) {
-                toast.error('Deck container not ready', 'Check layout or timing.');
-                console.error('Deck container not ready');
+            const centroidAndExtent = computeCentroidAndExtent(pointCloudData.map(p => p.position));
+            if (!centroidAndExtent) {
+                toast.warn('Unable to compute centroid/extent');
                 return;
-            }            
+            }
+            const { centroid, axisLength } = centroidAndExtent;
+            deck3DConfigStore.centroid = centroid;
+
+            if (!deckInstance.value) {
+                const container = deckContainer.value;
+                if (!container) {
+                    toast.error('Deck container is null');
+                    return;
+                }
+                createDeck(container);
+            }
+
+            // 💡 Update camera target and zoom after centroid changes
+            deckInstance.value?.setProps({
+                initialViewState: {
+                    [viewId]: {
+                    target: centroid,
+                    zoom: deck3DConfigStore.fitZoom,
+                    rotationOrbit: deck3DConfigStore.viewState.rotationOrbit,
+                    rotationX: deck3DConfigStore.viewState.rotationX,
+                    }
+                }
+            });
+
+
             const layer = new PointCloudLayer({
                 id: `point-cloud-layer-${Date.now()}`, // Ensures a new identity each time
                 data: sanitizeDeckData(pointCloudData),
@@ -264,9 +333,9 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             });
             const layers: Layer<any>[] = [layer];
 
-            if (deck3DConfigStore.showAxes) {
-                const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
-                layers.push(axes, labels);
+            if (deck3DConfigStore.showAxes && deck3DConfigStore.centroid && axisLength) {
+                const axes = createAxesLayers(deck3DConfigStore.centroid, axisLength);
+                layers.push(...axes);
             }
             if( deckInstance.value){
                 requestAnimationFrame(() => {
