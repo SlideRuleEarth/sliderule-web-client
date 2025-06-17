@@ -281,7 +281,8 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                     latMin,
                     latMax,
                     lonMin,
-                    lonMax
+                    lonMax,
+                    deck3DConfigStore.verticalExaggeration,
                 );
                 layers.push(axes, labels, tickLines, tickText);
             }

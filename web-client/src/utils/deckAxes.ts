@@ -14,6 +14,13 @@ type TickLabel = {
     color: [number, number, number];
 };
 
+// Helper to compute UTM proj string
+function getUtmProjString(lat: number, lon: number): string {
+    const zone = Math.floor((lon + 180) / 6) + 1;
+    const hemisphere = lat >= 0 ? 'north' : 'south';
+    return `+proj=utm +zone=${zone} +${hemisphere} +datum=WGS84 +units=m +no_defs`;
+}
+
 export function createAxesAndLabels(
     scale: number,
     xLabel: string = 'X',
@@ -28,30 +35,28 @@ export function createAxesAndLabels(
     latMin: number,
     latMax: number,
     lonMin: number,
-    lonMax: number
+    lonMax: number,
+    verticalExaggeration: number = 1
 ): Layer<any>[] {
     const origin: [number, number, number] = [0, 0, 0];
     const projFrom = 'EPSG:4326';
-    const projTo = 'EPSG:3857';
+    const projTo = getUtmProjString(latMin, lonMin);
 
-    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]); // origin = bottom-left
-    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]); // eastward
-    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]); // northward
-    const xRange = xMax - xOrigin; // meters east
-    const yRange = yMax - yOrigin; // meters north
+    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]);
+    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]);
+    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]);
+    const xRange = xMax - xOrigin;
+    const yRange = yMax - yOrigin;
 
     const tickInterval = scale / 10;
-    const tickLength = scale * 0.01; // short lines for ticks
+    const tickLength = scale * 0.01;
 
     const ticks: TickLine[] = [];
     const tickLabels: TickLabel[] = [];
 
-    // Generate ticks and labels for each axis
     const xTicks = [scale / 2, scale];
     const yTicks = [scale / 2, scale];
 
-
-    // X ticks (longitude axis in meters)
     xTicks.forEach(i => {
         const xMeter = (i / scale) * xRange;
         ticks.push({ source: [i, -tickLength, 0], target: [i, tickLength, 0], color: axisLineColor });
@@ -62,8 +67,6 @@ export function createAxesAndLabels(
         });
     });
 
-
-    // Y ticks (latitude axis in meters)
     yTicks.forEach(i => {
         const yMeter = (i / scale) * yRange;
         ticks.push({ source: [-tickLength, i, 0], target: [tickLength, i, 0], color: axisLineColor });
@@ -74,8 +77,6 @@ export function createAxesAndLabels(
         });
     });
 
-
-    // Keep regular ticks for Z-axis
     for (let i = tickInterval; i < scale; i += tickInterval) {
         ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
 
@@ -107,6 +108,7 @@ export function createAxesAndLabels(
             getWidth: [lineWidth]
         }
     });
+
     const tickLines = new LineLayer({
         id: 'axis-tick-lines',
         data: ticks,
@@ -132,8 +134,8 @@ export function createAxesAndLabels(
         billboard: true
     });
 
-    const xylabelOffset = scale * 0.10; // 10% of the scale outward
-    const zlabelOffset = scale * 0.07; // 7% of the scale outward
+    const xylabelOffset = scale * 0.10;
+    const zlabelOffset = scale * 0.07;
 
     const labels = new TextLayer({
         id: 'axis-labels',
@@ -152,7 +154,6 @@ export function createAxesAndLabels(
         coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
         billboard: true,
     });
-
 
     return [axes, labels, tickLines, tickText];
 }
