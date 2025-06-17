@@ -9,7 +9,9 @@ export function createAxesAndLabels(
     labelTextColor: [number, number, number] = [255, 255, 255],
     axisLineColor: [number, number, number] = [255, 255, 255],
     fontSize: number = 5,
-    lineWidth: number = 1
+    lineWidth: number = 1,
+    elevMin: number,
+    elevMax: number
 ): Layer<any>[] {
     const origin: [number, number, number] = [0, 0, 0];
     const tickInterval = scale / 10;
@@ -30,7 +32,14 @@ export function createAxesAndLabels(
 
         // Z-axis
         ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
-        tickLabels.push({ position: [0, -2 * tickLength, i], text: i.toFixed(1), color: labelTextColor });
+
+        let zLabel = i.toFixed(1); // fallback
+        if (elevMin !== undefined && elevMax !== undefined) {
+            const realZ = elevMin + (i / scale) * (elevMax - elevMin);
+            zLabel = realZ.toFixed(0); // use real units in meters
+        }
+
+        tickLabels.push({ position: [0, -2 * tickLength, i], text: zLabel, color: labelTextColor });
     }
 
     const axes = new LineLayer({

@@ -265,9 +265,22 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const layers: Layer<any>[] = [layer];
 
             if (deck3DConfigStore.showAxes) {
-                const [axes, labels, tickLines, tickText] = createAxesAndLabels(deck3DConfigStore.scale);
+                const zAxisLengthInMeters = elevMaxScale - elevMinScale;
+                const [axes, labels, tickLines, tickText] = createAxesAndLabels(
+                    zAxisLengthInMeters,
+                    'Lon',
+                    'Lat',
+                    'Elev (m)',
+                    [255, 255, 255], // text color
+                    [200, 200, 200], // line color
+                    5,               // font size
+                    1,               // line width
+                    elevMinScale,
+                    elevMaxScale
+                );
                 layers.push(axes, labels, tickLines, tickText);
             }
+
             if( deckInstance.value){
                 requestAnimationFrame(() => {
                     deckInstance.value?.setProps({layers});
