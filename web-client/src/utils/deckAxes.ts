@@ -87,12 +87,14 @@ export function createAxesAndLabels(
         billboard: true
     });
 
+    const labelOffset = scale * 0.07; // 7% of the scale outward
+
     const labels = new TextLayer({
         id: 'axis-labels',
         data: [
-            { position: [scale, 0, 0], text: xLabel, color: labelTextColor },
-            { position: [0, scale, 0], text: yLabel, color: labelTextColor },
-            { position: [0, 0, scale], text: zLabel, color: labelTextColor }
+            { position: [scale + labelOffset, 0, 0], text: xLabel, color: labelTextColor },
+            { position: [0, scale + labelOffset, 0], text: yLabel, color: labelTextColor },
+            { position: [0, 0, scale + labelOffset], text: zLabel, color: labelTextColor }
         ],
         getPosition: d => d.position,
         getText: d => d.text,
@@ -104,12 +106,13 @@ export function createAxesAndLabels(
         coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
         billboard: true,
         updateTriggers: {
-            getPosition: [scale],
+            getPosition: [scale, labelOffset],
             getText: [xLabel, yLabel, zLabel],
             getColor: [labelTextColor],
             getSize: [fontSize]
         }
     });
+
 
     return [axes, labels, tickLines, tickText];
 }
