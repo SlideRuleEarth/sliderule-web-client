@@ -25,6 +25,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const maxColorPercent = ref(98);
   const elDataRange      = ref<[number,number]>([0, 100]);
   const elScaleRange      = ref<[number,number]>([1, 99]);
+  const verticalExaggeration = ref(1.0);  // default no exaggeration
 
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
@@ -58,6 +59,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     maxColorPercent,
     elScaleRange,
     elDataRange,
+    verticalExaggeration,
     // methods
     updateViewState,
   }

@@ -226,8 +226,9 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
                 const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
 
-                // z is *not* clamped — we preserve true geometry
-                const z = deck3DConfigStore.scale * (d[heightField] - elevMinScale) / elevRangeScale;
+                const z = deck3DConfigStore.verticalExaggeration *
+                        deck3DConfigStore.scale *
+                        (d[heightField] - elevMinScale) / elevRangeScale;
 
                 // But color is computed using clamped-to-percentile range
                 const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
@@ -276,7 +277,11 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                     5,               // font size
                     1,               // line width
                     elevMinScale,
-                    elevMaxScale
+                    elevMaxScale,
+                    latMin,
+                    latMax,
+                    lonMin,
+                    lonMax
                 );
                 layers.push(axes, labels, tickLines, tickText);
             }

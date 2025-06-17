@@ -1,5 +1,7 @@
 import { LineLayer, TextLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
+import proj4 from 'proj4';
+
 type TickLine = {
     source: [number, number, number];
     target: [number, number, number];
@@ -22,9 +24,22 @@ export function createAxesAndLabels(
     fontSize: number = 5,
     lineWidth: number = 1,
     elevMin: number,
-    elevMax: number
+    elevMax: number,
+    latMin: number,
+    latMax: number,
+    lonMin: number,
+    lonMax: number
 ): Layer<any>[] {
     const origin: [number, number, number] = [0, 0, 0];
+    const projFrom = 'EPSG:4326';
+    const projTo = 'EPSG:3857';
+
+    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]); // origin = bottom-left
+    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]); // eastward
+    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]); // northward
+    const xRange = xMax - xOrigin; // meters east
+    const yRange = yMax - yOrigin; // meters north
+
     const tickInterval = scale / 10;
     const tickLength = scale * 0.01; // short lines for ticks
 
@@ -32,18 +47,33 @@ export function createAxesAndLabels(
     const tickLabels: TickLabel[] = [];
 
     // Generate ticks and labels for each axis
-    const xTicks = [0, scale];
-    const yTicks = [0, scale];
+    const xTicks = [scale / 2, scale];
+    const yTicks = [scale / 2, scale];
 
+
+    // X ticks (longitude axis in meters)
     xTicks.forEach(i => {
+        const xMeter = (i / scale) * xRange;
         ticks.push({ source: [i, -tickLength, 0], target: [i, tickLength, 0], color: axisLineColor });
-        tickLabels.push({ position: [i, -2 * tickLength, 0], text: i.toFixed(1), color: labelTextColor });
+        tickLabels.push({
+            position: [i, -2 * tickLength, 0],
+            text: `${xMeter.toFixed(0)} m`,
+            color: labelTextColor
+        });
     });
 
+
+    // Y ticks (latitude axis in meters)
     yTicks.forEach(i => {
+        const yMeter = (i / scale) * yRange;
         ticks.push({ source: [-tickLength, i, 0], target: [tickLength, i, 0], color: axisLineColor });
-        tickLabels.push({ position: [-2 * tickLength, i, 0], text: i.toFixed(1), color: labelTextColor });
+        tickLabels.push({
+            position: [-2 * tickLength, i, 0],
+            text: `${yMeter.toFixed(0)} m`,
+            color: labelTextColor
+        });
     });
+
 
     // Keep regular ticks for Z-axis
     for (let i = tickInterval; i < scale; i += tickInterval) {
@@ -102,7 +132,7 @@ export function createAxesAndLabels(
         billboard: true
     });
 
-    const xylabelOffset = scale * 0.08; // 7% of the scale outward
+    const xylabelOffset = scale * 0.10; // 10% of the scale outward
     const zlabelOffset = scale * 0.07; // 7% of the scale outward
 
     const labels = new TextLayer({
