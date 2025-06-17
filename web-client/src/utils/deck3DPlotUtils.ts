@@ -265,8 +265,8 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const layers: Layer<any>[] = [layer];
 
             if (deck3DConfigStore.showAxes) {
-                const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
-                layers.push(axes, labels);
+                const [axes, labels, tickLines, tickText] = createAxesAndLabels(deck3DConfigStore.scale);
+                layers.push(axes, labels, tickLines, tickText);
             }
             if( deckInstance.value){
                 requestAnimationFrame(() => {

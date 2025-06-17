@@ -12,6 +12,26 @@ export function createAxesAndLabels(
     lineWidth: number = 1
 ): Layer<any>[] {
     const origin: [number, number, number] = [0, 0, 0];
+    const tickInterval = scale / 10;
+    const tickLength = scale * 0.01; // short lines for ticks
+
+    const ticks: { source: [number, number, number]; target: [number, number, number]; color: [number, number, number] }[] = [];
+    const tickLabels: { position: [number, number, number]; text: string; color: [number, number, number] }[] = [];
+
+    // Generate ticks and labels for each axis
+    for (let i = tickInterval; i < scale; i += tickInterval) {
+        // X-axis
+        ticks.push({ source: [i, -tickLength, 0], target: [i, tickLength, 0], color: axisLineColor });
+        tickLabels.push({ position: [i, -2 * tickLength, 0], text: i.toFixed(1), color: labelTextColor });
+
+        // Y-axis
+        ticks.push({ source: [-tickLength, i, 0], target: [tickLength, i, 0], color: axisLineColor });
+        tickLabels.push({ position: [-2 * tickLength, i, 0], text: i.toFixed(1), color: labelTextColor });
+
+        // Z-axis
+        ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
+        tickLabels.push({ position: [0, -2 * tickLength, i], text: i.toFixed(1), color: labelTextColor });
+    }
 
     const axes = new LineLayer({
         id: 'axis-lines',
@@ -32,6 +52,30 @@ export function createAxesAndLabels(
             getColor: [axisLineColor],
             getWidth: [lineWidth]
         }
+    });
+    const tickLines = new LineLayer({
+        id: 'axis-tick-lines',
+        data: ticks,
+        getSourcePosition: d => d.source,
+        getTargetPosition: d => d.target,
+        getColor: d => d.color,
+        getWidth: lineWidth,
+        coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+        pickable: false
+    });
+
+    const tickText = new TextLayer({
+        id: 'axis-tick-labels',
+        data: tickLabels,
+        getPosition: d => d.position,
+        getText: d => d.text,
+        getColor: d => d.color,
+        getSize: fontSize * 0.8,
+        sizeUnits: 'meters',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'center',
+        coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+        billboard: true
     });
 
     const labels = new TextLayer({
@@ -58,5 +102,5 @@ export function createAxesAndLabels(
         }
     });
 
-    return [axes, labels];
+    return [axes, labels, tickLines, tickText];
 }
