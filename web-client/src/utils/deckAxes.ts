@@ -1,5 +1,16 @@
 import { LineLayer, TextLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
+type TickLine = {
+    source: [number, number, number];
+    target: [number, number, number];
+    color: [number, number, number];
+};
+
+type TickLabel = {
+    position: [number, number, number];
+    text: string;
+    color: [number, number, number];
+};
 
 export function createAxesAndLabels(
     scale: number,
@@ -17,29 +28,33 @@ export function createAxesAndLabels(
     const tickInterval = scale / 10;
     const tickLength = scale * 0.01; // short lines for ticks
 
-    const ticks: { source: [number, number, number]; target: [number, number, number]; color: [number, number, number] }[] = [];
-    const tickLabels: { position: [number, number, number]; text: string; color: [number, number, number] }[] = [];
+    const ticks: TickLine[] = [];
+    const tickLabels: TickLabel[] = [];
 
     // Generate ticks and labels for each axis
-    for (let i = tickInterval; i < scale; i += tickInterval) {
-        // X-axis
+    const xTicks = [0, scale];
+    const yTicks = [0, scale];
+
+    xTicks.forEach(i => {
         ticks.push({ source: [i, -tickLength, 0], target: [i, tickLength, 0], color: axisLineColor });
         tickLabels.push({ position: [i, -2 * tickLength, 0], text: i.toFixed(1), color: labelTextColor });
+    });
 
-        // Y-axis
+    yTicks.forEach(i => {
         ticks.push({ source: [-tickLength, i, 0], target: [tickLength, i, 0], color: axisLineColor });
         tickLabels.push({ position: [-2 * tickLength, i, 0], text: i.toFixed(1), color: labelTextColor });
+    });
 
-        // Z-axis
+    // Keep regular ticks for Z-axis
+    for (let i = tickInterval; i < scale; i += tickInterval) {
         ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
 
-        let zLabel = i.toFixed(1); // fallback
+        let zTickLabel = i.toFixed(1);
         if (elevMin !== undefined && elevMax !== undefined) {
             const realZ = elevMin + (i / scale) * (elevMax - elevMin);
-            zLabel = realZ.toFixed(0); // use real units in meters
+            zTickLabel = realZ.toFixed(0);
         }
-
-        tickLabels.push({ position: [0, -2 * tickLength, i], text: zLabel, color: labelTextColor });
+        tickLabels.push({ position: [0, -2 * tickLength, i], text: zTickLabel, color: labelTextColor });
     }
 
     const axes = new LineLayer({
@@ -87,14 +102,15 @@ export function createAxesAndLabels(
         billboard: true
     });
 
-    const labelOffset = scale * 0.07; // 7% of the scale outward
+    const xylabelOffset = scale * 0.08; // 7% of the scale outward
+    const zlabelOffset = scale * 0.07; // 7% of the scale outward
 
     const labels = new TextLayer({
         id: 'axis-labels',
         data: [
-            { position: [scale + labelOffset, 0, 0], text: xLabel, color: labelTextColor },
-            { position: [0, scale + labelOffset, 0], text: yLabel, color: labelTextColor },
-            { position: [0, 0, scale + labelOffset], text: zLabel, color: labelTextColor }
+            { position: [scale + xylabelOffset, 0, 0], text: xLabel, color: labelTextColor },
+            { position: [0, scale + xylabelOffset, 0], text: yLabel, color: labelTextColor },
+            { position: [0, 0, scale + zlabelOffset], text: zLabel, color: labelTextColor }
         ],
         getPosition: d => d.position,
         getText: d => d.text,
@@ -105,12 +121,6 @@ export function createAxesAndLabels(
         getAlignmentBaseline: 'center',
         coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
         billboard: true,
-        updateTriggers: {
-            getPosition: [scale, labelOffset],
-            getText: [xLabel, yLabel, zLabel],
-            getColor: [labelTextColor],
-            getSize: [fontSize]
-        }
     });
 
 
