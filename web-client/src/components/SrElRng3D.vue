@@ -48,7 +48,7 @@ import Slider from 'primevue/slider';
 import InputNumber from 'primevue/inputnumber';
 import { toRefs, computed } from 'vue';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
-import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
+import { loadAndCachePointCloudData,renderCachedData } from '@/utils/deck3DPlotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 
 const recTreeStore = useRecTreeStore();
@@ -62,7 +62,10 @@ const reqId = computed(() => recTreeStore.selectedReqId);
 
 async function handleChange() {
     console.log('ElRange3D handleChange:', elDataRange.value);
-    await update3DPointCloud(reqId.value,deckContainerStored);
+    await loadAndCachePointCloudData(reqId.value);
+    if(deckContainerStored.value){
+        renderCachedData(deckContainerStored);
+    }
 }
 
 </script>

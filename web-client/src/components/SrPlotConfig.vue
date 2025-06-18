@@ -16,7 +16,8 @@ import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { useToast } from "primevue";
 import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
-import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
+import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils';
+import { renderCachedData } from '@/utils/deck3DPlotUtils';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
 import { useSrcIdTblStore } from "@/stores/srcIdTblStore";
 
@@ -80,7 +81,8 @@ async function handleGediFieldNameChange(event: SelectChangeEvent) {
     console.log("Gedi El Data changed:", event.value);
     if(activeTabStore.isActiveTabLabel('3-D View')){
         await updateMapAndPlot(false);       
-        await update3DPointCloud(props.reqId,deckContainer);
+        await loadAndCachePointCloudData(props.reqId);
+        renderCachedData(deckContainer);
     } else if(activeTabStore.isActiveTabLabel('Elevation Plot')) {
         await updatePlotAndSelectedTrackMapLayer('from handleGediFieldNameChange');
     }
