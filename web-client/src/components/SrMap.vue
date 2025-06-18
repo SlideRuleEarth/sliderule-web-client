@@ -874,6 +874,7 @@
         const targetElement = map.getTargetElement();
 
         if (newValue) {
+            recordsLayer.setVisible(false); // Hide records layer while dropping pin
             targetElement.style.cursor = 'crosshair';
             dropPinClickListener = function (evt) {
                 const coordinate = evt.coordinate;
@@ -906,6 +907,7 @@
             };
             map.on('click', dropPinClickListener);
         } else {
+            recordsLayer.setVisible(true); // Show records layer when not dropping pin
             targetElement.style.cursor = '';
             if (dropPinClickListener) {
                 map.un('click', dropPinClickListener);
