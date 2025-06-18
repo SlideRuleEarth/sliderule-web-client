@@ -18,20 +18,23 @@
             rounded
             @click="handleUpdateClick"
         />
-        <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
-        <InputNumber
-            v-model="deck3DConfigStore.pointSize"
-            inputId="pointSizeId"
-            size="small"
-            :step="0.1"
-            :min="0.1"
-            :max="10"
-            showButtons
-            :defaultValue="deck3DConfigStore.pointSize"
-            :decimalPlaces=0
-            @value-change="handlePointSizeChange"
-        />
-            <label class="sr-vert-exag-label" for="vertExagId">Vertical<br>Exaggeration</label>
+        <div>
+            <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
+            <InputNumber
+                v-model="deck3DConfigStore.pointSize"
+                inputId="pointSizeId"
+                size="small"
+                :step="0.1"
+                :min="0.1"
+                :max="10"
+                showButtons
+                :defaultValue="deck3DConfigStore.pointSize"
+                :decimalPlaces=0
+                @value-change="handlePointSizeChange"
+            />
+        </div>
+        <div>
+            <label class="sr-vert-exag-label" for="vertExagId">Vertical Exaggeration</label>
             <InputNumber
                 v-model="deck3DConfigStore.verticalExaggeration"
                 inputId="vertExagId"
@@ -44,6 +47,7 @@
                 :decimalPlaces="1"
                 @value-change="handleVerticalExaggerationChange"
             />
+        </div>
     </div>
     <SrDeck3DCfg/>
 </template>
@@ -166,11 +170,15 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
   }
   .sr-pnt-sz-label{
     font-size: small;
-    margin-right: 0.5rem;
-    
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
   }
   .sr-vert-exag-label{
     font-size: small;
+    margin-left: 0.5rem;
     margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
   }
 </style>
