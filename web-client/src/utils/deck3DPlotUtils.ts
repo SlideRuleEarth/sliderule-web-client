@@ -268,7 +268,7 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             if (deck3DConfigStore.showAxes) {
                 const zAxisLengthInMeters = elevMaxScale - elevMinScale;
                 const [axes, labels, tickLines, tickText] = createAxesAndLabels(
-                    zAxisLengthInMeters,
+                    100, //zAxisLengthInMeters,
                     'Lon',
                     'Lat',
                     'Elev (m)',
