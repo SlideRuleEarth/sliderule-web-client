@@ -49,7 +49,7 @@ export function createAxesAndLabels(
     const yRange = yMax - yOrigin;
 
     const tickInterval = scale / 10;
-    const tickLength = scale * 0.01;
+    const tickLength = scale * 0.04;
 
     const ticks: TickLine[] = [];
     const tickLabels: TickLabel[] = [];
