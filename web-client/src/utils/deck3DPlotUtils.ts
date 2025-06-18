@@ -226,8 +226,9 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                 const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
                 const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
 
-                // z is *not* clamped — we preserve true geometry
-                const z = deck3DConfigStore.scale * (d[heightField] - elevMinScale) / elevRangeScale;
+                const z = deck3DConfigStore.verticalExaggeration *
+                        deck3DConfigStore.scale *
+                        (d[heightField] - elevMinScale) / elevRangeScale;
 
                 // But color is computed using clamped-to-percentile range
                 const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
@@ -265,9 +266,27 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
             const layers: Layer<any>[] = [layer];
 
             if (deck3DConfigStore.showAxes) {
-                const [axes, labels] = createAxesAndLabels(deck3DConfigStore.scale);
-                layers.push(axes, labels);
+                const zAxisLengthInMeters = elevMaxScale - elevMinScale;
+                const [axes, labels, tickLines, tickText] = createAxesAndLabels(
+                    100, //zAxisLengthInMeters,
+                    'Lon',
+                    'Lat',
+                    'Elev (m)',
+                    [255, 255, 255], // text color
+                    [200, 200, 200], // line color
+                    5,               // font size
+                    1,               // line width
+                    elevMinScale,
+                    elevMaxScale,
+                    latMin,
+                    latMax,
+                    lonMin,
+                    lonMax,
+                    deck3DConfigStore.verticalExaggeration,
+                );
+                layers.push(axes, labels, tickLines, tickText);
             }
+
             if( deckInstance.value){
                 requestAnimationFrame(() => {
                     deckInstance.value?.setProps({layers});

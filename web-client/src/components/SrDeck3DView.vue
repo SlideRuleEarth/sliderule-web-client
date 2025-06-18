@@ -18,21 +18,38 @@
             rounded
             @click="handleUpdateClick"
         />
-        <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
-        <InputNumber
-            v-model="deck3DConfigStore.pointSize"
-            inputId="pointSizeId"
-            size="small"
-            :step="0.1"
-            :min="0.1"
-            :max="10"
-            showButtons
-            :defaultValue="deck3DConfigStore.pointSize"
-            :decimalPlaces=0
-            @value-change="handlePointSizeChange"
-        />
-        <SrDeck3DCfg/>
+        <div>
+            <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
+            <InputNumber
+                v-model="deck3DConfigStore.pointSize"
+                inputId="pointSizeId"
+                size="small"
+                :step="0.1"
+                :min="0.1"
+                :max="10"
+                showButtons
+                :defaultValue="deck3DConfigStore.pointSize"
+                :decimalPlaces=0
+                @value-change="handlePointSizeChange"
+            />
+        </div>
+        <div>
+            <label class="sr-vert-exag-label" for="vertExagId">Vertical Exaggeration</label>
+            <InputNumber
+                v-model="deck3DConfigStore.verticalExaggeration"
+                inputId="vertExagId"
+                size="small"
+                :step="0.1"
+                :min="0.01"
+                :max="100"
+                showButtons
+                :defaultValue="deck3DConfigStore.verticalExaggeration"
+                :decimalPlaces="1"
+                @value-change="handleVerticalExaggerationChange"
+            />
+        </div>
     </div>
+    <SrDeck3DCfg/>
 </template>
 
 <script setup lang="ts">
@@ -70,6 +87,11 @@ async function handleToggleAxes() {
 async function handlePointSizeChange() {
     console.log('Point Size Changed:', deck3DConfigStore.pointSize);
     await update3DPointCloud(reqId.value,deckContainerStored);
+}
+
+async function handleVerticalExaggerationChange() {
+    console.log('Vertical exaggeration changed:', deck3DConfigStore.verticalExaggeration);
+    await update3DPointCloud(reqId.value, deckContainerStored);
 }
 
 onMounted(async () => {
@@ -141,8 +163,22 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
   :deep(.p-inputnumber-input) {
     width: 7rem;
   }
+
+  .sr-3d-cntrl {
+    display: flex;
+    flex-direction: row;
+  }
   .sr-pnt-sz-label{
     font-size: small;
-    margin-right: 0.5rem;
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
+  }
+  .sr-vert-exag-label{
+    font-size: small;
+    margin-left: 0.5rem;
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
   }
 </style>
