@@ -62,8 +62,8 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
-import { finalizeDeck, update3DPointCloud, updateFovy } from '@/utils/deck3DPlotUtils';
-
+import { finalizeDeck,loadAndCachePointCloudData, renderCachedData, updateFovy } from '@/utils/deck3DPlotUtils';
+import { debouncedRender } from '@/utils/SrDebounce';
 
 const recTreeStore = useRecTreeStore();
 const toast = useSrToastStore();
@@ -74,25 +74,29 @@ const elevationStore = useElevationColorMapStore();
 const localDeckContainer = ref<HTMLDivElement | null>(null);
 const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
 
+
+
 async function handleUpdateClick() {
     console.log('Update View Clicked');
-    await update3DPointCloud(reqId.value,deckContainerStored);
+    await loadAndCachePointCloudData(reqId.value);
+    debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
 async function handleToggleAxes() {
     deck3DConfigStore.showAxes = !deck3DConfigStore.showAxes;
-    await update3DPointCloud(reqId.value,deckContainerStored);
+    debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
 async function handlePointSizeChange() {
     console.log('Point Size Changed:', deck3DConfigStore.pointSize);
-    await update3DPointCloud(reqId.value,deckContainerStored);
+    debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
 async function handleVerticalExaggerationChange() {
     console.log('Vertical exaggeration changed:', deck3DConfigStore.verticalExaggeration);
-    await update3DPointCloud(reqId.value, deckContainerStored);
+    debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
+
 
 onMounted(async () => {
     updateMapAndPlot(false);
@@ -119,8 +123,9 @@ onMounted(async () => {
     }
 
     if (elevationStore.elevationColorMap.length > 0) {
-        //console.log('onMounted calling update3DPointCloud');
-        await update3DPointCloud(reqId.value,deckContainerStored);
+        //console.log('onMounted calling loadAndCachePointCloudData');
+        await loadAndCachePointCloudData(reqId.value);
+        debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     } else {
         console.error('No color Gradient');
         toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.');
@@ -136,13 +141,15 @@ onUnmounted(() => {
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
         updateMapAndPlot(false);
-        await update3DPointCloud(reqId.value,deckContainerStored);
+        await loadAndCachePointCloudData(reqId.value);
+        debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     }
 });
 
 watch(() => deck3DConfigStore.fovy, (newFov) => {
     console.log('FOV updated to:', newFov);
     updateFovy(newFov);
+    debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 });
 
 
@@ -157,7 +164,8 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
     min-height: 400px;
     background: #111;
     /* border: 1px solid #ccc;  */
-    overflow: auto; /* if you want scrollbars */
+    overflow: hidden; /* if you want scrollbars */
+    will-change: transform; /* Hint for performance */
 }
   /* Override PrimeVue component widths */
   :deep(.p-inputnumber-input) {

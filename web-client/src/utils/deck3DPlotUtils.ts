@@ -16,15 +16,21 @@ import { Deck } from '@deck.gl/core';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
 import { toRaw, isProxy } from 'vue';
-
-
-const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
-
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const elevationStore = useElevationColorMapStore();
 const fieldStore = useFieldNameStore();
 const viewId = 'main';
+
+let latField = '';
+let lonField = '';
+let heightField = '';
+
+const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
+// Module-level state for caching and Deck.gl instance
+let cachedRawData: any[] = [];
+let lastLoadedReqId: number | null = null;
+
 
 
 /**
@@ -151,32 +157,38 @@ function getPercentile(sorted: number[], p: number): number {
     return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
 }
 
-
-export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDivElement | null>) {
+/**
+ * [SLOW] Fetches data from DB, processes it, and stores it in the cache.
+ * Should only be called when the request ID changes.
+ */
+export async function loadAndCachePointCloudData(reqId: number) {
+    const toast = useSrToastStore();
+    latField = fieldStore.getLatFieldName(reqId);
+    lonField = fieldStore.getLonFieldName(reqId);
+    heightField = fieldStore.getHFieldName(reqId);
+    if (reqId === lastLoadedReqId) {
+        console.log(`Data for reqId ${reqId} is already cached.`);
+        return;
+    }
+    console.log(`Loading new data for reqId ${reqId}...`);
+    
     try {
-        //console.log('Updating 3D Point Cloud for request ID:', reqId, 'in container:', deckContainer.value);
-        const status = await indexedDb.getStatus(reqId);
-        if (status === 'error') return;
-
+        const fieldStore = useFieldNameStore();
         const fileName = await indexedDb.getFilename(reqId);
         if (!fileName) throw new Error('Filename not found');
 
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
-
         const sample_fraction = await computeSamplingRate(reqId);
-        const result = await duckDbClient.queryChunkSampled(
-            `SELECT * FROM read_parquet('${fileName}')`,
-            sample_fraction
-        );
+        const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${fileName}')`, sample_fraction);
+        const { value: rows = [] } = await result.readRows().next();
 
-        const { value: rows = [], done } = await result.readRows().next();
-        if (!done && rows.length > 0) {
-            const latField = fieldStore.getLatFieldName(reqId);
-            const lonField = fieldStore.getLonFieldName(reqId);
-            const heightField = fieldStore.getHFieldName(reqId);
-
-            const validRows = rows.filter(d => {
+        if (rows.length > 0) {
+            latField = fieldStore.getLatFieldName(reqId);
+            lonField = fieldStore.getLonFieldName(reqId);
+            heightField = fieldStore.getHFieldName(reqId);
+            
+            cachedRawData = rows.filter(d => {
                 const lon = d[lonField];
                 const lat = d[latField];
                 const elev = d[heightField];
@@ -186,89 +198,120 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                     typeof elev === 'number' && Number.isFinite(elev)
                 );
             });
+            lastLoadedReqId = reqId;
+            console.log(`Cached ${cachedRawData.length} valid data points.`);
+        } else {
+            cachedRawData = [];
+            lastLoadedReqId = null;
+            toast.warn('No Data Processed', 'No elevation data returned from query.');
+        }
+    } catch (err) {
+        console.error('Error loading 3D view data:', err);
+        toast.error('Error', 'Failed to load elevation data.');
+        cachedRawData = [];
+        lastLoadedReqId = null;
+    }
+}
 
-            if (!validRows.length) {
-                toast.warn('No Valid Rows', 'No rows with valid lat/lon/elevation found.');
-                return;
-            }
-            const elevations = validRows.map(d => d[heightField]).sort((a, b) => a - b);
-            const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
-            const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
-            const colorRange = Math.max(1e-6, colorMax - colorMin);
+/**
+ * [FAST] Uses the cached data to regenerate and render layers.
+ * This is safe to call frequently (e.g., from debounced UI handlers).
+ */
+export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
+    if(!deckContainer || !deckContainer.value) {
+        console.warn('Deck container is null or undefined');
+        return;
+    }
+    if (!initDeckIfNeeded(deckContainer)) return;
+    
 
-            const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
-            const elevMinScale = getPercentile(elevations, minElScalePercent);
-            const elevMaxScale = getPercentile(elevations, maxElScalePercent);
-            const elevRangeScale = Math.max(1e-6, elevMaxScale - elevMinScale);
+    const deck3DConfigStore = useDeck3DConfigStore();
+    const elevationStore = useElevationColorMapStore();
+    const fieldStore = useFieldNameStore();
 
-            const [minElDataPercent, maxElDataPercent] = deck3DConfigStore.elDataRange;
-            const elevMinData = getPercentile(elevations, minElDataPercent);
-            const elevMaxData = getPercentile(elevations, maxElDataPercent);
+    if (!cachedRawData.length || lastLoadedReqId === null) {
+        console.warn('No cached data available or last request ID is null');
+        deckInstance.value?.setProps({ layers: [] });
+        return;
+    }
 
-            const lonMin = Math.min(...validRows.map(d => d[lonField]));
-            const lonMax = Math.max(...validRows.map(d => d[lonField]));
+    // --- All your fast, in-memory data processing logic ---
+    const heightField = fieldStore.getHFieldName(lastLoadedReqId);
 
-            const latMin = Math.min(...validRows.map(d => d[latField]));
-            const latMax = Math.max(...validRows.map(d => d[latField]));
+    const elevations = cachedRawData.map(d => d[heightField]).sort((a, b) => a - b);
+    // ... all your min/max/range/percentile calculations using `cachedRawData` ...
+    const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
+    const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
+    const colorRange = Math.max(1e-6, colorMax - colorMin);
 
-            const lonRange = Math.max(1e-6, lonMax - lonMin);
-            const latRange = Math.max(1e-6, latMax - latMin);
+    const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
+    const elevMinScale = getPercentile(elevations, minElScalePercent);
+    const elevMaxScale = getPercentile(elevations, maxElScalePercent);
+    const elevRangeScale = Math.max(1e-6, elevMaxScale - elevMinScale);
 
-            elevationStore.updateElevationColorMapValues();
-            const rgbaArray = elevationStore.elevationColorMap;
+    const [minElDataPercent, maxElDataPercent] = deck3DConfigStore.elDataRange;
+    const elevMinData = getPercentile(elevations, minElDataPercent);
+    const elevMaxData = getPercentile(elevations, maxElDataPercent);
 
-            const pointCloudData = validRows
-            .filter(d => {
-                const height = d[heightField];
-                return height >= elevMinData && height <= elevMaxData;
-            })
-            .map(d => {
-                const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
-                const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
+    const lonMin = Math.min(...cachedRawData.map(d => d[lonField]));
+    const lonMax = Math.max(...cachedRawData.map(d => d[lonField]));
 
-                const z = deck3DConfigStore.verticalExaggeration *
-                        deck3DConfigStore.scale *
-                        (d[heightField] - elevMinScale) / elevRangeScale;
+    const latMin = Math.min(...cachedRawData.map(d => d[latField]));
+    const latMax = Math.max(...cachedRawData.map(d => d[latField]));
 
-                // But color is computed using clamped-to-percentile range
-                const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
-                const colorNorm = (colorZ - colorMin) / colorRange;
-                const index = Math.floor(colorNorm * (rgbaArray.length - 1));
-                const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
+    const lonRange = Math.max(1e-6, lonMax - lonMin);
+    const latRange = Math.max(1e-6, latMax - latMin);
 
-                const color = [
-                    Math.round(rawColor[0]),
-                    Math.round(rawColor[1]),
-                    Math.round(rawColor[2]),
-                    Math.round(rawColor[3] * 255),
-                ];
+    elevationStore.updateElevationColorMapValues();
+    const rgbaArray = elevationStore.elevationColorMap;
 
-                return { position: [x, y, z] as [number, number, number], color };
-            });
+    // Map cached data to point cloud format
+    const pointCloudData = cachedRawData
+    .filter(d => {
+        const height = d[heightField];
+        return height >= elevMinData && height <= elevMaxData;
+    })
+    .map(d => {
+        const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
+        const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
 
-            computeCentroid(pointCloudData.map(p => p.position));
+        const z = deck3DConfigStore.verticalExaggeration *
+                deck3DConfigStore.scale *
+                (d[heightField] - elevMinScale) / elevRangeScale;
 
-            //console.log('Fit Zoom:', computedFitZoom.value);
-            if (!initDeckIfNeeded(deckContainer)) {
-                toast.error('Deck container not ready', 'Check layout or timing.');
-                console.error('Deck container not ready');
-                return;
-            }            
-            const layer = new PointCloudLayer({
-                id: `point-cloud-layer-${Date.now()}`, // Ensures a new identity each time
-                data: sanitizeDeckData(pointCloudData),
-                getPosition: d => d.position,
-                getColor: d => d.color,
-                pointSize: deck3DConfigStore.pointSize,
-                opacity: 0.95,
-                pickable: true,
-            });
-            const layers: Layer<any>[] = [layer];
+        // But color is computed using clamped-to-percentile range
+        const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
+        const colorNorm = (colorZ - colorMin) / colorRange;
+        const index = Math.floor(colorNorm * (rgbaArray.length - 1));
+        const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
 
-            if (deck3DConfigStore.showAxes) {
-                const zAxisLengthInMeters = elevMaxScale - elevMinScale;
-                const [axes, labels, tickLines, tickText] = createAxesAndLabels(
-                    100, //zAxisLengthInMeters,
+        const color = [
+            Math.round(rawColor[0]),
+            Math.round(rawColor[1]),
+            Math.round(rawColor[2]),
+            Math.round(rawColor[3] * 255),
+        ];
+
+        return { position: [x, y, z] as [number, number, number], color };
+    });
+    computeCentroid(pointCloudData.map(p => p.position));
+    
+    // --- Layer creation ---
+    const layer = new PointCloudLayer({
+        id: 'point-cloud-layer', // <-- STABLE ID IS CRITICAL FOR PERFORMANCE
+        data: pointCloudData,
+        getPosition: d => d.position,
+        getColor: d => d.color,
+        pointSize: deck3DConfigStore.pointSize,
+        opacity: 0.95,
+    });
+    
+    const layers: Layer<any>[] = [layer];
+    
+    if (deck3DConfigStore.showAxes) {
+        // ... your axes creation logic ...
+        layers.push(...createAxesAndLabels(
+                    100, 
                     'Lon',
                     'Lat',
                     'Elev (m)',
@@ -282,26 +325,16 @@ export async function update3DPointCloud(reqId:number, deckContainer: Ref<HTMLDi
                     latMax,
                     lonMin,
                     lonMax,
-                    deck3DConfigStore.verticalExaggeration,
-                );
-                layers.push(axes, labels, tickLines, tickText);
-            }
-
-            if( deckInstance.value){
-                requestAnimationFrame(() => {
-                    deckInstance.value?.setProps({layers});
-                    //console.log('Redrawing deck with new point cloud layer');
-                    deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
-                });
-            }
-        } else {
-            toast.warn('No Data Processed', 'No elevation data returned.');
-        }
-    } catch (err) {
-        console.error('Error loading 3D view:', err);
-        toast.error('Error', 'Failed to load elevation data.');
+                    deck3DConfigStore.verticalExaggeration,                
+        ));
     }
+    
+    // --- Update Deck ---
+    requestAnimationFrame(() => {
+        deckInstance.value?.setProps({ layers });
+    });
 }
+
 
 export function updateFovy(fovy: number) {
     requestAnimationFrame(() => {

@@ -119,8 +119,9 @@
   import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
   import InputNumber from 'primevue/inputnumber'
   import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
-  import { update3DPointCloud } from '@/utils/deck3DPlotUtils';
   import { useRecTreeStore } from '@/stores/recTreeStore';
+  import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils';
+  import { debouncedRender } from '@/utils/SrDebounce'; 
 
   const recTreeStore = useRecTreeStore();
   const deck3DConfigStore = useDeck3DConfigStore();
@@ -130,13 +131,10 @@
   const tooltipRef = ref(null);
   const store = useDeck3DConfigStore()
 
-  const orbitAxisOptions = computed(() => [
-    { label: 'Z Axis', value: 'Z' },
-    { label: 'Y Axis', value: 'Y' }
-  ])
 
   async function handleChange() {
-      await update3DPointCloud(reqId.value,deckContainerStored);
+      await loadAndCachePointCloudData(reqId.value);
+      debouncedRender(deckContainerStored.value);
   }
 
 
